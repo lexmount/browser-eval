@@ -1440,6 +1440,7 @@ def _probe_unlocked(
     run_dir=None,
     native_options=None,
     maximum_physical_calls=None,
+    snapshot_manifest=None,
 ):
     if not isinstance(min_call_interval, (int, float)) or not 0 <= min_call_interval <= 3600:
         raise ValueError("Minimum call interval must be between 0 and 3600 seconds")
@@ -1486,6 +1487,10 @@ def _probe_unlocked(
 
         if not fixture_base:
             return []
+        if snapshot_manifest is not None:
+            from harness.web_scraper.snapshots import verify_bound_manifest
+
+            return verify_bound_manifest(home, snapshot_manifest, fixture_base)
         return [one(case_id) for case_id in case_ids]
 
     run = Path(run_dir)
@@ -1529,10 +1534,14 @@ def _probe_unlocked(
         if type(maximum) is not int or not len(case_ids) <= maximum <= len(case_ids) + 20:
             raise ValueError("Physical call budget must cover the cohort and at most 20 repairs")
         requested["maximum_physical_calls"] = maximum
+    if snapshot_manifest is not None:
+        requested["snapshot_manifest"] = snapshot_manifest
     if native_options is not None:
         requested["native_options"] = native_options
     if continuing:
         contract = read_json(run / "contract.json")
+        if contract.get("snapshot_manifest") != requested.get("snapshot_manifest"):
+            raise ValueError("Resume dataset snapshot manifest changed")
         if contract.get("native_options") != requested.get("native_options"):
             raise ValueError("Resume native options changed")
         if contract.get("maximum_physical_calls") != requested.get("maximum_physical_calls"):

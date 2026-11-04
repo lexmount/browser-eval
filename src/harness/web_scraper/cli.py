@@ -30,11 +30,7 @@ def main(argv=None):
         if command == "snapshots-verify":
             p.add_argument("--binding", type=Path, required=True)
         else:
-            p.add_argument(
-                "--previous",
-                type=Path,
-                help="Prior verified public package; preserves old version URLs",
-            )
+            p.add_argument("--revision", help="HF commit or tag; default resolves latest once")
     p = sub.add_parser("snapshots-index")
     p.add_argument("--binding", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
@@ -51,7 +47,11 @@ def main(argv=None):
     p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("snapshots-publish")
     p.add_argument("--binding", type=Path, required=True)
-    p.add_argument("--verification", type=Path, required=True)
+    p.add_argument(
+        "--verification",
+        type=Path,
+        help="Verification receipt; defaults to the host binding receipt",
+    )
     p.add_argument("--revision", required=True)
     p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("plan")
@@ -135,12 +135,13 @@ def main(argv=None):
         from harness.web_scraper.pipeline import save_json
         from harness.web_scraper.snapshots import publish
 
-        result = publish(
-            args.home,
-            json.loads(args.binding.read_text()),
-            json.loads(args.verification.read_text()),
-            revision=args.revision,
+        binding = json.loads(args.binding.read_text())
+        verification = (
+            json.loads(args.verification.read_text())
+            if args.verification
+            else binding["verification"]
         )
+        result = publish(args.home, binding, verification, revision=args.revision)
         save_json(args.output, result, exclusive=True)
         print(result)
     elif args.command == "snapshots-index":
@@ -157,7 +158,22 @@ def main(argv=None):
                 raise ValueError("Duplicate snapshot dataset")
             homes[name] = Path(home)
         if args.command == "snapshots-build":
-            result = snapshots.build(homes, args.output, previous=args.previous)
+            from huggingface_hub import HfApi
+
+            from harness.web_scraper.dataset import benchmark_config
+
+            if len(homes) != 1:
+                raise ValueError("Build one independent dataset snapshot at a time")
+            home = next(iter(homes.values()))
+            hf = benchmark_config(home)["snapshot_distribution"]
+            revision = HfApi().dataset_info(hf["repository"], revision=args.revision).sha
+            if snapshots.hf_inventory(hf, revision) != snapshots.inventory(home)[1]:
+                raise ValueError("Prepared inputs differ from selected HF edition")
+            result = snapshots.build(
+                homes,
+                args.output,
+                huggingface={"repository": hf["repository"], "revision": revision},
+            )
             print({name: len(item["cases"]) for name, item in result["datasets"].items()})
         else:
             result = snapshots.verify(homes, json.loads(args.binding.read_text()))

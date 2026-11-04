@@ -81,9 +81,12 @@ At entry, the host command resolves HF latest to a full commit and compares its
 original HTML inventory with the prepared dataset. Use `--revision HF_COMMIT_OR_TAG`
 to select another HF edition; its full resolved commit is frozen in the result.
 Discovery searches historical Cloudflare deployments as well as the current one.
-New deployments carry the HF commit and HTML inventory hash in their metadata. An HF-bound immutable
-Cloudflare deployment uses a fast inventory and deployment-identity check;
-unregistered deployments receive a full page-hash check. Matching inputs are
+Each managed snapshot has one public `snapshots.json` declaring the HF dataset
+repository, full source commit and complete HTML/file inventory hashes. Discovery
+checks this one manifest rather than downloading individual pages. The result
+records both the selected HF commit and the snapshot's source commit; an identical
+HTML inventory allows reuse across metadata-only HF revisions. Snapshots without
+this declaration require an approved new deployment. Matching inputs are
 reused without uploads or provider calls. If hosting is missing or differs, the
 command writes a deployment proposal and makes no remote changes. After approval,
 run the same command with `--approve-plan /absolute/data/approved-proposal.json`
@@ -94,7 +97,10 @@ their original URLs and input protocols. External services require no Cloudflare
 credentials and undergo the same complete page-hash check.
 
 Use the generated binding in `plan --snapshots`. Each method then receives the
-same case URL, and the collector verifies all input hashes before and after calls.
+same case URL. Before and after calls, the collector checks the frozen dataset
+manifest and its hash with one request; a changed manifest blocks certification.
+Page-by-page verification remains an explicit byte-audit command and is not used
+to identify a managed snapshot version.
 Keep raw HTML, original benchmark names, sources and licenses; exclude reference
 answers, API responses and credentials from public hosting. New Cloudflare
 packages block scripts and external resources through response headers; earlier

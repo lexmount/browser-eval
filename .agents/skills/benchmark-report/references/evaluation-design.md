@@ -56,8 +56,11 @@ authority. Resolve the requested tag or latest once, freeze its full commit, and
 keep historical runs pinned. Default to Cloudflare but accept other public origins.
 Public HTML hosting is optional: reuse each dataset's independent service or
 verify a caller-supplied origin. A navigation page is optional and owns no inputs.
-Compare original-file inventories and immutable deployment identity before use;
-perform full byte verification for a newly deployed or unbound copy. A mismatch
+Managed snapshots declare their HF repository, full source commit and dataset/file
+inventory hashes in one public manifest. Identify and recheck the dataset through
+that manifest; do not download every HTML page to determine a snapshot version.
+Keep an explicit byte audit separate from normal version checks. An unversioned
+copy needs an approved replacement deployment. A mismatch
 must produce a target- and version-bound proposal without remote writes. Deploy
 only after explicit approval, reject a proposal if its HF commit or target has
 changed, and retain previous deployment URLs. Hosting metadata may accompany HF

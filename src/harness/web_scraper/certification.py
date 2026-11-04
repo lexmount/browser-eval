@@ -74,6 +74,11 @@ def create_plan(home, methods, output, *, snapshots=None):
         from harness.web_scraper.snapshots import select
 
         plan["public_snapshots"] = select(home, read_json(snapshots))
+        if (
+            not plan["public_snapshots"].get("snapshot_manifest")
+            and plan["public_snapshots"].get("hosting_provider") != "external"
+        ):
+            raise ValueError("Managed cohorts require a versioned dataset snapshot; run host first")
         for method, participant in plan["participants"].items():
             if (
                 registry[method]["input"] != "url"
@@ -197,6 +202,8 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     for key in ("native_options", "maximum_physical_calls"):
         if key in participant:
             pacing[key] = participant[key]
+    if plan.get("public_snapshots", {}).get("snapshot_manifest"):
+        pacing["snapshot_manifest"] = plan["public_snapshots"]["snapshot_manifest"]
     source = probe(
         home,
         [method],

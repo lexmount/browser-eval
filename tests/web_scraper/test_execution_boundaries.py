@@ -905,3 +905,68 @@ def test_plain_text_429_denials_pause_without_confusing_transient_limits(
         else:
             probe(home, ["cloudflare-json"], full=True)
             assert call.call_count == 3
+
+
+def test_new_versioned_cohort_checks_dataset_manifest_without_page_fetches(tmp_path):
+    home = create(tmp_path / "example")
+    base = "https://snapshot.example/frozen"
+    receipt = {
+        "mode": "dataset_manifest",
+        "manifest_url": "https://snapshot.example/snapshots.json",
+        "manifest_sha256": "a" * 64,
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "fixture_base": base,
+    }
+    with (
+        collection_context(),
+        patch("harness.web_scraper.snapshots.check_manifest", return_value=receipt) as manifest,
+        patch("harness.web_scraper.pipeline.qualify_fixture") as page,
+        patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        result = probe(
+            home,
+            ["cloudflare-json"],
+            full=True,
+            run_dir=home / "runs/versioned",
+            fixture_base=base,
+            fixture_suffix="",
+            snapshot_manifest=receipt,
+        )
+    assert call.call_count == 3
+    assert manifest.call_count == 2
+    page.assert_not_called()
+    assert len(load_run(result)[1]) == 3
+
+
+def test_changed_dataset_snapshot_blocks_native_calls_and_repair(tmp_path):
+    home = create(tmp_path / "example")
+    base = "https://snapshot.example/frozen"
+    receipt = {
+        "manifest_url": "https://snapshot.example/snapshots.json",
+        "manifest_sha256": "a" * 64,
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "fixture_base": base,
+    }
+    from harness.web_scraper.repair import fixture_check
+
+    with (
+        collection_context(),
+        patch(
+            "harness.web_scraper.snapshots.check_manifest",
+            return_value={**receipt, "manifest_sha256": "changed"},
+        ),
+        patch("harness.web_scraper.pipeline.provider_call") as call,
+    ):
+        with pytest.raises(ValueError, match="snapshot manifest changed"):
+            probe(
+                home,
+                ["cloudflare-json"],
+                full=True,
+                run_dir=home / "runs/changed",
+                fixture_base=base,
+                fixture_suffix="",
+                snapshot_manifest=receipt,
+            )
+        call.assert_not_called()
+        with pytest.raises(ValueError, match="snapshot manifest changed"):
+            fixture_check(home, base, ["any-case"], snapshot_manifest=receipt)

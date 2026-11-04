@@ -4,7 +4,6 @@ import hashlib
 import html
 import json
 import re
-import shutil
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -37,8 +36,12 @@ def inventory(home):
     return version, files
 
 
-def build(homes, output, *, previous=None):
-    """Append immutable dataset versions; publish only HTML and source notices."""
+def build(homes, output, *, huggingface):
+    """Build one dataset snapshot with an explicit immutable HF source version."""
+    if not huggingface.get("repository") or not re.fullmatch(
+        r"[0-9a-f]{40}", huggingface.get("revision", "")
+    ):
+        raise ValueError("Snapshot requires an HF dataset repository and full commit")
     if output.is_symlink() or (output.exists() and any(output.iterdir())):
         raise ValueError("Build into a new empty directory; retain previous deployments")
     if len(homes) != 1:
@@ -58,28 +61,11 @@ def build(homes, output, *, previous=None):
         if license_path.is_symlink() or not license_path.is_file():
             raise ValueError("Original source license is required")
         prepared.append((name, home, version, files, profile, license_path))
-    old = None
-    if previous is not None:
-        old = read_json(previous / "snapshots.json")
-        actual = {str(p.relative_to(previous)) for p in previous.rglob("*") if p.is_file()}
-        if actual != set(old["files"]) | {"snapshots.json"}:
-            raise ValueError("Previous snapshot package contains undeclared files")
-        for name, expected in old["files"].items():
-            path = previous / name
-            if (
-                Path(name).is_absolute()
-                or ".." in Path(name).parts
-                or any(p.is_symlink() for p in [path, *path.parents])
-                or sha(path.read_bytes()) != expected
-            ):
-                raise ValueError("Previous public snapshot package changed")
     output.mkdir(parents=True, exist_ok=True)
-    if old is not None:
-        shutil.copytree(previous, output, dirs_exist_ok=True)
-        (output / "snapshots.json").unlink()
     registry = {
-        "schema": "web-scraper-public-snapshots/1",
-        "datasets": dict(old["datasets"]) if old else {},
+        "schema": "web-scraper-public-snapshots/2",
+        "huggingface": huggingface,
+        "datasets": {},
     }
     for name, home, version, files, profile, license_path in prepared:
         prefix = f"{name}/{version}"
@@ -187,7 +173,17 @@ def select(home, binding):
         "fixture_base": base.rstrip("/"),
         "html_inventory_sha256": version,
         "input_route": "url",
+        **(
+            {"hosting_provider": binding["hosting_provider"]}
+            if "hosting_provider" in binding
+            else {}
+        ),
         **({"huggingface": binding["huggingface"]} if "huggingface" in binding else {}),
+        **(
+            {"snapshot_manifest": binding["snapshot_manifest"]}
+            if "snapshot_manifest" in binding
+            else {}
+        ),
     }
 
 
@@ -247,10 +243,15 @@ def publication_metadata(home, binding, verification):
     }
     actual = [
         (row["case_id"], row["sha256"], row["url"])
-        for row in verification["pages"]
+        for row in verification.get("pages", [])
         if row["url"].startswith(selected["fixture_base"] + "/") and row["http_status"] == 200
     ]
-    if len(actual) != len(expected) or set(actual) != expected:
+    if verification.get("mode") == "dataset_manifest":
+        origin = "https://" + urlsplit(verification["manifest_url"]).netloc
+        checked = check_manifest(home, origin, verification["huggingface"])
+        if checked != verification or checked["fixture_base"] != selected["fixture_base"]:
+            raise ValueError("Snapshot publication dataset manifest changed")
+    elif len(actual) != len(expected) or set(actual) != expected:
         raise ValueError("Snapshot publication requires every matching verified page")
     source = next(
         item for item in binding["datasets"].values() if item["html_inventory_sha256"] == version
@@ -258,8 +259,13 @@ def publication_metadata(home, binding, verification):
     return {
         "schema": "web-scraper-hf-snapshots/1",
         **source,
+        **(
+            {"snapshot_manifest": verification}
+            if verification.get("mode") == "dataset_manifest"
+            else {}
+        ),
         "synchronization": (
-            "Original files are authoritative. Deploy unchanged HTML, verify every public page, "
+            "Original files are authoritative. Deploy unchanged HTML, verify the dataset manifest, "
             "then publish this binding. Pin the HF commit and immutable deployment; "
             "create a new version when HTML changes."
         ),
@@ -275,7 +281,7 @@ def publish(home, binding, verification, *, revision):
     if not re.fullmatch(r"[0-9a-f]{40}", revision):
         raise ValueError("Select a full HF source revision")
     metadata = publication_metadata(home, binding, verification)
-    hf = metadata["huggingface"]
+    hf = metadata.get("huggingface") or benchmark_config(home)["snapshot_distribution"]
     originals = hf_inventory(hf, revision)
     if originals != metadata["cases"]:
         raise ValueError("HF originals differ from the verified public snapshots")
@@ -289,8 +295,9 @@ def publish(home, binding, verification, *, revision):
         "\n[snapshots.json](snapshots.json) binds every page ID to its SHA-256 and an "
         "immutable public deployment. Native extraction APIs receive "
         "`fixture_base + '/' + id`; the original HTML files remain in this repository.\n\n"
-        "Original files are authoritative. Publication verifies all public page hashes "
-        "before adding this binding. Changed HTML requires a new deployment and a new "
+        "Original files are authoritative. Publication verifies the declared dataset version "
+        "and complete input inventory before adding this binding. Changed HTML requires "
+        "a new deployment and a new "
         "HF commit; previous files and deployment URLs remain available. Pin the full "
         "HF commit for evaluation and verify page hashes before and after calls. "
         "A mismatch stops collection rather than silently replacing the input. "
@@ -303,6 +310,37 @@ def publish(home, binding, verification, *, revision):
         if marker in readme
         else readme + section
     )
+    existing = None
+    try:
+        existing = json.loads(
+            Path(
+                hf_hub_download(
+                    hf["repository"], "snapshots.json", repo_type="dataset", revision=revision
+                )
+            ).read_bytes()
+        )
+    except Exception as error:
+        from huggingface_hub.errors import EntryNotFoundError
+
+        if not isinstance(error, EntryNotFoundError):
+            raise
+
+    def comparable(value):
+        return {key: item for key, item in value.items() if key != "huggingface_source_revision"}
+
+    if (
+        existing is not None
+        and comparable(existing) == comparable(metadata)
+        and readme == readme_path.read_text()
+    ):
+        return {
+            "repository": hf["repository"],
+            "source_revision": revision,
+            "revision": revision,
+            "fixture_base": metadata["fixture_base"],
+            "cases": len(originals),
+            "changed": False,
+        }
     result = publish_snapshot_metadata(
         hf["repository"], metadata, parent_revision=revision, readme=readme
     )
@@ -488,40 +526,13 @@ def host(
                     break
                 page += 1
         binding = receipt = None
-        if (
-            deployment
-            and metadata
-            and metadata.get("cases") == cases
-            and metadata.get("html_inventory_sha256") == version
-            and urlsplit(metadata.get("fixture_base", "")).netloc
-            == urlsplit(deployment["url"]).netloc
-            and metadata.get("immutable_origin", "").rstrip("/") == deployment["url"].rstrip("/")
-        ):
-            binding = bind(metadata["fixture_base"])
-            select(home, binding)
+        if deployment:
             try:
-                canary = qualify_fixture(home, metadata["fixture_base"], sorted(cases)[0])
-            except ValueError:
-                binding = None
-                canary = None
-            receipt = {
-                "mode": "hf_bound_immutable_deployment",
-                "public_page_check": canary,
-                "bound_pages": len(cases),
-                "html_inventory_sha256": version,
-                "deployment_id": deployment["id"],
-                "hf_snapshot_binding_sha256": sha(json.dumps(metadata, sort_keys=True).encode()),
-            }
-        elif deployment:
-            base = deployment["url"].rstrip("/")
-            for candidate in (base, base + "/" + name + "/" + version):
-                try:
-                    candidate_binding = bind(candidate)
-                    receipt = verify({name: home}, candidate_binding)
-                    binding = candidate_binding
-                    break
-                except ValueError:
-                    continue
+                receipt = check_manifest(home, deployment["url"], hf_identity)
+                binding = bind(receipt["fixture_base"])
+                binding["snapshot_manifest"] = receipt
+            except (ValueError, requests.HTTPError):
+                pass
         if binding is not None:
             state = "reused_existing_deployment"
         else:
@@ -563,7 +574,7 @@ def host(
                     raise ValueError("Cloudflare project creation failed")
             with tempfile.TemporaryDirectory(prefix="lexbench-snapshot-") as temporary:
                 folder = Path(temporary) / "public"
-                build({name: home}, folder)
+                build({name: home}, folder, huggingface=hf_identity)
                 command = (
                     [str(wrangler)]
                     if wrangler
@@ -609,7 +620,8 @@ def host(
             response.raise_for_status()
             deployment = response.json()["result"]["canonical_deployment"]
             binding = bind(deployment["url"].rstrip("/") + "/" + name + "/" + version)
-            receipt = verify({name: home}, binding)
+            receipt = check_manifest(home, deployment["url"], hf_identity)
+            binding["snapshot_manifest"] = receipt
             state = "deployed_new_input_version"
         binding["cloudflare"] = {
             "project": project,
@@ -618,6 +630,7 @@ def host(
         }
     else:
         raise ValueError("Unknown snapshot hosting provider")
+    binding["hosting_provider"] = provider
     binding["hosting_state"] = state
     binding["verification"] = receipt
     save_json(output, binding, exclusive=True)
@@ -627,3 +640,67 @@ def host(
         "huggingface_revision": revision,
         "fixture_base": next(iter(binding["datasets"].values()))["fixture_base"],
     }
+
+
+def check_manifest(home, origin, hf_identity):
+    """Identify a whole snapshot from one manifest, without fetching HTML pages."""
+    import requests
+
+    url = origin.rstrip("/") + "/snapshots.json"
+    response = requests.get(url, timeout=40)
+    response.raise_for_status()
+    if response.url != url:
+        raise ValueError("Snapshot manifest must use its immutable canonical URL")
+    manifest = response.json()
+    source = manifest.get("huggingface", {})
+    if (
+        manifest.get("schema") != "web-scraper-public-snapshots/2"
+        or source.get("repository") != hf_identity["repository"]
+        or not re.fullmatch(r"[0-9a-f]{40}", source.get("revision", ""))
+    ):
+        raise ValueError("Snapshot lacks a valid HF dataset version")
+    version, cases = inventory(home)
+    datasets = manifest.get("datasets", {})
+    if len(datasets) != 1:
+        raise ValueError("A snapshot must identify exactly one dataset edition")
+    item = next(iter(datasets.values()))
+    if item.get("html_inventory_sha256") != version or item.get("cases") != cases:
+        raise ValueError("Snapshot inventory differs from selected HF dataset")
+    path = item.get("path", "")
+    if not re.fullmatch(r"[a-z0-9-]+/" + version, path):
+        raise ValueError("Snapshot path does not identify the declared input version")
+    expected_html = {path + "/" + case + ".html": value for case, value in cases.items()}
+    declared_html = {
+        name: value
+        for name, value in manifest.get("files", {}).items()
+        if name.endswith(".html") and name not in {"index.html", "404.html"}
+    }
+    if declared_html != expected_html:
+        raise ValueError("Snapshot file inventory differs from selected HF dataset")
+    return {
+        "mode": "dataset_manifest",
+        "manifest_url": url,
+        "manifest_sha256": sha(response.content),
+        "huggingface": hf_identity,
+        "snapshot_huggingface": source,
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+        "fixture_base": origin.rstrip("/") + "/" + path,
+    }
+
+
+def verify_bound_manifest(home, bound, fixture_base):
+    """Recheck a frozen dataset manifest before collection or failure repair."""
+    origin = "https://" + urlsplit(bound["manifest_url"]).netloc
+    receipt = check_manifest(home, origin, bound["huggingface"])
+    if receipt != bound or receipt["fixture_base"] != fixture_base:
+        raise ValueError("Frozen dataset snapshot manifest changed")
+    return [
+        {
+            "scope": "dataset",
+            "case_id": "dataset-snapshot",
+            "sha256": receipt["manifest_sha256"],
+            "http_status": 200,
+            "snapshot_manifest": receipt,
+        }
+    ]

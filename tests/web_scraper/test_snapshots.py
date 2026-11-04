@@ -10,6 +10,13 @@ from harness.web_scraper.certification import create_plan, run
 from harness.web_scraper.pipeline import METHODS, SCHEMA, digest, provider_call
 
 HF_INVENTORY = snapshots.hf_inventory
+CHECK_MANIFEST = snapshots.check_manifest
+
+
+def build_snapshot(homes, output):
+    return snapshots.build(
+        homes, output, huggingface={"repository": "owner/data", "revision": "a" * 40}
+    )
 
 
 def cf_lookup(*responses):
@@ -93,15 +100,32 @@ def home(tmp_path, monkeypatch):
             "http_status": 200,
         },
     )
+    monkeypatch.setattr(
+        snapshots,
+        "check_manifest",
+        lambda home, origin, hf: {
+            "mode": "dataset_manifest",
+            "fixture_base": origin + "/example/" + snapshots.inventory(home)[0],
+            "manifest_sha256": "f" * 64,
+            "manifest_url": origin + "/snapshots.json",
+            "huggingface": hf,
+        },
+    )
     return home
 
 
 def binding(home, tmp_path):
-    value = snapshots.build({"example": home}, tmp_path / "site")
+    value = build_snapshot({"example": home}, tmp_path / "site")
     item = value["datasets"]["example"]
     item["immutable_origin"] = "https://snapshots.example"
     item["homepage"] = "https://snapshots.example"
     item["fixture_base"] = "https://snapshots.example/" + item["path"]
+    value["snapshot_manifest"] = {
+        "manifest_url": "https://snapshots.example/snapshots.json",
+        "manifest_sha256": "f" * 64,
+        "huggingface": value["huggingface"],
+        "fixture_base": item["fixture_base"],
+    }
     return value
 
 
@@ -122,7 +146,7 @@ def test_public_package_contains_only_identical_html_and_source_notices(home, tm
     assert "default-src 'none'" in (root / "_headers").read_text()
     assert (root / "404.html").is_file()
     with pytest.raises(ValueError, match="empty directory"):
-        snapshots.build({"example": home}, root)
+        build_snapshot({"example": home}, root)
 
 
 def test_version_is_html_content_identity_not_reference_metadata(home, tmp_path):
@@ -250,22 +274,13 @@ def test_native_product_url_routes_fetch_at_vendor_without_upload(method, endpoi
     session.post.assert_not_called()
 
 
-def test_next_deployment_keeps_old_version_urls_and_rejects_private_extras(home, tmp_path):
-    first = snapshots.build({"example": home}, tmp_path / "old")
-    old_path = first["datasets"]["example"]["path"]
-    page = home / "dataset/html/case-a.html"
-    page.write_text("New HTML")
-    manifest = home / "dataset/manifest.json"
-    data = json.loads(manifest.read_text())
-    data["files"]["html/case-a.html"]["sha256"] = digest(page.read_bytes())
-    manifest.write_text(json.dumps(data))
-    second = snapshots.build({"example": home}, tmp_path / "new", previous=tmp_path / "old")
-    assert second["datasets"]["example"]["path"] != old_path
-    assert (tmp_path / "new" / old_path / "case-a.html").read_bytes() != page.read_bytes()
-    (tmp_path / "old/private-key.txt").write_text("never publish")
-    with pytest.raises(ValueError, match="undeclared"):
-        snapshots.build({"example": home}, tmp_path / "rejected", previous=tmp_path / "old")
-    assert not (tmp_path / "rejected").exists()
+def test_snapshot_build_requires_full_hf_dataset_commit(home, tmp_path):
+    with pytest.raises(ValueError, match="full commit"):
+        snapshots.build(
+            {"example": home},
+            tmp_path / "invalid",
+            huggingface={"repository": "owner/data", "revision": "main"},
+        )
 
 
 def test_independent_services_share_only_the_navigation_index(home, tmp_path):
@@ -283,7 +298,7 @@ def test_independent_services_share_only_the_navigation_index(home, tmp_path):
     assert "https://snapshots.example" in page
     assert not list((tmp_path / "navigation").rglob("case-a.html"))
     with pytest.raises(ValueError, match="own snapshot service"):
-        snapshots.build({"first": home, "second": home}, tmp_path / "combined")
+        build_snapshot({"first": home, "second": home}, tmp_path / "combined")
 
 
 def test_publication_requires_complete_same_version_online_verification(home, tmp_path):
@@ -369,7 +384,7 @@ def test_cloudflare_discovers_and_reuses_existing_dataset_service(home, tmp_path
             home, tmp_path / "host.json", provider="cloudflare", project="shared-dataset"
         )
     assert result["state"] == "reused_existing_deployment"
-    assert result["fixture_base"] == "https://version.dataset.pages.dev"
+    assert result["fixture_base"].startswith("https://version.dataset.pages.dev/")
     assert get.call_args_list[0].args[0].endswith("/pages/projects/shared-dataset")
     post.assert_not_called()
     deploy.assert_not_called()
@@ -419,7 +434,8 @@ def test_hf_cache_symlinks_are_read_but_changed_originals_block_publication(
     cached.symlink_to(blob)
     readme = tmp_path / "README.md"
     readme.write_text(
-        "Original source and license\n## Public HTML snapshots\nOld address\n## Citation\nKeep this citation"
+        "Original source and license\n## Public HTML snapshots\nOld address\n"
+        "## Citation\nKeep this citation"
     )
     monkeypatch.setattr(
         "huggingface_hub.hf_hub_download",
@@ -461,7 +477,7 @@ def test_changed_cloudflare_snapshot_requires_approval_and_never_writes(
         lambda: {"CLOUDFLARE_ACCOUNT_ID": "account", "CLOUDFLARE_API_TOKEN": "credential"},
     )
     monkeypatch.setattr(
-        snapshots, "verify", MagicMock(side_effect=ValueError("Remote fixture differs"))
+        snapshots, "check_manifest", MagicMock(side_effect=ValueError("Remote fixture differs"))
     )
     proposal = tmp_path / "proposal.json"
     with (
@@ -523,7 +539,7 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     deploy.assert_not_called()
     assert (
         json.loads((tmp_path / "host.json").read_text())["verification"]["mode"]
-        == "hf_bound_immutable_deployment"
+        == "dataset_manifest"
     )
 
 
@@ -549,13 +565,17 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(home, tmp_path
         },
     )
 
-    def verify(homes, binding):
-        base = next(iter(binding["datasets"].values()))["fixture_base"]
+    def verify(home, origin, hf):
+        base = origin
         if "old.dataset" in base:
             raise ValueError("Remote fixture differs")
-        return {"verified_pages": 1, "pages": []}
+        return {
+            "mode": "dataset_manifest",
+            "fixture_base": base + "/example/" + snapshots.inventory(home)[0],
+            "case_count": 1,
+        }
 
-    monkeypatch.setattr(snapshots, "verify", verify)
+    monkeypatch.setattr(snapshots, "check_manifest", verify)
     proposal = tmp_path / "proposal.json"
     with patch("requests.get", side_effect=cf_lookup(old)):
         assert (
@@ -578,7 +598,7 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(home, tmp_path
     assert "UNRELATED_API_KEY" not in deploy.call_args.kwargs["env"]
     assert "--commit-hash" in deploy.call_args.args[0]
     assert "a" * 40 in deploy.call_args.args[0]
-    assert json.loads((tmp_path / "host.json").read_text())["verification"]["verified_pages"] == 1
+    assert json.loads((tmp_path / "host.json").read_text())["verification"]["case_count"] == 1
 
 
 def test_stale_prepared_inputs_cannot_override_hf_latest(home, tmp_path, monkeypatch):
@@ -635,8 +655,65 @@ def test_selected_hf_edition_finds_matching_historical_deployment(home, tmp_path
         patch("subprocess.run") as deploy,
     ):
         result = snapshots.host(home, tmp_path / "host.json", hf_revision="v1", project="shared")
-    assert result["fixture_base"] == "https://older.dataset.pages.dev"
+    assert result["fixture_base"].startswith("https://older.dataset.pages.dev/")
     assert get.call_args_list[-1].kwargs["params"]["page"] == 2
     hf.dataset_info.assert_called_once_with("owner/data", revision="v1")
     full_check.assert_not_called()
     deploy.assert_not_called()
+
+
+def test_entire_snapshot_is_identified_by_one_version_manifest(home, tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+
+    monkeypatch.setattr(snapshots, "check_manifest", CHECK_MANIFEST)
+    build_snapshot({"example": home}, tmp_path / "public")
+    body = (tmp_path / "public/snapshots.json").read_bytes()
+    response = MagicMock(
+        status_code=200, content=body, url="https://immutable.example/snapshots.json"
+    )
+    response.json.return_value = json.loads(body)
+    with (
+        patch("requests.get", return_value=response) as fetch,
+        patch.object(snapshots, "qualify_fixture") as page,
+    ):
+        receipt = snapshots.check_manifest(
+            home, "https://immutable.example", {"repository": "owner/data", "revision": "a" * 40}
+        )
+    assert receipt["snapshot_huggingface"]["revision"] == "a" * 40
+    assert receipt["manifest_sha256"] == digest(body)
+    assert receipt["case_count"] == 1
+    fetch.assert_called_once_with("https://immutable.example/snapshots.json", timeout=40)
+    page.assert_not_called()
+    for change in ["missing_version", "wrong_input", "wrong_file"]:
+        metadata = json.loads(body)
+        if change == "missing_version":
+            metadata.pop("huggingface")
+        elif change == "wrong_input":
+            metadata["datasets"]["example"]["html_inventory_sha256"] = "wrong"
+        else:
+            metadata["files"][
+                next(name for name in metadata["files"] if name.endswith("/case-a.html"))
+            ] = "wrong"
+        response.json.return_value = metadata
+        with patch("requests.get", return_value=response), pytest.raises(ValueError):
+            snapshots.check_manifest(
+                home,
+                "https://immutable.example",
+                {"repository": "owner/data", "revision": "a" * 40},
+            )
+
+
+def test_external_hosting_remains_usable_without_cloudflare_manifest(home, tmp_path, monkeypatch):
+    monkeypatch.setattr(snapshots, "verify", lambda *a, **k: {"verified_pages": 1, "pages": []})
+    snapshots.host(
+        home,
+        tmp_path / "external.json",
+        provider="external",
+        public_base="https://custom.example/input",
+    )
+    plan = create_plan(
+        home, ["cloudflare-json"], tmp_path / "plan.json", snapshots=tmp_path / "external.json"
+    )
+    assert plan["public_snapshots"]["hosting_provider"] == "external"
+    assert "snapshot_manifest" not in plan["public_snapshots"]
+    assert plan["public_snapshots"]["huggingface"]["revision"] == "a" * 40

@@ -37,11 +37,21 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             raise ValueError("Repair selection includes successful or duplicate cases")
         if not cases:
             continue
+        if contract.get("snapshot_manifest"):
+            bound_base = contract["snapshot_manifest"]["fixture_base"]
+            if fixture_base is not None and fixture_base != bound_base:
+                raise ValueError("Cannot change the frozen dataset snapshot during repair")
+            fixture_base = bound_base
         cert = read_json(source / "certificate.json")
         if digest((source / "manifest.json").read_bytes()) != cert["manifest_sha256"]:
             raise ValueError("Repair parent certificate differs")
         participants[method] = {
             "method": method,
+            **(
+                {"snapshot_manifest": contract["snapshot_manifest"]}
+                if contract.get("snapshot_manifest")
+                else {}
+            ),
             "parent_run": str(source.relative_to(home)),
             "parent_manifest_sha256": cert["manifest_sha256"],
             "parent_certificate_sha256": digest((source / "certificate.json").read_bytes()),
@@ -107,7 +117,11 @@ def artifact(directory, entry):
     return read_json(path)
 
 
-def fixture_check(home, base, cases, suffix=""):
+def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
+    if snapshot_manifest is not None:
+        from harness.web_scraper.snapshots import verify_bound_manifest
+
+        return verify_bound_manifest(home, snapshot_manifest, base)
     return [
         {key: item[key] for key in ("case_id", "url", "sha256")}
         for cid in cases
@@ -199,6 +213,7 @@ def collect(home, profile, method, destination):
             plan["fixture_base"],
             participant["case_ids"],
             participant.get("fixture_suffix", ""),
+            snapshot_manifest=participant.get("snapshot_manifest"),
         )
         if needs_fixture
         else []
@@ -232,6 +247,7 @@ def collect(home, profile, method, destination):
             plan["fixture_base"],
             participant["case_ids"],
             participant.get("fixture_suffix", ""),
+            snapshot_manifest=participant.get("snapshot_manifest"),
         )
         if needs_fixture
         else []
