@@ -550,6 +550,7 @@ def test_report_renders_every_registered_participant_of_a_larger_set(tmp_path):
     method = _route(reports, "-method.html")
     assert "分别启动并预热 3 个浏览器" in method
     assert "资源基线只比较所有 Provider 都成功的同任务" in method
+    assert "按任务交替 3 个 Provider 的执行顺序" in method
     assert "双方" not in method
     assert "按任务交替 3 个 Provider 的执行顺序" in method
     for label, version in (("Obscura", "obscura 1.0"), ("Lightpanda", "lightpanda 1.0")):
@@ -584,6 +585,9 @@ def test_report_renders_a_single_participant_without_comparisons(tmp_path):
     assert "本轮只有 Chromium 一个 Provider" in home
     assert "逐任务配对比值分布" not in home
     assert 'class="better"' not in home
+    method = _route(reports, "-method.html")
+    assert "计时外静置" in method
+    assert "交替" not in method
 
 
 def test_report_rejects_an_unsafe_participant_id():
