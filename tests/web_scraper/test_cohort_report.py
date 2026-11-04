@@ -834,6 +834,7 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
 @pytest.mark.parametrize("payload", [{}, {"error": {"type": "t", "message": "m"}}])
 def test_failed_details_use_the_same_error_as_dialog_evidence(tmp_path, payload):
     import json
+
     from harness.web_scraper.analysis import native_error
     from harness.web_scraper.messages import message
 

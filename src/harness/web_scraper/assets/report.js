@@ -306,4 +306,3 @@ if (form) {
     control.addEventListener(control.tagName === "INPUT" ? "input" : "change", update);
   update();
 }
-
