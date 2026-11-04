@@ -145,11 +145,12 @@ def verify_report_assets(package_root: Path) -> None:
     from harness.trajectory_replay import report as replay_report
     from harness.trajectory_replay.public_webarena import report as public_report
     from harness.trajectory_replay.report_compaction import _script
+    from harness.web_fetch.report import EXTRA, JS
     from harness.web_fetch.report_style import STYLE
     from harness.web_search.comparison import SCRIPT, STYLE as COMPARISON_STYLE
     from harness.web_search.delivery import BRIDGE, LOADER
 
-    assert all(text.strip() for text in (STYLE, SCRIPT, COMPARISON_STYLE, BRIDGE, LOADER))
+    assert all(text.strip() for text in (STYLE, EXTRA, JS, SCRIPT, COMPARISON_STYLE, BRIDGE, LOADER))
     assert _script('compact-data-fetch-adapter.js').strip()
     for renderer in (replay_report, public_report):
         assert Path(renderer.__file__).resolve().is_relative_to(package_root)

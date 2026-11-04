@@ -25,6 +25,7 @@ from harness.web_fetch.methods import (
 )
 from harness.web_fetch.models import REPORT_FAMILIES as BROWSER_FAMILY_NAMES
 from harness.web_fetch.models import report_family
+from harness.web_fetch.providers.headless import engine_definition
 from harness.web_fetch.report_components import (
     bilingual_text,
     comparable_body_reference,
@@ -466,7 +467,7 @@ def _browser_network_rows(records, providers):
     for provider in providers:
         label=browser_method_label(provider)
         if label==provider:label=provider.title()
-        if native_browser_engine(provider)=='kitesurf':
+        if engine_definition(native_browser_engine(provider)).hosted:
             rows.append({'provider':provider,'mode':'service_network',
                          'text':label+'在 Cloudflare Browser Run 托管网络中执行；本地 DNS 配置不适用于该服务。耗时包含云端部署位置和公网路径。'})
             continue

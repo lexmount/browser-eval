@@ -14,7 +14,6 @@ from typing import Any, NoReturn
 
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
-from harness.data_home import data_home
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
@@ -1220,7 +1219,7 @@ def main(argv=None):
     parser.add_argument(
         "--site",
         type=pathlib.Path,
-        default=data_home() / "reports/moli-1.1.8-failures-site",
+        required=True,
     )
     parser.add_argument(
         "--release", action="store_true", help="Require the complete bound method matrix"

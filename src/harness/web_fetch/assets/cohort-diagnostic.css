@@ -1,0 +1,12 @@
+
+#failure-inventory .table-wrap{max-height:70vh;overflow:auto;scrollbar-gutter:stable}
+#failure-inventory table{min-width:1180px}
+#failure-inventory th{position:sticky;top:0;z-index:1}
+#failure-inventory td:nth-child(2){min-width:250px}
+#failure-inventory td:nth-child(5){min-width:240px;max-width:320px}
+.table-wrap{overflow-x:auto}.table-wrap th{white-space:nowrap}
+.diagnostic-specimen{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.diagnostic-specimen>div{min-width:0;background:var(--panel2);padding:16px;border-radius:10px}
+.diagnostic-specimen pre{max-height:240px;font-size:13px}
+.section p{overflow-wrap:anywhere}
+@media(max-width:800px){.diagnostic-specimen{grid-template-columns:1fr}}

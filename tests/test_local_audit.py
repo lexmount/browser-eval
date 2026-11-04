@@ -1120,16 +1120,27 @@ def test_long_product_and_caller_logs_use_one_existing_source(tmp_path):
     assert source.read_bytes()==original
 
 
+def test_renderer_identity_covers_loaded_assets(tmp_path, monkeypatch):
+    from harness.web_fetch import report_build
+    (tmp_path / 'assets').mkdir()
+    (tmp_path / 'report.py').write_text('renderer', encoding='utf-8')
+    asset = tmp_path / 'assets/report.css'
+    asset.write_text('body{}', encoding='utf-8')
+    monkeypatch.setattr(report_build, '__file__', str(tmp_path / 'report_build.py'))
+    before = report_build.renderer_sha256()
+    asset.write_text('body{margin:0}', encoding='utf-8')
+    assert report_build.renderer_sha256() != before
+
+
 def test_full_current_refresh_requires_explicit_authority_and_changed_template(tmp_path):
-    from harness.web_fetch.report_build import _current_template_refresh
-    from harness.web_fetch import report
+    from harness.web_fetch.report_build import _current_template_refresh, renderer_sha256
     path=tmp_path/'authority.json'
     def binding(kind='current_local_snapshot_authority', schema=1):
         _write(path, {'kind': kind, 'schema_version': schema})
         return {'offline_revision': {'path': 'authority.json', 'sha256': _digest(path)}}
     changed={'presentation_refresh': {'renderer_sha256': 'old-template'}}
     assert _current_template_refresh(tmp_path,binding(),changed)
-    same={'presentation_refresh': {'renderer_sha256': _digest(__import__('pathlib').Path(report.__file__))}}
+    same={'presentation_refresh': {'renderer_sha256': renderer_sha256()}}
     assert not _current_template_refresh(tmp_path,binding(),same)
     assert not _current_template_refresh(tmp_path,binding('local_offline_score_revision'),changed)
     assert not _current_template_refresh(tmp_path,binding(schema=2),changed)

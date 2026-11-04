@@ -84,7 +84,8 @@ def render_full_report(tmp_path, binding_name, extra_methods=0, *, call_counts=N
     (tmp_path / "sources/case-1.html.txt").write_text("<p>source</p>", encoding="utf-8")
     (tmp_path / "references").mkdir()
     (tmp_path / "references/case-1.md").write_text("answer", encoding="utf-8")
-    profile = {"providers": providers, "versions": {provider: "1.0" for provider in providers},
+    profile = {"providers": providers, "case_count": 545,
+               "versions": {provider: "1.0" for provider in providers},
                "variants": [
                    {"provider": "moli-pr785-fixed", "profile": "moli-pr785-fixed-report.json"},
                    {"provider": "moli-content-fixed", "profile": "moli-content-fixed-report.json"},

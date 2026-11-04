@@ -112,6 +112,7 @@ def test_installed_package_does_not_borrow_an_unrelated_checkout(tmp_path, monke
     'environments/webarena/runtime/php-fpm-qemu.ini',
     'web_fetch/templates/interpretation-headless.css',
     'web_fetch/assets/report-style.css',
+    'web_fetch/assets/report.js',
     'trajectory_replay/assets/webarena-report.js',
     'browser_use/assets/report.css',
     'web_search/assets/comparison.js',
