@@ -521,7 +521,7 @@ def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presen
     spec['presentation'] = presentation
     root = build(tmp_path, spec).parent
     path = next((root/'attempts').glob('*.html')) if route == 'attempt' else root/route
-    page = BeautifulSoup(path.read_text(), 'html.parser')
+    page = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
     scope = page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
     assert scope and '认证' in scope.get_text()
     if defect == 'remove':
@@ -533,6 +533,43 @@ def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presen
     audit_path = root/'saved-matrix-audit.json'
     audit = json.loads(audit_path.read_bytes())
     audit['files'][path.relative_to(root).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
-    audit_path.write_text(json.dumps(audit))
+    audit_path.write_text(json.dumps(audit), encoding='utf-8')
     with pytest.raises(ValueError, match='disclosure missing|Rendered page differs from validated source'):
         check_saved_matrix(root, spec_path=tmp_path/'spec.json' if presentation == 'final' else None)
+
+
+@pytest.mark.parametrize('only_missing', [False, True])
+@pytest.mark.parametrize('telemetry', ['receipt', 'events', 'invalid'])
+def test_uncommitted_settings_keep_counts_and_observed_windows(tmp_path, only_missing, telemetry):
+    spec = matrix(tmp_path, same_method=True)
+    spec['presentation'] = 'audit'
+    spec['sources'].pop()
+    if only_missing:
+        spec['sources'].clear()
+        spec['suites'] = spec['suites'][1:]
+    started, ended = '2020-01-01T00:00:00+00:00', '2030-01-01T00:00:00+00:00'
+    receipt = dict(suite='second', provider='method', case_id='case', state='called_but_uncommitted')
+    if telemetry == 'receipt':
+        receipt.update(physical_calls=2, started_at=started, completed_at=ended)
+    if telemetry == 'invalid':
+        receipt.update(physical_calls=True, started_at='not a date', completed_at='2030-01-01')
+    entry = dict(suite='second', provider='method', case_id='case', status='uncommitted',
+                 reason='Lost result', receipt=write(tmp_path/'lost.json', receipt))
+    if telemetry == 'events':
+        events = [{'event':'http_request_started','call_id':'method__case__r001__p001','at':started},
+                  {'event':'http_request_started','call_id':'method__case__r001__p002','at':ended},
+                  {'event':'done','call_id':'method__case__r001__p002','completed_at':ended},
+                  {'event':'http_request_started','call_id':'other__case__r001','at':'1990-01-01T00:00:00Z'}]
+        entry['diagnostic_sources'] = [write(tmp_path/'events.json', events)]
+    spec['missing'] = [entry]
+    root = build(tmp_path, spec).parent
+    settings = json.loads((root/'matrix.json').read_bytes())['execution_settings'][0]
+    assert settings['calls'] == (1 if telemetry == 'invalid' else 2) + int(not only_missing)
+    assert settings['verified_calls'] == int(not only_missing)
+    assert settings['uniform'] is False
+    assert 'Uncommitted invocation has no verified native settings' in settings['errors']
+    if telemetry == 'invalid':
+        assert 'Uncommitted call has an invalid collection timestamp' in settings['errors']
+    else:
+        assert settings['collection_start'] == started
+        assert settings['collection_end'] == ended

@@ -114,7 +114,7 @@ def _diagnostic_call_matches(call_id, provider, case_id):
         re.escape(provider+'__'+case_id)+r'__r[0-9]{3}(?:__p[0-9]{3})?', call_id) is not None
 
 
-def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
+def _receipt_covers(value, suite, provider, case_id, status, inherited=None, observations=None):
     """Consider all events: a skip cannot override evidence of an invocation."""
     states = set()
     def visit(node, context):
@@ -144,6 +144,8 @@ def _receipt_covers(value, suite, provider, case_id, status, inherited=None):
                     and isinstance(node.get('user_instruction'), str) and node['user_instruction'].strip()):
                 states.add('not_called')
             if matching:
+                if observations is not None:
+                    observations.append({**context, **node})
                 if (node.get('state') == 'pre_call_blocked_no_method_calls'
                         and node.get('native_route_receipt', {}).get('transport_state') == 'not_started'):
                     states.add('not_called')
@@ -985,6 +987,59 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                 _validate_call_sequence(record, case, policy, continuation, require_saved_settings=True)
             except (ValueError, KeyError):
                 group['errors'].append('Physical call sequence differs from its frozen retry policy')
+    for (suite, provider, cid), (entry, receipt) in inputs['missing'].items():
+        if entry['status'] != 'uncommitted':
+            continue
+        case = inputs['cases'][suite][cid]
+        family = (_presentation_family(case, suite, spec['report_families'])
+                  if spec.get('report_families') else suite)
+        if (provider in spec.get('excluded_report_providers', []) or
+                family in spec.get('excluded_report_families', [])):
+            continue
+        group = groups.setdefault((provider, family), dict(
+            provider=provider, family=family, calls=0, verified_calls=0,
+            settings=[], errors=[], collection_start=None, collection_end=None))
+        evidence = [_json(receipt)]
+        for binding in entry.get('diagnostic_sources', []):
+            raw = sources.binding(binding).read_bytes()
+            try:
+                evidence.append(json.loads(raw))
+            except json.JSONDecodeError:
+                evidence.append([json.loads(line) for line in raw.splitlines() if line.strip()])
+        observations = []
+        _receipt_covers(evidence, suite, provider, cid, 'uncommitted', observations=observations)
+        starts = set()
+        bounds = {'collection_start': [], 'collection_end': []}
+        counts = []
+        for node in observations:
+            count = node.get('physical_calls')
+            if type(count) is int and count > 0:
+                counts.append(count)
+            start = node.get('started_at') or (node.get('at') if node.get('event') == 'http_request_started' else None)
+            if node.get('event') == 'http_request_started':
+                starts.add((node.get('call_id'), start))
+            for field, value in [('collection_start', start), ('collection_end', node.get('completed_at'))]:
+                if value is None:
+                    continue
+                try:
+                    parsed = datetime.fromisoformat(value)
+                    if parsed.tzinfo is None:
+                        raise ValueError('Missing timezone')
+                    bounds[field].append(value)
+                except (TypeError, ValueError):
+                    group['errors'].append('Uncommitted call has an invalid collection timestamp')
+        group['calls'] += max([1, len(starts), *counts])
+        group['errors'].append('Uncommitted invocation has no verified native settings')
+        if not starts and not counts:
+            group['errors'].append('Uncommitted physical-call count is a lower bound')
+        for field, values in bounds.items():
+            if not values:
+                group['errors'].append('Uncommitted invocation lacks ' + field)
+                continue
+            if group[field]:
+                values.append(group[field])
+            select = min if field == 'collection_start' else max
+            group[field] = select(values, key=datetime.fromisoformat)
     for group in groups.values():
         by_class = {}
         common = []

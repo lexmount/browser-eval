@@ -312,6 +312,11 @@ def test_saved_scope_banner_distinguishes_uncommitted_and_user_skip(tmp_path):
         {'suite':'first','provider':'method','case_id':'skipped','status':'not_called',
          'reason':'User requested skip','receipt':skip_receipt}]
     root=build(tmp_path,spec).parent
+    settings = json.loads((root/'matrix.json').read_bytes())['execution_settings'][0]
+    assert settings['calls'] == 2
+    assert settings['uniform'] is False
+    assert 'Uncommitted invocation lacks collection_start' in settings['errors']
+    assert 'Uncommitted invocation lacks collection_end' in settings['errors']
     for relative in ['index.html','providers/method.html','attempts/first--run-001.html']:
         page=BeautifulSoup((root/relative).read_text(encoding='utf-8'),'html.parser')
         banner=page.select_one('[data-saved-completion]')
@@ -355,7 +360,7 @@ def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
         assert len(rows) == 2
         absent = next(row for row in rows if 'Absent method' in row.get_text())
         assert '未完成' in absent.get_text()
-    absent_page = BeautifulSoup((root/'providers/absent.html').read_text(), 'html.parser')
+    absent_page = BeautifulSoup((root/'providers/absent.html').read_text(encoding='utf-8'), 'html.parser')
     assert absent_page.select_one('[data-evidence-state="saved_diagnostic"]')
     assert absent_page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
     assert '2 种方法' in home.get_text()
