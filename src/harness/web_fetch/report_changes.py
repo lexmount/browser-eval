@@ -69,18 +69,6 @@ def select_cohort_history(data, dataset, records):
     return {**data,'releases':selected,'review_rounds':rounds}
 
 
-def first_correction(history, releases):
-    release=next((r for r in releases
-                  if r['id']=='2026-09-03-fairness-correction'),None)
-    if release is None:
-        raise ValueError('Release 2026-09-03-fairness-correction not found')
-    digest=release['scoring_revision_input_sha256']
-    matches=[r for r in history if r.get('input_results_sha256')==digest]
-    if len(matches)!=1:
-        raise ValueError('First correction must bind to exactly one scoring revision')
-    return matches[0]
-
-
 def require_revision_release_bindings(history, releases):
     """Every bundled revision receipt must name exactly one public release.
 
