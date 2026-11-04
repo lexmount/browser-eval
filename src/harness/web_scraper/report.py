@@ -1020,7 +1020,10 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             for index, cell in enumerate(list(row.find_all(["th", "td"], recursive=False))):
                 if index not in (0, 3, 5, 6, 7, 8):
                     cell.decompose()
-        compact.attrs = {"data-interpretation-comparison": "true"}
+        compact.attrs = {
+            "data-interpretation-comparison": "true",
+            "data-highlight-ties": "all",
+        }
         interpretation += (
             "<h2>"
             + (message("compact_original_reference_comparison", lang))

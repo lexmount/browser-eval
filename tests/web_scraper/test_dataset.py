@@ -225,7 +225,7 @@ def test_default_distribution_has_a_real_complete_immutable_binding():
     profile = read_json(PROFILE)
     selected = binding(profile["dataset"]["distribution"]["track"])
     assert len(selected["revision"]) == 40
-    assert selected["repository"] == "Lexmount/LexBench-Web-Scraper"
+    assert selected["repository"] == "Lexmount/zyte-product-extraction-benchmark"
     assert selected["datasets"][selected["default_dataset"]]["count"] == 140
     assert selected["archive"]["size"] > 0
     assert len(selected["archive"]["sha256"]) == 64

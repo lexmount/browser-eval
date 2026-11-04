@@ -791,3 +791,23 @@ def test_legacy_runtime_settings_require_a_known_edition(tmp_path, monkeypatch, 
         with pytest.raises(ValueError, match='runtime setting'):
             pinning.pin(tmp_path, 'websearch', 'a' * 40)
         assert {path: path.read_bytes() for path in paths} == before
+
+
+def test_pin_uses_current_repository_name_and_preserves_historical_identity(tmp_path, monkeypatch):
+    lock, _ = fixture(tmp_path, monkeypatch)
+    before = json.loads(lock.read_bytes())['datasets']['websearch']
+    old_name = before['repository']
+    new_name = 'Lexmount/original-benchmark-name'
+    monkeypatch.setattr(pinning, 'canonical_repository', lambda name: new_name if name == old_name else name)
+    requested = []
+    fetch = data.urlopen
+    def current_only(url, timeout):
+        requested.append(url)
+        assert new_name in url
+        return fetch(url, timeout)
+    monkeypatch.setattr(data, 'urlopen', current_only)
+    pinning.pin(tmp_path, 'websearch', 'a' * 40)
+    selected = json.loads(lock.read_bytes())['datasets']['websearch']
+    assert selected['repository'] == new_name
+    assert selected['history'][0] == before
+    assert requested

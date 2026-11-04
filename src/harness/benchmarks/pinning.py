@@ -105,10 +105,11 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
         if track not in registered:
             raise ValueError("Unknown benchmark track: " + track)
         before = {"repository": registered[track]["repo_id"]}
+    repository = canonical_repository(before["repository"])
     # Pull-request refs and force-pushed commits must never become authoritative inputs.
-    if revision not in main_history(before["repository"]):
+    if revision not in main_history(repository):
         raise ValueError("REV is not on the dataset's main history: " + revision)
-    raw_manifest = read_hf_file(before["repository"], revision, "manifest.json", 2_000_000)
+    raw_manifest = read_hf_file(repository, revision, "manifest.json", 2_000_000)
     manifest = json.loads(raw_manifest)
     if manifest.get("schema") != "browser-eval-dataset-release/1" or manifest.get("track") != track:
         raise ValueError("Dataset release identity mismatch")
@@ -119,9 +120,9 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
         if known is None:
             raise ValueError("Historical release has no known immutable archive binding")
         archive = known["archive"]
-    raw = fetch_archive(before["repository"], revision, archive)
+    raw = fetch_archive(repository, revision, archive)
     selected = {
-        "repository": before["repository"], "revision": revision,
+        "repository": repository, "revision": revision,
         "source_revision": manifest["source_revision"], "archive": archive,
         "datasets": manifest["datasets"],
         "files": {name: item for name, item in manifest["files"].items() if not name.startswith("data/")},

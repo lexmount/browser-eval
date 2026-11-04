@@ -317,12 +317,14 @@ def test_full_review_profile_cannot_publish_machine_only_results(tmp_path):
 
 
 @pytest.mark.parametrize("methods", [["alpha", "beta"], ["alpha", "beta", "gamma"]])
-def test_interpretation_compares_every_registered_method_without_changing_scores(methods):
+@pytest.mark.parametrize("tied", [False, True])
+def test_interpretation_compares_every_registered_method_without_changing_scores(methods, tied):
     from harness.web_scraper.report import audit_explanation
 
     fields = ("price", "sku", "availability", "OutOfStock")
     scores = {
-        m: {f: {"f1": (i + 1) / 10, "cases": 1} for f in fields} for i, m in enumerate(methods)
+        m: {f: {"f1": 0.5 if tied else (i + 1) / 10, "cases": 1} for f in fields}
+        for i, m in enumerate(methods)
     }
     rows = [
         {
@@ -349,7 +351,10 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
     assert soup.select_one("[data-interpretation-comparison]").parent["class"] == ["table-wrap"]
     assert [r["data-method"] for r in comparison] == methods
     for i, row in enumerate(comparison):
-        assert [c.get_text(strip=True) for c in row.select("td")[2:]] == [f"{(i + 1) / 10:.3f}"] * 4
+        value = 0.5 if tied else (i + 1) / 10
+        assert [c.get_text(strip=True) for c in row.select("td")[2:]] == [f"{value:.3f}"] * 4
+        if tied:
+            assert len(row.select(".comparison-winner")) == 4
     assert len(soup.select("[data-method-interpretation]")) == len(methods)
 
 
