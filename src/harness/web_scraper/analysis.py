@@ -87,7 +87,7 @@ def native_error(row):
         or payload.get("non_json_response")
     )
     if not value:
-        return "No recognizable structured response"
+        return ""
     return value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
 
 

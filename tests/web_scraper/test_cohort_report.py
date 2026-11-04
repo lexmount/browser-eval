@@ -148,7 +148,7 @@ def test_progress_release_check_rejects_changed_counts_even_with_new_file_hash(t
         check(output)
 
 
-def test_quality_highlights_raw_unique_extrema_but_leaves_ties_neutral():
+def test_quality_highlights_all_raw_leaders_and_leaves_missing_values_neutral():
     def metrics(n):
         return {f: {"f1": n} for f in ("price", "sku", "availability", "OutOfStock")}
 
@@ -461,14 +461,13 @@ def test_report_rejects_incomplete_language_catalog(tmp_path, monkeypatch, damag
 
 
 def test_report_release_binds_the_message_catalog(tmp_path):
-    home = create(tmp_path / "report")
+    create(tmp_path / "report")
     output = tmp_path / "report"
     manifest = read_json(output / "report-manifest.json")
     manifest["messages_sha256"] = "0" * 64
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="message catalog changed"):
         check(output)
-    assert home.exists()
 
 
 def test_usage_preserves_browser_receipts_in_separate_units():
@@ -794,3 +793,70 @@ def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="complete certified cohort"):
         check(output, release=True)
+
+
+@pytest.mark.parametrize("lang", ["en", "zh"])
+def test_interpretation_uses_program_error_and_never_invents_returned_fields(lang):
+    from harness.web_scraper.report import audit_explanation
+
+    fields = ("price", "sku", "availability", "OutOfStock")
+    scores = {"extruct": {f: {"f1": 0, "cases": 1} for f in fields}}
+    rows = [
+        {
+            "method": "extruct",
+            "case_id": "one",
+            "compatibility": "no_structured_output",
+            "native_error": "EXACT TRANSPORT ERROR",
+            "field_results": {f: {"status": "missing"} for f in fields},
+        }
+    ]
+    audit = {
+        "case_count": 1,
+        "result_count": 1,
+        "original_results_reviewed": 1,
+        "supplemental_results_reviewed": 0,
+        "reference_changes": [],
+        "reviewer": {"model": "synthetic"},
+        "audited_scores": scores,
+        "excluded_fields": {"one": ["price"]},
+    }
+    review, interpretation = audit_explanation(audit, rows, ["extruct"], {}, lang)
+    assert "EXACT TRANSPORT ERROR" in interpretation
+    assert "Fields were returned" not in interpretation
+    assert "these_differences_concern" not in interpretation
+    assert "The upstream baseline emits" not in interpretation
+    if lang == "zh":
+        headers = BeautifulSoup(review, "html.parser").select("table")[-1].select("th")
+        assert [h.get_text() for h in headers] == ["题目", "字段"]
+        assert "价格" in BeautifulSoup(review, "html.parser").select("table")[-1].get_text()
+
+
+@pytest.mark.parametrize("payload", [{}, {"error": {"type": "t", "message": "m"}}])
+def test_failed_details_use_the_same_error_as_dialog_evidence(tmp_path, payload):
+    import json
+    from harness.web_scraper.analysis import native_error
+    from harness.web_scraper.messages import message
+
+    home = create(tmp_path / "first")
+    source = home / "runs/example-v1"
+    manifest = read_json(source / "manifest.json")
+    for entry in manifest["calls"]:
+        path = source / entry["path"]
+        row = read_json(path)
+        if row["method"] != "synthetic-blocked":
+            continue
+        row.update(error="", response=payload, state="response_received", http_status=422)
+        save_json(path, row)
+        entry["sha256"] = digest(path.read_bytes())
+    save_json(source / "manifest.json", manifest)
+    output = tmp_path / "rebuilt"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="en")
+    for lang in ["zh", "en"]:
+        for path in (output / lang).glob("result-synthetic-blocked-*.html"):
+            page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+            expected = native_error({"response": payload}) or message(
+                "no_recognizable_product_fields_returned", lang
+            )
+            assert page.select_one('pre[data-kind="error"]').get_text() == expected
+            if payload:
+                assert expected == json.dumps(payload["error"], ensure_ascii=False)

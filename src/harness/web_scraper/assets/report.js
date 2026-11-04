@@ -47,7 +47,6 @@ const fieldNames = {
   price: tr("field_labels_price"),
   sku: tr("field_labels_sku"),
   availability: tr("field_labels_availability"),
-  OutOfStock: tr("out_of_stock"),
 };
 const outcomeNames = {
   correct: tr("outcomes_correct"),
@@ -56,10 +55,10 @@ const outcomeNames = {
   wrong: tr("outcomes_wrong"),
 };
 const stageNames = {
-  client_transport: tr("client_transport"),
+  client_transport: tr("stages_client_transport"),
   model_capacity: tr("stages_model_capacity"),
   navigation: tr("stages_navigation"),
-  provider_schema: tr("provider_schema_handling"),
+  provider_schema: tr("stages_provider_schema"),
   provider_fetch: tr("stages_provider_fetch"),
   provider_response: tr("stages_provider_response"),
   fields: tr("stages_fields"),
@@ -113,20 +112,21 @@ function diagnosisContent(container, row, field) {
       (key) => row.field_results?.[key]?.status !== "correct",
     ) ||
     "price";
-  const sourceFinding = row.review?.source_field_review?.[selectedField];
+  const resultFinding = row.review?.reviewer_fields?.[selectedField];
   const add = (label, value) => {
     facts.append(node("dt", label), node("dd", value || "—"));
   };
   add(tr("stage_fb689e6a"), stageNames[row.failure_stage] || row.failure_stage);
   add(
     tr("exact_error"),
-    row.native_error ||
-      tr("structured_fields_returned_inspect_field_differences"),
+    row.native_error || (row.compatibility === "structured_output"
+      ? tr("structured_fields_returned_inspect_field_differences")
+      : tr("no_recognizable_product_fields_returned")),
   );
   add(
     tr("reviewed_cause"),
     diagnosis.cause ||
-      sourceFinding?.reason ||
+      resultFinding?.reason ||
       tr("see_field_judgments_and_complete_evidence_below"),
   );
   add(
@@ -294,7 +294,6 @@ if (form) {
         (!controls.query ||
           (row.dataset.search || "").toLowerCase().includes(controls.query.toLowerCase())) &&
         (status === "all" ||
-          (status === "pending" && row.dataset.status === "pending") ||
           (status === "fail" && row.dataset.status !== "pending" && bad) ||
           (status === "pass" && row.dataset.status !== "pending" && !bad));
       row.hidden = !show;
@@ -306,14 +305,5 @@ if (form) {
   for (const control of form.querySelectorAll("[data-result-filter]"))
     control.addEventListener(control.tagName === "INPUT" ? "input" : "change", update);
   update();
-} else {
-  const filter = document.querySelector("#filter");
-  if (filter) {
-    const update = () => {
-      for (const row of document.querySelectorAll("tr[data-status]"))
-        row.hidden = filter.value !== "all" && row.dataset.status !== filter.value;
-    };
-    filter.addEventListener("change", update);
-    update();
-  }
 }
+
