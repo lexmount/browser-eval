@@ -992,9 +992,12 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             message("these_fields_remain_in_official_scores_audited_diagnostics_identi", lang)
         ) + "</p>"
         review += table(
-            ["Case", "Field"],
+            [LABELS[lang][14], message("field", lang)],
             [
-                [f'<a href="source-{cid}.html">{cid[:12]}</a>', ", ".join(fields)]
+                [
+                    f'<a href="source-{cid}.html">{cid[:12]}</a>',
+                    ", ".join(FIELD_LABELS[f][0 if zh else 1] for f in fields),
+                ]
                 for cid, fields in excluded.items()
             ],
         )
@@ -1087,16 +1090,6 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             message("field_missing_wrong_or_unexpected_cases", lang),
             counts,
         )
-        if method == "extruct":
-            interpretation += (
-                "<p>"
-                + (
-                    message(
-                        "the_upstream_baseline_emits_an_instock_indicator_without_filling", lang
-                    )
-                )
-                + "</p>"
-            )
         repaired = [r for r in selected if r.get("diagnosis")]
         representative = (
             failures[:1]
@@ -1114,6 +1107,12 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
                 "<p>"
                 + esc(
                     diagnosis.get("cause")
+                    or row.get("native_error")
+                    or (
+                        message("no_recognizable_product_fields_returned", lang)
+                        if row.get("compatibility") != "structured_output"
+                        else ""
+                    )
                     or (
                         message(
                             "fields_were_returned_these_differences_concern_extracted_content", lang
@@ -1493,9 +1492,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                         "data-sort": str(history["scores"][method][field]["f1"]),
                     }
                 )
-        historical_title = message("historical_reproduction", lang, case_count=len(truth)).replace(
-            "140", str(len(truth))
-        )
+        historical_title = message("historical_reproduction", lang, case_count=len(truth))
         bodies["research" if cohort else "index"] += (
             "<section><h2>" + historical_title + "</h2>" + str(soup) + "</section>"
         )
@@ -1669,7 +1666,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 encoding="utf-8",
             )
         bodies["dataset"] += table(
-            [lab[14], message("source", lang), "Snapshot", lab[19]], dr, inventory=True
+            [lab[14], message("source", lang), message("snapshot", lang), lab[19]],
+            dr,
+            inventory=True,
         )
         if distribution:
             bodies["dataset"] = (
@@ -1689,33 +1688,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             ok = r.get("compatibility") == "structured_output"
             status = lab[12] if ok else lab[11]
             url = "result-" + key + ".html"
-            error = r.get("error") or ""
-            payload = r.get("response") or {}
-            if not isinstance(payload, dict):
-                payload = {"message": json.dumps(payload, ensure_ascii=False)}
-            if not error and not ok:
-                value = (
-                    payload.get("error")
-                    or payload.get("message")
-                    or payload.get("errors")
-                    or payload.get("non_json_response")
-                )
-                if isinstance(value, dict):
-                    error = str(value.get("message") or value.get("type") or value)
-                elif value:
-                    error = (
-                        json.dumps(value, ensure_ascii=False)
-                        if not isinstance(value, str)
-                        else value
-                    )
-                elif r.get("missing_variables"):
-                    error = (message("missing_credentials", lang)) + ", ".join(
-                        r["missing_variables"]
-                    )
-                else:
-                    error = message("no_recognizable_product_fields_returned", lang)
-            if ok:
-                error = ""
+            error = (
+                ""
+                if ok
+                else (r["native_error"] or message("no_recognizable_product_fields_returned", lang))
+            )
             evidence = "../public-evidence/" + (r["method"] if cohort else key) + ".json"
             evidence_key = f' data-key="{cid}"' if cohort else ""
             detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(names.get(r["method"], r["method"]))} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
@@ -1844,10 +1821,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             for method in methods:
                 for cid in sorted(truth):
                     if (method, cid) not in observed:
-                        pending = message("not_executed", lang)
                         search = esc(cid + " " + truth[cid].get("url", ""), quote=True)
                         inventory.append(
-                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{pending}</td>'
+                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{message("not_executed", lang)}</td>'
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )

@@ -157,3 +157,29 @@ delete incomplete.zh.field_labels_price;
 const incompleteJs = js.replace(payload, JSON.stringify(incomplete));
 assert.throws(() => vm.runInNewContext(incompleteJs, {...context}), /Missing report translation: zh\/field_labels_price/);
 console.log('PASS: missing client translations fail explicitly');
+
+// A diagnosis describes the selected method's output, while page findings stay source evidence.
+const savedDiagnosis = response.diagnosis;
+const savedError = response.native_error;
+const savedStage = response.failure_stage;
+response.diagnosis = null;
+response.native_error = '';
+response.failure_stage = 'client_transport';
+response.review = {
+  source_field_review: {price: {reason: 'PAGE-LEVEL FINDING', status: 'supported', values: [], source_quote: ''}},
+  reviewer_fields: {price: {reason: 'THIS METHOD MISSED THE PRICE', status: 'incorrect'}},
+};
+button.dataset.src = "public-evidence/method-review.json";
+context.fetch = async () => ({ok: true, json: async () => ({case: response})});
+await documentListeners.click({target: button});
+const facts = body.children.find(element => element.tagName === 'DL');
+const causeIndex = facts.children.findIndex(element => element.textContent === catalog.zh.reviewed_cause);
+assert.equal(facts.children[causeIndex + 1].textContent, 'THIS METHOD MISSED THE PRICE');
+assert.match(facts.textContent, new RegExp(catalog.zh.stages_client_transport));
+assert.match(facts.textContent, new RegExp(catalog.zh.no_recognizable_product_fields_returned));
+assert.doesNotMatch(facts.textContent, new RegExp(catalog.zh.structured_fields_returned_inspect_field_differences));
+response.diagnosis = savedDiagnosis;
+response.native_error = savedError;
+response.failure_stage = savedStage;
+delete response.review;
+console.log('PASS: method-specific reviewed cause, consistent stage labels and localized empty-error fallback');

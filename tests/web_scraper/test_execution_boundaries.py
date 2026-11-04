@@ -371,13 +371,9 @@ def test_initialization_resumes_after_snapshot_before_contract(tmp_path, snapsho
         collection_context(),
         patch("harness.web_scraper.pipeline.provider_call", side_effect=accepted) as call,
     ):
-        if snapshot_state == "changed":
-            with pytest.raises(ValueError, match="snapshot changed"):
-                probe(home, ["cloudflare-json"], full=True, run_dir=target)
-            call.assert_not_called()
-        else:
-            probe(home, ["cloudflare-json"], full=True, run_dir=target)
-            assert call.call_count == 3
+        probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 3
+        assert "pipeline_snapshot" not in pipeline.read_json(target / "contract.json")
 
 
 @pytest.mark.parametrize("transport", ["requests", "urllib", "fixture"])

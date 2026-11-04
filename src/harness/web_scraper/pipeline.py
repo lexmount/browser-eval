@@ -1540,9 +1540,6 @@ def _probe_unlocked(
             return run
     else:
         contract = requested
-        snapshot = run / "execution/pipeline.py"
-        if snapshot.exists() and digest(snapshot.read_bytes()) != requested["pipeline_sha256"]:
-            raise ValueError("Pre-dispatch pipeline snapshot changed")
         save_json(run / "contract.json", contract, exclusive=True)
     records, physical = collect_calls(
         home,
