@@ -185,6 +185,32 @@ def test_failed_build_leaves_no_report_and_can_retry(tmp_path, monkeypatch, stag
     assert build(tmp_path, spec).is_file()
 
 
+@pytest.mark.parametrize('separator', ['\u2028', '\u2029', '\u0085'])
+@pytest.mark.parametrize('called', [False, True])
+def test_diagnostic_jsonl_preserves_unicode_and_invocation_checks(tmp_path, separator, called):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    identity = {'suite': 'first', 'provider': 'method', 'case_id': 'same'}
+    receipt = write(tmp_path/'missing.json', {
+        **identity, 'state': 'pre_call_blocked_no_method_calls',
+        'native_route_receipt': {'transport_state': 'not_started'}})
+    events = [{**identity, 'event': event, 'message': 'before' + separator + 'after'}
+              for event in ('diagnostic', 'http_request_started' if called else 'diagnostic_complete')]
+    raw = ''.join(json.dumps(event, ensure_ascii=False) + '\n' for event in events).encode()
+    diagnostic = tmp_path/'diagnostic.jsonl'
+    diagnostic.write_bytes(raw)
+    spec['missing'] = [{**identity, 'status': 'not_called', 'reason': 'Blocked before transport',
+                        'receipt': receipt, 'diagnostic_sources': [{
+                            'path': str(diagnostic), 'sha256': hashlib.sha256(raw).hexdigest()}]}]
+    if called:
+        with pytest.raises(ValueError, match='receipt does not identify'):
+            build(tmp_path, spec)
+    else:
+        output = build(tmp_path, spec).parent
+        assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    assert diagnostic.read_bytes() == raw
+
+
 @pytest.mark.parametrize('destination', ['receipt.json', 'record.json', 'case.json'])
 def test_captured_artifact_cannot_overwrite_generated_evidence(tmp_path, destination):
     spec, source, record, _ = fixture(tmp_path)

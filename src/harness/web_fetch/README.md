@@ -893,9 +893,10 @@ case IDs, hostname rules, answer-dependent delays, and extraction scripts are
 not accepted by this setting. Call metadata records the selected family policy.
 
 For a complete-category comparison, Moli also accepts `native_output: "auto"`
-or `"html"`. Automatic output omits `--dump`; HTML explicitly passes
-`--dump html`. Both use the declared wait policy for every request, including
-direct files. Automatic output does not promise document text extraction.
+or `"html"`. Automatic output omits `--dump` and uses the declared wait policy,
+including for direct files. HTML passes `--dump html` and the declared wait
+policy for text and resource tasks; file tasks retain raw delivery without
+those flags. Automatic output does not promise document text extraction.
 Omitting this setting preserves the original native routing policy.
 
 Cloudflare accepts a nonempty `scrape_selectors` list to use the same `/scrape`

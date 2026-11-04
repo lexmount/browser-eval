@@ -626,7 +626,7 @@ def _load_saved_matrix(spec_path):
         evidence = [_json(receipt)]
         for diagnostic_source in entry.get('diagnostic_sources', []):
             diagnostic = binding(diagnostic_source)
-            raw = diagnostic.read_text(encoding='utf-8')
+            raw = diagnostic.read_bytes()
             try:
                 evidence.append(json.loads(raw))
             except json.JSONDecodeError:
