@@ -9,6 +9,7 @@ ASSETS = Path(__file__).with_name("assets")
 JS = (ASSETS / "report.js").read_text(encoding="utf-8")
 
 CLIENT_MESSAGE_KEYS = (
+    "records_qualified_reference",
     "showing_results",
     "audited_reference",
     "stages_client_transport",
@@ -36,6 +37,7 @@ CLIENT_MESSAGE_KEYS = (
     "outcomes_wrong",
     "outcomes_partial",
     "outcomes_invalid",
+    "outcomes_unavailable",
     "output",
     "stages_provider_schema",
     "reference",

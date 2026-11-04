@@ -309,7 +309,17 @@
     "records_diagnostics": "Field outcome distribution",
     "records_not_ranked": "No full-cohort score",
     "outcomes_partial": "Partially overlapping values",
-    "outcomes_invalid": "Invalid field type"
+    "outcomes_invalid": "Invalid field type",
+    "outcomes_unavailable": "No reference coverage",
+    "records_reviewed_notice": "All results reviewed field by field · source-qualified scores · failed calls retained",
+    "records_review_summary": "Review coverage and reference corrections",
+    "records_review_coverage": "{reviewed}/{total} results reviewed; {unreviewed} unreviewed results accepted; {unresolved} unresolved findings.",
+    "records_review_models": "Review models",
+    "records_original_score": "Original-reference F1",
+    "records_reviewed_score": "Source-qualified F1",
+    "records_qualified_reference": "Source-qualified reference",
+    "records_review_changes": "{fields} page-fields have corrected reference text; {groups} site-field groups lack original annotations and are excluded from quality scoring for every method. Native answers and call timings are unchanged.",
+    "records_review_scope_note": "Scores use the source-qualified references. The dataset view retains original annotations and the references used for this comparison."
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -621,6 +631,16 @@
     "records_diagnostics": "字段差异分布",
     "records_not_ranked": "暂无全量分数",
     "outcomes_partial": "部分值重合",
-    "outcomes_invalid": "字段类型不符"
+    "outcomes_invalid": "字段类型不符",
+    "outcomes_unavailable": "原标注无覆盖",
+    "records_reviewed_notice": "全部结果已逐字段核对 · 按来源修正参考答案 · 调用失败计入统计",
+    "records_review_summary": "审核范围与参考答案修正",
+    "records_review_coverage": "已核对 {reviewed}/{total} 个结果；直接采用的未审核结果 {unreviewed} 个，未解决争议 {unresolved} 项。",
+    "records_review_models": "审核模型",
+    "records_original_score": "原标注 F1",
+    "records_reviewed_score": "来源修正后 F1",
+    "records_qualified_reference": "本次评分参考",
+    "records_review_changes": "{fields} 个页面字段的参考文本已修正；{groups} 个站点字段组缺少原始标注，各方法均不对这些字段计分。原始返回和调用耗时保持不变。",
+    "records_review_scope_note": "评分采用来源校验后的参考答案，原标注与本次评分参考均保留在数据集页面。"
   }
 }

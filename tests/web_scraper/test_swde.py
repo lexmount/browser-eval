@@ -296,6 +296,153 @@ def test_reference_correction_scores_native_answers_without_calls_or_evidence_mu
     assert len(calls) == 2
 
 
+@pytest.fixture
+def reviewed_record_report(record_audit_material, tmp_path):
+    from harness.web_scraper import report, review
+
+    home, content, works, adjudication, authority = record_audit_material
+    audit_path = tmp_path / "complete-report-audit.json"
+    review.assemble_record(
+        home,
+        content,
+        works,
+        audit_path,
+        profile=swde.CARD,
+        adjudications=[adjudication],
+        reference_revision=authority,
+    )
+    model = pipeline.read_json(content)
+    methods = list(model["participants"])
+    model.update(
+        mode="field-extraction-cohort",
+        title="Source-qualified record example",
+        dataset_manifest=str(home / "dataset/manifest.json"),
+        snapshot_base="https://example.org/frozen",
+        audit={"path": str(audit_path), "sha256": pipeline.digest(audit_path.read_bytes())},
+        reference_revision={
+            "path": str(authority),
+            "sha256": pipeline.digest(authority.read_bytes()),
+        },
+        prices={
+            m: {
+                "usd_per_1000": "$0 synthetic",
+                "terms": {"zh": "合成示例"},
+                "verified_at": "2026-01-01",
+                "sources": ["https://example.org/pricing"],
+            }
+            for m in methods
+        },
+    )
+    for method in methods:
+        model["participants"][method]["label"] = method
+    for selection, name in zip(
+        model["evidence_runs"], ["original-plan.json", "second-plan.json"], strict=True
+    ):
+        plan = tmp_path / name
+        selection.update(plan=str(plan), plan_sha256=pipeline.digest(plan.read_bytes()))
+    pipeline.save_json(content, model)
+    profile = pipeline.read_json(swde.CARD)
+    profile.update(
+        independent_result_review_scope="all",
+        research_report={"content": {"sha256": pipeline.digest(content.read_bytes())}},
+    )
+    profile_path = tmp_path / "report-profile.json"
+    pipeline.save_json(profile_path, profile)
+    output = tmp_path / "reviewed-report"
+    report.build(output, content, home=home, profile=profile_path, language="zh")
+    return home, content, profile_path, output, audit_path
+
+
+@pytest.mark.parametrize("source_revision_run", [False, True], indirect=True)
+def test_record_report_reproduces_complete_review_and_preserves_original_evidence(
+    reviewed_record_report,
+):
+    from bs4 import BeautifulSoup
+
+    from harness.web_scraper import report
+
+    home, content, profile, output, audit = reviewed_record_report
+    report.check(output)
+    manifest = pipeline.read_json(output / "report-manifest.json")
+    assert manifest["required_review_scope"] == "all"
+    assert manifest["audit"]["source_sha256"] == pipeline.digest(audit.read_bytes())
+    assert pipeline.read_json(
+        output / "public-evidence/original-reference.json"
+    ) == pipeline.read_json(home / "dataset/dataset/ground-truth.json")
+    assert (
+        len(
+            BeautifulSoup(
+                (output / "zh/review.html").read_text(encoding="utf-8"), "html.parser"
+            ).select("[data-record-review]")
+        )
+        == 1
+    )
+    metrics = pipeline.read_json(output / "data/metrics.json")
+    original = pipeline.read_json(output / "data/original-metrics.json")
+    for method in metrics:
+        assert metrics[method]["latency"] == original[method]["latency"]
+        assert metrics[method]["physical_calls"] == original[method]["physical_calls"]
+        assert metrics[method]["scores"]["value_micro"]["f1"] == 1
+
+
+@pytest.mark.parametrize(
+    "damage", ["missing-audit", "unresolved", "native-identity", "aggregate", "source-hash"]
+)
+def test_record_report_rejects_incomplete_or_stale_review(reviewed_record_report, tmp_path, damage):
+    from harness.web_scraper import report
+
+    home, content, profile_path, _, audit_path = reviewed_record_report
+    model = pipeline.read_json(content)
+    audit = pipeline.read_json(audit_path)
+    if damage == "missing-audit":
+        model.pop("audit")
+    elif damage == "unresolved":
+        audit["unresolved"] = 1
+    elif damage == "native-identity":
+        next(iter(audit["results"].values()))["execution_sha256"] = "0" * 64
+    elif damage == "aggregate":
+        next(iter(audit["audited_scores"].values()))["value_micro"]["f1"] = 0
+    else:
+        audit["source_hashes"]["book-a-0001"] = "0" * 64
+    pipeline.save_json(audit_path, audit)
+    if "audit" in model:
+        model["audit"]["sha256"] = pipeline.digest(audit_path.read_bytes())
+    pipeline.save_json(content, model)
+    profile = pipeline.read_json(profile_path)
+    profile["research_report"]["content"]["sha256"] = pipeline.digest(content.read_bytes())
+    pipeline.save_json(profile_path, profile)
+    with pytest.raises(ValueError, match="review|audit"):
+        report.build(
+            tmp_path / "invalid-report", content, home=home, profile=profile_path, language="zh"
+        )
+
+
+@pytest.mark.parametrize("damage", ["missing-summary", "wrong-summary", "wrong-fields"])
+def test_record_release_checks_review_content_beyond_file_hashes(reviewed_record_report, damage):
+    from bs4 import BeautifulSoup
+
+    from harness.web_scraper import report
+
+    _, _, _, output, _ = reviewed_record_report
+    route = "zh/review.html" if damage != "wrong-fields" else "zh/results.html"
+    path = output / route
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    if damage == "missing-summary":
+        soup.select_one("[data-record-review]").decompose()
+    elif damage == "wrong-summary":
+        soup.select_one("[data-record-review] tbody td").string = "Wrong method"
+    else:
+        # A completed review must not hide the result inventory or its evidence links.
+        soup.select_one("tr[data-status]").decompose()
+    path.write_text(str(soup), encoding="utf-8")
+    manifest_path = output / "report-manifest.json"
+    manifest = pipeline.read_json(manifest_path)
+    manifest["files"][route] = pipeline.digest(path.read_bytes())
+    pipeline.save_json(manifest_path, manifest)
+    with pytest.raises(ValueError, match="review summary|inventory"):
+        report.check(output)
+
+
 @pytest.mark.parametrize(
     "mutation",
     [

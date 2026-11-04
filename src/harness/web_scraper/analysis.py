@@ -240,7 +240,7 @@ def record_field_results(reference, row, *, text_matching="literal", unavailable
     return result
 
 
-def record_statistics(truth, rows, *, certified, scorer):
+def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
     """Summarize one declared method without scoring an incomplete population."""
     import math
     import statistics
@@ -261,12 +261,25 @@ def record_statistics(truth, rows, *, certified, scorer):
         "p95": durations[max(0, math.ceil(len(durations) * 0.95) - 1)] if durations else None,
     }
     field_counts, failures = Counter(), Counter()
+    policy = reference_policy or {"text_matching": "literal", "unavailable_reference_groups": []}
+    unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
     exact_pages = 0
     retry_seconds, retry_missing, physical_calls = 0.0, 0, 0
     for row in rows:
-        fields = record_field_results(truth[row["case_id"]], row)
+        reference = truth[row["case_id"]]
+        fields = record_field_results(
+            reference,
+            row,
+            text_matching=policy["text_matching"],
+            unavailable_fields=[
+                field
+                for field in reference["values"]
+                if (reference["domain"], reference["site"], field) in unavailable
+            ],
+        )
         field_counts.update(value["status"] for value in fields.values())
-        exact_pages += bool(fields) and all(value["exact"] for value in fields.values())
+        active = [value for value in fields.values() if value["status"] != "unavailable"]
+        exact_pages += bool(active) and all(value["exact"] for value in active)
         if row.get("compatibility") != "structured_output":
             failures[failure_stage(row)] += 1
         attempts = row.get("physical_attempts", [row])
@@ -300,7 +313,7 @@ def record_statistics(truth, rows, *, certified, scorer):
         "certified": complete,
         "structured": sum(row.get("compatibility") == "structured_output" for row in rows),
         "schema_invalid": sum(row.get("schema_valid") is False for row in rows),
-        "scores": scorer(truth, predictions) if complete else None,
+        "scores": scorer(truth, predictions, **(reference_policy or {})) if complete else None,
         "latency": latency,
         "field_outcomes": dict(field_counts),
         "failure_stages": dict(failures),
@@ -309,3 +322,99 @@ def record_statistics(truth, rows, *, certified, scorer):
         "retry_seconds": retry_seconds,
         "retry_missing_timers": retry_missing,
     }
+
+
+def check_record_audit(home, truth, rows, audit, *, reference_revision=None):
+    """Recompute a complete audit from current native answers and source authority."""
+    from pathlib import Path
+
+    from harness.web_scraper.dataset import benchmark_config
+    from harness.web_scraper.pipeline import execution_identity, normalize
+
+    adapter = benchmark_config(home)["adapter"]
+    expected = {(row["method"], row["case_id"]) for row in rows}
+    methods = sorted({method for method, _ in expected})
+    if (
+        not methods
+        or len(expected) != len(rows)
+        or expected != {(method, cid) for method in methods for cid in truth}
+        or audit.get("schema") != "record-complete-audit/1"
+        or audit.get("review_scope") != "all"
+        or audit.get("review_state") != "complete"
+        or audit.get("unresolved") != 0
+        or audit.get("unresolved_fields") != []
+        or audit.get("accepted_unreviewed_passes") != 0
+        or audit.get("case_count") != len(truth)
+        or audit.get("result_count") != len(expected)
+        or audit.get("original_results_reviewed") != len(expected)
+        or set(audit.get("results", {})) != {method + ":" + cid for method, cid in expected}
+        or not audit.get("review_receipts")
+        or set(audit.get("sources", {})) != set(truth)
+        or any(
+            set(audit["sources"][cid].get(section, {})) != set(truth[cid]["values"])
+            for cid in truth
+            for section in ("source_fields", "reference_review")
+        )
+        or audit.get("regression_ids") != adapter.check_reference_controls()
+    ):
+        raise ValueError("Required complete record review is missing or unresolved")
+    for key, path in (
+        ("official_reference_sha256", home / "dataset/dataset/ground-truth.json"),
+        ("dataset_manifest_sha256", home / "dataset/manifest.json"),
+        ("schemas_sha256", home / "dataset/schemas.json"),
+        ("scorer_sha256", home / "dataset/evaluate.py"),
+        ("adapter_sha256", Path(adapter.__file__)),
+    ):
+        if audit.get(key) != digest(path.read_bytes()):
+            raise ValueError("Record audit source, schema or scorer binding changed")
+    if audit.get("source_hashes") != {
+        cid: digest((home / "dataset/html" / (cid + ".html")).read_bytes()) for cid in truth
+    }:
+        raise ValueError("Record audit frozen source population changed")
+    references = truth
+    policy = {"unavailable_reference_groups": [], "text_matching": "literal"}
+    authority_sha = None
+    if reference_revision is not None:
+        authority_sha = digest(Path(reference_revision).read_bytes())
+        references, policy = adapter.load_reference_revision(home, reference_revision)
+    if (
+        audit.get("reference_revision_sha256") != authority_sha
+        or audit.get("audited_reference") != references
+        or audit.get("reference_policy") != policy
+    ):
+        raise ValueError("Record audit reference authority differs from current scoring inputs")
+    unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
+    predictions = {method: {} for method in methods}
+    for row in rows:
+        method, cid = row["method"], row["case_id"]
+        reviewed = audit["results"][method + ":" + cid]
+        current = normalize(
+            method, row.get("response", {}), schema=adapter.task_schema(home, truth[cid])
+        )
+        if current != row.get("normalized_fields"):
+            raise ValueError("Record projection correction requires its declared source assessment")
+        fields = record_field_results(
+            references[cid],
+            {**row, "normalized_fields": current},
+            text_matching=policy["text_matching"],
+            unavailable_fields=[
+                field
+                for field in references[cid]["values"]
+                if (truth[cid]["domain"], truth[cid]["site"], field) in unavailable
+            ],
+        )
+        if (
+            reviewed.get("execution_sha256") != execution_identity(row)
+            or reviewed.get("native_response_sha256")
+            != digest(json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode())
+            or reviewed.get("audited_fields") != fields
+        ):
+            raise ValueError(
+                "Record audit differs from current native execution or field judgments"
+            )
+        predictions[method][cid] = (current or {}) if row.get("http_status") == 200 else {}
+    scores = {
+        method: adapter.score(references, predictions[method], **policy) for method in methods
+    }
+    if audit.get("audited_scores") != scores:
+        raise ValueError("Record audit aggregates differ from current native answers")

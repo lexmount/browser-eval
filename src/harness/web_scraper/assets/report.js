@@ -56,6 +56,7 @@ const outcomeNames = {
   wrong: tr("outcomes_wrong"),
   partial: tr("outcomes_partial"),
   invalid: tr("outcomes_invalid"),
+  unavailable: tr("outcomes_unavailable"),
 };
 const stageNames = {
   client_transport: tr("stages_client_transport"),
@@ -103,7 +104,7 @@ function diagnosisContent(container, row, field) {
     container.append(node("p", `${row.method_label} · ${row.case_id} · HTTP ${row.http_status ?? "—"}`));
     const table = document.createElement("table");
     const header = document.createElement("tr");
-    for (const label of [tr("field"), tr("reference"), tr("output"), tr("outcome_243a87d2")]) header.append(node("th", label));
+    for (const label of [tr("field"), tr(row.review ? "records_qualified_reference" : "reference"), tr("output"), tr("outcome_243a87d2")]) header.append(node("th", label));
     table.append(header);
     for (const [field, result] of Object.entries(row.field_results || {})) {
       const line = document.createElement("tr");

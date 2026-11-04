@@ -187,6 +187,7 @@ def page(
     languages=("en", "zh"),
     state="compatibility",
     navigation=None,
+    notice=None,
 ):
     labels = LABELS[language]
     if state != "compatibility":
@@ -198,6 +199,9 @@ def page(
             language,
         )
         labels[2] = message("results_and_failures", language)
+    if notice is not None:
+        labels = list(labels)
+        labels[7] = notice
     other = "zh" if language == "en" else "en"
     primary_routes = ("index", "results", "dataset", "protocol", "interpretation")
     entries = (
@@ -2628,14 +2632,20 @@ def package(output, archive, *, visual_receipt):
 
 def record_cohort_inputs(home, model, *, profile):
     """Load a field-schema cohort through the existing certified/checkpoint owner."""
-    from harness.web_scraper.analysis import record_statistics
+    from harness.web_scraper.analysis import check_record_audit, record_statistics
     from harness.web_scraper.dataset import benchmark_config
     from harness.web_scraper.pipeline import selected_profile
 
     adapter = benchmark_config(home)["adapter"]
     if adapter is None:
         raise ValueError("Field-schema reports require a registered record scorer")
-    local_example = read_json(profile).get("local_example", False)
+    instance = read_json(profile)
+    local_example = instance.get("local_example", False)
+    required_review = instance.get("independent_result_review_scope")
+    if required_review not in (None, "all"):
+        raise ValueError("Record reports support complete review or original machine scoring")
+    if required_review == "all" and not model.get("audit"):
+        raise ValueError("Required complete record review is missing")
     validate_dataset(home, profile if local_example else None)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     methods = model["participants"]
@@ -2651,12 +2661,17 @@ def record_cohort_inputs(home, model, *, profile):
         "methods": {},
         "sources": {},
         "dataset": read_json(profile if local_example else selected_profile(home)),
+        "scoring_cases": truth,
+        "reference_policy": None,
+        "audit": None,
     }
+    native_rows = []
     seen = set()
     for selection in selections:
         source = Path(selection["run"])
         source = source if source.is_absolute() else home / source
         contract, rows, receipt = cohort_source(source, selection, home, truth)
+        native_rows.extend(rows)
         method = contract["methods"][0]
         if method not in methods or method in seen:
             raise ValueError("Unexpected or duplicated report participant")
@@ -2676,28 +2691,97 @@ def record_cohort_inputs(home, model, *, profile):
             "plan_sha256": selection["plan_sha256"],
         }
         for row in rows:
-            current = dict(row)
-            current["field_results"] = field_results(home, truth[row["case_id"]], row)
-            current["failure_stage"] = failure_stage(row)
-            current["native_error"] = native_error(row)
-            current["exact_fields"] = sum(
-                value["exact"] for value in current["field_results"].values()
+            result["methods"][method]["results"][row["case_id"]] = record_result_fields(
+                truth[row["case_id"]], row
             )
-            current["referenced_fields"] = sum(
-                bool(value["expected"]) for value in current["field_results"].values()
-            )
-            current["hit_fields"] = sum(value["hit"] for value in current["field_results"].values())
-            current["status"] = (
-                "call_error"
-                if row.get("compatibility") != "structured_output"
-                else "exact"
-                if all(value["exact"] for value in current["field_results"].values())
-                else "field_difference"
-            )
-            result["methods"][method]["results"][row["case_id"]] = current
     if seen != set(methods):
         raise ValueError("Report omits a planned participant")
+    if model.get("audit"):
+        if any(not result["methods"][method]["statistics"]["certified"] for method in methods):
+            raise ValueError("Complete record review requires every planned certified cohort")
+        binding = model["audit"]
+        raw = Path(binding["path"]).read_bytes()
+        if digest(raw) != binding["sha256"]:
+            raise ValueError("Record audit differs from its report binding")
+        audit = json.loads(raw)
+        revision = None
+        if model.get("reference_revision"):
+            source = model["reference_revision"]
+            revision = Path(source["path"])
+            if digest(revision.read_bytes()) != source["sha256"]:
+                raise ValueError("Record reference revision differs from its report binding")
+        check_record_audit(home, truth, native_rows, audit, reference_revision=revision)
+        result.update(
+            audit=audit,
+            audit_raw=raw,
+            scoring_cases=audit["audited_reference"],
+            reference_policy=audit["reference_policy"],
+        )
+        result["original_statistics"] = {m: result["methods"][m]["statistics"] for m in methods}
+        for method in methods:
+            rows = [
+                {
+                    **row,
+                    "normalized_fields": normalize(
+                        method,
+                        row.get("response", {}),
+                        schema=adapter.task_schema(home, truth[row["case_id"]]),
+                    ),
+                }
+                for row in native_rows
+                if row["method"] == method
+            ]
+            result["methods"][method] = {
+                "statistics": record_statistics(
+                    audit["audited_reference"],
+                    rows,
+                    certified=True,
+                    scorer=adapter.score,
+                    reference_policy=audit["reference_policy"],
+                ),
+                "results": {
+                    row["case_id"]: record_result_fields(
+                        audit["audited_reference"][row["case_id"]],
+                        {**row, "review": audit["results"][method + ":" + row["case_id"]]},
+                        policy=audit["reference_policy"],
+                    )
+                    for row in rows
+                },
+            }
     return result
+
+
+def record_result_fields(reference, row, *, policy=None):
+    from harness.web_scraper.analysis import record_field_results
+
+    policy = policy or {"unavailable_reference_groups": [], "text_matching": "literal"}
+    unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
+    fields = record_field_results(
+        reference,
+        row,
+        text_matching=policy["text_matching"],
+        unavailable_fields=[
+            f
+            for f in reference["values"]
+            if (reference["domain"], reference["site"], f) in unavailable
+        ],
+    )
+    active = [value for value in fields.values() if value["status"] != "unavailable"]
+    return {
+        **row,
+        "field_results": fields,
+        "failure_stage": failure_stage(row),
+        "native_error": native_error(row),
+        "scored_fields": len(active),
+        "exact_fields": sum(bool(v["exact"]) for v in active),
+        "referenced_fields": sum(bool(v["expected"]) for v in active),
+        "hit_fields": sum(bool(v["hit"]) for v in active),
+        "status": "call_error"
+        if row.get("compatibility") != "structured_output"
+        else "exact"
+        if active and all(v["exact"] for v in active)
+        else "field_difference",
+    }
 
 
 def record_route(kind, *identities):
@@ -2748,6 +2832,64 @@ def record_comparison(headers, rows, metrics):
                     cell.clear()
                     cell.append(span)
     return str(soup)
+
+
+def record_metric(number, percent=False):
+    if number is None:
+        return "—"
+    return f"{number * 100:.2f}%" if percent else f"{number:.3f}"
+
+
+def record_review_section(audit, original_reference, original_metrics, labels, language):
+    """Present review coverage and original/revised scores once, outside result inventories."""
+
+    def t(key):
+        return message("records_" + key, language)
+
+    models = sorted({r["reviewer"]["model"] for r in audit["review_receipts"]})
+    changed = sum(
+        values != audit["audited_reference"][cid]["values"][field]
+        for cid, ref in original_reference.items()
+        for field, values in ref["values"].items()
+    )
+    methods = list(labels)
+    before = [original_metrics[m]["scores"]["page_hit_macro"]["f1"] for m in methods]
+    after = [audit["audited_scores"][m]["page_hit_macro"]["f1"] for m in methods]
+    rows = [
+        [esc(labels[m]), record_metric(old), record_metric(new)]
+        for m, old, new in zip(methods, before, after, strict=True)
+    ]
+    return (
+        "<section data-record-review><h2>"
+        + t("review_summary")
+        + "</h2><p>"
+        + message(
+            "records_review_coverage",
+            language,
+            reviewed=audit["result_count"],
+            total=len(audit["audited_reference"]) * len(audit["audited_scores"]),
+            unreviewed=audit["accepted_unreviewed_passes"],
+            unresolved=audit["unresolved"],
+        )
+        + "</p><p>"
+        + t("review_models")
+        + ": "
+        + esc(", ".join(models))
+        + "</p><p>"
+        + message(
+            "records_review_changes",
+            language,
+            fields=changed,
+            groups=len(audit["reference_policy"]["unavailable_reference_groups"]),
+        )
+        + "</p>"
+        + record_comparison(
+            [t("method"), t("original_score"), t("reviewed_score")],
+            rows,
+            {1: ("original-macro-f1", "max", before), 2: ("reviewed-macro-f1", "max", after)},
+        )
+        + "</section>"
+    )
 
 
 def build_record_cohort(output, content, *, home, language, profile):
@@ -2819,24 +2961,56 @@ def build_record_cohort(output, content, *, home, language, profile):
         public_receipts.append(receipt)
     reference_raw, reference_receipt = project_evidence_view(
         "public-evidence/reference.json",
-        json.dumps(truth, ensure_ascii=False).encode(),
+        json.dumps(data["scoring_cases"], ensure_ascii=False).encode(),
         role="scored_answer",
         content_format="json",
         host_names=publication_host_names(),
     )
     (output / "public-evidence/reference.json").write_bytes(reference_raw)
     public_receipts.append(reference_receipt)
-    truth = json.loads(reference_raw)
+    scoring_truth = json.loads(reference_raw)
+    audit_binding = None
+    if data["audit"] is not None:
+        for name, payload, role in (
+            (
+                "original-reference.json",
+                (home / "dataset/dataset/ground-truth.json").read_bytes(),
+                "scored_answer",
+            ),
+            ("audit.json", data["audit_raw"], "native_response"),
+        ):
+            raw, receipt = project_evidence_view(
+                "public-evidence/" + name,
+                payload,
+                role=role,
+                content_format="json",
+                host_names=publication_host_names(),
+            )
+            (output / "public-evidence" / name).write_bytes(raw)
+            public_receipts.append(receipt)
+            if name == "original-reference.json":
+                truth = json.loads(raw)
+            else:
+                data["audit"] = json.loads(raw)
+                audit_binding = {
+                    "path": "public-evidence/audit.json",
+                    "source_sha256": model["audit"]["sha256"],
+                    "sha256": digest(raw),
+                }
+        save_json(output / "data/original-metrics.json", data["original_statistics"])
+    else:
+        truth = scoring_truth
     from harness.web_scraper.analysis import record_statistics
 
     adapter = benchmark_config(home)["adapter"]
     for method in methods:
         if (
             record_statistics(
-                truth,
+                scoring_truth,
                 list(data["methods"][method]["results"].values()),
                 certified=stats[method]["certified"],
                 scorer=adapter.score,
+                reference_policy=data["reference_policy"],
             )
             != stats[method]
         ):
@@ -2866,6 +3040,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                 languages=("zh",),
                 state="field-extraction-cohort",
                 navigation=model.get("navigation"),
+                notice=t("reviewed_notice") if audit_binding else None,
             ),
             encoding="utf-8",
         )
@@ -2879,8 +3054,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             current = current.get(key) if current is not None else None
         return current
 
-    def metric(number, percent=False):
-        return "—" if number is None else f"{number * 100:.2f}%" if percent else f"{number:.3f}"
+    metric = record_metric
 
     def evidence_button(method, cid, dialog_id="diagnosis"):
         return (
@@ -2943,6 +3117,17 @@ def build_record_cohort(output, content, *, home, language, profile):
         compared=compared,
     )
     bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
+    if audit_binding:
+        bodies["review"] = (
+            record_review_section(
+                data["audit"],
+                truth,
+                data["original_statistics"],
+                {m: labels[m] for m in compared},
+                language,
+            )
+            + bodies["review"]
+        )
     bodies["protocol"] += method_examples(output, model.get("method_examples"))
     bodies["index"] = (
         "<section data-core-metrics>" + core + "</section>" + bodies["index"] + operations
@@ -3098,8 +3283,27 @@ def build_record_cohort(output, content, *, home, language, profile):
             + "</p>"
         )
         source += table(
-            [t("field"), t("reference")],
-            [[esc(field), value(gold)] for field, gold in ref["values"].items()],
+            [t("field"), t("reference"), *([t("qualified_reference")] if audit_binding else [])],
+            [
+                [
+                    esc(field),
+                    value(gold),
+                    *(
+                        [
+                            message("outcomes_unavailable", language)
+                            if (ref["domain"], ref["site"], field)
+                            in {
+                                tuple(g)
+                                for g in data["reference_policy"]["unavailable_reference_groups"]
+                            }
+                            else value(scoring_truth[cid]["values"][field])
+                        ]
+                        if audit_binding
+                        else []
+                    ),
+                ]
+                for field, gold in ref["values"].items()
+            ],
         )
         source += (
             "<details><summary>"
@@ -3180,8 +3384,8 @@ def build_record_cohort(output, content, *, home, language, profile):
                     value(f["expected"]),
                     value(f["actual"]),
                     message("outcomes_" + f["status"], language),
-                    t("yes") if f["hit"] else t("no"),
-                    t("yes") if f["exact"] else t("no"),
+                    "—" if f["hit"] is None else t("yes") if f["hit"] else t("no"),
+                    "—" if f["exact"] is None else t("yes") if f["exact"] else t("no"),
                 ]
                 for field, f in row["field_results"].items()
             ]
@@ -3190,7 +3394,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                 [
                     esc(labels[method]),
                     short,
-                    str(row["exact_fields"]) + "/" + str(len(ref["values"])),
+                    str(row["exact_fields"]) + "/" + str(row["scored_fields"]),
                     metric(row.get("elapsed_seconds")),
                     result_link,
                 ]
@@ -3220,7 +3424,14 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + "</p>"
             )
             body += table(
-                [t("field"), t("reference"), t("actual"), t("outcome"), t("hit"), t("equal")],
+                [
+                    t("field"),
+                    t("qualified_reference") if audit_binding else t("reference"),
+                    t("actual"),
+                    t("outcome"),
+                    t("hit"),
+                    t("equal"),
+                ],
                 field_rows,
             )
             body += (
@@ -3297,7 +3508,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + "</td><td>"
                 + str(row["exact_fields"])
                 + "/"
-                + str(len(ref["values"]))
+                + str(row["scored_fields"])
                 + "</td><td>"
                 + metric(row.get("elapsed_seconds"))
                 + "</td><td>"
@@ -3309,7 +3520,8 @@ def build_record_cohort(output, content, *, home, language, profile):
         write(
             comparison,
             cid + " · " + t("all_methods"),
-            table([t("method"), t("outcome"), t("exact"), t("timing"), t("details")], comparisons)
+            ("<p>" + t("review_scope_note") + "</p>" if audit_binding else "")
+            + table([t("method"), t("outcome"), t("exact"), t("timing"), t("details")], comparisons)
             + route_link(data_route, t("source"))
             + "".join(panels),
         )
@@ -3421,6 +3633,9 @@ def build_record_cohort(output, content, *, home, language, profile):
             "complete_methods": [m for m in methods if stats[m]["certified"]],
             "metrics_sha256": digest((output / "data/metrics.json").read_bytes()),
             "public_evidence_views": public_receipts,
+            "audit": audit_binding,
+            "reference_policy": data["reference_policy"],
+            "required_review_scope": bound_profile.get("independent_result_review_scope"),
             "files": files,
         },
         exclusive=True,
@@ -3490,16 +3705,99 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             raise ValueError("Record public evidence privacy receipt failed")
     metrics = read_json(output / "data/metrics.json")
     truth = read_json(output / "public-evidence/reference.json")
+    profile_view = read_json(output / manifest["input_profile"]["path"])
+    required_review = profile_view.get("independent_result_review_scope")
+    if (
+        required_review not in (None, "all")
+        or manifest.get("required_review_scope") != required_review
+    ):
+        raise ValueError("Record review requirement differs from its bound instance profile")
+    audit = None
+    if required_review == "all" and not manifest.get("audit"):
+        raise ValueError("Required complete record review is missing")
+    if manifest.get("audit"):
+        binding = manifest["audit"]
+        if binding.get("path") != "public-evidence/audit.json":
+            raise ValueError("Record audit evidence path changed")
+        raw = (output / binding["path"]).read_bytes()
+        receipt = next((v for v in views if v["path"] == binding["path"]), {})
+        if digest(raw) != binding.get("sha256") or receipt.get("original_sha256") != binding.get(
+            "source_sha256"
+        ):
+            raise ValueError("Record audit public view differs from its source authority")
+        audit = json.loads(raw)
+        expected_keys = {m + ":" + cid for m in manifest["planned_methods"] for cid in truth}
+        if (
+            audit.get("schema") != "record-complete-audit/1"
+            or audit.get("review_scope") != "all"
+            or audit.get("review_state") != "complete"
+            or audit.get("unresolved") != 0
+            or audit.get("unresolved_fields") != []
+            or audit.get("accepted_unreviewed_passes") != 0
+            or audit.get("result_count") != len(expected_keys)
+            or audit.get("original_results_reviewed") != len(expected_keys)
+            or set(audit.get("results", {})) != expected_keys
+            or set(manifest["complete_methods"]) != set(manifest["planned_methods"])
+            or audit.get("reference_policy") != manifest.get("reference_policy")
+            or {cid: ref["values"] for cid, ref in audit.get("audited_reference", {}).items()}
+            != {cid: ref["values"] for cid, ref in truth.items()}
+        ):
+            raise ValueError(
+                "Record audit coverage, source reference or adjudication is incomplete"
+            )
+        original = read_json(output / "public-evidence/original-reference.json")
+        original_metrics = read_json(output / "data/original-metrics.json")
+        reviewed_page = BeautifulSoup(
+            (output / "zh/review.html").read_text(encoding="utf-8"), "html.parser"
+        )
+        expected_review = BeautifulSoup(
+            record_review_section(
+                audit,
+                original,
+                original_metrics,
+                {m: manifest["method_labels"][m] for m in manifest["comparison_methods"]},
+                "zh",
+            ),
+            "html.parser",
+        )
+        if reviewed_page.select_one("[data-record-review]") != expected_review.select_one(
+            "[data-record-review]"
+        ):
+            raise ValueError("Record review summary differs from its source-bound evidence")
+    elif manifest.get("reference_policy") is not None:
+        raise ValueError("Reference scoring policy requires its completed record audit")
     if len(truth) != manifest["case_count"] or set(metrics) != set(manifest["planned_methods"]):
         raise ValueError("Record report matrix differs from its declared population")
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
     for method in manifest["planned_methods"]:
         rows = list(read_json(output / "public-evidence" / (method + ".json")).values())
         recomputed = record_statistics(
-            truth, rows, certified=method in manifest["complete_methods"], scorer=adapter.score
+            truth,
+            rows,
+            certified=method in manifest["complete_methods"],
+            scorer=adapter.score,
+            reference_policy=manifest.get("reference_policy"),
         )
         if recomputed != metrics[method]:
             raise ValueError("Record report metrics do not reproduce: " + method)
+        if audit is not None:
+            if audit["audited_scores"].get(method) != recomputed["scores"] or record_statistics(
+                original, rows, certified=True, scorer=adapter.score
+            ) != original_metrics.get(method):
+                raise ValueError("Original or reviewed record scores do not reproduce")
+            for row in rows:
+                key = method + ":" + row["case_id"]
+                fields = record_result_fields(
+                    truth[row["case_id"]], row, policy=manifest["reference_policy"]
+                )["field_results"]
+                if (
+                    fields != audit["results"][key]["audited_fields"]
+                    or row.get("review") != audit["results"][key]
+                    or row.get("field_results") != fields
+                ):
+                    raise ValueError(
+                        "Record audit field judgments differ from public native answers"
+                    )
         for cid in truth:
             for route in (
                 record_route("d", cid),
@@ -3547,9 +3845,9 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 manifest["method_labels"][method],
                 str(current["executed"]) + " / " + str(len(truth)),
                 str(current["structured"]),
-                f"{scores['page_hit_macro']['f1']:.3f}" if scores else "—",
-                f"{scores['value_micro']['f1']:.3f}" if scores else "—",
-                f"{scores['exact_field_sets']['rate'] * 100:.2f}%" if scores else "—",
+                record_metric(scores["page_hit_macro"]["f1"]) if scores else "—",
+                record_metric(scores["value_micro"]["f1"]) if scores else "—",
+                record_metric(scores["exact_field_sets"]["rate"], percent=True) if scores else "—",
             ]
             if [cell.get_text(strip=True) for cell in cells[:6]] != expected:
                 raise ValueError("Record core comparison values differ from measured evidence")
