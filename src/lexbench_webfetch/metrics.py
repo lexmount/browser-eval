@@ -1292,7 +1292,7 @@ def evaluate_content(
         from .document_structure import evaluate_document_structure
         structure = evaluate_document_structure(
             prose_content if is_html else visible_content,
-            document_structure, html_document=is_html,
+            document_structure, html_document=is_html, representation=representation,
         )
         result.update(structure)
         result["content_pass"] = bool(result["content_pass"] and structure['document_structure_pass'])

@@ -1455,9 +1455,15 @@ def _html_product_records(content, contract, base_url, diagnostics, *, represent
                     values = (value.splitlines() if id(anchor) in markdown_anchors
                               and not isinstance(child, Tag) else [value])
                     fields.extend(_visible_product_field(value, representation) for value in values)
+                # Inline formatting may split one token across sibling nodes.
+                # The anchor stays a boundary: its text belongs to the title.
+                inline = visible_html_text(''.join(
+                    '<br>' if id(child) in ancestry else str(child) if isinstance(child, Tag)
+                    else child.output_ready() for child in children))
+                fields.extend(_visible_product_field(value, representation) for value in inline.splitlines())
                 if owner is anchor:
-                    label = anchor.get_text(' ', strip=True)
-                    fields.extend(match.group(0) for pattern in allowed + unavailable
+                    fields.extend(match.group(0) for label in (anchor.get_text(' ', strip=True), visible_html_text(str(anchor)))
+                                  for pattern in allowed + unavailable
                                   for match in pattern.finditer(label))
                 price = next((value for value in fields if any(p.fullmatch(value) for p in allowed)
                               and not any(p.fullmatch(value) for p in excluded)), None)
@@ -1534,8 +1540,10 @@ def extract_linked_products(content, contract, base_url, diagnostics=None, *, in
             if len({named_entry_identity(entry['url'], contract)
                     for entry in candidates.values()}) != 1:
                 continue
-            prices = [_visible_product_field(node.get_text(' ', strip=True), representation)
-                      for node in owner.select(scope['price_selector'])]
+            nodes = owner.select(scope['price_selector'])
+            prices = [_visible_product_field(value, representation) for value in (
+                *(node.get_text(' ', strip=True) for node in nodes),
+                *(visible_html_text(str(node)) for node in nodes))]
             prices = [p for p in prices if any(r.fullmatch(p) for r in allowed)
                       and not any(r.fullmatch(p) for r in excluded)]
             text = owner.get_text(' ', strip=True)
