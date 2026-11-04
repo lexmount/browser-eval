@@ -851,6 +851,11 @@ def run_evaluation(
                                 stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
                                                     or worker_unresolved(
                                                         pending, timed_out=result.error_type == 'timeout'))
+                                if not stopped_provider:
+                                    # Cooldown starts when the timed-out worker is
+                                    # known to have finished, not at its deadline.
+                                    previous_request_completed = time.monotonic()
+                                    completed_by_provider[provider.name] = previous_request_completed
                                 if stopped_provider:
                                     result.metadata['retry_pending'] = {
                                         'remaining_physical_calls': 1,
