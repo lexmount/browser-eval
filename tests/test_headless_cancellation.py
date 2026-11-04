@@ -254,7 +254,7 @@ else:
             records = [json.loads(line) for line in (root / 'run' / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
             self.assertEqual([row['case_id'] for row in records], ['first'])
             self.assertIn('ProcessCleanupError', records[0]['error_message'])
-            manifest = json.loads((root / 'run' / 'manifest.json').read_text())
+            manifest = json.loads((root / 'run' / 'manifest.json').read_text(encoding='utf-8'))
             reasons = [item['reason'] for item in manifest['unexecuted']]
             self.assertIn('failure_retry_pending_previous_call_still_running', reasons)
             self.assertTrue(any('non_cancellable_call_still_running' in reason for reason in reasons))

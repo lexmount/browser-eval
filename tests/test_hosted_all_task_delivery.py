@@ -34,7 +34,7 @@ def test_remaining_file_tasks_call_native_interface_and_preserve_delivery(tmp_pa
         else {'markdown': 'Native text, not an image file', 'origin_status': 200}).encode()
     dataset = {'id': 'native-file', 'cases': [vars(case)]}
     source = tmp_path / 'input.json'
-    source.write_text(json.dumps(dataset))
+    source.write_text(json.dumps(dataset), encoding='utf-8')
     response = HttpResponse(200, 'https://service.test/', {'content-type': 'image/png'}, raw)
     with patch('harness.web_fetch.providers.hosted_fetch.request', return_value=response) as call:
         records, _ = run_evaluation(output_dir=tmp_path, dataset_meta=dataset, dataset_path=source,
@@ -53,7 +53,7 @@ def test_remaining_file_tasks_call_native_interface_and_preserve_delivery(tmp_pa
     else:
         assert metadata['file_bytes_delivered'] == 0
         assert not task_passed(record['ok'], record['metrics'], 'file')
-        assert 'Native text' in (tmp_path / record['artifact_path']).read_text()
+        assert 'Native text' in (tmp_path / record['artifact_path']).read_text(encoding='utf-8')
     verify_record_artifacts(tmp_path, record)
     verify_saved_native_answer(tmp_path, record)
 
@@ -99,7 +99,7 @@ def test_file_api_error_preserves_raw_response_without_fabricating_file(tmp_path
     raw = b'Upstream request failed'
     dataset = {'id': 'native-file-error', 'cases': [vars(case)]}
     source = tmp_path / 'input.json'
-    source.write_text(json.dumps(dataset))
+    source.write_text(json.dumps(dataset), encoding='utf-8')
     response = HttpResponse(status, 'https://service.test/', {'content-type': 'text/plain'}, raw)
     with patch('harness.web_fetch.providers.hosted_fetch.request', return_value=response) as call:
         records, _ = run_evaluation(output_dir=tmp_path, dataset_meta=dataset, dataset_path=source,
@@ -111,7 +111,7 @@ def test_file_api_error_preserves_raw_response_without_fabricating_file(tmp_path
     assert record['provider_metadata']['api_http_status'] == status
     assert record['provider_metadata']['file_bytes_delivered'] == 0
     assert (tmp_path / record['provider_metadata']['raw_response_path']).read_bytes() == raw
-    assert (tmp_path / record['artifact_path']).read_text() == ''
+    assert (tmp_path / record['artifact_path']).read_text(encoding='utf-8') == ''
     assert not task_passed(record['ok'], record['metrics'], 'file')
     verify_record_artifacts(tmp_path, record)
     verify_saved_native_answer(tmp_path, record)

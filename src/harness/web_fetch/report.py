@@ -2804,7 +2804,7 @@ def saved_adopted_revisions(out,matrix):
  for row in matrix.get('rows',[]):
   path=row.get('score_revision',{}).get('receipt_path')
   if not path or path=='score-revision.json':continue
-  receipt=json.loads(contained_path(out,path).read_text())
+  receipt=json.loads(contained_path(out,path).read_text(encoding='utf-8'))
   key=json.dumps(receipt,sort_keys=True)
   group=groups.setdefault(key,{'path':path,'receipt':receipt,'rows':[]})
   group['rows'].append(row)
@@ -2819,8 +2819,8 @@ def saved_current_revision_scope(out,matrix):
   proof=row.get('score_revision')
   if not proof:continue
   rescored+=1
-  before=json.loads(contained_path(out,proof['before_case_path']).read_text())
-  current=json.loads(contained_path(out,row['case_path']).read_text())
+  before=json.loads(contained_path(out,proof['before_case_path']).read_text(encoding='utf-8'))
+  current=json.loads(contained_path(out,row['case_path']).read_text(encoding='utf-8'))
   if before!=current:changed.add((row['suite'],row['case_id']))
  return len(changed),rescored
 
@@ -2828,10 +2828,10 @@ def saved_current_revision_scope(out,matrix):
 def write_saved_changes(out):
  """Render saved-result change history from its versioned revision evidence."""
  review_path=out/'result-review.json'
- review=json.loads(review_path.read_text()) if review_path.is_file() else {}
+ review=json.loads(review_path.read_text(encoding='utf-8')) if review_path.is_file() else {}
  updates=''.join('<article class="review-round"><div class="round-label">'+esc(row.get('date',''))+'</div><div><h3>'+model_text(row.get('title',''),row.get('title_en'))+'</h3><p>'+model_text(row.get('fix',''),row.get('fix_en'))+'</p><p class="source-note">'+model_text(row.get('scope',''),row.get('scope_en'))+'</p></div></article>' for row in review.get('review_rounds',[]))
  matrix_path=out/'matrix.json'
- matrix=json.loads(matrix_path.read_text()) if matrix_path.is_file() else {}
+ matrix=json.loads(matrix_path.read_text(encoding='utf-8')) if matrix_path.is_file() else {}
  adopted=saved_adopted_revisions(out,matrix)
  if adopted:
   count=sum(len(group['rows']) for group in adopted)
@@ -2851,10 +2851,10 @@ def write_saved_changes(out):
 
 def write_review_page(out,records):
  revision_path=out/'score-revision.json'
- matrix=json.loads((out/'matrix.json').read_text()) if (out/'matrix.json').is_file() else {}
+ matrix=json.loads((out/'matrix.json').read_text(encoding='utf-8')) if (out/'matrix.json').is_file() else {}
  adopted=saved_adopted_revisions(out,matrix)
  if revision_path.is_file() or adopted:
-  revision=json.loads(revision_path.read_text()) if revision_path.is_file() else {
+  revision=json.loads(revision_path.read_text(encoding='utf-8')) if revision_path.is_file() else {
    'changed_cases':sorted({case for group in adopted for case in group['receipt'].get('changed_cases',[])}),
    'rescored_results':sum(len(group['rows']) for group in adopted)}
   revision_link='../score-revision.json' if revision_path.is_file() else '../'+adopted[0]['path']
@@ -2883,7 +2883,7 @@ def write_review_page(out,records):
   if attachments:
    page+=section('完整清单','<p>'+' · '.join(link('../'+path,{'decisions':'逐案例保留、删除及依据','failures':'原始失败项','parameters':'参数方案与范围'}.get(name,name)) for name,path in attachments.items())+'</p>')
   if attachments.get('decisions'):
-   decisions=json.loads(contained_path(out,attachments['decisions']).read_text())
+   decisions=json.loads(contained_path(out,attachments['decisions']).read_text(encoding='utf-8'))
    rows=[]
    for decision in decisions:
     removed=[x for x in decision.get('rule_decisions',[]) if x.get('action',x.get('decision'))=='remove']
@@ -2891,7 +2891,7 @@ def write_review_page(out,records):
     rows.append(('', ''.join(cell(esc(value)) for value in [decision['suite'],decision['case_id'],str(len(removed)),
                  '；'.join(labels) if labels else '保留原规则',decision['decision_basis']])))
    page+=section('逐案例决定',table(['任务集','案例','删除规则数','删除项','依据'],rows,'score-revision-decisions'))
-  matrix=json.loads((out/'matrix.json').read_text()) if (out/'matrix.json').is_file() else {}
+  matrix=json.loads((out/'matrix.json').read_text(encoding='utf-8')) if (out/'matrix.json').is_file() else {}
   rows=[]
   for row in matrix.get('rows',[]):
    proof=row.get('score_revision')

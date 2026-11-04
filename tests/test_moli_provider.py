@@ -282,7 +282,7 @@ class MoliTests(unittest.TestCase):
             result.metadata['native_route_receipt'] = ledger.receipt(provider, case, ok=result.ok)
             artifact = persist_result_artifacts(root,
                 Path('artifacts/document.txt'), result, request_url=case.url)
-            self.assertEqual(artifact.read_text(), result.content)
+            self.assertEqual(artifact.read_text(encoding='utf-8'), result.content)
             self.assertFalse(result.files)
             record = {'ok': result.ok, 'case_id': case.id, 'provider_type': provider.type,
                       'url': case.url, 'final_url': result.final_url, 'title': result.title,

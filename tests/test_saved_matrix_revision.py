@@ -16,7 +16,7 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
     spec, source, row, _ = fixture(tmp_path)
     if title is not None:
         row['title'] = title
-    case = json.loads((source/'dataset.json').read_text())['cases'][0]
+    case = json.loads((source/'dataset.json').read_text(encoding='utf-8'))['cases'][0]
     case['required_facts'] = [{'id':'shell', 'alternatives':['Subscribe']}]
     spec['suites'][0]['dataset'] = write(source/'dataset.json', {'cases':[case]})
     if uncalled:
@@ -30,10 +30,10 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
                             'status': 'not_called', 'reason': 'DNS unavailable', 'receipt': receipt}]
     (source/row['artifact_path']).write_bytes(answer)
     row['metrics'] = score_attempt(case, answer, ok=True)
-    (source/'results.jsonl').write_text(json.dumps(row)+'\n')
+    (source/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
     if second_provider:
         spec['providers'].append({'id': 'other', 'label': 'Other'})
-        with (source/'results.jsonl').open('a') as handle:
+        with (source/'results.jsonl').open('a', encoding='utf-8') as handle:
             handle.write(json.dumps({**row, 'provider': 'other', 'attempt_id': 'other-call'})+'\n')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
     if multiple:
@@ -51,7 +51,7 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
             revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
     else:
         revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
-    dataset = json.loads((revision/'dataset.json').read_text())
+    dataset = json.loads((revision/'dataset.json').read_text(encoding='utf-8'))
     changed = deepcopy(dataset['cases'][0])
     changed['required_facts'] = []
     config = revision/'config.json'
@@ -90,7 +90,7 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     nested['offline_revision']['review_files'] = {
         'decisions': write(tmp_path/'nested/decisions.json', [{'reason': 'independent scope review'}])}
     spec, source, record, _ = fixture(tmp_path/'parent')
-    case = json.loads((revision/'dataset.json').read_text())['cases'][0]
+    case = json.loads((revision/'dataset.json').read_text(encoding='utf-8'))['cases'][0]
     case['id'] = 'same'
     case.pop('report_family', None)
     case.pop('report_family_label', None)
@@ -120,26 +120,26 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
             'timeout_seconds': 30, 'max_failure_retries': 0})}]
     write(tmp_path/'spec.json', spec)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
-    matrix = json.loads((output/'matrix.json').read_text())
+    matrix = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     assert_whitespace_record_rejected(output, matrix['rows'][0]['record_path'], tmp_path/'spec.json')
     assert_whitespace_record_rejected(output, matrix['rows'][0]['score_revision']['before_record_path'], tmp_path/'spec.json')
     if root_revision:
         assert_whitespace_record_rejected(output, matrix['rows'][0]['score_revision_history']['before_record_path'], tmp_path/'spec.json')
         original_path = output/matrix['rows'][0]['score_revision_history']['before_record_path']
-        original_record = json.loads(original_path.read_text())
+        original_record = json.loads(original_path.read_text(encoding='utf-8'))
         assert (original_path.parent/original_record['artifact_path']).read_bytes() == b'answer'
         current_path = output/matrix['rows'][0]['record_path']
-        current_record = json.loads(current_path.read_text())
+        current_record = json.loads(current_path.read_text(encoding='utf-8'))
         assert (current_path.parent/current_record['artifact_path']).read_bytes() == b'new answer'
     assert matrix['scores_changed'] is True
-    assert json.loads((output/'execution.json').read_text())['scores_changed'] is True
+    assert json.loads((output/'execution.json').read_text(encoding='utf-8'))['scores_changed'] is True
     receipt_path = output/matrix['rows'][0]['score_revision']['receipt_path']
-    receipt = json.loads(receipt_path.read_text())
+    receipt = json.loads(receipt_path.read_text(encoding='utf-8'))
     attachment = receipt['review_files']['decisions']
     assert attachment.startswith('adoption-review-assets/0/')
     assert (output/attachment).read_bytes() == (tmp_path/'nested/decisions.json').read_bytes()
     from bs4 import BeautifulSoup
-    review = BeautifulSoup((output/'review/index.html').read_text(), 'html.parser')
+    review = BeautifulSoup((output/'review/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert '调整 1 个案例，统一重算 1 份保存结果' in review.select_one('#current-revision-scope').get_text()
     if root_revision:
         assert '不是当前报告的净变化' in review.get_text()
@@ -148,7 +148,7 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     assert adopted is not None and 'method' in adopted.get_text()
     assert any(link.get('href') == '../'+attachment for link in adopted.select('a'))
     assert review.select_one('#score-revision-evidence') is not None
-    changes = BeautifulSoup((output/'changes/index.html').read_text(), 'html.parser')
+    changes = BeautifulSoup((output/'changes/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert changes.select_one('[data-adopted-revision-history]') is not None
     assert '本报告没有登记结果修订' not in changes.get_text()
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
@@ -183,7 +183,7 @@ def test_adoption_only_revision_retains_attachments_and_score_provenance(tmp_pat
     if missing_attachment:
         receipt['review_files']['decisions'] = 'missing.json'
         binding = write(receipt_path, receipt)
-        audit = json.loads((output/'saved-matrix-audit.json').read_text())
+        audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
         audit['files'][receipt_path.relative_to(output).as_posix()] = binding['sha256']
         write(output/'saved-matrix-audit.json', audit)
         with pytest.raises(ValueError, match='Missing score revision attachment'):
@@ -194,7 +194,7 @@ def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
     spec, source, revision = revision_fixture(tmp_path)
     raw = (source/'results.jsonl').read_bytes()
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
-    matrix = json.loads((output/'matrix.json').read_text())
+    matrix = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     assert matrix['totals']['passed'] == 1
     row = matrix['rows'][0]
     assert (output/row['score_revision']['before_record_path']).read_bytes() == raw
@@ -203,14 +203,14 @@ def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
     assert_scoring_flags_rejected(output, tmp_path/'spec.json')
     assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'score_revision', ['remove'])
     assert_proof_mutations_rejected(output, tmp_path/'spec.json', 'score_revision_history', ['remove'])
-    assert json.loads((output/row['record_path']).read_text())['elapsed_ms'] == 12
-    assert json.loads((output/'score-revision.json').read_text())['provider_calls_added'] == 0
+    assert json.loads((output/row['record_path']).read_text(encoding='utf-8'))['elapsed_ms'] == 12
+    assert json.loads((output/'score-revision.json').read_text(encoding='utf-8'))['provider_calls_added'] == 0
     from bs4 import BeautifulSoup
-    review = BeautifulSoup((output/'review/index.html').read_text(), 'html.parser')
+    review = BeautifulSoup((output/'review/index.html').read_text(encoding='utf-8'), 'html.parser')
     steps = review.select_one('#score-revision-steps')
     assert steps is not None
     assert [cell.get_text(strip=True) for cell in steps.select('tbody tr td')] == ['1', '规则修订', '1', '0']
-    changes = BeautifulSoup((output/'changes/index.html').read_text(), 'html.parser')
+    changes = BeautifulSoup((output/'changes/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert '1 个案例调整规则，1 份保存结果统一重评' in changes.get_text()
     assert changes.select_one('.review-round a')['href'] == '../review/index.html'
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed'] is True
@@ -220,11 +220,11 @@ def test_saved_revision_preserves_calls_and_exposes_original_scores(tmp_path):
 def test_saved_revision_rejects_tampered_evidence(tmp_path, defect):
     spec, source, revision = revision_fixture(tmp_path)
     if defect == 'answer':
-        (revision/'evidence/first/method/same/artifacts/answer.txt').write_text('other answer')
+        (revision/'evidence/first/method/same/artifacts/answer.txt').write_text('other answer', encoding='utf-8')
     elif defect == 'receipt':
-        Path(spec['offline_revision']['receipt']['path']).write_text('{}')
+        Path(spec['offline_revision']['receipt']['path']).write_text('{}', encoding='utf-8')
     else:
-        dataset = json.loads((revision/'dataset.json').read_text())
+        dataset = json.loads((revision/'dataset.json').read_text(encoding='utf-8'))
         dataset['cases'][0]['url'] = 'https://other.test/'
         write(revision/'dataset.json', dataset)
     with pytest.raises(ValueError):
@@ -236,9 +236,9 @@ def test_revision_keeps_same_id_in_other_suite_unchanged(tmp_path):
     raw = (source/'results.jsonl').read_bytes()
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
     assert (output/'evidence/second/method/same/record.json').read_bytes() == raw
-    rows = json.loads((output/'matrix.json').read_text())['rows']
+    rows = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows']
     assert [row['passed'] for row in rows] == [True, False]
-    review = (output/'review/index.html').read_text()
+    review = (output/'review/index.html').read_text(encoding='utf-8')
     assert 'score-before-record.json' in review and '修订前后证据' in review
 
 
@@ -261,16 +261,16 @@ def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tm
     write(tmp_path/'spec.json', spec)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
     if with_parameter_candidates:
-        row = json.loads((output/'matrix.json').read_text())['rows'][0]
+        row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
         assert row['parameter_rerun']['selected_new'] is False
-    receipt = json.loads((output/'score-revision.json').read_text())
-    history = json.loads((output/receipt['historical_scope_path']).read_text())
+    receipt = json.loads((output/'score-revision.json').read_text(encoding='utf-8'))
+    history = json.loads((output/receipt['historical_scope_path']).read_text(encoding='utf-8'))
     assert receipt['changed_cases'] == [] and receipt['rescored_results'] == 0
     assert history['changed_cases'] == ['first--same'] and history['rescored_results'] == 1
     assert all(not step['task_verdict_changes'] for step in receipt['steps'])
-    assert json.loads((output/receipt['review_files']['decisions']).read_text()) == decisions[1:]
-    assert json.loads((output/history['review_files']['decisions']).read_text()) == decisions
-    review = (output/'review/index.html').read_text()
+    assert json.loads((output/receipt['review_files']['decisions']).read_text(encoding='utf-8')) == decisions[1:]
+    assert json.loads((output/history['review_files']['decisions']).read_text(encoding='utf-8')) == decisions
+    review = (output/'review/index.html').read_text(encoding='utf-8')
     assert 'first independent decision' not in review and 'second independent decision' in review
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
     for relative in ('score-revision.json', 'score-revision-history.json', 'review-assets/decisions.json', 'report-review-assets/decisions.json'):
@@ -279,9 +279,9 @@ def test_exclusion_scopes_revision_counts_and_decisions_but_preserves_history(tm
 
 def test_revision_rejects_different_frozen_call_even_with_rebound_source(tmp_path):
     spec, source, _ = revision_fixture(tmp_path)
-    row = json.loads((source/'results.jsonl').read_text())
+    row = json.loads((source/'results.jsonl').read_text(encoding='utf-8'))
     row['elapsed_ms'] = 99
-    (source/'results.jsonl').write_text(json.dumps(row)+'\n')
+    (source/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
     write(tmp_path/'spec.json', spec)
     with pytest.raises(ValueError, match='predecessor result differs'):
@@ -319,9 +319,9 @@ def test_completion_candidate_baseline_requires_explicit_whole_group_reselection
             build_saved_matrix(tmp_path/'spec.json', tmp_path/'report')
         return
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'report').parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     assert row['parameter_rerun']['selected_new'] is False
-    assert json.loads((output/row['record_path']).read_text())['attempt_id'] == before['attempt_id']
+    assert json.loads((output/row['record_path']).read_text(encoding='utf-8'))['attempt_id'] == before['attempt_id']
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
 
 
@@ -335,7 +335,7 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
         monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, source, revision = revision_fixture(tmp_path, uncalled=True)
     baseline = {'path': str(revision/'matrix.json'), 'sha256': hashlib.sha256((revision/'matrix.json').read_bytes()).hexdigest()}
-    record = json.loads((source/'results.jsonl').read_text())
+    record = json.loads((source/'results.jsonl').read_text(encoding='utf-8'))
     record.update(case_id='later', attempt_id='later-run', started_at='2026-11-02T00:00:00Z')
     record['metrics'] = score_attempt({'id': 'later', 'url': record['url']}, b'answer', ok=True)
     if defect == 'before_contract':
@@ -351,11 +351,11 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
     if defect == 'missing_retry_allowance':
         del contract['max_failure_retries']
     if defect == 'already_called':
-        old = json.loads(Path(baseline['path']).read_text())
+        old = json.loads(Path(baseline['path']).read_text(encoding='utf-8'))
         old['rows'][1].update(status='saved', called=True, record_path='record.json')
         baseline = write(tmp_path/'baseline-matrix.json', old)
     if defect == 'extra_baseline':
-        old = json.loads(Path(baseline['path']).read_text())
+        old = json.loads(Path(baseline['path']).read_text(encoding='utf-8'))
         old['rows'].append({**old['rows'][0], 'case_id': 'unrelated'})
         baseline = write(tmp_path/'baseline-matrix.json', old)
     if defect == 'incomplete':
@@ -364,7 +364,7 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
         contract['jobs'][0]['case_ids'] = ['later', 'later']
         contract['cases'] = 2
     if defect == 'extra_uncommitted':
-        old = json.loads(Path(baseline['path']).read_text())
+        old = json.loads(Path(baseline['path']).read_text(encoding='utf-8'))
         old['rows'][0].update(called=False, status='not_called', record_path=None)
         baseline = write(tmp_path/'baseline-matrix.json', old)
         spec['sources'] = spec['sources'][1:]
@@ -375,14 +375,14 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
                                 'suite': 'first', 'provider': 'method', 'case_id': 'same',
                                 'state': 'called_but_uncommitted', 'elapsed_ms': None})}]
     if defect in {'retained_call', 'retained_task', 'completed_task'}:
-        old = json.loads(Path(baseline['path']).read_text())
+        old = json.loads(Path(baseline['path']).read_text(encoding='utf-8'))
         relative = old['rows'][1 if defect == 'completed_task' else 0][
             'record_path' if defect == 'retained_call' else 'case_path']
         path = revision/relative
-        altered = json.loads(path.read_text())
+        altered = json.loads(path.read_text(encoding='utf-8'))
         altered['elapsed_ms' if defect == 'retained_call' else 'url'] = 999 if defect == 'retained_call' else 'https://different.example/'
         replacement = write(path, altered)
-        audit = json.loads((revision/'saved-matrix-audit.json').read_text())
+        audit = json.loads((revision/'saved-matrix-audit.json').read_text(encoding='utf-8'))
         audit['files'][relative] = replacement['sha256']
         write(revision/'saved-matrix-audit.json', audit)
     spec['completion'] = {'baseline_matrix': baseline,
@@ -417,15 +417,15 @@ def test_completion_preserves_frozen_offline_history(tmp_path, defect, contract_
             build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed')
         return
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'completed').parent
-    model = json.loads((output/'matrix.json').read_text())
+    model = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['saved'] == 2
     assert all(row['called'] for row in model['rows'])
     assert model['rows'][0]['score_revision']
     assert 'score_revision' not in model['rows'][1]
     if contract_form == 'multiple':
         assert model['rows'][1]['completion_note'] == 'Only this case uses Cloudflare DoH.'
-        assert any('Only this case uses Cloudflare DoH.' in p.read_text() for p in (output/'attempts').glob('*.html'))
-    assert json.loads((output/'score-revision.json').read_text())['provider_calls_added'] == 0
+        assert any('Only this case uses Cloudflare DoH.' in p.read_text(encoding='utf-8') for p in (output/'attempts').glob('*.html'))
+    assert json.loads((output/'score-revision.json').read_text(encoding='utf-8'))['provider_calls_added'] == 0
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
 
 
@@ -435,8 +435,8 @@ def test_provider_exclusion_scopes_revision_without_changing_originals(tmp_path)
     spec['excluded_report_providers'] = ['other']
     write(tmp_path/'spec.json', spec)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
-    receipt = json.loads((output/'score-revision.json').read_text())
-    history = json.loads((output/receipt['historical_scope_path']).read_text())
+    receipt = json.loads((output/'score-revision.json').read_text(encoding='utf-8'))
+    history = json.loads((output/receipt['historical_scope_path']).read_text(encoding='utf-8'))
     assert receipt['rescored_results'] == 1 and history['rescored_results'] == 2
     assert len(receipt['steps'][0]['task_verdict_changes']) == 1
     assert len(history['steps'][0]['task_verdict_changes']) == 2

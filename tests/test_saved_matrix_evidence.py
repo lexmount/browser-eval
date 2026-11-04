@@ -11,7 +11,7 @@ from harness.web_fetch.report_saved_matrix import build_saved_matrix, check_save
 
 def write(path, value):
     path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(json.dumps(value))
+    path.write_text(json.dumps(value), encoding='utf-8')
     return {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
 
 
@@ -67,10 +67,10 @@ def test_source_checker_preserves_status_with_dual_event_receipt(tmp_path):
                         'receipt': write(tmp_path/'receipt.json', events)}]
     output = build(tmp_path, spec).parent
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
-    model = json.loads((output/'matrix.json').read_text())
+    model = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     model['rows'][0].update(status='not_called', called=False)
     model['totals'] = _totals(model['rows'])
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['totals'] = model['totals']
     audit['files']['matrix.json'] = write(output/'matrix.json', model)['sha256']
     write(output/'saved-matrix-audit.json', audit)
@@ -101,7 +101,7 @@ def assert_proof_mutations_rejected(output, spec, proof_name, mutations, error='
         elif mutation == 'remove':
             row.pop(proof_name)
             if proof_name == 'retry_continuation':
-                row['retries'] = json.loads((output/row['record_path']).read_text()).get('retries', 0)
+                row['retries'] = json.loads((output/row['record_path']).read_text(encoding='utf-8')).get('retries', 0)
         elif mutation == 'redirect_scope':
             row[proof_name][0]['scope_path'] = row['case_path']
         elif mutation == 'redirect_authority':
@@ -133,7 +133,7 @@ def fixture(tmp_path):
     dataset = write(root / 'dataset.json', {'cases': [case]})
     answer = root / 'artifacts/answer.txt'
     answer.parent.mkdir(parents=True)
-    answer.write_text('answer')
+    answer.write_text('answer', encoding='utf-8')
     record = {'attempt_id': 'run-001', 'started_at':'2026-10-29T00:00:00Z', 'provider_type':'test', 'case_id': 'same', 'provider': 'method', 'url': case['url'], 'ok': True,
               'elapsed_ms': 12.0, 'artifact_path': 'artifacts/answer.txt',
               'metrics': {'content_sha256': hashlib.sha256(answer.read_bytes()).hexdigest(),
@@ -200,9 +200,9 @@ def test_captured_artifact_cannot_overwrite_generated_evidence(tmp_path, destina
 def test_portable_checker_revalidates_record_artifacts_after_audit_rebinding(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     (output/row['answer_path']).write_bytes(b'changed answer')
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'][row['answer_path']] = hashlib.sha256(b'changed answer').hexdigest()
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Portable saved record artifact differs'):
@@ -214,8 +214,8 @@ def test_portable_checker_revalidates_record_artifacts_after_audit_rebinding(tmp
 def test_portable_checker_reconciles_selected_record_with_row(tmp_path, field, source_check):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
-    record = json.loads((output/row['record_path']).read_text())
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
+    record = json.loads((output/row['record_path']).read_text(encoding='utf-8'))
     if field == 'score':
         record['metrics']['content_pass'] = False
     elif field == 'time':
@@ -225,7 +225,7 @@ def test_portable_checker_reconciles_selected_record_with_row(tmp_path, field, s
     else:
         record['provider_metadata']['native_route_receipt']['transport_state'] = 'not_started'
     bound = write(output/row['record_path'], record)
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'][row['record_path']] = bound['sha256']
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Saved record .* differ'):
@@ -235,11 +235,11 @@ def test_portable_checker_reconciles_selected_record_with_row(tmp_path, field, s
 def test_source_checker_rejects_record_mutation_outside_visible_scalars(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
-    record = json.loads((output/row['record_path']).read_text())
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
+    record = json.loads((output/row['record_path']).read_text(encoding='utf-8'))
     record['started_at'] = '2026-10-30T00:00:00Z'
     bound = write(output/row['record_path'], record)
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'][row['record_path']] = bound['sha256']
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='validated source selection'):
@@ -251,15 +251,15 @@ def test_checker_rejects_missing_rows_after_rebinding_totals(tmp_path, rewrite_d
     from harness.web_fetch.report_saved_matrix import _totals
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    model = json.loads((output/'matrix.json').read_text())
+    model = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     model['rows'] = []
     model['totals'] = _totals([])
     bound = write(output/'matrix.json', model)
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['totals'] = model['totals']
     audit['files']['matrix.json'] = bound['sha256']
     if rewrite_dataset:
-        dataset = json.loads((output/'dataset.json').read_text())
+        dataset = json.loads((output/'dataset.json').read_text(encoding='utf-8'))
         dataset['cases'] = []
         audit['files']['dataset.json'] = write(output/'dataset.json', dataset)['sha256']
     write(output/'saved-matrix-audit.json', audit)
@@ -274,20 +274,20 @@ def test_checker_reconciles_renderer_projection_after_audit_rebinding(tmp_path, 
     output = build(tmp_path, spec).parent
     if mutation == 'case_rules':
         relative = 'dataset.json'
-        dataset = json.loads((output/relative).read_text())
+        dataset = json.loads((output/relative).read_text(encoding='utf-8'))
         dataset['cases'][0]['expected_any'] = ['different acceptance rule']
         write(output/relative, dataset)
     else:
         relative = 'results.jsonl'
-        records = [json.loads(line) for line in (output/relative).read_text().splitlines()]
+        records = [json.loads(line) for line in (output/relative).read_text(encoding='utf-8').splitlines()]
         if mutation == 'score':
             records[0]['metrics']['content_pass'] = False
         elif mutation == 'time':
             records[0]['elapsed_ms'] += 1
         else:
             records = []
-        (output/relative).write_text(''.join(json.dumps(row)+'\n' for row in records))
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+        (output/relative).write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'][relative] = hashlib.sha256((output/relative).read_bytes()).hexdigest()
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='renderer projection differs'):
@@ -330,13 +330,13 @@ def test_current_selection_omits_other_methods_and_superseded_payloads(tmp_path)
     excluded = deepcopy(record)
     excluded['provider'] = 'removed-method'
     excluded['artifact_path'] = 'artifacts/discarded.txt'
-    (root / excluded['artifact_path']).write_text('discarded intermediate output')
+    (root / excluded['artifact_path']).write_text('discarded intermediate output', encoding='utf-8')
     results = root / 'results.jsonl'
     results.write_bytes(raw + (json.dumps(excluded) + '\n').encode())
     spec['sources'][0].update(provider='method', results={
         'path': str(results), 'sha256': hashlib.sha256(results.read_bytes()).hexdigest()})
     report = build(tmp_path, spec).parent
-    model = json.loads((report / 'matrix.json').read_text())
+    model = json.loads((report / 'matrix.json').read_text(encoding='utf-8'))
     assert len(model['rows']) == 1
     assert model['rows'][0]['provider'] == 'method'
     assert not model['rows'][0].get('history')
@@ -354,7 +354,7 @@ def test_preserves_bytes_and_qualified_same_id(tmp_path):
     assert entry.name == 'index.html'
     for suite in ['first', 'second']:
         assert (entry.parent / f'evidence/{suite}/method/same/record.json').read_bytes() == raw
-    model = json.loads((entry.parent / 'matrix.json').read_text())
+    model = json.loads((entry.parent / 'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['saved'] == 2
     assert all(r['passed'] and r['normal'] for r in model['rows'])
     assert (root / 'results.jsonl').read_bytes() == raw
@@ -379,7 +379,7 @@ def test_hash_and_answer_tampering_rejected(tmp_path):
     with pytest.raises(ValueError, match='hash differs'):
         build(tmp_path, spec)
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((root / 'results.jsonl').read_bytes()).hexdigest()
-    (root / 'artifacts/answer.txt').write_text('altered')
+    (root / 'artifacts/answer.txt').write_text('altered', encoding='utf-8')
     with pytest.raises(ValueError, match='binding'):
         build(tmp_path, spec)
 
@@ -394,7 +394,7 @@ def test_receipt_bound_missing_not_a_failure(tmp_path):
     spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
                         'status': 'not_called', 'reason': 'No contract', 'receipt': receipt}]
     entry = build(tmp_path, spec)
-    row = json.loads((entry.parent / 'matrix.json').read_text())['rows'][0]
+    row = json.loads((entry.parent / 'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     assert row['passed'] is None and row['called'] is False and row['record_path'] is None
     changed = deepcopy(spec)
     changed['missing'][0]['status'] = 'uncommitted'
@@ -409,7 +409,7 @@ def test_checker_rejects_changed_original_and_portable_bytes(tmp_path):
     with pytest.raises(ValueError, match='source changed'):
         check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
     (root / 'results.jsonl').write_bytes(raw)
-    (entry.parent / 'index.html').write_text('broken')
+    (entry.parent / 'index.html').write_text('broken', encoding='utf-8')
     with pytest.raises(ValueError, match='Portable'):
         check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
 
@@ -440,7 +440,7 @@ def test_nested_route_links_resolve_from_page_or_base(tmp_path, monkeypatch, bas
         head = '<base href="../">' if base else ''
         nested.write_text(head + '<a href="' + prefix + 'index.html?view=all#top">Home</a>'
                           + '<a href="https://external.invalid/missing">External</a>'
-                          + '<a href="' + prefix + model['rows'][0]['answer_path'] + '">Answer</a>')
+                          + '<a href="' + prefix + model['rows'][0]['answer_path'] + '">Answer</a>', encoding='utf-8')
         return entry
 
     monkeypatch.setattr(report, 'generate_saved_matrix', generate)
@@ -462,7 +462,7 @@ def test_nested_route_invalid_target_rejected(tmp_path, monkeypatch, markup, mes
         entry = original(out, model)
         nested = out / 'providers' / 'example.html'
         nested.parent.mkdir(exist_ok=True)
-        nested.write_text(markup)
+        nested.write_text(markup, encoding='utf-8')
         return entry
 
     monkeypatch.setattr(report, 'generate_saved_matrix', generate)
@@ -481,7 +481,7 @@ def test_explicit_user_skip_is_unscored_and_provider_scoped(tmp_path):
                         'status': 'not_called', 'reason': 'User requested skip',
                         'receipt': write(tmp_path/'skip.json', receipt)}]
     entry = build(tmp_path, spec)
-    model = json.loads((entry.parent/'matrix.json').read_text())
+    model = json.loads((entry.parent/'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['failed'] == model['totals']['called'] == 0
     assert model['rows'][0]['passed'] is None
     receipt['providers'] = ['different-method']
@@ -520,15 +520,15 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
             build(tmp_path, spec)
         return
     entry = build(tmp_path, spec)
-    model = json.loads((entry.parent/'matrix.json').read_text())
+    model = json.loads((entry.parent/'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['saved'] == model['totals']['passed'] == 1
-    assert len((entry.parent/'results.jsonl').read_text().splitlines()) == 1
+    assert len((entry.parent/'results.jsonl').read_text(encoding='utf-8').splitlines()) == 1
     history = model['rows'][0]['history'][0]
     assert (entry.parent/history['record_path']).read_bytes() == old_raw
     assert (entry.parent/'evidence/first/method/same/record.json').read_bytes() == raw
-    public_scope = (entry.parent/history['scope_path']).read_text()
+    public_scope = (entry.parent/history['scope_path']).read_text(encoding='utf-8')
     assert str(tmp_path) not in public_scope
-    assert 'superseded-history' in (entry.parent/'attempts/first--run-001.html').read_text()
+    assert 'superseded-history' in (entry.parent/'attempts/first--run-001.html').read_text(encoding='utf-8')
     assert check_saved_matrix(entry.parent, spec_path=tmp_path/'spec.json')['valid']
     assert_provenance_mutation_rejected(entry.parent, history['record_path'], tmp_path/'spec.json')
     assert_redirected_answer_rejected(entry.parent, ['history', 0, 'answer_path'], tmp_path/'spec.json')
@@ -556,7 +556,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         'kind':'predeclared_replacement_scope', 'created_at':'2026-10-28T00:00:00Z', 'cells':[{
             'suite':'first','provider':'method','case_id':'same',
             'old_record':{'path':str(old_file),'sha256':hashlib.sha256(raw).hexdigest()}}]})
-    scope = json.loads(Path(spec['supersession_scope']['path']).read_text())
+    scope = json.loads(Path(spec['supersession_scope']['path']).read_text(encoding='utf-8'))
     if defect != 'missing_policy':
         scope['execution_contract'] = write(tmp_path/'execution-contract.json', {
             'created_at': '2026-10-30T00:00:00Z' if defect == 'late_policy' else '2026-10-28T00:00:00Z',
@@ -570,7 +570,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
     spec['missing'] = [{'suite':'first','provider':'method','case_id':'same',
         'status':'uncommitted','reason':'Collection error after HTTP 502',
         'receipt':receipt,'diagnostic_sources':[diagnostic]}]
-    value = json.loads(Path(receipt['path']).read_text())
+    value = json.loads(Path(receipt['path']).read_text(encoding='utf-8'))
     if defect != 'missing_observations':
         value.update(provider_config_sha256='a'*64, timeout_seconds=30, physical_attempts=1)
     if defect != 'missing_log':
@@ -578,13 +578,13 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         event = {'event': 'http_request_started', 'provider': 'method', 'case_id': 'same',
                  'started_at': '2026-10-29T00:00:00Z', 'timeout_seconds': 30,
                  'provider_config_sha256': 'b'*64 if defect == 'log_config' else 'a'*64}
-        log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1))
+        log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1), encoding='utf-8')
         value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
     if defect in {'log_before_scope', 'receipt_chronology'}:
         value['started_at'] = '2026-10-31T00:00:00Z'
     spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
     if defect in {'wrong_config', 'budget'}:
-        value = json.loads(Path(receipt['path']).read_text())
+        value = json.loads(Path(receipt['path']).read_text(encoding='utf-8'))
         value.update(provider_config_sha256='b'*64 if defect == 'wrong_config' else 'a'*64,
                      physical_attempts=3 if defect == 'budget' else 1)
         spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
@@ -593,15 +593,15 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
             build(tmp_path, spec)
         return
     entry=build(tmp_path,spec)
-    model=json.loads((entry.parent/'matrix.json').read_text())
+    model=json.loads((entry.parent/'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['saved']==model['totals']['failed']==model['totals']['passed']==0
     assert model['totals']['called']==model['totals']['uncommitted']==1
     row=model['rows'][0]
     assert row['passed'] is None and row['elapsed_ms'] is None
     assert (entry.parent/row['history'][0]['record_path']).read_bytes()==raw
-    assert row['history'][0]['record_path'] in (entry.parent/'index.html').read_text()
+    assert row['history'][0]['record_path'] in (entry.parent/'index.html').read_text(encoding='utf-8')
     assert check_saved_matrix(entry.parent)['valid']
-    Path(diagnostic['path']).write_text('{}')
+    Path(diagnostic['path']).write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError,match='source changed'):
         check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')
     spec['missing'][0]['status']='not_called'
@@ -642,7 +642,7 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
             build(tmp_path, spec)
         return
     entry=build(tmp_path,spec)
-    row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
+    row=json.loads((entry.parent/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     assert row['passed'] is final_pass and row['elapsed_ms']==12.0 and row['retries']==1
     assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',
                                     ['remove', 'total_physical_calls', 'execution_cost_ms'])
@@ -650,8 +650,8 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     assert continuation['total_physical_calls']==2 and continuation['execution_cost_ms']==20.0
     assert (entry.parent/continuation['prior_record_path']).read_bytes()==old_raw
     assert (entry.parent/row['record_path']).read_bytes()==raw
-    assert 'retry-continuation' in (entry.parent/'attempts/first--run-001.html').read_text()
-    assert 'Synthetic retry disclosure.' in (entry.parent/'index.html').read_text()
+    assert 'retry-continuation' in (entry.parent/'attempts/first--run-001.html').read_text(encoding='utf-8')
+    assert 'Synthetic retry disclosure.' in (entry.parent/'index.html').read_text(encoding='utf-8')
     assert check_saved_matrix(entry.parent)['valid']
     assert_provenance_mutation_rejected(entry.parent, continuation['prior_record_path'], tmp_path/'spec.json')
     assert_redirected_answer_rejected(entry.parent, ['retry_continuation', 'prior_answer_path'], tmp_path/'spec.json')
@@ -683,14 +683,14 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
             prior = deepcopy(final)
         else:
             prior['started_at'] = '2026-10-29T03:00:00Z'
-        old_results.write_text(json.dumps(prior)+'\n')
-        (root/'results.jsonl').write_text(json.dumps(final)+'\n')
+        old_results.write_text(json.dumps(prior)+'\n', encoding='utf-8')
+        (root/'results.jsonl').write_text(json.dumps(final)+'\n', encoding='utf-8')
         invalid = deepcopy(spec)
         invalid['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
         continuation = invalid['retry_continuations'][0]
         continuation['current_record_sha256'] = invalid['sources'][0]['results']['sha256']
         continuation['prior_source']['results']['sha256'] = hashlib.sha256(old_results.read_bytes()).hexdigest()
-        launch_data = json.loads(Path(launch['path']).read_text())
+        launch_data = json.loads(Path(launch['path']).read_text(encoding='utf-8'))
         launch_data['first_record']['record'] = prior
         continuation['launch_contract'] = write(tmp_path/(defect+'.json'), launch_data)
         with pytest.raises(ValueError):
@@ -702,7 +702,7 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
     with pytest.raises(ValueError,match='current record differs'):
         build(tmp_path,changed,'wrong-final')
     changed=deepcopy(spec)
-    contract=json.loads(Path(launch['path']).read_text())
+    contract=json.loads(Path(launch['path']).read_text(encoding='utf-8'))
     contract['case_ids']=['same','missing'];contract['provider']='method'
     changed['retry_continuations'][0]['launch_contract']=write(tmp_path/'wider-scope.json',contract)
     with pytest.raises(ValueError,match='complete declared scope'):
@@ -739,7 +739,7 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
             complete['call_id'] = 'other__case__r001'
         events.append(complete)
     log_path = tmp_path/'first-log.jsonl'
-    log_path.write_text(''.join(json.dumps(item)+'\n' for item in events))
+    log_path.write_text(''.join(json.dumps(item)+'\n' for item in events), encoding='utf-8')
     log = {'path': str(log_path), 'sha256': hashlib.sha256(log_path.read_bytes()).hexdigest()}
     receipt=write(tmp_path/'uncommitted.json', {'suite':'first','provider':'method','case_id':'same',
         'state':'called_but_uncommitted','elapsed_ms':None})
@@ -767,11 +767,11 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
         _validate_call_sequence(current, {}, {**policy, 'max_failure_retries': 0}, continuation)
     with pytest.raises(ValueError, match='predates its contract'):
         _validate_call_sequence(current, {}, {**policy, 'created_at': '2026-10-27T12:00:00Z'}, continuation)
-    row=json.loads((entry.parent/'matrix.json').read_text())['rows'][0]
+    row=json.loads((entry.parent/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     assert row['passed'] is True and row['retry_continuation']['execution_cost_ms'] is None
     assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',
                                     ['remove', 'total_physical_calls', 'execution_cost_ms'])
-    assert '首轮精确耗时未保存' in (entry.parent/'attempts/first--run-001.html').read_text()
+    assert '首轮精确耗时未保存' in (entry.parent/'attempts/first--run-001.html').read_text(encoding='utf-8')
 
 
 @pytest.mark.parametrize('digest', [None, '', 'abc', 'g' * 64, 12])
@@ -801,16 +801,16 @@ def test_ambiguous_or_called_receipt_cannot_remove_failure(tmp_path, receipt):
 def test_portable_audit_has_no_host_paths_and_optional_source_verification(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     entry = build(tmp_path, spec)
-    audit = json.loads((entry.parent / 'saved-matrix-audit.json').read_text())
+    audit = json.loads((entry.parent / 'saved-matrix-audit.json').read_text(encoding='utf-8'))
     assert all(set(item) == {'name', 'sha256'} for item in audit['sources'])
-    assert str(tmp_path) not in (entry.parent / 'saved-matrix-audit.json').read_text()
+    assert str(tmp_path) not in (entry.parent / 'saved-matrix-audit.json').read_text(encoding='utf-8')
     assert check_saved_matrix(entry.parent)['source_files_verified'] == 0
     assert check_saved_matrix(entry.parent, spec_path=tmp_path / 'spec.json')['source_files_verified'] > 0
 
 
 def test_colliding_suite_case_routes_rejected_before_output(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
-    dataset = json.loads(Path(spec['suites'][0]['dataset']['path']).read_text())
+    dataset = json.loads(Path(spec['suites'][0]['dataset']['path']).read_text(encoding='utf-8'))
     dataset['cases'][0]['id'] = 'nested--same'
     spec['suites'][0]['dataset'] = write(tmp_path/'collision.json', dataset)
     spec['suites'].append({'id': 'first--nested', 'label': 'Nested',
@@ -835,7 +835,7 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
                             'timeout': 30, 'max_failure_retries': 1 if record['attempt_id'] == 'prior-call' else 0}})
     spec, root, record, _ = fixture(tmp_path)
     record['metrics']['content_pass'] = before
-    (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+    (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
     if split_baseline:
         prior = deepcopy(record)
@@ -856,38 +856,38 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
     changed = deepcopy(record)
     changed.update(attempt_id='new-run', started_at='2026-11-01T01:00:00Z')
     changed['metrics']['content_pass'] = after
-    (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n')
+    (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n', encoding='utf-8')
     contract = write(tmp_path/'contract.json', {'created_at':'2026-11-01T00:00:00Z',
         'max_failure_retries':0, 'jobs':[{'id':'job','suite':'first','provider':'method','case_ids':['same']}]})
     spec['parameter_reruns'] = {'contract':contract,'selection':'replace_track_if_pass_count_improves',
         'sources':[{'job_id':'job','root':str(candidate),
-                    'dataset':write(candidate/'dataset.json', json.loads((root/'dataset.json').read_text())),
+                    'dataset':write(candidate/'dataset.json', json.loads((root/'dataset.json').read_text(encoding='utf-8'))),
                     'results':{'path':str(candidate/'results.jsonl'),
                                'sha256':hashlib.sha256((candidate/'results.jsonl').read_bytes()).hexdigest()}}]}
     if partition == 'family':
         spec['report_families'] = [{'id': 'web', 'label': 'Static'}]
         spec['parameter_reruns']['selection'] = 'replace_family_if_pass_count_improves'
     report = build(tmp_path, spec).parent
-    model = json.loads((report/'matrix.json').read_text())
+    model = json.loads((report/'matrix.json').read_text(encoding='utf-8'))
     row = model['rows'][0]
     assert row['parameter_rerun']['selection'] == spec['parameter_reruns']['selection']
     assert_proof_mutations_rejected(report, tmp_path/'spec.json', 'parameter_rerun',
                                     ['remove', 'selected_new', 'group', 'before_passed', 'candidate_passed'])
     assert_saved_receipt_mutation_rejected(report, tmp_path/'spec.json')
     assert row['parameter_rerun']['selected_new'] is selected
-    assert 'data-parameter-reruns' in (report/'index.html').read_text()
-    assert 'data-parameter-history' in (report/'changes/index.html').read_text()
-    detail = (report / 'attempts' / ('first--new-run.html' if selected else 'first--run-001.html')).read_text()
+    assert 'data-parameter-reruns' in (report/'index.html').read_text(encoding='utf-8')
+    assert 'data-parameter-history' in (report/'changes/index.html').read_text(encoding='utf-8')
+    detail = (report / 'attempts' / ('first--new-run.html' if selected else 'first--run-001.html')).read_text(encoding='utf-8')
     if partition == 'family':
         for page in ('index.html', 'changes/index.html'):
-            assert '配置不一致的组不能因通过数更高而入选' in (report / page).read_text()
+            assert '配置不一致的组不能因通过数更高而入选' in (report / page).read_text(encoding='utf-8')
         assert '整类配置一致：旧组 是，新组 是' in detail
         assert '只有一组符合条件时采用该组' in detail
     else:
         assert '动态与热门的基础补充任务' in detail
         assert '整类配置一致：旧组' not in detail
     assert row['passed'] is (before or after)
-    actual = json.loads((report/row['record_path']).read_text())
+    actual = json.loads((report/row['record_path']).read_text(encoding='utf-8'))
     assert actual['attempt_id'] == ('new-run' if selected else 'run-001')
     for label in ('before','candidate'):
         assert (report/row['parameter_rerun'][label+'_record_path']).is_file()
@@ -896,13 +896,13 @@ def test_single_case_parameter_group_preserves_both_calls_and_selects_improvemen
         assert_provenance_mutation_rejected(report, row['parameter_rerun'][label+'_record_path'], tmp_path/'spec.json')
         assert_redirected_answer_rejected(report, ['parameter_rerun', label+'_answer_path'], tmp_path/'spec.json')
     # A truncated cohort or changed rule cannot enter the report.
-    (candidate/'results.jsonl').write_text('')
+    (candidate/'results.jsonl').write_text('', encoding='utf-8')
     spec['parameter_reruns']['sources'][0]['results']['sha256'] = hashlib.sha256(b'').hexdigest()
     with pytest.raises(ValueError, match='Incomplete parameter'):
         build(tmp_path, spec, 'incomplete')
-    (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n')
+    (candidate/'results.jsonl').write_text(json.dumps(changed)+'\n', encoding='utf-8')
     spec['parameter_reruns']['sources'][0]['results']['sha256'] = hashlib.sha256((candidate/'results.jsonl').read_bytes()).hexdigest()
-    data = json.loads((candidate/'dataset.json').read_text())
+    data = json.loads((candidate/'dataset.json').read_text(encoding='utf-8'))
     data['cases'][0]['expected_any'] = ['different rule']
     spec['parameter_reruns']['sources'][0]['dataset'] = write(candidate/'dataset.json', data)
     with pytest.raises(ValueError, match='changed task rules'):
@@ -913,7 +913,7 @@ def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path, monke
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     from harness.web_fetch.report_saved_matrix import _parameter_reruns
     spec, root, record, _ = fixture(tmp_path)
-    case = json.loads((root/'dataset.json').read_text())['cases'][0]
+    case = json.loads((root/'dataset.json').read_text(encoding='utf-8'))['cases'][0]
     second = {**case, 'id':'second'}
     base = tmp_path/'parts'
     sources = []
@@ -921,7 +921,7 @@ def test_parameter_rerun_parts_must_cover_the_whole_original_job(tmp_path, monke
     for cid in ('same', 'second'):
         part = base/cid
         (part/'artifacts').mkdir(parents=True)
-        (part/'artifacts/answer.txt').write_text('answer')
+        (part/'artifacts/answer.txt').write_text('answer', encoding='utf-8')
         result = {**record, 'case_id':cid, 'attempt_id':cid}
         dataset = write(part/'dataset.json', {'cases':[case if cid=='same' else second]})
         raw = (json.dumps(result)+'\n').encode()
@@ -1044,7 +1044,7 @@ def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path,
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, root, record, _ = fixture(tmp_path/'baseline')
     record['metrics']['content_pass'] = False
-    (root/'results.jsonl').write_text(json.dumps(record)+'\n')
+    (root/'results.jsonl').write_text(json.dumps(record)+'\n', encoding='utf-8')
     spec['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
     candidate_spec, candidate_root, candidate, _ = fixture(tmp_path/'candidate')
     candidate['started_at'] = '2026-11-01T00:00:00Z'
@@ -1070,7 +1070,7 @@ def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path,
     spec['parameter_reruns'] = {'contract':contract,'selection':'replace_track_if_pass_count_improves',
         'sources':[{'job_id':'job','saved_matrix_spec':candidate_binding}]}
     output = build(tmp_path,spec).parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     proof = row['parameter_rerun']
     assert (output/proof['candidate_prior_record_path']).read_bytes() == first_raw
     assert proof['selected_new'] is final_pass
@@ -1080,7 +1080,7 @@ def test_parameter_candidate_view_retains_a_separately_completed_retry(tmp_path,
     for change, message in [({'max_failure_retries': 0}, 'retry allowance'),
                             ({'created_at': '2026-10-31T01:30:00Z'}, 'predates')]:
         contract_path = tmp_path / 'parameter-contract.json'
-        data = json.loads(contract_path.read_text())
+        data = json.loads(contract_path.read_text(encoding='utf-8'))
         changed_contract = {**data, **change}
         spec['parameter_reruns']['contract'] = write(tmp_path / 'invalid-contract.json', changed_contract)
         with pytest.raises(ValueError, match=message):
@@ -1097,7 +1097,7 @@ def test_portable_checker_rejects_unbound_files_and_symlinks(tmp_path, extra):
     if extra == 'extra-link':
         path.symlink_to(report / 'matrix.json')
     else:
-        path.write_text('unbound evidence')
+        path.write_text('unbound evidence', encoding='utf-8')
     with pytest.raises(ValueError, match='inventory changed|symlink'):
         check_saved_matrix(report)
 
@@ -1155,7 +1155,7 @@ def test_source_bound_retry_launch_keeps_its_original_contract(tmp_path, defect)
             build(tmp_path, spec)
         return
     output = build(tmp_path, spec).parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     assert row['passed'] and row['retries'] == 1
     assert row['retry_continuation']['total_physical_calls'] == 2
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
@@ -1174,7 +1174,7 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
     after.update(ok=False, elapsed_ms=99, started_at='2026-11-01T00:00:00Z')
     after['metrics'].update(content_pass=False, request_ok=False)
     if defect == 'task':
-        data = json.loads((candidate/'dataset.json').read_text())
+        data = json.loads((candidate/'dataset.json').read_text(encoding='utf-8'))
         data['cases'][0]['url'] = after['url'] = 'https://different.example/'
         nested['suites'][0]['dataset'] = write(candidate/'dataset.json', data)
     nested['sources'][0]['results'] = write(candidate/'results.jsonl', after)
@@ -1198,7 +1198,7 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
             build(tmp_path, spec)
         return
     output = build(tmp_path, spec).parent
-    rows = json.loads((output/'matrix.json').read_text())['rows']
+    rows = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows']
     chosen, retained = rows
     assert chosen['passed'] is False and chosen['elapsed_ms'] == 99
     assert (output/chosen['record_path']).read_bytes() == (candidate/'results.jsonl').read_bytes()
@@ -1215,12 +1215,12 @@ def test_adoption_checks_observed_settings_across_cohorts(tmp_path, monkeypatch,
     nested, source, record, _ = fixture(tmp_path/'candidate')
     for item in (spec, nested):
         root = Path(item['sources'][0]['root'])
-        dataset = json.loads((root/'dataset.json').read_text())
+        dataset = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
         dataset['cases'].append({**dataset['cases'][0], 'id': 'second'})
         item['suites'][0]['dataset'] = write(root/'dataset.json', dataset)
-        saved = json.loads((root/'results.jsonl').read_text())
+        saved = json.loads((root/'results.jsonl').read_text(encoding='utf-8'))
         rows = [saved, {**saved, 'case_id': 'second', 'attempt_id': 'second-run'}]
-        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+        (root/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
         item['sources'][0]['results']['sha256'] = hashlib.sha256((root/'results.jsonl').read_bytes()).hexdigest()
         item['sources'][0]['case_ids'] = ['same', 'second']
     spec['report_families'] = [{'id': 'web', 'label': 'Static'}]
@@ -1335,7 +1335,7 @@ def test_source_checker_binds_report_family_configuration(tmp_path):
 
 
 def assert_saved_receipt_mutation_rejected(output, spec):
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     path, audit_path = output/row['receipt_path'], output/'saved-matrix-audit.json'
     original, original_audit = path.read_bytes(), audit_path.read_bytes()
     audit = json.loads(original_audit)
@@ -1373,7 +1373,7 @@ def assert_whitespace_record_rejected(output, relative, spec):
 def test_selected_record_bytes_match_source_receipt(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    row = json.loads((output/'matrix.json').read_text())['rows'][0]
+    row = json.loads((output/'matrix.json').read_text(encoding='utf-8'))['rows'][0]
     assert_whitespace_record_rejected(output, row['record_path'], tmp_path/'spec.json')
 
 
@@ -1416,13 +1416,13 @@ def test_source_checker_rejects_rendered_content_mutation(tmp_path, change):
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
     path = output/'attempts/first--run-001.html'
     from bs4 import BeautifulSoup
-    soup = BeautifulSoup(path.read_text(), 'html.parser')
+    soup = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
     heading = soup.find('h1')
     assert heading is not None
     heading.string = {'verdict': 'Failed instead of passed', 'latency': '999999 ms',
                       'explanation': 'Different failure explanation'}[change]
-    path.write_text(str(soup))
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    path.write_text(str(soup), encoding='utf-8')
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'][path.relative_to(output).as_posix()] = hashlib.sha256(path.read_bytes()).hexdigest()
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Rendered page differs'):
@@ -1434,8 +1434,8 @@ def test_source_checker_rejects_modified_executable_assets(tmp_path, extension):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
     asset = next((output/'assets').glob('*.'+extension))
-    asset.write_text(asset.read_text()+'\n/* changed presentation */\n')
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    asset.write_text(asset.read_text(encoding='utf-8')+'\n/* changed presentation */\n', encoding='utf-8')
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'][asset.relative_to(output).as_posix()] = hashlib.sha256(asset.read_bytes()).hexdigest()
     write(output/'saved-matrix-audit.json', audit)
     with pytest.raises(ValueError, match='Rendered asset differs'):
@@ -1446,13 +1446,13 @@ def test_source_render_does_not_trust_unbound_release_metadata(tmp_path):
     from harness.web_fetch.report import generate_saved_matrix
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    model = json.loads((output/'matrix.json').read_text())
+    model = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     write(output/'benchmark-release.json', {'version': 'invented-release'})
     for name in ('dataset.json', 'summary.json', 'execution.json', 'results.jsonl', 'en/index.html'):
         (output/name).unlink()
     generate_saved_matrix(output, model)
-    assert 'invented-release' in (output/'index.html').read_text()
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    assert 'invented-release' in (output/'index.html').read_text(encoding='utf-8')
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files'] = {p.relative_to(output).as_posix(): hashlib.sha256(p.read_bytes()).hexdigest()
                       for p in output.rglob('*') if p.is_file() and p.name != 'saved-matrix-audit.json'}
     write(output/'saved-matrix-audit.json', audit)
@@ -1483,7 +1483,7 @@ def test_missing_receipt_reconciles_separate_diagnostics(tmp_path, jsonl, matchi
                'event': 'http_request_started'}, {'event': 'collection_completed'}]
     path = tmp_path/('diagnostic.jsonl' if jsonl else 'diagnostic.json')
     if jsonl:
-        path.write_text(''.join(json.dumps(event)+'\n' for event in events))
+        path.write_text(''.join(json.dumps(event)+'\n' for event in events), encoding='utf-8')
         diagnostic = {'path': str(path), 'sha256': hashlib.sha256(path.read_bytes()).hexdigest()}
     else:
         diagnostic = write(path, events)
@@ -1500,9 +1500,9 @@ def test_missing_receipt_reconciles_separate_diagnostics(tmp_path, jsonl, matchi
 def test_matrix_task_metadata_matches_case_evidence(tmp_path, field, value):
     spec, _, _, _ = fixture(tmp_path)
     output = build(tmp_path, spec).parent
-    model = json.loads((output/'matrix.json').read_text())
+    model = json.loads((output/'matrix.json').read_text(encoding='utf-8'))
     model['rows'][0][field] = value
-    audit = json.loads((output/'saved-matrix-audit.json').read_text())
+    audit = json.loads((output/'saved-matrix-audit.json').read_text(encoding='utf-8'))
     audit['files']['matrix.json'] = write(output/'matrix.json', model)['sha256']
     write(output/'saved-matrix-audit.json', audit)
     for source in (None, tmp_path/'spec.json'):
@@ -1553,14 +1553,14 @@ def test_saved_matrix_binds_external_policy_registry_and_rejects_substitution(tm
         {'source_sha256': 'a' * 64, 'version': 2, 'reason': 'Synthetic historical approval'}]}
     spec['native_policy_registry'] = write(tmp_path / 'approved-policies.json', registry)
     report = build(tmp_path, spec).parent
-    model = json.loads((report / 'matrix.json').read_text())
+    model = json.loads((report / 'matrix.json').read_text(encoding='utf-8'))
     assert model['native_policy_registry']['sha256'] == spec['native_policy_registry']['sha256']
-    assert json.loads((report / model['native_policy_registry']['path']).read_text()) == registry
+    assert json.loads((report / model['native_policy_registry']['path']).read_text(encoding='utf-8')) == registry
     assert check_saved_matrix(report, spec_path=tmp_path / 'spec.json')['valid']
-    (tmp_path / 'approved-policies.json').write_text('{}')
+    (tmp_path / 'approved-policies.json').write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='differs from its approved binding'):
         check_saved_matrix(report, spec_path=tmp_path / 'spec.json')
-    (report / model['native_policy_registry']['path']).write_text('{}')
+    (report / model['native_policy_registry']['path']).write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='differs from its approved binding'):
         check_saved_matrix(report)
 
@@ -1569,17 +1569,17 @@ def test_final_saved_report_preserves_results_without_audit_process_banners(tmp_
     spec, _, _, raw = fixture(tmp_path)
     spec['presentation'] = 'final'
     report = build(tmp_path, spec).parent
-    model = json.loads((report / 'matrix.json').read_text())
+    model = json.loads((report / 'matrix.json').read_text(encoding='utf-8'))
     assert model['totals']['planned'] == model['totals']['passed'] == 1
     assert (report / model['rows'][0]['record_path']).read_bytes() == raw
-    html = (report / 'index.html').read_text()
+    html = (report / 'index.html').read_text(encoding='utf-8')
     assert '本地审核版' not in html
     assert '本报告未正式发布' not in html
     assert 'data-saved-completion' not in html
     assert 'id="completion"' not in html
     assert 'id="saved-missing"' not in html
     assert 'id="saved-limitations"' not in html
-    assert 'id="saved-limitations"' in (report/'methodology/index.html').read_text()
+    assert 'id="saved-limitations"' in (report/'methodology/index.html').read_text(encoding='utf-8')
     assert 'report_invocation_status' not in html
     assert check_saved_matrix(report, spec_path=tmp_path / 'spec.json')['valid']
 

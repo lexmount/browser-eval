@@ -47,7 +47,7 @@ def test_retry_retains_cleanup_wait_after_worker_exits(tmp_path, monkeypatch):
     assert wait > 0
     assert retry['execution_cost_ms'] == round(25 + wait, 2)
     assert records[0]['elapsed_ms'] == 5
-    assert (tmp_path / records[0]['artifact_path']).read_text() == 'Expected'
+    assert (tmp_path / records[0]['artifact_path']).read_text(encoding='utf-8') == 'Expected'
 
 
 class BarrierProvider(Provider):
@@ -375,10 +375,10 @@ class RunnerConcurrencyTest(unittest.TestCase):
                         provider_config_path=Path('providers.json'), runs=1,
                         timeout=.02, delay=0,
                     )
-                records = [json.loads(line) for line in (root/'results.jsonl').read_text().splitlines()]
+                records = [json.loads(line) for line in (root/'results.jsonl').read_text(encoding='utf-8').splitlines()]
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0]['error_type'], 'timeout')
-                manifest = json.loads((root / 'manifest.json').read_text())
+                manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
                 self.assertEqual(manifest['unexecuted'][0]['reason'], 'failure_retry_pending_previous_call_still_running')
                 self.assertEqual(records[0]['provider_metadata']['retry_pending']['remaining_physical_calls'], 1)
         finally:

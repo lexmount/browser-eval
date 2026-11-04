@@ -21,7 +21,7 @@ def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
     path.write_bytes(raw+(json.dumps(other)+'\n').encode())
     spec['sources'][0]['results']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     root = build(tmp_path, spec).parent
-    page = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    page = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     ranking = page.select_one('#ranking-overall')
     assert '请求成功率' in ranking.get_text() and '综合任务通过率' in ranking.get_text()
     rows = ranking.select('tbody tr')
@@ -36,8 +36,8 @@ def test_final_ranking_reuses_pass_order_and_latency_extrema(tmp_path, tie):
             3 if row is rows[1] and not tie else 0)
     assert page.select_one('#completion') is None
     assert page.select_one('#saved-limitations') is None
-    assert 'id="saved-limitations"' in (root/'methodology/index.html').read_text()
-    methodology = BeautifulSoup((root/'methodology/index.html').read_text(), 'html.parser')
+    assert 'id="saved-limitations"' in (root/'methodology/index.html').read_text(encoding='utf-8')
+    methodology = BeautifulSoup((root/'methodology/index.html').read_text(encoding='utf-8'), 'html.parser')
     certification = methodology.select_one('[data-saved-certification="not-conferred"]')
     assert certification is not None and '不等于基准认证' in certification.get_text()
 
@@ -54,7 +54,7 @@ def test_saved_suite_pass_rate_highlights_only_a_unique_winner(tmp_path, tie):
     path.write_bytes(raw+(json.dumps(other)+'\n').encode())
     spec['sources'][0]['results']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     root = build(tmp_path, spec).parent
-    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     table = home.select_one('#ranking-first')
     assert table is not None
     winners = table.select('[data-metric="task_pass_rate"] .comparison-winner')
@@ -70,16 +70,16 @@ def test_task_families_combine_suites_without_combining_case_identities(tmp_path
     spec['report_families'] = [{'id': 'web', 'label': 'Static websites'}]
     with patch('harness.web_fetch.report.evaluate_body_requirements', side_effect=AssertionError('No rescoring')):
         root = build(tmp_path, spec).parent
-    dataset = json.loads((root/'dataset.json').read_text())
+    dataset = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     assert dataset['report_suites'] == [{'id': 'web', 'label': 'Static websites',
                                        'case_ids': ['first--same', 'second--same']}]
-    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     assert len(home.select('#home-rankings [role="tabpanel"]')) == 1
     assert home.select_one('#ranking-web')
     assert 'Static websites' in home.get_text()
     for suite in ('first', 'second'):
         assert (root/f'evidence/{suite}/method/same/record.json').read_bytes() == raw
-    inventory = BeautifulSoup((root/'datasets/index.html').read_text(), 'html.parser')
+    inventory = BeautifulSoup((root/'datasets/index.html').read_text(encoding='utf-8'), 'html.parser')
     assert {r['data-track'] for r in inventory.select('tr[data-track]')} == {'web'}
 
 
@@ -97,7 +97,7 @@ def test_invalid_task_family_inventory_is_rejected(tmp_path, families):
 def test_task_families_split_a_mixed_input_suite(tmp_path):
     spec, source, record, raw = fixture(tmp_path)
     path = Path(spec['suites'][0]['dataset']['path'])
-    dataset = json.loads(path.read_text())
+    dataset = json.loads(path.read_text(encoding='utf-8'))
     dataset['cases'].append({**dataset['cases'][0], 'id': 'picture', 'track': 'image'})
     spec['suites'][0]['dataset'] = write(path, dataset)
     second = {**record, 'case_id': 'picture', 'attempt_id': 'run-picture'}
@@ -107,12 +107,12 @@ def test_task_families_split_a_mixed_input_suite(tmp_path):
     spec['sources'][0]['case_ids'].append('picture')
     spec['report_families'] = [{'id':'web','label':'Static'}, {'id':'web_media','label':'Embedded media'}]
     root = build(tmp_path, spec).parent
-    projection = json.loads((root/'dataset.json').read_text())
+    projection = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     assert [(g['id'], g['case_ids']) for g in projection['report_suites']] == [
         ('web', ['first--same']), ('web_media', ['first--picture'])]
-    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     assert home.select_one('#ranking-web') and home.select_one('#ranking-web_media')
-    assert json.loads((root/'matrix.json').read_text())['totals']['passed'] == 2
+    assert json.loads((root/'matrix.json').read_text(encoding='utf-8'))['totals']['passed'] == 2
 
 
 def test_source_scoped_families_preserve_independent_populations(tmp_path):
@@ -124,10 +124,10 @@ def test_source_scoped_families_preserve_independent_populations(tmp_path):
         {'id':'base-web','task_family':'web','label':'Base supplement','source_suites':['first']}]
     spec['combined_ranking'] = False
     root = build(tmp_path, spec).parent
-    dataset = json.loads((root/'dataset.json').read_text())
+    dataset = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     assert [(g['id'], g['case_ids']) for g in dataset['report_suites']] == [
         ('web', ['second--same']), ('base-web', ['first--same'])]
-    home = BeautifulSoup((root/'index.html').read_text(),'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'),'html.parser')
     headers = [h.get_text() for h in home.select('#ranking-overall th')]
     assert any('Main population' in h for h in headers)
     assert any('Base supplement' in h for h in headers)
@@ -154,17 +154,17 @@ def test_original_template_and_immutable_scores(tmp_path):
     with patch('harness.web_fetch.report.evaluate_body_requirements', side_effect=AssertionError('Rescoring forbidden')):
         entry = build(tmp_path, spec)
     root = entry.parent
-    soup = BeautifulSoup(entry.read_text(), 'html.parser')
+    soup = BeautifulSoup(entry.read_text(encoding='utf-8'), 'html.parser')
     assert soup.select_one('#ranking-overall')
     assert soup.select_one('#saved-completion')
     assert len(soup.select('#saved-completion tbody tr')) == 1
     assert '调用完整：' not in soup.get_text()
     assert (root/'datasets/first--same.html').is_file()
     assert (root/'datasets/second--same.html').is_file()
-    page = BeautifulSoup((root/'attempts/first--run-001.html').read_text(),'html.parser')
+    page = BeautifulSoup((root/'attempts/first--run-001.html').read_text(encoding='utf-8'),'html.parser')
     assert page.select_one('#evidence-reference')
     assert page.select_one('#evidence-output')
-    for row in (root/'results.jsonl').read_text().splitlines():
+    for row in (root/'results.jsonl').read_text(encoding='utf-8').splitlines():
         assert json.loads(row)['metrics'] == raw_record['metrics']
     assert (source/'results.jsonl').read_bytes() == raw_bytes
 
@@ -172,16 +172,16 @@ def test_original_template_and_immutable_scores(tmp_path):
 def test_missing_does_not_become_scored_failure(tmp_path):
     spec, _, _, _ = fixture(tmp_path)
     case = {'id':'missing','name':'Missing','category':'test','url':'https://example.test/missing','expected_any':['answer']}
-    dataset=json.loads(Path(spec['suites'][0]['dataset']['path']).read_text())
+    dataset=json.loads(Path(spec['suites'][0]['dataset']['path']).read_text(encoding='utf-8'))
     dataset['cases'].append(case)
     spec['suites'][0]['dataset']=write(Path(spec['suites'][0]['dataset']['path']),dataset)
     receipt=write(tmp_path/'receipt.json',{'blocked_cases':[{'suite':'first','provider':'method','case_id':'missing', 'state':'pre_call_blocked_no_method_calls', 'native_route_receipt':{'transport_state':'not_started'}}]})
     spec['missing']=[{'suite':'first','provider':'method','case_id':'missing','status':'not_called','reason':'Pre-call block','receipt':receipt}]
     root=build(tmp_path,spec).parent
-    soup=BeautifulSoup((root/'index.html').read_text(),'html.parser')
+    soup=BeautifulSoup((root/'index.html').read_text(encoding='utf-8'),'html.parser')
     assert len(soup.select('#saved-missing tbody tr')) == 1
     assert 'Pre-call block' in soup.get_text()
-    assert len((root/'results.jsonl').read_text().splitlines()) == 1
+    assert len((root/'results.jsonl').read_text(encoding='utf-8').splitlines()) == 1
     assert '未入库或未调用' in soup.get_text()
 
 
@@ -193,7 +193,7 @@ def test_five_suite_inventory_drives_rankings_and_filters(tmp_path):
     spec['suites']=[{**original_suite,'id':key,'label':label} for key,label in names]
     spec['sources']=[{**original_source,'suite':key} for key,_ in names]
     root=build(tmp_path,spec).parent
-    home=BeautifulSoup((root/'index.html').read_text(),'html.parser')
+    home=BeautifulSoup((root/'index.html').read_text(encoding='utf-8'),'html.parser')
     assert len(home.select('#home-rankings [role="tabpanel"]'))==5
     for key,label in names:
         panel=home.select_one('#home-rankings-'+key)
@@ -201,11 +201,11 @@ def test_five_suite_inventory_drives_rankings_and_filters(tmp_path):
         assert label in panel.get_text()
         assert panel.select_one('#ranking-'+key)
         assert (root/f'evidence/{key}/method/same/record.json').read_bytes()==raw
-    dataset=BeautifulSoup((root/'datasets/index.html').read_text(),'html.parser')
+    dataset=BeautifulSoup((root/'datasets/index.html').read_text(encoding='utf-8'),'html.parser')
     assert {x.get('data-track') for x in dataset.select('tr[data-track]')}=={key for key,_ in names}
-    provider=BeautifulSoup((root/'providers/method.html').read_text(),'html.parser')
+    provider=BeautifulSoup((root/'providers/method.html').read_text(encoding='utf-8'),'html.parser')
     assert {x.get('data-track') for x in provider.select('tr[data-track]')}=={key for key,_ in names}
-    projection=json.loads((root/'dataset.json').read_text())
+    projection=json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     assert all(c.get('track','web')=='web' for c in projection['cases'])
     assert active_tracks({'x':{'id':'x','track':'web'}})==[('web','静态网站正文')]
 
@@ -213,7 +213,7 @@ def test_five_suite_inventory_drives_rankings_and_filters(tmp_path):
 def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path):
     spec, source, original, _ = fixture(tmp_path)
     dataset_path = Path(spec['suites'][0]['dataset']['path'])
-    dataset = json.loads(dataset_path.read_text())
+    dataset = json.loads(dataset_path.read_text(encoding='utf-8'))
     records = [original]
     for case_id, state in [('rejected', 'not_started'), ('failed', 'started')]:
         dataset['cases'].append({**dataset['cases'][0], 'id': case_id})
@@ -232,14 +232,14 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
     spec['sources'][0]['case_ids'] = ['same', 'rejected', 'failed']
     with patch('harness.web_fetch.report.evaluate_body_requirements', side_effect=AssertionError('No rescoring')):
         root = build(tmp_path, spec).parent
-    matrix = json.loads((root/'matrix.json').read_text())
+    matrix = json.loads((root/'matrix.json').read_text(encoding='utf-8'))
     assert matrix['totals']['failed'] == 1
     assert matrix['totals']['adapter_rejected'] == 1
     assert matrix['totals']['saved'] == 3
-    projected = [json.loads(r) for r in (root/'results.jsonl').read_text().splitlines()]
+    projected = [json.loads(r) for r in (root/'results.jsonl').read_text(encoding='utf-8').splitlines()]
     assert [r['metrics'] for r in projected] == [r['metrics'] for r in records]
     assert (source/'results.jsonl').read_bytes() == raw
-    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     assert '1/2' in home.select_one('#ranking-overall').get_text()
     assert '1/2' in home.select_one('#ranking-first').get_text()
     suite_cells = home.select('#ranking-first tbody tr td')
@@ -250,16 +250,16 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
     assert timing_cells[0].get_text() == '18 ms'
     assert '9,000' not in ''.join(c.get_text() for c in timing_cells)
     assert '未调用·适配器提前拒绝' in home.select_one('#saved-missing').get_text()
-    provider = BeautifulSoup((root/'providers/method.html').read_text(), 'html.parser')
+    provider = BeautifulSoup((root/'providers/method.html').read_text(encoding='utf-8'), 'html.parser')
     assert '未调用·适配器提前拒绝' in provider.get_text()
     rejected_row = provider.select_one('tr[data-result="unmeasured"]')
     assert rejected_row['data-transport'] == 'na'
     assert rejected_row['data-content'] == 'na'
     assert len(provider.select('tr[data-result="fail"]')) == 1
-    attempt = BeautifulSoup((root/'attempts/first--rejected.html').read_text(), 'html.parser')
+    attempt = BeautifulSoup((root/'attempts/first--rejected.html').read_text(encoding='utf-8'), 'html.parser')
     assert attempt.select_one('.status-line').get_text() == '未调用·适配器提前拒绝'
     assert '不计入通过率分母' in attempt.get_text()
-    failed = BeautifulSoup((root/'attempts/first--failed.html').read_text(), 'html.parser')
+    failed = BeautifulSoup((root/'attempts/first--failed.html').read_text(encoding='utf-8'), 'html.parser')
     assert failed.select_one('.status-line').get_text() == '未通过'
 
 
@@ -280,14 +280,14 @@ def test_instance_method_labels_reach_full_renderer_and_reset(tmp_path):
     spec['providers'][0]['label'] = label
     root = build(tmp_path, spec).parent
     for path in ['index.html','providers/method.html','attempts/first--run-001.html','analysis/index.html']:
-        assert label in BeautifulSoup((root/path).read_text(),'html.parser').get_text()
+        assert label in BeautifulSoup((root/path).read_text(encoding='utf-8'),'html.parser').get_text()
     assert provider_label('method') == original
 
 
 def test_saved_scope_banner_distinguishes_uncommitted_and_user_skip(tmp_path):
     spec, source, _, _ = fixture(tmp_path)
     dataset_path=Path(spec['suites'][0]['dataset']['path'])
-    dataset=json.loads(dataset_path.read_text())
+    dataset=json.loads(dataset_path.read_text(encoding='utf-8'))
     dataset['cases'] += [{**dataset['cases'][0],'id':'uncommitted'},
                          {**dataset['cases'][0],'id':'skipped'}]
     spec['suites'][0]['dataset']=write(dataset_path,dataset)
@@ -303,7 +303,7 @@ def test_saved_scope_banner_distinguishes_uncommitted_and_user_skip(tmp_path):
          'reason':'User requested skip','receipt':skip_receipt}]
     root=build(tmp_path,spec).parent
     for relative in ['index.html','providers/method.html','attempts/first--run-001.html']:
-        page=BeautifulSoup((root/relative).read_text(),'html.parser')
+        page=BeautifulSoup((root/relative).read_text(encoding='utf-8'),'html.parser')
         banner=page.select_one('[data-saved-completion]')
         assert banner is not None
         text=banner.get_text()
@@ -317,7 +317,7 @@ def test_saved_matrix_timing_labels_match_final_call_values(tmp_path):
     from harness.web_fetch.report import overall_ranking
     spec, _, record, _ = fixture(tmp_path)
     root=build(tmp_path,spec).parent
-    page=BeautifulSoup((root/'index.html').read_text(),'html.parser')
+    page=BeautifulSoup((root/'index.html').read_text(encoding='utf-8'),'html.parser')
     heads=[x.get_text().removesuffix(' ↕') for x in page.select('#ranking-overall th')]
     assert heads[-3:]==['最终调用耗时均值','最终调用耗时 P50','最终调用耗时 P95']
     values=[x.get_text() for x in page.select('#ranking-overall tbody tr td')][-3:]
@@ -339,7 +339,7 @@ def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
     spec['missing'] = [{'suite': 'first', 'provider': 'absent', 'case_id': 'same',
         'status': 'not_called', 'reason': 'Pre-call block', 'receipt': receipt}]
     root = build(tmp_path, spec).parent
-    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     for selector in ['#ranking-overall', '#ranking-first']:
         rows = home.select(selector+' tbody tr')
         assert len(rows) == 2
@@ -356,7 +356,7 @@ def test_nested_suite_names_partition_by_identity(tmp_path):
     spec['suites'].append({**spec['suites'][0], 'id': 'first--nested'})
     spec['sources'].append({**spec['sources'][0], 'suite': 'first--nested'})
     root = build(tmp_path, spec).parent
-    dataset = json.loads((root/'dataset.json').read_text())
+    dataset = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     assert [s['case_ids'] for s in dataset['report_suites']] == [
         ['first--same'], ['first--nested--same']]
 
@@ -400,10 +400,10 @@ def test_ordinary_english_generation_localizes_all_final_call_timing_text(tmp_pa
     from harness.web_fetch.report import generate
     from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, TEXT
     _, source, record, _ = fixture(tmp_path)
-    dataset = json.loads((source/'dataset.json').read_text())
+    dataset = json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     generate(source, dataset, [record], [], include_english=True,
              authored_interpretation=False, frozen_scores=True)
-    page = BeautifulSoup((source/'en/index.html').read_text(), 'html.parser')
+    page = BeautifulSoup((source/'en/index.html').read_text(encoding='utf-8'), 'html.parser')
     overview = page.select_one('#overall-ranking').get_text(' ', strip=True)
     strings = [*SAVED_MATRIX_ZH['final_call_timing_headers'],
                *(SAVED_MATRIX_ZH[key] for key in
@@ -411,7 +411,7 @@ def test_ordinary_english_generation_localizes_all_final_call_timing_text(tmp_pa
     for original in strings:
         assert original not in overview
         assert TEXT[original] in overview
-    changes = BeautifulSoup((source/'en/changes/index.html').read_text(), 'html.parser').get_text()
+    changes = BeautifulSoup((source/'en/changes/index.html').read_text(encoding='utf-8'), 'html.parser').get_text()
     assert SAVED_MATRIX_ZH['changes_scope'] not in changes
     assert TEXT[SAVED_MATRIX_ZH['changes_scope']] in changes
 
@@ -430,16 +430,16 @@ def test_excluded_report_families_preserve_sources_and_recompute_population(tmp_
             build(tmp_path, spec)
         return
     root = build(tmp_path, spec).parent
-    model = json.loads((root/'matrix.json').read_text())
+    model = json.loads((root/'matrix.json').read_text(encoding='utf-8'))
     assert len(model['rows']) == model['totals']['saved'] == 1
     assert model['rows'][0]['suite'] == 'second'
     assert model['report_scope']['source_positions'] == 2
     assert (source/'results.jsonl').read_bytes() == original
     assert not (root/'evidence/first').exists()
-    home = BeautifulSoup((root/'index.html').read_text(), 'html.parser')
+    home = BeautifulSoup((root/'index.html').read_text(encoding='utf-8'), 'html.parser')
     assert 'Base supplement' not in home.get_text()
     assert 'Main population' in home.get_text()
-    dataset = json.loads((root/'dataset.json').read_text())
+    dataset = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
     assert [case['id'] for case in dataset['cases']] == ['second--same']
 
 
@@ -459,7 +459,7 @@ def test_excluded_report_providers_preserve_evidence_and_retained_results(tmp_pa
             build(tmp_path, spec)
         return
     root = build(tmp_path, spec).parent
-    model = json.loads((root/'matrix.json').read_text())
+    model = json.loads((root/'matrix.json').read_text(encoding='utf-8'))
     assert model['providers'] == [{'id': 'method', 'label': 'Method'}]
     assert len(model['rows']) == model['totals']['saved'] == 1
     assert model['report_scope']['excluded_providers'] == ['other']
@@ -468,6 +468,6 @@ def test_excluded_report_providers_preserve_evidence_and_retained_results(tmp_pa
     assert path.read_bytes() == original
     assert not (root/'providers/other.html').exists()
     assert not (root/'evidence/first/other').exists()
-    assert 'Removed method' not in (root/'index.html').read_text()
+    assert 'Removed method' not in (root/'index.html').read_text(encoding='utf-8')
     from harness.web_fetch.report_saved_matrix import check_saved_matrix
     check_saved_matrix(root, spec_path=tmp_path/'spec.json')

@@ -20,18 +20,18 @@ def test_saved_moli_replay_preserves_evalcase_route_defaults(tmp_path, fields):
 
     case = {'id': 'case', 'name': 'Case', 'url': 'https://example.test/',
             'category': 'test', 'expected_any': [], **fields}
-    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case]}))
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case]}), encoding='utf-8')
     record = {'case_id': 'case', 'url': case['url'], 'provider_type': 'moli_webfetch',
               'provider_metadata': {'native_route_receipt': {}}}
     expected = native_answer_projection('moli_webfetch', EvalCase(**case), {}, None)
-    original = json.loads((tmp_path/'dataset.json').read_text())
+    original = json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8'))
     with patch('harness.web_fetch.native_routes.native_answer_projection', wraps=native_answer_projection) as project:
         assert _expected_native_declaration(tmp_path, record, b'answer', None) == expected
         replay_case = project.call_args.args[1]
         assert replay_case['task_kind'] == fields.get('task_kind', 'body')
         assert replay_case['track'] == fields.get('track', 'web')
         assert _expected_native_declaration(tmp_path, record, b'answer', {'case': case}) == expected
-    assert json.loads((tmp_path/'dataset.json').read_text()) == original
+    assert json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8')) == original
     assert case == original['cases'][0]
     with pytest.raises(ValueError, match='frozen request identity'):
         _expected_native_declaration(tmp_path, {**record, 'url': 'https://forged.test/'}, b'answer', None)
@@ -1105,7 +1105,7 @@ def test_explicit_native_dynamic_body_rules_are_admitted_without_rule_conversion
                 'regions': [{'id': 'body', 'text': 'Expected body content'}]}}
     original = deepcopy(case)
     path = tmp_path/'dataset.json'
-    path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [case]}))
+    path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [case]}), encoding='utf-8')
     _, cases = load_dataset(path)
     provider = build_provider('method', {'type': method, 'api_key': 'fixture',
         'account_id': 'fixture', 'uniform_native_parameters': True})
@@ -1161,11 +1161,11 @@ def test_parameter_report_requires_authorized_native_execution(tmp_path, defect)
     if defect == 'option':
         config['providers'][provider.name]['include_images'] = True
     config_path = tmp_path/'providers.json'
-    config_path.write_text(json.dumps(config))
+    config_path.write_text(json.dumps(config), encoding='utf-8')
     digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
     manifest.update(provider_config_source=str(config_path), provider_config_sha256=digest,
                     parameters={'timeout': 45})
-    (tmp_path/'manifest.json').write_text(json.dumps(manifest))
+    (tmp_path/'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     contract = {'provider_config_sha256': digest, 'timeout_seconds': 45}
     record = {'provider': provider.name, 'case_id': case.id, 'url': case.url,
               'started_at': started, 'ok': result.ok,

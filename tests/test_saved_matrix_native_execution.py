@@ -69,3 +69,11 @@ def test_historical_system_dns_uses_bound_native_contract(tmp_path, kind):
     record['provider_metadata']['dns_mode'] = 'cloudflare'
     with pytest.raises(ValueError, match='DNS differs'):
         _parameter_execution(tmp_path, record, case, contract, _SourceBindings(tmp_path))
+
+
+def test_missing_dns_does_not_invent_a_non_system_mode(tmp_path):
+    record, case, contract = execution(tmp_path, {
+        'type': 'tavily_extract', 'uniform_native_parameters': True,
+        'api_key': 'fixture', 'dns_mode': 'public_doh'})
+    with pytest.raises(ValueError, match='DNS differs'):
+        _parameter_execution(tmp_path, record, case, contract, _SourceBindings(tmp_path))

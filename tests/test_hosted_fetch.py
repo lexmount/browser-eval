@@ -368,7 +368,7 @@ class HostedFetchTest(unittest.TestCase):
                 call.return_value = HttpResponse(200, ENDPOINTS[kind], {}, raw)
                 dataset = {'id': 'native-file', 'cases': [vars(case)]}
                 path = root / 'input.json'
-                path.write_text(json.dumps(dataset))
+                path.write_text(json.dumps(dataset), encoding='utf-8')
                 records, _ = run_evaluation(output_dir=root, dataset_meta=dataset, dataset_path=path,
                     cases=[case], providers=[self.provider(kind, uniform_native_parameters=True)],
                     provider_config_path=Path('providers.json'), runs=1, timeout=30, delay=0,

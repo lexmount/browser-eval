@@ -626,7 +626,7 @@ def _load_saved_matrix(spec_path):
         evidence = [_json(receipt)]
         for diagnostic_source in entry.get('diagnostic_sources', []):
             diagnostic = binding(diagnostic_source)
-            raw = diagnostic.read_text()
+            raw = diagnostic.read_text(encoding='utf-8')
             try:
                 evidence.append(json.loads(raw))
             except json.JSONDecodeError:
@@ -756,7 +756,7 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None):
     # Older hosted adapters did not duplicate system DNS in result metadata.
     # The independently bound native configuration below still verifies it.
     historical_system_dns = ('dns_mode' not in metadata and config.get('dns_mode', 'system') == 'system'
-                             and record['provider_type'] in {
+                             and record.get('provider_type') in {
                                  'cloudflare_markdown', 'cloudflare_content', 'exa_contents',
                                  'tavily_extract', 'firecrawl'})
     if (metadata.get('dns_mode') != config.get('dns_mode', 'system')
@@ -2083,7 +2083,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         if relative not in audit['files']:
             raise ValueError('Unbound saved-matrix HTML route')
         parser = _Links()
-        parser.feed(page.read_text())
+        parser.feed(page.read_text(encoding='utf-8'))
         page_url = virtual_root + relative
         base_url = urljoin(page_url, unquote(parser.base)) if parser.base is not None else page_url
         base = urlsplit(base_url)
@@ -2207,7 +2207,7 @@ def render_saved_with_standard_generator(output, model):
     dataset, records, identities, scope = _saved_renderer_projection(output, model)
     providers = [p['id'] for p in model['providers']]
     _write(output/'dataset.json', dataset)
-    (output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records))
+    (output/'results.jsonl').write_text(''.join(json.dumps(r,ensure_ascii=False)+'\n' for r in records), encoding='utf-8')
     _write(output/'summary.json', scope)
     _write(output/'execution.json', {'kind':'saved_report_projection', 'provider_calls_added':0,
            'scores_changed':model.get('scores_changed', bool(model.get('offline_revision'))), 'identities':identities, 'source_bindings':model['source_bindings']})

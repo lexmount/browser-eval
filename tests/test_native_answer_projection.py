@@ -262,9 +262,9 @@ def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_
     case = {'id': 'file', 'url': 'https://example.test/file.pdf', 'task_kind': 'file'}
     payload = {'content': 'JVBERg==', 'encoding': 'base64', 'statusCode': 200}
     raw = json.dumps(payload).encode()
-    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case]}))
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case]}), encoding='utf-8')
     (tmp_path / 'raw.json').write_bytes(raw)
-    (tmp_path / 'answer.txt').write_text(payload['content'])
+    (tmp_path / 'answer.txt').write_text(payload['content'], encoding='utf-8')
     old = projection.native_answer_projection('browserbase_fetch', case, payload, 200, policy_version=1)
     metadata = {'native_answer_projection': old, 'api_http_status': 200,
                 'native_route_receipt': {'answer_selection_policy': policy, 'answer_fields': ['content']},
