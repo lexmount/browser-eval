@@ -18,7 +18,7 @@ Document formats do not universally need Markdown. If the task is file retrieval
 
 ## Fairness means equivalent opportunity
 
-Give each method the best supported route that satisfies the same external contract: native Markdown, structured endpoint, browser protocol, CLI, or a declared converter. Do not handicap a method to mimic another method's implementation.
+Give each method the best supported route that satisfies the same external contract: native Markdown, structured endpoint, browser protocol, CLI, or a declared converter. Do not handicap a method to mimic another method's implementation. Equalize the task, inputs, output contract, call budget and scoring; do not require identical internals.
 
 Record, and where useful split, these sources of difference:
 
