@@ -820,7 +820,7 @@
     "late_section": "后部",
     "latency_correction_receipt": "时延纠正收据",
     "latency_covers_all_calls_in_each_group": "{metric_note} 耗时统计每组全部调用（含失败），P50 是中位数；未留存完整计时的组不计算耗时。",
-    "latency_includes_only_passing_calls_in_this": "仅统计该类型任务通过的调用耗时。列表任务与正文任务均按各自声明的规则判定。P50 是中位数；P95 表示约 95% 的通过调用不超过该耗时。",
+    "latency_final_call_per_task_population": "总榜统计每题最终一次调用的耗时，包含失败调用；标明通过任务或共同成功任务的表，只统计对应集合。同一张耗时表的均值、P50、P95使用相同范围。P50是中位数；P95表示该范围内约95%的调用不超过这一耗时。",
     "latency_is_from_the_selected_final_crossover": "耗时取同页交叉实验最终轮；正文与评分来自原始调用。",
     "latency_on_tasks_passed_by_every_method": "全部方法共同成功任务的耗时",
     "latency_summary_and_sample_denominators": "速度汇总与样本分母",
