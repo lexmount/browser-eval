@@ -3,15 +3,93 @@ import json
 
 import pytest
 from bs4 import BeautifulSoup
+from lexbench_websearch.scoring import evaluate
 
+from harness.record_io import bytes_sha256
+from harness.web_search import review
 from harness.web_search.example import example
 from harness.web_search.report import build, check, main
+from tests.web_search.test_review_release import audited_fixture
 
 
 @pytest.fixture
 def report(tmp_path):
     example(tmp_path)
     return tmp_path / "report", tmp_path / "fixture"
+
+
+def _tamper(path, old, new):
+    text = path.read_text(encoding="utf-8")
+    assert old in text
+    path.write_text(text.replace(old, new), encoding="utf-8")
+
+
+def _site_scoped_source(source):
+    """Rebind the fixture's second query as a two-site query written in Chinese."""
+    profile = json.loads((source / "profile.json").read_bytes())
+    case = profile["cases"][1]
+    del case["anchors"]
+    case.update(domains=["one.invalid", "two.invalid"], query="\u5b98\u7f51\uff1a\u4e00\u3001\u4e8c\uff1b\u4e09")
+    (source / "profile.json").write_text(json.dumps(profile), encoding="utf-8")
+    rows = [json.loads(line) for line in (source / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    for row in rows:
+        if row["case_id"] == case["id"]:
+            row["metrics"] = evaluate(case, row["results"])
+    (source / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    receipt = json.loads((source / "receipt.json").read_bytes())
+    receipt.update(profile_sha256=bytes_sha256((source / "profile.json").read_bytes()),
+                   results_sha256=bytes_sha256((source / "results.jsonl").read_bytes()))
+    (source / "receipt.json").write_text(json.dumps(receipt), encoding="utf-8")
+
+
+def test_requested_sites_use_each_editions_separator_and_measured_queries_stay_verbatim(report):
+    output, source = report
+    _site_scoped_source(source)
+    build(output, source=source, include_english=True)
+    detail = "details/fixture-1-lexmount-r0.html"
+    assert "one.invalid\u3001two.invalid" in (output / detail).read_text(encoding="utf-8")
+    english = output / "en" / detail
+    assert "one.invalid, two.invalid" in english.read_text(encoding="utf-8")
+    assert "\u5b98\u7f51\uff1a\u4e00\u3001\u4e8c\uff1b\u4e09" in english.read_text(encoding="utf-8")
+    assert check(output)
+    _tamper(english, "one.invalid, two.invalid", "one.invalid\u3001two.invalid")
+    with pytest.raises(ValueError, match="Chinese punctuation"):
+        check(output)
+
+
+def test_population_scopes_use_each_editions_separator(report, tmp_path):
+    output, source = report
+    profile = json.loads((source / "profile.json").read_bytes())
+    content = tmp_path / "content.json"
+    content.write_text(json.dumps({"presentation": "comparison-report", "independent_benchmarks": True, "metric_populations": [
+        {"id": case["id"], "benchmark_root": True, "label": {"en": case["id"], "zh": case["id"]}, "case_ids": [case["id"]]}
+        for case in profile["cases"]
+    ]}), encoding="utf-8")
+    build(output, source=source, content=content, include_english=True)
+    home = BeautifulSoup((output / "index.html").read_text(encoding="utf-8"), "html.parser")
+    assert "\uff1b" in home.select_one("[data-populations] > .population-note").get_text()
+    english = output / "en/index.html"
+    assert "fixture-0 1 queries; fixture-1 1 queries" in english.read_text(encoding="utf-8")
+    assert check(output)
+    _tamper(english, "fixture-0 1 queries; fixture-1", "fixture-0 1 queries\uff1bfixture-1")
+    with pytest.raises(ValueError, match="Chinese punctuation"):
+        check(output)
+
+
+def test_review_findings_use_each_editions_separator(tmp_path):
+    _, evidence = audited_fixture(tmp_path)
+    path = tmp_path / "review.json"
+    review.save(path, evidence)
+    output = tmp_path / "released"
+    build(output, source=tmp_path / "fixture", review=path, include_english=True)
+    assert check(output)
+    evidence["adjudications"] = {"q:dataset": {"resolution": "fixed"}}
+    finding = "[data-independent-review] details > ul > li"
+    summary = {zh: BeautifulSoup(review.render_summary(evidence, zh), "html.parser").select_one(finding).get_text() for zh in (True, False)}
+    assert summary == {True: "\u5df2\u4fee\u6b63\uff1a1 \u6761\u53d1\u73b0", False: "Corrected: 1 findings"}
+    _tamper(output / "en/review.html", "</summary><ul>", "</summary><ul><li>Corrected\uff1a1 findings</li>")
+    with pytest.raises(ValueError, match="Chinese punctuation"):
+        check(output)
 
 
 def test_chinese_only_report_links_to_unavailable_english_entry(report):
