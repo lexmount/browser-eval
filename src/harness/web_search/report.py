@@ -7,7 +7,7 @@ import math
 import posixpath
 import re
 from collections import Counter
-from collections.abc import Callable, Iterable
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from functools import partial
 from pathlib import Path
@@ -528,7 +528,7 @@ def _load_assessment_authority(profile_path: str | Path | None) -> dict[str, Any
 
 
 def _load_collection(
-    profile_path: str | Path | None, source: Path | None, cohorts: Iterable[Any], authored: dict[str, Any]
+    profile_path: str | Path | None, source: Path | None, cohorts: Sequence[tuple[str, Path]], authored: dict[str, Any]
 ) -> tuple[dict[str, Any], list[dict[str, Any]], dict[str, Any], dict[str, Any]]:
     sources = {}
     if cohorts:
@@ -621,7 +621,7 @@ def _load_report_inputs(
     relevance: Path | None,
     review: Path | None,
     site_prefix: str,
-    cohorts: Iterable[Any],
+    cohorts: Sequence[tuple[str, Path]],
 ) -> ReportInputs:
     content_bytes, authored, reading_sections = _read_authored_content(content)
     authority = _load_assessment_authority(profile_path)
@@ -1534,7 +1534,7 @@ def _write_manifest(
     routes: list[str],
     bundle: list[dict[str, Any]],
     source: Path | None,
-    cohorts: Iterable[Any],
+    cohorts: Sequence[tuple[str, Path]],
 ) -> None:
     output, languages, site_prefix, content_bytes = inputs.output, inputs.languages, inputs.site_prefix, inputs.content_bytes
     profile, collection_profile, rows, receipt = inputs.profile, inputs.collection_profile, inputs.rows, inputs.receipt
@@ -1601,7 +1601,7 @@ def build(
     relevance: Path | None = None,
     review: Path | None = None,
     site_prefix: str = "",
-    cohorts: Iterable[Any] = (),
+    cohorts: Sequence[tuple[str, Path]] = (),
 ) -> Path:
     _validate_build_options(language, site_prefix)
     inputs = _load_report_inputs(
