@@ -855,7 +855,7 @@ def _synthetic_route_baseline():
     from harness.record_io import canonical_json_sha256
     from harness.web_fetch.native_routes import native_route_cell, normalized_http_parameters
     from harness.web_fetch.providers.base import build_provider
-    methods = ('moli_webfetch', 'firecrawl', 'tavily_extract', 'exa_contents',
+    methods = ('moli_webfetch', 'firecrawl', 'tavily_extract', 'exa_contents', 'lexmount',
                'cloudflare_markdown', 'cloudflare_content', 'subprocess_jsonl',
                'cowagent_builtin', 'fixture')
     baseline = {}

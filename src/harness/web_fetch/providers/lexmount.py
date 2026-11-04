@@ -1,8 +1,13 @@
 from __future__ import annotations
 
+import base64
+import hashlib
+
 from lexbench_webfetch.models import EvalCase
 
 from harness.web_fetch.models import ProviderResult
+from harness.web_fetch.native_projection import native_answer_projection
+from harness.web_fetch.native_routes import NativeRoute, encode_http_target_url
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.http_client import inner_timeout_budget, request
 from harness.web_fetch.retrieval_hints import plan_for_case
@@ -19,6 +24,26 @@ _ENGINES = {
 
 
 class LexmountProvider(Provider):
+    native_configuration_fields = Provider.native_configuration_fields + ('engine',)
+
+    def native_route(self, case):
+        return NativeRoute('http', '/v1/extract',
+                           ('result.main_text', 'result.final_url', 'result.url',
+                            'result.title', 'result.links', 'result.images'))
+
+    def native_http_arguments(self, case, timeout):
+        engine = self.config.get('engine', 'lightmount_domstable')
+        if engine not in _ENGINES:
+            raise ValueError('Lexmount engine is unsupported')
+        body = {'extract': {'url': encode_http_target_url(case.url),
+                            'options': {'engine_preference': engine}},
+                'trace': {'include_steps': True}}
+        return (str(self.config.get('base_url', 'https://api.lexmount.com')).rstrip('/') + '/v1/extract',
+                self.native_http_options(body, {
+                    'X-API-Key': str(self.config.get('api_key', '')),
+                    'X-Project-Id': str(self.config.get('project_id', '')),
+                }, timeout))
+
     def validate(self) -> list[str]:
         missing = []
         if not self.config.get("api_key"):
@@ -27,13 +52,18 @@ class LexmountProvider(Provider):
             missing.append("project_id")
         return missing
 
-    def fetch(self, case: EvalCase, timeout: float) -> ProviderResult:
+    def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
+        self.check_native_call(case)
         base_url = str(self.config.get("base_url", "https://api.lexmount.com")).rstrip("/")
         extract: dict[str, object] = {"url": case.url}
         route = "v1_extract"
         wait_metadata = None
         configured_engine = self.config.get("engine")
-        if case.track == "dynamic":
+        if self._native_mode:
+            endpoint, arguments = self.native_http_arguments(case, self.http_timeout_budget(timeout))
+            extract = arguments['json_body']['extract']
+            route = 'v1_extract_native'
+        elif case.track == "dynamic":
             try:
                 plan = plan_for_case(case)
                 assert plan is not None
@@ -104,17 +134,15 @@ class LexmountProvider(Provider):
             # ``options`` is part of the nested extract request.  ``extract.engine``
             # is not a server field and silently forfeits explicit route selection.
             extract["options"] = {"engine_preference": engine}
-        response = request(
-            f"{base_url}/v1/extract",
-            method="POST",
-            timeout=inner_timeout_budget(timeout),
-            max_bytes=int(self.config.get("max_bytes", 20_000_000)),
-            headers={
+        if not self._native_mode:
+            endpoint = f"{base_url}/v1/extract"
+            arguments = dict(method="POST", timeout=inner_timeout_budget(timeout),
+                max_bytes=int(self.config.get("max_bytes", 20_000_000)), headers={
                 "X-API-Key": str(self.config.get("api_key", "")),
                 "X-Project-Id": str(self.config.get("project_id", "")),
-            },
-            json_body={"extract": extract},
-        )
+                }, json_body={"extract": extract})
+        response = self.native_http_request(case, request, endpoint,
+                                            native_route_ledger=native_route_ledger, **arguments)
         try:
             payload = response.json()
         except ValueError:
@@ -143,6 +171,12 @@ class LexmountProvider(Provider):
             error_type=None if ok else ("authentication" if response.status == 401 else "api_error"),
             error_message=None if ok else (message or f"HTTP {response.status}"),
             metadata={
+                **({"_raw_response_b64": base64.b64encode(response.body).decode('ascii'),
+                    "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
+                    "raw_response_bytes": len(response.body),
+                    "api_http_status": response.status,
+                    "native_answer_projection": native_answer_projection(self.type, case, payload, response.status)}
+                   if self._native_mode else {}),
                 **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "request_id": payload.get("request_id"),
                 "route": route,
