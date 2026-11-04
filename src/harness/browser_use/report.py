@@ -1676,7 +1676,7 @@ def _extract_trace_screenshots(
                     {
                         "path": f"screenshots/{destination.name}",
                         "sha256": optional_file_sha256(destination),
-                        "label": t("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=total),
+                        "label": _ZH("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=total),
                         "source": "playwright-screencast-frame",
                         "width": width,
                         "height": height,
@@ -1762,11 +1762,11 @@ def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str
         + '"><img loading="lazy" src="'
         + _e(f"{root}/{item['path']}")
         + '" alt="'
-        + _e(item["label"])
+        + _e(t("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=len(screenshots)))
         + '"></a><figcaption>'
-        + _e(item["label"])
+        + _e(t("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=len(screenshots)))
         + f" · SHA-256 {_e(str(item['sha256'])[:12])}…</figcaption></figure>"
-        for item in screenshots
+        for index, item in enumerate(screenshots, start=1)
     )
     return (
         "<p>" + t("screenshot_gallery.these_are_the_final_page_frames", "These are the final page frames from the scoring execution. They help verify visible state before failure but may not capture the exact instant the error occurred.") + f'</p><div class="screenshot-grid">{figures}</div>'

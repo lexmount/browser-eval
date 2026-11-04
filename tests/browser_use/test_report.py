@@ -687,6 +687,42 @@ def test_trace_screenshot_labels_count_only_publishable_frames(tmp_path: Path) -
     ]
 
 
+def test_english_failed_result_shows_the_hash_of_its_linked_evidence_file(
+    tmp_path: Path, monkeypatch
+) -> None:
+    from PIL import Image
+
+    trace = tmp_path / "trace.zip"
+    buffer = report_module.BytesIO()
+    Image.new("RGB", (1280, 720), "white").save(buffer, format="JPEG")
+    with zipfile.ZipFile(trace, "w") as archive:
+        archive.writestr(
+            "trace.trace", json.dumps({"type": "screencast-frame", "sha1": "frame", "timestamp": 1})
+        )
+        archive.writestr("resources/frame", buffer.getvalue())
+    extract = report_module._extract_trace_screenshots
+    monkeypatch.setattr(
+        report_module,
+        "_extract_trace_screenshots",
+        lambda _trace, artifact_dir: extract(trace, artifact_dir),
+    )
+
+    output, _, _ = build_browser_use_fixture(tmp_path, monkeypatch, "en", failed=True)
+
+    root = "artifacts/gpt-5.6-sol-moli-44/executions/1"
+    linked = output / root / "execution-evidence.json"
+    assert json.loads(linked.read_text(encoding="utf-8"))["screenshots"][0]["label"] == (
+        "最后页面画面 1/1"
+    )
+    page = (output / "en/results/gpt-5.6-sol-moli-44.html").read_text(encoding="utf-8")
+    assert optional_file_sha256(linked) in page
+    assert 'alt="Final page frame 1/1"' in page
+    assert "<figcaption>Final page frame 1/1 · SHA-256" in page
+    zh_page = (output / "results/gpt-5.6-sol-moli-44.html").read_text(encoding="utf-8")
+    assert optional_file_sha256(linked) in zh_page
+    assert "<figcaption>最后页面画面 1/1 · SHA-256" in zh_page
+
+
 def test_failed_result_inventory_opens_exact_diagnosis_and_links_trajectory(
     tmp_path: Path,
 ) -> None:
