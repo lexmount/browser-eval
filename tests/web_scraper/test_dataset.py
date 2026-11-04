@@ -225,7 +225,7 @@ def test_default_distribution_has_a_real_complete_immutable_binding():
     profile = read_json(PROFILE)
     selected = binding(profile["dataset"]["distribution"]["track"])
     assert len(selected["revision"]) == 40
-    assert selected["repository"] == "Lexmount/zyte-product-extraction-benchmark"
+    assert selected["repository"] == "Lexmount/LexBench-Zyte-Product-Extraction"
     assert selected["datasets"][selected["default_dataset"]]["count"] == 140
     assert selected["archive"]["size"] > 0
     assert len(selected["archive"]["sha256"]) == 64
@@ -266,3 +266,15 @@ def test_historical_cache_symlinks_are_rejected_before_any_write(tmp_path, monke
         reproduce(home)
     network.assert_not_called()
     assert list(external.iterdir()) == []
+
+
+def test_prior_dataset_names_resolve_to_the_current_canonical_repository():
+    from harness.benchmarks.data import canonical_repository
+
+    current = "Lexmount/LexBench-Zyte-Product-Extraction"
+    for name in (
+        current,
+        "Lexmount/zyte-product-extraction-benchmark",
+        "Lexmount/LexBench-Web-Scraper",
+    ):
+        assert canonical_repository(name) == current

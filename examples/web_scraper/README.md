@@ -3,7 +3,7 @@
 Evaluate complete extraction APIs on the 140 archived product pages in
 [Zyte's product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark).
 Frozen inputs are distributed through
-[Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/zyte-product-extraction-benchmark).
+[Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction).
 The shared [data lock](../../src/harness/benchmarks/data-lock.json) selects its full
 commit and archive/file hashes. The upstream commit, original scorer and extruct baseline are pinned in
 [`zyte-product-extraction.json`](../../src/harness/benchmarks/cards/zyte-product-extraction.json).

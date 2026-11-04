@@ -48,12 +48,12 @@ from huggingface_hub import snapshot_download
 
 revision = "YOUR_FULL_HF_COMMIT"
 rows = load_dataset(
-    "Lexmount/zyte-product-extraction-benchmark", "zyte-products-140",
+    "Lexmount/LexBench-Zyte-Product-Extraction", "zyte-products-140",
     split="test", revision=revision,
 )
 task = json.loads(rows[0]["task"])
 snapshot = Path(snapshot_download(
-    "Lexmount/zyte-product-extraction-benchmark", repo_type="dataset", revision=revision,
+    "Lexmount/LexBench-Zyte-Product-Extraction", repo_type="dataset", revision=revision,
     allow_patterns=["definitions/**", "manifest.json", "LICENSE", "NOTICE", "THIRD_PARTY.md"],
 ))
 html = gzip.decompress((snapshot / "definitions" / task["html_path"]).read_bytes())
