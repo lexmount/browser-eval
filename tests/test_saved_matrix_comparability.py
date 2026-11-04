@@ -575,3 +575,22 @@ def test_uncommitted_settings_keep_counts_and_observed_windows(tmp_path, only_mi
     else:
         assert settings['collection_start'] == started
         assert settings['collection_end'] == ended
+
+
+@pytest.mark.parametrize('declared', [1, 2, 100])
+def test_ordinary_uncommitted_counts_must_agree(tmp_path, declared):
+    spec = matrix(tmp_path, same_method=True)
+    spec['presentation'] = 'audit'
+    spec['sources'].pop()
+    receipt = dict(suite='second', provider='method', case_id='case',
+                   state='called_but_uncommitted', physical_calls=2)
+    spec['missing'] = [dict(suite='second', provider='method', case_id='case',
+        status='uncommitted', reason='Lost result', receipt=write(tmp_path/'lost.json', receipt),
+        diagnostic_sources=[write(tmp_path/'counts.json', {**receipt, 'physical_calls': declared})])]
+    if declared != 2:
+        with pytest.raises(ValueError, match='count conflicts with invocation evidence'):
+            build(tmp_path, spec)
+    else:
+        root = build(tmp_path, spec).parent
+        settings = json.loads((root/'matrix.json').read_bytes())['execution_settings'][0]
+        assert settings['calls'] == 3

@@ -575,7 +575,7 @@ def test_superseded_evidence_preserved_without_double_counting(tmp_path, monkeyp
 
 @pytest.mark.parametrize('defect', [None, 'missing_policy', 'late_policy', 'wrong_config', 'budget',
                                      'missing_observations', 'missing_log', 'log_config', 'log_count',
-                                     'log_before_scope', 'receipt_chronology', 'two_calls', 'receipt_count', 'diagnostic_count'])
+                                     'log_before_scope', 'receipt_chronology', 'two_calls', 'receipt_count', 'diagnostic_count', 'duplicate_starts', 'wrong_call_id', 'missing_call_id'])
 def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, defect):
     spec, root, old, raw = fixture(tmp_path)
     spec['superseded_sources'] = spec.pop('sources')
@@ -606,13 +606,20 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
     if defect != 'missing_log':
         log = tmp_path/'execution.jsonl'
         event = {'event': 'http_request_started', 'provider': 'method', 'case_id': 'same',
+                 'call_id': 'method__same__r001__p001',
                  'started_at': '2026-10-29T00:00:00Z', 'timeout_seconds': 30,
                  'provider_config_sha256': 'b'*64 if defect == 'log_config' else 'a'*64}
-        log.write_text((json.dumps(event)+'\n')*(2 if defect == 'log_count' else 1), encoding='utf-8')
+        if defect == 'wrong_call_id':
+            event['call_id'] = 'other__same__r001__p001'
+        if defect == 'missing_call_id':
+            event.pop('call_id')
+        if defect == 'duplicate_starts':
+            value['physical_attempts'] = 2
+        log.write_text((json.dumps(event)+'\n')*(2 if defect in {'log_count', 'duplicate_starts'} else 1), encoding='utf-8')
         value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
     if defect == 'two_calls':
         value['physical_attempts'] = value['physical_calls'] = 2
-        later = {**event, 'started_at': '2026-10-29T00:01:00Z', 'completed_at': '2026-10-29T00:02:00Z'}
+        later = {**event, 'call_id': 'method__same__r001__p002', 'started_at': '2026-10-29T00:01:00Z', 'completed_at': '2026-10-29T00:02:00Z'}
         log.write_text(json.dumps(event)+'\n'+json.dumps(later)+'\n', encoding='utf-8')
         value['execution_log']['sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
         spec['missing'][0]['diagnostic_sources'] = []
@@ -630,7 +637,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
                      physical_attempts=3 if defect == 'budget' else 1)
         spec['missing'][0]['receipt'] = write(Path(receipt['path']), value)
     if defect and defect != 'two_calls':
-        with pytest.raises(ValueError, match='execution authorization|count conflicts with validated execution'):
+        with pytest.raises(ValueError, match='execution authorization|count conflicts with invocation evidence'):
             build(tmp_path, spec)
         return
     entry=build(tmp_path,spec)

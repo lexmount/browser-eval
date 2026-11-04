@@ -710,8 +710,11 @@ def _load_saved_matrix(spec_path):
             log = sources.binding(replacement['execution_log'])
             events = [json.loads(line) for line in log.read_bytes().splitlines() if line.strip()]
             starts = [event for event in events if event.get('event') == 'http_request_started']
-            if len(starts) != count:
-                raise ValueError('Uncommitted call log differs from execution authorization count')
+            call_ids = [event.get('call_id') for event in starts]
+            if (len(starts) != count
+                    or any(not _diagnostic_call_matches(call_id, key[1], key[2]) for call_id in call_ids)
+                    or len(set(call_ids)) != count):
+                raise ValueError('Uncommitted call log differs from execution authorization count or identities')
             for event in starts:
                 if (event.get('provider') != key[1] or event.get('case_id') != key[2]
                         or any(event.get(field) != policy[field]
@@ -1033,11 +1036,11 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                     bounds[field].append(value)
                 except (TypeError, ValueError):
                     group['errors'].append('Uncommitted call has an invalid collection timestamp')
-        if validated and any(count != validated['physical_calls'] for count in counts):
-            raise ValueError('Uncommitted physical-call count conflicts with validated execution')
-        group['calls'] += validated['physical_calls'] if validated else max([1, len(starts), *counts])
+        if len(set(counts)) > 1 or (counts and len(starts) > counts[0]):
+            raise ValueError('Uncommitted physical-call count conflicts with invocation evidence')
+        group['calls'] += counts[0] if counts else max(1, len(starts))
         group['errors'].append('Uncommitted invocation has no verified native settings')
-        if not starts and not counts:
+        if not counts:
             group['errors'].append('Uncommitted physical-call count is a lower bound')
         for field, values in bounds.items():
             if not values:
