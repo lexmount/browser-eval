@@ -7,11 +7,11 @@ from pathlib import Path
 import pytest
 
 from harness.environments.browser import rotated_engine_order
+from harness.trajectory_replay.core.report import _annotate_source_marks
 from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL, summary_engines
 from harness.trajectory_replay.report import (
     METRICS,
     _absolute_metric_cell,
-    _annotate_source_marks,
     _correctness_table,
     _metric_tables,
     _ratio_metric_cell,
