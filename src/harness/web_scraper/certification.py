@@ -160,6 +160,9 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     )
     if "fixture_suffix" in participant:
         pacing["fixture_suffix"] = participant["fixture_suffix"]
+    for key in ("native_options", "maximum_physical_calls"):
+        if key in participant:
+            pacing[key] = participant[key]
     source = collector(
         home,
         [method],

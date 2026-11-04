@@ -1213,7 +1213,7 @@ def collect_calls(
                             **schema_options,
                             **(
                                 {"home": home, "native_options": native_options, "timeout": 120}
-                                if repair
+                                if repair or native_options
                                 else ({"home": home} if method == "extruct" else {})
                             ),
                         )
@@ -1316,6 +1316,8 @@ def _probe_unlocked(
     min_call_interval=0,
     post_call_cooldown=0,
     run_dir=None,
+    native_options=None,
+    maximum_physical_calls=None,
 ):
     if not isinstance(min_call_interval, (int, float)) or not 0 <= min_call_interval <= 3600:
         raise ValueError("Minimum call interval must be between 0 and 3600 seconds")
@@ -1330,6 +1332,10 @@ def _probe_unlocked(
         raise ValueError("Remote frozen fixtures require HTTPS")
     if fixture_suffix not in (".html", ""):
         raise ValueError("Frozen fixture suffix must be .html or empty")
+    if native_options is not None:
+        if len(methods) != 1:
+            raise ValueError("Native controls require a single method run")
+        native_options = validate_native_options(methods[0], native_options)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     if full and largest:
         raise ValueError("Full scope and a size probe are mutually exclusive")
@@ -1393,9 +1399,18 @@ def _probe_unlocked(
     }
     if selected_profile(home).name == "swde.json":
         requested["task_adapter_sha256"] = digest(Path(__file__).with_name("swde.py").read_bytes())
-        requested["maximum_physical_calls"] = len(case_ids) + 20
+        maximum = len(case_ids) + 20 if maximum_physical_calls is None else maximum_physical_calls
+        if type(maximum) is not int or not len(case_ids) <= maximum <= len(case_ids) + 20:
+            raise ValueError("Physical call budget must cover the cohort and at most 20 repairs")
+        requested["maximum_physical_calls"] = maximum
+    if native_options is not None:
+        requested["native_options"] = native_options
     if continuing:
         contract = read_json(run / "contract.json")
+        if contract.get("native_options") != requested.get("native_options"):
+            raise ValueError("Resume native options changed")
+        if contract.get("maximum_physical_calls") != requested.get("maximum_physical_calls"):
+            raise ValueError("Resume physical call budget changed")
         if contract.get("task_adapter_sha256") != requested.get("task_adapter_sha256"):
             raise ValueError("Resume task adapter changed")
         for field in (
@@ -1435,6 +1450,7 @@ def _probe_unlocked(
         full=full,
         min_call_interval=min_call_interval,
         post_call_cooldown=post_call_cooldown,
+        native_options=native_options,
     )
     validate_dataset(home)
     if (

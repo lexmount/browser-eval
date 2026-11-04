@@ -76,8 +76,9 @@ def inputs(tmp_path, monkeypatch):
     return home, schemas
 
 
+@pytest.mark.parametrize("static_controls", [False, True])
 def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
-    inputs, tmp_path, monkeypatch
+    inputs, tmp_path, monkeypatch, static_controls
 ):
     home, schemas = inputs
     calls = []
@@ -90,12 +91,27 @@ def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
 
     monkeypatch.setattr(pipeline, "request", request)
     plan = tmp_path / "plan.json"
-    certification.create_plan(home, ["cloudflare-json"], plan)
+    frozen = certification.create_plan(home, ["cloudflare-json"], plan)
+    if static_controls:
+        frozen["participants"]["cloudflare-json"]["native_options"] = {
+            "setJavaScriptEnabled": False,
+            "rejectRequestPattern": [".*"],
+        }
+        pipeline.save_json(plan, frozen)
     run = tmp_path / "run"
     result = certification.run(home, plan, "cloudflare-json", run)
     assert result["cases"] == 2
     _, rows = pipeline.load_run(run)
     assert len(calls) == 2
+    if static_controls:
+        assert all(
+            c["setJavaScriptEnabled"] is False and c["rejectRequestPattern"] == [".*"]
+            for c in calls
+        )
+        assert (
+            pipeline.read_json(run / "contract.json")["native_options"]
+            == frozen["participants"]["cloudflare-json"]["native_options"]
+        )
     assert [c["response_format"]["json_schema"] for c in calls] == [schemas["book"], schemas["job"]]
     assert "GOLD_DO_NOT_SEND" not in json.dumps(calls)
     assert all(r["schema_valid"] and r["elapsed_seconds"] >= 0 for r in rows)
