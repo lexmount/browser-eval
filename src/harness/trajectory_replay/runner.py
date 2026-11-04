@@ -14,7 +14,11 @@ from typing import Any
 import docker
 from playwright.sync_api import Page, sync_playwright
 
-from harness.environments.browser import cleanup_browser_runtime, configured_browser_images
+from harness.environments.browser import (
+    cleanup_browser_runtime,
+    configured_browser_images,
+    rotated_engine_order,
+)
 from harness.resource_accounting import DockerStatsResources, ResourceSampler
 from harness.trajectory_replay.core.docker_runner import (
     EngineRuntime,
@@ -41,6 +45,7 @@ from harness.trajectory_replay.core.suite import BrowserTask, validate_ground_tr
 from harness.trajectory_replay.diagnostics import diagnose_summary
 from harness.trajectory_replay.executor import execute_steps
 from harness.trajectory_replay.metrics import summarize_attempts
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
 from harness.trajectory_replay.report import write_latest_report
 from harness.trajectory_replay.suite import load_suite
 from harness.web_fetch.safety import unlinked_path
@@ -144,7 +149,7 @@ def run_evaluation(
     cpus: float = 2.0,
     memory: str = "2g",
     llm_diagnostics: bool = False,
-    diagnosis_model: str = "gpt-5.6-sol",
+    diagnosis_model: str = DEFAULT_DIAGNOSIS_MODEL,
     diagnosis_reasoning_effort: str = "low",
     generate_report: bool = True,
 ) -> dict[str, Any]:
@@ -203,8 +208,7 @@ def run_evaluation(
 
         for task_index, declared_task in enumerate(suite.tasks):
             task = materialize_task(declared_task, fixture_origin)
-            engine_order = ("chromium", "moli") if task_index % 2 == 0 else ("moli", "chromium")
-            for engine in engine_order:
+            for engine in rotated_engine_order(tuple(ENGINE_IMAGES), task_index):
                 for attempt in range(1, max_retries + 2):
                     runtime.pages[engine] = _prepare_page(
                         runtime.pages[engine],
@@ -262,6 +266,7 @@ def run_evaluation(
                 "post_reset_settle_ms": settle_ms,
                 "primary_attempts_per_task": 1,
                 "max_failure_retries": max_retries,
+                "engines": list(ENGINE_IMAGES),
                 "engine_order": "balanced by task index",
                 "target_mode": "public_web" if not uses_local_fixtures else "mixed",
                 "fixture_origin": (

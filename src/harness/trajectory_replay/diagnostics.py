@@ -17,6 +17,7 @@ from pathlib import Path
 from typing import Any
 
 from harness.record_io import file_sha256, json_bytes, read_json, same_json_record
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
 from harness.trajectory_replay.webarena_corrections import (
     apply_correction,
     evaluate_corrected_contract,
@@ -172,7 +173,7 @@ def add_llm_diagnoses(
     *,
     api_key: str,
     api_base: str,
-    model: str = "gpt-5.6-sol",
+    model: str = DEFAULT_DIAGNOSIS_MODEL,
     reasoning_effort: str = "low",
     timeout_seconds: int = 120,
 ) -> dict[str, Any]:
@@ -259,7 +260,7 @@ def diagnose_summary(
     use_llm: bool = False,
     api_key: str | None = None,
     api_base: str | None = None,
-    model: str = "gpt-5.6-sol",
+    model: str = DEFAULT_DIAGNOSIS_MODEL,
     reasoning_effort: str = "low",
 ) -> dict[str, Any]:
     groups = build_failure_groups(summary)

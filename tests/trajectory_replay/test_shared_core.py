@@ -91,8 +91,10 @@ def test_tracks_keep_their_own_latency_population_and_published_fields():
     public_resources = public["resource_comparison"]
     assert curated_resources["by_engine"]["a"]["duration_ms"]["mean"] == 100.0
     assert public_resources["by_engine"]["a"]["duration_ms"]["mean"] == 10.0
-    assert "relative_ratios" not in curated_resources
-    assert "intersection_results" not in curated_resources
+    two_engines = summarize_curated(rows[:2], engines=engines[:2])["resource_comparison"]
+    assert "relative_ratios" not in two_engines
+    assert "intersection_results" not in two_engines
+    assert curated_resources["relative_ratios"]["by_engine"]["c"]["duration_ms"]["mean"] == 5.0
     assert public_resources["intersection_results"] == 1
     ratios = public_resources["relative_ratios"]["by_engine"]
     assert ratios["c"]["duration_ms"]["mean"] == 4.0

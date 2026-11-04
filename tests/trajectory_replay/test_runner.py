@@ -141,6 +141,7 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
         for name, digest in manifest["fixture_files"].items():
             assert digest == hashlib.sha256((fixture_root / name).read_bytes()).hexdigest()
         assert len(attempts.splitlines()) == 2
+        assert manifest["protocol"]["engines"] == ["chromium", "moli"]
         assert (
             manifest["artifact_provenance"]["attempts_sha256"]
             == hashlib.sha256(attempts).hexdigest()

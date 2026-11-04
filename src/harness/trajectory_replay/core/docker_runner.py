@@ -295,11 +295,10 @@ def start_engine(
 
 def docker_environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
     info = client.info()
-    version_commands = {"chromium": ["chromium", "--version"], "moli": ["moli", "--version"]}
     browser_versions: dict[str, str] = {}
     for engine, container in containers.items():
         try:
-            result = container.exec_run(version_commands[engine])
+            result = container.exec_run([engine, "--version"])
             output = result.output.decode("utf-8", errors="replace").strip()
             browser_versions[engine] = output or f"exit {result.exit_code}, no output"
         except Exception as exc:

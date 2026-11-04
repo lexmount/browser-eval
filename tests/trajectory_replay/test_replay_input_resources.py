@@ -171,6 +171,15 @@ def test_report_preserves_recorded_edition_when_a_newer_release_has_identical_su
         'revision': old['revision'],
     }}
     rendered = html.unescape(report._appendix_page(manifest))
+    assert '--engines chromium,moli ' in rendered
+    assert '--engines moli ' in html.unescape(
+        report._appendix_page({**manifest, 'protocol': {'engines': ['moli']}})
+    )
+    hostile = report._appendix_page(
+        {**manifest, 'protocol': {'engines': ['<img src=x onerror=alert(1)>']}}
+    )
+    assert '<img src=x' not in hostile
+    assert '--engines &lt;img src=x onerror=alert(1)&gt; ' in hostile
     assert old['revision'] in rendered
     assert current['revision'] not in rendered
     manifest['suite_dataset']['definition'] = 'inventories/human-candidates-v1.json'

@@ -9,6 +9,8 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
+from harness.trajectory_replay.participants import DEFAULT_DIAGNOSIS_MODEL
+
 PROG = "python -m harness.trajectory_replay"
 _PACKAGE = "harness.trajectory_replay"
 _CLI = f"{_PACKAGE}.cli"
@@ -121,7 +123,7 @@ def evaluate() -> None:
     parser.add_argument("--cpus", type=float, default=2.0)
     parser.add_argument("--memory", default="2g")
     parser.add_argument("--llm-diagnostics", action="store_true")
-    parser.add_argument("--diagnosis-model", default="gpt-5.6-sol")
+    parser.add_argument("--diagnosis-model", default=DEFAULT_DIAGNOSIS_MODEL)
     parser.add_argument("--diagnosis-reasoning-effort", default="low")
     args = parser.parse_args()
     run_evaluation(

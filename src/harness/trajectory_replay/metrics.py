@@ -6,6 +6,7 @@ comparisons measure first attempts.
 
 from __future__ import annotations
 
+from dataclasses import replace
 from typing import Any
 
 from harness.trajectory_replay.core import metrics as core
@@ -29,4 +30,6 @@ _POLICY = ResultPolicy(
 
 
 def summarize_attempts(rows: list[Row], *, engines: tuple[str, ...]) -> dict[str, Any]:
-    return core.summarize_attempts(rows, engines=engines, policy=_POLICY)
+    # paired_ratios describes exactly two engines; any other set needs baseline ratios.
+    policy = replace(_POLICY, relative_ratios=len(engines) != 2)
+    return core.summarize_attempts(rows, engines=engines, policy=policy)

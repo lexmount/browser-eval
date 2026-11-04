@@ -13,6 +13,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from harness.distribution import bundled_data_path
+from harness.environments.browser import DEFAULT_BROWSER_IMAGES
+from harness.trajectory_replay.participants import engine_label, engine_names, summary_engines
 from harness.trajectory_replay.public_webarena.publication import REPORT_STEM, public_projection
 from harness.trajectory_replay.public_webarena.result_audit import audit_result_set
 
@@ -43,20 +45,6 @@ CATEGORY_LABELS = {
     "web_research": "网页搜索与研究",
     "offline_action_prediction": "离线网页动作预测",
 }
-
-ENGINE_LABELS = {"chromium": "Chromium", "moli": "Moli"}
-
-def _engines(summary: dict[str, Any]) -> tuple[str, ...]:
-    functional = summary.get("functional") or {}
-    if functional:
-        return tuple(str(engine) for engine in functional)
-    resources = (summary.get("resource_comparison") or {}).get("by_engine") or {}
-    return tuple(str(engine) for engine in resources)
-
-
-def _engine_label(engine: str) -> str:
-    return ENGINE_LABELS.get(engine, engine.replace("_", " ").strip().title())
-
 
 def _e(value: Any) -> str:
     return html.escape(str(value if value is not None else ""))
@@ -191,7 +179,7 @@ def _grouped_resource_table(
     caption: str,
 ) -> str:
     values_by_engine = (summary.get("resource_comparison") or {}).get("by_engine") or {}
-    engines = _engines(summary)
+    engines = summary_engines(summary)
     body = []
     for spec in metrics:
         policy_label, policy_class = _metric_policy(spec)
@@ -227,7 +215,7 @@ def _grouped_resource_table(
                 css_class = "better" if unique_best and shown == best else ""
                 class_attr = f' class="{css_class}"' if css_class else ""
                 cells.append(
-                    f'<td data-label="{_e(stat.upper())} · {_e(_engine_label(engine))}"'
+                    f'<td data-label="{_e(stat.upper())} · {_e(engine_label(engine))}"'
                     f'{class_attr}>{_e(_show(value, spec.divisor))}</td>'
                 )
         body.append(
@@ -240,7 +228,7 @@ def _grouped_resource_table(
         for label in ("P50", "P95", "平均值")
     )
     engine_headers = "".join(
-        f"<th>{_e(_engine_label(engine))}</th>"
+        f"<th>{_e(engine_label(engine))}</th>"
         for _ in range(3)
         for engine in engines
     )
@@ -285,7 +273,7 @@ def _relative_ratio_tables(
                     )
                 cells.append(ComparedValue(_show(value, suffix="×"), css))
             rows.append(cells)
-        pair = f"{_engine_label(str(engine))} / {_engine_label(baseline)}"
+        pair = f"{engine_label(str(engine))} / {engine_label(baseline)}"
         modules.append(
             f'<details class="ratio-module" data-formula="per-task-ratio"><summary>逐任务比值 · {_e(pair)}</summary>'
             '<p class="muted">先逐任务相除再汇总；0.50× 是基准的一半，2.00× 是两倍。观察项不判胜负。</p>'
@@ -340,7 +328,7 @@ def _shell(
 def _functional_rows(summary: dict[str, Any]) -> list[list[str]]:
     rows = []
     correctness_by_engine = {row[0]: row for row in _correctness_rows(summary)}
-    for engine in _engines(summary):
+    for engine in summary_engines(summary):
         values = (summary.get("functional") or {}).get(engine) or {}
         duration = values.get("duration_ms") or {}
         rows.append(
@@ -356,7 +344,7 @@ def _functional_rows(summary: dict[str, Any]) -> list[list[str]]:
 
 def _correctness_rows(summary: dict[str, Any]) -> list[list[str]]:
     rows: list[list[str]] = []
-    for engine in _engines(summary):
+    for engine in summary_engines(summary):
         values = (summary.get("functional") or {}).get(engine) or {}
         tasks = int(values.get("tasks") or 0)
 
@@ -386,7 +374,7 @@ def _correctness_table(summary: dict[str, Any]) -> str:
             "result": int((functional.get(engine) or {}).get("result_final_passes", 0) or 0),
             "tasks": int((functional.get(engine) or {}).get("tasks", 0) or 0),
         }
-        for engine in _engines(summary)
+        for engine in summary_engines(summary)
     }
     rates = [value["result"] / value["tasks"] for value in scores.values() if value["tasks"]]
     best_rate = max(rates) if rates else None
@@ -398,7 +386,7 @@ def _correctness_table(summary: dict[str, Any]) -> str:
         result_class = "better" if unique_best and result / tasks == best_rate else ""
         rows.append(
             "<tr>"
-            f'<td data-label="浏览器">{_e(_engine_label(engine))}</td>'
+            f'<td data-label="浏览器">{_e(engine_label(engine))}</td>'
             f'<td data-label="通过" class="{result_class}">{result}/{tasks}（{result_rate:.2f}%）</td>'
             f'<td data-label="失败任务"><a class="provider-failure-link" href="{REPORT_STEM}-results.html#provider={engine}&amp;status=fail" aria-label="{engine}：查看 {max(0, tasks - result)} 个失败任务">{max(0, tasks - result)} 个失败 <span aria-hidden="true">→</span></a></td>'
             "</tr>"
@@ -444,6 +432,9 @@ def _load_public_research() -> tuple[dict[str, Any], dict[str, Any]]:
 
 
 def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
+    compared_engines = engine_names(
+        summary_engines(summary) or tuple(DEFAULT_BROWSER_IMAGES), " 和 "
+    )
     adoption, catalog = _load_public_research()
     records = adoption.get("records") or []
     browser_records = [
@@ -567,7 +558,7 @@ def _research_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
         + f'<div class="rank-grid">{engineering_cards}</div>'
         + '<p>WebVoyager 只保留为历史参照。OSWorld 2.0 太宽，ScreenSpot-Pro 只测单步定位；它们都不会进入本轮固定轨迹正式分母。</p></section>'
         '<section class="card"><h2>Mind2Web 家族的三套评测</h2><ul>'
-        '<li>原始 Mind2Web 是离线 HTML 和动作预测数据集。它适合比较元素选择与动作预测，不能真正比较 Chromium 和 Moli。</li>'
+        '<li>原始 Mind2Web 是离线 HTML 和动作预测数据集。它适合比较元素选择与动作预测，不能真正比较 ' + _e(compared_engines) + '。</li>'
         '<li>Online-Mind2Web 在 300 个真实网站任务上判断最终任务是否完成。截图、URL 和轨迹是 judge 证据，并不要求复现固定动作序列；WebJudge 是 LLM-as-a-judge。</li>'
         '<li>Online-Mind2Web 的 easy、medium、hard 按人工参考路径长度划分，分别为不超过 5 步、6 到 10 步、至少 11 步。这个标签不是网站难度，也不是 agent 实际执行步数。</li>'
         '<li>Mind2Web 2 有 130 个长程研究任务，评估实时搜索、综合回答和引用归因，属于网页研究类。</li></ul></section>'
@@ -590,8 +581,8 @@ def _summary_page(
 ) -> str:
     task_count = len(manifest.get("suite") or [])
     functional = summary.get("functional") or {}
-    engines = _engines(summary)
-    engine_list = "、".join(_engine_label(engine) for engine in engines)
+    engines = summary_engines(summary)
+    engine_list = "、".join(engine_label(engine) for engine in engines)
     comparison = summary.get("resource_comparison") or {}
     paired = int(comparison.get("intersection_results", comparison.get("intersection_attempts", 0)) or 0)
     relative = comparison.get("relative_ratios") or {}
@@ -603,13 +594,13 @@ def _summary_page(
     else:
         ratio_baseline = ""
     ratio_intro = (
-        f'比值先按共同任务计算“参评浏览器 / {_engine_label(ratio_baseline)}”，再汇总。'
+        f'比值先按共同任务计算“参评浏览器 / {engine_label(ratio_baseline)}”，再汇总。'
         if ratio_baseline
         else ""
     )
     score_cards = "".join(
-        f'<article class="score-card {engine}"><h3>{_e(_engine_label(engine))}</h3>'
-        f'<div class="score-line"><span>通过率</span><div class="bar" role="progressbar" aria-label="{_e(_engine_label(engine))} 通过率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{values.get("result_final_pass_rate", 0) * 100:.2f}"><i style="width:{values.get("result_final_pass_rate", 0) * 100:.2f}%"></i></div><strong>{values.get("result_final_passes", 0)}/{values.get("tasks", 0)}</strong></div></article>'
+        f'<article class="score-card {engine}"><h3>{_e(engine_label(engine))}</h3>'
+        f'<div class="score-line"><span>通过率</span><div class="bar" role="progressbar" aria-label="{_e(engine_label(engine))} 通过率" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{values.get("result_final_pass_rate", 0) * 100:.2f}"><i style="width:{values.get("result_final_pass_rate", 0) * 100:.2f}%"></i></div><strong>{values.get("result_final_passes", 0)}/{values.get("tasks", 0)}</strong></div></article>'
         for engine in engines
         if (values := functional.get(engine) or {})
     )
@@ -640,9 +631,9 @@ def _summary_page(
     best_pass = max(pass_counts.values(), default=0)
     pass_leaders = [engine for engine, value in pass_counts.items() if value == best_pass]
     compatibility_lead = (
-        f"{_engine_label(pass_leaders[0])} 通过数最多"
+        f"{engine_label(pass_leaders[0])} 通过数最多"
         if len(pass_leaders) == 1
-        else "、".join(_engine_label(engine) for engine in pass_leaders) + " 通过数并列最多"
+        else "、".join(engine_label(engine) for engine in pass_leaders) + " 通过数并列最多"
     )
     resource_values = (summary.get("resource_comparison") or {}).get("by_engine") or {}
     memory_p50 = {
@@ -653,7 +644,7 @@ def _summary_page(
     lowest_memory = min(available_memory.values()) if available_memory else None
     memory_leaders = [engine for engine, value in available_memory.items() if value == lowest_memory]
     resource_lead = (
-        f"{_engine_label(memory_leaders[0])} 的内存 P50 最低"
+        f"{engine_label(memory_leaders[0])} 的内存 P50 最低"
         if len(memory_leaders) == 1
         else "内存 P50 没有唯一最低项"
     )
@@ -672,7 +663,7 @@ def _results_page(
     summary: dict[str, Any],
     detail_pages: dict[str, str] | None = None,
 ) -> str:
-    engines = _engines(summary)
+    engines = summary_engines(summary)
     complexity_rows = []
     for complexity in ("simple", "medium", "complex"):
         group = (summary.get("by_complexity") or {}).get(complexity) or {}
@@ -751,9 +742,9 @@ def _results_page(
     )
     slices = (
         '<div id="task-slices"><section class="card"><h2>任务分组</h2><p class="muted">简单、中等、复杂是本轮清单的选样分组，不是 WebArena 官方难度标签，也没有统一的操作数阈值。它只用于观察样本构成，不用于跨组判断浏览器能力。</p>'
-        + _table(["轨迹分组", *[_engine_label(engine) for engine in engines]], complexity_rows, "分组正确性") + '</section>'
+        + _table(["轨迹分组", *[engine_label(engine) for engine in engines]], complexity_rows, "分组正确性") + '</section>'
         '<section class="card"><h2>站点分组</h2>'
-        + _table(["站点", *[_engine_label(engine) for engine in engines]], site_rows, "站点兼容性切片") + '</section></div>'
+        + _table(["站点", *[engine_label(engine) for engine in engines]], site_rows, "站点兼容性切片") + '</section></div>'
     )
     details = detail_pages if detail_pages is not None else {}
     return (
@@ -1035,7 +1026,7 @@ def _method_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
     p = manifest.get("protocol") or {}
     env = manifest.get("environment") or {}
     versions = env.get("browser_versions") or {}
-    engines = _engines(summary)
+    engines = summary_engines(summary)
     viewport = p.get("viewport") or {}
     if isinstance(viewport, dict) and isinstance(viewport.get("webarena_verified"), dict):
         viewport = viewport["webarena_verified"]
@@ -1050,7 +1041,7 @@ def _method_page(manifest: dict[str, Any], summary: dict[str, Any]) -> str:
             "容器",
             f"Docker {env.get('docker_server_version', '未记录')} / {env.get('docker_os', '未记录')}",
         ],
-        *[["浏览器版本 · " + _engine_label(engine), str(versions.get(engine, "未记录"))] for engine in engines],
+        *[["浏览器版本 · " + engine_label(engine), str(versions.get(engine, "未记录"))] for engine in engines],
         [
             "单浏览器配额",
             f"{p.get('cpus_per_browser', '?')} CPU / {p.get('memory_per_browser', '?')} / 独立网络",
@@ -1641,7 +1632,7 @@ def _execution_details(
 
 
 def _task_comparison(summary: dict[str, Any]) -> str:
-    engines = _engines(summary)
+    engines = summary_engines(summary)
     rows = []
     for index, (task_id, task) in enumerate((summary.get("by_task") or {}).items(), 1):
         attempts_by_engine = task.get("attempts") or task.get("failures") or {}
@@ -1658,10 +1649,10 @@ def _task_comparison(summary: dict[str, Any]) -> str:
             link = (
                 (
                     f'<a class="outcome-pill {css}" href="{_detail_filename(str(task_id), engine)}">'
-                    f'{_e(_engine_label(engine))} · {label}<span aria-hidden="true">→</span></a>'
+                    f'{_e(engine_label(engine))} · {label}<span aria-hidden="true">→</span></a>'
                 )
                 if attempts
-                else f'<span class="outcome-pill {css}">{_e(_engine_label(engine))} · {label}</span>'
+                else f'<span class="outcome-pill {css}">{_e(engine_label(engine))} · {label}</span>'
             )
             (passed if status == "pass" else failed).append(link)
         title = str(task.get("title") or task_id)
@@ -1674,10 +1665,10 @@ def _task_comparison(summary: dict[str, Any]) -> str:
             f'<td><div class="outcome-list">{"".join(failed) or "—"}</div></td></tr>'
         )
     engine_options = "".join(
-        f'<option value="{_e(engine)}">{_e(_engine_label(engine))}</option>' for engine in engines
+        f'<option value="{_e(engine)}">{_e(engine_label(engine))}</option>' for engine in engines
     )
     engine_checks = "".join(
-        f'<label><input type="checkbox" value="{_e(engine)}" checked>{_e(_engine_label(engine))}</label>'
+        f'<label><input type="checkbox" value="{_e(engine)}" checked>{_e(engine_label(engine))}</label>'
         for engine in engines
     )
     engine_json = json.dumps(list(engines), ensure_ascii=False).replace("</", "<\\/")
@@ -1705,7 +1696,7 @@ def _execution_explorer(
         f'<span id="provider={_e(engine)}&amp;status=fail" hidden></span>'
         for engine in (summary.get("functional") or {})
     )
-    engines = _engines(summary)
+    engines = summary_engines(summary)
     logical_executions = sum(
         1
         for task in (summary.get("by_task") or {}).values()
@@ -1746,7 +1737,7 @@ def _execution_explorer(
     )
     filters = f"""<div class="filters" id="execution-filters" aria-label="执行样本筛选">
       <label>任务<select id="f-task"><option value="">全部任务</option>{task_options}</select></label>
-      <label>浏览器<select id="f-engine"><option value="">全部浏览器</option>{''.join(f'<option value="{_e(engine)}">{_e(_engine_label(engine))}</option>' for engine in engines)}</select></label>
+      <label>浏览器<select id="f-engine"><option value="">全部浏览器</option>{''.join(f'<option value="{_e(engine)}">{_e(engine_label(engine))}</option>' for engine in engines)}</select></label>
       <label>结果<select id="f-status"><option value="">全部结果</option><option value="pass">正确</option><option value="fail" selected>错误</option></select></label>
       <label>验收与调用链<select id="f-combined"><option value="">全部</option><option value="pass">验收通过且调用无中断</option><option value="fail">至少一项未通过</option></select></label>
       <label>难度<select id="f-complexity"><option value="">全部难度</option><option value="simple">简单</option><option value="medium">中等</option><option value="complex">复杂</option></select></label>
@@ -1772,7 +1763,7 @@ def _review_page(
     manifest: dict[str, Any], summary: dict[str, Any], result_audit: dict[str, Any]
 ) -> str:
     provenance = manifest.get("artifact_provenance") or {}
-    engines = _engines(summary)
+    engines = summary_engines(summary)
     evidence_fields = (manifest.get("protocol") or {}).get("required_attempt_evidence") or []
     rows = [
         ["候选来源", "179 条 WebArena 官方人类录制", "来源轨迹哈希逐条登记"],
@@ -1854,12 +1845,15 @@ def _appendix_page(manifest: dict[str, Any]) -> str:
         suite_argument = _e('"$(uv run --frozen python -c ' + shlex.quote(expression) + ')"')
     else:
         suite_argument = '&lt;frozen-suite.json&gt;'
+    engine_arguments = _e(",".join(
+        (manifest.get("protocol") or {}).get("engines") or DEFAULT_BROWSER_IMAGES
+    ))
     run_command = (
         "uv run --frozen python -m harness.trajectory_replay.public_webarena.cli "
         f"--suite {suite_argument} "
         "--webarena-config &lt;runtime-config&gt; --env-file .env "
         "--browser-docker-host unix:///var/run/docker.sock "
-        "--engines chromium,moli --failure-retries 1 "
+        f"--engines {engine_arguments} --failure-retries 1 "
         "--output &lt;evidence&gt;/formal/webarena-public-trajectories/run "
         "--reports &lt;evidence&gt;/formal/webarena-public-trajectories/reports"
     )

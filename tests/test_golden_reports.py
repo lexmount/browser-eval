@@ -26,6 +26,7 @@ from tests.lexbench_report_fixture import (
 from tests.public_webarena_fixture import write_report_fixture
 from tests.test_webmainbench_full_report import render_full_report
 from tests.test_webmainbench_report import sample_report_inputs
+from tests.trajectory_replay.curated_report_fixture import build_curated_report
 from tests.trajectory_replay.test_webarena_report import build_replay_fixture
 from tests.wcxb_fixture import create_report_inputs
 
@@ -68,6 +69,19 @@ def test_lexbench_report(tmp_path: Path, monkeypatch, scenario: str) -> None:
     lexbench_report.main(build_report_inputs(tmp_path, scenario))
     fold_per_call_routes(tmp_path / "report")
     check_golden(f"lexbench-{scenario}", tmp_path / "report", tmp_path)
+
+
+@pytest.mark.parametrize(
+    ("name", "failures"),
+    [
+        ("baseline-leads", {"moli": ("dynamic-list", "modal-form")}),
+        ("comparison-leads", {"chromium": ("modal-form",)}),
+        ("tied", {"chromium": ("modal-form",), "moli": ("dynamic-list",)}),
+    ],
+)
+def test_curated_trajectory_replay_report(tmp_path: Path, name: str, failures: dict) -> None:
+    build_curated_report(tmp_path / "report", ("chromium", "moli"), failures)
+    check_golden(f"trajectory-replay-curated-{name}", tmp_path / "report", tmp_path)
 
 
 def test_public_webarena_report(tmp_path: Path) -> None:

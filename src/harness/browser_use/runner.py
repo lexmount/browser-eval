@@ -29,6 +29,7 @@ from harness.environments.browser import (
     ENGINE_PORTS,
     configured_browser_images,
     published_endpoint,
+    rotated_engine_order,
     start_browser_container,
     wait_cdp,
 )
@@ -529,9 +530,7 @@ def _scheduled_tasks(tasks: tuple[PilotTask, ...], max_tasks: int | None) -> tup
 def _engine_order(task_index: int) -> tuple[str, ...]:
     """Rotate call order by task so every registered browser takes every position."""
 
-    engines = tuple(ENGINE_IMAGES)
-    offset = task_index % len(engines)
-    return engines[offset:] + engines[:offset]
+    return rotated_engine_order(tuple(ENGINE_IMAGES), task_index)
 
 
 def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
