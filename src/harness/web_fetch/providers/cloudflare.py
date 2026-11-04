@@ -313,6 +313,8 @@ class CloudflareMarkdownProvider(Provider):
 
     def fetch_html(self, case: EvalCase, html: str, timeout: float) -> ProviderResult:
         """Run the product's documented inline-HTML route for frozen benchmarks."""
+        if self.config.get('scrape_selectors'):
+            raise ValueError('scrape_selectors is unsupported for inline HTML input')
         return self._fetch_payload(
             case,
             timeout,

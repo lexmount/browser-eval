@@ -1467,6 +1467,17 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.metadata["upstream_status"], 404)
 
     @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_frozen_html_rejects_selectors_before_dispatch(self, mock_request):
+        for native in (False, True):
+            with self.subTest(native=native):
+                provider = CloudflareMarkdownProvider('cf', {
+                    'api_token': 'x', 'account_id': 'a', 'scrape_selectors': ['body'],
+                    'uniform_native_parameters': native})
+                with self.assertRaisesRegex(ValueError, 'scrape_selectors.*inline HTML'):
+                    provider.fetch_html(self.case, '<h1>Frozen document</h1>', 1)
+        mock_request.assert_not_called()
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_frozen_html_disables_dynamic_resources(self, mock_request) -> None:
         mock_request.return_value = HttpResponse(
             200, "u", {}, b'{"success":true,"result":"# Example","meta":{"status":200}}'
