@@ -36,7 +36,9 @@ def run_reviewer(command, *, timeout, stdout=subprocess.PIPE, stderr=subprocess.
 
     A timeout kills only the direct child and raises ``subprocess.TimeoutExpired``.
     """
-    with subprocess.Popen(command, stdout=stdout, stderr=stderr, text=True, **options) as process:
+    with subprocess.Popen(
+        command, stdout=stdout, stderr=stderr, text=True, encoding="utf-8", **options
+    ) as process:
         output, errors = _communicate(process, None, timeout, _kill_child)
         return subprocess.CompletedProcess(process.args, process.poll(), output, errors)
 
