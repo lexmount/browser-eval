@@ -465,8 +465,11 @@ def validate_native_options(method, native_options):
             raise ValueError("Incomplete self-hosted runtime identity")
         if native_options.get("keepalive") is True and identity.get("json_keepalive") is not True:
             raise ValueError("Frozen runtime does not advertise JSON keepalive")
-    if native_options.get("input_route", "html") not in ("html", "url"):
-        raise ValueError("Native input route must be html or url")
+    route = native_options.get("input_route", "html")
+    if route not in ("html", "url", "markdown") or (
+        route == "markdown" and method != "scrapegraph-extract"
+    ):
+        raise ValueError("Unsupported native input route")
     for key in (
         "setJavaScriptEnabled", "discussion", "use_fixture_context", "norender", "keepalive"
     ):
@@ -689,6 +692,11 @@ def _scrapegraph_request(
         ),
         "schema": schema or SCHEMA,
     }
+    if native_options.get("input_route") == "markdown":
+        from harness.web_extract.human_eval import unwrap_markdown
+
+        del body["html"]
+        body["markdown"] = unwrap_markdown(html)
     if native_options.get("input_route") == "url":
         if not fixture_url:
             raise ValueError("ScrapeGraph URL extraction requires a frozen fixture")
@@ -1076,9 +1084,12 @@ def provider_call(
         },
         "request": {
             "endpoint": url,
-            "input": "url"
-            if native_options.get("input_route") == "url"
-            else available_methods()[method]["input"],
+            "input": native_options.get("input_route", available_methods()[method]["input"]),
+            **(
+                {"markdown_sha256": digest(body["markdown"].encode())}
+                if isinstance(body, dict) and "markdown" in body
+                else {}
+            ),
             "html_sha256": digest(html.encode()),
             "schema": schema or SCHEMA,
             "instructions": {"text": prompt, "location": "schema.properties.*.description"}
@@ -1969,8 +1980,11 @@ def _probe_unlocked(
         from harness.web_extract.dataset import task_bindings
 
         requested.update(task_bindings(home))
-        requested["extraction_instructions"] = RECORD_INSTRUCTIONS
-        requested["extraction_instruction_delivery"] = RECORD_INSTRUCTION_DELIVERY
+        adapter = benchmark_config(home)["adapter"]
+        requested["extraction_instructions"] = getattr(adapter, "INSTRUCTIONS", RECORD_INSTRUCTIONS)
+        requested["extraction_instruction_delivery"] = getattr(
+            adapter, "INSTRUCTION_DELIVERY", RECORD_INSTRUCTION_DELIVERY
+        )
     if benchmark_config(home)["adapter"] is not None or maximum_physical_calls is not None:
         matrix_size = len(case_ids) * len(methods)
         maximum = matrix_size + 20 if maximum_physical_calls is None else maximum_physical_calls
@@ -2410,19 +2424,23 @@ def score_rows(home, truth, rows, methods, *, reference_policy=None):
     from decimal import InvalidOperation
 
     if benchmark_config(home)["adapter"] is not None:
-        score = benchmark_config(home)["adapter"].score
+        adapter = benchmark_config(home)["adapter"]
+        score = adapter.score
 
         return {
             method: score(
                 truth,
                 {
-                    r["case_id"]: (r.get("normalized_fields") or {})
-                    if r.get("http_status") == 200
-                    else {}
+                    r["case_id"]: (
+                        r.get("normalized_fields") if r.get("http_status") == 200 else None
+                    ) if getattr(adapter, "MISSING_OUTPUT_NONE", False) else (
+                        (r.get("normalized_fields") or {}) if r.get("http_status") == 200 else {}
+                    )
                     for r in rows
                     if r["method"] == method
                 },
                 **(reference_policy or {}),
+                **({"home": home} if getattr(adapter, "SCORE_REQUIRES_HOME", False) else {}),
             )
             for method in methods
         }

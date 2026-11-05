@@ -14,6 +14,54 @@ shared cache, works offline after download, and preserves existing hash-bound in
 
 ## Scope and naming
 
+### ScrapeGraph human_eval
+
+The `human-eval` adapter uses all 100 human-corrected examples from
+[ScrapeGraph's finetuning dataset](https://huggingface.co/datasets/scrapegraphai/scrapegraph-100k-finetuning).
+Each task supplies Markdown and a JSON Schema. This cohort measures extraction
+from saved content. It does not measure retrieval of the original website.
+The [dataset card](../../src/harness/benchmarks/cards/scrapegraph-human-eval.json)
+pins the upstream data, scorer and compiled input inventory.
+
+ScrapeGraph Extract accepts the original Markdown directly. Firecrawl Parse and
+Cloudflare JSON receive that Markdown as escaped, preformatted HTML text. This
+wrapper preserves Markdown characters and links as text and contains no reference
+answers. Firecrawl's upload endpoint rejects Markdown files. URL-only interfaces
+and fixed product extractors are outside this uploaded-content cohort.
+Every method receives the original Schema without added field descriptions.
+
+Preparation needs `human_eval.parquet` and `metrics.py` in a source directory.
+Download their immutable URLs from the dataset card's `source.parquet_url` and
+`source.scorer_url` fields. Preparation rejects different bytes before writing inputs.
+
+```sh
+uv sync --frozen --extra web-extract-eval --extra test
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli \
+  --home /absolute/data/human-eval prepare --benchmark human-eval \
+  --source /absolute/source
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli \
+  --home /absolute/data/human-eval plan \
+  --methods scrapegraph-extract firecrawl-parse-json cloudflare-json \
+  --output /absolute/data/human-eval/full-cohort.json
+uv run --frozen --extra web-extract-eval python scripts/run_certified_benchmark.py \
+  --track web-extract --home /absolute/data/human-eval \
+  --profile /absolute/data/human-eval/full-cohort.json \
+  --method scrapegraph-extract --run-dir /absolute/data/human-eval/runs/scrapegraph
+```
+
+Repeat collection with each planned method and its own run directory. The shared
+runner retains all physical calls, verifies frozen inputs before and after the
+cohort, and scores every declared task. Missing output scores zero, including
+tasks with empty reference objects; the upstream script's covered-subset skip
+does not apply. Original upstream per-case metrics are accompanied by delivery
+counts and a strict whole-record comparison. That comparison ignores array order
+while preserving duplicates, JSON value types and associations between fields.
+Official wildcard field scores can award full credit to incorrectly paired
+records; strict exact matches can reject semantically equivalent wording. Read
+the measures together. No independent result review is implied by machine scoring.
+
+### Archived HTML
+
 Web Extract measures structured field extraction from archived HTML: the caller
 requests fields such as price, stock or author, and the service returns field values.
 Web scraping is the broader term for collecting website data; extraction is the
