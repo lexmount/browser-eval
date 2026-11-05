@@ -137,7 +137,8 @@ class PopulationCohortTests(unittest.TestCase):
 
     def test_invalid_population_objects_get_cli_error_before_calls(self):
         for target, value in [('population', []), ('population', None),
-                              ('revision', []), ('binding', None)]:
+                              ('revision', []), ('binding', None),
+                              ('comparison', None), ('comparison', [])]:
             with self.subTest(target=target, value=value), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 data, spec, args = self.inputs(root)
@@ -145,6 +146,8 @@ class PopulationCohortTests(unittest.TestCase):
                     spec = value
                 elif target == 'revision':
                     data['definition_revision'] = value
+                elif target == 'comparison':
+                    data['comparison'] = value
                 else:
                     spec['frozen_task_bindings']['articles'] = value
                 (root / 'dataset.json').write_text(json.dumps(data), encoding='utf-8')
@@ -156,3 +159,5 @@ class PopulationCohortTests(unittest.TestCase):
                 self.assertIn('Invalid population selection', ''.join(
                     item.args[0] for item in stderr.write.call_args_list))
                 calls.assert_not_called()
+                self.assertFalse((root / 'run').exists())
+                self.assertFalse((root / 'work').exists())

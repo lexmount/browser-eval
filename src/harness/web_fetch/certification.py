@@ -60,6 +60,8 @@ def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[st
     spec = json.loads(raw)
     if not isinstance(spec, dict) or not isinstance(dataset, dict):
         raise ValueError("Population and exported dataset must be JSON objects")
+    if not isinstance(dataset.get("comparison", {}), dict):
+        raise ValueError("Exported dataset comparison must be an object")
     if spec.get("schema_version") != 1 or spec.get("kind") != "task_population_selection":
         raise ValueError("Unsupported population selection")
     selected = [(r["suite"], r["id"]) for r in spec["cases"]]
