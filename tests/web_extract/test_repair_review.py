@@ -441,7 +441,7 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     )
     from bs4 import BeautifulSoup
 
-    english_detail = next((tmp_path / "reviewed-report/en").glob("result-*.html"))
+    english_detail = next((tmp_path / "reviewed-report/en").glob("case-*.html"))
     summaries = BeautifulSoup(english_detail.read_text(encoding="utf-8"), "html.parser").select(
         "summary"
     )

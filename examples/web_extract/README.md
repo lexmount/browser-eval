@@ -288,6 +288,11 @@ fields. Combining independently frozen source plans requires an explicit
 `source_cohorts` method-to-plan-hash binding; each run retains its own timing policy.
 This progress report does not certify an incomplete comparison.
 
+Each product or record case has one comparison page. Participant links open the
+matching detail panel through its URL fragment. Each panel keeps its own field
+diagnostics, failure evidence and response dialog. Adding participants expands
+these pages without creating a separate HTML file for every method and case.
+
 Exercise this mode with the same renderer:
 
 ```sh
