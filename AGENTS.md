@@ -73,6 +73,6 @@ Use `Browser Use` for the autonomous track and `Browser Trajectory Replay` for t
 
 # Pull requests and releases
 
-All code changes go through a feature branch and pull request. Never push directly to main. Do not merge unless the owner authorized it for that work.
+All code changes go through a feature branch and pull request. Never push directly to main. Do not merge unless the owner authorized it for that work. PR titles and commit subjects follow `CONTRIBUTING.md#pr-and-commit-titles`; a squash merge copies the PR title onto `main`.
 
 Software release names, version increments and metadata must follow [Software releases](docs/releases.md). Version changes require an explicit human release request. Code synchronization, review fixes, tests and report rebuilds must not automatically bump package, benchmark or report edition numbers, rewrite frozen release catalogs, or create/push release tags. Reuse existing build versions and record source hashes; keep unreleased changes separate from a certified edition.
