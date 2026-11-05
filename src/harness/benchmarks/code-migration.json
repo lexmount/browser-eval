@@ -84,7 +84,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "1f7ea890e42fc4554e44bbebba2f5dc84f3a9cdac83f321fe4bcba7ac4424543"
+          "after_sha256": "7beb324f47bbbcfeb2b870810d7ea87ad4fc3cfd2fe498242dd7f6270e0b76dd"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -4176,6 +4176,20 @@
             "mixed-attribute-name-less-than-script",
             "mixed-attribute-name-less-than-hidden",
             "mixed-attribute-name-less-than-visible"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "root_cause": "A leading less-than character in a tolerated attribute name can look like a separate tag. Preserve the outer element when its close or visibility context disambiguates the opener.",
+          "regression_ids": [
+            "mixed-attribute-name-leading-less-than-script",
+            "mixed-attribute-name-leading-less-than-hidden",
+            "mixed-attribute-name-leading-less-than-visible"
           ],
           "tests": [
             "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"

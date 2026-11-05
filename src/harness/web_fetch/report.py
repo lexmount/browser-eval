@@ -1922,7 +1922,7 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  rows=[row for _,_,row in sorted(rows,key=lambda x:(-x[0],x[1]) if combined else (x[1],))]
  tracks=active_tracks(cases)
  timing_heads=saved_matrix_text('final_call_timing_headers')
- heads=[(t('report_method_22b9f0', 'Method')),(t('report_request_success_rate_413aeb', 'Request success rate'))]+([(t('report_overall_task_pass_rate_71785d', 'Overall task pass rate'))] if combined else [])+([(t('report_undecidable_including_uncalled_273298', 'Undecidable (including uncalled)')) if has_not_called else (t('report_undecidable_4c6165', 'Undecidable'))] if has_unknown else [])+[label for _,label in tracks]+timing_heads
+ heads=[(t('report_method_22b9f0', 'Method')),(t('report_request_success_rate_413aeb', 'Request success rate'))]+([(t('report_overall_task_pass_rate_71785d', 'Overall task pass rate'))] if combined else [])+([(t('report_undecidable_including_uncalled_273298', 'Undecidable (including uncalled)')) if has_not_called else (t('report_undecidable_4c6165', 'Undecidable'))] if has_unknown else [])+[esc(label) if _REPORT_SUITES.get() else label for _,label in tracks]+timing_heads
  if audit:heads+=[(t('report_review_coverage_9466e9', 'Review coverage'))]
  case_count=len(cases);track_count=len(tracks);track_label=track_count_label(track_count)
  if case_count==150 and track_count==6:
@@ -2166,7 +2166,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   selected=[c for c in cases.values() if report_family(c)==track]
   method_count=len({r['provider'] for r in records if report_family(cases[r['case_id']])==track})
   coverage=model_text(*pair('report_value_cases_value_measured_methods_885407', '{value0} cases · {value1} measured methods', value0=len(selected), value1=method_count))
-  panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+(f"<p>{link('datasets/index.html#track-' + track, t('report_tasks_and_references_2fa3ec', 'Tasks and references →'))}</p>")))
+  panels.append((track,label,f'<div class="track-heading"><h3>{esc(label) if _REPORT_SUITES.get() else label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+(f"<p>{link('datasets/index.html#track-' + track, t('report_tasks_and_references_2fa3ec', 'Tasks and references →'))}</p>")))
  overall_title=model_text(*pair('report_task_pass_rate_ranking_for_this_sample_5d9edf', 'Task pass-rate ranking for this sample')) if local_pass_rate_ranking(dataset) else ((t('report_task_results_b4e30d', 'Task results')) if diagnostic else (t('report_overall_coverage_ranking_47274b', 'Overall coverage ranking')))
  combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
  if not combined:overall_title=(t('report_task_results_b4e30d', 'Task results'))

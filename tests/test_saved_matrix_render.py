@@ -502,3 +502,30 @@ def test_excluded_report_providers_preserve_evidence_and_retained_results(tmp_pa
     assert 'Removed method' not in (root/'index.html').read_text(encoding='utf-8')
     from harness.web_fetch.report_saved_matrix import check_saved_matrix
     check_saved_matrix(root, spec_path=tmp_path/'spec.json')
+
+
+@pytest.mark.parametrize('family_override', [False, True])
+def test_external_report_labels_are_text(tmp_path, family_override):
+    spec, _, _, _ = fixture(tmp_path)
+    family = '<svg onload="familyProbe()"></svg>'
+    provider = '<svg onload="providerProbe()"></svg>'
+    spec['combined_ranking'] = True
+    if family_override:
+        spec['report_families'] = [{'id': 'web', 'label': family}]
+    else:
+        spec['suites'][0]['label'] = family
+    spec['providers'].append({'id': 'absent', 'label': provider})
+    receipt = write(tmp_path/'absent.json', {'suite': 'first', 'provider': 'absent',
+        'case_id': 'same', 'state': 'pre_call_blocked_no_method_calls',
+        'native_route_receipt': {'transport_state': 'not_started'}})
+    spec['missing'] = [{'suite': 'first', 'provider': 'absent', 'case_id': 'same',
+        'status': 'not_called', 'reason': 'Pre-call block', 'receipt': receipt}]
+    root = build(tmp_path, spec).parent
+    home = BeautifulSoup((root/'index.html').read_bytes(), 'html.parser', from_encoding='utf-8')
+    assert family in home.select_one('#ranking-overall thead').get_text()
+    assert family in home.select_one('.track-heading h3').get_text()
+    empty = BeautifulSoup((root/'providers/absent.html').read_bytes(), 'html.parser')
+    assert empty.h1.get_text() == provider
+    for page in root.rglob('*.html'):
+        dom = BeautifulSoup(page.read_bytes(), 'html.parser')
+        assert not dom.select('[onload="familyProbe()"], [onload="providerProbe()"]'), page

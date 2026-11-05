@@ -1019,10 +1019,20 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
         if tag is None:
             tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|[^<>])*>''').match(protected, left)
         if tag is None:
-            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|\s+[^\s<>/="'][^\s>/="']*|[^<>])*>''').match(protected, left)
-            # A tolerant attribute name cannot borrow a later paragraph's tag.
-            if tag and re.search(r"\n[ \t]*\r?\n", re.sub(r'''(?:"[^"]*"|'[^']*')''', "", tag[0])):
-                tag = None
+            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|\s+[^\s>/="'][^\s>/="']*|[^<>])*>''').match(protected, left)
+            if tag:
+                unquoted = re.sub(r"""(?:"[^"]*"|'[^']*')""",
+                                  lambda quoted: "_" * len(quoted[0]), tag[0])
+                # A separate opener or a paragraph break is ambiguous in prose.
+                # Keep it only when a matching close or the visibility parser
+                # identifies the outer element.
+                boundary = re.search(r"\s<|\n[ \t]*\r?\n", unquoted)
+                if boundary:
+                    name = re.match(r"<([A-Za-z][\w:.-]*)", tag[0])
+                    closes = name and re.search(r"</" + re.escape(name[1]) + r"\s*>",
+                                                protected[tag.end():], re.I)
+                    if not closes and (not name or marker in visible_html_text(tag[0][:boundary.start()] + ">" + marker)):
+                        tag = None
         if tag:
             pieces.append(tag[0])
             cursor = tag.end()

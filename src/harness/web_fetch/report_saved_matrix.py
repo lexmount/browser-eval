@@ -2605,11 +2605,11 @@ def render_saved_with_standard_generator(output, model):
     label_token = _REPORT_PROVIDER_LABELS.set({p['id']: p['label'] for p in model['providers']})
     try:
         entry = generate(output,dataset,records,[],authored_interpretation=False,frozen_scores=True)
-        from harness.web_fetch.report import write, hero, saved_matrix_scope_section, local_audit_banner
+        from harness.web_fetch.report import write, hero, esc, saved_matrix_scope_section, local_audit_banner
         for provider in providers:
             if not any(r['provider'] == provider for r in records):
                 write(output, 'providers/'+provider+'.html', provider_label(provider),
-                      local_audit_banner(dataset)+hero(provider_label(provider), '')+saved_matrix_scope_section(scope), root_links=True)
+                      local_audit_banner(dataset)+hero(esc(provider_label(provider)), '')+saved_matrix_scope_section(scope), root_links=True)
     finally:
         _REPORT_SUITES.reset(token)
         _REPORT_PROVIDER_LABELS.reset(label_token)

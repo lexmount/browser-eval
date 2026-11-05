@@ -101,7 +101,7 @@ def test_tolerated_unquoted_attribute_keeps_visible_body(value):
 
 
 @pytest.mark.parametrize('tag', ['script', 'style', 'div hidden', 'span style="display:none"', 'div'])
-@pytest.mark.parametrize('attribute', ['data<x', 'data<', 'data<<x', 'data<x="a>b"'])
+@pytest.mark.parametrize('attribute', ['data<x', 'data<', 'data<<x', 'data<x="a>b"', '<x', '<x="a>b"'])
 def test_less_than_in_attribute_name_preserves_visibility(tag, attribute):
     from lexbench_webfetch.evaluation import evaluate_response
     source = f'Prefix<sup>1</sup>\nx<y\n<{tag} {attribute}> secret fact</{tag.split()[0]}> after'
