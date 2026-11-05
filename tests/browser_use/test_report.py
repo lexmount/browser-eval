@@ -1,5 +1,6 @@
 import hashlib
 import json
+import re
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -1990,7 +1991,12 @@ def test_replay_bridge_rejects_a_control_of_another_selection_size(tmp_path: Pat
 
 
 def _build_registered_report(
-    tmp_path: Path, monkeypatch, name: str, profile: dict, language: str | None = None
+    tmp_path: Path,
+    monkeypatch,
+    name: str,
+    profile: dict,
+    language: str | None = None,
+    rows: list[dict] | None = None,
 ) -> Path:
     directories = []
     for model in profile["models"]:
@@ -1999,7 +2005,8 @@ def _build_registered_report(
         _write_model_evidence(
             directory,
             model,
-            [
+            rows
+            or [
                 {"engine": engine, "task_id": 44, "tier": "easy", "attempt": 1, "score": index % 2}
                 for index, engine in enumerate(profile["engines"])
             ],
@@ -2028,6 +2035,75 @@ def _build_registered_report(
         language=language,
     )
     return output
+
+
+def _table_cells(html: str, table_id: str, label: str) -> list[str]:
+    table = re.search(rf'<table[^>]*id="{table_id}".*?</table>', html, re.S)
+    assert table is not None
+    for row in re.findall(r"<tr.*?</tr>", table.group(0), re.S):
+        cells = re.findall(r"<td[^>]*>(.*?)</td>", row, re.S)
+        if len(cells) > 1 and cells[1] == label:
+            return cells
+    raise AssertionError(f"no row for {label}")
+
+
+@pytest.mark.parametrize(
+    ("alpha_rows", "winner"),
+    [
+        # Negative control: complete, lowest data wins, so the marker is not simply absent.
+        ([(44, 1, {"cpu_ms": 1000}), (41, 1, {"cpu_ms": 1000})], "Alpha"),
+        # No execution of any task was sampled.
+        ([(44, 1, {}), (41, 1, {})], "Gamma"),
+        # One task of two was sampled.
+        ([(44, 1, {"cpu_ms": 1000}), (41, 1, {})], "Gamma"),
+        # A retried task lost the samples of one of its two executions.
+        ([(44, 1, {}), (44, 2, {"cpu_ms": 1000}), (41, 1, {"cpu_ms": 1000})], "Gamma"),
+    ],
+    ids=["complete", "unmeasured", "partial-tasks", "partial-executions"],
+)
+def test_incomplete_resource_population_is_unavailable_and_never_wins(
+    tmp_path: Path, monkeypatch, alpha_rows: list[tuple], winner: str
+) -> None:
+    def row(engine: str, task_id: int, attempt: int, resource: dict) -> dict:
+        return {
+            "engine": engine,
+            "task_id": task_id,
+            "tier": "easy",
+            "attempt": attempt,
+            "score": 1,
+            "duration_ms": 1000,
+            "resource": resource,
+        }
+
+    rows = [row("alpha", *values) for values in alpha_rows] + [
+        row(engine, task_id, 1, {"cpu_ms": cpu_ms})
+        for engine, cpu_ms in (("beta", 9000), ("gamma", 3000))
+        for task_id in (44, 41)
+    ]
+    profile = {
+        "engines": ["alpha", "beta", "gamma"],
+        "baseline_engine": "beta",
+        "models": ["model-a"],
+    }
+
+    output = _build_registered_report(tmp_path, monkeypatch, "resources", profile, rows=rows)
+
+    home = (output / "index.html").read_text(encoding="utf-8")
+    won = {
+        label
+        for label in ("Alpha", "Beta", "Gamma")
+        if "comparison-winner" in _table_cells(home, "resource-metrics-table", label)[2]
+    }
+    assert won == {winner}
+    summary = json.loads((output / "report-data.json").read_text(encoding="utf-8"))["summary"]
+    alpha_cpu = summary["model-a"]["alpha"]["resources"]["cpu_ms"]
+    assert (alpha_cpu["mean"] is None) == (winner != "Alpha")
+    assert (alpha_cpu["p95"] is None) == (winner != "Alpha")
+    if winner != "Alpha":
+        cpu_cell = _table_cells(home, "resource-metrics-table", "Alpha")[2]
+        assert cpu_cell.count("—") == 3
+        # A median over a partial population is as misleading as the mean above.
+        assert _table_cells(home, "home-resource-table", "Alpha")[-1] == "—"
 
 
 def test_report_follows_a_registry_of_another_size_without_module_state(

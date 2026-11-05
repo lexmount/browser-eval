@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "3716d84eda05a9d47dbe804fbf1f59e2ca46678840a5c5b718bdd388c120c2e1"
+          "after_sha256": "92d51537d0e440616a338bf385512a18ade0cfcedbcb3bb40bba8658c6df984a"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -4117,6 +4117,51 @@
             "cjk-adjacent-word-edges-anchor-rejected",
             "latin-split-words-do-not-match-joined-anchor",
             "latin-joined-word-does-not-match-split-anchor"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+          "regression_ids": [
+            "escaped-backticks-match-literal-anchor",
+            "escaped-backticks-match-literal-anchor-other-escapes",
+            "escaped-emphasis-matches-literal-anchor",
+            "escaped-strong-matches-literal-anchor",
+            "escaped-underscore-matches-literal-anchor",
+            "escaped-brackets-match-literal-link-anchor",
+            "escaped-backslash-matches-literal-backslash-anchor",
+            "code-span-still-matches-anchor-with-backticks",
+            "bare-word-still-matches-anchor-with-backticks",
+            "escaped-backticks-other-word-rejected",
+            "escaped-backticks-without-required-text-rejected",
+            "unrelated-escape-does-not-supply-anchor",
+            "code-span-keeps-backslash-before-backtick",
+            "code-span-keeps-backslash-before-underscore",
+            "code-span-does-not-supply-literal-backticks",
+            "code-span-does-not-supply-literal-emphasis",
+            "fenced-code-does-not-supply-literal-backticks",
+            "indented-code-does-not-supply-literal-backticks",
+            "masked-code-span-does-not-join-anchor-words",
+            "escaped-comment-text-does-not-supply-anchor",
+            "escaped-link-destination-does-not-supply-anchor",
+            "declared-plain-text-keeps-backslashes",
+            "escape-with-img-alt-does-not-supply-anchor",
+            "escape-with-title-attribute-does-not-supply-anchor",
+            "escape-with-aria-label-does-not-supply-anchor",
+            "escape-with-meta-content-does-not-supply-anchor",
+            "escape-with-hidden-span-does-not-supply-anchor",
+            "escape-with-inline-script-does-not-supply-anchor",
+            "escape-with-inline-style-does-not-supply-anchor",
+            "escaped-backticks-in-inline-script-do-not-supply-anchor",
+            "masked-code-before-word-keeps-joined-word",
+            "masked-code-after-word-keeps-joined-word",
+            "escaped-backticks-in-declared-markdown-script-do-not-supply-anchor",
+            "masked-code-does-not-add-case-boundary"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"

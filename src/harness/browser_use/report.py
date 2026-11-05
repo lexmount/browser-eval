@@ -454,46 +454,50 @@ def _logical_results(
             error for row in executions for error in (row.get("model_transport_errors") or [])
         ]
         resources = [row.get("resource") or {} for row in executions]
-        weighted_duration = sum(float(row.get("duration_ms") or 0) for row in executions)
+        # A metric any execution lacks is unavailable: an aggregate never fills it with 0.
+        measured = {
+            name: all(resource.get(name) is not None for resource in resources)
+            for name in (
+                "cpu_ms",
+                "cpu_average_utilization_pct",
+                "memory_mean_bytes",
+                "memory_peak_bytes",
+                "memory_retained_bytes",
+                "network_rx_bytes",
+                "network_tx_bytes",
+                "pids_current_peak",
+            )
+        }
         authoritative["resource"] = {
             **{
-                name: sum(float(resource.get(name) or 0) for resource in resources)
+                name: sum(float(resource[name]) for resource in resources)
+                if measured[name]
+                else None
                 for name in ("cpu_ms", "network_rx_bytes", "network_tx_bytes")
             },
             **{
-                name: max((float(resource.get(name) or 0) for resource in resources), default=0)
+                name: max(float(resource[name]) for resource in resources)
+                if measured[name]
+                else None
                 for name in ("memory_peak_bytes", "memory_retained_bytes", "pids_current_peak")
             },
         }
-        if weighted_duration:
-            present_duration = sum(
-                float(row.get("duration_ms") or 0)
-                for row in executions
-                if (row.get("resource") or {}).get("cpu_average_utilization_pct") is not None
-            )
-            if present_duration:
-                authoritative["resource"]["cpu_average_utilization_pct"] = (
-                    sum(
-                        float((row.get("resource") or {}).get("cpu_average_utilization_pct") or 0)
-                        * float(row.get("duration_ms") or 0)
-                        for row in executions
-                        if (row.get("resource") or {}).get("cpu_average_utilization_pct")
-                        is not None
-                    )
-                    / present_duration
+        weighted_duration = sum(float(row.get("duration_ms") or 0) for row in executions)
+        if weighted_duration and measured["cpu_average_utilization_pct"]:
+            authoritative["resource"]["cpu_average_utilization_pct"] = (
+                sum(
+                    float(resource["cpu_average_utilization_pct"])
+                    * float(row.get("duration_ms") or 0)
+                    for row, resource in zip(executions, resources, strict=True)
                 )
-        memory_sample_count = sum(
-            int((row.get("resource") or {}).get("sample_count") or 0)
-            for row in executions
-            if (row.get("resource") or {}).get("memory_mean_bytes") is not None
-        )
-        if memory_sample_count:
+                / weighted_duration
+            )
+        memory_sample_count = sum(int(resource.get("sample_count") or 0) for resource in resources)
+        if memory_sample_count and measured["memory_mean_bytes"]:
             authoritative["resource"]["memory_mean_bytes"] = (
                 sum(
-                    float((row.get("resource") or {}).get("memory_mean_bytes") or 0)
-                    * int((row.get("resource") or {}).get("sample_count") or 0)
-                    for row in executions
-                    if (row.get("resource") or {}).get("memory_mean_bytes") is not None
+                    float(resource["memory_mean_bytes"]) * int(resource.get("sample_count") or 0)
+                    for resource in resources
                 )
                 / memory_sample_count
             )
@@ -632,11 +636,13 @@ def _primary_summary(
                     for row in logical
                     if (row.get("resource") or {}).get(name) is not None
                 ]
+                # A partial population is unavailable, not a smaller sample of the same scope.
+                complete = bool(values) and len(values) == len(logical)
                 resource_summary[name] = {
                     "count": len(values),
-                    "mean": statistics.fmean(values) if values else None,
-                    "p50": percentile(values, 0.50),
-                    "p95": percentile(values, 0.95),
+                    "mean": statistics.fmean(values) if complete else None,
+                    "p50": percentile(values, 0.50) if complete else None,
+                    "p95": percentile(values, 0.95) if complete else None,
                 }
             result[model][engine] = {
                 "completed": len(logical),
@@ -1824,6 +1830,10 @@ def _common_final_success_resource_rows(
     def median(values: list[float]) -> float | None:
         return statistics.median(values) if values else None
 
+    def resource_median(cohort: list[dict[str, Any]], name: str) -> float | None:
+        values = [(row.get("resource") or {}).get(name) for row in cohort]
+        return None if None in values else median([float(value) for value in values])
+
     rows: list[list[Any]] = []
     for model in participants.models:
         for engine in participants.engines:
@@ -1850,14 +1860,8 @@ def _common_final_success_resource_rows(
                             [float((row.get("model_usage") or {}).get("total_tokens") or 0) for row in cohort]
                         )
                     ),
-                    (
-                        "—"
-                        if not cohort
-                        else f"{median([float((row.get('resource') or {}).get('memory_peak_bytes') or 0) for row in cohort]) / 1048576:.1f} MiB"
-                    ),
-                    _seconds(
-                        median([float((row.get("resource") or {}).get("cpu_ms") or 0) for row in cohort])
-                    ),
+                    _resource_value(resource_median(cohort, "memory_peak_bytes"), "mib"),
+                    _seconds(resource_median(cohort, "cpu_ms")),
                 ]
             )
     return len(common), rows

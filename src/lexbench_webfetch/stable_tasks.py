@@ -1063,7 +1063,7 @@ def _non_record_visible(content, contract, records, base_url, *, representation=
 _LETTER_SPACED_CJK = re.compile(r'(?<![\u3400-\u9fff])[\u3400-\u9fff](?:[ \t]+[\u3400-\u9fff](?![\u3400-\u9fff]))+')
 
 
-def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False, representation=None, rendered=False):
+def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False, representation=None, rendered=False, literal=False):
     """An atomic Latin label is a word, not part of another word.
 
     Native camel boundaries and fully covered chains of registered labels
@@ -1080,7 +1080,7 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
     if not rendered and representation not in {'plain_text', 'html'}:
         surface = visible_markdown_links(surface)
     surface = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+\b)', ' ', surface)
-    expected_value = _visible(value, representation='plain_text' if representation == 'html' else representation)
+    expected_value = value if literal else _visible(value, representation='plain_text' if representation == 'html' else representation)
     expected = normalize_for_match(expected_value)
     # Only an explicit heading with a trailing fragment URL can supply this
     # additional surface; ordinary word suffixes remain significant.
@@ -1245,6 +1245,24 @@ def _anchor_matches(anchor, records, visible, schema, non_record_visible=None,
             if _stable_literal_match(anchor_visible if anchor_visible is not None else visible,
                                      value, registered_words, representation=representation,
                                      rendered=schema in {'body_text', 'page_identity'})]
+
+
+def _escaped_prose_surface(content, schema):
+    """Render an answer whose backslash escapes emit literal punctuation, without its code.
+
+    A reference is observed page text, so its Markdown delimiters are characters.
+    Code keeps its own meaning and never supplies this surface, and an answer with
+    any tag-like text is left to the visible HTML projection. The mask is a caseless
+    word letter, so it adds no word or case boundary the answer does not have.
+    """
+    escape = re.compile(r'\\[!-/:-@\[-`{-~]')
+    if not escape.search(content) or re.search(r'<[A-Za-z/!?]', content):
+        return ''
+    from .reference_quality import markdown_literal_spans
+    prose = content
+    for start, end in reversed(markdown_literal_spans(content)):
+        prose = prose[:start] + '\u01bb' + prose[end:]
+    return _visible(prose, schema) if escape.search(prose) else ''
 
 
 def _native_link_label_surface(content, exclusions):
@@ -1924,6 +1942,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                              for value in anchor["alternatives"]
                              if re.fullmatch(r"[A-Za-z]+", value))
     native_labels = None
+    escaped_prose = None
     for anchor in contract.get("stable_text_anchors", []):
         selected_surface = anchor_visible
         selected_non_record = non_record_visible
@@ -1949,6 +1968,13 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if native_labels:
                 matched = _anchor_matches(anchor, anchor_records, visible, schema,
                                           anchor_visible=native_labels, representation=match_representation, contract=contract)
+        if (not matched and schema in {'body_text', 'page_identity'} and not native_html
+                and representation != 'plain_text' and not exclusions):
+            if escaped_prose is None:
+                escaped_prose = _escaped_prose_surface(content, schema)
+            if escaped_prose:
+                matched = [value for value in anchor['alternatives'] if _stable_literal_match(
+                    escaped_prose, value, representation=match_representation, rendered=True, literal=True)]
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     if anchors_required:
