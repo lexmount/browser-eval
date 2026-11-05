@@ -99,3 +99,24 @@ def test_english_home_explains_unknown_and_missing_results(tmp_path, monkeypatch
         assert 'Some results are missing or tasks were not called.' in home
     else:
         assert 'Decidable denominators differ' in home
+
+
+@pytest.mark.parametrize('declared_missing', [False, True])
+def test_family_participants_do_not_include_other_tracks(declared_missing):
+    from harness.web_fetch import report
+    web = case('web', kind='body', track='web')
+    dynamic = case('dynamic', kind='body', track='dynamic')
+    first, other = record(web), record(dynamic)
+    first['provider'], other['provider'] = 'web-only', 'dynamic-only'
+    plan = {'web': ['web-only'] + (['missing-web'] if declared_missing else []),
+            'dynamic': ['dynamic-only']}
+    token = report._RENDER_CONTEXT.set(report.RenderContext(coverage_plan=plan))
+    try:
+        markup = report.ranking([first, other], {'web': web, 'dynamic': dynamic}, 'web')
+        card = report.overview_card([first, other], {'web': web, 'dynamic': dynamic},
+                                    'web', 'Web', ['web-only', 'dynamic-only'])
+    finally:
+        report._RENDER_CONTEXT.reset(token)
+    soup = BeautifulSoup(markup, 'html.parser')
+    assert bool(soup.select('td[data-rank]')) is (not declared_missing)
+    assert ('仅供诊断' in card) is declared_missing

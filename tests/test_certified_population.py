@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from harness.record_io import canonical_json_sha256
 from harness.web_fetch import benchmark_runner, certification, reference_freeze
 from harness.web_fetch.evidence import finalize_aggregate
 
@@ -48,6 +49,7 @@ class PopulationCohortTests(unittest.TestCase):
             root / "population.json",
             root / "providers.json",
         )
+        spec["frozen_task_bindings"]["articles"]["exported_cases_sha256"] = canonical_json_sha256(data["cases"])
         dataset.write_text(json.dumps(data), encoding='utf-8')
         population.write_text(json.dumps(spec), encoding='utf-8')
         config.write_text(json.dumps({"providers": {"fixture": {"type": "fixture"}}}), encoding="utf-8")
@@ -103,6 +105,9 @@ class PopulationCohortTests(unittest.TestCase):
 
     def test_mismatch_is_rejected_before_calls(self):
         mutations = [
+            ("missing content binding", lambda d, s: s["frozen_task_bindings"]["articles"].pop("exported_cases_sha256")),
+            ("changed URL", lambda d, s: d["cases"][0].update(url="https://changed.example/task")),
+            ("changed rule", lambda d, s: d["cases"][0]["acceptance_contract"]["stable_text_anchors"][0].update(alternatives=["Different requirement"])),
             ("wrong revision", lambda d, s: s.update(revision_sha256="c" * 64)),
             (
                 "wrong suite source",

@@ -1822,7 +1822,9 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         note['prior_record_path'] = old_path
                         note['prior_answer_path'] = history_prefix + '/' + old_record['artifact_path']
                     else:
-                        note['prior_uncommitted_path'] = copy(binding(entry['prior_uncommitted']), prefix+'/prior-uncommitted.json')
+                        prior_receipt = binding(entry['prior_uncommitted'])
+                        _require_public_missing_receipt(_json(prior_receipt))
+                        note['prior_uncommitted_path'] = copy(prior_receipt, prefix+'/prior-uncommitted.json')
                         note['prior_log_sha256'] = entry['prior_log']['sha256']
                     item['retry_continuation'] = note
                     item['retries'] = 1
@@ -2380,6 +2382,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
             if row.get(key) and not contained_path(output, row[key], reject_symlinks=True).is_file():
                 raise ValueError('Missing saved-matrix evidence link')
         continuation = row.get('retry_continuation') or {}
+        if continuation.get('prior_uncommitted_path'):
+            _require_public_missing_receipt(_json(contained_path(output, continuation['prior_uncommitted_path'], reject_symlinks=True)))
         for field in ('prior_record_path', 'prior_answer_path', 'prior_uncommitted_path'):
             if continuation.get(field) and not contained_path(output, continuation[field], reject_symlinks=True).is_file():
                 raise ValueError('Missing retry continuation evidence')

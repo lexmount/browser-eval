@@ -25,7 +25,12 @@ For an explicit dataset population, export each suite with the declared annotati
 revision first, then replace manual `--case-ids` with
 `--population /path/to/definitions/populations/<revision>.json --population-suite articles`
 (or the corresponding suite). The selection must bind `revision_sha256` and the
-suite's frozen task hash to the exported dataset. Missing, duplicate, unexpected,
+suite's frozen task hash to the exported dataset. Each suite's
+`frozen_task_bindings` must also declare `exported_cases_sha256`, the canonical JSON
+SHA-256 of the reviewed export's complete `cases` array (using
+`harness.record_io.canonical_json_sha256`). Prepare this binding alongside the
+reviewed population; the runner must not infer it from the input being checked.
+Populations without this content binding are rejected before calls. Missing, duplicate, unexpected,
 or mismatched cases fail before provider calls. Repeat for every declared suite;
 a single-suite run does not certify the complete cross-suite population.
 The output retains `task-population.json`; `execution.json` and the dataset's

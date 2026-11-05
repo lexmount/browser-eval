@@ -772,7 +772,7 @@ def test_retry_continuation_keeps_final_verdict_and_prior_bytes(tmp_path, final_
 
 
 @pytest.mark.parametrize('defect', [None, 'missing_identity', 'unrelated', 'missing_time', 'post_launch',
-                                  'out_of_order', 'early_completion', 'missing_event_time', 'missing_event_identity', 'other_event_identity'])
+                                  'out_of_order', 'early_completion', 'missing_event_time', 'missing_event_identity', 'other_event_identity', 'private_path', 'secret'])
 def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tmp_path, defect):
     spec, root, current, raw = fixture(tmp_path)
     event = {'event': 'http_request_started', 'call_id': 'method__same__r001', 'at': '2026-10-27T00:00:00Z'}
@@ -811,6 +811,15 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     spec['retry_continuations']=[{'suite':'first','provider':'method','case_id':'same',
         'launch_contract':launch,'current_record_sha256':hashlib.sha256(raw).hexdigest(),
         'prior_uncommitted':receipt,'prior_log':log}]
+    if defect in {'private_path', 'secret'}:
+        value = json.loads(Path(receipt['path']).read_bytes())
+        value.update({'debug_path': '/tmp/private-run/log.json'} if defect == 'private_path'
+                     else {'authorization': 'Bearer private-value'})
+        spec['retry_continuations'][0]['prior_uncommitted'] = write(Path(receipt['path']), value)
+        with pytest.raises(ValueError, match='Missing receipt contains private content'):
+            build(tmp_path, spec)
+        assert not (tmp_path/'report').exists()
+        return
     if defect:
         with pytest.raises(ValueError, match='Uncommitted first-call log'):
             build(tmp_path, spec)
@@ -834,6 +843,16 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     assert_proof_mutations_rejected(entry.parent, tmp_path/'spec.json', 'retry_continuation',
                                     ['remove', 'total_physical_calls', 'execution_cost_ms'])
     assert '首轮精确耗时未保存' in (entry.parent/'attempts/first--run-001.html').read_text(encoding='utf-8')
+    relative = row['retry_continuation']['prior_uncommitted_path']
+    value = json.loads((entry.parent/relative).read_bytes())
+    value['debug_path'] = '/tmp/private-run/log.json'
+    audit_path = entry.parent/'saved-matrix-audit.json'
+    audit = json.loads(audit_path.read_bytes())
+    audit['files'][relative] = write(entry.parent/relative, value)['sha256']
+    write(audit_path, audit)
+    with pytest.raises(ValueError, match='Missing receipt contains private content'):
+        check_saved_matrix(entry.parent)
+
 
 
 @pytest.mark.parametrize('digest', [None, '', 'abc', 'g' * 64, 12])
@@ -1736,7 +1755,7 @@ def test_frozen_parameter_partition_requires_matching_amendment(tmp_path, amendm
 @pytest.mark.parametrize('extra', [
     {'execution_log': {'path': '/tmp/private-run/execution.jsonl', 'sha256': 'a'*64}},
     {'execution_log': {'path': r'C:\private-run\execution.jsonl', 'sha256': 'a'*64}},
-    {'note': '/Users/private-owner/run.log'},
+    {'note': '/'.join(['', 'Users', 'private-owner', 'run.log'])},
     {'authorization': 'Bearer private-value'},
 ])
 def test_missing_receipt_private_content_is_rejected_before_publication(tmp_path, extra):

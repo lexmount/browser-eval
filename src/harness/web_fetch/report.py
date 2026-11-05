@@ -759,6 +759,7 @@ class RenderContext:
  banner: str = ''
  english_generated: bool = False
  score_audit: dict | None = None
+ coverage_plan: dict | None = None
 
 
 _RENDER_CONTEXT=ContextVar('webfetch_render_context',default=RenderContext())
@@ -1107,7 +1108,7 @@ def overview_card(records,cases,track,label,names,*,diagnostic=False):
  if not selected:return ''
  rs=[r for r in records if report_family(cases[r['case_id']])==track]
  eligible=[r for r in rs if measured(r,cases[r['case_id']])]
- if diagnostic or not ranking_readiness(records,{c['id']:c for c in selected})[0]:
+ if diagnostic or not ranking_readiness(records,{c['id']:c for c in selected},participants=family_participants(records,{c['id']:c for c in selected}))[0]:
   return f'<div class="card"><div class="eyebrow">{len(selected)} 个任务</div><h3>{link("#home-rankings-"+track,label)}</h3><p>本次保存结果仅供诊断，未完成认证。</p></div>'
  rates={n:sum(succeeded(r,cases[r['case_id']]) for r in eligible if r['provider']==n)/sum(r['provider']==n for r in eligible) for n in names if any(r['provider']==n for r in eligible)}
  maximum=max(rates.values(),default=None)
@@ -1606,9 +1607,18 @@ def stable_checks(m):
  if len(records)>5:record_table=f'<div class="record-scroll" data-scroll-after="5">{record_table}</div>'
  return content+record_table+(('<p>' + t('failure_reason', 'Failure reason:') + f'{esc(stable_failure_summary(m))}。</p>') if m.get('stable_task_errors') else '')
 
-def ranking_readiness(records,cases):
+def family_participants(records,cases):
+ """Use the declared family population, retaining saved-matrix participants."""
+ plan=_RENDER_CONTEXT.get().coverage_plan or {}
+ names={r['provider'] for r in records if r['case_id'] in cases}
+ for c in cases.values():names.update(plan.get(c.get('track','web'),[]))
+ if _REPORT_SUITES.get():names.update(_REPORT_PROVIDER_LABELS.get())
+ return names
+
+
+def ranking_readiness(records,cases,*,participants=None):
  """Require a complete shared task population and one recorded scorer."""
- groups={name:[] for name in ({r['provider'] for r in records}|set(_REPORT_PROVIDER_LABELS.get()))}
+ groups={name:[] for name in (participants if participants is not None else {r['provider'] for r in records}|set(_REPORT_PROVIDER_LABELS.get()))}
  for r in records:
   if r['case_id'] in cases:groups[r['provider']].append(r)
  populations=[Counter(r['case_id'] for r in rs) for rs in groups.values()]
@@ -1704,7 +1714,7 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   if missing:note+=(' ' + t('unmeasured_methods_not_counted_as_failures', 'Unmeasured methods (not counted as failures):') + f"{esc('、'.join(missing))}。")
  directions={i:('quality_'+str(i),'max') for i in range(1,len(heads)) if heads[i] not in {t('mean', 'Mean'),'P50','P95',t('judgement_coverage', 'Judgement coverage'),t('review_coverage', 'Review coverage')}}
  directions.update({i:('latency_'+str(i),'min') for i,h in enumerate(heads) if h in {t('mean', 'Mean'),'P50','P95'}})
- eligible,rank_note=ranking_readiness(records,selected)
+ eligible,rank_note=ranking_readiness(records,selected,participants=family_participants(records,selected))
  ranked=not diagnostic and eligible
  if ranked:rows=comparative_rows(rows,directions)
  scores=[-sort_key(item)[0] for item in sorted(groups.items(),key=sort_key)]
@@ -2105,7 +2115,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   reliability_banner += ('<div class="wrap callout" role="status"><strong>' + t('synthetic_example_not_a_formal_benchmark', 'Synthetic example · not a formal benchmark') + '</strong><p>' + t('content_and_failures_are_predefined_scenarios_for', 'Content and failures are predefined scenarios for checking installation and report functionality, not browser measurements.') + '</p></div>')
  elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
   reliability_banner += ('<div class="wrap callout" role="status"><strong>' + t('diagnostic_run_not_a_formal_benchmark', 'Diagnostic run · not a formal benchmark') + '</strong><p>' + t('these_calls_check_the_selected_tasks_and', 'These calls check the selected tasks and methods without the cohort certification required for a formal benchmark.') + '</p></div>')
- _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit))
+ _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit,dataset.get('coverage_plan')))
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)
@@ -4422,7 +4432,7 @@ def saved_suite_ranking(records,cases,suite,*,base='',id=None,diagnostic=False):
   values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)),ratio)
   rows.append((-ratio,provider,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda item:item[:2])]
- eligible,rank_note=ranking_readiness(records,selected)
+ eligible,rank_note=ranking_readiness(records,selected,participants=family_participants(records,selected))
  ranked=not diagnostic and eligible
  if ranked:rows=comparative_rows(rows,{6:('task_pass_rate','max')})
  scores=sorted([sum(succeeded(r,selected[r['case_id']]) for r in records if r['provider']==provider and r['case_id'] in selected) for provider in {r['provider'] for r in records}|set(_REPORT_PROVIDER_LABELS.get())],reverse=True)

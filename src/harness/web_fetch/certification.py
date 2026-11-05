@@ -81,6 +81,11 @@ def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[st
     allowed = {cid for sid, cid in selected + excluded if sid == suite}
     if len(known) != len(set(known)) or set(known) != allowed:
         raise ValueError("Exported cases do not match the population's suite")
+    from harness.record_io import canonical_json_sha256
+    expected_cases = spec["frozen_task_bindings"][suite].get("exported_cases_sha256")
+    if (not isinstance(expected_cases, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_cases)
+            or canonical_json_sha256(dataset["cases"]) != expected_cases):
+        raise ValueError("Exported definitions do not match the population's bound task content")
     ids = [cid for sid, cid in selected if sid == suite]
     binding = {"path": "task-population.json", "sha256": hashlib.sha256(raw).hexdigest(),
                "id": spec["id"], "task_count": spec["task_count"], "suite": suite,
