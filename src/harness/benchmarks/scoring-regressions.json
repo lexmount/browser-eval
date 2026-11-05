@@ -80101,6 +80101,63 @@
       "artifact": "edit`post` \\!",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "escaped-backticks-in-declared-markdown-script-do-not-supply-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro \\!\n\n<script>toolbar \\`Edit\\` button</script>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "masked-code-does-not-add-case-boundary",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "EDIT"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "`P`EDIT \\!",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

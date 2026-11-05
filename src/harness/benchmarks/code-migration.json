@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "4257d735f9b32b523d2316b34e9dd90b6001007ee2725e99b76b86f0bdc97165"
+          "after_sha256": "92d51537d0e440616a338bf385512a18ade0cfcedbcb3bb40bba8658c6df984a"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -4059,7 +4059,9 @@
             "escape-with-inline-style-does-not-supply-anchor",
             "escaped-backticks-in-inline-script-do-not-supply-anchor",
             "masked-code-before-word-keeps-joined-word",
-            "masked-code-after-word-keeps-joined-word"
+            "masked-code-after-word-keeps-joined-word",
+            "escaped-backticks-in-declared-markdown-script-do-not-supply-anchor",
+            "masked-code-does-not-add-case-boundary"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"

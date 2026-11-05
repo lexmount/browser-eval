@@ -1251,16 +1251,17 @@ def _escaped_prose_surface(content, schema):
     """Render an answer whose backslash escapes emit literal punctuation, without its code.
 
     A reference is observed page text, so its Markdown delimiters are characters.
-    Code and hidden comments keep their own meaning and never supply this surface.
-    Their mask is a word letter, so it adds no word boundary the answer does not have.
+    Code keeps its own meaning and never supplies this surface, and an answer with
+    any tag-like text is left to the visible HTML projection. The mask is a caseless
+    word letter, so it adds no word or case boundary the answer does not have.
     """
     escape = re.compile(r'\\[!-/:-@\[-`{-~]')
-    if not escape.search(content):
+    if not escape.search(content) or re.search(r'<[A-Za-z/!?]', content):
         return ''
-    from .reference_quality import markdown_comment_spans, markdown_literal_spans
+    from .reference_quality import markdown_literal_spans
     prose = content
-    for start, end in sorted(markdown_literal_spans(content) + markdown_comment_spans(content), reverse=True):
-        prose = prose[:start] + '\u01a3' + prose[end:]
+    for start, end in reversed(markdown_literal_spans(content)):
+        prose = prose[:start] + '\u01bb' + prose[end:]
     return _visible(prose, schema) if escape.search(prose) else ''
 
 
@@ -1968,7 +1969,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 matched = _anchor_matches(anchor, anchor_records, visible, schema,
                                           anchor_visible=native_labels, representation=match_representation, contract=contract)
         if (not matched and schema in {'body_text', 'page_identity'} and not native_html
-                and anchor_text is None and representation != 'plain_text' and not exclusions):
+                and representation != 'plain_text' and not exclusions):
             if escaped_prose is None:
                 escaped_prose = _escaped_prose_surface(content, schema)
             if escaped_prose:
