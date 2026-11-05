@@ -68,10 +68,17 @@ def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
 @pytest.mark.parametrize("approved", [False, True])
 def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch, approved):
     source, target, work, visual = setup_report(tmp_path)
-    save_json(source / "report-manifest.json", {"profile_sha256": "new-profile"})
+    next_profile = tmp_path / "next-profile.json"
+    save_json(next_profile, {"report": "next"})
+    next_hash = digest(next_profile.read_bytes())
+    save_json(source / "report-manifest.json", {"profile_sha256": next_hash})
     bound = read_json(target)
     if approved:
-        bound["approved_profile_successor"] = {"from_sha256": "profile", "to_sha256": "new-profile"}
+        bound["approved_profile_successor"] = {
+            "from_sha256": "profile",
+            "to_sha256": next_hash,
+            "profile_path": str(next_profile),
+        }
         save_json(target, bound)
     called = []
     monkeypatch.setattr(
@@ -82,10 +89,17 @@ def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch
             or {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
         ),
     )
-    monkeypatch.setattr(publication, "publish_staged_update", lambda *a, **k: "ver_after")
+
+    def update(staged, **kwargs):
+        staged.bind("ver_after")
+        return "ver_after"
+
+    monkeypatch.setattr(publication, "publish_staged_update", update)
     if approved:
         assert publication.publish(source, target, work, visual)["versionId"] == "ver_after"
         assert called == ["package"]
+        assert read_json(target)["profile"] == {"path": str(next_profile), "sha256": next_hash}
+        assert "approved_profile_successor" not in read_json(target)
     else:
         with pytest.raises(ValueError, match="profile differs"):
             publication.publish(source, target, work, visual)

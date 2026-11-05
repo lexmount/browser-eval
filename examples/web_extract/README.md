@@ -308,7 +308,8 @@ hash in an external `publication-target.json` beside the report evidence. Select
 that binding explicitly for publication; never borrow a target from another report.
 Publication rejects a different profile before uploading. An approved profile
 revision records `approved_profile_successor` in that target with the exact
-`from_sha256` and `to_sha256`; a successful update consumes this approval.
+`from_sha256`, `to_sha256` and the verified `profile_path`; a successful update
+consumes this approval and records the new profile path and hash together.
 
 ## Failure repairs and field audit
 

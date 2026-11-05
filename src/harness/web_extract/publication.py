@@ -25,14 +25,26 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     previous = bound.get("profile_sha256") or bound.get("profile", {}).get("sha256")
     current = manifest.get("profile_sha256")
     successor = bound.get("approved_profile_successor")
-    if (
-        not previous
-        or not current
-        or (current != previous and successor != {"from_sha256": previous, "to_sha256": current})
-    ):
+    if not previous or not current:
         raise ValueError(
             "Report profile differs from its publication target; approve its successor"
         )
+    next_profile = bound.get("profile", {}).get("path")
+    if current != previous:
+        if not isinstance(successor, dict) or (
+            successor.get("from_sha256") != previous
+            or successor.get("to_sha256") != current
+            or not successor.get("profile_path")
+        ):
+            raise ValueError(
+                "Report profile differs from its publication target; approve its successor"
+            )
+        selected = Path(successor["profile_path"])
+        require_external_output(selected)
+        read_json(selected)
+        if digest(selected.read_bytes()) != current:
+            raise ValueError("Publication successor profile bytes differ from their approved hash")
+        next_profile = str(selected)
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     if archive.exists():
@@ -64,7 +76,7 @@ def publish(source, target, work, visual_receipt, *, transport=None):
             "expected_version": version,
             "renderer_source_revision": builder["revision"],
             "profile_sha256": manifest["profile_sha256"],
-            "profile": {**bound.get("profile", {}), "sha256": manifest["profile_sha256"]},
+            "profile": {"path": next_profile, "sha256": manifest["profile_sha256"]},
             "renderer_sha256": digest(Path(__file__).with_name("report.py").read_bytes()),
             "report_path": str(source),
             "archive_sha256": proof["archive_sha256"],
