@@ -388,11 +388,13 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
     }
     assert manifest["observations"] == 4
     for route in ("index", "interpretation"):
-        soup = BeautifulSoup((output / "zh" / (route + ".html")).read_text(), "html.parser")
+        soup = BeautifulSoup(
+            (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
+        )
         reason = soup.select_one('[data-excluded-method="firecrawl-json"]')
         assert reason is not None
         assert "User omitted the interrupted participant" in reason.get_text()
-    original = (output / "zh/index.html").read_text()
+    original = (output / "zh/index.html").read_text(encoding="utf-8")
     rebind(
         output,
         "zh/index.html",
