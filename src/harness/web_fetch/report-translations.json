@@ -3313,7 +3313,13 @@
     "每个逻辑结果只取最终一次调用耗时，不是包含此前重试和等待的累计耗时。补齐重试的结果在详情页另列已知的两次调用累计耗时；首轮耗时未保存时标为不可用。": "Each logical result uses only its final call latency, not the accumulated cost of prior retries and waits. Continued retries disclose the known combined cost separately in their details; a missing first-call duration remains unavailable.",
     "分别记录参数重测与离线修订。参数重测包含新调用；离线修订只使用已有返回。": "Parameter reruns and offline revisions are recorded separately. Parameter reruns include new calls; offline revisions use retained responses only.",
     "评测代码在 browser-eval，题目定义和参考数据在 Hugging Face；本页列出本轮配置与复现入口。": "Benchmark code lives in browser-eval; task definitions and reference data live on Hugging Face. This page lists the run configuration and reproduction entry points.",
-    "保存调用、评分和报告工具，通过数据版本锁定文件选择 Hugging Face 上的题目定义和参考数据；本报告提供本轮冻结结果供复核。": " contains invocation, scoring and report tools. Its data lock selects task definitions and reference data on Hugging Face; this report provides the frozen results for this run."
+    "保存调用、评分和报告工具，通过数据版本锁定文件选择 Hugging Face 上的题目定义和参考数据；本报告提供本轮冻结结果供复核。": " contains invocation, scoring and report tools. Its data lock selects task definitions and reference data on Hugging Face; this report provides the frozen results for this run.",
+    "保存当前评测代码、任务定义和独立参考；本报告另提供本轮冻结结果供复核。": " contains the current benchmark code, task definitions, and independent references. This report separately provides the frozen results for this run.",
+    "本地诊断结果，不提供名次。": "Local diagnostic results; no ranks are assigned.",
+    "本地未认证诊断快照 · 不可用于排名": "Local uncertified diagnostic snapshot · not for ranking",
+    "默认按任务通过率降序排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are sorted by task pass rate in descending order without ranks. Task judgments, content quality and latency are shown separately.",
+    "来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。": "Sources were not fully verified before and after calls. Saved scores, quality metrics and review records are diagnostic evidence, not a certified release.",
+    "代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。": "The browser-eval repository is authoritative for code, dataset, and reproduction instructions. This page lists only the configuration required for this run."
   },
   "PHRASES": {
     "处理路线：": "Retrieval path: ",
