@@ -48,9 +48,9 @@ class PopulationCohortTests(unittest.TestCase):
             root / "population.json",
             root / "providers.json",
         )
-        dataset.write_text(json.dumps(data))
-        population.write_text(json.dumps(spec))
-        config.write_text(json.dumps({"providers": {"fixture": {"type": "fixture"}}}))
+        dataset.write_text(json.dumps(data), encoding='utf-8')
+        population.write_text(json.dumps(spec), encoding='utf-8')
+        config.write_text(json.dumps({"providers": {"fixture": {"type": "fixture"}}}), encoding="utf-8")
         args = [
             "--dataset",
             str(dataset),
@@ -87,8 +87,8 @@ class PopulationCohortTests(unittest.TestCase):
 
             with patch.object(certification, "run", side_effect=execute):
                 certification.main(args)
-            execution = json.loads((root / "run/execution.json").read_text())
-            saved = json.loads((root / "run/dataset.json").read_text())
+            execution = json.loads((root / "run/execution.json").read_text(encoding='utf-8'))
+            saved = json.loads((root / "run/dataset.json").read_text(encoding='utf-8'))
             binding = execution["aggregate"]["task_population"]
             self.assertEqual(binding, saved["comparison"]["task_population"])
             self.assertEqual(binding["selected_case_ids"], ["selected"])
@@ -97,7 +97,7 @@ class PopulationCohortTests(unittest.TestCase):
             self.assertEqual((root / "run/task-population.json").read_bytes(), raw)
             self.assertEqual(binding["sha256"], hashlib.sha256(raw).hexdigest())
             rows = [
-                json.loads(line) for line in (root / "run/results.jsonl").read_text().splitlines()
+                json.loads(line) for line in (root / "run/results.jsonl").read_text(encoding='utf-8').splitlines()
             ]
             self.assertEqual([r["case_id"] for r in rows], ["selected"])
 
@@ -122,8 +122,8 @@ class PopulationCohortTests(unittest.TestCase):
                 root = Path(tmp)
                 data, spec, args = self.inputs(root)
                 mutate(data, spec)
-                (root / "dataset.json").write_text(json.dumps(data))
-                (root / "population.json").write_text(json.dumps(spec))
+                (root / "dataset.json").write_text(json.dumps(data), encoding='utf-8')
+                (root / "population.json").write_text(json.dumps(spec), encoding='utf-8')
                 with patch.object(certification, "run") as calls, self.assertRaises(SystemExit):
                     certification.main(args)
                 calls.assert_not_called()

@@ -616,7 +616,7 @@ def test_uncommitted_replacement_retains_old_history_without_score(tmp_path, def
         if defect == 'duplicate_starts':
             value['physical_attempts'] = 2
         log.write_text((json.dumps(event)+'\n')*(2 if defect in {'log_count', 'duplicate_starts'} else 1), encoding='utf-8')
-        value['execution_log'] = {'path': str(log), 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
+        value['execution_log'] = {'path': log.name, 'sha256': hashlib.sha256(log.read_bytes()).hexdigest()}
     if defect == 'two_calls':
         value['physical_attempts'] = value['physical_calls'] = 2
         later = {**event, 'call_id': 'method__same__r001__p002', 'started_at': '2026-10-29T00:01:00Z', 'completed_at': '2026-10-29T00:02:00Z'}
@@ -1731,3 +1731,25 @@ def test_frozen_parameter_partition_requires_matching_amendment(tmp_path, amendm
     else:
         with pytest.raises(ValueError, match='amendment'):
             _parameter_reruns(inputs)
+
+
+@pytest.mark.parametrize('extra', [
+    {'execution_log': {'path': '/tmp/private-run/execution.jsonl', 'sha256': 'a'*64}},
+    {'execution_log': {'path': r'C:\private-run\execution.jsonl', 'sha256': 'a'*64}},
+    {'note': '/Users/private-owner/run.log'},
+    {'authorization': 'Bearer private-value'},
+])
+def test_missing_receipt_private_content_is_rejected_before_publication(tmp_path, extra):
+    spec, _, _, _ = fixture(tmp_path)
+    spec['sources'] = []
+    receipt = {'suite': 'first', 'provider': 'method', 'case_id': 'same',
+               'state': 'called_but_uncommitted', **extra}
+    source = tmp_path/'receipt.json'
+    spec['missing'] = [{'suite': 'first', 'provider': 'method', 'case_id': 'same',
+                        'status': 'uncommitted', 'reason': 'Interrupted',
+                        'receipt': write(source, receipt)}]
+    original = source.read_bytes()
+    with pytest.raises(ValueError, match='Missing receipt contains private content'):
+        build(tmp_path, spec)
+    assert not (tmp_path/'report').exists()
+    assert source.read_bytes() == original

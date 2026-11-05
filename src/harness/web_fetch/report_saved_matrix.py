@@ -81,6 +81,24 @@ def _write(path, value):
     _write_bytes(path, json_bytes(value))
 
 
+def _require_public_missing_receipt(receipt):
+    """Reject private receipt fields before copying source bytes into a report."""
+    from harness.web_fetch.publication_privacy import publication_risk
+    risk = publication_risk(json_bytes(receipt))
+
+    def local_path(value):
+        if isinstance(value, dict):
+            return any((key.endswith('path') and isinstance(item, str)
+                        and (item.startswith(('/', '~', '\\')) or re.match(r'^[A-Za-z]:', item)))
+                       or local_path(item) for key, item in value.items())
+        if isinstance(value, list):
+            return any(local_path(item) for item in value)
+        return False
+
+    if risk or local_path(receipt):
+        raise ValueError('Missing receipt contains private content; use a portable receipt')
+
+
 def _path(base, value):
     path = Path(value)
     if not path.is_absolute():
@@ -1658,6 +1676,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     item['completion_note'] = completion_notes[key]
                 if key in missing:
                     entry, receipt = missing[key]
+                    _require_public_missing_receipt(_json(receipt))
                     item.update(status=entry['status'], called=entry['status'] == 'uncommitted',
                                 normal=False, passed=None, error=entry['reason'],
                                 receipt_path=copy(receipt, prefix + '/receipt.json'))
@@ -2320,6 +2339,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                 raise ValueError('Saved record values differ from matrix')
         else:
             receipt = _json(contained_path(output, row['receipt_path'], reject_symlinks=True))
+            _require_public_missing_receipt(receipt)
             if (row['status'] not in {'not_called', 'uncommitted'}
                     or not _receipt_covers(receipt, *identity, row['status'])
                     or row['called'] != (row['status'] == 'uncommitted')

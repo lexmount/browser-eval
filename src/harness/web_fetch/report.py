@@ -1612,7 +1612,7 @@ def ranking_readiness(records,cases):
  for r in records:
   if r['case_id'] in cases:groups[r['provider']].append(r)
  populations=[Counter(r['case_id'] for r in rs) for rs in groups.values()]
- complete=bool(cases) and bool(groups) and all(p==populations[0] for p in populations) and all(
+ complete=bool(cases) and bool(groups) and all(p==Counter({case_id:1 for case_id in cases}) for p in populations) and all(
   {r['case_id'] for r in rs}==set(cases)
   and all(measured(r,cases[r['case_id']]) and r.get('report_invocation_status') != 'adapter_rejected' for r in rs)
   for rs in groups.values())
@@ -1921,9 +1921,9 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  else:
   intro=(('<p class="decision-lead"><b>' + t('overall_ranking_basis', 'Overall-ranking basis:') + '</b>' + t('every_method_runs_the_current_dataset_s', "Every method runs the current dataset's {case_count} planned tasks. Each task contributes one pass or fail and the results are summed directly; latency is shown separately and does not affect pass-rate ranking. The overall ranking shows delivery coverage, while specific capabilities belong in the {track_label} family rankings.", case_count=case_count, track_label=track_label) + '</p>'))
  if has_unknown:
-  intro=f'<p class="decision-lead"><b>总榜口径：</b>每种方法都调用同一组 {case_count} 个任务。通过率为通过数 / 可判定数；无法判定数量另列，不计入通过数或失败数。各方法可判定分母不同，比例只是已能验收的范围，不能代表全部任务的确定通过率。耗时不参与通过率排序。</p>'
+  intro='<p class="decision-lead"><b>'+t('overall_ranking_basis', 'Overall-ranking basis:')+'</b>'+model_text(f'每种方法都调用同一组 {case_count} 个任务。通过率为通过数 / 可判定数；无法判定数量另列，不计入通过数或失败数。各方法可判定分母不同，比例只是已能验收的范围，不能代表全部任务的确定通过率。耗时不参与通过率排序。',f'Each method calls the same {case_count} tasks. Pass rate is passed / decidable results; undecidable results are listed separately and count as neither passes nor failures. Decidable denominators differ, so these rates describe only judged results, not a definite pass rate for all tasks. Latency does not affect pass-rate ordering.')+'</p>'
  if any(len(rs)!=len(cases) for rs in groups.values()):
-  intro='<p class="decision-lead"><b>总榜口径：</b>本轮尚有未入库或未调用项。比例按各方法已有可判定结果计算，缺失项不计为失败；准确分母、实际调用与缺失数量见下方完成情况。适配器提前拒绝保留原有失败分数，不代表产品已被调用。</p>'
+  intro='<p class="decision-lead"><b>'+t('overall_ranking_basis', 'Overall-ranking basis:')+'</b>'+model_text('本轮尚有未入库或未调用项。比例按各方法已有可判定结果计算，缺失项不计为失败；准确分母、实际调用与缺失数量见下方完成情况。适配器提前拒绝保留原有失败分数，不代表产品已被调用。','Some results are missing or tasks were not called. Rates use each method’s saved decidable results; missing items are not failures. See completion details for denominators, calls and missing counts. Adapter rejections retain their original failure scores without implying a product call.')+'</p>'
  if has_not_called:
   intro='<p class="decision-lead">'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'
  help=('<details class="ranking-metric-help"><summary>总榜指标说明</summary><div class="metric-help"><dl>'
@@ -2129,7 +2129,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   cards+=overview_card(records,cases,track,label,names,diagnostic=diagnostic)
  description=(t('tasks_methods_local_uncertified_diagnostic_snapshot', '{count} tasks · {count2} methods · local uncertified diagnostic snapshot.', count=len(cases), count2=len(names)) if diagnostic else t('tasks_methods_family_rankings_and_one_overall', '{count} tasks · {count2} methods · {track_label} family rankings and one overall coverage ranking.', count=len(cases), count2=len(names), track_label=track_label))
  if score_audit:
-  description=f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类任务。'
+  description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · {track_label} 类任务。',f'{len(cases)} cases · {len(names)} methods · {len(tracks)} task families.')
  if local_pass_rate_ranking(dataset):
   description=model_text(f'{len(cases)} 个案例 · {len(names)} 种方法 · 按本轮任务通过率排序。',f'{len(cases)} cases · {len(names)} methods · Ordered by task pass rate for this sample.')
  if not dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True):
@@ -2158,7 +2158,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  panels=[]
  for track,label in tracks:
   selected=[c for c in cases.values() if report_family(c)==track]
-  coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
+  method_count=len({r['provider'] for r in records if report_family(cases[r['case_id']])==track})
+  coverage=model_text(f'{len(selected)} 个案例 · {method_count} 种已测方法',f'{len(selected)} cases · {method_count} measured methods')
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
  overall_title=model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else ('任务通过情况' if diagnostic else '综合通过率总榜')
  combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
@@ -2177,14 +2178,14 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   completeness=''
  elif not dataset.get('saved_matrix_scope'):
   completeness='<p class="callout success"><b>调用完整：</b>'+str(reliability['expected_calls'])+'/'+str(reliability['expected_calls'])+' 次均有结果。</p>'
- home+=section(f'{track_label} 类任务概览',review_summary(out)+completeness+'<p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
+ home+=section(model_text(f'{track_label} 类任务概览',f'{len(tracks)} task-family overview'),review_summary(out)+completeness+'<p class="source-note">只在同一任务类别内比较。</p><div class="grid home-overview-grid">'+cards+'</div>','overview')
  if dataset.get('saved_matrix_scope') and not final_saved:
   home+=saved_matrix_scope_section(dataset['saved_matrix_scope'])
 
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
- home+=section('按任务类别查看结果' if score_audit else '按任务类别查看诊断结果' if diagnostic else f'{track_label} 类分榜',('<p>任务通过率、内容质量和耗时分别展示。</p>' if score_audit else '<p class="ranking-orientation">名次按本次保存结果的任务通过率降序排列，不代表未经调参的同条件比较。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
+ home+=section('按任务类别查看结果' if score_audit else '按任务类别查看诊断结果' if diagnostic else model_text(f'{track_label} 类分榜',f'{len(tracks)} family rankings'),('<p>任务通过率、内容质量和耗时分别展示。</p>' if score_audit else '<p class="ranking-orientation">名次按本次保存结果的任务通过率降序排列，不代表未经调参的同条件比较。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]

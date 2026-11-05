@@ -9,7 +9,7 @@ from tests.test_report_body_scope import case, record
 
 
 @pytest.mark.parametrize('render', ['overall', 'family'])
-@pytest.mark.parametrize('problem', ['incomplete', 'mixed', 'missing', 'diagnostic', 'tie'])
+@pytest.mark.parametrize('problem', ['incomplete', 'mixed', 'missing', 'diagnostic', 'duplicate', 'tie'])
 def test_ranking_admission_and_ties(render, problem):
     cases = [case(str(i), kind='body', track='web') for i in range(2)]
     records = []
@@ -20,6 +20,8 @@ def test_ranking_admission_and_ties(render, problem):
             records.append(row)
     if problem == 'incomplete':
         records.pop()
+    elif problem == 'duplicate':
+        records.extend(deepcopy(r) for r in records[:1]+records[2:3])
     elif problem == 'mixed':
         records[-1]['metrics']['scoring_source_sha256'] = 'b' * 64
     elif problem == 'missing':
@@ -71,3 +73,29 @@ def test_saved_builder_ranks_require_selection_and_matching_scorer(tmp_path, sel
     if mixed:
         assert '评分版本不同或缺失' in soup.get_text()
     assert (source/'results.jsonl').read_bytes() == raw
+
+
+@pytest.mark.parametrize('missing', [False, True])
+def test_english_home_explains_unknown_and_missing_results(tmp_path, monkeypatch, missing):
+    from harness.web_fetch import report
+    monkeypatch.setattr(report, 'write_support', lambda *args, **kwargs: None)
+    monkeypatch.setattr('harness.web_fetch.report_explainer.render_explainer', lambda *args, **kwargs: 'article')
+    cases = [case(str(i), kind='body', track='web') for i in range(2)]
+    records = [record(c) for c in cases]
+    records[0]['metrics']['acceptance_checks'] = {'content': None}
+    if missing:
+        records.pop()
+    for row in records:
+        artifact = tmp_path/row['artifact_path']
+        artifact.parent.mkdir(parents=True, exist_ok=True)
+        artifact.write_text('output', encoding='utf-8')
+    report.generate(tmp_path, {'cases': cases}, records, [], include_english=True)
+    home = (tmp_path/'en/index.html').read_text(encoding='utf-8')
+    assert '1 task-family overview' in home
+    assert '1 family rankings' in home
+    assert '2 cases · 1 measured methods' in home
+    assert '类任务概览' not in home and '种已测方法' not in home
+    if missing:
+        assert 'Some results are missing or tasks were not called.' in home
+    else:
+        assert 'Decidable denominators differ' in home
