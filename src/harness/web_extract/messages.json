@@ -420,7 +420,11 @@
     "more_resources": "More resources",
     "no_reference_value": "No reference value",
     "no_value_returned": "No value returned",
-    "dataset_search": "Search pages, categories or sites"
+    "dataset_search": "Search pages, categories or sites",
+    "usage_unit_input_tokens": "input tokens",
+    "usage_unit_output_tokens": "output tokens",
+    "usage_unit_cached_input_tokens": "cached input tokens",
+    "usage_unit_internal_credits": "internal credits"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -843,6 +847,10 @@
     "more_resources": "辅助资料",
     "no_reference_value": "无参考值",
     "no_value_returned": "未返回值",
-    "dataset_search": "搜索网页、类别或网站"
+    "dataset_search": "搜索网页、类别或网站",
+    "usage_unit_input_tokens": "输入 tokens",
+    "usage_unit_output_tokens": "输出 tokens",
+    "usage_unit_cached_input_tokens": "缓存输入 tokens",
+    "usage_unit_internal_credits": "内部积分"
   }
 }

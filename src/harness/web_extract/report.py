@@ -29,6 +29,7 @@ from harness.web_extract.messages import message, messages_sha256, validate_cata
 from harness.web_extract.pipeline import (
     FIELDS,
     PROFILE,
+    available_methods,
     digest,
     execution_identity,
     load_run,
@@ -679,8 +680,58 @@ def price_table(methods, prices, lang, labels=None):
     )
 
 
+def self_hosted_usage(response):
+    """Read exposed SDK counters without counting both nodes and their total."""
+    native = response.get("native", {})
+    if not isinstance(native, dict):
+        return {}
+    calls = native.get("model_calls")
+    if isinstance(calls, list):
+        usages = [call.get("usage", {}) for call in calls if isinstance(call, dict)]
+    elif isinstance(native.get("usage"), dict):
+        usages = [native["usage"]]
+    else:
+        execution = native.get("execution", [])
+        execution = (
+            [item for item in execution if isinstance(item, dict)]
+            if isinstance(execution, list)
+            else []
+        )
+        totals = [item for item in execution if item.get("node_name") == "TOTAL RESULT"]
+        usages = (
+            totals
+            if len(totals) == 1
+            else [item for item in execution if item.get("node_name") != "TOTAL RESULT"]
+        )
+    receipts = {}
+    for usage in usages:
+        if not isinstance(usage, dict):
+            continue
+        cached = usage.get("prompt_cache_hit_tokens")
+        details = usage.get("prompt_tokens_details", {})
+        if cached is None and isinstance(details, dict):
+            cached = details.get("cached_tokens")
+        for unit, value in (
+            ("input_tokens", usage.get("prompt_tokens")),
+            ("output_tokens", usage.get("completion_tokens")),
+            ("cached_input_tokens", cached),
+        ):
+            if value is not None:
+                receipts.setdefault(unit, []).append(value)
+    data = native.get("data", {})
+    metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+    if isinstance(metadata, dict) and metadata.get("creditsUsed") is not None:
+        receipts["internal_credits"] = [metadata["creditsUsed"]]
+    return receipts
+
+
 def usage_table(methods, rows, lang, labels=None):
     labels = labels or {}
+    self_hosted = {
+        method
+        for method, config in available_methods().items()
+        if config.get("deployment") == "self-hosted-open-source"
+    }
     records = []
     for method in methods:
         subset = [r for r in rows if r["method"] == method]
@@ -716,10 +767,13 @@ def usage_table(methods, rows, lang, labels=None):
             for key in ("x-browser-ms-used", "x-browser-time", "x-browser-usage"):
                 if key in headers:
                     receipts[key] = headers[key]
-            if receipts:
+            native_receipts = self_hosted_usage(response) if method in self_hosted else {}
+            if receipts or native_receipts:
                 observed.append(receipts)
             for unit, value in receipts.items():
                 totals.setdefault(unit, []).append(value)
+            for unit, values in native_receipts.items():
+                totals.setdefault(unit, []).extend(values)
         usages = []
         for unit, values in totals.items():
             try:
@@ -729,7 +783,14 @@ def usage_table(methods, rows, lang, labels=None):
             except (TypeError, ValueError):
                 usages.append(unit + ": " + esc(json.dumps(values, ensure_ascii=False)))
             else:
-                label = "ms (x-browser-ms-used)" if unit == "x-browser-ms-used" else unit
+                label = (
+                    message("usage_unit_" + unit, lang)
+                    if unit
+                    in {"input_tokens", "output_tokens", "cached_input_tokens", "internal_credits"}
+                    else "ms (x-browser-ms-used)"
+                    if unit == "x-browser-ms-used"
+                    else unit
+                )
                 usages.append(f"{total:g} {label}")
         records.append(
             [
