@@ -44,7 +44,7 @@ from harness.web_extract.pipeline import (
 from harness.web_extract.report_ui import JS
 from harness.web_fetch.publication_privacy import project_evidence_view, publication_risk
 
-VERSION = "web-scraper-research/1"
+VERSION = "web-extract-research/1"
 STAGES = {
     "client_transport": (
         message("stages_client_transport", "zh"),

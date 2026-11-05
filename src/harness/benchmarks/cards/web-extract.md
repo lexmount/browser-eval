@@ -67,8 +67,8 @@ Browser Eval uses the shared immutable dataset cache and
 git clone https://github.com/lexmount/browser-eval
 cd browser-eval
 {{tooling_checkout}}uv sync --frozen --extra web-extract-eval
-make pin-dataset DATASET=web-scraper REV=YOUR_FULL_HF_COMMIT
-uv run --frozen python -m harness.benchmarks.data web-scraper
+make pin-dataset DATASET=web-extract REV=YOUR_FULL_HF_COMMIT
+uv run --frozen python -m harness.benchmarks.data web-extract
 uv run --frozen python -m harness.web_extract.cli prepare
 ```
 

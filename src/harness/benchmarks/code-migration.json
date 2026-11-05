@@ -4007,5 +4007,21 @@
         }
       ]
     }
+  },
+  "legacy_names": {
+    "purpose": "Read-only source identities for archived inputs. New artifacts use canonical names; these are not command aliases.",
+    "schemas": {
+      "web-scraper-public-snapshots/1": "web-extract-public-snapshots/1",
+      "web-scraper-public-snapshots/2": "web-extract-public-snapshots/2",
+      "web-scraper-snapshot-verification/1": "web-extract-snapshot-verification/1",
+      "web-scraper-hf-snapshots/1": "web-extract-hf-snapshots/1",
+      "web-scraper-deployment-approval/1": "web-extract-deployment-approval/1"
+    },
+    "repositories": {
+      "Lexmount/LexBench-Web-Scraper": "Lexmount/LexBench-Zyte-Product-Extraction"
+    },
+    "tracks": {
+      "web-scraper": "web-extract"
+    }
   }
 }

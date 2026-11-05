@@ -13,6 +13,7 @@ from dataclasses import dataclass, replace
 from fnmatch import fnmatchcase
 from pathlib import Path
 
+from harness.benchmarks.data import canonical_source_name
 from harness.record_io import bytes_sha256
 
 CARDS = Path(__file__).with_name("cards")
@@ -190,7 +191,7 @@ class DatasetRelease:
             identity = json.loads(committed.stdout)
             if (not isinstance(identity, dict)
                     or identity.get("schema") != "browser-eval-dataset-release/1"
-                    or identity.get("track") != track):
+                    or canonical_source_name("tracks", identity.get("track")) != track):
                 raise ValueError("Hub source manifest does not match the requested benchmark track")
             prefix = "definitions/"
         else:

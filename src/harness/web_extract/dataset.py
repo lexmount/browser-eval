@@ -77,7 +77,7 @@ def task_bindings(home):
 
 def distribution_identity(home: Path, pin, selection):
     """Link a published dataset only after matching the report's frozen inputs."""
-    if selection["track"] != "web-scraper" or not selection.get("revision"):
+    if selection["track"] != "web-extract" or not selection.get("revision"):
         raise ValueError("Report dataset distribution requires a pinned Web Extract edition")
     selected = binding(selection["track"], selection["revision"])
     manifest = read_json(

@@ -782,3 +782,40 @@ def test_committed_hf_receipt_is_saved_even_if_stdout_is_closed(tmp_path, monkey
     with pytest.raises(BrokenPipeError):
         snapshots.publish_receipt(tmp_path, {}, {}, revision="a" * 40, output=output)
     assert snapshots.read_json(output) == {"revision": "c" * 40}
+
+
+def test_new_snapshot_names_and_historical_input_decoding(home, tmp_path, monkeypatch):
+    from types import SimpleNamespace
+
+    from harness.benchmarks.data import source_name_migrations
+
+    manifest = build_snapshot({"example": home}, tmp_path / "canonical-site")
+    canonical = "web-extract-public-snapshots/2"
+    assert manifest["schema"] == canonical
+    original = next(
+        name for name, target in source_name_migrations()["schemas"].items() if target == canonical
+    )
+    manifest["schema"] = original
+    raw = json.dumps(manifest).encode()
+    origin = "https://snapshot.example"
+    response = SimpleNamespace(
+        url=origin + "/snapshots.json",
+        content=raw,
+        json=lambda: manifest,
+        raise_for_status=lambda: None,
+    )
+    monkeypatch.setattr("requests.get", lambda *a, **k: response)
+    receipt = CHECK_MANIFEST(home, origin, manifest["huggingface"])
+    assert receipt["manifest_sha256"] == digest(raw)
+    assert receipt["html_inventory_sha256"] == snapshots.inventory(home)[0]
+    assert manifest["schema"] == original  # Decoding never rewrites the archived document.
+    manifest["schema"] = "unrelated/2"
+    with pytest.raises(ValueError, match="valid HF dataset version"):
+        CHECK_MANIFEST(home, origin, manifest["huggingface"])
+
+
+@pytest.mark.parametrize("value", [None, [], {}, 2])
+def test_malformed_source_schema_is_not_a_known_format(value):
+    from harness.benchmarks.data import canonical_source_name
+
+    assert canonical_source_name("schemas", value) is None

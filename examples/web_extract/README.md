@@ -24,15 +24,17 @@ part measured here. [Zyte calls it automatic extraction](https://docs.zyte.com/z
 The maintained module is `harness.web_extract`, the certified track is
 `--track web-extract`, and the optional dependency group is `web-extract-eval`.
 Existing evidence remains at its original location; pass `--home` to use it.
-Frozen `web-scraper-*` schema IDs, report edition identifiers and the HF data-lock
-key `web-scraper` retain their original names so their hashes and published versions
-continue to identify the same inputs. These data identifiers are not command aliases.
+The data-lock key, generated formats, report labels and examples all use
+`web-extract`. Original source identifiers remain in the
+[migration provenance](../../src/harness/benchmarks/code-migration.json), locked
+historical editions and third-party citations. Archived inputs stay readable;
+new files use the canonical format names. No legacy command alias is registered.
 
 ## Prepare and reproduce
 
 ```sh
 uv sync --frozen --extra web-extract-eval --extra test
-uv run --frozen python -m harness.benchmarks.data web-scraper
+uv run --frozen python -m harness.benchmarks.data web-extract
 uv run --frozen python -m harness.web_extract.cli prepare
 uv run --frozen python -m harness.web_extract.cli reproduce
 ```
@@ -68,7 +70,7 @@ Historical predictions are separate from new measurements.
 Browser infrastructure requiring a separately connected model is outside this
 comparison. Browserbase JSON uses only the Browserbase API key. The separately
 registered Stagehand route uses its native Model Gateway and needs a project ID;
-it does not read an OpenAI key. Bright Data's site-specific scraper remains discoverable as a candidate, but
+it does not read an OpenAI key. Bright Data's site-specific extractor remains discoverable as a candidate, but
 is rejected by the full archived-page plan because it cannot parse arbitrary HTML.
 
 New cohorts give every native API the same public URL for each frozen page.
@@ -255,8 +257,8 @@ and are not used for SWDE’s domain-specific fields.
 ## Research and compatibility reports
 
 ```sh
-uv run --frozen python -m harness.web_extract.example --output /tmp/scraper-example
-uv run --frozen python -m harness.web_extract.cli check /tmp/scraper-example
+uv run --frozen python -m harness.web_extract.example --output /tmp/extract-example
+uv run --frozen python -m harness.web_extract.cli check /tmp/extract-example
 uv run --frozen python -m pytest tests/web_extract -q
 ```
 
@@ -281,7 +283,7 @@ Exercise this mode with the same renderer:
 
 ```sh
 uv run --frozen python -m harness.web_extract.example \
-  --output /tmp/scraper-cohort-example --mode full-cohort-progress
+  --output /tmp/extract-cohort-example --mode full-cohort-progress
 ```
 
 The separate release check requires a receipt from one desktop reader pass over
@@ -405,8 +407,8 @@ methods retain progress and latency without a quality score.
 
 ```sh
 uv run --frozen python -m harness.web_extract.example \
-  --output /tmp/scraper-record-example --mode field-extraction-cohort
-uv run --frozen python -m harness.web_extract.cli check /tmp/scraper-record-example
+  --output /tmp/extract-record-example --mode field-extraction-cohort
+uv run --frozen python -m harness.web_extract.cli check /tmp/extract-record-example
 ```
 
 The synthetic example has no provider certification and cannot be released.

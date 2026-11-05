@@ -12,14 +12,14 @@ const tr = (key, values = {}) => {
 try {
   document.documentElement.classList.toggle(
     "dark",
-    localStorage.getItem("scraper-theme") === "dark",
+    localStorage.getItem("extract-theme") === "dark",
   );
 } catch {}
 document.querySelector("#theme")?.addEventListener("click", () => {
   document.documentElement.classList.toggle("dark");
   try {
     localStorage.setItem(
-      "scraper-theme",
+      "extract-theme",
       document.documentElement.classList.contains("dark") ? "dark" : "light",
     );
   } catch {}

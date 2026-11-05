@@ -11,7 +11,7 @@
     },
     "inventory_sha256": "3d2456e66c053e3e6b2c3b4c4dab880ec1afd5e3bd6d64674eb5163a5aead514",
     "distribution": {
-      "track": "web-scraper",
+      "track": "web-extract",
       "manifest": "runtime/manifest.json"
     }
   },

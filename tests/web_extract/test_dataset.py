@@ -35,13 +35,13 @@ def distribution(tmp_path, monkeypatch):
         "cases": 1,
         "files": {"evaluate.py": digest(raw["evaluate.py"])},
         "inventory_sha256": "0" * 64,
-        "distribution": {"track": "web-scraper", "manifest": "runtime.json"},
+        "distribution": {"track": "web-extract", "manifest": "runtime.json"},
     }
     profile = tmp_path / "profile.json"
     save_json(profile, {"dataset": pin})
 
     def binding(track, revision=None):
-        assert track == "web-scraper"
+        assert track == "web-extract"
         if revision not in (None, "b" * 40):
             raise ValueError("Unrecorded dataset revision")
         return {"revision": "b" * 40}
@@ -126,8 +126,9 @@ def test_existing_hash_bound_upstream_inputs_remain_valid_without_hub(tmp_path):
 
 
 @pytest.mark.parametrize("unsafe", [False, True])
-def test_shared_publisher_reads_committed_scraper_inputs_and_rejects_unknown_binary(
-    tmp_path, unsafe
+@pytest.mark.parametrize("source_track", ["current", "archived", "unrelated"])
+def test_shared_publisher_reads_committed_extract_inputs_and_rejects_unknown_binary(
+    tmp_path, unsafe, source_track
 ):
     import json
     import subprocess
@@ -156,8 +157,14 @@ def test_shared_publisher_reads_committed_scraper_inputs_and_rejects_unknown_bin
     (definitions / "README.rst").write_bytes(b"Original upstream documentation\n")
     if unsafe:
         (definitions / "unregistered.bin").write_bytes(b"unexpected binary")
+    from harness.benchmarks.data import source_name_migrations
+
+    original_track = next(iter(source_name_migrations()["tracks"]))
+    source_name = {"current": "web-extract", "archived": original_track, "unrelated": "webfetch"}[
+        source_track
+    ]
     save_json(
-        root / "manifest.json", {"schema": "browser-eval-dataset-release/1", "track": "web-scraper"}
+        root / "manifest.json", {"schema": "browser-eval-dataset-release/1", "track": source_name}
     )
     for args in (
         ["init"],
@@ -167,11 +174,15 @@ def test_shared_publisher_reads_committed_scraper_inputs_and_rejects_unknown_bin
         subprocess.run(["git", *args], cwd=root, capture_output=True, check=True)
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
     (definitions / "evaluate.py").write_bytes(b"# uncommitted edit\n")
+    if source_track == "unrelated":
+        with pytest.raises(ValueError, match="does not match the requested benchmark track"):
+            DatasetRelease.from_git(root, "web-extract", revision)
+        return
     if unsafe:
         with pytest.raises(ValueError, match="Unexpected definition file"):
-            DatasetRelease.from_git(root, "web-scraper", revision)
+            DatasetRelease.from_git(root, "web-extract", revision)
     else:
-        release = DatasetRelease.from_git(root, "web-scraper", revision)
+        release = DatasetRelease.from_git(root, "web-extract", revision)
         assert release.files["definitions/evaluate.py"] == b"# original evaluator\n"
         out = tmp_path / "built"
         result = release.build(out)
@@ -204,11 +215,11 @@ def test_report_distribution_requires_the_same_frozen_inputs(tmp_path, monkeypat
         "binding",
         lambda *a: {
             **original(*a),
-            "repository": "Lexmount/LexBench-Web-Scraper",
+            "repository": "Lexmount/LexBench-Zyte-Product-Extraction",
             "archive": {"sha256": "f" * 64},
         },
     )
-    selection = {"track": "web-scraper", "revision": "b" * 40}
+    selection = {"track": "web-extract", "revision": "b" * 40}
     if damage:
         with pytest.raises(ValueError, match="distribution"):
             distribution_identity(home, read_json(profile)["dataset"], selection)
@@ -269,12 +280,27 @@ def test_historical_cache_symlinks_are_rejected_before_any_write(tmp_path, monke
 
 
 def test_prior_dataset_names_resolve_to_the_current_canonical_repository():
-    from harness.benchmarks.data import canonical_repository
+    from harness.benchmarks.data import canonical_repository, source_name_migrations
+
+    for original, canonical in source_name_migrations().get("repositories", {}).items():
+        assert canonical_repository(original) == canonical
 
     current = "Lexmount/LexBench-Zyte-Product-Extraction"
     for name in (
         current,
         "Lexmount/zyte-product-extraction-benchmark",
-        "Lexmount/LexBench-Web-Scraper",
     ):
         assert canonical_repository(name) == current
+
+
+def test_data_selection_exposes_only_the_current_track_name():
+    from harness.benchmarks.data import binding
+
+    assert binding("web-extract")["datasets"]["zyte-products-140"]["count"] == 140
+    from harness.benchmarks.data import source_name_migrations
+
+    names = source_name_migrations()["schemas"]
+    original = next(k for k, v in names.items() if v == "web-extract-public-snapshots/2")
+    retired = original.removesuffix("-public-snapshots/2")
+    with pytest.raises(KeyError):
+        binding(retired)

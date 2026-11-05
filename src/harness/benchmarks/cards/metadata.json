@@ -12,7 +12,7 @@
       "evaluation",
       "browser-eval",
       "web-fetch",
-      "web-scraping",
+      "web-extraction",
       "web-content-extraction",
       "structured-data-extraction",
       "document-extraction",
@@ -362,12 +362,11 @@
       "scenario-specs"
     ]
   },
-  "web-scraper": {
+  "web-extract": {
     "pretty_name": "LexBench-Zyte-Product-Extraction",
     "repo_id": "Lexmount/LexBench-Zyte-Product-Extraction",
     "previous_repo_ids": [
-      "Lexmount/zyte-product-extraction-benchmark",
-      "Lexmount/LexBench-Web-Scraper"
+      "Lexmount/zyte-product-extraction-benchmark"
     ],
     "license": [
       "mit",
@@ -377,7 +376,7 @@
       "benchmark",
       "evaluation",
       "browser-eval",
-      "web-scraping",
+      "web-extraction",
       "structured-data-extraction",
       "product-extraction",
       "frozen-html"

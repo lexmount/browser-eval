@@ -18,14 +18,14 @@ def test_certified_default_keeps_webfetch_arguments():
     run.assert_called_once_with(["--profile", "external.json"])
 
 
-def test_certified_scraper_routes_to_native_track():
+def test_certified_extract_routes_to_native_track():
     with patch("harness.web_extract.certification.main", return_value="native") as run:
         assert main(["--track", "web-extract", "--profile", "external.json"]) == "native"
     run.assert_called_once_with(["--profile", "external.json"])
 
 
-@pytest.mark.parametrize("method", ["brightdata-scrapers", "browserbase-stagehand"])
-def test_site_specific_scraper_is_not_an_archived_html_participant(method):
+@pytest.mark.parametrize("method", ["site-specific-extractor", "browserbase-stagehand"])
+def test_site_specific_extractor_is_not_an_archived_html_participant(method):
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(ValueError, match="complete extraction interfaces"):
             create_plan(Path(d), [method], Path(d) / "plan.json")

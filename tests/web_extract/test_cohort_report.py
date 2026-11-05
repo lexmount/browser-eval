@@ -712,7 +712,7 @@ def test_audited_f1_exposes_each_field_population_and_exclusions():
     check_audited_quality(soup, ["native"], scores, 2, "en")
 
 
-def test_chinese_scraper_report_is_byte_identical_under_ascii_locale(tmp_path):
+def test_chinese_extract_report_is_byte_identical_under_ascii_locale(tmp_path):
     import subprocess
     import sys
 
@@ -764,14 +764,17 @@ def test_report_dataset_download_link_is_pinned_and_release_checked(tmp_path, mo
 
     home = create(tmp_path / "example")
     content = read_json(home / "content.json")
-    content["dataset_distribution"] = {"track": "web-scraper", "revision": "a" * 40}
+    content["dataset_distribution"] = {"track": "web-extract", "revision": "a" * 40}
     save_json(home / "content.json", content)
-    url = "https://huggingface.co/datasets/Lexmount/LexBench-Web-Scraper/tree/" + "a" * 40
+    url = (
+        "https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction/tree/"
+        + "a" * 40
+    )
     monkeypatch.setattr(
         dataset,
         "distribution_identity",
         lambda *a: {
-            "track": "web-scraper",
+            "track": "web-extract",
             "revision": "a" * 40,
             "url": url,
         },

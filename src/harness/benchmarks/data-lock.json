@@ -34659,7 +34659,7 @@
         "3f1580a20922fc3f339b5fc279d9bbdb06d5d194": "663248551204393cf38abbb18a9c5ddfa417118d"
       }
     },
-    "web-scraper": {
+    "web-extract": {
       "repository": "Lexmount/LexBench-Zyte-Product-Extraction",
       "revision": "1b213908dfb737cec3cc1fe4e895b83819d23539",
       "source_revision": "94d0f655ca8c7b8986cdc6a3e0329f56acc64e3d",

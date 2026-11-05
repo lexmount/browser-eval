@@ -63,8 +63,8 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     version = publish_staged_update(
         StagedUpdate(
             label="Web Extract",
-            prefix="web-scraper",
-            client=PublicationClient("Browser-Eval-Web-Scraper/1.0"),
+            prefix="web-extract",
+            client=PublicationClient("Browser-Eval-Web-Extract/1.0"),
             base=bound["host"],
             slug=bound["slug"],
             expected_version=bound["expected_version"],

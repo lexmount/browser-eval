@@ -7,6 +7,7 @@ from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.benchmarks.data import canonical_source_name
 from harness.record_io import bytes_sha256
 from harness.web_extract.dataset import benchmark_config
 from harness.web_extract.pipeline import (
@@ -66,7 +67,7 @@ def build(homes, output, *, huggingface):
         prepared.append((name, home, version, files, profile, license_path))
     output.mkdir(parents=True, exist_ok=True)
     registry = {
-        "schema": "web-scraper-public-snapshots/2",
+        "schema": "web-extract-public-snapshots/2",
         "huggingface": huggingface,
         "datasets": {},
     }
@@ -142,7 +143,7 @@ def verify(homes, binding, *, workers=8):
     with ProcessPoolExecutor(max_workers=workers) as pool:
         results = list(pool.map(_verify_job, jobs))
     return {
-        "schema": "web-scraper-snapshot-verification/1",
+        "schema": "web-extract-snapshot-verification/1",
         "verified_pages": len(results),
         "pages": results,
     }
@@ -260,7 +261,7 @@ def publication_metadata(home, binding, verification):
         item for item in binding["datasets"].values() if item["html_inventory_sha256"] == version
     )
     return {
-        "schema": "web-scraper-hf-snapshots/1",
+        "schema": "web-extract-hf-snapshots/1",
         **source,
         **(
             {"snapshot_manifest": verification}
@@ -462,7 +463,7 @@ def host(
             "homepage": base,
         }
         return {
-            "schema": "web-scraper-public-snapshots/1",
+            "schema": "web-extract-public-snapshots/1",
             "datasets": {name: item},
             "huggingface": hf_identity,
         }
@@ -552,7 +553,7 @@ def host(
             state = "reused_existing_deployment"
         else:
             proposal = {
-                "schema": "web-scraper-deployment-approval/1",
+                "schema": "web-extract-deployment-approval/1",
                 "huggingface": hf_identity,
                 "html_inventory_sha256": version,
                 "project": project,
@@ -669,7 +670,7 @@ def check_manifest(home, origin, hf_identity):
     manifest = response.json()
     source = manifest.get("huggingface", {})
     if (
-        manifest.get("schema") != "web-scraper-public-snapshots/2"
+        canonical_source_name("schemas", manifest.get("schema")) != "web-extract-public-snapshots/2"
         or source.get("repository") != hf_identity["repository"]
         or not re.fullmatch(r"[0-9a-f]{40}", source.get("revision", ""))
     ):
