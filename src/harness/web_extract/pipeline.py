@@ -746,6 +746,7 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
     session = _RAW_SESSIONS.get(method)
     if session is None:
         session = _RAW_SESSIONS[method] = requests.Session()
+    session.cookies.clear()
     transport = session.get if url_input else session.post
     with transport(
         url,
@@ -776,6 +777,7 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
                 "effective_context_url": params["url"],
                 "fixture_url": fixture_url,
                 "mode": "product",
+                "cookie_policy": "no_inherited_api_cookies",
                 "native_options": native_options,
             },
         }
@@ -1616,6 +1618,7 @@ def _probe_unlocked(
         ),
         "access_retry_limit": 1,
         "concurrency": 1,
+        "api_cookie_policy": "no_inherited_api_cookies",
         "minimum_call_interval_seconds": min_call_interval,
         "post_call_cooldown_seconds": post_call_cooldown,
         "method_order": "rotate_by_case_ordinal",

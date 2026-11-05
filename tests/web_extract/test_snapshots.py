@@ -551,6 +551,18 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
         == "dataset_manifest"
     )
 
+    hosted = snapshots.read_json(tmp_path / "host.json")
+    metadata = snapshots.publication_metadata(home, hosted, hosted["verification"])
+    snapshots.save_json(tmp_path / "published-cloudflare.json", metadata)
+    plan = create_plan(
+        home,
+        ["cloudflare-json"],
+        tmp_path / "cloudflare-plan.json",
+        snapshots=tmp_path / "published-cloudflare.json",
+    )
+    assert plan["public_snapshots"]["hosting_provider"] == "cloudflare"
+    assert plan["public_snapshots"]["snapshot_manifest"]["hosting_provider"] == "cloudflare"
+
 
 @pytest.mark.parametrize(
     "receipt_mode", ["normal", "symlink", "unwritable", "persist-error", "broken-pipe"]
@@ -786,6 +798,25 @@ def test_external_hosting_remains_usable_without_cloudflare_manifest(home, tmp_p
     assert plan["public_snapshots"]["hosting_provider"] == "external"
     assert "snapshot_manifest" not in plan["public_snapshots"]
     assert plan["public_snapshots"]["huggingface"]["revision"] == "a" * 40
+    hosted = snapshots.read_json(tmp_path / "external.json")
+    _, cases = snapshots.inventory(home)
+    base = hosted["datasets"]["example"]["fixture_base"]
+    verified = {
+        "pages": [
+            {"case_id": cid, "sha256": sha, "url": base + "/" + cid, "http_status": 200}
+            for cid, sha in cases.items()
+        ]
+    }
+    metadata = snapshots.publication_metadata(home, hosted, verified)
+    snapshots.save_json(tmp_path / "published.json", metadata)
+    restored = create_plan(
+        home,
+        ["cloudflare-json"],
+        tmp_path / "restored-plan.json",
+        snapshots=tmp_path / "published.json",
+    )
+    assert restored["public_snapshots"]["hosting_provider"] == "external"
+    assert "snapshot_manifest" not in restored["public_snapshots"]
 
 
 @pytest.mark.parametrize(
@@ -829,6 +860,14 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     with patch("requests.get", return_value=response) as fetch:
         metadata = snapshots.publication_metadata(home, hosted, preview)
     assert metadata["snapshot_manifest"] == preview
+    assert metadata["hosting_provider"] == "external"
+    published = tmp_path / "published-metadata.json"
+    snapshots.save_json(published, metadata)
+    plan = create_plan(
+        home, ["cloudflare-json"], tmp_path / "roundtrip-plan.json", snapshots=published
+    )
+    assert plan["public_snapshots"]["hosting_provider"] == "external"
+    assert plan["public_snapshots"]["snapshot_manifest"]["hosting_provider"] == "external"
     fetch.assert_called_once_with(origin + "/snapshots.json", timeout=40)
 
 

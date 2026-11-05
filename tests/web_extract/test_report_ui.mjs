@@ -134,7 +134,7 @@ head.children[0].listeners.click();
 assert.deepEqual(tbody.rows.map(x => x.cells[0].textContent), ['9', '0.003', '0', '—Scored 0/2; excluded 2']);
 assert.equal(head.getAttribute('aria-sort'), 'descending');
 for (const [index, generated] of generatedTables.entries()) {
-  const expected = [[2.001, 10.001], [0, 2, 10], [0, 2, 12]][index];
+  const expected = [[4, 10, 12], [0, 0, 0, 0, 2, 10], [0, 0, 0, 0, 2, 12], [2.001, 10.001], [0, 2, 10], [0, 2, 12]][index];
   const button = generated.tHead.rows[0].cells[generated.column].children[0];
   button.listeners.click();
   const values = () => generated.tBodies[0].rows.map(row => Number(row.cells[generated.column].dataset.sort));

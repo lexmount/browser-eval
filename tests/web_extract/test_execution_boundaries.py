@@ -331,7 +331,9 @@ def test_raw_html_text_denial_preserves_status_and_body():
         def __exit__(self, *args):
             pass
 
-    session = SimpleNamespace(post=lambda *args, **kwargs: Response())
+    session = SimpleNamespace(
+        post=lambda *args, **kwargs: Response(), cookies=SimpleNamespace(clear=lambda: None)
+    )
     with (
         patch.dict(sys.modules, {"requests": SimpleNamespace(Session=lambda: session)}),
         patch.dict("os.environ", {"DIFFBOT_API_TOKEN": "synthetic"}),
@@ -717,7 +719,10 @@ def test_nonfinite_native_reply_is_checkpoint_safe(tmp_path, text, route):
             sys.modules,
             {
                 "requests": SimpleNamespace(
-                    Session=lambda: SimpleNamespace(post=lambda *args, **kwargs: Response())
+                    Session=lambda: SimpleNamespace(
+                        post=lambda *args, **kwargs: Response(),
+                        cookies=SimpleNamespace(clear=lambda: None),
+                    )
                 )
             },
         ),
@@ -1187,3 +1192,49 @@ def test_external_manifest_does_not_replace_page_audit_during_collection(
         else:
             probe(home, ["cloudflare-json"], **options)
             assert len(calls) == 2 * provider.call_count == 6
+
+
+@pytest.mark.parametrize("method", ["diffbot-product", "scrapfly-product"])
+def test_pooled_api_connections_never_inherit_response_cookies(method, monkeypatch):
+    import io
+    from email.message import Message
+
+    import requests
+    from requests.adapters import BaseAdapter
+
+    from harness.web_extract.pipeline import provider_call
+
+    sent = []
+
+    class Adapter(BaseAdapter):
+        def send(self, request, **kwargs):
+            sent.append(request.headers.get("Cookie"))
+            response = requests.Response()
+            response.status_code = 200
+            response.url = request.url
+            response.request = request
+            message = Message()
+            message.add_header("Set-Cookie", "previous_page=one; Path=/")
+
+            class Body(io.BytesIO):
+                _original_response = SimpleNamespace(msg=message)
+
+                def read(self, size=-1, decode_content=False):
+                    return super().read(size)
+
+            response.raw = Body(b"{}")
+            return response
+
+        def close(self):
+            pass
+
+    session = requests.Session()
+    session.mount("https://", Adapter())
+    monkeypatch.setenv("DIFFBOT_API_TOKEN", "synthetic")
+    monkeypatch.setenv("SCRAPFLY_API_KEY", "synthetic")
+    with patch.dict("harness.web_extract.pipeline._RAW_SESSIONS", {method: session}, clear=True):
+        for _ in range(2):
+            result = provider_call(method, "<p>Frozen</p>", "https://example.org")
+            assert session.cookies.get("previous_page") == "one"
+            assert result["request"]["cookie_policy"] == "no_inherited_api_cookies"
+    assert sent == [None, None]

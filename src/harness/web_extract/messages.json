@@ -415,7 +415,8 @@
     ],
     "failure_diagnosis_title": "Why this call failed",
     "failure_stage": "Failure stage",
-    "provider_error": "View provider error"
+    "provider_error": "View provider error",
+    "excluded_comparison": "Excluded from quality comparison"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -833,6 +834,7 @@
     ],
     "failure_diagnosis_title": "本次调用为什么失败",
     "failure_stage": "失败环节",
-    "provider_error": "查看服务商错误"
+    "provider_error": "查看服务商错误",
+    "excluded_comparison": "不参与质量对比"
   }
 }

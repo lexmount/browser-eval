@@ -2245,7 +2245,7 @@ def test_historical_record_instruction_delivery_is_not_silently_upgraded(tmp_pat
     home, source, _, rows = parent_inputs(tmp_path)
     output = tmp_path / "not-created.json"
     with (
-        patch("harness.web_extract.repair.load_selection", return_value=(source, rows)),
+        patch("harness.web_extract.repair.load_selection", return_value=(source, rows, {})),
         patch(
             "harness.web_extract.repair.task_bindings",
             return_value={"task_adapter_sha256": "a" * 64},
@@ -2302,3 +2302,112 @@ def test_repair_plan_rejects_a_parent_with_multiple_methods(tmp_path):
     with pytest.raises(ValueError, match="exactly one method"):
         create_plan(home, tmp_path / "content.json", output, {}, None)
     assert not output.exists()
+
+
+@pytest.mark.parametrize("url_input", [False, True])
+def test_chained_repair_inherits_current_execution_settings(tmp_path, url_input):
+    home, source, first, rows = parent_inputs(
+        tmp_path, native_options={"setJavaScriptEnabled": True}
+    )
+    plan = read_json(first)
+    participant = plan["participants"]["cloudflare-json"]
+    participant["native_options"] = {"setJavaScriptEnabled": False}
+    if url_input:
+        participant["native_options"]["input_route"] = "url"
+        participant["fixture_suffix"] = ""
+    save_json(first, plan)
+    destination = tmp_path / "first-repair"
+    with (
+        patch("harness.web_extract.repair.validate_dataset"),
+        patch("harness.web_extract.repair.load_runtime_env"),
+        patch(
+            "harness.web_extract.repair.fixture_check",
+            return_value=[
+                {
+                    "case_id": rows[-1]["case_id"],
+                    "url": plan["fixture_base"]
+                    + "/"
+                    + rows[-1]["case_id"]
+                    + participant["fixture_suffix"],
+                    "sha256": rows[-1]["input_sha256"],
+                }
+            ],
+        ),
+        patch("harness.web_extract.pipeline.qualify_fixture", return_value={}),
+        patch(
+            "harness.web_extract.pipeline.provider_call",
+            return_value={"http_status": 500, "response": {}},
+        ) as call,
+    ):
+        run(home, first, "cloudflare-json", destination)
+        content = tmp_path / "chain.json"
+        save_json(
+            content,
+            {
+                "evidence_runs": [
+                    {
+                        "run": str(source),
+                        "repair": [
+                            {
+                                "path": str(destination),
+                                "sha256": digest((destination / "certificate.json").read_bytes()),
+                            }
+                        ],
+                    }
+                ]
+            },
+        )
+        second = tmp_path / "second-plan.json"
+        updated = create_plan(home, content, second, {}, None)
+        assert (
+            updated["participants"]["cloudflare-json"]["native_options"]
+            == participant["native_options"]
+        )
+        if url_input:
+            assert updated["fixture_base"] == plan["fixture_base"]
+            assert updated["participants"]["cloudflare-json"]["fixture_suffix"] == ""
+        run(home, second, "cloudflare-json", tmp_path / "second-repair")
+        assert call.call_count == 2
+        assert call.call_args.kwargs["native_options"] == participant["native_options"]
+
+
+def test_chained_repair_rejects_mixed_current_settings_before_writing(tmp_path):
+    home, source, first, rows = parent_inputs(
+        tmp_path, success_count=1, native_options={"setJavaScriptEnabled": True}
+    )
+    plan = read_json(first)
+    participant = plan["participants"]["cloudflare-json"]
+    participant["case_ids"] = [rows[-1]["case_id"]]
+    participant["native_options"] = {"setJavaScriptEnabled": False}
+    save_json(first, plan)
+    destination = tmp_path / "first-repair"
+    with (
+        patch("harness.web_extract.repair.validate_dataset"),
+        patch("harness.web_extract.repair.load_runtime_env"),
+        patch(
+            "harness.web_extract.pipeline.provider_call",
+            return_value={"http_status": 500, "response": {}},
+        ),
+    ):
+        run(home, first, "cloudflare-json", destination)
+    content = tmp_path / "chain.json"
+    save_json(
+        content,
+        {
+            "evidence_runs": [
+                {
+                    "run": str(source),
+                    "repair": [
+                        {
+                            "path": str(destination),
+                            "sha256": digest((destination / "certificate.json").read_bytes()),
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+    second = tmp_path / "second-plan.json"
+    with pytest.raises(ValueError, match="different execution settings"):
+        create_plan(home, content, second, {}, None)
+    assert not second.exists()

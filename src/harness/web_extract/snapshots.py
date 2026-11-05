@@ -272,9 +272,13 @@ def publication_metadata(home, binding, verification):
     source = next(
         item for item in binding["datasets"].values() if item["html_inventory_sha256"] == version
     )
+    provider = binding.get("hosting_provider")
+    if provider is not None and provider not in {"cloudflare", "external"}:
+        raise ValueError("Unsupported snapshot hosting identity")
     return {
         "schema": "web-extract-hf-snapshots/1",
         **source,
+        **({"hosting_provider": provider} if provider is not None else {}),
         **(
             {"snapshot_manifest": verification}
             if verification.get("mode") == "dataset_manifest"

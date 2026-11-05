@@ -527,7 +527,8 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         table(
             (message("method_planned_pages_executed_structured_output_full_scope_price", lang)),
             records,
-            attrs='data-core-metrics="full-cohort"',
+            attrs='data-core-metrics="full-cohort" data-sortable',
+            sort_values={i: [int(row[i]) for row in records] for i in (1, 2, 3)},
         ),
         "html.parser",
     )
@@ -601,7 +602,8 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         table(
             message("method_population_timed_n_untimed_n_extra_retry_time_s_mean_s_p50", lang),
             latency,
-            attrs='data-latency-table="true"',
+            attrs='data-latency-table="true" data-sortable',
+            sort_values={i: [int(row[i]) for row in latency] for i in (2, 3)},
         ),
         "html.parser",
     )
@@ -3410,9 +3412,24 @@ def build_record_cohort(output, content, *, home, language, profile):
     headers = [
         t(key) for key in ("method", "executed", "returned", "macro", "micro", "exact", "details")
     ]
+
+    def method_cell(method):
+        label = "<span data-method-label>" + esc(labels[method]) + "</span>"
+        if method in skipped:
+            label += (
+                '<br><small data-exclusion-reason data-excluded-method="'
+                + esc(method)
+                + '">'
+                + message("excluded_comparison", language)
+                + ": "
+                + esc(skipped[method])
+                + "</small>"
+            )
+        return label
+
     core_rows = [
         [
-            esc(labels[m]),
+            method_cell(m),
             f"{stats[m]['executed']} / {len(truth)}",
             str(stats[m]["structured"]),
             metric(score(m, "page_hit_macro", "f1")),
@@ -4216,8 +4233,25 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 record_metric(scores["value_micro"]["f1"]) if scores else "—",
                 record_metric(scores["exact_field_sets"]["rate"], percent=True) if scores else "—",
             ]
-            if [cell.get_text(strip=True) for cell in cells[:6]] != expected:
+            label = cells[0].select_one("[data-method-label]")
+            if (
+                label is None
+                or [label.get_text(strip=True), *[cell.get_text(strip=True) for cell in cells[1:6]]]
+                != expected
+            ):
                 raise ValueError("Record core comparison values differ from measured evidence")
+            notes = cells[0].select("[data-exclusion-reason]")
+            reason = manifest["skipped_methods"].get(method)
+            if reason is not None:
+                if (
+                    len(notes) != 1
+                    or notes[0].get("data-excluded-method") != method
+                    or notes[0].get_text(strip=True)
+                    != message("excluded_comparison", "zh") + ": " + reason
+                ):
+                    raise ValueError("Record comparison exclusion reason is missing or changed")
+            elif notes:
+                raise ValueError("Record comparison scope has an unexpected exclusion reason")
     inventory = BeautifulSoup(
         (output / "zh/results.html").read_text(encoding="utf-8"), "html.parser"
     )

@@ -141,6 +141,15 @@ def check_metric_guide(document, definitions, *, title, headings):
         " ", strip=True
     ):
         raise ValueError("Metric guide is missing or differs from the metric definitions")
+
+    def cells(guide):
+        return [
+            [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"], recursive=False)]
+            for row in guide.select("thead tr, tbody tr")
+        ]
+
+    if cells(actual[0]) != cells(expected):
+        raise ValueError("Metric guide columns differ from the metric definitions")
     if [r.get("id") for r in actual[0].select("tbody tr")] != [
         "metric-" + d["id"] for d in definitions
     ]:

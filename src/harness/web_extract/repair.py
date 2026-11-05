@@ -34,7 +34,7 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
     participants = {}
     seen = set()
     for selection in read_json(content)["evidence_runs"]:
-        source, rows = load_selection(home, selection)
+        source, rows, configurations = load_selection(home, selection, with_configurations=True)
         contract = read_json(source / "contract.json")
         methods = contract.get("methods")
         if not isinstance(methods, list) or len(methods) != 1:
@@ -59,10 +59,21 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             raise ValueError("Repair selection includes successful or duplicate cases")
         if not cases:
             continue
-        if fixture_base is None and requires_fixture(method, contract.get("native_options", {})):
-            fixture_base = contract.get("fixture_base")
-        if contract.get("snapshot_manifest"):
-            bound_base = contract["snapshot_manifest"]["fixture_base"]
+        inherited = configurations[cases[0]]
+        if any(configurations[cid] != inherited for cid in cases):
+            raise ValueError(
+                "Selected failures have different execution settings; select a uniform subset"
+            )
+        native_options = validate_native_options(
+            method, {**inherited["native_options"], **options.get(method, {})}
+        )
+        if requires_fixture(method, native_options):
+            if fixture_base is None:
+                fixture_base = inherited["fixture_base"]
+            elif inherited["fixture_base"] and fixture_base != inherited["fixture_base"]:
+                raise ValueError("Cannot change the frozen dataset snapshot during repair")
+        if inherited.get("snapshot_manifest"):
+            bound_base = inherited["snapshot_manifest"]["fixture_base"]
             if fixture_base is not None and fixture_base != bound_base:
                 raise ValueError("Cannot change the frozen dataset snapshot during repair")
             fixture_base = bound_base
@@ -80,13 +91,13 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             **(
                 {
                     "snapshot_manifest": {
-                        **contract["snapshot_manifest"],
+                        **inherited["snapshot_manifest"],
                         "hosting_provider": "cloudflare"
-                        if contract["snapshot_manifest"].get("hosting_provider") == "cloudflare"
+                        if inherited["snapshot_manifest"].get("hosting_provider") == "cloudflare"
                         else "external",
                     }
                 }
-                if contract.get("snapshot_manifest")
+                if inherited.get("snapshot_manifest")
                 else {}
             ),
             "parent_run": str(source.relative_to(home))
@@ -97,12 +108,8 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             "case_ids": cases,
             "failed_case_ids": failures,
             "previous_repairs": previous,
-            "native_options": validate_native_options(
-                method, {**contract.get("native_options", {}), **options.get(method, {})}
-            ),
-            "fixture_suffix": contract.get("fixture_suffix", "")
-            if contract.get("fixture_base")
-            else ".html",
+            "native_options": native_options,
+            "fixture_suffix": inherited["fixture_suffix"],
             "minimum_call_interval_seconds": available_methods()[method][
                 "minimum_call_interval_seconds"
             ],
@@ -257,6 +264,7 @@ def collect(home, profile, method, destination):
         "method": method,
         "profile_sha256": digest(profile.read_bytes()),
         "participant": participant,
+        "fixture_base": plan["fixture_base"],
         **(
             {"extraction_instruction_delivery": participant["extraction_instruction_delivery"]}
             if "extraction_instruction_delivery" in participant
@@ -509,7 +517,36 @@ def overlay_repair(rows, replacements, directory):
     return result
 
 
-def load_selection(home, selection):
+def execution_configuration(contract, directory=None):
+    participant = contract.get("participant", contract)
+    method = participant.get("method") or contract["methods"][0]
+    options = participant.get("native_options", {})
+    base = contract.get("fixture_base")
+    suffix = participant.get("fixture_suffix", "" if base else ".html")
+    snapshot = participant.get("snapshot_manifest")
+    if requires_fixture(method, options):
+        if snapshot:
+            base = snapshot["fixture_base"]
+        elif base is None and directory is not None:
+            # Historical repair contracts stored the origin only in verified receipts.
+            receipts = read_json(directory / "fixture-before.json")
+            bases = {
+                r["url"].removesuffix("/" + r["case_id"] + suffix)
+                for r in receipts
+                if "case_id" in r
+            }
+            if len(bases) != 1:
+                raise ValueError("Repair fixture origin is absent or inconsistent")
+            base = bases.pop()
+    return {
+        "native_options": options,
+        "fixture_base": base,
+        "fixture_suffix": suffix,
+        "snapshot_manifest": snapshot,
+    }
+
+
+def load_selection(home, selection, *, with_configurations=False):
     """Verify each selected run and repair once, then return its current logical rows."""
     require_external_output(home)
     home = Path(home).resolve()
@@ -529,14 +566,23 @@ def load_selection(home, selection):
         for row in rows
         for history in [attempts[(row["method"], row["case_id"])]]
     ]
+    configurations = None
+    if with_configurations:
+        configuration = execution_configuration(read_json(source / "contract.json"))
+        configurations = {row["case_id"]: configuration for row in rows}
     chain = []
     for revision in selection.get("repair", []):
         participant, replacements, _, directory = verify_repair(home, source, revision)
         if [r["sha256"] for r in participant.get("previous_repairs", [])] != chain:
             raise ValueError("Repair predecessor chain differs from current results")
         rows = overlay_repair(rows, replacements, directory)
+        if configurations is not None:
+            configuration = execution_configuration(
+                read_json(directory / "contract.json"), directory
+            )
+            configurations.update({cid: configuration for cid in replacements})
         chain.append(revision["sha256"])
-    return source, rows
+    return (source, rows, configurations) if with_configurations else (source, rows)
 
 
 def compose(home, source, rows, repair):

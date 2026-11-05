@@ -37,7 +37,17 @@ def test_metric_guide_retains_the_reader_contract(definitions):
             metric_guide(bad, title="Metrics", headings=[])
 
 
-@pytest.mark.parametrize("damage", ["missing", "wrong-definition", "wrong-target"])
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "missing",
+        "wrong-definition",
+        "wrong-target",
+        "merged-cells",
+        "shifted-cells",
+        "merged-headings",
+    ],
+)
 def test_metric_guide_gate_rejects_lost_or_misleading_explanations(definitions, damage):
     headings = ["Metric", "Meaning", "Unit", "Scope", "Direction"]
     soup = BeautifulSoup(
@@ -47,8 +57,19 @@ def test_metric_guide_gate_rejects_lost_or_misleading_explanations(definitions, 
         soup.details.decompose()
     elif damage == "wrong-definition":
         soup.select("td")[1].string = "Always perfect"
-    else:
+    elif damage == "wrong-target":
         soup.select_one("tbody tr")["id"] = "unrelated"
+    elif damage == "merged-headings":
+        cells = soup.select("thead th")
+        cells[0].append(" " + cells[1].get_text())
+        cells[1].decompose()
+    else:
+        cells = soup.select("tbody td")
+        cells[0].append(" " + cells[1].get_text())
+        if damage == "merged-cells":
+            cells[1].decompose()
+        else:
+            cells[1].clear()
     with pytest.raises(ValueError):
         check_metric_guide(soup, definitions, title="Metrics", headings=headings)
 

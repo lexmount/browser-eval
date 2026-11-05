@@ -7,12 +7,13 @@ from bs4 import BeautifulSoup
 
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import build, operating_metrics
+from harness.web_extract.report import build, cohort_metrics, operating_metrics
 
 
 def generated_sorting_tables():
     def cells(html, selector):
         table = BeautifulSoup(html, "html.parser").select_one(selector)
+        assert table.has_attr("data-sortable")
         return [
             [{"text": td.get_text(), "sort": td.get("data-sort")} for td in tr.select("td")]
             for tr in table.select("tbody tr")
@@ -48,7 +49,11 @@ def generated_sorting_tables():
         for m in ("a", "b", "c")
     }
     operating = operating_metrics(["a", "b", "c"], rows, prices, "en", {})
+    quality, latency = cohort_metrics(["a", "b", "c"], rows, [], 12, "en")
     return [
+        {"rows": cells(quality, "[data-core-metrics]"), "column": 2},
+        {"rows": cells(latency, "[data-latency-table]"), "column": 2},
+        {"rows": cells(latency, "[data-latency-table]"), "column": 3},
         {"rows": cells(case, "[data-case-comparison]"), "column": 5},
         {"rows": cells(operating, "[data-operating-metrics]"), "column": 1},
         {"rows": cells(operating, "[data-operating-metrics]"), "column": 2},

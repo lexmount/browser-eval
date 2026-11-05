@@ -387,6 +387,20 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
         "firecrawl-json": "User omitted the interrupted participant"
     }
     assert manifest["observations"] == 4
+    for route in ("index", "interpretation"):
+        soup = BeautifulSoup((output / "zh" / (route + ".html")).read_text(), "html.parser")
+        reason = soup.select_one('[data-excluded-method="firecrawl-json"]')
+        assert reason is not None
+        assert "User omitted the interrupted participant" in reason.get_text()
+    original = (output / "zh/index.html").read_text()
+    rebind(
+        output,
+        "zh/index.html",
+        lambda s: s.replace("User omitted the interrupted participant", "Unrelated reason"),
+    )
+    with pytest.raises(ValueError, match="exclusion reason"):
+        check(output)
+    rebind(output, "zh/index.html", lambda _: original)
     assert (
         len(
             BeautifulSoup(
