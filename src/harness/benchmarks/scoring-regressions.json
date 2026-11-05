@@ -79234,6 +79234,603 @@
       "artifact": "[login](https://example.test/login)",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "escaped-backticks-match-literal-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use the toolbar \\`Edit\\` button.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-backticks-match-literal-anchor-other-escapes",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "double-click the toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "You double\\-click the toolbar \\`Edit\\` button.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-emphasis-matches-literal-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "a *b* c"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Say a \\*b\\* c now.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-strong-matches-literal-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "a **b** c"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Say a \\*\\*b\\*\\* c now.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-underscore-matches-literal-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "a _b_ c"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Say a \\_b\\_ c now.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-brackets-match-literal-link-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "see [b](https://x.test/y) now"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Please see \\[b\\](https://x.test/y) now.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-backslash-matches-literal-backslash-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "C:\\temp `x` dir"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "In C:\\\\temp \\`x\\` dir.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "code-span-still-matches-anchor-with-backticks",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use the toolbar `Edit` button.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "bare-word-still-matches-anchor-with-backticks",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use the toolbar Edit button.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "escaped-backticks-other-word-rejected",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use the toolbar \\`Save\\` button.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "escaped-backticks-without-required-text-rejected",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "The \\`Edit\\` control exists elsewhere.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "unrelated-escape-does-not-supply-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "A toolbar\\! Use the \\`Save\\` button.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code-span-keeps-backslash-before-backtick",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use `` toolbar \\`Edit\\` button `` now.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code-span-keeps-backslash-before-underscore",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "a\\_b c"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use `a\\_b c` now.",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code-span-does-not-supply-literal-backticks",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use `` toolbar `Edit` button `` now \\!",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "code-span-does-not-supply-literal-emphasis",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "a *b* c"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use `a *b* c` now \\!",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "fenced-code-does-not-supply-literal-backticks",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro \\!\n\n```\ntoolbar `Edit` button\n```\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "indented-code-does-not-supply-literal-backticks",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro \\!\n\n    toolbar `Edit` button\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "masked-code-span-does-not-join-anchor-words",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use toolbar `Edit` button \\!",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "escaped-comment-text-does-not-supply-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Intro \\!\n\n<!-- toolbar \\`Edit\\` button -->\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "escaped-link-destination-does-not-supply-anchor",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Open [here](https://x.test/toolbar\\`Edit\\`button) toolbar\\!",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "declared-plain-text-keeps-backslashes",
+      "category": "format-normalization",
+      "root_cause": "An answer's backslash-escaped punctuation renders to its literal character, while a body anchor is rendered as Markdown and loses the same characters as delimiters, so '\\`Edit\\`' could not match an observed '`Edit`'. Anchors now also compare literally against the answer's escape-rendered prose; code spans, code blocks and hidden markup never supply that surface.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "toolbar `Edit` button"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Use the toolbar \\`Edit\\` button.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
     }
   ]
 }
