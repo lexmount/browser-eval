@@ -2081,6 +2081,13 @@ def score_run(
         "call_manifest_sha256": digest((run / "manifest.json").read_bytes()),
         "scorer_sha256": digest((home / "dataset/evaluate.py").read_bytes()),
     }
+    if output is not None and adapter is not None and getattr(adapter, "SCORING_REVISION", None):
+        result["scoring_revision"] = {
+            **adapter.SCORING_REVISION,
+            "regression_ids": adapter.check_scoring_controls(home),
+            "original_scores_sha256": digest((run / "scores.json").read_bytes()),
+            "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
+        }
     if reproject:
         result["projection_revision"] = {
             "schema": "native-field-projection/1",

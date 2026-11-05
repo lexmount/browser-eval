@@ -1,6 +1,7 @@
 """Content extraction scenarios: frozen inputs, native uploads and full denominators."""
 
 import json
+import math
 
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -27,6 +28,16 @@ def dataset(tmp_path, monkeypatch):
     # pretending to reproduce the official BLEU implementation in a unit test.
     (source / "metrics.py").write_text(
         'import json\n'
+        'def _flatten_dict(value):\n'
+        ' result={}\n'
+        ' for key,item in value.items():\n'
+        '  if isinstance(item,list) and item and isinstance(item[0],dict):\n'
+        '   for field in item[0]: result[key+"[*]."+field]=[r[field] for r in item]\n'
+        '  else: result[key]=item\n'
+        ' return result\n'
+        'def _compare_values(pred,gold):\n'
+        ' if isinstance(gold,list): return float(sorted(pred,key=str)==sorted(gold,key=str))\n'
+        ' return float(pred==gold)\n'
         'def magic_metric_failed(): return {"key_f1":0.,"value_score":0.}\n'
         'def run_all(pred,schema,gold):\n'
         ' try: value=json.loads(pred)\n'
@@ -127,6 +138,30 @@ def test_record_identity_preserves_pairs_duplicates_and_types():
     assert he.record_identity(["A", "A"]) != he.record_identity(["A"])
     assert he.record_identity(True) != he.record_identity(1)
     assert he.record_identity(None) != he.record_identity("")
+
+
+def test_value_score_is_independent_of_case_and_field_order(dataset):
+    home, _, _ = dataset
+    truth, predictions = {}, {}
+    for size in range(2, 80):
+        cid = str(size)
+        gold = {str(key): key for key in range(size)}
+        truth[cid] = {"response": gold, "schema_text": '{"type":"object"}'}
+        predictions[cid] = {**gold, "0": -1}
+    rows = [{"method": "cloudflare-json", "case_id": cid,
+             "http_status": 200, "normalized_fields": predictions[cid]} for cid in truth]
+    first = p.score_rows(home, truth, rows, ["cloudflare-json"])
+    second = p.score_rows(home, dict(reversed(list(truth.items()))), rows, ["cloudflare-json"])
+    assert first == second
+    expected = math.fsum((size - 1) / size for size in range(2, 80)) / 78
+    assert first["cloudflare-json"]["mean"]["value_score"] == expected
+
+
+def test_registered_controls_execute_through_public_scoring(dataset):
+    home, _, _ = dataset
+    # The scenario data stay in the shared registry. This fixture substitutes
+    # only the external evaluator dependency; requests and scoring use public APIs.
+    assert he.check_scoring_controls(home) == he.SCORING_REVISION["regression_ids"]
 
 
 def test_source_changes_fail_before_materialization(dataset, tmp_path):

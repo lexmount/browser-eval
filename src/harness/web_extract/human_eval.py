@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import html
 import json
+import math
 import runpy
 import tempfile
 from pathlib import Path
@@ -13,6 +14,20 @@ INSTRUCTIONS = ""
 INSTRUCTION_DELIVERY = "original-schema/1"
 SCORE_REQUIRES_HOME = True
 MISSING_OUTPUT_NONE = True
+SCORING_REVISION = {
+    "id": "human-eval-stable-value-sum/1",
+    "root_cause": (
+        "The upstream value_score sums scores over a hash-randomized key set. "
+        "Use the same upstream leaf comparisons with math.fsum in sorted key order; "
+        "aggregate cases with math.fsum too."
+    ),
+    "regression_ids": [
+        "human-eval-missing-empty-reference", "human-eval-delivered-empty-reference",
+        "human-eval-correct-record-pairs", "human-eval-swapped-record-pairs",
+        "human-eval-process-independent-value-score",
+    ],
+    "provider_calls_added": 0,
+}
 PARTICIPANT_OPTIONS = {
     "scrapegraph-extract": {"input_route": "markdown"},
     "firecrawl-parse-json": {},
@@ -154,6 +169,17 @@ def score(truth, predictions, *, home):
             json.dumps(prediction, ensure_ascii=False, allow_nan=False) if delivered else "",
             json.loads(case["schema_text"]), case["response"],
         )
+        if delivered:
+            flat_prediction = scorer["_flatten_dict"](prediction)
+            flat_gold = scorer["_flatten_dict"](case["response"])
+            metrics["value_score"] = (
+                math.fsum(
+                    scorer["_compare_values"](flat_prediction[key], flat_gold[key])
+                    if key in flat_prediction else 0.0
+                    for key in sorted(flat_gold)
+                ) / len(flat_gold)
+                if flat_gold else float(not flat_prediction)
+            )
         if not delivered:
             metrics.update(scorer["magic_metric_failed"]())
         details[case_id] = {
@@ -165,8 +191,48 @@ def score(truth, predictions, *, home):
     return {
         "population": len(truth),
         "delivery_count": sum(row["delivered"] for row in details.values()),
-        "mean": {key: sum(row[key] for row in details.values()) / len(truth) for key in keys},
+        "mean": {key: math.fsum(row[key] for row in details.values()) / len(truth) for key in keys},
         "per_case": details,
         "scoring_scope": "All declared cases; missing outputs score zero, without subset selection",
         "exact_record_match": "Type-sensitive exact JSON; unordered arrays of whole records",
+        "scoring_implementation": SCORING_REVISION["id"],
     }
+
+
+def check_scoring_controls(home):
+    """Exercise paired controls before writing a score-only correction receipt."""
+    from harness.web_extract.pipeline import read_json, score_rows
+
+    registry = Path(__file__).resolve().parents[1] / "benchmarks/scoring-regressions.json"
+    controls = read_json(registry)["web_extract_cases"]
+
+    def evaluate(references, predictions):
+        truth = {
+            cid: {"response": value, "schema_text": '{"type":"object"}'}
+            for cid, value in references.items()
+        }
+        rows = [
+            {"method": "cloudflare-json", "case_id": cid, "http_status": 200,
+             "normalized_fields": predictions.get(cid)} for cid in references
+        ]
+        return score_rows(home, truth, rows, ["cloudflare-json"])["cloudflare-json"]
+
+    for control in controls:
+        if control.get("check") == "case-and-field-order-invariance":
+            references = {
+                str(n): {str(k): k for k in range(n)} for n in range(2, 80)
+            }
+            predictions = {cid: {**gold, "0": -1} for cid, gold in references.items()}
+            first = evaluate(references, predictions)
+            second = evaluate(dict(reversed(list(references.items()))), predictions)
+            if first != second:
+                raise ValueError("Value scores depend on input order")
+        else:
+            result = evaluate({"case": control["reference"]}, {"case": control["prediction"]})
+            actual = result["per_case"]["case"]
+            if any(actual[key] != value for key, value in control["expected"].items()):
+                raise ValueError("Scoring regression failed: " + control["id"])
+    identifiers = [control["id"] for control in controls]
+    if identifiers != SCORING_REVISION["regression_ids"]:
+        raise ValueError("Scoring revision omits a registered regression control")
+    return identifiers
