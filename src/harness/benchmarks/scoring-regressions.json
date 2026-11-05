@@ -81316,6 +81316,90 @@
       "artifact": "<div x=a'b>Visible sentence.</div> after",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "mixed-unquoted-less-than-script",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Browser-tolerated less-than characters in unquoted attributes must preserve visible text while excluding hidden and raw-text content.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<script x=a<b>Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-unquoted-less-than-hidden",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Browser-tolerated less-than characters in unquoted attributes must preserve visible text while excluding hidden and raw-text content.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div hidden x=a<b>Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-unquoted-less-than-visible",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Browser-tolerated less-than characters in unquoted attributes must preserve visible text while excluding hidden and raw-text content.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div x=a<b>Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

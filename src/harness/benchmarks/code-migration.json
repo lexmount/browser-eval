@@ -4037,7 +4037,12 @@
           "tests": [
             "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
           ],
-          "root_cause": "The mixed-HTML fallback rejected less-than characters in browser-tolerated unquoted attribute values, exposing hidden and raw-text content. Preserve those tag openers before applying the shared visibility rules."
+          "root_cause": "The mixed-HTML fallback rejected less-than characters in browser-tolerated unquoted attribute values, exposing hidden and raw-text content. Preserve those tag openers before applying the shared visibility rules.",
+          "regression_ids": [
+            "mixed-unquoted-less-than-script",
+            "mixed-unquoted-less-than-hidden",
+            "mixed-unquoted-less-than-visible"
+          ]
         }
       ]
     },
