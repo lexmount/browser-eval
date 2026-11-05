@@ -482,7 +482,25 @@ def verify_repair(home, source, repair):
                 }
                 for cid in participant["case_ids"]
             ]
-        if before != expected:
+
+        def without_hosting_annotation(receipts):
+            # Hosting policy belongs to the frozen participant, not the remote
+            # manifest. Retained receipts may predate or include that annotation.
+            return [
+                {
+                    **item,
+                    "snapshot_manifest": {
+                        key: value
+                        for key, value in item["snapshot_manifest"].items()
+                        if key != "hosting_provider"
+                    },
+                }
+                if isinstance(item.get("snapshot_manifest"), dict)
+                else item
+                for item in receipts
+            ]
+
+        if without_hosting_annotation(before) != without_hosting_annotation(expected):
             raise ValueError("Repair dataset snapshot qualification differs")
     elif needs_fixture:
         if {item["case_id"] for item in before} != set(participant["case_ids"]):

@@ -2086,7 +2086,22 @@ def test_product_review_rejects_whitespace_evidence(tmp_path, key):
 
 
 @pytest.mark.parametrize("legacy", [False, True])
-def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path, legacy):
+@pytest.mark.parametrize("remote_has_hosting_annotation", [False, True])
+@pytest.mark.parametrize(
+    "corrupted_field",
+    [
+        None,
+        "manifest_sha256",
+        "html_inventory_sha256",
+        "case_count",
+        "fixture_base",
+        "huggingface",
+        "extra_identity_field",
+    ],
+)
+def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
+    tmp_path, legacy, remote_has_hosting_annotation, corrupted_field
+):
     from harness.web_extract import snapshots
 
     home, source, _, rows = parent_inputs(tmp_path)
@@ -2118,6 +2133,10 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         home, tmp_path / "content.json", plan, {"cloudflare-json": {"input_route": "url"}}, base
     )
     target = tmp_path / "managed-repair"
+    remote_receipt = deepcopy(receipt)
+    if not remote_has_hosting_annotation:
+        # Real snapshot manifests omit the caller's local hosting policy.
+        remote_receipt.pop("hosting_provider")
     response = {
         "state": "response_received",
         "http_status": 200,
@@ -2127,7 +2146,7 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         patch("harness.web_extract.repair.validate_dataset"),
         patch("harness.web_extract.repair.load_runtime_env"),
         patch("harness.web_extract.snapshots.validate_dataset"),
-        patch("harness.web_extract.snapshots.check_manifest", return_value=receipt),
+        patch("harness.web_extract.snapshots.check_manifest", return_value=remote_receipt),
         patch("harness.web_extract.pipeline.provider_call", return_value=response) as provider,
     ):
         run(home, plan, "cloudflare-json", target)
@@ -2140,7 +2159,7 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
             manifest = read_json(target / "manifest.json")
             for name in ("fixture-before.json", "fixture-after.json"):
                 receipt_rows = read_json(target / name)
-                receipt_rows[0]["snapshot_manifest"].pop("hosting_provider")
+                receipt_rows[0]["snapshot_manifest"].pop("hosting_provider", None)
                 save_json(target / name, receipt_rows)
                 manifest["fixtures"][name] = digest((target / name).read_bytes())
             manifest["contract_sha256"] = digest((target / "contract.json").read_bytes())
@@ -2156,6 +2175,24 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         assert provider.call_count == 1
     assert composed[-1]["normalized_fields"]["sku"] == "recovered"
     assert read_json(target / "fixture-before.json")[0]["case_id"] == "dataset-snapshot"
+    if corrupted_field:
+        # A matching file inventory must not hide changed snapshot identity.
+        manifest = read_json(target / "manifest.json")
+        for name in ("fixture-before.json", "fixture-after.json"):
+            receipts = read_json(target / name)
+            receipts[0]["snapshot_manifest"][corrupted_field] = "another frozen input"
+            save_json(target / name, receipts)
+            manifest["fixtures"][name] = digest((target / name).read_bytes())
+        save_json(target / "manifest.json", manifest)
+        certificate = read_json(target / "certificate.json")
+        certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
+        save_json(target / "certificate.json", certificate)
+        revision["sha256"] = digest((target / "certificate.json").read_bytes())
+        with (
+            patch("harness.web_extract.snapshots.validate_dataset"),
+            pytest.raises(ValueError, match="snapshot qualification"),
+        ):
+            compose(home, source, deepcopy(rows), revision)
 
 
 @pytest.mark.parametrize(
