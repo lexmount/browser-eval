@@ -82,6 +82,7 @@ def inputs(tmp_path, monkeypatch):
         dataset.BENCHMARKS, "swde", {"profile": str(card), "module": "harness.web_extract.swde"}
     )
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setattr("harness.web_extract.repair.load_runtime_env", lambda: None)
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
     monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "test-token-only")
     monkeypatch.setattr(pipeline, "qualify_fixture", serve_input)

@@ -71,7 +71,14 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
                 else {}
             ),
             **(
-                {"snapshot_manifest": contract["snapshot_manifest"]}
+                {
+                    "snapshot_manifest": {
+                        **contract["snapshot_manifest"],
+                        "hosting_provider": "cloudflare"
+                        if contract["snapshot_manifest"].get("hosting_provider") == "cloudflare"
+                        else "external",
+                    }
+                }
                 if contract.get("snapshot_manifest")
                 else {}
             ),
@@ -426,7 +433,7 @@ def verify_repair(home, source, repair):
         expected = manifest_receipt(
             home, participant["snapshot_manifest"], participant["snapshot_manifest"]["fixture_base"]
         )
-        if participant["snapshot_manifest"].get("hosting_provider") != "cloudflare":
+        if participant["snapshot_manifest"].get("hosting_provider") == "external":
             expected += [
                 {
                     "case_id": cid,

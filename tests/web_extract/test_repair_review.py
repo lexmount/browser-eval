@@ -2076,7 +2076,8 @@ def test_product_review_rejects_whitespace_evidence(tmp_path, key):
         validate(payload, packet)
 
 
-def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path):
+@pytest.mark.parametrize("legacy", [False, True])
+def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path, legacy):
     from harness.web_extract import snapshots
 
     home, source, _, rows = parent_inputs(tmp_path)
@@ -2122,6 +2123,22 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
     ):
         run(home, plan, "cloudflare-json", target)
         run(home, plan, "cloudflare-json", target)
+        if legacy:
+            # Archived managed receipts predate the explicit hosting-policy field.
+            archived = read_json(target / "contract.json")
+            archived["participant"]["snapshot_manifest"].pop("hosting_provider")
+            save_json(target / "contract.json", archived)
+            manifest = read_json(target / "manifest.json")
+            for name in ("fixture-before.json", "fixture-after.json"):
+                receipt_rows = read_json(target / name)
+                receipt_rows[0]["snapshot_manifest"].pop("hosting_provider")
+                save_json(target / name, receipt_rows)
+                manifest["fixtures"][name] = digest((target / name).read_bytes())
+            manifest["contract_sha256"] = digest((target / "contract.json").read_bytes())
+            save_json(target / "manifest.json", manifest)
+            certificate = read_json(target / "certificate.json")
+            certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
+            save_json(target / "certificate.json", certificate)
         revision = {
             "path": str(target),
             "sha256": digest((target / "certificate.json").read_bytes()),
