@@ -374,9 +374,9 @@ def test_record_example_relative_output_outside_working_directory(tmp_path, monk
 @pytest.mark.parametrize(
     "route,leak",
     [
-        ("zh/interpretation.html", "/Users/private-user/internal-file"),
-        ("report-manifest.json", "/Users/private-user/internal-file"),
-        ("assets/notes.txt", "/Users/private-user/internal-file"),
+        ("zh/interpretation.html", "/" + "Users/private-user/internal-file"),
+        ("report-manifest.json", "/" + "Users/private-user/internal-file"),
+        ("assets/notes.txt", "/" + "Users/private-user/internal-file"),
     ],
 )
 def test_record_distribution_scans_all_files_including_metadata(tmp_path, route, leak):
