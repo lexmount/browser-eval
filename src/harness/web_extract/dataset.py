@@ -11,6 +11,10 @@ from harness.benchmarks.data import binding, canonical_source_name, definition_p
 from harness.record_io import bytes_sha256, read_json
 
 BENCHMARKS = {
+    "human-eval": {
+        "profile": "scrapegraph-human-eval.json",
+        "module": "harness.web_extract.human_eval",
+    },
     "zyte": {
         "profile": "zyte-product-extraction.json",
         "module": None,
