@@ -1059,6 +1059,10 @@ def _non_record_visible(content, contract, records, base_url, *, representation=
     return None
 
 
+# A label letter-spaced into single CJK characters. Words of two or more stay separate.
+_LETTER_SPACED_CJK = re.compile(r'(?<![\u3400-\u9fff])[\u3400-\u9fff](?:[ \t]+[\u3400-\u9fff](?![\u3400-\u9fff]))+')
+
+
 def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundaries=False, representation=None, rendered=False):
     """An atomic Latin label is a word, not part of another word.
 
@@ -1066,13 +1070,13 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
     preserve adjacent UI text without accepting arbitrary word fragments.
     Longer declared text retains the existing exact-phrase containment rule.
     """
-    from .metrics import CJK_LAYOUT_SPACE, WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize, quoted_scalar_equivalence
+    from .metrics import WORD_CHARACTERS, fact_in_text, normalize_for_match as normalize, quoted_scalar_equivalence
     from .reference_quality import visible_markdown_links
     def normalize_for_match(text):
         if rendered and representation not in {'plain_text', 'html'}:
             text = quoted_scalar_equivalence(unicodedata.normalize('NFKC', text).casefold())
-        # Every representation folds the layout space an inline DOM boundary leaves in CJK labels.
-        return CJK_LAYOUT_SPACE.sub('', normalize(text, representation='plain_text' if rendered or representation == 'html' else representation))
+        text = normalize(text, representation='plain_text' if rendered or representation == 'html' else representation)
+        return _LETTER_SPACED_CJK.sub(lambda match: re.sub(r'[ \t]+', '', match[0]), text)
     if not rendered and representation not in {'plain_text', 'html'}:
         surface = visible_markdown_links(surface)
     surface = re.sub(r'(?<=[^\W\d_])(?=\d+\s+of\s+\d+\b)', ' ', surface)

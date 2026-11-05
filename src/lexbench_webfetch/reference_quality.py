@@ -550,7 +550,9 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
             spans.append((run.start(), closing.end()))
             consumed = closing.end()
             comment_cursor = consumed
-            # Masking a span without tag delimiters or quotes cannot move a tag boundary.
+            # Skip the reparse for a span without tag delimiters or quotes. Masking one can
+            # still move a boundary after a tag name (<script></script`x`>); that case is
+            # accepted to avoid reparsing the document per code span.
             if '<' in text and re.search(r'''[<>"']''', text[run.start():consumed]):
                 tags = _markdown_html_tag_spans(text, excluded_spans=(*excluded_spans, *spans))
     return spans
@@ -758,19 +760,14 @@ def markdown_indented_code_contents(text):
 def _without_nested_link_indentation(text):
     """Remove source-HTML nesting that a serializer kept around Markdown links.
 
-    Link lines at three or more indentation depths inside indented blocks are
-    page layout; a code example with links at one or two depths stays literal.
+    Its signature is whitespace-only lines left by emptied deep elements. A
+    code example does not leave them, so its indentation stays literal.
     """
-    if not re.search(r'(?m)^(?: {4}|\t)[^\n]*\]\(', text):
-        return text
-    spans = markdown_indented_code_spans(text)
-    depths = {len(line) - len(line.lstrip(' '))
-              for left, right in spans for line in text[left:right].expandtabs(4).splitlines()
-              if '](' in line}
-    if len(depths) < 3:
+    if (not re.search(r'(?m)^(?: {4}|\t)[^\n]*\]\(', text)
+            or len(re.findall(r'(?m)^[ \t]{8,}$', text)) < 5):
         return text
     pieces, cursor = [], 0
-    for left, right in spans:
+    for left, right in markdown_indented_code_spans(text):
         pieces += [text[cursor:left], re.sub(r'(?m)^[ \t]+', '', text[left:right])]
         cursor = right
     return ''.join(pieces) + text[cursor:]

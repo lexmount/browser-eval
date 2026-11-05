@@ -78636,7 +78636,7 @@
     {
       "id": "nested-indented-links-named-records-complete",
       "category": "format-normalization",
-      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
       "failure_mode": "false-negative",
       "case": {
         "url": "https://allowed.example/",
@@ -78651,14 +78651,14 @@
           "stable_text_anchors": []
         }
       },
-      "artifact": "\n    [Nav](https://allowed.example/nav)\n\n        [First item](https://allowed.example/item/1)\n\n            [Second\n                item](https://allowed.example/item/2)\n",
+      "artifact": "\n    [Nav](https://allowed.example/nav)\n        \n        \n        \n\n        [First item](https://allowed.example/item/1)\n            \n            \n\n            [Second\n                item](https://allowed.example/item/2)\n            \n",
       "ok": true,
       "expected_task_pass": true
     },
     {
       "id": "nested-indented-links-wrong-path-incomplete",
       "category": "format-normalization",
-      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://allowed.example/",
@@ -78673,14 +78673,14 @@
           "stable_text_anchors": []
         }
       },
-      "artifact": "\n    [Nav](https://allowed.example/nav)\n\n        [First item](https://allowed.example/about)\n\n            [Second\n                item](https://allowed.example/help)\n",
+      "artifact": "\n    [Nav](https://allowed.example/nav)\n        \n        \n        \n\n        [First item](https://allowed.example/about)\n            \n            \n\n            [Second\n                item](https://allowed.example/help)\n            \n",
       "ok": true,
       "expected_task_pass": false
     },
     {
       "id": "nested-indented-links-product-records-complete",
       "category": "format-normalization",
-      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
       "failure_mode": "false-negative",
       "case": {
         "url": "https://shop.example/catalog",
@@ -78691,14 +78691,14 @@
           "minimum_records": 2
         }
       },
-      "artifact": "\n    [Nav](https://shop.example/nav)\n\n        [![Alpha](https://shop.example/a.png)\n\n            Alpha\n\n            $10](https://shop.example/a)\n\n        [![Beta](https://shop.example/b.png)\n\n            Beta\n\n            $20](https://shop.example/b)\n",
+      "artifact": "\n    [Nav](https://shop.example/nav)\n        \n        \n        \n\n        [![Alpha](https://shop.example/a.png)\n\n            Alpha\n\n            $10](https://shop.example/a)\n            \n            \n\n        [![Beta](https://shop.example/b.png)\n\n            Beta\n\n            $20](https://shop.example/b)\n",
       "ok": true,
       "expected_task_pass": true
     },
     {
       "id": "nested-indented-links-product-without-price-incomplete",
       "category": "format-normalization",
-      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://shop.example/catalog",
@@ -78709,14 +78709,14 @@
           "minimum_records": 2
         }
       },
-      "artifact": "\n    [Nav](https://shop.example/nav)\n\n        [![Alpha](https://shop.example/a.png)\n\n            Alpha\n\n            ](https://shop.example/a)\n\n        [![Beta](https://shop.example/b.png)\n\n            Beta\n\n            ](https://shop.example/b)\n",
+      "artifact": "\n    [Nav](https://shop.example/nav)\n        \n        \n        \n\n        [![Alpha](https://shop.example/a.png)\n\n            Alpha\n\n            ](https://shop.example/a)\n            \n            \n\n        [![Beta](https://shop.example/b.png)\n\n            Beta\n\n            ](https://shop.example/b)\n",
       "ok": true,
       "expected_task_pass": false
     },
     {
       "id": "nested-indented-links-declared-markdown-literal",
       "category": "format-normalization",
-      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://allowed.example/",
@@ -78731,7 +78731,7 @@
           "stable_text_anchors": []
         }
       },
-      "artifact": "\n    [Nav](https://allowed.example/nav)\n\n        [First item](https://allowed.example/item/1)\n\n            [Second\n                item](https://allowed.example/item/2)\n",
+      "artifact": "\n    [Nav](https://allowed.example/nav)\n        \n        \n        \n\n        [First item](https://allowed.example/item/1)\n            \n            \n\n            [Second\n                item](https://allowed.example/item/2)\n            \n",
       "ok": true,
       "metadata": {
         "answer_format": "markdown"
@@ -78739,9 +78739,9 @@
       "expected_task_pass": false
     },
     {
-      "id": "two-depth-indented-links-stay-literal",
+      "id": "indented-cheatsheet-nested-samples-stay-literal",
       "category": "format-normalization",
-      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://allowed.example/",
@@ -78756,14 +78756,142 @@
           "stable_text_anchors": []
         }
       },
-      "artifact": "\n    [First item](https://allowed.example/item/1)\n\n        [Second item](https://allowed.example/item/2)\n",
+      "artifact": "# Markdown cheatsheet\n\nNested example, copy this into your README:\n\n    [Top](https://allowed.example/)\n\n        [First item](https://allowed.example/item/1)\n\n            [Second item](https://allowed.example/item/2)\n",
       "ok": true,
       "expected_task_pass": false
     },
     {
+      "id": "indented-unrelated-samples-stay-literal",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "# Reference\n\nExample A:\n\n    [First item](https://allowed.example/item/1)\n\nMore prose here.\n\nExample B, inside a nested block:\n\n        [Second item](https://allowed.example/item/2)\n\nMore prose here.\n\nExample C:\n\n            [Third item](https://allowed.example/item/3)\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "indented-product-sample-stays-literal",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "# Liquid templating guide\n\n    <div>\n        [Nav](https://shop.example/nav)\n\n            [![Alpha](https://shop.example/a.png)\n\n                Alpha\n\n                $10](https://shop.example/a)\n\n            [![Beta](https://shop.example/b.png)\n\n                Beta\n\n                $20](https://shop.example/b)\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "indented-python-call-sample-stays-literal",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "# Dispatch tutorial\n\nSample:\n\n    def dispatch(handlers, name, event):\n        handlers[name](event)\n            handlers[name](event)\n                handlers[name](event)\n    [First item](https://allowed.example/item/1)\n    [Second item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "indented-sample-unbalanced-fence-keeps-page-links",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "# Markdown guide\n\n    [a](https://allowed.example/a)\n\n        [b](https://allowed.example/b)\n\n            [c](https://allowed.example/c)\n\n    ```python\n\nReal page text after the example.\n\n[First item](https://allowed.example/item/1)\n\n[Second item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "indented-sample-open-comment-keeps-page-links",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "# Markdown guide\n\n    [a](https://allowed.example/a)\n\n        [b](https://allowed.example/b)\n\n            [c](https://allowed.example/c)\n\n    <!-- start of snippet\n\nReal page text after the example.\n\n[First item](https://allowed.example/item/1)\n\n[Second item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "indented-sample-script-tag-keeps-page-links",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "# Markdown guide\n\n    [a](https://allowed.example/a)\n\n        [b](https://allowed.example/b)\n\n            [c](https://allowed.example/c)\n\n    <script>\n\nReal page text after the example.\n\n[First item](https://allowed.example/item/1)\n\n[Second item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
       "id": "cjk-spaced-anchor-matches-link-label",
       "category": "format-normalization",
-      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
       "failure_mode": "false-negative",
       "case": {
         "url": "https://example.test/",
@@ -78790,7 +78918,7 @@
     {
       "id": "cjk-spaced-anchor-matches-declared-plain-text",
       "category": "format-normalization",
-      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
       "failure_mode": "false-negative",
       "case": {
         "url": "https://example.test/",
@@ -78818,9 +78946,34 @@
       "expected_task_pass": true
     },
     {
+      "id": "cjk-spaced-fact-matches-declared-plain-text",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "世界"
+            ]
+          }
+        ]
+      },
+      "artifact": "世 界",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
       "id": "cjk-spaced-other-label-rejected",
       "category": "format-normalization",
-      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://example.test/",
@@ -78845,9 +78998,193 @@
       "expected_task_pass": false
     },
     {
+      "id": "cjk-separate-paragraphs-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "北京大学"
+            ]
+          }
+        ]
+      },
+      "artifact": "<html><body><p>北京</p><p>大学排名</p></body></html>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-word-split-across-lines-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "不含税"
+            ]
+          }
+        ]
+      },
+      "artifact": "价格 不\n含税",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-digit-before-word-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "1月"
+            ]
+          }
+        ]
+      },
+      "artifact": "第 1\n月刊",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-digit-groups-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "100元"
+            ]
+          }
+        ]
+      },
+      "artifact": "合计 1 100 元",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-two-links-anchor-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "中国银行"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[中国](https://example.test/a) [银行](https://example.test/b)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-two-labels-anchor-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "首页登录"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "首页 登录",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-adjacent-word-edges-anchor-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "登录"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "攀登\n录像",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
       "id": "latin-split-words-do-not-match-joined-anchor",
       "category": "format-normalization",
-      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://example.test/",
@@ -78874,7 +79211,7 @@
     {
       "id": "latin-joined-word-does-not-match-split-anchor",
       "category": "format-normalization",
-      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
       "failure_mode": "false-positive",
       "case": {
         "url": "https://example.test/",

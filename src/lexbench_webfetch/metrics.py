@@ -799,9 +799,6 @@ def native_punctuation_boundaries(value: str) -> str:
     return re.sub(r'(?<!\w)([_*])([:;,.!?])\1(?=\w)', r'\2 ', value)
 
 
-CJK_LAYOUT_SPACE = re.compile(r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])')
-
-
 def normalize_for_match(value: str, *, representation=None) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links, normalize_native_markdown_layout
     if representation is None:
@@ -864,7 +861,7 @@ def normalize_for_match(value: str, *, representation=None) -> str:
     # signs, digits and punctuation are deliberately retained.
     # Start only at a whitespace-run boundary: a long run not followed by CJK
     # must not be rescanned from every suffix (quadratic backtracking).
-    normalized = CJK_LAYOUT_SPACE.sub('', normalized)
+    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])', '', normalized)
     # Menu breadcrumbs commonly lose spaces when inline links are extracted.
     # Keep the separator itself (and all operands); do not collapse >=, signs
     # or English word boundaries. Fold layout newlines on both sides first:
