@@ -507,6 +507,20 @@ snapshot origins. The container provides Chromium; `CHROME_PATH` selects its
 executable. The service exposes `GET /health` and `POST /extract/{engine}`
 (`crawl4ai`, `scrapegraph`, `stagehand` or `firecrawl`). Extraction requires bearer authentication.
 
+For an individual request, set `ENDPOINT`, `SNAPSHOT_URL` and `EXTRACTION_API_KEY`
+in your shell. This example uses the identity returned by the running service:
+
+```sh
+curl --fail --silent --show-error "$ENDPOINT/health" > health.json
+jq --arg url "$SNAPSHOT_URL" '{
+  url: $url,
+  schema: {type: "object", properties: {name: {type: "string"}}, required: ["name"]},
+  expected_runtime: .engines.crawl4ai
+}' health.json > request.json
+curl --fail --silent --show-error "$ENDPOINT/extract/crawl4ai" \
+  -H "Authorization: Bearer $EXTRACTION_API_KEY" --json @request.json
+```
+
 Save the health response before calls. Pass a per-method options object to
 `plan --native-options /absolute/native-options.json`:
 
