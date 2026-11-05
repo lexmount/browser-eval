@@ -135,13 +135,21 @@ class EvaluatorRegistry:
     def __init__(self, *, webarena_config_path: str | Path | None = None) -> None:
         self._webarena_config_path = webarena_config_path
         self._webarena: WebArenaVerifiedEvaluator | None = None
+        self._webarena_config: bytes | None = None
 
     def evaluate(self, task: BrowserTask, evidence: TaskEvidence) -> TaskEvaluation:
         kind = str((task.evaluator or {}).get("kind") or "")
         if kind == "exact_outputs":
             return ExactOutputsEvaluator().evaluate(task, evidence)
         if kind == "webarena_verified":
-            if self._webarena is None:
+            # A Rainbond slice reset rewrites the config with the recreated sites' URLs.
+            config = (
+                Path(self._webarena_config_path).read_bytes()
+                if self._webarena_config_path is not None
+                else None
+            )
+            if self._webarena is None or config != self._webarena_config:
                 self._webarena = WebArenaVerifiedEvaluator(config_path=self._webarena_config_path)
+                self._webarena_config = config
             return self._webarena.evaluate(task, evidence)
         raise ValueError(f"unsupported evaluator kind: {kind!r}")

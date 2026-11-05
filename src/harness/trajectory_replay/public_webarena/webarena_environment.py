@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import re
@@ -16,6 +17,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import docker
+import greenlet
 from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
@@ -56,7 +58,15 @@ def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
     previous_handler = signal.getsignal(signal.SIGALRM)
 
     def expire(_signum: int, _frame: Any) -> None:
-        raise TimeoutError(f"WebArena {operation} exceeded {seconds:g}s wall-clock deadline")
+        error = TimeoutError(f"WebArena {operation} exceeded {seconds:g}s wall-clock deadline")
+        current = greenlet.getcurrent()
+        if current.parent is None:
+            raise error
+        # Raising inside Playwright's event-loop greenlet would kill it and hang every later
+        # call. Raise in the waiting caller instead; the loop resumes on the next call, and
+        # the wakeup stops its interrupted select from sleeping until the next timer.
+        asyncio.get_running_loop().call_soon_threadsafe(lambda: None)
+        current.parent.throw(error)
 
     signal.signal(signal.SIGALRM, expire)
     signal.setitimer(signal.ITIMER_REAL, seconds)
