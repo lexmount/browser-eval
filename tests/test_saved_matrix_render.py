@@ -420,31 +420,31 @@ def test_final_call_timing_labels_are_localized_in_ordinary_reports():
     assert 'Mean final-call latency' in page
     assert 'P50 final-call latency' in page
     assert '最终调用耗时' not in page
-    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, TEXT
+    from harness.web_fetch.report_i18n import saved_matrix_text, TEXT
     for key in ('final_call_timing_title', 'final_call_timing_help', 'final_call_timing_note'):
-        assert SAVED_MATRIX_ZH[key] not in page
-        assert TEXT[SAVED_MATRIX_ZH[key]] in page
+        assert saved_matrix_text(key) not in page
+        assert TEXT[saved_matrix_text(key)] in page
     assert 'P95 final-call latency' in page
 
 
 def test_ordinary_english_generation_localizes_all_final_call_timing_text(tmp_path):
     from harness.web_fetch.report import generate
-    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, TEXT
+    from harness.web_fetch.report_i18n import saved_matrix_text, TEXT
     _, source, record, _ = fixture(tmp_path)
     dataset = json.loads((source/'dataset.json').read_text(encoding='utf-8'))
     generate(source, dataset, [record], [], include_english=True,
              authored_interpretation=False, frozen_scores=True)
     page = BeautifulSoup((source/'en/index.html').read_text(encoding='utf-8'), 'html.parser')
     overview = page.select_one('#overall-ranking').get_text(' ', strip=True)
-    strings = [*SAVED_MATRIX_ZH['final_call_timing_headers'],
-               *(SAVED_MATRIX_ZH[key] for key in
+    strings = [*saved_matrix_text('final_call_timing_headers'),
+               *(saved_matrix_text(key) for key in
                  ('final_call_timing_title', 'final_call_timing_help', 'final_call_timing_note'))]
     for original in strings:
         assert original not in overview
         assert TEXT[original] in overview
     changes = BeautifulSoup((source/'en/changes/index.html').read_text(encoding='utf-8'), 'html.parser').get_text()
-    assert SAVED_MATRIX_ZH['changes_scope'] not in changes
-    assert TEXT[SAVED_MATRIX_ZH['changes_scope']] in changes
+    assert saved_matrix_text('changes_scope') not in changes
+    assert TEXT[saved_matrix_text('changes_scope')] in changes
 
 
 @pytest.mark.parametrize('excluded', [['base-web'], ['unknown'], ['web', 'base-web'], ['base-web', 'base-web']])

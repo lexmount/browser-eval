@@ -796,53 +796,147 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
 
 
 # Saved-source presentation uses the shared localization owner.
-SAVED_MATRIX_ZH = {'parameter_rerun_title': '参数重测与结果选择',
- 'changes_scope': '分别记录参数重测与离线修订。参数重测包含新调用；离线修订只使用已有返回。',
- 'offline_review_scope': '此处记录对已知机器结果的规则复核，使用已有返回离线评分，不称为独立盲审。参数重测的新调用与结果选择另见变更记录。',
- 'parameter_rerun_banner': '参数重测 {evaluated} 项，按方法与类别整体比较通过数，已整组采用 {selected} 项新结果。采用新组时也包含退步案例，不逐题拼接新旧结果；通过数相同或降低则保留旧组。本轮不能证明参数导致速度提升。',
- 'parameter_rerun_note': '类别与参数在调用前确定；首次失败最多重试一次，以最后一次为本轮结果。按方法与类别比较整体通过数，改善时整组采用新结果，包括其中的退步案例；通过数相同或降低时整组保留旧结果。动态与热门的基础补充任务分别和同类专项一起选择，不拆开择优。',
- 'parameter_family_banner': '参数重测 {evaluated} 项，已整组采用 {selected} 项新结果。先检查整类配置是否一致，再比较符合条件的完整组通过数；不逐题拼接。两组还须遵守各自冻结的失败重试规则。配置不一致的组不能因通过数更高而入选。本轮不能证明参数导致速度提升。',
- 'parameter_family_note': '先检查整类配置是否一致，再比较符合条件的完整组通过数；只有一组符合条件时采用该组，即使其通过数更低。两组还须遵守各自冻结的失败重试规则。两组都符合条件时，通过数相同或降低则保留旧组。',
- 'parameter_family_eligibility': '整类配置一致：旧组 {before}，新组 {candidate}。',
- 'parameter_baseline_retry_eligibility': '旧组遵守冻结的失败重试规则：{valid}。',
- 'parameter_eligible': '是',
- 'parameter_ineligible': '否（不参与择优）',
- 'parameter_unverified': '未核验',
- 'parameter_rerun_selected': '已采用重测结果',
- 'parameter_rerun_retained': '保留原结果',
- 'parameter_rerun_group': '本类别共 {count} 项：旧结果通过 {before_passed} 项，新结果通过 {candidate_passed} 项。',
- 'parameter_rerun_before': '原结果',
- 'parameter_rerun_candidate': '重测结果',
- 'adapter_rejected': '未调用·适配器提前拒绝',
- 'incomplete': '未完成',
- 'uncommitted': '已调用·未入库',
- 'not_called': '未调用',
- 'adapter_rejected_note': '适配器在请求发出前拒绝，产品没有被调用；原始记录和旧分数保留，但不计为产品失败，也不计入通过率分母。',
- 'provider': '方法',
- 'limitations': '范围与限制',
- 'certification_note': '本页汇总已保存结果；证据与文件核验不等于基准认证。最终展示模式不补足历史调用的认证条件，也不代表新一轮独立盲审。',
- 'record_link': '原始结果记录',
- 'answer_link': '原始返回',
- 'receipt_link': '证据凭据',
- 'completion_title': '完成情况与未完成项',
- 'completion_note': '本表按原案例集区分同名案例。已有分数全部保留；未入库项没有分数。适配器提前拒绝属于未调用，原始记录中的旧分数保留，不计为产品失败，也不计入通过率分母。详情页中的任务编号带案例集前缀，仅用于避免报告链接冲突，原始任务和结果见证据文件。',
- 'completion_headers': ['方法', '计划', '实际调用', '已入库', '正常返回', '通过', '适配器拒绝', '已调用未入库', '未调用'],
- 'missing_headers': ['案例集', '方法', '原案例编号', '状态', '保存原因', '证据'],
- 'suite_denominator_note': '按仓库案例集统计。通过率＝实际调用且已保存的通过数／实际调用且已有明确评分的结果数。未入库和未调用项不补成失败；适配器提前拒绝属于未调用，不计入通过率分母，原始记录和旧分数保留。',
- 'suite_result_headers': ['方法', '计划案例', '已保存结果', '未入库或未调用', '正常返回', '通过', '通过率（明确分母）'],
- 'history_title': '修复前的记录',
- 'history_note': '以下保留修复前的原始记录，不重复计入当前结果。当前结果采用预先声明范围内的补测结果，不按分数择优。',
- 'history_scope': '补测范围与原记录绑定',
- 'continuation_title': '补齐的一次失败重试',
- 'continuation_note': '首轮已调用一次，本次补齐原约定的一次重试，共两次调用。当前分数和耗时采用最后一次调用，不按结果择优；首轮证据保留。',
- 'continuation_cost': '两次调用累计耗时：',
- 'continuation_unknown_cost': '不可用：首轮精确耗时未保存。',
- 'continuation_prior': '查看首轮调用证据',
- 'coverage_banner_title': '保存结果覆盖情况',
- 'coverage_banner_counts': '计划 {planned} 项，已入库 {saved} 项；已调用未入库 {uncommitted} 项；未调用（含按要求跳过）{not_called} '
-                           '项；适配器提前拒绝 {rejected} 项。',
- 'coverage_banner_note': '未入库和未调用项没有补造分数；适配器提前拒绝不代表产品失败。本报告用于查看保存证据，不代表完整验收或正式发布。',
- 'final_call_timing_headers': ['最终调用耗时均值', '最终调用耗时 P50', '最终调用耗时 P95'],
- 'final_call_timing_title': '最终调用耗时均值 / P50 / P95',
- 'final_call_timing_help': '三项均采用各方法实际调用且已保存结果的最终一次调用耗时，包含通过与失败；未入库、未调用和适配器提前拒绝不计入，各方法样本数可不同。耗时不参与通过率排名，跨日期、跨批次记录不等同于同窗受控速度比较。',
- 'final_call_timing_note': '每个逻辑结果只取最终一次调用耗时，不是包含此前重试和等待的累计耗时。补齐重试的结果在详情页另列已知的两次调用累计耗时；首轮耗时未保存时标为不可用。'}
+_SAVED_MATRIX_SOURCES = {'parameter_rerun_title': 'Parameter reruns and result selection',
+ 'changes_scope': 'Parameter reruns and offline revisions are recorded separately. Parameter reruns include '
+                  'new calls; offline revisions use retained responses only.',
+ 'offline_review_scope': 'This records rule review of known machine results, scored offline from saved '
+                         'answers, not independent blind review. New calls and result selection from '
+                         'parameter reruns are documented separately in Changes.',
+ 'parameter_rerun_banner': 'Parameter reruns evaluated {evaluated} tasks; {selected} new results were '
+                           'adopted as whole method/family groups by pass count. Adopted groups include '
+                           'regressions; old and new results are not combined task by task. Ties or lower '
+                           'pass counts retain the baseline. These runs do not establish that parameters '
+                           'improved speed.',
+ 'parameter_rerun_note': 'Categories and parameters are set before calls. A first failure permits at most '
+                         'one retry; the final call is retained. Compare whole method/family groups by pass '
+                         'count and adopt the complete improved group, including regressions. Ties or lower '
+                         'counts retain the baseline. Supplemental dynamic and popular tasks are selected '
+                         'with their respective specialist groups, not independently.',
+ 'parameter_family_banner': 'Parameter reruns evaluated {evaluated} cases; {selected} new results were '
+                            'selected as complete groups. Check configuration uniformity across each family '
+                            'before comparing eligible complete groups by pass count; do not combine '
+                            'individual cases. Both groups must also follow their frozen failure-retry '
+                            'policies. A group with inconsistent settings cannot qualify through a higher '
+                            'pass count. These runs do not establish that parameter changes improved speed.',
+ 'parameter_family_note': 'Check configuration uniformity across each family before comparing eligible '
+                          'complete groups by pass count. If only one group qualifies, select it even if its '
+                          'pass count is lower. Both groups must also follow their frozen failure-retry '
+                          'policies. If both groups qualify, retain the baseline when the candidate pass '
+                          'count is equal or lower.',
+ 'parameter_family_eligibility': 'Whole-family configuration uniformity: baseline {before}, candidate '
+                                 '{candidate}.',
+ 'parameter_baseline_retry_eligibility': 'The baseline follows its frozen failure-retry policy: {valid}.',
+ 'parameter_eligible': 'yes',
+ 'parameter_ineligible': 'no (ineligible)',
+ 'parameter_unverified': 'unverified',
+ 'parameter_rerun_selected': 'Rerun selected',
+ 'parameter_rerun_retained': 'Baseline retained',
+ 'parameter_rerun_group': 'This family contains {count} tasks: baseline passed {before_passed}, candidate '
+                          'passed {candidate_passed}.',
+ 'parameter_rerun_before': 'Baseline',
+ 'parameter_rerun_candidate': 'Rerun',
+ 'adapter_rejected': 'Not called · adapter rejected',
+ 'incomplete': 'Incomplete',
+ 'uncommitted': 'Called · result not saved',
+ 'undecidable': 'Called · undecidable',
+ 'not_called': 'Not called',
+ 'adapter_rejected_note': 'The adapter rejected the request before dispatch, so the product was not called. '
+                          'Original records and scores remain, but count as neither product failures nor '
+                          'pass-rate denominators.',
+ 'provider': 'Method',
+ 'limitations': 'Scope and limitations',
+ 'certification_note': 'This page summarizes saved results; evidence and file verification are not benchmark '
+                       'certification. Final presentation does not complete historical certification '
+                       'requirements or constitute a new independent blind review.',
+ 'record_link': 'Original result record',
+ 'answer_link': 'Original answer',
+ 'receipt_link': 'Evidence receipt',
+ 'completion_title': 'Completion and incomplete positions',
+ 'completion_note': 'Identically named tasks are distinguished by their original suite. Saved scores remain '
+                    'unchanged; uncommitted calls have no score. Adapter rejections are not product calls or '
+                    'failures and do not enter pass-rate denominators. Suite prefixes on detail-page IDs '
+                    'only avoid link collisions; original tasks and results remain in evidence files.',
+ 'completion_headers': ['Method',
+                        'Planned',
+                        'Actual calls',
+                        'Saved',
+                        'Normal returns',
+                        'Pass',
+                        'Adapter rejected',
+                        'Called but not saved',
+                        'Not called'],
+ 'missing_headers': ['Suite', 'Method', 'Original task ID', 'Status', 'Recorded reason', 'Evidence'],
+ 'suite_denominator_note': 'Counts use repository task suites. Pass rate is saved passes from actual calls '
+                           'divided by saved, decidable actual-call results. Missing and uncalled positions '
+                           'are not failures. Adapter rejections are not calls and do not enter the '
+                           'denominator; original records and scores remain unchanged.',
+ 'suite_result_headers': ['Method',
+                          'Planned tasks',
+                          'Saved results',
+                          'Not saved or not called',
+                          'Normal returns',
+                          'Pass',
+                          'Pass rate (explicit denominator)'],
+ 'history_title': 'Records before the correction',
+ 'history_note': 'Original records before the correction are retained below, without counting them again. '
+                 'Current results use replacement calls within a predeclared scope, not selection by score.',
+ 'history_scope': 'Replacement scope and original-record binding',
+ 'continuation_title': 'Completion of one failure retry',
+ 'continuation_note': 'One call already occurred. This completes its previously authorized retry, for two '
+                      'calls in total. Current scores and latency use the final call regardless of outcome; '
+                      'first-call evidence is retained.',
+ 'continuation_cost': 'Accumulated latency of both calls:',
+ 'continuation_unknown_cost': 'Unavailable: the exact first-call latency was not saved.',
+ 'continuation_prior': 'View first-call evidence',
+ 'coverage_banner_title': 'Saved-result coverage',
+ 'coverage_banner_counts': 'Planned {planned}; saved {saved}; called but not saved {uncommitted}; not called '
+                           '(including requested skips) {not_called}; adapter rejected {rejected}.',
+ 'coverage_banner_note': 'No scores are invented for missing or uncalled results; adapter rejections are not '
+                         'product failures. This report presents saved evidence, not complete acceptance or '
+                         'formal publication.',
+ 'final_call_timing_headers': ['Mean final-call latency', 'P50 final-call latency', 'P95 final-call latency'],
+ 'final_call_timing_title': 'Mean / P50 / P95 final-call latency',
+ 'final_call_timing_help': 'All three statistics use the final call of each retained result, including '
+                           'passes and failures. Uncommitted, uncalled and adapter-rejected entries are '
+                           'excluded; sample sizes can differ. Latency does not affect pass-rate ordering. '
+                           'Calls from different dates and batches are not a controlled same-window speed '
+                           'comparison.',
+ 'final_call_timing_note': 'Each logical result uses only its final call latency, not the accumulated cost '
+                           'of prior retries and waits. Continued retries disclose the known combined cost '
+                           'separately in their details; a missing first-call duration remains unavailable.'}
+
+
+def saved_matrix_text(key, **values):
+    """Use the shared English-source catalog for saved-result interface text."""
+    source = _SAVED_MATRIX_SOURCES[key]
+    if isinstance(source, list):
+        return [t(f'saved_matrix_{key}_{index}', text) for index, text in enumerate(source)]
+    result = t('saved_matrix_' + key, source, **values)
+    if values:
+        # Localized status labels need their English forms inside the sentence.
+        english_values = {name: translate_text(value) if isinstance(value, str) else value
+                          for name, value in values.items()}
+        TEXT[result.strip()] = source.format_map(english_values)
+    return result
+
+
+def _register_saved_matrix_fallbacks():
+    """Localize frozen Chinese pages from the same catalog and English sources."""
+    for key, source in _SAVED_MATRIX_SOURCES.items():
+        entries = [(f'saved_matrix_{key}_{index}', text) for index, text in enumerate(source)] if isinstance(source, list) else [('saved_matrix_' + key, source)]
+        for message_id, english in entries:
+            fields = re.findall(r'\{([a-z_]+)\}', english)
+            chinese = translate(MESSAGES, message_id, 'zh', **{name: '{' + name + '}' for name in fields})
+            if not fields:
+                TEXT.setdefault(chinese.strip(), english)
+                continue
+            pattern = re.escape(chinese)
+            for name in fields:
+                pattern = pattern.replace(re.escape('{' + name + '}'), '(?P<' + name + '>.+?)', 1)
+            def replacement(match, english=english):
+                return english.format_map({name: translate_text(value)
+                                           for name, value in match.groupdict().items()})
+            REGEX.append((re.compile('^' + pattern + '$'), replacement))
+
+
+_register_saved_matrix_fallbacks()

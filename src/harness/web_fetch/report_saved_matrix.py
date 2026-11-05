@@ -22,7 +22,7 @@ import tempfile
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
 
-from lexbench_webfetch.metrics import task_passed
+from lexbench_webfetch.metrics import task_measured, task_passed
 from lexbench_webfetch.models import EvalCase
 from lexbench_webfetch.paths import contained_path, safe_identifier
 
@@ -197,9 +197,10 @@ def _saved_row_values(record, case):
     """Derive the visible scalar result from the retained call."""
     called = _called(record)
     metrics = record['metrics']
-    passed = task_passed(record['ok'], metrics, case.get('task_kind', 'body'))
+    passed = (None if called and not task_measured(metrics, case.get('task_kind', 'body'))
+              else task_passed(record['ok'], metrics, case.get('task_kind', 'body')))
     retry = record.get('provider_metadata', {}).get('retry', {})
-    return dict(status=('adapter_rejected' if not called else 'passed' if passed else 'failed'),
+    return dict(status=('adapter_rejected' if not called else 'undecidable' if passed is None else 'passed' if passed else 'failed'),
                 called=called, normal=bool(called and record['ok'] and metrics.get('request_ok', record['ok'])),
                 passed=passed, elapsed_ms=record.get('elapsed_ms'),
                 retries=retry.get('retries_used', max(0, retry.get('physical_attempts', 1) - 1)),
@@ -219,6 +220,7 @@ def _totals(rows):
             'called': sum(r['called'] for r in rows), 'normal': sum(r['normal'] for r in rows),
             'passed': sum(r['passed'] is True for r in rows),
             'failed': sum(r['called'] and r['passed'] is False for r in rows),
+            'undecidable': sum(r['status'] == 'undecidable' for r in rows),
             'adapter_rejected': sum(r['status'] == 'adapter_rejected' for r in rows),
             'uncommitted': sum(r['status'] == 'uncommitted' for r in rows),
             'not_called': sum(r['status'] == 'not_called' for r in rows)}
@@ -2519,7 +2521,7 @@ def _saved_renderer_projection(output, model):
         raw = _json(contained_path(output, row['record_path']))
         if raw['case_id'] != row['case_id'] or raw['provider'] != row['provider']:
             raise ValueError('Saved record identity differs from matrix')
-        if task_passed(raw['ok'], raw['metrics'], case.get('task_kind', 'body')) != row['passed']:
+        if _saved_row_values(raw, case)['passed'] != row['passed']:
             raise ValueError('Saved verdict differs from matrix')
         prefix = str(Path(row['record_path']).parent)
         def project(value, key='', prefix=prefix):
@@ -2559,7 +2561,7 @@ def _saved_renderer_projection(output, model):
     for provider in providers:
         rs = [r for r in model['rows'] if r['provider'] == provider]
         scope['providers'].append(dict(provider=provider, planned=len(rs),
-            called=sum(r['called'] for r in rs), saved=sum(r['passed'] is not None for r in rs),
+            called=sum(r['called'] for r in rs), saved=sum(r['record_path'] is not None for r in rs),
             normal=sum(bool(r['normal']) for r in rs), passed=sum(r['passed'] is True for r in rs),
             rejected=sum(r['status']=='adapter_rejected' for r in rs),
             uncommitted=sum(r['status']=='uncommitted' for r in rs),

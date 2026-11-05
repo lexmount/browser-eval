@@ -1723,8 +1723,8 @@ def test_family_selection_requires_uniformity_before_higher_score(baseline_unifo
 
 @pytest.mark.parametrize('state', ['parameter_eligible', 'parameter_ineligible', 'parameter_unverified'])
 def test_baseline_retry_eligibility_has_english_disclosure(state):
-    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, translate_text
-    text = SAVED_MATRIX_ZH['parameter_baseline_retry_eligibility'].format(valid=SAVED_MATRIX_ZH[state])
+    from harness.web_fetch.report_i18n import saved_matrix_text, translate_text
+    text = saved_matrix_text('parameter_baseline_retry_eligibility', valid=saved_matrix_text(state))
     assert translate_text(text).startswith('The baseline follows its frozen failure-retry policy:')
 
 
@@ -1732,9 +1732,9 @@ def test_baseline_retry_eligibility_has_english_disclosure(state):
 def test_family_selection_prose_is_fully_localized(evaluated, selected):
     import re
     from pathlib import PurePosixPath
-    from harness.web_fetch.report_i18n import SAVED_MATRIX_ZH, localize_html
-    banner = SAVED_MATRIX_ZH['parameter_family_banner'].format(evaluated=evaluated, selected=selected)
-    note = SAVED_MATRIX_ZH['parameter_family_note']
+    from harness.web_fetch.report_i18n import saved_matrix_text, localize_html
+    banner = saved_matrix_text('parameter_family_banner', evaluated=evaluated, selected=selected)
+    note = saved_matrix_text('parameter_family_note')
     page = localize_html(f'<html lang="zh-CN"><body><p>{banner}</p><p>{note}</p></body></html>',
                          PurePosixPath('index.html'))
     assert not re.search(r'[\u3400-\u9fff]', page)
@@ -1816,3 +1816,45 @@ def test_private_gate_preserves_safe_non_json_provider_answer(tmp_path):
     output = build(tmp_path, spec).parent
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
     assert (output/'evidence/first/method/same/artifacts/answer.json').read_bytes() == b'answer'
+
+
+@pytest.mark.parametrize('uncertainty', ['missing_check', 'unresolved_review'])
+def test_undecidable_saved_call_is_not_a_failure(tmp_path, uncertainty):
+    from harness.web_fetch.report_saved_matrix import _saved_renderer_projection
+    spec, root, row, _ = fixture(tmp_path)
+    if uncertainty == 'missing_check':
+        row['metrics']['acceptance_checks'] = {'content': None}
+    else:
+        row['metrics']['rule_review_status'] = 'unresolved'
+    spec['sources'][0]['results'] = write(root/'results.jsonl', row)
+    original = (root/'results.jsonl').read_bytes()
+    output = build(tmp_path, spec).parent
+    model = json.loads((output/'matrix.json').read_bytes())
+    saved = model['rows'][0]
+    assert saved['status'] == 'undecidable' and saved['passed'] is None
+    assert saved['called'] and saved['elapsed_ms'] == row['elapsed_ms']
+    assert model['totals']['saved'] == model['totals']['called'] == model['totals']['undecidable'] == 1
+    assert model['totals']['passed'] == model['totals']['failed'] == 0
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    projected = json.loads((output/'dataset.json').read_bytes())
+    assert projected['saved_matrix_scope']['providers'][0]['saved'] == 1
+    assert '已调用·无法判定' in (output/'index.html').read_text(encoding='utf-8')
+    assert json.loads((output/saved['record_path']).read_bytes()) == row
+    assert (root/'results.jsonl').read_bytes() == original
+    with pytest.raises(ValueError, match='complete judged call evidence'):
+        _saved_renderer_projection(output, {**model, 'presentation': 'final'})
+
+
+def test_saved_interface_catalog_has_frozen_page_translations():
+    import re
+    from harness.web_fetch.report_i18n import _SAVED_MATRIX_SOURCES, MESSAGES, translate, translate_text
+    values = {'evaluated': 17, 'selected': 3, 'before': 'yes', 'candidate': 'no',
+              'valid': 'yes', 'count': 20, 'before_passed': 4, 'candidate_passed': 5,
+              'planned': 20, 'saved': 17, 'uncommitted': 1, 'not_called': 1, 'rejected': 1}
+    for key, source in _SAVED_MATRIX_SOURCES.items():
+        entries = [(f'saved_matrix_{key}_{index}', text) for index, text in enumerate(source)] if isinstance(source, list) else [('saved_matrix_' + key, source)]
+        for message_id, english in entries:
+            assert not re.search(r'[\u3400-\u9fff]', english)
+            # Do not call the live renderer: an archived page needs catalog fallback.
+            chinese = translate(MESSAGES, message_id, 'zh', **values)
+            assert not re.search(r'[\u3400-\u9fff]', translate_text(chinese)), message_id
