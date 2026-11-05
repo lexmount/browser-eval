@@ -101,3 +101,61 @@ def test_native_request_uses_snapshot_and_shared_schema_without_ground_truth(mon
 def test_run_requires_a_frozen_model_and_implementation(options):
     with pytest.raises(ValueError, match="runtime identity"):
         validate_native_options("crawl4ai-json", options)
+
+
+@pytest.mark.parametrize(
+    "status,payload",
+    [
+        (422, {"success": False, "error": "Schema cannot be extracted"}),
+        (200, {"success": False, "error": "Native worker failed"}),
+        (200, {"success": True, "data": {"json": {"author": ["Ada", "Grace"], "year": []}}}),
+    ],
+)
+def test_firecrawl_preserves_native_rejection_and_array_values(monkeypatch, status, payload):
+    from types import SimpleNamespace
+
+    from harness.web_extract.self_hosted import firecrawl_extract
+
+    monkeypatch.setenv("FIRECRAWL_BACKEND_URL", "http://private-backend.example:3002")
+    value = {
+        "url": "https://snapshots.example/frozen/book",
+        "schema": {
+            "type": "object",
+            "properties": {"author": {"type": "array"}, "year": {"type": "array"}},
+        },
+        "instruction": "Copy all authors.",
+    }
+    response = SimpleNamespace(status_code=status, json=lambda: payload)
+    with patch("requests.post", return_value=response) as post:
+        data, native = firecrawl_extract(value)
+    assert post.call_args.args[0] == "http://private-backend.example:3002/v2/scrape"
+    sent = post.call_args.kwargs["json"]
+    assert sent["url"] == value["url"]
+    assert sent["formats"][0]["schema"] == value["schema"]
+    assert sent["formats"][0]["prompt"] == value["instruction"]
+    if status == 200 and payload["success"]:
+        assert data == {"author": ["Ada", "Grace"], "year": []}
+        assert native == payload
+    else:
+        assert data is None
+        assert native == {"http_status": status, "response": payload}
+
+
+def test_health_and_worker_environment_identity_survives_different_entrypoints(tmp_path):
+    import subprocess
+    import sys
+
+    from harness.web_extract.self_hosted import installed_environment_sha256
+
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-c",
+            "from harness.web_extract.self_hosted import installed_environment_sha256; print(installed_environment_sha256())",
+        ],
+        cwd=tmp_path,
+        capture_output=True,
+        text=True,
+        check=True,
+    )
+    assert result.stdout.strip() == installed_environment_sha256()

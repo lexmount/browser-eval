@@ -10,6 +10,7 @@ import os
 import resource
 import subprocess
 import sys
+import sysconfig
 import time
 from functools import lru_cache
 from pathlib import Path
@@ -50,6 +51,16 @@ def validate_input(value):
     return value
 
 
+def installed_environment_sha256():
+    """Ignore the caller's working directory when fingerprinting installed packages."""
+    paths = sorted({sysconfig.get_paths()[key] for key in ("purelib", "platlib")})
+    packages = sorted(
+        (str(d.metadata.get("Name", "unknown")), str(d.version))
+        for d in importlib.metadata.distributions(path=paths)
+    )
+    return hashlib.sha256(json.dumps(packages).encode()).hexdigest()
+
+
 @lru_cache(maxsize=len(ENGINES))
 def runtime_identity(engine):
     return {
@@ -62,14 +73,7 @@ def runtime_identity(engine):
         "model_context_tokens": int(os.environ.get("EXTRACTION_MODEL_CONTEXT_TOKENS", "128000")),
         "implementation": "native-open-source/1",
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "environment_sha256": hashlib.sha256(
-            json.dumps(
-                sorted(
-                    (str(d.metadata.get("Name", "unknown")), str(d.version))
-                    for d in importlib.metadata.distributions()
-                )
-            ).encode()
-        ).hexdigest(),
+        "environment_sha256": installed_environment_sha256(),
     }
 
 
@@ -99,12 +103,15 @@ async def crawl(value):
             config=CrawlerRunConfig(cache_mode=CacheMode.BYPASS, extraction_strategy=strategy),
         )
     if not result.success:
-        raise RuntimeError(result.error_message or "Crawl4AI fetch failed")
-    native = json.loads(result.extracted_content)
+        return None, {"error": result.error_message, "extracted_content": result.extracted_content}
+    try:
+        native = json.loads(result.extracted_content)
+    except (ValueError, TypeError) as exc:
+        return None, {"error": str(exc), "extracted_content": result.extracted_content}
     # The task asks for one record. Never choose the best of multiple candidates.
     item = native[0] if isinstance(native, list) and len(native) == 1 else native
     if not isinstance(item, dict) or item.get("error"):
-        raise RuntimeError("Crawl4AI did not return exactly one record: " + json.dumps(native))
+        return None, {"extracted_content": native, "usage": vars(strategy.total_usage)}
     data = {k: v for k, v in item.items() if k in value["schema"]["properties"]}
     return data, {"extracted_content": native, "usage": vars(strategy.total_usage)}
 
@@ -262,11 +269,13 @@ def firecrawl_extract(value):
         timeout=105,
         allow_redirects=False,
     )
-    response.raise_for_status()
-    native = response.json()
-    if native.get("success") is not True:
-        raise RuntimeError("Firecrawl extraction failed: " + json.dumps(native))
-    return native["data"]["json"], native
+    try:
+        native = response.json()
+    except ValueError:
+        return None, {"http_status": response.status_code, "response_text": response.text}
+    if response.status_code != 200 or native.get("success") is not True:
+        return None, {"http_status": response.status_code, "response": native}
+    return native.get("data", {}).get("json"), native
 
 
 def worker(value):
@@ -282,7 +291,8 @@ def worker(value):
                 crawl(value) if value["engine"] == "crawl4ai" else stagehand_extract(value)
             )
     return {
-        "success": True,
+        "success": isinstance(data, dict),
+        "error": None if isinstance(data, dict) else "Native extraction did not return one record",
         "data": data,
         "native": native,
         "runtime": runtime_identity(value["engine"]),
