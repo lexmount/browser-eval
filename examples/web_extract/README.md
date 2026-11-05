@@ -21,6 +21,11 @@ part measured here. [Zyte calls it automatic extraction](https://docs.zyte.com/z
 [Firecrawl calls it structured extraction](https://github.com/firecrawl/firecrawl/blob/main/apps/js-sdk/firecrawl/README.md).
 [Browserbase exposes schema-based JSON through Fetch](https://www.browserbase.com/blog/introducing-authenticated-fetch).
 
+Vendor products keep their official names, such as
+[Bright Data Web Scraper API](https://github.com/brightdata/skills/blob/main/skills/bright-data-best-practices/references/web-scraper-api.md).
+Web Extract names this benchmark track. Source URLs, SDK names and quoted text
+remain unchanged.
+
 The maintained module is `harness.web_extract`, the certified track is
 `--track web-extract`, and the optional dependency group is `web-extract-eval`.
 Existing evidence remains at its original location; pass `--home` to use it.

@@ -47,13 +47,15 @@ FORBIDDEN = (
 
 
 _EXTRACT_RETIRED = re.compile(
-    r"\bweb[-_]" + r"scrap(?:er|ing)\b|\bscraper-(?:theme|(?:cohort-|record-)?example)\b",
+    r"\bweb[-_]" + r"scraper\b|\bscraper-(?:theme|(?:cohort-|record-)?example)\b",
     re.IGNORECASE,
 )
 
 
 def extract_name_findings(name: str, text: str) -> list[str]:
     """Keep current names canonical while preserving original source identities."""
+    if _EXTRACT_RETIRED.search(name):
+        return [f"{name}: use the current Web Extract namespace"]
     if name.startswith(("research/", "evaluation/")):
         return []
     scanned = text
@@ -67,10 +69,9 @@ def extract_name_findings(name: str, text: str) -> list[str]:
         value = json.loads(text)
         value.pop("legacy_names", None)
         scanned = json.dumps(value)
-    legacy_display = name.startswith("src/harness/web_extract/") and re.search(
-        r"\bweb\s+" + r"scraper\b", scanned, re.IGNORECASE
-    )
-    if legacy_display or _EXTRACT_RETIRED.search(name) or _EXTRACT_RETIRED.search(scanned):
+    # URLs identify external products or pinned source revisions, not our namespace.
+    scanned = re.sub(r"https?://[^\s\"'<>]+", "", scanned)
+    if _EXTRACT_RETIRED.search(scanned):
         return [f"{name}: use the current Web Extract namespace"]
     return []
 

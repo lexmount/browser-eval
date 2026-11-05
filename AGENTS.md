@@ -19,6 +19,8 @@ Every track records full source commits and exact task, reference and scorer has
 
 Text the project writes has English as its source; text from outside keeps its original language byte for byte. `CONTRIBUTING.md#text-language` owns the rule. Preserve hash-bound acceptance/evidence artifacts. [Report languages](docs/report-hosting.md#report-languages) owns report generation: public report CLIs fall back to English, and a rebuild keeps the saved language unless the user asks otherwise.
 
+Use `Web Extract` for this project’s structured field extraction track and its owned paths. Preserve vendor product names, API identifiers, industry terms, original source paths and quotations. Naming checks must distinguish project namespaces from source content.
+
 Use `Browser Use` for the autonomous track and `Browser Trajectory Replay` for the fixed BrowserTool-action track. Keep these formal track names in English in every language, including Chinese documentation and discussion. Their implementation roots are `src/harness/browser_use/` and `src/harness/trajectory_replay/`; do not add aliases or compatibility paths using the retired names.
 
 # Change lifecycle and repository footprint

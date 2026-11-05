@@ -24,7 +24,7 @@ def test_certified_extract_routes_to_native_track():
     run.assert_called_once_with(["--profile", "external.json"])
 
 
-@pytest.mark.parametrize("method", ["site-specific-extractor", "browserbase-stagehand"])
+@pytest.mark.parametrize("method", ["brightdata-scrapers", "browserbase-stagehand"])
 def test_site_specific_extractor_is_not_an_archived_html_participant(method):
     with tempfile.TemporaryDirectory() as d:
         with pytest.raises(ValueError, match="complete extraction interfaces"):

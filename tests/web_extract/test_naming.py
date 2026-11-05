@@ -3,6 +3,39 @@
 import json
 
 
+def test_original_provider_names_and_source_references_are_preserved():
+    from scripts.check_track_naming import extract_name_findings
+
+    for text in [
+        'OFFICIAL_NAME = "Bright Data Web Scraper API"',
+        'OFFICIAL_NAME = "Web Scraper API"',
+        'SOURCE = "https://brightdata.com/products/web-scraper"',
+        'SDK = "PDFContentScrapingStrategy"',
+        '{"tags": ["web-scraping"]}',
+    ]:
+        assert not extract_name_findings("src/harness/web_extract/providers.py", text)
+    assert not extract_name_findings(
+        "evaluation/web-extract/swde/report-assets.json",
+        json.dumps({"source": "upstream/web-" + "scraper/original.png"}),
+    )
+
+
+def test_report_branding_preserves_original_product_names_and_links():
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.report import page
+
+    source = "https://brightdata.com/products/web-scraper"
+    body = f'<p>Bright Data Web Scraper API</p><a href="{source}">Official API</a>'
+    rendered = BeautifulSoup(page("en", "index", "Web Extract", body), "html.parser")
+    assert rendered.select_one("header .eyebrow").get_text() == (
+        "WEB EXTRACT / STRUCTURED EXTRACTION"
+    )
+    assert rendered.select_one("footer").get_text().startswith("Web Extract · ")
+    assert rendered.select_one("main p").get_text() == "Bright Data Web Scraper API"
+    assert rendered.select_one("main a")["href"] == source
+
+
 def test_current_extract_names_cover_code_configuration_and_example_paths():
     from harness.benchmarks.data import source_name_migrations
     from scripts.check_track_naming import extract_name_findings
@@ -11,7 +44,7 @@ def test_current_extract_names_cover_code_configuration_and_example_paths():
     original = next(k for k, v in names.items() if v == "web-extract-public-snapshots/2")
     retired = original.removesuffix("-public-snapshots/2")
     for name, text in [
-        ("src/harness/web_extract/report.py", retired.replace("-", " ").title()),
+        ("evaluation/" + retired + "/swde/report-assets.json", '{"assets":[]}'),
         ("src/harness/web_extract/report.py", 'LABEL = "' + retired + '"'),
         ("configs/report-templates.json", '{"tracks":{"' + retired + '":{}}}'),
         ("src/harness/" + retired.replace("-", "_") + "/cli.py", ""),
