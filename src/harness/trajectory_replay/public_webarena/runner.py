@@ -66,6 +66,8 @@ from harness.trajectory_replay.public_webarena.webarena_environment import (
 )
 
 ENGINE_IMAGES = dict(DEFAULT_BROWSER_IMAGES)
+# The curated replay builds the same image tag with a newer Moli; refuse to measure it here.
+MOLI_VERSION = "1.0.6"  # examples/trajectory_replay/public_webarena/docker/moli.Dockerfile
 
 
 def _remaining_task_budget_ms(deadline: float, *, phase: str) -> int:
@@ -502,6 +504,9 @@ def run_evaluation(
 ) -> dict[str, Any]:
     if max_retries < 0:
         raise ValueError("max_retries must be non-negative")
+    output = Path(output_dir)
+    if output.exists():
+        raise ValueError("Output must be a new directory; existing evidence is immutable")
     if task_timeout_ms < 1:
         raise ValueError("task_timeout_ms must be positive")
     if cpus <= 0:
@@ -612,8 +617,6 @@ def run_evaluation(
     client = docker.from_env()
     validate_resource_controls(client.info())
     require_linux_cgroup_v2(client)
-    output = Path(output_dir)
-    output.mkdir(parents=True, exist_ok=True)
     run_id = uuid.uuid4().hex[:12]
     runtime = EngineRuntime()
     rows: list[dict[str, Any]] = []
@@ -647,6 +650,16 @@ def run_evaluation(
                 memory=memory,
                 reset_state=_reset_state,
             )
+        if "moli" in runtime.containers:
+            reported = runtime.containers["moli"].exec_run(["moli", "--version"]).output
+            reported = reported.decode("utf-8", errors="replace").strip()
+            if MOLI_VERSION not in [part.lstrip("v") for part in reported.split()]:
+                raise RuntimeError(
+                    f"{ENGINE_IMAGES['moli']} reports {reported!r}; public replay requires "
+                    f"Moli {MOLI_VERSION} built from "
+                    "examples/trajectory_replay/public_webarena/docker/moli.Dockerfile"
+                )
+        output.mkdir(parents=True, exist_ok=False)
 
         for task_index, declared_task in enumerate(runnable_tasks):
             task = materialize_task(declared_task, fixture_origin)

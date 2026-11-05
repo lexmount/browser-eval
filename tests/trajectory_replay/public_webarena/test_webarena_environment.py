@@ -1214,6 +1214,32 @@ def test_reset_wall_clock_timeout_interrupts_blocking_operation():
             time.sleep(1)
 
 
+def test_wall_clock_timeout_inside_playwright_leaves_the_page_usable():
+    from playwright.sync_api import sync_playwright
+
+    from harness.reporting.visual import browser_executable
+
+    binary = os.environ.get("BROWSER_EVAL_TEST_BROWSER_BINARY")
+    if not binary:
+        try:
+            binary = browser_executable()
+        except ValueError:
+            pytest.skip("Install Chromium or set BROWSER_EVAL_TEST_BROWSER_BINARY")
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(executable_path=binary, headless=True)
+        try:
+            page = browser.new_page()
+            started = time.monotonic()
+            with pytest.raises(TimeoutError, match="final evidence capture"):
+                with wall_clock_timeout(0.3, operation="final evidence capture"):
+                    page.evaluate("() => new Promise(resolve => setTimeout(resolve, 5000))")
+            assert time.monotonic() - started < 3
+            # The deadline must not kill Playwright's event loop; later calls used to hang.
+            assert page.evaluate("() => 1 + 1") == 2
+        finally:
+            browser.close()
+
+
 def test_prepare_wall_clock_timeout_covers_login_and_start_page(monkeypatch):
     environment = object.__new__(WebArenaEnvironment)
     task = _task()

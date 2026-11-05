@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import json
 import re
@@ -16,6 +17,7 @@ from typing import Any
 from urllib.parse import urlparse
 
 import docker
+import greenlet
 from webarena_verified.environments.container.config import get_container_config
 from webarena_verified.environments.container.manager import ContainerManager
 from webarena_verified.types.task import WebArenaSite
@@ -55,13 +57,29 @@ def wall_clock_timeout(seconds: float, *, operation: str = "environment reset"):
         raise RuntimeError("WebArena reset refuses to replace an active process timer")
     previous_handler = signal.getsignal(signal.SIGALRM)
 
+    message = f"WebArena {operation} exceeded {seconds:g}s wall-clock deadline"
+    expired = False
+
     def expire(_signum: int, _frame: Any) -> None:
-        raise TimeoutError(f"WebArena {operation} exceeded {seconds:g}s wall-clock deadline")
+        nonlocal expired
+        expired = True
+        if greenlet.getcurrent().parent is None:
+            raise TimeoutError(message)
+        # Raising inside Playwright's event-loop greenlet kills it and hangs every later
+        # call; cancel the pending sync API calls so they fail in the caller instead.
+        loop = asyncio.get_running_loop()
+        for task in asyncio.all_tasks(loop):
+            if hasattr(task, "__pw_stack__"):
+                loop.call_soon_threadsafe(task.cancel)
 
     signal.signal(signal.SIGALRM, expire)
     signal.setitimer(signal.ITIMER_REAL, seconds)
     try:
         yield
+    except asyncio.CancelledError:
+        if not expired:
+            raise
+        raise TimeoutError(message) from None
     finally:
         signal.setitimer(signal.ITIMER_REAL, 0)
         signal.signal(signal.SIGALRM, previous_handler)
