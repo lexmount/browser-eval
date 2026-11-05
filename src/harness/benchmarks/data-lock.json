@@ -34658,6 +34658,1948 @@
         "91ca91ae26d6baf84fbc104431f13e577ca41abf": "f292e7e80fea396abc87060dcbfeb3bed6e56467",
         "3f1580a20922fc3f339b5fc279d9bbdb06d5d194": "663248551204393cf38abbb18a9c5ddfa417118d"
       }
+    },
+    "web-extract": {
+      "repository": "Lexmount/LexBench-Zyte-Product-Extraction",
+      "revision": "1b213908dfb737cec3cc1fe4e895b83819d23539",
+      "source_revision": "94d0f655ca8c7b8986cdc6a3e0329f56acc64e3d",
+      "archive": {
+        "path": "definitions.tar.gz",
+        "sha256": "7c90f670480f01c95ec63e9dc573c08db699ac2bcae54d1be9349e829ad31a08",
+        "size": 14867118
+      },
+      "datasets": {
+        "zyte-products-140": {
+          "count": 140,
+          "path": "tasks.json",
+          "sha256": "7551b052427f78fc591afcaef9899fb22d669aab4ebf954f5eacaf2989d22732"
+        }
+      },
+      "files": {
+        "LICENSE": {
+          "sha256": "3834f7414080a90266fb854dd0ca3331bcce88c1f5ade9f8b650a13a04881af9",
+          "size": 1061
+        },
+        "LICENSE-annotations": {
+          "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+          "size": 11358
+        },
+        "NOTICE": {
+          "sha256": "f66b311b1f4008209e42ee259d8ed90b60d8208b39223c3e595e56cc06440bf5",
+          "size": 316
+        },
+        "THIRD_PARTY.md": {
+          "sha256": "b480783ffafbbd48063e422b79d71ad96f2f14435db5d07cb180e8c9d3611311",
+          "size": 1169
+        },
+        "VERSIONING.md": {
+          "sha256": "24d7fc2c5ae3a58e9b0a52694a3d6f8eab9fef27591ed2572cf82f6373602274",
+          "size": 667
+        },
+        "definitions/provenance.json": {
+          "sha256": "f61983f6aa0441ea63d3c1442f70674148ea51180117c4b75cb9f5cae1c32bfc",
+          "size": 29836
+        },
+        "definitions/reference-corrections.json": {
+          "sha256": "e07edd8fe9018a9da78817f3738d5bf00682916b9e0292ce0388d6503c2a6f48",
+          "size": 27103
+        },
+        "definitions/registry.json": {
+          "sha256": "d4a4f5c1a34c56e0b528b690c7c6b9f3a2805279ace1fd4eacad69aeb1a38a3d",
+          "size": 554
+        },
+        "definitions/runtime/manifest.json": {
+          "sha256": "3bbfe67fe3c0de48621a6f7867ccf1a07e39036d381940d1b380dbd6b386b453",
+          "size": 61178
+        },
+        "definitions/tasks.json": {
+          "sha256": "7551b052427f78fc591afcaef9899fb22d669aab4ebf954f5eacaf2989d22732",
+          "size": 183978
+        },
+        "definitions/upstream/LICENSE": {
+          "sha256": "3834f7414080a90266fb854dd0ca3331bcce88c1f5ade9f8b650a13a04881af9",
+          "size": 1061
+        },
+        "definitions/upstream/README.rst": {
+          "sha256": "21e392e1733d352b05bf9c7195157aa1e10b7e45a9cce5d639f89f8f00e97b09",
+          "size": 14699
+        },
+        "definitions/upstream/dataset/ground-truth.json": {
+          "sha256": "5be72a7a44898427343d136d84b21ef377f2f68503c6212c2ab9970e1399899a",
+          "size": 68313
+        },
+        "definitions/upstream/dataset/html/0094967f37c647407d92b624202736e3272231cf61f8ccaeca0b19aeb631ab28.html.gz": {
+          "sha256": "1471186b58f2216d0d5a2aa5e1164d9e16722051d1505b9e72abdcac7640aeee",
+          "size": 287119
+        },
+        "definitions/upstream/dataset/html/01efbb747904557e90dcb56d1f255a4034d5206c796539e2ce4d9dd68672c098.html.gz": {
+          "sha256": "fec416cdd816109784c753daea5f23753fb34b6f4adf9fa399fb5fa0db62fd65",
+          "size": 278755
+        },
+        "definitions/upstream/dataset/html/040c3ea5ea32019274df30d79e4417c4a46f3fc6bc253e697463a99ee263593c.html.gz": {
+          "sha256": "49ea905363a49043f65429741cb789fd744b67ff135557023d890033e7b797ee",
+          "size": 53880
+        },
+        "definitions/upstream/dataset/html/04ba14498f10a1c4a21dfce812638453cc94348d379d4885d33476bf2e7227c5.html.gz": {
+          "sha256": "cc71d4f77d9388ec13899809d8f32f1b103763c2f68fba92dd16719abc6d5b28",
+          "size": 62538
+        },
+        "definitions/upstream/dataset/html/0666abebc0d5f9647f4e11a90bd35de706903e8eeedec1dabd50be49ee0e39a2.html.gz": {
+          "sha256": "ccd3e70cb225db124a0e1c588e60d6840ccb795ea8c2bffe52533f2467252c2e",
+          "size": 56076
+        },
+        "definitions/upstream/dataset/html/08b51541ad9812fab3d652a7987be20feb42a16f4fc5868f85200caf9a48b520.html.gz": {
+          "sha256": "cad9cb9c4201a3b10b2b489c5b6f6b562e75b8fad9cf7e17a4a9143e0eca00fb",
+          "size": 193705
+        },
+        "definitions/upstream/dataset/html/09b6ff551aa911aa3a539e50d3c64758009d51b902c9d0fbeca1a3d1d77b8dce.html.gz": {
+          "sha256": "9a9d6a9a470c15e9f9d0266651d2d6fd2e7d025f95b873f79b1c6e87f7aa9788",
+          "size": 59014
+        },
+        "definitions/upstream/dataset/html/0bf9a333844ecd186e5fe8a317b23f49cc2a26455383adc83e998be3ceb8a557.html.gz": {
+          "sha256": "b56cb5a55bd4b4f6511d12e20bd538fa7cf9ad78f36d6b9a00657063defbbd95",
+          "size": 124233
+        },
+        "definitions/upstream/dataset/html/0d1c8923ac0602548a1794c0f9a7f30b3d5793f4d6f44e6a034273fef515c400.html.gz": {
+          "sha256": "98da5e6c1d4cdb00f6c3aaa968699edc975a5cadddd0175bce537097c895925b",
+          "size": 91922
+        },
+        "definitions/upstream/dataset/html/0eeed9742d1e585d884edeb69bed7c214a5309ae067c20afaa191d62ff7d1905.html.gz": {
+          "sha256": "fbfaaf8c0c1fb9ebb044500f3f783899884bb8395e166a54e5a1b62d91149cb8",
+          "size": 21694
+        },
+        "definitions/upstream/dataset/html/137b2fe5b12e369cdb0bc5297ba72fc7116508d3988eb97f7cff4b2536c320ae.html.gz": {
+          "sha256": "8029a62ba2ea721bd9b3d0f92295496329f548e8e4983f32d5885e8b5ca851aa",
+          "size": 123887
+        },
+        "definitions/upstream/dataset/html/14dc707ee18496c1bcdefc1c99bd76284af686cbb7069ff7c68210ca3094a9f4.html.gz": {
+          "sha256": "0d27ff58523f3a3cf3d3b4348fa37ac675635c9933e5e36a1384e8f03e118281",
+          "size": 249652
+        },
+        "definitions/upstream/dataset/html/15944e4fe57c61ebd8e225d1feb5d875fe2caf9f658d2dba35060769f80a886e.html.gz": {
+          "sha256": "98f42801213546d6655900c5367e1bbb7b6356034f858c0c218563584167c272",
+          "size": 88326
+        },
+        "definitions/upstream/dataset/html/16606e09f7ec2fa123dce0849ea63859a65f95604cec792a094ba4171640f80e.html.gz": {
+          "sha256": "cf3ff99ed49db142467d4cec9cf4bdc389ad0902a2d98eefb3bd293be5848187",
+          "size": 32997
+        },
+        "definitions/upstream/dataset/html/16962698dd77adf81fc07cd334a56539e2f96b79d8c028b8f3e5c9ba287f081e.html.gz": {
+          "sha256": "e70ead5661783a58435b1d0d2b73f2507ddeff2570a3390275cc33757983324f",
+          "size": 32037
+        },
+        "definitions/upstream/dataset/html/1a9172cfeef9715366bc9f2be88f473fdc67201bfa3595a7db259a23316f2049.html.gz": {
+          "sha256": "791e1c0c100af3ca812b7e0592df4f5f5a790b0cc638596125295e2cfabf8a3b",
+          "size": 61748
+        },
+        "definitions/upstream/dataset/html/1bb3781745f7c8411b13585d741195a0f94c70f9ec15162cbb16caa65f40f492.html.gz": {
+          "sha256": "436a5d6c053f8244d1492458d281384357a25cfb2322f92eca3b79cdd587ab29",
+          "size": 62379
+        },
+        "definitions/upstream/dataset/html/1c79626791f55dc4dc9f96945f819c19b35a850831ffc404471f422b5e7dacf6.html.gz": {
+          "sha256": "83e0cd43878f22acaea7546b32eb83c98f026fc2c25b61628bacf630f97e3662",
+          "size": 374889
+        },
+        "definitions/upstream/dataset/html/21e72a8e6d24920993b9014ccc5ac3f0656f1f28bc94b26dea26510b3c33f58a.html.gz": {
+          "sha256": "27abc66afaa565e27787ca05e3d7da28bf4a535ef29498bce8b90e59e86ab0db",
+          "size": 102826
+        },
+        "definitions/upstream/dataset/html/2342b61d6831e854da88adb1b7c87e52621dea510523436ee0bc565159ab1ba5.html.gz": {
+          "sha256": "dbea5fa75740c4fa68c74798cd45bd3e5cce3736d9d4ed165f855ef2f61fdcb7",
+          "size": 81857
+        },
+        "definitions/upstream/dataset/html/24d6d89f539d8d4a0a2dd082038571c17fe88394eeb1c4502071a551aa6fa42d.html.gz": {
+          "sha256": "2b0659e16760c6555dc6dfd035e5dfc8bbe1fc78fdb2c8ca3f98b5c308a2dc7b",
+          "size": 56274
+        },
+        "definitions/upstream/dataset/html/25910052eef824e252aa20b9d25611d1c007955f7be26b4ec90b3382bbf86241.html.gz": {
+          "sha256": "722ddda46184f8ec62d0f0ba700bdd205b7a4ad77d5830397d4dc0e1b6a89ff7",
+          "size": 47256
+        },
+        "definitions/upstream/dataset/html/27021c0c0aea00d016b29e7ae2c992252ec6aeec5cbd05cfd6615a0f6edbd0c5.html.gz": {
+          "sha256": "5fa2f5c078fb0ad246af89999a64f7606a722524975f842b22d3a5b92c3d29be",
+          "size": 344103
+        },
+        "definitions/upstream/dataset/html/29d061966ead48cd03feea85cc63c201b8960b3cadb5c9febf83c44227f9a375.html.gz": {
+          "sha256": "99b2dd082854f6905dc19bfed0ac3195b66c3959be12985171cfc855605e3a52",
+          "size": 58284
+        },
+        "definitions/upstream/dataset/html/2a84a964ab40333b27cd3af01db6d8cd256cff5dfc391eb804f854ebdcbbb2bc.html.gz": {
+          "sha256": "9a38486a834cef52c58d7cae8e0dbeb93d2a5d901f1ccc2e1b85944510a30e1e",
+          "size": 53041
+        },
+        "definitions/upstream/dataset/html/2b9b46483ad6335fb89152af701e9507677a98d412acb7186a135d18dbf02404.html.gz": {
+          "sha256": "8516531a304c4c1963d6f95d52d64ddfdc38b0f2a0389518d34f8a1b1f60bd5e",
+          "size": 22175
+        },
+        "definitions/upstream/dataset/html/2c036dd02ff3aaeb39dd8b5df19a3c30fbaad448ab8884fb2f8d08b7f2a74066.html.gz": {
+          "sha256": "ed08cb8988e948fda7d504698bebd4cd6ba4dff11b8c21faa18f0b4c701b8bc0",
+          "size": 226889
+        },
+        "definitions/upstream/dataset/html/2c08ee46ba20dc4323a3ae4923cd5adb63d509cba1b995b32db7b481303de978.html.gz": {
+          "sha256": "91992862efd38f420f3cd8928e72be23fcbee31eefe17e38e717aa57603cf8b8",
+          "size": 67310
+        },
+        "definitions/upstream/dataset/html/2c42fb6035ff369f80148ebbe5ad62c93fe1532e0435e7ec1be87474cb5578d7.html.gz": {
+          "sha256": "da5c580b38838ec6b88d8668b0a45b3b44c4f8d59b505c5d650847099968f6a0",
+          "size": 112808
+        },
+        "definitions/upstream/dataset/html/2d3e52568d577807ff2cc1312b0513097e33dae744705a960fc1116fdb82a58d.html.gz": {
+          "sha256": "6bfa7d512932053a5122d2ffa226a308c996901e79d724e891dc0d3d9268e14b",
+          "size": 119006
+        },
+        "definitions/upstream/dataset/html/2dfce31e999e92ef6bb61e521e655a1a366b0f0507ae2e057f7fd8162a2e785b.html.gz": {
+          "sha256": "62d08c9f3df530bc4fbddcba78e48f0058a363d3807a2b8865579465daecfac8",
+          "size": 44083
+        },
+        "definitions/upstream/dataset/html/2eca89a9c93c7661fd99d571519b20f582a3dcbbdadfcc480dedb40656d1b7cc.html.gz": {
+          "sha256": "e845a7d8ab9300e3ff2bdfc9a8d89e46cb73749cf301a24ce7f19b9df8970d1a",
+          "size": 233505
+        },
+        "definitions/upstream/dataset/html/2fa16d14a9e343cca43ccf01e9ef9103ebac2f38640bd0c2844befeed91f54ca.html.gz": {
+          "sha256": "ef77ccde4e49adb1b8ea4a44ed95a8ac486031e58da7a2b50da8e126aa778356",
+          "size": 77081
+        },
+        "definitions/upstream/dataset/html/3126dc6880ce1f3e66d4ea1c8b0b733cf4d19587c83d543b128d7d56135332f6.html.gz": {
+          "sha256": "7966c1ebc1fdc670fa0ea7d4da24ec1bb585ae146b674181c7484351e6e5c8de",
+          "size": 113261
+        },
+        "definitions/upstream/dataset/html/359ca699f879f6ed3597781c7fbf0946ced7e5ca3994f225e3714354842bb21c.html.gz": {
+          "sha256": "b4fb98fee34c05ce85beb639fb188cb1ed7b87948fc3b272e850b201caeee5cf",
+          "size": 123095
+        },
+        "definitions/upstream/dataset/html/361022ee4199f02c23449c3986cd2ac50b0f815b699e5fade36d168a82350613.html.gz": {
+          "sha256": "7d9f9784a7036d7d46e8a83830b2c18153b45671c4232c2f8bdc8a91c845b195",
+          "size": 122117
+        },
+        "definitions/upstream/dataset/html/36dbaefc4b2a95d7bafef92f74fcd2e80bd631774dda813450317a496919a09a.html.gz": {
+          "sha256": "d2dc5f850bda763f91d315012c9ade7d9eed34198e54cf2f90492d1907a92c0a",
+          "size": 35532
+        },
+        "definitions/upstream/dataset/html/3ae14333546c0447a483a3f29cabfc7d6e4301a5aae525cc3b0548b053daefc0.html.gz": {
+          "sha256": "acaf5126b20d176e9a4cb272b9223730e364a7aa228c8c08ebb8db76d2e173cc",
+          "size": 56919
+        },
+        "definitions/upstream/dataset/html/3d3ee8ebe15603b2ffc77b0c9f87f4e033ff4784cfdd50a135ae17395c0d3263.html.gz": {
+          "sha256": "127e8bbfd573fdb0c88897704d0b45e2b33528bcbc8d64dfb8acab30655cdd48",
+          "size": 6393
+        },
+        "definitions/upstream/dataset/html/3ef9ddf56392c917ec60f444dd1071e26b6c797f29bcc00e6bab3e7187c39216.html.gz": {
+          "sha256": "449d2bb6a31502d984a1ee568062137482e630eae7b2b065655aede6179103c6",
+          "size": 75135
+        },
+        "definitions/upstream/dataset/html/3f5c52ae76143352d95df6e24a3a9756c1bf6bd588a644f3c4e7510d66eecdbd.html.gz": {
+          "sha256": "8566b0e272a556856630f8103364f4928fb6bd55a5e693ce4718822c6f31dd84",
+          "size": 9570
+        },
+        "definitions/upstream/dataset/html/412fe668a36c6f907e78ffe8e5533b771473e5cbe6593807ecfdd25548c002bf.html.gz": {
+          "sha256": "d00d960ba52db67ff3c4b8a40563ff7250dccd8632808d08ccf15b86c98a774f",
+          "size": 64744
+        },
+        "definitions/upstream/dataset/html/42b022ac447f572815bd9510042a8801c9f7c4b4027cf88a9f9db08e29e4402c.html.gz": {
+          "sha256": "f5da7524d54e4a3d9e47f18df4b052dbe831b81349b9fd2d2be96fe518c7b3c8",
+          "size": 70753
+        },
+        "definitions/upstream/dataset/html/442c155e306d5169f24e82ce31b81328f7c8f2efb68b163bffab2b7e5571bf45.html.gz": {
+          "sha256": "5eed8daaf830e6c84361b0cdc57a7f84692b5a83f3074cc574c947725228b63e",
+          "size": 56814
+        },
+        "definitions/upstream/dataset/html/453f5cc079af4a70fea9a4cd7e71f0b6e7998becdd5f43f52f27580c3a2b3044.html.gz": {
+          "sha256": "1524ee9d61b94bf31e663a3a8713de8843e8b49e50e0405d7545f61979815977",
+          "size": 21758
+        },
+        "definitions/upstream/dataset/html/4595f2ae9fd95efa0bc0b051a2ea76b4f2aaf94b6f355bf8d16139af17bf6e88.html.gz": {
+          "sha256": "0e37607a5a2b441f1b70dbacd8029197c4b4ea80d9aba9912011ed9ed7422ad6",
+          "size": 78688
+        },
+        "definitions/upstream/dataset/html/469894a59bfbe4d6c90d354400d8b61692cf3c95305758de4f666181a178c568.html.gz": {
+          "sha256": "f1cee1c05c596ee76781784c1d4615a2c169094a22a380a0f6837c14911723dd",
+          "size": 43422
+        },
+        "definitions/upstream/dataset/html/4708bedc6a2a97be00c15005332e9fee319f7bf3e009a310016401b7cfdc6e3d.html.gz": {
+          "sha256": "b7d586836bfab468a8260c6aa3ca2f9fbbecace499613c5f679383f04067ed4c",
+          "size": 62848
+        },
+        "definitions/upstream/dataset/html/4b3a17058e7269c6361af74db8c66dfc2bb1d813e1be6ee596f3270069084d7a.html.gz": {
+          "sha256": "9ce8e1287504708cae19862d89c0dd8763fded2a65265304257327f6019bca66",
+          "size": 38266
+        },
+        "definitions/upstream/dataset/html/4d2ce26fa4b8c430ec4b49892af2fa8036ef4ff614fc8f9aa121df4b5e887d8b.html.gz": {
+          "sha256": "90466ff3c74889fea3f7c33d565ed7f5ae2522daa16032ac14a5f59944f626e1",
+          "size": 65667
+        },
+        "definitions/upstream/dataset/html/4e545337e1205c88bdb099402a53153050ce51b1f99cf77e1598ddabbbabd390.html.gz": {
+          "sha256": "c65219e44564356abf01a24222a460cc7ae2fc424e08ed4f6dedb95cd3771bfd",
+          "size": 56855
+        },
+        "definitions/upstream/dataset/html/4f29e8cc0803216e4866bfb1b14c40aaec41000efe30debfc8e94198ae6388d5.html.gz": {
+          "sha256": "359b0b40551047e84ee4f289bf8d4682846f8559e6f0479fe3cf86993403034a",
+          "size": 56381
+        },
+        "definitions/upstream/dataset/html/4f4a8f8ddd039744e0ef1b3307a6e8d94410cb2e5e43478684393c90402de003.html.gz": {
+          "sha256": "2b9c25d370f8525480c9267f1818fabb35db6cdba5c3434eeb9fd479dc6b0162",
+          "size": 125440
+        },
+        "definitions/upstream/dataset/html/4ff590718c188a4d194cc213b07c47b08089c876647ddad17e29b40bfcb635f8.html.gz": {
+          "sha256": "bd36276074509b0df36ac5c672e408334196598f8b070f555c17138fe9058326",
+          "size": 222851
+        },
+        "definitions/upstream/dataset/html/52ea2c6607641aefb3c7ee423b5293e462627709e0e4158fb4746ec0cc397b2f.html.gz": {
+          "sha256": "eff47b9bb4057aae4f37530df63739eb1ae6fac501d9f5976e41cc4d56c5cc55",
+          "size": 87936
+        },
+        "definitions/upstream/dataset/html/5579758b93a34dcc12b865edcfb2cefe7c6c279461706ef9b864405553c389a5.html.gz": {
+          "sha256": "e0b7aaeb18b1cb8a0bed1a16cbabb4d09bb87ccf3905fe70ac65f8c47cefa68c",
+          "size": 35578
+        },
+        "definitions/upstream/dataset/html/572368ce4f3c5a157413c5df963a0cb6ea5d824baed06d7c73d4ef48db77175a.html.gz": {
+          "sha256": "c0af03473d51d550ea4d0c5a11f806acf6f1c0edcdce827dd6921323cf182c5e",
+          "size": 21674
+        },
+        "definitions/upstream/dataset/html/5c1ec210b0bfb93ba2c0ae868d06bfe73aa446e3c1a94f82be617ea5895cc05e.html.gz": {
+          "sha256": "2ba6a7c16e3cc51b8a20d95378a194549be81179dac7fae542b97e51bbab2e80",
+          "size": 68194
+        },
+        "definitions/upstream/dataset/html/5cea6e89b1694a961bf75fbd82d65bf2f0b17955c0de1290dc792c56e3754c7e.html.gz": {
+          "sha256": "a29950c87edadff40a28a5b05e332cf692608e5fbabcc9b9f365862ff7e0abc7",
+          "size": 89530
+        },
+        "definitions/upstream/dataset/html/5d84948aea2d3f34bc134307cf77215c252b728f58c117cca38a1e9be90c1548.html.gz": {
+          "sha256": "1bf2574435a1280165036280e5771cbe8349035f3113dcb96625bb38cc563245",
+          "size": 68427
+        },
+        "definitions/upstream/dataset/html/5dc513be8976e3f1eea471d44bed76e255562363005169cddbc1313671797981.html.gz": {
+          "sha256": "8e534370a345a86f35534e2bffb6fd3b96dcd233386fec49232b853693783dab",
+          "size": 65895
+        },
+        "definitions/upstream/dataset/html/5f885d1f831aaeeabd23917957753116a2f0d031abe9ebadbe08c1ac9dac3be9.html.gz": {
+          "sha256": "b0916c4bba276d02bb83c5e03c06faf5f405421285e71533832b32418a4ba973",
+          "size": 52459
+        },
+        "definitions/upstream/dataset/html/6299847d2ab9726ea3b53d73a01539b84b8e7f08ae62d9f9f4e1b45e7b00ee07.html.gz": {
+          "sha256": "379c0cce10e33f198b53dcd0416f4192b40913bc501ace873f2d8b13fc66454a",
+          "size": 47784
+        },
+        "definitions/upstream/dataset/html/644a6b028687d5c026a4a9b924e7c14a9b86aab7c593559bb44d192854aede2f.html.gz": {
+          "sha256": "e05eef559bfe2e72f1f6721f68571d0aa6f6cfbfe3b91de610f1babb5799862b",
+          "size": 129851
+        },
+        "definitions/upstream/dataset/html/64915d8c2251307c4c8d4c9f3e506a26d4740e2a806b13e33622b3c889b2b037.html.gz": {
+          "sha256": "404b18329a3e75fe91505ee43dd5da4e6aeca07c65ea487146469c9df0405a4e",
+          "size": 289065
+        },
+        "definitions/upstream/dataset/html/6d4840415e8bab0c54f73cf4a696057a370961c695bdef2383b78eb8ee390cc1.html.gz": {
+          "sha256": "ce54b16b76f551b31e925289584f36435f0e6fe47cc2203c94c9f6feab9b23c3",
+          "size": 54767
+        },
+        "definitions/upstream/dataset/html/6f905464d48cbbbdfea4ba3542c7045b504ffe0f1bb20c350363a429339f0697.html.gz": {
+          "sha256": "de6db480e4050e428713e45c786ef270d015205d114c81743028f54798415e46",
+          "size": 131118
+        },
+        "definitions/upstream/dataset/html/745644b6e2809cdc4b9e1b40085da66210f268e2a9986962ed3ba9e790c4415f.html.gz": {
+          "sha256": "c9bef7d0ab6e933dcde86ffe848fdca258c6625473f087e3299a2cb79392d42f",
+          "size": 86075
+        },
+        "definitions/upstream/dataset/html/75cde7398dcd91d3b145ad6b0e360e2fb3580146b5ccfcea4771ae7c9f0d4406.html.gz": {
+          "sha256": "5fb0cc6fe77ba3db62ccaa2c4ad8f7669fb754770d8aa6ac27a525d66d29966f",
+          "size": 44766
+        },
+        "definitions/upstream/dataset/html/7a082dd9d7489842c09333e6b4a1f65aa5d5f0b97d9f0def28510eb71c2aff59.html.gz": {
+          "sha256": "fac837ed588659a47e82ddb852201ecc5028661cc32feef6640b83cba060e6f1",
+          "size": 81942
+        },
+        "definitions/upstream/dataset/html/7a838a167ab318320964fc59715d17cc56e7215b51a36f646c0cfe5b7a3c8d15.html.gz": {
+          "sha256": "0d6bf4a817b03876aaaddf93746566a0c54f461d5272106ed8ea661d6c4806b8",
+          "size": 41296
+        },
+        "definitions/upstream/dataset/html/7c4d432c2c0a3defdc14c8748b45b781ad298764168823086aa3b8b5c750a870.html.gz": {
+          "sha256": "36cfb50c34d9fa77ad9dd452d652cf6f7d432de822bda5586338e073b699e34d",
+          "size": 127627
+        },
+        "definitions/upstream/dataset/html/7c789e683a81f7d7e04c5afd823fcd0f64a2638b437edf283f62396ef84e34e1.html.gz": {
+          "sha256": "b942472dc13a876c6191e600049b7cb3f7af88511162afb18bea31e4286ac11f",
+          "size": 88727
+        },
+        "definitions/upstream/dataset/html/8636665379049081bd52631f965cbedbd133e0c6abb41ce4d5e99513de265faf.html.gz": {
+          "sha256": "143692d4b893ae71177cf62c1b63ebfdc1f14a42fab187e4f2205fa899772c5b",
+          "size": 88105
+        },
+        "definitions/upstream/dataset/html/871a0c6c919b34d1c54559559b53b5a832f17c5e48b933d2a24f72bd8842ca4f.html.gz": {
+          "sha256": "19813e006345793b0fe424a5f72fb763960812aaf591ccfd1d15e91c2a53e452",
+          "size": 323825
+        },
+        "definitions/upstream/dataset/html/8830b60f122373e8cc73b9c25f49ade018e96b775b3d603179f2d16f1cef9faf.html.gz": {
+          "sha256": "bc5dea8d84b574b7237e8c326f106ea43aad2a93342b002e111f61d4bedd6a25",
+          "size": 57742
+        },
+        "definitions/upstream/dataset/html/897bc5b59e376abf58fce20d8ac28b645e29de0d59219781a3313f9d6756f339.html.gz": {
+          "sha256": "dbf1791922da98541a901e0405b3593e01f15c4ed8f50317e3a4dfdcc6f49dd3",
+          "size": 59034
+        },
+        "definitions/upstream/dataset/html/89d10150b9d188f6afd455e4b064b2597d068f8a69f4b990c301466fda427246.html.gz": {
+          "sha256": "ef060b9fc1b47176eb66f165ae45f1c35a5b325f376ff8d49edac880ff844583",
+          "size": 65448
+        },
+        "definitions/upstream/dataset/html/8cb33a3e85d78d3b3f05bdb79da7f552973f602a12b6250d528d9ca38f198c17.html.gz": {
+          "sha256": "14710007d80d782d206aca4d5ae9413ba4eba4ec6d0207573a54f39d35b29f69",
+          "size": 120533
+        },
+        "definitions/upstream/dataset/html/91f0a111a06e65b04300672fe3707e2b92250d2e60d99c08d19115e7cca11e8e.html.gz": {
+          "sha256": "0ce7d61896a064e13616986a66d5459f5403b4f4af3f7bf968420b39565bf3d3",
+          "size": 23494
+        },
+        "definitions/upstream/dataset/html/91f8f14da4a9f3046b93d91b72752f654d81925b5064d07e03ee98db32fb5208.html.gz": {
+          "sha256": "15a88d2d8d49b93c5019789f4766770aeda7f160e210d1adc788fec9c361c7f7",
+          "size": 29291
+        },
+        "definitions/upstream/dataset/html/93e7744dcaa23844c590accf41ec8e40ac7b07d5ea83aaf284ee2f906ece25f2.html.gz": {
+          "sha256": "48c668704d2c9b44ecd640c13da37c94399cb91ac30e3ebe299cb678106f727b",
+          "size": 95289
+        },
+        "definitions/upstream/dataset/html/95f9586d43eaae3ac0e9a39a629faaacaa0e2b8d8dcec2aae99b772a5814f61f.html.gz": {
+          "sha256": "ccb9535140a7cfd1d3f409a11978176198a374b13174a3230bb8d1cdeefb8fc9",
+          "size": 323349
+        },
+        "definitions/upstream/dataset/html/96e88e40a1b4124e0d1e78643bdf31ef17896455b720872f1320acb844f446de.html.gz": {
+          "sha256": "3e55b73101cf8e0ebafb28d0bcc4e928859d669a9e31dc736af05ed3742c52e4",
+          "size": 57012
+        },
+        "definitions/upstream/dataset/html/98a7d9c616ab827e1bba1e7b5d1b8be72a0e2ab12dd83c7db18117fe2ed61754.html.gz": {
+          "sha256": "c7f3c7029eee4f0316d7c8edfc5a1d7b3175d07887082f04d5d5bdfe1d255bbd",
+          "size": 60693
+        },
+        "definitions/upstream/dataset/html/98c23afb105e1ba3ebf6946a0ba356099c42bf171fdfcccab99a380df8a942a4.html.gz": {
+          "sha256": "4bde953d93df19041c89cd680ca67d4664b0961a8d5f03b2b98b98e0978dfed7",
+          "size": 82309
+        },
+        "definitions/upstream/dataset/html/997de723fa628a1b88910411aa906a5c3c539617a0b8597411454122599b0831.html.gz": {
+          "sha256": "866012aee11c348e7ad2958c376b6f962db98a6ad4712967a2e76fed79cd745f",
+          "size": 124928
+        },
+        "definitions/upstream/dataset/html/9d8d7e059ecda5dd934c3928425b924e6a9efdde798d273998ed596d5563f0e7.html.gz": {
+          "sha256": "b86ebabd5eaba410dca215c27d5ac0aa1d8ab9a2b072103dddce40aac2a1fc98",
+          "size": 129141
+        },
+        "definitions/upstream/dataset/html/9d939d48bcf747ea5f40df5d241479cb9158b841b51386915dc690ccaac7b600.html.gz": {
+          "sha256": "fe373c71c4599e29f7d738627528fca5b192e3e10e45e823d49513d7561f232f",
+          "size": 113592
+        },
+        "definitions/upstream/dataset/html/9df72c4ef976324923fc8d34489880eb082b7bfe8116da965fb9960806e69909.html.gz": {
+          "sha256": "7f4c387703ab6cc8308e25abde33ef3ffc38204a67443dbbc93bbb1974a260aa",
+          "size": 85691
+        },
+        "definitions/upstream/dataset/html/9edbb12683ce3776bbd10282bd134e05fe2aa757576bf7882e4b9c8abb4a3178.html.gz": {
+          "sha256": "b3a944abea4b279368859eb7a9f286f0bfcf67f2d9195c211a4e65949b15e730",
+          "size": 95731
+        },
+        "definitions/upstream/dataset/html/9f0c6ced874ae5c3694839f39e82088feb1741aacb0628b8c8e2760e15718957.html.gz": {
+          "sha256": "f3d500b3e0fbf488d08dc3099d45cd3a70b9545b6a908b4922bafd7153053257",
+          "size": 9690
+        },
+        "definitions/upstream/dataset/html/9f14dd854ff84d9dac56a567963ca775c696fd45ba9363753c71dd58c399431f.html.gz": {
+          "sha256": "932a5b86db2ef578aecfbc4482cfbfb3dd36fd40c2f87fdfbb1fe6345828de22",
+          "size": 86932
+        },
+        "definitions/upstream/dataset/html/a8a8fc6a31382dad15baa5ae1d46c5503a7d7e8ca1f7ce5a7355fdbd94a99ff9.html.gz": {
+          "sha256": "5fa7648d36a43022532b45d842a1f448a6a5a34ba3aedfdd0bf288752a5c5f6f",
+          "size": 66901
+        },
+        "definitions/upstream/dataset/html/b03d8c978c416ec5097b9d42ff923b4ce73c3d39efdd071b1546d21ff384d091.html.gz": {
+          "sha256": "4938e2cdd21c718f4b71428ed31163807dbfb27ca3703b29c90e7d3df342f851",
+          "size": 245014
+        },
+        "definitions/upstream/dataset/html/b11bf69050d39bf8f5459e1408216cc5a985db8359164462572613e892e2d09f.html.gz": {
+          "sha256": "1d2f629b76b3ee7f801064dac2fa2f0c1637fa425e79385859a05a83ab302819",
+          "size": 63267
+        },
+        "definitions/upstream/dataset/html/b12479936ff0bc8f06b51922c2006bdc9e96bf2bfbb45366b046c404de3091d2.html.gz": {
+          "sha256": "8561cdedd2c7bbf54bf064539febab4348ccf71a95839f2bf9ebacafc181a32f",
+          "size": 27332
+        },
+        "definitions/upstream/dataset/html/b1ba7e152282a19eea794ad4da9628d7d9a9a83b107f43e4838c971fa036187a.html.gz": {
+          "sha256": "a2741bec627e5a0506a401125ef9edc20ca860ba237e00d08d3f03baa4cc6e92",
+          "size": 59782
+        },
+        "definitions/upstream/dataset/html/b331d47650530c9d01c637f6f62242896860a2dd36467de1ca572f037843657f.html.gz": {
+          "sha256": "8d9c399bab6cdc803fc7b3e04ccd83823e245efdd2e6f2eabeaee7c5250f9195",
+          "size": 88909
+        },
+        "definitions/upstream/dataset/html/b4298c1b23f76adf2074b1da9f69eedd2a46bf9e95f56aec69b8bb5dc7291627.html.gz": {
+          "sha256": "ca885151cc95d492a579d4bf5f218bcb047103e163f4af9928d93f308b71f591",
+          "size": 38014
+        },
+        "definitions/upstream/dataset/html/b475627f8942fe92690823191e34435a1327cabdfc76ee73fe52d050e7f2007c.html.gz": {
+          "sha256": "b286bc232f33058ff3550e5002ed2ed94a4c23e0848eca9f782f5153a6829208",
+          "size": 63276
+        },
+        "definitions/upstream/dataset/html/b7af59198cac698a4c36757e64a60c7a7701c48ae44b559a54938f51d729b1f5.html.gz": {
+          "sha256": "572d6bcdcf6ee6296c445f471065a758bb69c54241822ae046abeef7649308a5",
+          "size": 33967
+        },
+        "definitions/upstream/dataset/html/bc5a68d0c2c02a75c619620efec7afc35fb2c2aa2006cc76ba519942defffd1d.html.gz": {
+          "sha256": "6140d5beb9ce0982e7550c76856621adeb68145c92480b34cc0dfe4888433cdd",
+          "size": 19624
+        },
+        "definitions/upstream/dataset/html/bd3f56627e83bcdc14320daa73d6781604b805d8a705afef69b2e02f55594cf2.html.gz": {
+          "sha256": "6827619773da8db2d51ee5b1a03beb30d77f209d1c216340ad38d38b3138d908",
+          "size": 23888
+        },
+        "definitions/upstream/dataset/html/bd4c84757090f7d876e58c5a23be71991062ac153cddd4594998e675eabae2c8.html.gz": {
+          "sha256": "14d8c25a3a9ad2dfabbe63f8ca8b7dfa0b98583fee1da88ff15d6a7dc821b32d",
+          "size": 53959
+        },
+        "definitions/upstream/dataset/html/bddc08f529598f65d911c43525ba5bde22d34e35fa0c2234a9a61a07a9325433.html.gz": {
+          "sha256": "0493af0e19c0ae17a17acd2820bd9bb0ada84f86ab73a08dc65d025853498d4d",
+          "size": 33499
+        },
+        "definitions/upstream/dataset/html/be99f1975380b02a3066840b86c3f42513c231fcb5c7aff38125b5381e2061e8.html.gz": {
+          "sha256": "07e4655ed148b3ac09ab00bbf2e9edf8b123c996d6f37f8788a1c3c68e9083df",
+          "size": 59438
+        },
+        "definitions/upstream/dataset/html/c01d200ba542cad69bb4dead8e400ce0e8c00545a56ef7cdbafc0f588faf1d2e.html.gz": {
+          "sha256": "a87e8e918302f525cfe451c6ba269d64e63b0acf5d1c4e6c699c02fc4022e4b1",
+          "size": 302156
+        },
+        "definitions/upstream/dataset/html/c3db24da634dc14dc5590fbbcd8c2ea8d815a1ca2b475070b7b10b66e2587665.html.gz": {
+          "sha256": "86232a514d038b39307ec3ac7691eb53fb989a95a7ae8c6d4dc86dfacbd50c38",
+          "size": 68531
+        },
+        "definitions/upstream/dataset/html/c3ed0221b7d1f909b2fa187a152c0c427195d9948200748550105118939cfc21.html.gz": {
+          "sha256": "1c98c4211aaa31bafd1689c8ccdb547c8ce6da72b1fb4704bccafc9219b1ac8a",
+          "size": 126733
+        },
+        "definitions/upstream/dataset/html/c6ba46503434bdb8484e5dba59dc94962c7eb72ab277e794141a46510518928f.html.gz": {
+          "sha256": "faba57928904a1e8d4afc5b0076307d6207fe28db0725a3151222e3b50d3e775",
+          "size": 34322
+        },
+        "definitions/upstream/dataset/html/c9f80eb2d0f97dc954bc265169737c1c156b5ec027fbe62994f2018c1e0f67ed.html.gz": {
+          "sha256": "287cc773ae538132a67d524498734ad7a48065eab20de06bb6f9e0f21a6d8972",
+          "size": 40888
+        },
+        "definitions/upstream/dataset/html/cb061364938de7b9d9e0d382810f060246464533194c5f4666c34c2f75eb02fc.html.gz": {
+          "sha256": "d94594e3fec412252a345fea22959b8a3d556c8b0f525e0bed876efe911cfeed",
+          "size": 252976
+        },
+        "definitions/upstream/dataset/html/ccbaa81cc89eaa70df015c6c970c673efc462414b8760440a75b9afd3ee4df0c.html.gz": {
+          "sha256": "f12699b6a42484de22aa7b00a85eeddf75d9f82f28c329650d83f0931b4f28a6",
+          "size": 23946
+        },
+        "definitions/upstream/dataset/html/ccc114af83c729cc78d05a5de4be3e865dc39dc21093ff9ffebe8599fd8c9869.html.gz": {
+          "sha256": "232303a596c148359d0497a12af428161e1f5a92f599a44b71e1448f821dee23",
+          "size": 119387
+        },
+        "definitions/upstream/dataset/html/cfd548adcbf7b92aba56738f4a44695b98173415fc0124b3b74116628c870062.html.gz": {
+          "sha256": "cc2fb4f767a5ccb0db4f56a5244bb4587b4b20f147ce63b1c00e8cf667402dce",
+          "size": 362788
+        },
+        "definitions/upstream/dataset/html/d132928212cec6acd35bf7015ecd41699d84e3d724626c9f52e63d6db8d13904.html.gz": {
+          "sha256": "62ded53b85c52f0147e24c2fc3fc65b7e4878a7e7b8447dc1807ab76a5bfdc9a",
+          "size": 28315
+        },
+        "definitions/upstream/dataset/html/d8830de9c46d6699a8ad00ed1f9c22754f64e74051ceb6c3a900a39efa1ce181.html.gz": {
+          "sha256": "ac1592d8a10778a9a50e9da01dfebf435278b2364335f36c7dc8be55d3ef7d45",
+          "size": 118203
+        },
+        "definitions/upstream/dataset/html/d8ae57c78bf2dcb58c07375379d6026cfdd123f9b4d9ca8576c03a2e7b81bd63.html.gz": {
+          "sha256": "71cf30c554266eebe18225bc00580f71d7bc6d6130e8cd17c3f0ebc85a36798d",
+          "size": 93334
+        },
+        "definitions/upstream/dataset/html/d932425d85b94d53bf7063ae610df4a38530ecef6ac0993b6aa6559afccf6033.html.gz": {
+          "sha256": "c563b294894320639af0035d5ad145d302894268f9269fd8f61bc87a3a08c67c",
+          "size": 6552
+        },
+        "definitions/upstream/dataset/html/df7999ec1e6239e2364051794e10e24fb4db91c62b08016edfc127f191ba5077.html.gz": {
+          "sha256": "4b7da8760fa725a1802450b607888f62afa5386bab510701699bb6e5b735c38a",
+          "size": 290025
+        },
+        "definitions/upstream/dataset/html/e1c58cf210afd7bb4fffee652ab63ef86ff9609cabbdcffc9b05d5bb24afdd6a.html.gz": {
+          "sha256": "a0cd15b4f5cfa7f2904181445483c7026285ebc27af4ee6ac9290d1a7daa92d4",
+          "size": 51952
+        },
+        "definitions/upstream/dataset/html/e3c3d4d8f7f384d2012be13813ce56aec5c977cc4ddebd73dbfa6037b670cee3.html.gz": {
+          "sha256": "689eebd9ad4856e6a6bdbc82712ac98ea892c51fdde9e4c6ed508d2561120b1d",
+          "size": 86757
+        },
+        "definitions/upstream/dataset/html/e51c765cb622d4b9a8998843e8edc707c65644ad875cf52554c8a0203165c89a.html.gz": {
+          "sha256": "be2f52e8cc41c4882f92adb957537fe225ee296633ab4ac0261d424861e368a0",
+          "size": 87941
+        },
+        "definitions/upstream/dataset/html/e907c66570ebb9a3cf33c84222bed42f9675b0411b53e73448646e9782fef882.html.gz": {
+          "sha256": "12d4ecfb207a3d2c89050a48e40c7b77d3e30c019f81896dba9330ad3a8c3322",
+          "size": 194764
+        },
+        "definitions/upstream/dataset/html/e9879f3b5b1b4e5b20ca43927c8bcb36a68ac446ffab0dccefc29b9d07a5153f.html.gz": {
+          "sha256": "88a042aed21e018eccec0e7af818f042fe25285c1402a7bc32f602712433c0ef",
+          "size": 305638
+        },
+        "definitions/upstream/dataset/html/eb7b7d31caec9ba70b445d7711422c4ca59e32c41fa273d367ed91812b8840b3.html.gz": {
+          "sha256": "d22ae8c3c894f047c73a6e1442bfcd6cc87d1b18b5467395d07a38c71232bd2c",
+          "size": 373167
+        },
+        "definitions/upstream/dataset/html/ec6f39428a4dd88cc0355893c2a8174a5e48baf86d1f88db32f28dd70b17ee73.html.gz": {
+          "sha256": "bcb97aed08b0c6477488b61a4d9fa1c2e2c18b088a0e0783d0a73e9b92f49ecd",
+          "size": 267192
+        },
+        "definitions/upstream/dataset/html/ed28f179058b61273b01adedda587c1446628752bb35c518dc99df225296528c.html.gz": {
+          "sha256": "9551c8cb644f3c95630ea260ef581741c5d58a8f56cb7cb47976a7626dc589e5",
+          "size": 244285
+        },
+        "definitions/upstream/dataset/html/ed4cb68e6b01d002973f10f63c12df87013ba7cfb4eb6b1f97ec78fe9c131eb8.html.gz": {
+          "sha256": "65966ce80d0072dc57d4556db968ad2d29ab29951315c4adf3c528ccdd73e638",
+          "size": 151558
+        },
+        "definitions/upstream/dataset/html/f09ca5f02180881a22d3b8b0e54cbed81664cbfa4280d1825ee9922890cac337.html.gz": {
+          "sha256": "a404304a847f4e75f9d6b549103f8e9d7bfbef14e96f2b8aad4c559b403d6fc6",
+          "size": 283479
+        },
+        "definitions/upstream/dataset/html/f17d4d9c99e7877c11c848ae6cea8b5a0987545660c694a2678317ab3db656d5.html.gz": {
+          "sha256": "fa59430fc714665ef67befbbaa4fa8a79ed732a5e43acad57efd408b0a7e8b17",
+          "size": 302299
+        },
+        "definitions/upstream/dataset/html/f45a21d268b15631b1cca6f99664de8e736234709faedf96b8741707953f9ba9.html.gz": {
+          "sha256": "83e0dba284714fa6001b8ecb19b3b1b320f799c0f55338d01b3326566dc00fd5",
+          "size": 105590
+        },
+        "definitions/upstream/dataset/html/f48e9949eec5a2978c050e6a30c8d96f3070c1b5e31c7e1335364d1025840c73.html.gz": {
+          "sha256": "f218e66ac23ebb035e6aa408719a7a7324150a05f41fa9ce9b8c9e2a09482ea7",
+          "size": 59325
+        },
+        "definitions/upstream/dataset/html/f7df67b3dac6031d17e4758305369f25f41d6a79ac2cef5617283e59a5f19668.html.gz": {
+          "sha256": "fe68373f44db0abea6e242d31b9285f76e0f6498a793edf4c0c83259094c36d5",
+          "size": 123699
+        },
+        "definitions/upstream/dataset/html/f86ea57a5481254b95b06395233194efddda63e162265559dc17464ccf2ad158.html.gz": {
+          "sha256": "a0e324bb53d2ba675bece694ec71479c302d229422fd378a7c9ba60264b88796",
+          "size": 22287
+        },
+        "definitions/upstream/dataset/html/f94bb87d396b0e594d3d8c193171599f210ab2ecf65e98ca21e972033fc7e88c.html.gz": {
+          "sha256": "d3af9523dd3e0167c11df4fae68f92bc73f28f01311e6826994f1c4ae2827329",
+          "size": 50284
+        },
+        "definitions/upstream/dataset/html/fa0b2c0baf2ff8b9b0b9d8610deed6114711738f4dfddbfea35b22008d991c8e.html.gz": {
+          "sha256": "03a63fd30f1e116f672ee50d0ad5f56351895929e4ad98a9f4aad07b3dafd27b",
+          "size": 54980
+        },
+        "definitions/upstream/dataset/html/fb989c4426693a8b5f9fa8f5674747bbd9ca14c83c7cab926671114a540df422.html.gz": {
+          "sha256": "342ac1d38b08ddff9dd9c5eda937f477cb2db4baaf4ff9c80ce6a1277a822620",
+          "size": 82002
+        },
+        "definitions/upstream/dataset/html/fed7b69722e04f4a7039d5d914b8c41bc413a2740d148508a0d2fc5ab1e632ed.html.gz": {
+          "sha256": "c5768569ec6df37d21d899dfa03111e2c352a6128451a3704bb637bb311f8c07",
+          "size": 133599
+        },
+        "definitions/upstream/evaluate.py": {
+          "sha256": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7",
+          "size": 4940
+        },
+        "definitions/upstream/extractors/run_extruct.py": {
+          "sha256": "409abc3a2e5c26c09324ed988aeb363544f68032ce6548ec880b21cf919d0aeb",
+          "size": 5423
+        }
+      },
+      "default_dataset": "zyte-products-140",
+      "scorer": {
+        "path": "upstream/evaluate.py",
+        "repository": "https://github.com/scrapinghub/product-extraction-benchmark",
+        "revision": "cba97d7a8d42aeefd4021bc15d482f297faceaa3",
+        "sha256": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7"
+      },
+      "history": [
+        {
+          "repository": "Lexmount/LexBench-Web-Scraper",
+          "revision": "321d02aae0acde8ccb64949db30ad3b080c2c6ae",
+          "source_revision": "22272f68f973218f43b09a588c37864b0e8a0a19",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "56793f178b9b7369dbcd47b47e528361963d26c585cf2309a65463a20b7d05c8",
+            "size": 14866164
+          },
+          "datasets": {
+            "zyte-products-140": {
+              "count": 140,
+              "path": "tasks.json",
+              "sha256": "7551b052427f78fc591afcaef9899fb22d669aab4ebf954f5eacaf2989d22732"
+            }
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "23d994d176e266e9bc5eb0cf29a4e3ef516666f4a554d0f3d7da21acd1c2d78b",
+              "size": 140
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "a5eca4f43910a8e405fa6c514e189bafec02692c09b7dde9c2789ee7ed3bce33",
+              "size": 498
+            },
+            "VERSIONING.md": {
+              "sha256": "24d7fc2c5ae3a58e9b0a52694a3d6f8eab9fef27591ed2572cf82f6373602274",
+              "size": 667
+            },
+            "definitions/provenance.json": {
+              "sha256": "f61983f6aa0441ea63d3c1442f70674148ea51180117c4b75cb9f5cae1c32bfc",
+              "size": 29836
+            },
+            "definitions/reference-corrections.json": {
+              "sha256": "e07edd8fe9018a9da78817f3738d5bf00682916b9e0292ce0388d6503c2a6f48",
+              "size": 27103
+            },
+            "definitions/registry.json": {
+              "sha256": "d4a4f5c1a34c56e0b528b690c7c6b9f3a2805279ace1fd4eacad69aeb1a38a3d",
+              "size": 554
+            },
+            "definitions/runtime/manifest.json": {
+              "sha256": "3bbfe67fe3c0de48621a6f7867ccf1a07e39036d381940d1b380dbd6b386b453",
+              "size": 61178
+            },
+            "definitions/tasks.json": {
+              "sha256": "7551b052427f78fc591afcaef9899fb22d669aab4ebf954f5eacaf2989d22732",
+              "size": 183978
+            },
+            "definitions/upstream/LICENSE": {
+              "sha256": "3834f7414080a90266fb854dd0ca3331bcce88c1f5ade9f8b650a13a04881af9",
+              "size": 1061
+            },
+            "definitions/upstream/README.rst": {
+              "sha256": "21e392e1733d352b05bf9c7195157aa1e10b7e45a9cce5d639f89f8f00e97b09",
+              "size": 14699
+            },
+            "definitions/upstream/dataset/ground-truth.json": {
+              "sha256": "5be72a7a44898427343d136d84b21ef377f2f68503c6212c2ab9970e1399899a",
+              "size": 68313
+            },
+            "definitions/upstream/dataset/html/0094967f37c647407d92b624202736e3272231cf61f8ccaeca0b19aeb631ab28.html.gz": {
+              "sha256": "1471186b58f2216d0d5a2aa5e1164d9e16722051d1505b9e72abdcac7640aeee",
+              "size": 287119
+            },
+            "definitions/upstream/dataset/html/01efbb747904557e90dcb56d1f255a4034d5206c796539e2ce4d9dd68672c098.html.gz": {
+              "sha256": "fec416cdd816109784c753daea5f23753fb34b6f4adf9fa399fb5fa0db62fd65",
+              "size": 278755
+            },
+            "definitions/upstream/dataset/html/040c3ea5ea32019274df30d79e4417c4a46f3fc6bc253e697463a99ee263593c.html.gz": {
+              "sha256": "49ea905363a49043f65429741cb789fd744b67ff135557023d890033e7b797ee",
+              "size": 53880
+            },
+            "definitions/upstream/dataset/html/04ba14498f10a1c4a21dfce812638453cc94348d379d4885d33476bf2e7227c5.html.gz": {
+              "sha256": "cc71d4f77d9388ec13899809d8f32f1b103763c2f68fba92dd16719abc6d5b28",
+              "size": 62538
+            },
+            "definitions/upstream/dataset/html/0666abebc0d5f9647f4e11a90bd35de706903e8eeedec1dabd50be49ee0e39a2.html.gz": {
+              "sha256": "ccd3e70cb225db124a0e1c588e60d6840ccb795ea8c2bffe52533f2467252c2e",
+              "size": 56076
+            },
+            "definitions/upstream/dataset/html/08b51541ad9812fab3d652a7987be20feb42a16f4fc5868f85200caf9a48b520.html.gz": {
+              "sha256": "cad9cb9c4201a3b10b2b489c5b6f6b562e75b8fad9cf7e17a4a9143e0eca00fb",
+              "size": 193705
+            },
+            "definitions/upstream/dataset/html/09b6ff551aa911aa3a539e50d3c64758009d51b902c9d0fbeca1a3d1d77b8dce.html.gz": {
+              "sha256": "9a9d6a9a470c15e9f9d0266651d2d6fd2e7d025f95b873f79b1c6e87f7aa9788",
+              "size": 59014
+            },
+            "definitions/upstream/dataset/html/0bf9a333844ecd186e5fe8a317b23f49cc2a26455383adc83e998be3ceb8a557.html.gz": {
+              "sha256": "b56cb5a55bd4b4f6511d12e20bd538fa7cf9ad78f36d6b9a00657063defbbd95",
+              "size": 124233
+            },
+            "definitions/upstream/dataset/html/0d1c8923ac0602548a1794c0f9a7f30b3d5793f4d6f44e6a034273fef515c400.html.gz": {
+              "sha256": "98da5e6c1d4cdb00f6c3aaa968699edc975a5cadddd0175bce537097c895925b",
+              "size": 91922
+            },
+            "definitions/upstream/dataset/html/0eeed9742d1e585d884edeb69bed7c214a5309ae067c20afaa191d62ff7d1905.html.gz": {
+              "sha256": "fbfaaf8c0c1fb9ebb044500f3f783899884bb8395e166a54e5a1b62d91149cb8",
+              "size": 21694
+            },
+            "definitions/upstream/dataset/html/137b2fe5b12e369cdb0bc5297ba72fc7116508d3988eb97f7cff4b2536c320ae.html.gz": {
+              "sha256": "8029a62ba2ea721bd9b3d0f92295496329f548e8e4983f32d5885e8b5ca851aa",
+              "size": 123887
+            },
+            "definitions/upstream/dataset/html/14dc707ee18496c1bcdefc1c99bd76284af686cbb7069ff7c68210ca3094a9f4.html.gz": {
+              "sha256": "0d27ff58523f3a3cf3d3b4348fa37ac675635c9933e5e36a1384e8f03e118281",
+              "size": 249652
+            },
+            "definitions/upstream/dataset/html/15944e4fe57c61ebd8e225d1feb5d875fe2caf9f658d2dba35060769f80a886e.html.gz": {
+              "sha256": "98f42801213546d6655900c5367e1bbb7b6356034f858c0c218563584167c272",
+              "size": 88326
+            },
+            "definitions/upstream/dataset/html/16606e09f7ec2fa123dce0849ea63859a65f95604cec792a094ba4171640f80e.html.gz": {
+              "sha256": "cf3ff99ed49db142467d4cec9cf4bdc389ad0902a2d98eefb3bd293be5848187",
+              "size": 32997
+            },
+            "definitions/upstream/dataset/html/16962698dd77adf81fc07cd334a56539e2f96b79d8c028b8f3e5c9ba287f081e.html.gz": {
+              "sha256": "e70ead5661783a58435b1d0d2b73f2507ddeff2570a3390275cc33757983324f",
+              "size": 32037
+            },
+            "definitions/upstream/dataset/html/1a9172cfeef9715366bc9f2be88f473fdc67201bfa3595a7db259a23316f2049.html.gz": {
+              "sha256": "791e1c0c100af3ca812b7e0592df4f5f5a790b0cc638596125295e2cfabf8a3b",
+              "size": 61748
+            },
+            "definitions/upstream/dataset/html/1bb3781745f7c8411b13585d741195a0f94c70f9ec15162cbb16caa65f40f492.html.gz": {
+              "sha256": "436a5d6c053f8244d1492458d281384357a25cfb2322f92eca3b79cdd587ab29",
+              "size": 62379
+            },
+            "definitions/upstream/dataset/html/1c79626791f55dc4dc9f96945f819c19b35a850831ffc404471f422b5e7dacf6.html.gz": {
+              "sha256": "83e0cd43878f22acaea7546b32eb83c98f026fc2c25b61628bacf630f97e3662",
+              "size": 374889
+            },
+            "definitions/upstream/dataset/html/21e72a8e6d24920993b9014ccc5ac3f0656f1f28bc94b26dea26510b3c33f58a.html.gz": {
+              "sha256": "27abc66afaa565e27787ca05e3d7da28bf4a535ef29498bce8b90e59e86ab0db",
+              "size": 102826
+            },
+            "definitions/upstream/dataset/html/2342b61d6831e854da88adb1b7c87e52621dea510523436ee0bc565159ab1ba5.html.gz": {
+              "sha256": "dbea5fa75740c4fa68c74798cd45bd3e5cce3736d9d4ed165f855ef2f61fdcb7",
+              "size": 81857
+            },
+            "definitions/upstream/dataset/html/24d6d89f539d8d4a0a2dd082038571c17fe88394eeb1c4502071a551aa6fa42d.html.gz": {
+              "sha256": "2b0659e16760c6555dc6dfd035e5dfc8bbe1fc78fdb2c8ca3f98b5c308a2dc7b",
+              "size": 56274
+            },
+            "definitions/upstream/dataset/html/25910052eef824e252aa20b9d25611d1c007955f7be26b4ec90b3382bbf86241.html.gz": {
+              "sha256": "722ddda46184f8ec62d0f0ba700bdd205b7a4ad77d5830397d4dc0e1b6a89ff7",
+              "size": 47256
+            },
+            "definitions/upstream/dataset/html/27021c0c0aea00d016b29e7ae2c992252ec6aeec5cbd05cfd6615a0f6edbd0c5.html.gz": {
+              "sha256": "5fa2f5c078fb0ad246af89999a64f7606a722524975f842b22d3a5b92c3d29be",
+              "size": 344103
+            },
+            "definitions/upstream/dataset/html/29d061966ead48cd03feea85cc63c201b8960b3cadb5c9febf83c44227f9a375.html.gz": {
+              "sha256": "99b2dd082854f6905dc19bfed0ac3195b66c3959be12985171cfc855605e3a52",
+              "size": 58284
+            },
+            "definitions/upstream/dataset/html/2a84a964ab40333b27cd3af01db6d8cd256cff5dfc391eb804f854ebdcbbb2bc.html.gz": {
+              "sha256": "9a38486a834cef52c58d7cae8e0dbeb93d2a5d901f1ccc2e1b85944510a30e1e",
+              "size": 53041
+            },
+            "definitions/upstream/dataset/html/2b9b46483ad6335fb89152af701e9507677a98d412acb7186a135d18dbf02404.html.gz": {
+              "sha256": "8516531a304c4c1963d6f95d52d64ddfdc38b0f2a0389518d34f8a1b1f60bd5e",
+              "size": 22175
+            },
+            "definitions/upstream/dataset/html/2c036dd02ff3aaeb39dd8b5df19a3c30fbaad448ab8884fb2f8d08b7f2a74066.html.gz": {
+              "sha256": "ed08cb8988e948fda7d504698bebd4cd6ba4dff11b8c21faa18f0b4c701b8bc0",
+              "size": 226889
+            },
+            "definitions/upstream/dataset/html/2c08ee46ba20dc4323a3ae4923cd5adb63d509cba1b995b32db7b481303de978.html.gz": {
+              "sha256": "91992862efd38f420f3cd8928e72be23fcbee31eefe17e38e717aa57603cf8b8",
+              "size": 67310
+            },
+            "definitions/upstream/dataset/html/2c42fb6035ff369f80148ebbe5ad62c93fe1532e0435e7ec1be87474cb5578d7.html.gz": {
+              "sha256": "da5c580b38838ec6b88d8668b0a45b3b44c4f8d59b505c5d650847099968f6a0",
+              "size": 112808
+            },
+            "definitions/upstream/dataset/html/2d3e52568d577807ff2cc1312b0513097e33dae744705a960fc1116fdb82a58d.html.gz": {
+              "sha256": "6bfa7d512932053a5122d2ffa226a308c996901e79d724e891dc0d3d9268e14b",
+              "size": 119006
+            },
+            "definitions/upstream/dataset/html/2dfce31e999e92ef6bb61e521e655a1a366b0f0507ae2e057f7fd8162a2e785b.html.gz": {
+              "sha256": "62d08c9f3df530bc4fbddcba78e48f0058a363d3807a2b8865579465daecfac8",
+              "size": 44083
+            },
+            "definitions/upstream/dataset/html/2eca89a9c93c7661fd99d571519b20f582a3dcbbdadfcc480dedb40656d1b7cc.html.gz": {
+              "sha256": "e845a7d8ab9300e3ff2bdfc9a8d89e46cb73749cf301a24ce7f19b9df8970d1a",
+              "size": 233505
+            },
+            "definitions/upstream/dataset/html/2fa16d14a9e343cca43ccf01e9ef9103ebac2f38640bd0c2844befeed91f54ca.html.gz": {
+              "sha256": "ef77ccde4e49adb1b8ea4a44ed95a8ac486031e58da7a2b50da8e126aa778356",
+              "size": 77081
+            },
+            "definitions/upstream/dataset/html/3126dc6880ce1f3e66d4ea1c8b0b733cf4d19587c83d543b128d7d56135332f6.html.gz": {
+              "sha256": "7966c1ebc1fdc670fa0ea7d4da24ec1bb585ae146b674181c7484351e6e5c8de",
+              "size": 113261
+            },
+            "definitions/upstream/dataset/html/359ca699f879f6ed3597781c7fbf0946ced7e5ca3994f225e3714354842bb21c.html.gz": {
+              "sha256": "b4fb98fee34c05ce85beb639fb188cb1ed7b87948fc3b272e850b201caeee5cf",
+              "size": 123095
+            },
+            "definitions/upstream/dataset/html/361022ee4199f02c23449c3986cd2ac50b0f815b699e5fade36d168a82350613.html.gz": {
+              "sha256": "7d9f9784a7036d7d46e8a83830b2c18153b45671c4232c2f8bdc8a91c845b195",
+              "size": 122117
+            },
+            "definitions/upstream/dataset/html/36dbaefc4b2a95d7bafef92f74fcd2e80bd631774dda813450317a496919a09a.html.gz": {
+              "sha256": "d2dc5f850bda763f91d315012c9ade7d9eed34198e54cf2f90492d1907a92c0a",
+              "size": 35532
+            },
+            "definitions/upstream/dataset/html/3ae14333546c0447a483a3f29cabfc7d6e4301a5aae525cc3b0548b053daefc0.html.gz": {
+              "sha256": "acaf5126b20d176e9a4cb272b9223730e364a7aa228c8c08ebb8db76d2e173cc",
+              "size": 56919
+            },
+            "definitions/upstream/dataset/html/3d3ee8ebe15603b2ffc77b0c9f87f4e033ff4784cfdd50a135ae17395c0d3263.html.gz": {
+              "sha256": "127e8bbfd573fdb0c88897704d0b45e2b33528bcbc8d64dfb8acab30655cdd48",
+              "size": 6393
+            },
+            "definitions/upstream/dataset/html/3ef9ddf56392c917ec60f444dd1071e26b6c797f29bcc00e6bab3e7187c39216.html.gz": {
+              "sha256": "449d2bb6a31502d984a1ee568062137482e630eae7b2b065655aede6179103c6",
+              "size": 75135
+            },
+            "definitions/upstream/dataset/html/3f5c52ae76143352d95df6e24a3a9756c1bf6bd588a644f3c4e7510d66eecdbd.html.gz": {
+              "sha256": "8566b0e272a556856630f8103364f4928fb6bd55a5e693ce4718822c6f31dd84",
+              "size": 9570
+            },
+            "definitions/upstream/dataset/html/412fe668a36c6f907e78ffe8e5533b771473e5cbe6593807ecfdd25548c002bf.html.gz": {
+              "sha256": "d00d960ba52db67ff3c4b8a40563ff7250dccd8632808d08ccf15b86c98a774f",
+              "size": 64744
+            },
+            "definitions/upstream/dataset/html/42b022ac447f572815bd9510042a8801c9f7c4b4027cf88a9f9db08e29e4402c.html.gz": {
+              "sha256": "f5da7524d54e4a3d9e47f18df4b052dbe831b81349b9fd2d2be96fe518c7b3c8",
+              "size": 70753
+            },
+            "definitions/upstream/dataset/html/442c155e306d5169f24e82ce31b81328f7c8f2efb68b163bffab2b7e5571bf45.html.gz": {
+              "sha256": "5eed8daaf830e6c84361b0cdc57a7f84692b5a83f3074cc574c947725228b63e",
+              "size": 56814
+            },
+            "definitions/upstream/dataset/html/453f5cc079af4a70fea9a4cd7e71f0b6e7998becdd5f43f52f27580c3a2b3044.html.gz": {
+              "sha256": "1524ee9d61b94bf31e663a3a8713de8843e8b49e50e0405d7545f61979815977",
+              "size": 21758
+            },
+            "definitions/upstream/dataset/html/4595f2ae9fd95efa0bc0b051a2ea76b4f2aaf94b6f355bf8d16139af17bf6e88.html.gz": {
+              "sha256": "0e37607a5a2b441f1b70dbacd8029197c4b4ea80d9aba9912011ed9ed7422ad6",
+              "size": 78688
+            },
+            "definitions/upstream/dataset/html/469894a59bfbe4d6c90d354400d8b61692cf3c95305758de4f666181a178c568.html.gz": {
+              "sha256": "f1cee1c05c596ee76781784c1d4615a2c169094a22a380a0f6837c14911723dd",
+              "size": 43422
+            },
+            "definitions/upstream/dataset/html/4708bedc6a2a97be00c15005332e9fee319f7bf3e009a310016401b7cfdc6e3d.html.gz": {
+              "sha256": "b7d586836bfab468a8260c6aa3ca2f9fbbecace499613c5f679383f04067ed4c",
+              "size": 62848
+            },
+            "definitions/upstream/dataset/html/4b3a17058e7269c6361af74db8c66dfc2bb1d813e1be6ee596f3270069084d7a.html.gz": {
+              "sha256": "9ce8e1287504708cae19862d89c0dd8763fded2a65265304257327f6019bca66",
+              "size": 38266
+            },
+            "definitions/upstream/dataset/html/4d2ce26fa4b8c430ec4b49892af2fa8036ef4ff614fc8f9aa121df4b5e887d8b.html.gz": {
+              "sha256": "90466ff3c74889fea3f7c33d565ed7f5ae2522daa16032ac14a5f59944f626e1",
+              "size": 65667
+            },
+            "definitions/upstream/dataset/html/4e545337e1205c88bdb099402a53153050ce51b1f99cf77e1598ddabbbabd390.html.gz": {
+              "sha256": "c65219e44564356abf01a24222a460cc7ae2fc424e08ed4f6dedb95cd3771bfd",
+              "size": 56855
+            },
+            "definitions/upstream/dataset/html/4f29e8cc0803216e4866bfb1b14c40aaec41000efe30debfc8e94198ae6388d5.html.gz": {
+              "sha256": "359b0b40551047e84ee4f289bf8d4682846f8559e6f0479fe3cf86993403034a",
+              "size": 56381
+            },
+            "definitions/upstream/dataset/html/4f4a8f8ddd039744e0ef1b3307a6e8d94410cb2e5e43478684393c90402de003.html.gz": {
+              "sha256": "2b9c25d370f8525480c9267f1818fabb35db6cdba5c3434eeb9fd479dc6b0162",
+              "size": 125440
+            },
+            "definitions/upstream/dataset/html/4ff590718c188a4d194cc213b07c47b08089c876647ddad17e29b40bfcb635f8.html.gz": {
+              "sha256": "bd36276074509b0df36ac5c672e408334196598f8b070f555c17138fe9058326",
+              "size": 222851
+            },
+            "definitions/upstream/dataset/html/52ea2c6607641aefb3c7ee423b5293e462627709e0e4158fb4746ec0cc397b2f.html.gz": {
+              "sha256": "eff47b9bb4057aae4f37530df63739eb1ae6fac501d9f5976e41cc4d56c5cc55",
+              "size": 87936
+            },
+            "definitions/upstream/dataset/html/5579758b93a34dcc12b865edcfb2cefe7c6c279461706ef9b864405553c389a5.html.gz": {
+              "sha256": "e0b7aaeb18b1cb8a0bed1a16cbabb4d09bb87ccf3905fe70ac65f8c47cefa68c",
+              "size": 35578
+            },
+            "definitions/upstream/dataset/html/572368ce4f3c5a157413c5df963a0cb6ea5d824baed06d7c73d4ef48db77175a.html.gz": {
+              "sha256": "c0af03473d51d550ea4d0c5a11f806acf6f1c0edcdce827dd6921323cf182c5e",
+              "size": 21674
+            },
+            "definitions/upstream/dataset/html/5c1ec210b0bfb93ba2c0ae868d06bfe73aa446e3c1a94f82be617ea5895cc05e.html.gz": {
+              "sha256": "2ba6a7c16e3cc51b8a20d95378a194549be81179dac7fae542b97e51bbab2e80",
+              "size": 68194
+            },
+            "definitions/upstream/dataset/html/5cea6e89b1694a961bf75fbd82d65bf2f0b17955c0de1290dc792c56e3754c7e.html.gz": {
+              "sha256": "a29950c87edadff40a28a5b05e332cf692608e5fbabcc9b9f365862ff7e0abc7",
+              "size": 89530
+            },
+            "definitions/upstream/dataset/html/5d84948aea2d3f34bc134307cf77215c252b728f58c117cca38a1e9be90c1548.html.gz": {
+              "sha256": "1bf2574435a1280165036280e5771cbe8349035f3113dcb96625bb38cc563245",
+              "size": 68427
+            },
+            "definitions/upstream/dataset/html/5dc513be8976e3f1eea471d44bed76e255562363005169cddbc1313671797981.html.gz": {
+              "sha256": "8e534370a345a86f35534e2bffb6fd3b96dcd233386fec49232b853693783dab",
+              "size": 65895
+            },
+            "definitions/upstream/dataset/html/5f885d1f831aaeeabd23917957753116a2f0d031abe9ebadbe08c1ac9dac3be9.html.gz": {
+              "sha256": "b0916c4bba276d02bb83c5e03c06faf5f405421285e71533832b32418a4ba973",
+              "size": 52459
+            },
+            "definitions/upstream/dataset/html/6299847d2ab9726ea3b53d73a01539b84b8e7f08ae62d9f9f4e1b45e7b00ee07.html.gz": {
+              "sha256": "379c0cce10e33f198b53dcd0416f4192b40913bc501ace873f2d8b13fc66454a",
+              "size": 47784
+            },
+            "definitions/upstream/dataset/html/644a6b028687d5c026a4a9b924e7c14a9b86aab7c593559bb44d192854aede2f.html.gz": {
+              "sha256": "e05eef559bfe2e72f1f6721f68571d0aa6f6cfbfe3b91de610f1babb5799862b",
+              "size": 129851
+            },
+            "definitions/upstream/dataset/html/64915d8c2251307c4c8d4c9f3e506a26d4740e2a806b13e33622b3c889b2b037.html.gz": {
+              "sha256": "404b18329a3e75fe91505ee43dd5da4e6aeca07c65ea487146469c9df0405a4e",
+              "size": 289065
+            },
+            "definitions/upstream/dataset/html/6d4840415e8bab0c54f73cf4a696057a370961c695bdef2383b78eb8ee390cc1.html.gz": {
+              "sha256": "ce54b16b76f551b31e925289584f36435f0e6fe47cc2203c94c9f6feab9b23c3",
+              "size": 54767
+            },
+            "definitions/upstream/dataset/html/6f905464d48cbbbdfea4ba3542c7045b504ffe0f1bb20c350363a429339f0697.html.gz": {
+              "sha256": "de6db480e4050e428713e45c786ef270d015205d114c81743028f54798415e46",
+              "size": 131118
+            },
+            "definitions/upstream/dataset/html/745644b6e2809cdc4b9e1b40085da66210f268e2a9986962ed3ba9e790c4415f.html.gz": {
+              "sha256": "c9bef7d0ab6e933dcde86ffe848fdca258c6625473f087e3299a2cb79392d42f",
+              "size": 86075
+            },
+            "definitions/upstream/dataset/html/75cde7398dcd91d3b145ad6b0e360e2fb3580146b5ccfcea4771ae7c9f0d4406.html.gz": {
+              "sha256": "5fb0cc6fe77ba3db62ccaa2c4ad8f7669fb754770d8aa6ac27a525d66d29966f",
+              "size": 44766
+            },
+            "definitions/upstream/dataset/html/7a082dd9d7489842c09333e6b4a1f65aa5d5f0b97d9f0def28510eb71c2aff59.html.gz": {
+              "sha256": "fac837ed588659a47e82ddb852201ecc5028661cc32feef6640b83cba060e6f1",
+              "size": 81942
+            },
+            "definitions/upstream/dataset/html/7a838a167ab318320964fc59715d17cc56e7215b51a36f646c0cfe5b7a3c8d15.html.gz": {
+              "sha256": "0d6bf4a817b03876aaaddf93746566a0c54f461d5272106ed8ea661d6c4806b8",
+              "size": 41296
+            },
+            "definitions/upstream/dataset/html/7c4d432c2c0a3defdc14c8748b45b781ad298764168823086aa3b8b5c750a870.html.gz": {
+              "sha256": "36cfb50c34d9fa77ad9dd452d652cf6f7d432de822bda5586338e073b699e34d",
+              "size": 127627
+            },
+            "definitions/upstream/dataset/html/7c789e683a81f7d7e04c5afd823fcd0f64a2638b437edf283f62396ef84e34e1.html.gz": {
+              "sha256": "b942472dc13a876c6191e600049b7cb3f7af88511162afb18bea31e4286ac11f",
+              "size": 88727
+            },
+            "definitions/upstream/dataset/html/8636665379049081bd52631f965cbedbd133e0c6abb41ce4d5e99513de265faf.html.gz": {
+              "sha256": "143692d4b893ae71177cf62c1b63ebfdc1f14a42fab187e4f2205fa899772c5b",
+              "size": 88105
+            },
+            "definitions/upstream/dataset/html/871a0c6c919b34d1c54559559b53b5a832f17c5e48b933d2a24f72bd8842ca4f.html.gz": {
+              "sha256": "19813e006345793b0fe424a5f72fb763960812aaf591ccfd1d15e91c2a53e452",
+              "size": 323825
+            },
+            "definitions/upstream/dataset/html/8830b60f122373e8cc73b9c25f49ade018e96b775b3d603179f2d16f1cef9faf.html.gz": {
+              "sha256": "bc5dea8d84b574b7237e8c326f106ea43aad2a93342b002e111f61d4bedd6a25",
+              "size": 57742
+            },
+            "definitions/upstream/dataset/html/897bc5b59e376abf58fce20d8ac28b645e29de0d59219781a3313f9d6756f339.html.gz": {
+              "sha256": "dbf1791922da98541a901e0405b3593e01f15c4ed8f50317e3a4dfdcc6f49dd3",
+              "size": 59034
+            },
+            "definitions/upstream/dataset/html/89d10150b9d188f6afd455e4b064b2597d068f8a69f4b990c301466fda427246.html.gz": {
+              "sha256": "ef060b9fc1b47176eb66f165ae45f1c35a5b325f376ff8d49edac880ff844583",
+              "size": 65448
+            },
+            "definitions/upstream/dataset/html/8cb33a3e85d78d3b3f05bdb79da7f552973f602a12b6250d528d9ca38f198c17.html.gz": {
+              "sha256": "14710007d80d782d206aca4d5ae9413ba4eba4ec6d0207573a54f39d35b29f69",
+              "size": 120533
+            },
+            "definitions/upstream/dataset/html/91f0a111a06e65b04300672fe3707e2b92250d2e60d99c08d19115e7cca11e8e.html.gz": {
+              "sha256": "0ce7d61896a064e13616986a66d5459f5403b4f4af3f7bf968420b39565bf3d3",
+              "size": 23494
+            },
+            "definitions/upstream/dataset/html/91f8f14da4a9f3046b93d91b72752f654d81925b5064d07e03ee98db32fb5208.html.gz": {
+              "sha256": "15a88d2d8d49b93c5019789f4766770aeda7f160e210d1adc788fec9c361c7f7",
+              "size": 29291
+            },
+            "definitions/upstream/dataset/html/93e7744dcaa23844c590accf41ec8e40ac7b07d5ea83aaf284ee2f906ece25f2.html.gz": {
+              "sha256": "48c668704d2c9b44ecd640c13da37c94399cb91ac30e3ebe299cb678106f727b",
+              "size": 95289
+            },
+            "definitions/upstream/dataset/html/95f9586d43eaae3ac0e9a39a629faaacaa0e2b8d8dcec2aae99b772a5814f61f.html.gz": {
+              "sha256": "ccb9535140a7cfd1d3f409a11978176198a374b13174a3230bb8d1cdeefb8fc9",
+              "size": 323349
+            },
+            "definitions/upstream/dataset/html/96e88e40a1b4124e0d1e78643bdf31ef17896455b720872f1320acb844f446de.html.gz": {
+              "sha256": "3e55b73101cf8e0ebafb28d0bcc4e928859d669a9e31dc736af05ed3742c52e4",
+              "size": 57012
+            },
+            "definitions/upstream/dataset/html/98a7d9c616ab827e1bba1e7b5d1b8be72a0e2ab12dd83c7db18117fe2ed61754.html.gz": {
+              "sha256": "c7f3c7029eee4f0316d7c8edfc5a1d7b3175d07887082f04d5d5bdfe1d255bbd",
+              "size": 60693
+            },
+            "definitions/upstream/dataset/html/98c23afb105e1ba3ebf6946a0ba356099c42bf171fdfcccab99a380df8a942a4.html.gz": {
+              "sha256": "4bde953d93df19041c89cd680ca67d4664b0961a8d5f03b2b98b98e0978dfed7",
+              "size": 82309
+            },
+            "definitions/upstream/dataset/html/997de723fa628a1b88910411aa906a5c3c539617a0b8597411454122599b0831.html.gz": {
+              "sha256": "866012aee11c348e7ad2958c376b6f962db98a6ad4712967a2e76fed79cd745f",
+              "size": 124928
+            },
+            "definitions/upstream/dataset/html/9d8d7e059ecda5dd934c3928425b924e6a9efdde798d273998ed596d5563f0e7.html.gz": {
+              "sha256": "b86ebabd5eaba410dca215c27d5ac0aa1d8ab9a2b072103dddce40aac2a1fc98",
+              "size": 129141
+            },
+            "definitions/upstream/dataset/html/9d939d48bcf747ea5f40df5d241479cb9158b841b51386915dc690ccaac7b600.html.gz": {
+              "sha256": "fe373c71c4599e29f7d738627528fca5b192e3e10e45e823d49513d7561f232f",
+              "size": 113592
+            },
+            "definitions/upstream/dataset/html/9df72c4ef976324923fc8d34489880eb082b7bfe8116da965fb9960806e69909.html.gz": {
+              "sha256": "7f4c387703ab6cc8308e25abde33ef3ffc38204a67443dbbc93bbb1974a260aa",
+              "size": 85691
+            },
+            "definitions/upstream/dataset/html/9edbb12683ce3776bbd10282bd134e05fe2aa757576bf7882e4b9c8abb4a3178.html.gz": {
+              "sha256": "b3a944abea4b279368859eb7a9f286f0bfcf67f2d9195c211a4e65949b15e730",
+              "size": 95731
+            },
+            "definitions/upstream/dataset/html/9f0c6ced874ae5c3694839f39e82088feb1741aacb0628b8c8e2760e15718957.html.gz": {
+              "sha256": "f3d500b3e0fbf488d08dc3099d45cd3a70b9545b6a908b4922bafd7153053257",
+              "size": 9690
+            },
+            "definitions/upstream/dataset/html/9f14dd854ff84d9dac56a567963ca775c696fd45ba9363753c71dd58c399431f.html.gz": {
+              "sha256": "932a5b86db2ef578aecfbc4482cfbfb3dd36fd40c2f87fdfbb1fe6345828de22",
+              "size": 86932
+            },
+            "definitions/upstream/dataset/html/a8a8fc6a31382dad15baa5ae1d46c5503a7d7e8ca1f7ce5a7355fdbd94a99ff9.html.gz": {
+              "sha256": "5fa7648d36a43022532b45d842a1f448a6a5a34ba3aedfdd0bf288752a5c5f6f",
+              "size": 66901
+            },
+            "definitions/upstream/dataset/html/b03d8c978c416ec5097b9d42ff923b4ce73c3d39efdd071b1546d21ff384d091.html.gz": {
+              "sha256": "4938e2cdd21c718f4b71428ed31163807dbfb27ca3703b29c90e7d3df342f851",
+              "size": 245014
+            },
+            "definitions/upstream/dataset/html/b11bf69050d39bf8f5459e1408216cc5a985db8359164462572613e892e2d09f.html.gz": {
+              "sha256": "1d2f629b76b3ee7f801064dac2fa2f0c1637fa425e79385859a05a83ab302819",
+              "size": 63267
+            },
+            "definitions/upstream/dataset/html/b12479936ff0bc8f06b51922c2006bdc9e96bf2bfbb45366b046c404de3091d2.html.gz": {
+              "sha256": "8561cdedd2c7bbf54bf064539febab4348ccf71a95839f2bf9ebacafc181a32f",
+              "size": 27332
+            },
+            "definitions/upstream/dataset/html/b1ba7e152282a19eea794ad4da9628d7d9a9a83b107f43e4838c971fa036187a.html.gz": {
+              "sha256": "a2741bec627e5a0506a401125ef9edc20ca860ba237e00d08d3f03baa4cc6e92",
+              "size": 59782
+            },
+            "definitions/upstream/dataset/html/b331d47650530c9d01c637f6f62242896860a2dd36467de1ca572f037843657f.html.gz": {
+              "sha256": "8d9c399bab6cdc803fc7b3e04ccd83823e245efdd2e6f2eabeaee7c5250f9195",
+              "size": 88909
+            },
+            "definitions/upstream/dataset/html/b4298c1b23f76adf2074b1da9f69eedd2a46bf9e95f56aec69b8bb5dc7291627.html.gz": {
+              "sha256": "ca885151cc95d492a579d4bf5f218bcb047103e163f4af9928d93f308b71f591",
+              "size": 38014
+            },
+            "definitions/upstream/dataset/html/b475627f8942fe92690823191e34435a1327cabdfc76ee73fe52d050e7f2007c.html.gz": {
+              "sha256": "b286bc232f33058ff3550e5002ed2ed94a4c23e0848eca9f782f5153a6829208",
+              "size": 63276
+            },
+            "definitions/upstream/dataset/html/b7af59198cac698a4c36757e64a60c7a7701c48ae44b559a54938f51d729b1f5.html.gz": {
+              "sha256": "572d6bcdcf6ee6296c445f471065a758bb69c54241822ae046abeef7649308a5",
+              "size": 33967
+            },
+            "definitions/upstream/dataset/html/bc5a68d0c2c02a75c619620efec7afc35fb2c2aa2006cc76ba519942defffd1d.html.gz": {
+              "sha256": "6140d5beb9ce0982e7550c76856621adeb68145c92480b34cc0dfe4888433cdd",
+              "size": 19624
+            },
+            "definitions/upstream/dataset/html/bd3f56627e83bcdc14320daa73d6781604b805d8a705afef69b2e02f55594cf2.html.gz": {
+              "sha256": "6827619773da8db2d51ee5b1a03beb30d77f209d1c216340ad38d38b3138d908",
+              "size": 23888
+            },
+            "definitions/upstream/dataset/html/bd4c84757090f7d876e58c5a23be71991062ac153cddd4594998e675eabae2c8.html.gz": {
+              "sha256": "14d8c25a3a9ad2dfabbe63f8ca8b7dfa0b98583fee1da88ff15d6a7dc821b32d",
+              "size": 53959
+            },
+            "definitions/upstream/dataset/html/bddc08f529598f65d911c43525ba5bde22d34e35fa0c2234a9a61a07a9325433.html.gz": {
+              "sha256": "0493af0e19c0ae17a17acd2820bd9bb0ada84f86ab73a08dc65d025853498d4d",
+              "size": 33499
+            },
+            "definitions/upstream/dataset/html/be99f1975380b02a3066840b86c3f42513c231fcb5c7aff38125b5381e2061e8.html.gz": {
+              "sha256": "07e4655ed148b3ac09ab00bbf2e9edf8b123c996d6f37f8788a1c3c68e9083df",
+              "size": 59438
+            },
+            "definitions/upstream/dataset/html/c01d200ba542cad69bb4dead8e400ce0e8c00545a56ef7cdbafc0f588faf1d2e.html.gz": {
+              "sha256": "a87e8e918302f525cfe451c6ba269d64e63b0acf5d1c4e6c699c02fc4022e4b1",
+              "size": 302156
+            },
+            "definitions/upstream/dataset/html/c3db24da634dc14dc5590fbbcd8c2ea8d815a1ca2b475070b7b10b66e2587665.html.gz": {
+              "sha256": "86232a514d038b39307ec3ac7691eb53fb989a95a7ae8c6d4dc86dfacbd50c38",
+              "size": 68531
+            },
+            "definitions/upstream/dataset/html/c3ed0221b7d1f909b2fa187a152c0c427195d9948200748550105118939cfc21.html.gz": {
+              "sha256": "1c98c4211aaa31bafd1689c8ccdb547c8ce6da72b1fb4704bccafc9219b1ac8a",
+              "size": 126733
+            },
+            "definitions/upstream/dataset/html/c6ba46503434bdb8484e5dba59dc94962c7eb72ab277e794141a46510518928f.html.gz": {
+              "sha256": "faba57928904a1e8d4afc5b0076307d6207fe28db0725a3151222e3b50d3e775",
+              "size": 34322
+            },
+            "definitions/upstream/dataset/html/c9f80eb2d0f97dc954bc265169737c1c156b5ec027fbe62994f2018c1e0f67ed.html.gz": {
+              "sha256": "287cc773ae538132a67d524498734ad7a48065eab20de06bb6f9e0f21a6d8972",
+              "size": 40888
+            },
+            "definitions/upstream/dataset/html/cb061364938de7b9d9e0d382810f060246464533194c5f4666c34c2f75eb02fc.html.gz": {
+              "sha256": "d94594e3fec412252a345fea22959b8a3d556c8b0f525e0bed876efe911cfeed",
+              "size": 252976
+            },
+            "definitions/upstream/dataset/html/ccbaa81cc89eaa70df015c6c970c673efc462414b8760440a75b9afd3ee4df0c.html.gz": {
+              "sha256": "f12699b6a42484de22aa7b00a85eeddf75d9f82f28c329650d83f0931b4f28a6",
+              "size": 23946
+            },
+            "definitions/upstream/dataset/html/ccc114af83c729cc78d05a5de4be3e865dc39dc21093ff9ffebe8599fd8c9869.html.gz": {
+              "sha256": "232303a596c148359d0497a12af428161e1f5a92f599a44b71e1448f821dee23",
+              "size": 119387
+            },
+            "definitions/upstream/dataset/html/cfd548adcbf7b92aba56738f4a44695b98173415fc0124b3b74116628c870062.html.gz": {
+              "sha256": "cc2fb4f767a5ccb0db4f56a5244bb4587b4b20f147ce63b1c00e8cf667402dce",
+              "size": 362788
+            },
+            "definitions/upstream/dataset/html/d132928212cec6acd35bf7015ecd41699d84e3d724626c9f52e63d6db8d13904.html.gz": {
+              "sha256": "62ded53b85c52f0147e24c2fc3fc65b7e4878a7e7b8447dc1807ab76a5bfdc9a",
+              "size": 28315
+            },
+            "definitions/upstream/dataset/html/d8830de9c46d6699a8ad00ed1f9c22754f64e74051ceb6c3a900a39efa1ce181.html.gz": {
+              "sha256": "ac1592d8a10778a9a50e9da01dfebf435278b2364335f36c7dc8be55d3ef7d45",
+              "size": 118203
+            },
+            "definitions/upstream/dataset/html/d8ae57c78bf2dcb58c07375379d6026cfdd123f9b4d9ca8576c03a2e7b81bd63.html.gz": {
+              "sha256": "71cf30c554266eebe18225bc00580f71d7bc6d6130e8cd17c3f0ebc85a36798d",
+              "size": 93334
+            },
+            "definitions/upstream/dataset/html/d932425d85b94d53bf7063ae610df4a38530ecef6ac0993b6aa6559afccf6033.html.gz": {
+              "sha256": "c563b294894320639af0035d5ad145d302894268f9269fd8f61bc87a3a08c67c",
+              "size": 6552
+            },
+            "definitions/upstream/dataset/html/df7999ec1e6239e2364051794e10e24fb4db91c62b08016edfc127f191ba5077.html.gz": {
+              "sha256": "4b7da8760fa725a1802450b607888f62afa5386bab510701699bb6e5b735c38a",
+              "size": 290025
+            },
+            "definitions/upstream/dataset/html/e1c58cf210afd7bb4fffee652ab63ef86ff9609cabbdcffc9b05d5bb24afdd6a.html.gz": {
+              "sha256": "a0cd15b4f5cfa7f2904181445483c7026285ebc27af4ee6ac9290d1a7daa92d4",
+              "size": 51952
+            },
+            "definitions/upstream/dataset/html/e3c3d4d8f7f384d2012be13813ce56aec5c977cc4ddebd73dbfa6037b670cee3.html.gz": {
+              "sha256": "689eebd9ad4856e6a6bdbc82712ac98ea892c51fdde9e4c6ed508d2561120b1d",
+              "size": 86757
+            },
+            "definitions/upstream/dataset/html/e51c765cb622d4b9a8998843e8edc707c65644ad875cf52554c8a0203165c89a.html.gz": {
+              "sha256": "be2f52e8cc41c4882f92adb957537fe225ee296633ab4ac0261d424861e368a0",
+              "size": 87941
+            },
+            "definitions/upstream/dataset/html/e907c66570ebb9a3cf33c84222bed42f9675b0411b53e73448646e9782fef882.html.gz": {
+              "sha256": "12d4ecfb207a3d2c89050a48e40c7b77d3e30c019f81896dba9330ad3a8c3322",
+              "size": 194764
+            },
+            "definitions/upstream/dataset/html/e9879f3b5b1b4e5b20ca43927c8bcb36a68ac446ffab0dccefc29b9d07a5153f.html.gz": {
+              "sha256": "88a042aed21e018eccec0e7af818f042fe25285c1402a7bc32f602712433c0ef",
+              "size": 305638
+            },
+            "definitions/upstream/dataset/html/eb7b7d31caec9ba70b445d7711422c4ca59e32c41fa273d367ed91812b8840b3.html.gz": {
+              "sha256": "d22ae8c3c894f047c73a6e1442bfcd6cc87d1b18b5467395d07a38c71232bd2c",
+              "size": 373167
+            },
+            "definitions/upstream/dataset/html/ec6f39428a4dd88cc0355893c2a8174a5e48baf86d1f88db32f28dd70b17ee73.html.gz": {
+              "sha256": "bcb97aed08b0c6477488b61a4d9fa1c2e2c18b088a0e0783d0a73e9b92f49ecd",
+              "size": 267192
+            },
+            "definitions/upstream/dataset/html/ed28f179058b61273b01adedda587c1446628752bb35c518dc99df225296528c.html.gz": {
+              "sha256": "9551c8cb644f3c95630ea260ef581741c5d58a8f56cb7cb47976a7626dc589e5",
+              "size": 244285
+            },
+            "definitions/upstream/dataset/html/ed4cb68e6b01d002973f10f63c12df87013ba7cfb4eb6b1f97ec78fe9c131eb8.html.gz": {
+              "sha256": "65966ce80d0072dc57d4556db968ad2d29ab29951315c4adf3c528ccdd73e638",
+              "size": 151558
+            },
+            "definitions/upstream/dataset/html/f09ca5f02180881a22d3b8b0e54cbed81664cbfa4280d1825ee9922890cac337.html.gz": {
+              "sha256": "a404304a847f4e75f9d6b549103f8e9d7bfbef14e96f2b8aad4c559b403d6fc6",
+              "size": 283479
+            },
+            "definitions/upstream/dataset/html/f17d4d9c99e7877c11c848ae6cea8b5a0987545660c694a2678317ab3db656d5.html.gz": {
+              "sha256": "fa59430fc714665ef67befbbaa4fa8a79ed732a5e43acad57efd408b0a7e8b17",
+              "size": 302299
+            },
+            "definitions/upstream/dataset/html/f45a21d268b15631b1cca6f99664de8e736234709faedf96b8741707953f9ba9.html.gz": {
+              "sha256": "83e0dba284714fa6001b8ecb19b3b1b320f799c0f55338d01b3326566dc00fd5",
+              "size": 105590
+            },
+            "definitions/upstream/dataset/html/f48e9949eec5a2978c050e6a30c8d96f3070c1b5e31c7e1335364d1025840c73.html.gz": {
+              "sha256": "f218e66ac23ebb035e6aa408719a7a7324150a05f41fa9ce9b8c9e2a09482ea7",
+              "size": 59325
+            },
+            "definitions/upstream/dataset/html/f7df67b3dac6031d17e4758305369f25f41d6a79ac2cef5617283e59a5f19668.html.gz": {
+              "sha256": "fe68373f44db0abea6e242d31b9285f76e0f6498a793edf4c0c83259094c36d5",
+              "size": 123699
+            },
+            "definitions/upstream/dataset/html/f86ea57a5481254b95b06395233194efddda63e162265559dc17464ccf2ad158.html.gz": {
+              "sha256": "a0e324bb53d2ba675bece694ec71479c302d229422fd378a7c9ba60264b88796",
+              "size": 22287
+            },
+            "definitions/upstream/dataset/html/f94bb87d396b0e594d3d8c193171599f210ab2ecf65e98ca21e972033fc7e88c.html.gz": {
+              "sha256": "d3af9523dd3e0167c11df4fae68f92bc73f28f01311e6826994f1c4ae2827329",
+              "size": 50284
+            },
+            "definitions/upstream/dataset/html/fa0b2c0baf2ff8b9b0b9d8610deed6114711738f4dfddbfea35b22008d991c8e.html.gz": {
+              "sha256": "03a63fd30f1e116f672ee50d0ad5f56351895929e4ad98a9f4aad07b3dafd27b",
+              "size": 54980
+            },
+            "definitions/upstream/dataset/html/fb989c4426693a8b5f9fa8f5674747bbd9ca14c83c7cab926671114a540df422.html.gz": {
+              "sha256": "342ac1d38b08ddff9dd9c5eda937f477cb2db4baaf4ff9c80ce6a1277a822620",
+              "size": 82002
+            },
+            "definitions/upstream/dataset/html/fed7b69722e04f4a7039d5d914b8c41bc413a2740d148508a0d2fc5ab1e632ed.html.gz": {
+              "sha256": "c5768569ec6df37d21d899dfa03111e2c352a6128451a3704bb637bb311f8c07",
+              "size": 133599
+            },
+            "definitions/upstream/evaluate.py": {
+              "sha256": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7",
+              "size": 4940
+            },
+            "definitions/upstream/extractors/run_extruct.py": {
+              "sha256": "409abc3a2e5c26c09324ed988aeb363544f68032ce6548ec880b21cf919d0aeb",
+              "size": 5423
+            }
+          },
+          "default_dataset": "zyte-products-140",
+          "scorer": {
+            "path": "upstream/evaluate.py",
+            "repository": "https://github.com/scrapinghub/product-extraction-benchmark",
+            "revision": "cba97d7a8d42aeefd4021bc15d482f297faceaa3",
+            "sha256": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7"
+          },
+          "source_editions": {
+            "22272f68f973218f43b09a588c37864b0e8a0a19": "0b2f974c2311dca2e280f63c3c8c52a455dca892"
+          }
+        },
+        {
+          "repository": "Lexmount/LexBench-Web-Scraper",
+          "revision": "0b2f974c2311dca2e280f63c3c8c52a455dca892",
+          "source_revision": "22272f68f973218f43b09a588c37864b0e8a0a19",
+          "archive": {
+            "path": "definitions.tar.gz",
+            "sha256": "56793f178b9b7369dbcd47b47e528361963d26c585cf2309a65463a20b7d05c8",
+            "size": 14866164
+          },
+          "datasets": {
+            "zyte-products-140": {
+              "count": 140,
+              "path": "tasks.json",
+              "sha256": "7551b052427f78fc591afcaef9899fb22d669aab4ebf954f5eacaf2989d22732"
+            }
+          },
+          "files": {
+            "LICENSE": {
+              "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+              "size": 11358
+            },
+            "NOTICE": {
+              "sha256": "23d994d176e266e9bc5eb0cf29a4e3ef516666f4a554d0f3d7da21acd1c2d78b",
+              "size": 140
+            },
+            "THIRD_PARTY.md": {
+              "sha256": "a5eca4f43910a8e405fa6c514e189bafec02692c09b7dde9c2789ee7ed3bce33",
+              "size": 498
+            },
+            "VERSIONING.md": {
+              "sha256": "24d7fc2c5ae3a58e9b0a52694a3d6f8eab9fef27591ed2572cf82f6373602274",
+              "size": 667
+            },
+            "definitions/provenance.json": {
+              "sha256": "f61983f6aa0441ea63d3c1442f70674148ea51180117c4b75cb9f5cae1c32bfc",
+              "size": 29836
+            },
+            "definitions/reference-corrections.json": {
+              "sha256": "e07edd8fe9018a9da78817f3738d5bf00682916b9e0292ce0388d6503c2a6f48",
+              "size": 27103
+            },
+            "definitions/registry.json": {
+              "sha256": "d4a4f5c1a34c56e0b528b690c7c6b9f3a2805279ace1fd4eacad69aeb1a38a3d",
+              "size": 554
+            },
+            "definitions/runtime/manifest.json": {
+              "sha256": "3bbfe67fe3c0de48621a6f7867ccf1a07e39036d381940d1b380dbd6b386b453",
+              "size": 61178
+            },
+            "definitions/tasks.json": {
+              "sha256": "7551b052427f78fc591afcaef9899fb22d669aab4ebf954f5eacaf2989d22732",
+              "size": 183978
+            },
+            "definitions/upstream/LICENSE": {
+              "sha256": "3834f7414080a90266fb854dd0ca3331bcce88c1f5ade9f8b650a13a04881af9",
+              "size": 1061
+            },
+            "definitions/upstream/README.rst": {
+              "sha256": "21e392e1733d352b05bf9c7195157aa1e10b7e45a9cce5d639f89f8f00e97b09",
+              "size": 14699
+            },
+            "definitions/upstream/dataset/ground-truth.json": {
+              "sha256": "5be72a7a44898427343d136d84b21ef377f2f68503c6212c2ab9970e1399899a",
+              "size": 68313
+            },
+            "definitions/upstream/dataset/html/0094967f37c647407d92b624202736e3272231cf61f8ccaeca0b19aeb631ab28.html.gz": {
+              "sha256": "1471186b58f2216d0d5a2aa5e1164d9e16722051d1505b9e72abdcac7640aeee",
+              "size": 287119
+            },
+            "definitions/upstream/dataset/html/01efbb747904557e90dcb56d1f255a4034d5206c796539e2ce4d9dd68672c098.html.gz": {
+              "sha256": "fec416cdd816109784c753daea5f23753fb34b6f4adf9fa399fb5fa0db62fd65",
+              "size": 278755
+            },
+            "definitions/upstream/dataset/html/040c3ea5ea32019274df30d79e4417c4a46f3fc6bc253e697463a99ee263593c.html.gz": {
+              "sha256": "49ea905363a49043f65429741cb789fd744b67ff135557023d890033e7b797ee",
+              "size": 53880
+            },
+            "definitions/upstream/dataset/html/04ba14498f10a1c4a21dfce812638453cc94348d379d4885d33476bf2e7227c5.html.gz": {
+              "sha256": "cc71d4f77d9388ec13899809d8f32f1b103763c2f68fba92dd16719abc6d5b28",
+              "size": 62538
+            },
+            "definitions/upstream/dataset/html/0666abebc0d5f9647f4e11a90bd35de706903e8eeedec1dabd50be49ee0e39a2.html.gz": {
+              "sha256": "ccd3e70cb225db124a0e1c588e60d6840ccb795ea8c2bffe52533f2467252c2e",
+              "size": 56076
+            },
+            "definitions/upstream/dataset/html/08b51541ad9812fab3d652a7987be20feb42a16f4fc5868f85200caf9a48b520.html.gz": {
+              "sha256": "cad9cb9c4201a3b10b2b489c5b6f6b562e75b8fad9cf7e17a4a9143e0eca00fb",
+              "size": 193705
+            },
+            "definitions/upstream/dataset/html/09b6ff551aa911aa3a539e50d3c64758009d51b902c9d0fbeca1a3d1d77b8dce.html.gz": {
+              "sha256": "9a9d6a9a470c15e9f9d0266651d2d6fd2e7d025f95b873f79b1c6e87f7aa9788",
+              "size": 59014
+            },
+            "definitions/upstream/dataset/html/0bf9a333844ecd186e5fe8a317b23f49cc2a26455383adc83e998be3ceb8a557.html.gz": {
+              "sha256": "b56cb5a55bd4b4f6511d12e20bd538fa7cf9ad78f36d6b9a00657063defbbd95",
+              "size": 124233
+            },
+            "definitions/upstream/dataset/html/0d1c8923ac0602548a1794c0f9a7f30b3d5793f4d6f44e6a034273fef515c400.html.gz": {
+              "sha256": "98da5e6c1d4cdb00f6c3aaa968699edc975a5cadddd0175bce537097c895925b",
+              "size": 91922
+            },
+            "definitions/upstream/dataset/html/0eeed9742d1e585d884edeb69bed7c214a5309ae067c20afaa191d62ff7d1905.html.gz": {
+              "sha256": "fbfaaf8c0c1fb9ebb044500f3f783899884bb8395e166a54e5a1b62d91149cb8",
+              "size": 21694
+            },
+            "definitions/upstream/dataset/html/137b2fe5b12e369cdb0bc5297ba72fc7116508d3988eb97f7cff4b2536c320ae.html.gz": {
+              "sha256": "8029a62ba2ea721bd9b3d0f92295496329f548e8e4983f32d5885e8b5ca851aa",
+              "size": 123887
+            },
+            "definitions/upstream/dataset/html/14dc707ee18496c1bcdefc1c99bd76284af686cbb7069ff7c68210ca3094a9f4.html.gz": {
+              "sha256": "0d27ff58523f3a3cf3d3b4348fa37ac675635c9933e5e36a1384e8f03e118281",
+              "size": 249652
+            },
+            "definitions/upstream/dataset/html/15944e4fe57c61ebd8e225d1feb5d875fe2caf9f658d2dba35060769f80a886e.html.gz": {
+              "sha256": "98f42801213546d6655900c5367e1bbb7b6356034f858c0c218563584167c272",
+              "size": 88326
+            },
+            "definitions/upstream/dataset/html/16606e09f7ec2fa123dce0849ea63859a65f95604cec792a094ba4171640f80e.html.gz": {
+              "sha256": "cf3ff99ed49db142467d4cec9cf4bdc389ad0902a2d98eefb3bd293be5848187",
+              "size": 32997
+            },
+            "definitions/upstream/dataset/html/16962698dd77adf81fc07cd334a56539e2f96b79d8c028b8f3e5c9ba287f081e.html.gz": {
+              "sha256": "e70ead5661783a58435b1d0d2b73f2507ddeff2570a3390275cc33757983324f",
+              "size": 32037
+            },
+            "definitions/upstream/dataset/html/1a9172cfeef9715366bc9f2be88f473fdc67201bfa3595a7db259a23316f2049.html.gz": {
+              "sha256": "791e1c0c100af3ca812b7e0592df4f5f5a790b0cc638596125295e2cfabf8a3b",
+              "size": 61748
+            },
+            "definitions/upstream/dataset/html/1bb3781745f7c8411b13585d741195a0f94c70f9ec15162cbb16caa65f40f492.html.gz": {
+              "sha256": "436a5d6c053f8244d1492458d281384357a25cfb2322f92eca3b79cdd587ab29",
+              "size": 62379
+            },
+            "definitions/upstream/dataset/html/1c79626791f55dc4dc9f96945f819c19b35a850831ffc404471f422b5e7dacf6.html.gz": {
+              "sha256": "83e0cd43878f22acaea7546b32eb83c98f026fc2c25b61628bacf630f97e3662",
+              "size": 374889
+            },
+            "definitions/upstream/dataset/html/21e72a8e6d24920993b9014ccc5ac3f0656f1f28bc94b26dea26510b3c33f58a.html.gz": {
+              "sha256": "27abc66afaa565e27787ca05e3d7da28bf4a535ef29498bce8b90e59e86ab0db",
+              "size": 102826
+            },
+            "definitions/upstream/dataset/html/2342b61d6831e854da88adb1b7c87e52621dea510523436ee0bc565159ab1ba5.html.gz": {
+              "sha256": "dbea5fa75740c4fa68c74798cd45bd3e5cce3736d9d4ed165f855ef2f61fdcb7",
+              "size": 81857
+            },
+            "definitions/upstream/dataset/html/24d6d89f539d8d4a0a2dd082038571c17fe88394eeb1c4502071a551aa6fa42d.html.gz": {
+              "sha256": "2b0659e16760c6555dc6dfd035e5dfc8bbe1fc78fdb2c8ca3f98b5c308a2dc7b",
+              "size": 56274
+            },
+            "definitions/upstream/dataset/html/25910052eef824e252aa20b9d25611d1c007955f7be26b4ec90b3382bbf86241.html.gz": {
+              "sha256": "722ddda46184f8ec62d0f0ba700bdd205b7a4ad77d5830397d4dc0e1b6a89ff7",
+              "size": 47256
+            },
+            "definitions/upstream/dataset/html/27021c0c0aea00d016b29e7ae2c992252ec6aeec5cbd05cfd6615a0f6edbd0c5.html.gz": {
+              "sha256": "5fa2f5c078fb0ad246af89999a64f7606a722524975f842b22d3a5b92c3d29be",
+              "size": 344103
+            },
+            "definitions/upstream/dataset/html/29d061966ead48cd03feea85cc63c201b8960b3cadb5c9febf83c44227f9a375.html.gz": {
+              "sha256": "99b2dd082854f6905dc19bfed0ac3195b66c3959be12985171cfc855605e3a52",
+              "size": 58284
+            },
+            "definitions/upstream/dataset/html/2a84a964ab40333b27cd3af01db6d8cd256cff5dfc391eb804f854ebdcbbb2bc.html.gz": {
+              "sha256": "9a38486a834cef52c58d7cae8e0dbeb93d2a5d901f1ccc2e1b85944510a30e1e",
+              "size": 53041
+            },
+            "definitions/upstream/dataset/html/2b9b46483ad6335fb89152af701e9507677a98d412acb7186a135d18dbf02404.html.gz": {
+              "sha256": "8516531a304c4c1963d6f95d52d64ddfdc38b0f2a0389518d34f8a1b1f60bd5e",
+              "size": 22175
+            },
+            "definitions/upstream/dataset/html/2c036dd02ff3aaeb39dd8b5df19a3c30fbaad448ab8884fb2f8d08b7f2a74066.html.gz": {
+              "sha256": "ed08cb8988e948fda7d504698bebd4cd6ba4dff11b8c21faa18f0b4c701b8bc0",
+              "size": 226889
+            },
+            "definitions/upstream/dataset/html/2c08ee46ba20dc4323a3ae4923cd5adb63d509cba1b995b32db7b481303de978.html.gz": {
+              "sha256": "91992862efd38f420f3cd8928e72be23fcbee31eefe17e38e717aa57603cf8b8",
+              "size": 67310
+            },
+            "definitions/upstream/dataset/html/2c42fb6035ff369f80148ebbe5ad62c93fe1532e0435e7ec1be87474cb5578d7.html.gz": {
+              "sha256": "da5c580b38838ec6b88d8668b0a45b3b44c4f8d59b505c5d650847099968f6a0",
+              "size": 112808
+            },
+            "definitions/upstream/dataset/html/2d3e52568d577807ff2cc1312b0513097e33dae744705a960fc1116fdb82a58d.html.gz": {
+              "sha256": "6bfa7d512932053a5122d2ffa226a308c996901e79d724e891dc0d3d9268e14b",
+              "size": 119006
+            },
+            "definitions/upstream/dataset/html/2dfce31e999e92ef6bb61e521e655a1a366b0f0507ae2e057f7fd8162a2e785b.html.gz": {
+              "sha256": "62d08c9f3df530bc4fbddcba78e48f0058a363d3807a2b8865579465daecfac8",
+              "size": 44083
+            },
+            "definitions/upstream/dataset/html/2eca89a9c93c7661fd99d571519b20f582a3dcbbdadfcc480dedb40656d1b7cc.html.gz": {
+              "sha256": "e845a7d8ab9300e3ff2bdfc9a8d89e46cb73749cf301a24ce7f19b9df8970d1a",
+              "size": 233505
+            },
+            "definitions/upstream/dataset/html/2fa16d14a9e343cca43ccf01e9ef9103ebac2f38640bd0c2844befeed91f54ca.html.gz": {
+              "sha256": "ef77ccde4e49adb1b8ea4a44ed95a8ac486031e58da7a2b50da8e126aa778356",
+              "size": 77081
+            },
+            "definitions/upstream/dataset/html/3126dc6880ce1f3e66d4ea1c8b0b733cf4d19587c83d543b128d7d56135332f6.html.gz": {
+              "sha256": "7966c1ebc1fdc670fa0ea7d4da24ec1bb585ae146b674181c7484351e6e5c8de",
+              "size": 113261
+            },
+            "definitions/upstream/dataset/html/359ca699f879f6ed3597781c7fbf0946ced7e5ca3994f225e3714354842bb21c.html.gz": {
+              "sha256": "b4fb98fee34c05ce85beb639fb188cb1ed7b87948fc3b272e850b201caeee5cf",
+              "size": 123095
+            },
+            "definitions/upstream/dataset/html/361022ee4199f02c23449c3986cd2ac50b0f815b699e5fade36d168a82350613.html.gz": {
+              "sha256": "7d9f9784a7036d7d46e8a83830b2c18153b45671c4232c2f8bdc8a91c845b195",
+              "size": 122117
+            },
+            "definitions/upstream/dataset/html/36dbaefc4b2a95d7bafef92f74fcd2e80bd631774dda813450317a496919a09a.html.gz": {
+              "sha256": "d2dc5f850bda763f91d315012c9ade7d9eed34198e54cf2f90492d1907a92c0a",
+              "size": 35532
+            },
+            "definitions/upstream/dataset/html/3ae14333546c0447a483a3f29cabfc7d6e4301a5aae525cc3b0548b053daefc0.html.gz": {
+              "sha256": "acaf5126b20d176e9a4cb272b9223730e364a7aa228c8c08ebb8db76d2e173cc",
+              "size": 56919
+            },
+            "definitions/upstream/dataset/html/3d3ee8ebe15603b2ffc77b0c9f87f4e033ff4784cfdd50a135ae17395c0d3263.html.gz": {
+              "sha256": "127e8bbfd573fdb0c88897704d0b45e2b33528bcbc8d64dfb8acab30655cdd48",
+              "size": 6393
+            },
+            "definitions/upstream/dataset/html/3ef9ddf56392c917ec60f444dd1071e26b6c797f29bcc00e6bab3e7187c39216.html.gz": {
+              "sha256": "449d2bb6a31502d984a1ee568062137482e630eae7b2b065655aede6179103c6",
+              "size": 75135
+            },
+            "definitions/upstream/dataset/html/3f5c52ae76143352d95df6e24a3a9756c1bf6bd588a644f3c4e7510d66eecdbd.html.gz": {
+              "sha256": "8566b0e272a556856630f8103364f4928fb6bd55a5e693ce4718822c6f31dd84",
+              "size": 9570
+            },
+            "definitions/upstream/dataset/html/412fe668a36c6f907e78ffe8e5533b771473e5cbe6593807ecfdd25548c002bf.html.gz": {
+              "sha256": "d00d960ba52db67ff3c4b8a40563ff7250dccd8632808d08ccf15b86c98a774f",
+              "size": 64744
+            },
+            "definitions/upstream/dataset/html/42b022ac447f572815bd9510042a8801c9f7c4b4027cf88a9f9db08e29e4402c.html.gz": {
+              "sha256": "f5da7524d54e4a3d9e47f18df4b052dbe831b81349b9fd2d2be96fe518c7b3c8",
+              "size": 70753
+            },
+            "definitions/upstream/dataset/html/442c155e306d5169f24e82ce31b81328f7c8f2efb68b163bffab2b7e5571bf45.html.gz": {
+              "sha256": "5eed8daaf830e6c84361b0cdc57a7f84692b5a83f3074cc574c947725228b63e",
+              "size": 56814
+            },
+            "definitions/upstream/dataset/html/453f5cc079af4a70fea9a4cd7e71f0b6e7998becdd5f43f52f27580c3a2b3044.html.gz": {
+              "sha256": "1524ee9d61b94bf31e663a3a8713de8843e8b49e50e0405d7545f61979815977",
+              "size": 21758
+            },
+            "definitions/upstream/dataset/html/4595f2ae9fd95efa0bc0b051a2ea76b4f2aaf94b6f355bf8d16139af17bf6e88.html.gz": {
+              "sha256": "0e37607a5a2b441f1b70dbacd8029197c4b4ea80d9aba9912011ed9ed7422ad6",
+              "size": 78688
+            },
+            "definitions/upstream/dataset/html/469894a59bfbe4d6c90d354400d8b61692cf3c95305758de4f666181a178c568.html.gz": {
+              "sha256": "f1cee1c05c596ee76781784c1d4615a2c169094a22a380a0f6837c14911723dd",
+              "size": 43422
+            },
+            "definitions/upstream/dataset/html/4708bedc6a2a97be00c15005332e9fee319f7bf3e009a310016401b7cfdc6e3d.html.gz": {
+              "sha256": "b7d586836bfab468a8260c6aa3ca2f9fbbecace499613c5f679383f04067ed4c",
+              "size": 62848
+            },
+            "definitions/upstream/dataset/html/4b3a17058e7269c6361af74db8c66dfc2bb1d813e1be6ee596f3270069084d7a.html.gz": {
+              "sha256": "9ce8e1287504708cae19862d89c0dd8763fded2a65265304257327f6019bca66",
+              "size": 38266
+            },
+            "definitions/upstream/dataset/html/4d2ce26fa4b8c430ec4b49892af2fa8036ef4ff614fc8f9aa121df4b5e887d8b.html.gz": {
+              "sha256": "90466ff3c74889fea3f7c33d565ed7f5ae2522daa16032ac14a5f59944f626e1",
+              "size": 65667
+            },
+            "definitions/upstream/dataset/html/4e545337e1205c88bdb099402a53153050ce51b1f99cf77e1598ddabbbabd390.html.gz": {
+              "sha256": "c65219e44564356abf01a24222a460cc7ae2fc424e08ed4f6dedb95cd3771bfd",
+              "size": 56855
+            },
+            "definitions/upstream/dataset/html/4f29e8cc0803216e4866bfb1b14c40aaec41000efe30debfc8e94198ae6388d5.html.gz": {
+              "sha256": "359b0b40551047e84ee4f289bf8d4682846f8559e6f0479fe3cf86993403034a",
+              "size": 56381
+            },
+            "definitions/upstream/dataset/html/4f4a8f8ddd039744e0ef1b3307a6e8d94410cb2e5e43478684393c90402de003.html.gz": {
+              "sha256": "2b9c25d370f8525480c9267f1818fabb35db6cdba5c3434eeb9fd479dc6b0162",
+              "size": 125440
+            },
+            "definitions/upstream/dataset/html/4ff590718c188a4d194cc213b07c47b08089c876647ddad17e29b40bfcb635f8.html.gz": {
+              "sha256": "bd36276074509b0df36ac5c672e408334196598f8b070f555c17138fe9058326",
+              "size": 222851
+            },
+            "definitions/upstream/dataset/html/52ea2c6607641aefb3c7ee423b5293e462627709e0e4158fb4746ec0cc397b2f.html.gz": {
+              "sha256": "eff47b9bb4057aae4f37530df63739eb1ae6fac501d9f5976e41cc4d56c5cc55",
+              "size": 87936
+            },
+            "definitions/upstream/dataset/html/5579758b93a34dcc12b865edcfb2cefe7c6c279461706ef9b864405553c389a5.html.gz": {
+              "sha256": "e0b7aaeb18b1cb8a0bed1a16cbabb4d09bb87ccf3905fe70ac65f8c47cefa68c",
+              "size": 35578
+            },
+            "definitions/upstream/dataset/html/572368ce4f3c5a157413c5df963a0cb6ea5d824baed06d7c73d4ef48db77175a.html.gz": {
+              "sha256": "c0af03473d51d550ea4d0c5a11f806acf6f1c0edcdce827dd6921323cf182c5e",
+              "size": 21674
+            },
+            "definitions/upstream/dataset/html/5c1ec210b0bfb93ba2c0ae868d06bfe73aa446e3c1a94f82be617ea5895cc05e.html.gz": {
+              "sha256": "2ba6a7c16e3cc51b8a20d95378a194549be81179dac7fae542b97e51bbab2e80",
+              "size": 68194
+            },
+            "definitions/upstream/dataset/html/5cea6e89b1694a961bf75fbd82d65bf2f0b17955c0de1290dc792c56e3754c7e.html.gz": {
+              "sha256": "a29950c87edadff40a28a5b05e332cf692608e5fbabcc9b9f365862ff7e0abc7",
+              "size": 89530
+            },
+            "definitions/upstream/dataset/html/5d84948aea2d3f34bc134307cf77215c252b728f58c117cca38a1e9be90c1548.html.gz": {
+              "sha256": "1bf2574435a1280165036280e5771cbe8349035f3113dcb96625bb38cc563245",
+              "size": 68427
+            },
+            "definitions/upstream/dataset/html/5dc513be8976e3f1eea471d44bed76e255562363005169cddbc1313671797981.html.gz": {
+              "sha256": "8e534370a345a86f35534e2bffb6fd3b96dcd233386fec49232b853693783dab",
+              "size": 65895
+            },
+            "definitions/upstream/dataset/html/5f885d1f831aaeeabd23917957753116a2f0d031abe9ebadbe08c1ac9dac3be9.html.gz": {
+              "sha256": "b0916c4bba276d02bb83c5e03c06faf5f405421285e71533832b32418a4ba973",
+              "size": 52459
+            },
+            "definitions/upstream/dataset/html/6299847d2ab9726ea3b53d73a01539b84b8e7f08ae62d9f9f4e1b45e7b00ee07.html.gz": {
+              "sha256": "379c0cce10e33f198b53dcd0416f4192b40913bc501ace873f2d8b13fc66454a",
+              "size": 47784
+            },
+            "definitions/upstream/dataset/html/644a6b028687d5c026a4a9b924e7c14a9b86aab7c593559bb44d192854aede2f.html.gz": {
+              "sha256": "e05eef559bfe2e72f1f6721f68571d0aa6f6cfbfe3b91de610f1babb5799862b",
+              "size": 129851
+            },
+            "definitions/upstream/dataset/html/64915d8c2251307c4c8d4c9f3e506a26d4740e2a806b13e33622b3c889b2b037.html.gz": {
+              "sha256": "404b18329a3e75fe91505ee43dd5da4e6aeca07c65ea487146469c9df0405a4e",
+              "size": 289065
+            },
+            "definitions/upstream/dataset/html/6d4840415e8bab0c54f73cf4a696057a370961c695bdef2383b78eb8ee390cc1.html.gz": {
+              "sha256": "ce54b16b76f551b31e925289584f36435f0e6fe47cc2203c94c9f6feab9b23c3",
+              "size": 54767
+            },
+            "definitions/upstream/dataset/html/6f905464d48cbbbdfea4ba3542c7045b504ffe0f1bb20c350363a429339f0697.html.gz": {
+              "sha256": "de6db480e4050e428713e45c786ef270d015205d114c81743028f54798415e46",
+              "size": 131118
+            },
+            "definitions/upstream/dataset/html/745644b6e2809cdc4b9e1b40085da66210f268e2a9986962ed3ba9e790c4415f.html.gz": {
+              "sha256": "c9bef7d0ab6e933dcde86ffe848fdca258c6625473f087e3299a2cb79392d42f",
+              "size": 86075
+            },
+            "definitions/upstream/dataset/html/75cde7398dcd91d3b145ad6b0e360e2fb3580146b5ccfcea4771ae7c9f0d4406.html.gz": {
+              "sha256": "5fb0cc6fe77ba3db62ccaa2c4ad8f7669fb754770d8aa6ac27a525d66d29966f",
+              "size": 44766
+            },
+            "definitions/upstream/dataset/html/7a082dd9d7489842c09333e6b4a1f65aa5d5f0b97d9f0def28510eb71c2aff59.html.gz": {
+              "sha256": "fac837ed588659a47e82ddb852201ecc5028661cc32feef6640b83cba060e6f1",
+              "size": 81942
+            },
+            "definitions/upstream/dataset/html/7a838a167ab318320964fc59715d17cc56e7215b51a36f646c0cfe5b7a3c8d15.html.gz": {
+              "sha256": "0d6bf4a817b03876aaaddf93746566a0c54f461d5272106ed8ea661d6c4806b8",
+              "size": 41296
+            },
+            "definitions/upstream/dataset/html/7c4d432c2c0a3defdc14c8748b45b781ad298764168823086aa3b8b5c750a870.html.gz": {
+              "sha256": "36cfb50c34d9fa77ad9dd452d652cf6f7d432de822bda5586338e073b699e34d",
+              "size": 127627
+            },
+            "definitions/upstream/dataset/html/7c789e683a81f7d7e04c5afd823fcd0f64a2638b437edf283f62396ef84e34e1.html.gz": {
+              "sha256": "b942472dc13a876c6191e600049b7cb3f7af88511162afb18bea31e4286ac11f",
+              "size": 88727
+            },
+            "definitions/upstream/dataset/html/8636665379049081bd52631f965cbedbd133e0c6abb41ce4d5e99513de265faf.html.gz": {
+              "sha256": "143692d4b893ae71177cf62c1b63ebfdc1f14a42fab187e4f2205fa899772c5b",
+              "size": 88105
+            },
+            "definitions/upstream/dataset/html/871a0c6c919b34d1c54559559b53b5a832f17c5e48b933d2a24f72bd8842ca4f.html.gz": {
+              "sha256": "19813e006345793b0fe424a5f72fb763960812aaf591ccfd1d15e91c2a53e452",
+              "size": 323825
+            },
+            "definitions/upstream/dataset/html/8830b60f122373e8cc73b9c25f49ade018e96b775b3d603179f2d16f1cef9faf.html.gz": {
+              "sha256": "bc5dea8d84b574b7237e8c326f106ea43aad2a93342b002e111f61d4bedd6a25",
+              "size": 57742
+            },
+            "definitions/upstream/dataset/html/897bc5b59e376abf58fce20d8ac28b645e29de0d59219781a3313f9d6756f339.html.gz": {
+              "sha256": "dbf1791922da98541a901e0405b3593e01f15c4ed8f50317e3a4dfdcc6f49dd3",
+              "size": 59034
+            },
+            "definitions/upstream/dataset/html/89d10150b9d188f6afd455e4b064b2597d068f8a69f4b990c301466fda427246.html.gz": {
+              "sha256": "ef060b9fc1b47176eb66f165ae45f1c35a5b325f376ff8d49edac880ff844583",
+              "size": 65448
+            },
+            "definitions/upstream/dataset/html/8cb33a3e85d78d3b3f05bdb79da7f552973f602a12b6250d528d9ca38f198c17.html.gz": {
+              "sha256": "14710007d80d782d206aca4d5ae9413ba4eba4ec6d0207573a54f39d35b29f69",
+              "size": 120533
+            },
+            "definitions/upstream/dataset/html/91f0a111a06e65b04300672fe3707e2b92250d2e60d99c08d19115e7cca11e8e.html.gz": {
+              "sha256": "0ce7d61896a064e13616986a66d5459f5403b4f4af3f7bf968420b39565bf3d3",
+              "size": 23494
+            },
+            "definitions/upstream/dataset/html/91f8f14da4a9f3046b93d91b72752f654d81925b5064d07e03ee98db32fb5208.html.gz": {
+              "sha256": "15a88d2d8d49b93c5019789f4766770aeda7f160e210d1adc788fec9c361c7f7",
+              "size": 29291
+            },
+            "definitions/upstream/dataset/html/93e7744dcaa23844c590accf41ec8e40ac7b07d5ea83aaf284ee2f906ece25f2.html.gz": {
+              "sha256": "48c668704d2c9b44ecd640c13da37c94399cb91ac30e3ebe299cb678106f727b",
+              "size": 95289
+            },
+            "definitions/upstream/dataset/html/95f9586d43eaae3ac0e9a39a629faaacaa0e2b8d8dcec2aae99b772a5814f61f.html.gz": {
+              "sha256": "ccb9535140a7cfd1d3f409a11978176198a374b13174a3230bb8d1cdeefb8fc9",
+              "size": 323349
+            },
+            "definitions/upstream/dataset/html/96e88e40a1b4124e0d1e78643bdf31ef17896455b720872f1320acb844f446de.html.gz": {
+              "sha256": "3e55b73101cf8e0ebafb28d0bcc4e928859d669a9e31dc736af05ed3742c52e4",
+              "size": 57012
+            },
+            "definitions/upstream/dataset/html/98a7d9c616ab827e1bba1e7b5d1b8be72a0e2ab12dd83c7db18117fe2ed61754.html.gz": {
+              "sha256": "c7f3c7029eee4f0316d7c8edfc5a1d7b3175d07887082f04d5d5bdfe1d255bbd",
+              "size": 60693
+            },
+            "definitions/upstream/dataset/html/98c23afb105e1ba3ebf6946a0ba356099c42bf171fdfcccab99a380df8a942a4.html.gz": {
+              "sha256": "4bde953d93df19041c89cd680ca67d4664b0961a8d5f03b2b98b98e0978dfed7",
+              "size": 82309
+            },
+            "definitions/upstream/dataset/html/997de723fa628a1b88910411aa906a5c3c539617a0b8597411454122599b0831.html.gz": {
+              "sha256": "866012aee11c348e7ad2958c376b6f962db98a6ad4712967a2e76fed79cd745f",
+              "size": 124928
+            },
+            "definitions/upstream/dataset/html/9d8d7e059ecda5dd934c3928425b924e6a9efdde798d273998ed596d5563f0e7.html.gz": {
+              "sha256": "b86ebabd5eaba410dca215c27d5ac0aa1d8ab9a2b072103dddce40aac2a1fc98",
+              "size": 129141
+            },
+            "definitions/upstream/dataset/html/9d939d48bcf747ea5f40df5d241479cb9158b841b51386915dc690ccaac7b600.html.gz": {
+              "sha256": "fe373c71c4599e29f7d738627528fca5b192e3e10e45e823d49513d7561f232f",
+              "size": 113592
+            },
+            "definitions/upstream/dataset/html/9df72c4ef976324923fc8d34489880eb082b7bfe8116da965fb9960806e69909.html.gz": {
+              "sha256": "7f4c387703ab6cc8308e25abde33ef3ffc38204a67443dbbc93bbb1974a260aa",
+              "size": 85691
+            },
+            "definitions/upstream/dataset/html/9edbb12683ce3776bbd10282bd134e05fe2aa757576bf7882e4b9c8abb4a3178.html.gz": {
+              "sha256": "b3a944abea4b279368859eb7a9f286f0bfcf67f2d9195c211a4e65949b15e730",
+              "size": 95731
+            },
+            "definitions/upstream/dataset/html/9f0c6ced874ae5c3694839f39e82088feb1741aacb0628b8c8e2760e15718957.html.gz": {
+              "sha256": "f3d500b3e0fbf488d08dc3099d45cd3a70b9545b6a908b4922bafd7153053257",
+              "size": 9690
+            },
+            "definitions/upstream/dataset/html/9f14dd854ff84d9dac56a567963ca775c696fd45ba9363753c71dd58c399431f.html.gz": {
+              "sha256": "932a5b86db2ef578aecfbc4482cfbfb3dd36fd40c2f87fdfbb1fe6345828de22",
+              "size": 86932
+            },
+            "definitions/upstream/dataset/html/a8a8fc6a31382dad15baa5ae1d46c5503a7d7e8ca1f7ce5a7355fdbd94a99ff9.html.gz": {
+              "sha256": "5fa7648d36a43022532b45d842a1f448a6a5a34ba3aedfdd0bf288752a5c5f6f",
+              "size": 66901
+            },
+            "definitions/upstream/dataset/html/b03d8c978c416ec5097b9d42ff923b4ce73c3d39efdd071b1546d21ff384d091.html.gz": {
+              "sha256": "4938e2cdd21c718f4b71428ed31163807dbfb27ca3703b29c90e7d3df342f851",
+              "size": 245014
+            },
+            "definitions/upstream/dataset/html/b11bf69050d39bf8f5459e1408216cc5a985db8359164462572613e892e2d09f.html.gz": {
+              "sha256": "1d2f629b76b3ee7f801064dac2fa2f0c1637fa425e79385859a05a83ab302819",
+              "size": 63267
+            },
+            "definitions/upstream/dataset/html/b12479936ff0bc8f06b51922c2006bdc9e96bf2bfbb45366b046c404de3091d2.html.gz": {
+              "sha256": "8561cdedd2c7bbf54bf064539febab4348ccf71a95839f2bf9ebacafc181a32f",
+              "size": 27332
+            },
+            "definitions/upstream/dataset/html/b1ba7e152282a19eea794ad4da9628d7d9a9a83b107f43e4838c971fa036187a.html.gz": {
+              "sha256": "a2741bec627e5a0506a401125ef9edc20ca860ba237e00d08d3f03baa4cc6e92",
+              "size": 59782
+            },
+            "definitions/upstream/dataset/html/b331d47650530c9d01c637f6f62242896860a2dd36467de1ca572f037843657f.html.gz": {
+              "sha256": "8d9c399bab6cdc803fc7b3e04ccd83823e245efdd2e6f2eabeaee7c5250f9195",
+              "size": 88909
+            },
+            "definitions/upstream/dataset/html/b4298c1b23f76adf2074b1da9f69eedd2a46bf9e95f56aec69b8bb5dc7291627.html.gz": {
+              "sha256": "ca885151cc95d492a579d4bf5f218bcb047103e163f4af9928d93f308b71f591",
+              "size": 38014
+            },
+            "definitions/upstream/dataset/html/b475627f8942fe92690823191e34435a1327cabdfc76ee73fe52d050e7f2007c.html.gz": {
+              "sha256": "b286bc232f33058ff3550e5002ed2ed94a4c23e0848eca9f782f5153a6829208",
+              "size": 63276
+            },
+            "definitions/upstream/dataset/html/b7af59198cac698a4c36757e64a60c7a7701c48ae44b559a54938f51d729b1f5.html.gz": {
+              "sha256": "572d6bcdcf6ee6296c445f471065a758bb69c54241822ae046abeef7649308a5",
+              "size": 33967
+            },
+            "definitions/upstream/dataset/html/bc5a68d0c2c02a75c619620efec7afc35fb2c2aa2006cc76ba519942defffd1d.html.gz": {
+              "sha256": "6140d5beb9ce0982e7550c76856621adeb68145c92480b34cc0dfe4888433cdd",
+              "size": 19624
+            },
+            "definitions/upstream/dataset/html/bd3f56627e83bcdc14320daa73d6781604b805d8a705afef69b2e02f55594cf2.html.gz": {
+              "sha256": "6827619773da8db2d51ee5b1a03beb30d77f209d1c216340ad38d38b3138d908",
+              "size": 23888
+            },
+            "definitions/upstream/dataset/html/bd4c84757090f7d876e58c5a23be71991062ac153cddd4594998e675eabae2c8.html.gz": {
+              "sha256": "14d8c25a3a9ad2dfabbe63f8ca8b7dfa0b98583fee1da88ff15d6a7dc821b32d",
+              "size": 53959
+            },
+            "definitions/upstream/dataset/html/bddc08f529598f65d911c43525ba5bde22d34e35fa0c2234a9a61a07a9325433.html.gz": {
+              "sha256": "0493af0e19c0ae17a17acd2820bd9bb0ada84f86ab73a08dc65d025853498d4d",
+              "size": 33499
+            },
+            "definitions/upstream/dataset/html/be99f1975380b02a3066840b86c3f42513c231fcb5c7aff38125b5381e2061e8.html.gz": {
+              "sha256": "07e4655ed148b3ac09ab00bbf2e9edf8b123c996d6f37f8788a1c3c68e9083df",
+              "size": 59438
+            },
+            "definitions/upstream/dataset/html/c01d200ba542cad69bb4dead8e400ce0e8c00545a56ef7cdbafc0f588faf1d2e.html.gz": {
+              "sha256": "a87e8e918302f525cfe451c6ba269d64e63b0acf5d1c4e6c699c02fc4022e4b1",
+              "size": 302156
+            },
+            "definitions/upstream/dataset/html/c3db24da634dc14dc5590fbbcd8c2ea8d815a1ca2b475070b7b10b66e2587665.html.gz": {
+              "sha256": "86232a514d038b39307ec3ac7691eb53fb989a95a7ae8c6d4dc86dfacbd50c38",
+              "size": 68531
+            },
+            "definitions/upstream/dataset/html/c3ed0221b7d1f909b2fa187a152c0c427195d9948200748550105118939cfc21.html.gz": {
+              "sha256": "1c98c4211aaa31bafd1689c8ccdb547c8ce6da72b1fb4704bccafc9219b1ac8a",
+              "size": 126733
+            },
+            "definitions/upstream/dataset/html/c6ba46503434bdb8484e5dba59dc94962c7eb72ab277e794141a46510518928f.html.gz": {
+              "sha256": "faba57928904a1e8d4afc5b0076307d6207fe28db0725a3151222e3b50d3e775",
+              "size": 34322
+            },
+            "definitions/upstream/dataset/html/c9f80eb2d0f97dc954bc265169737c1c156b5ec027fbe62994f2018c1e0f67ed.html.gz": {
+              "sha256": "287cc773ae538132a67d524498734ad7a48065eab20de06bb6f9e0f21a6d8972",
+              "size": 40888
+            },
+            "definitions/upstream/dataset/html/cb061364938de7b9d9e0d382810f060246464533194c5f4666c34c2f75eb02fc.html.gz": {
+              "sha256": "d94594e3fec412252a345fea22959b8a3d556c8b0f525e0bed876efe911cfeed",
+              "size": 252976
+            },
+            "definitions/upstream/dataset/html/ccbaa81cc89eaa70df015c6c970c673efc462414b8760440a75b9afd3ee4df0c.html.gz": {
+              "sha256": "f12699b6a42484de22aa7b00a85eeddf75d9f82f28c329650d83f0931b4f28a6",
+              "size": 23946
+            },
+            "definitions/upstream/dataset/html/ccc114af83c729cc78d05a5de4be3e865dc39dc21093ff9ffebe8599fd8c9869.html.gz": {
+              "sha256": "232303a596c148359d0497a12af428161e1f5a92f599a44b71e1448f821dee23",
+              "size": 119387
+            },
+            "definitions/upstream/dataset/html/cfd548adcbf7b92aba56738f4a44695b98173415fc0124b3b74116628c870062.html.gz": {
+              "sha256": "cc2fb4f767a5ccb0db4f56a5244bb4587b4b20f147ce63b1c00e8cf667402dce",
+              "size": 362788
+            },
+            "definitions/upstream/dataset/html/d132928212cec6acd35bf7015ecd41699d84e3d724626c9f52e63d6db8d13904.html.gz": {
+              "sha256": "62ded53b85c52f0147e24c2fc3fc65b7e4878a7e7b8447dc1807ab76a5bfdc9a",
+              "size": 28315
+            },
+            "definitions/upstream/dataset/html/d8830de9c46d6699a8ad00ed1f9c22754f64e74051ceb6c3a900a39efa1ce181.html.gz": {
+              "sha256": "ac1592d8a10778a9a50e9da01dfebf435278b2364335f36c7dc8be55d3ef7d45",
+              "size": 118203
+            },
+            "definitions/upstream/dataset/html/d8ae57c78bf2dcb58c07375379d6026cfdd123f9b4d9ca8576c03a2e7b81bd63.html.gz": {
+              "sha256": "71cf30c554266eebe18225bc00580f71d7bc6d6130e8cd17c3f0ebc85a36798d",
+              "size": 93334
+            },
+            "definitions/upstream/dataset/html/d932425d85b94d53bf7063ae610df4a38530ecef6ac0993b6aa6559afccf6033.html.gz": {
+              "sha256": "c563b294894320639af0035d5ad145d302894268f9269fd8f61bc87a3a08c67c",
+              "size": 6552
+            },
+            "definitions/upstream/dataset/html/df7999ec1e6239e2364051794e10e24fb4db91c62b08016edfc127f191ba5077.html.gz": {
+              "sha256": "4b7da8760fa725a1802450b607888f62afa5386bab510701699bb6e5b735c38a",
+              "size": 290025
+            },
+            "definitions/upstream/dataset/html/e1c58cf210afd7bb4fffee652ab63ef86ff9609cabbdcffc9b05d5bb24afdd6a.html.gz": {
+              "sha256": "a0cd15b4f5cfa7f2904181445483c7026285ebc27af4ee6ac9290d1a7daa92d4",
+              "size": 51952
+            },
+            "definitions/upstream/dataset/html/e3c3d4d8f7f384d2012be13813ce56aec5c977cc4ddebd73dbfa6037b670cee3.html.gz": {
+              "sha256": "689eebd9ad4856e6a6bdbc82712ac98ea892c51fdde9e4c6ed508d2561120b1d",
+              "size": 86757
+            },
+            "definitions/upstream/dataset/html/e51c765cb622d4b9a8998843e8edc707c65644ad875cf52554c8a0203165c89a.html.gz": {
+              "sha256": "be2f52e8cc41c4882f92adb957537fe225ee296633ab4ac0261d424861e368a0",
+              "size": 87941
+            },
+            "definitions/upstream/dataset/html/e907c66570ebb9a3cf33c84222bed42f9675b0411b53e73448646e9782fef882.html.gz": {
+              "sha256": "12d4ecfb207a3d2c89050a48e40c7b77d3e30c019f81896dba9330ad3a8c3322",
+              "size": 194764
+            },
+            "definitions/upstream/dataset/html/e9879f3b5b1b4e5b20ca43927c8bcb36a68ac446ffab0dccefc29b9d07a5153f.html.gz": {
+              "sha256": "88a042aed21e018eccec0e7af818f042fe25285c1402a7bc32f602712433c0ef",
+              "size": 305638
+            },
+            "definitions/upstream/dataset/html/eb7b7d31caec9ba70b445d7711422c4ca59e32c41fa273d367ed91812b8840b3.html.gz": {
+              "sha256": "d22ae8c3c894f047c73a6e1442bfcd6cc87d1b18b5467395d07a38c71232bd2c",
+              "size": 373167
+            },
+            "definitions/upstream/dataset/html/ec6f39428a4dd88cc0355893c2a8174a5e48baf86d1f88db32f28dd70b17ee73.html.gz": {
+              "sha256": "bcb97aed08b0c6477488b61a4d9fa1c2e2c18b088a0e0783d0a73e9b92f49ecd",
+              "size": 267192
+            },
+            "definitions/upstream/dataset/html/ed28f179058b61273b01adedda587c1446628752bb35c518dc99df225296528c.html.gz": {
+              "sha256": "9551c8cb644f3c95630ea260ef581741c5d58a8f56cb7cb47976a7626dc589e5",
+              "size": 244285
+            },
+            "definitions/upstream/dataset/html/ed4cb68e6b01d002973f10f63c12df87013ba7cfb4eb6b1f97ec78fe9c131eb8.html.gz": {
+              "sha256": "65966ce80d0072dc57d4556db968ad2d29ab29951315c4adf3c528ccdd73e638",
+              "size": 151558
+            },
+            "definitions/upstream/dataset/html/f09ca5f02180881a22d3b8b0e54cbed81664cbfa4280d1825ee9922890cac337.html.gz": {
+              "sha256": "a404304a847f4e75f9d6b549103f8e9d7bfbef14e96f2b8aad4c559b403d6fc6",
+              "size": 283479
+            },
+            "definitions/upstream/dataset/html/f17d4d9c99e7877c11c848ae6cea8b5a0987545660c694a2678317ab3db656d5.html.gz": {
+              "sha256": "fa59430fc714665ef67befbbaa4fa8a79ed732a5e43acad57efd408b0a7e8b17",
+              "size": 302299
+            },
+            "definitions/upstream/dataset/html/f45a21d268b15631b1cca6f99664de8e736234709faedf96b8741707953f9ba9.html.gz": {
+              "sha256": "83e0dba284714fa6001b8ecb19b3b1b320f799c0f55338d01b3326566dc00fd5",
+              "size": 105590
+            },
+            "definitions/upstream/dataset/html/f48e9949eec5a2978c050e6a30c8d96f3070c1b5e31c7e1335364d1025840c73.html.gz": {
+              "sha256": "f218e66ac23ebb035e6aa408719a7a7324150a05f41fa9ce9b8c9e2a09482ea7",
+              "size": 59325
+            },
+            "definitions/upstream/dataset/html/f7df67b3dac6031d17e4758305369f25f41d6a79ac2cef5617283e59a5f19668.html.gz": {
+              "sha256": "fe68373f44db0abea6e242d31b9285f76e0f6498a793edf4c0c83259094c36d5",
+              "size": 123699
+            },
+            "definitions/upstream/dataset/html/f86ea57a5481254b95b06395233194efddda63e162265559dc17464ccf2ad158.html.gz": {
+              "sha256": "a0e324bb53d2ba675bece694ec71479c302d229422fd378a7c9ba60264b88796",
+              "size": 22287
+            },
+            "definitions/upstream/dataset/html/f94bb87d396b0e594d3d8c193171599f210ab2ecf65e98ca21e972033fc7e88c.html.gz": {
+              "sha256": "d3af9523dd3e0167c11df4fae68f92bc73f28f01311e6826994f1c4ae2827329",
+              "size": 50284
+            },
+            "definitions/upstream/dataset/html/fa0b2c0baf2ff8b9b0b9d8610deed6114711738f4dfddbfea35b22008d991c8e.html.gz": {
+              "sha256": "03a63fd30f1e116f672ee50d0ad5f56351895929e4ad98a9f4aad07b3dafd27b",
+              "size": 54980
+            },
+            "definitions/upstream/dataset/html/fb989c4426693a8b5f9fa8f5674747bbd9ca14c83c7cab926671114a540df422.html.gz": {
+              "sha256": "342ac1d38b08ddff9dd9c5eda937f477cb2db4baaf4ff9c80ce6a1277a822620",
+              "size": 82002
+            },
+            "definitions/upstream/dataset/html/fed7b69722e04f4a7039d5d914b8c41bc413a2740d148508a0d2fc5ab1e632ed.html.gz": {
+              "sha256": "c5768569ec6df37d21d899dfa03111e2c352a6128451a3704bb637bb311f8c07",
+              "size": 133599
+            },
+            "definitions/upstream/evaluate.py": {
+              "sha256": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7",
+              "size": 4940
+            },
+            "definitions/upstream/extractors/run_extruct.py": {
+              "sha256": "409abc3a2e5c26c09324ed988aeb363544f68032ce6548ec880b21cf919d0aeb",
+              "size": 5423
+            }
+          },
+          "default_dataset": "zyte-products-140",
+          "scorer": {
+            "path": "upstream/evaluate.py",
+            "repository": "https://github.com/scrapinghub/product-extraction-benchmark",
+            "revision": "cba97d7a8d42aeefd4021bc15d482f297faceaa3",
+            "sha256": "864ff31d8f06cc70546bb9b477c15912369e85dda1a5015c766ef42130de9fd7"
+          },
+          "source_editions": {
+            "22272f68f973218f43b09a588c37864b0e8a0a19": "0b2f974c2311dca2e280f63c3c8c52a455dca892"
+          }
+        }
+      ],
+      "source_editions": {
+        "22272f68f973218f43b09a588c37864b0e8a0a19": "0b2f974c2311dca2e280f63c3c8c52a455dca892",
+        "94d0f655ca8c7b8986cdc6a3e0329f56acc64e3d": "1b213908dfb737cec3cc1fe4e895b83819d23539"
+      }
     }
   }
 }

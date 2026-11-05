@@ -62,8 +62,23 @@ def dependencies(track: str) -> dict[str, dict[str, str]]:
     return result
 
 
+def source_name_migrations() -> dict:
+    """Read archived source identifiers from the migration provenance document."""
+    return json.loads(package_files(__package__).joinpath("code-migration.json").read_bytes()).get(
+        "legacy_names", {}
+    )
+
+
+def canonical_source_name(kind: str, value: object) -> str | None:
+    """Decode recorded source formats; writers emit only the current identity."""
+    if not isinstance(value, str):
+        return None
+    return source_name_migrations().get(kind, {}).get(value, value)
+
+
 def canonical_repository(repository: str) -> str:
     """Recognize recorded Hub moves without changing frozen commit identities."""
+    repository = canonical_source_name("repositories", repository)
     metadata = json.loads(package_files(__package__).joinpath("cards/metadata.json").read_bytes())
     return next((item["repo_id"] for item in metadata.values()
                  if repository == item["repo_id"] or repository in item.get("previous_repo_ids", [])),

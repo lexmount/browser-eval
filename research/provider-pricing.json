@@ -2,6 +2,89 @@
   "checked_at": "2026-09-03",
   "currency": "USD",
   "scope": "公开 Web Fetch / Contents / Extract / Scrape / Markdown 与 Search 报价；不作为历史调用账单",
+  "structured_extraction_products": [
+    {
+      "id": "firecrawl-parse-json",
+      "verified_at": "2026-11-04",
+      "currency": "USD",
+      "billing_unit": "Uploaded document parse; native metadata.creditsUsed determines billed credits",
+      "rates_per_1000": {},
+      "conversion": "USD per 1,000 requests = mean native creditsUsed per request * monthly plan USD / included credits * 1,000. Monthly full-allocation unit rates: Hobby 3.8, Standard 0.99, Growth 0.798, Scale 0.749 USD per 1,000 credits. Annual commitments and top-ups differ.",
+      "commitment": "Shared plan allocations; public Parse documentation does not specify a separate flat credit rate. Retain native usage and do not infer invoice charges from advertised scrape pricing.",
+      "sources": [
+        "https://docs.firecrawl.dev/api-reference/endpoint/parse",
+        "https://www.firecrawl.dev/pricing"
+      ]
+    },
+    {
+      "id": "zyte-custom",
+      "verified_at": "2026-11-04",
+      "currency": "USD",
+      "billing_unit": "Custom-attribute input/output tokens plus automatic extraction data types",
+      "rates_per_1000": {},
+      "conversion": "Text extraction PAYG: USD 1.34/M input tokens plus USD 6.67/M output tokens; HTML-dependent schemas: USD 4.02/M input and USD 20.00/M output. Add applicable automatic extraction data-type charges of USD 0.27–1.07 per 1,000. Use native inputTokens/outputTokens to normalize per 1,000 requests.",
+      "commitment": "PAYG; commitment discounts differ. Uploaded userHtml avoids target fetching. The HTML/text tariff follows schema needs, not merely the fact that the input was HTML. Native tokens are not an invoice.",
+      "sources": [
+        "https://docs.zyte.com/zyte-api/pricing.html",
+        "https://docs.zyte.com/zyte-api/usage/extract/custom-attributes.html"
+      ]
+    },
+    {
+      "id": "browserbase-json", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "JSON extraction request without proxies", "rates_per_1000": {"paid_overage": 4, "with_proxies": 7},
+      "commitment": "Developer USD 20/month or Startup USD 99/month; included allocations precede overage. Free plan includes 1,000 Fetch calls; extraction access was independently tested.",
+      "sources": ["https://www.browserbase.com/pricing", "https://dev.browserbase.com/changelog/fetch-api-extract"]
+    },
+    {
+      "id": "firecrawl-json", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "JSON scrape page, 5 credits", "rates_per_1000": {"hobby_monthly_full_utilization": 19, "standard_monthly_full_utilization": 4.95, "growth_monthly_full_utilization": 3.99, "scale_monthly_full_utilization": 3.745},
+      "commitment": "Monthly tiers USD 19/5,000 credits, USD 99/100,000, USD 399/500,000, USD 749/1,000,000. Base scrape 1 credit plus JSON 4 credits. Full utilization assumptions; annual and overage rates differ.",
+      "sources": ["https://www.firecrawl.dev/pricing"]
+    },
+    {
+      "id": "scrapegraph-extract", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "extract request, 5 credits without stealth", "rates_per_1000": {"starter_monthly_full_utilization": 10, "growth_monthly_full_utilization": 5, "pro_monthly_full_utilization": 3.3333333333333335, "small_topup": 25, "medium_topup": 20, "large_topup": 15},
+      "commitment": "Monthly USD 20/10,000 credits, USD 100/100,000, USD 500/750,000. One-time packs USD 5/1,000, USD 40/10,000, USD 150/50,000. Stealth adds 5 credits; free grant is one-time 500 credits.",
+      "sources": ["https://scrapegraphai.com/pricing"]
+    },
+    {
+      "id": "scrapfly-product", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "product extraction model, 5 credits per 500 KB document chunk", "rates_per_1000": {"discovery_full_utilization_base_chunk": 0.75, "pro_full_utilization_base_chunk": 0.5, "enterprise_full_utilization_base_chunk": 0.45454545454545453},
+      "commitment": "USD 30/month for 200,000 shared credits; USD 100/1,000,000; USD 500/5,500,000. Each additional 500 KB chunk costs another 5 credits. Use X-Scrapfly-Api-Cost to account for actual document sizes; the base-chunk price is not a flat price for every document.",
+      "sources": ["https://scrapfly.io/docs/extraction-api/billing", "https://scrapfly.io/pricing"]
+    },
+    {
+      "id": "diffbot-product", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "Extract page, 1 credit without datacenter proxy", "rates_per_1000": {"startup_full_utilization": 1.196, "startup_overage": 1, "plus_full_utilization": 0.899, "plus_overage": 0.9},
+      "commitment": "Startup USD 299/month for 250,000 shared credits; Plus USD 899/month for 1,000,000. Free 10,000 credits/month with 5 requests/min. Datacenter proxy doubles extraction credits.",
+      "sources": ["https://www.diffbot.com/pricing"]
+    },
+    {
+      "id": "zyte-product", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "automatic extraction per data type", "rates_per_1000": {"published_extraction_min": 0.27, "published_extraction_max": 1.07},
+      "commitment": "PAYG without monthly commitment; published range covers automatic extraction data types, not an exact quote for this userHtml product cohort. userHtml performs no download or browser rendering. Native response receipts do not expose an exact per-call USD amount; target fetch/browser costs apply to live-URL workflows.",
+      "sources": ["https://docs.zyte.com/zyte-api/pricing.html", "https://docs.zyte.com/zyte-api/usage/reference"]
+    },
+    {
+      "id": "cloudflare-json", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "browser hour plus Workers AI input/output tokens", "rates_per_1000": {},
+      "conversion": "After included usage: USD 0.025 * mean billable browser seconds per request per 1,000 requests, plus USD 0.293/M input tokens and USD 2.253/M output tokens for the default hosted model. Client latency is not billable browser time.",
+      "commitment": "Workers Paid includes 10 browser hours/month, then USD 0.09/hour. The JSON endpoint also consumes Workers AI. A fixed per-request price requires browser-time and model-token usage; an unavailable receipt is not a zero charge.",
+      "sources": ["https://developers.cloudflare.com/browser-run/pricing/", "https://developers.cloudflare.com/browser-run/quick-actions/json-endpoint/", "https://developers.cloudflare.com/workers-ai/models/llama-3.3-70b-instruct-fp8-fast/"]
+    },
+    {
+      "id": "oxylabs-json", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "custom-domain non-JS scrape plus AI parsing", "rates_per_1000": {"welcome_and_starter": 4, "basic": 3.9, "flexible": 3.8, "enterprise_from": 3.75},
+      "commitment": "USD 5 welcome credit; Starter USD 30/month, Basic USD 100/month, Flexible USD 500/month, Enterprise from USD 2,500/month. AI parsing costs USD 3/1,000 parsed pages, added to custom-domain non-JS scraping at USD 1/0.90/0.80/0.75 per 1,000 results. The advertised USD 0.50 scrape starting price is not this generic JSON configuration.",
+      "sources": ["https://oxylabs.io/pricing", "https://developers.oxylabs.io/products/web-api/scrape/ai-parsing"]
+    },
+    {
+      "id": "extruct", "verified_at": "2026-11-03", "currency": "USD",
+      "billing_unit": "local extraction", "rates_per_1000": {"external_api_fee": 0},
+      "commitment": "No vendor API fee. Local CPU, hosting, maintenance and HTML acquisition are excluded; this does not mean zero total cost.",
+      "sources": ["https://github.com/scrapinghub/extruct"]
+    }
+  ],
   "search_products": [
     {
       "id": "browserbase-search",

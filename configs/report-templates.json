@@ -71,6 +71,28 @@
         "combined-cohorts"
       ],
       "release_check": "uv run --frozen python -m harness.web_search report --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json"
+    },
+    "web-extract": {
+      "renderer": "src/harness/web_extract/report.py",
+      "entrypoint": "src/harness/web_extract/cli.py",
+      "example": "examples/web_extract/README.md",
+      "example_version": 1,
+      "example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-example",
+      "build": "uv run --frozen python -m harness.web_extract.cli report --profile /absolute/report-profile.json --content /absolute/content.json --output /absolute/report --language zh",
+      "check": "uv run --frozen python -m harness.web_extract.cli check /absolute/report",
+      "tests": "tests/web_extract/",
+      "variants": [
+        "research-and-compatibility",
+        "full-cohort-progress",
+        "synthetic",
+        "field-extraction-cohort"
+      ],
+      "release_check": "uv run --frozen python -m harness.web_extract.cli check /absolute/report --release --visual-receipt /absolute/visual-receipt.json",
+      "package": "uv run --frozen python -m harness.web_extract.cli package /absolute/report --output /absolute/report.zip --visual-receipt /absolute/visual-receipt.json",
+      "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json",
+      "cohort_example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-cohort-example --mode full-cohort-progress",
+      "publish": "uv run --frozen python -m harness.web_extract.cli publish --source /absolute/report --target /absolute/publication-target.json --work /absolute/new-publication --visual-receipt /absolute/visual-receipt.json",
+      "record_example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-record-example --mode field-extraction-cohort"
     }
   }
 }

@@ -32,9 +32,10 @@ def test_every_selected_dataset_has_an_evaluation_workflow(name, heading):
     text = (root / name).read_text(encoding='utf-8')
     section = text.split('## ' + heading + '\n', 1)[1].split('\n## ', 1)[0]
     rows = re.findall(r'^\|.*\|$', section, re.M)
-    linked = set(re.findall(r'https://huggingface.co/datasets/(Lexmount/LexBench-[\w-]+)', '\n'.join(rows)))
+    linked = set(re.findall(r'https://huggingface.co/datasets/(Lexmount/[\w-]+)', '\n'.join(rows)))
     lock = json.loads((root / 'src/harness/benchmarks/data-lock.json').read_text(encoding='utf-8'))
-    assert linked == {dataset['repository'] for dataset in lock['datasets'].values()}
+    from harness.benchmarks.data import canonical_repository
+    assert linked == {canonical_repository(dataset['repository']) for dataset in lock['datasets'].values()}
 
 
 @pytest.mark.parametrize('text', [

@@ -36,11 +36,13 @@ Write every title and paragraph for the reader, not as a reply to author feedbac
 
 ## Claims and rankings
 
+Every comparison includes latency and cost/pricing for all participants. These are shared template requirements, not optional track features. The discovery command returns the inherited contract for new tracks. Before calls, select the timer boundaries, native usage receipts, pricing sources and normalization unit. CPU and memory are contextual: measure them for local execution or a controlled resource comparison; state the reason when they do not apply. A remote API client's CPU or memory does not measure the provider's infrastructure. Release checks must reject omitted participants or missing dimensions. An unavailable measurement retains its scope, count and reason; it is never rendered as zero.
+
 Pair every ranking with its task family, denominator, acceptance meaning, a typical input-to-output route, and limits. Keep task acceptance separate from continuous quality, latency, cost, and title/body diagnostics. Do not call conditional averages global quality or explain a correlation as a verified mechanism.
 
 Prefer concise tables for exact comparisons and prose for interpretation. Remove repeated caveats after placing each limitation where it changes interpretation. Run a factual pass before a prose/humanization pass; never let editing change numbers or scope.
 
-For a standard numeric comparison, show mean, P50, and P95 when all three are useful. P50 is the median, so never present “median” and P50 as separate statistics. Declare whether higher or lower is better and visually mark only a unique column maximum/minimum within the displayed scope; a numerical highlight does not establish causal superiority or a whole-benchmark ranking. Conditional populations require visible counts, not suppression of their extrema. Leave ties, identifiers, call counts, and metrics without a universal direction neutral. Do not rank raw totals when unequal workloads make them non-comparable without also exposing the workload or normalized value.
+For a standard numeric comparison, show mean, P50, and P95 when all three are useful. P50 is the median, so never present “median” and P50 as separate statistics. Declare whether higher or lower is better and visually mark extrema within the displayed scope: every tied best value for Web Extract, unique extrema for other tracks; a numerical highlight does not establish causal superiority or a whole-benchmark ranking. Conditional populations require visible counts, not suppression of their extrema. Leave unavailable values, identifiers, call counts, and metrics without a universal direction neutral. Do not add tie labels. Do not rank raw totals when unequal workloads make them non-comparable without also exposing the workload or normalized value.
 
 Do not add a second static inventory when existing filters expose the same result slice. Keep one searchable result table and use focused summaries only when they add a distinct analytical relationship.
 
@@ -83,15 +85,39 @@ These rules apply to every public benchmark report, regardless of provider, task
 
 - **Component denominators:** distinguish “a reference exists” from “that reference contains this component.” If a denominator is the union of reference-side and output-side content, show the counted categories, zero-score additions and pre-scoring exclusions with measured counts. Do not describe an output-only component as a missing reference.
 - **Metric labels:** use parallel names and units (Mean latency, P50 latency, P95 latency). Explain their common population once beside the table. Define P50 as the median and P95 as the 95th percentile at first use; do not attach “successful” only to the mean while silently applying it to all three. Label unavailable values separately from zero.
-- **Highlights:** derive unique directional extrema from raw numeric values and the complete displayed participant registry. Ties remain neutral. Green denotes a column extreme in the declared scope, not statistical significance or an overall ranking. Keep the same markers in all languages, themes, and copies of the comparison. Conditional success coverage and post-hoc shared-success subsets remain explicit.
+- **Highlights:** derive directional extrema from raw numeric values and the complete displayed participant registry. Web Extract marks every tied best value; other tracks mark unique extrema. Green denotes a column extreme in the declared scope, not statistical significance or an overall ranking. Keep the same markers in all languages, themes, and copies of the comparison. Conditional success coverage and post-hoc shared-success subsets remain explicit.
 - **Table interaction:** choose controls by the table's reader task. Large result and dataset inventories must provide search or relevant filters plus stable sorting for decision-relevant columns. Compact comparison tables keep the complete participant set visible and provide accessible sorting for useful numeric columns; do not add filters that can hide participants and change the apparent comparison population. Small definition, provenance, or lookup tables may remain static. Sortable headers use buttons and `aria-sort`, cells expose raw machine-readable sort values where rendered text is formatted, unavailable values stay after real values in either direction, and ties retain source order. Sorting or filtering must never recompute directional highlights from the visible subset.
 - **One fact, one owner:** use one result summary containing outcome and scalar facts. Distinguish request status, valid output, and task acceptance, but do not repeat them as several summary sections. Keep inventories compact and filterable. Put full output comparisons, scoring payloads, provenance, and logs behind labeled dialogs or disclosures; never flatten them into cards or inventory cells.
 - **Repairable failures:** connect the failure location and program error category to exact error text, retained logs, relevant output or step, reviewed cause, and remediation evidence when recorded. Keep unknown fields explicitly unavailable; a warning or nearby successful action is not automatically the root cause. Preserve complete raw evidence, but do not duplicate a log stream in multiple visible sections.
 - **Evidence interaction:** dialogs must have accessible names, close controls, Escape support, focus restoration, readable bounded scrolling, and usable narrow layouts. Exercise maintained renderer components with representative success and failure fixtures: inventory to exact error/log, keyboard dismissal with focus restoration, and a successful output comparison. Test host-specific nested navigation locally. Keep these behavior tests separate from the top-level release reader pass.
-- **Executable protection:** release checks must recompute extrema (including ties/missing values), validate one summary and resolvable evidence controls, and reject failures without exact error evidence or an explicit unavailable state. Include negative controls that remove a highlight, mark the wrong/tied value, break a dialog target, or flatten evidence. Check labels, units, localization parity, and duplicate ownership, rather than only route counts or fixed prose snippets.
+- **Executable protection:** release checks must recompute extrema (including ties/missing values), validate one summary and resolvable evidence controls, and reject failures without exact error evidence or an explicit unavailable state. Include negative controls that remove a highlight, mark a wrong value or omit a tied best value, break a dialog target, or flatten evidence. Check labels, units, localization parity, and duplicate ownership, rather than only route counts or fixed prose snippets.
 
 Repository adapter: `src/harness/reporting/presentation.py` provides track-independent checks over numeric cells marked with `data-metric`, `data-metric-direction`, and `data-sort`, and detail wrappers marked with `data-report-detail`. The Web Fetch, WCXB, WebMainBench and Web Search release gates invoke it, as do the Web Fetch diagnostic and published-snapshot checks. The Browser Use and Trajectory Replay gates use only its `visible_text` helper, and Lexbench has its own verifier, so they are not covered by it. New or substantially rewritten tracks must integrate this checker (or equivalent semantic checks) in their own release command; adding a rule to this document is not sufficient. Existing tracks must not be claimed as covered until their gates actually invoke the checks.
 
 Shared gate flow: `src/harness/reporting/release_check.py` owns what every release check repeats: opening a link-free report, reading pages through the presentation rules, naming language editions and binding report identity. Each track keeps its own rules and negative controls. Do not route a module into it when a visual receipt or manifest records that module's hash (`checker_sources`, `producer_sources`, `renderer_sha256`).
 
 Keep unpublished correction notes outside public release history. Schema 3 requires an explicit publication state for every release; an unmarked record fails the build. When a structured release is staged, mark it `publication_state: unpublished`; the public history selector and revision-binding gate must exclude it. Preserve its private correction receipt and measured calls.
+
+
+## Shared reader components
+
+The template resolver supplies a common presentation contract to every track.
+Use `harness.reporting.presentation.metric_guide` for metric definitions and
+`check_metric_guide` in the owning release check. A track supplies its metric
+names, meaning, units, populations and direction; it should not copy the guide
+renderer. Keep the explanation beside the main comparison, and retain negative
+controls for missing definitions, changed units or populations and wrong targets.
+The existing comparison checker owns directional highlights and unavailable values.
+
+For usage-priced services, convert the declared workload with
+`harness.reporting.pricing.usd_per_thousand`. Retain quantities, rates, assumptions
+and source dates; validate the displayed interval against that conversion.
+A formula alone does not replace a dollar figure. Label scenario estimates and
+plan quotes separately, and keep full billing terms off the compact home table.
+
+A result detail leads with the requested fields, reference and actual values,
+and the explanation of their differences. Give developer records one secondary
+entry; a successful HTTP status is not an error or a quality verdict. A dataset
+page owns task definitions, while result pages own measured outputs. Keep each
+report's examples within its own dataset; related benchmarks belong in research
+references rather than a second unannounced result cohort.

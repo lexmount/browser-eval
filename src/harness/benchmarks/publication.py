@@ -13,6 +13,7 @@ from dataclasses import dataclass, replace
 from fnmatch import fnmatchcase
 from pathlib import Path
 
+from harness.benchmarks.data import canonical_source_name
 from harness.record_io import bytes_sha256
 
 CARDS = Path(__file__).with_name("cards")
@@ -23,6 +24,27 @@ HEADLESS_INPUTS = ("tasks", "fixtures", "config", "manifest.json", "harness_pins
 
 def encoded(value: object) -> bytes:
     return (json.dumps(value, ensure_ascii=False, sort_keys=True, indent=2) + "\n").encode()
+
+
+def publish_snapshot_metadata(repository, metadata, *, parent_revision, readme, api=None):
+    """Add a verified URL binding atomically without changing original dataset files."""
+    from huggingface_hub import CommitOperationAdd, HfApi
+
+    if not re.fullmatch(r"[0-9a-f]{40}", parent_revision):
+        raise ValueError("Snapshot publication requires an exact source commit")
+    if metadata.get("huggingface_source_revision") != parent_revision:
+        raise ValueError("Snapshot source revision differs from the publication parent")
+    client = api or HfApi()
+    return client.create_commit(
+        repo_id=repository,
+        repo_type="dataset",
+        parent_commit=parent_revision,
+        commit_message="Bind verified public HTML snapshot URLs",
+        operations=[
+            CommitOperationAdd(path_in_repo="snapshots.json", path_or_fileobj=encoded(metadata)),
+            CommitOperationAdd(path_in_repo="README.md", path_or_fileobj=readme.encode("utf-8")),
+        ],
+    )
 
 
 def _derived_field(reference: str):
@@ -169,7 +191,7 @@ class DatasetRelease:
             identity = json.loads(committed.stdout)
             if (not isinstance(identity, dict)
                     or identity.get("schema") != "browser-eval-dataset-release/1"
-                    or identity.get("track") != track):
+                    or canonical_source_name("tracks", identity.get("track")) != track):
                 raise ValueError("Hub source manifest does not match the requested benchmark track")
             prefix = "definitions/"
         else:
@@ -180,14 +202,14 @@ class DatasetRelease:
                 raise ValueError("Source requires one committed definitions tree")
             prefix = prefixes[0]
         notices = subprocess.check_output(
-            ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "NOTICE",
+            ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "LICENSE-annotations", "NOTICE",
              "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md", "VERSIONING.md"], cwd=checkout, text=True).splitlines()
         files = {}
         for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():
             name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
             allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
                        or Path(name).name in {"LICENSE", "NOTICE"}
-                       or (track == "wcxb" and name.endswith(".html.gz")))
+                       or any(name.endswith(suffix) for suffix in registered[track].get("definition_suffixes", [])))
             if name.startswith("definitions/") and not allowed:
                 raise ValueError("Unexpected definition file: " + name)
             pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)

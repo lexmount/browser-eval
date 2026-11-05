@@ -204,9 +204,9 @@ SENSITIVE_KEY = (
     rb'(?:(?:[a-z0-9]+[-_])*(?:proxy[-_]?authorization|authorization|(?:set[-_])?cookie|'
     rb'(?:access|refresh|id)[-_]?token|x[-_]?auth[-_]?token|private[-_]?token|token|'
     rb'(?:aws[-_])?secret[-_]?access[-_]?key|client[-_]?secret|secret|credentials?|'
-    rb'x[-_]?api[-_]?key|api[-_]?key|password|passwd))'
+    rb'x[-_]?api[-_]?key|api[-_]?key|signing[-_]?key|password|passwd))'
 )
-EMBEDDED_URL = re.compile(r"(?i)\bhttps?://[^\s<>\"'\\\x00]+")
+EMBEDDED_URL = re.compile(r"(?i)\b(?:https?|wss?)://[^\s<>\"'\\\x00]+")
 QUERY_SENSITIVE_KEY = re.compile(
     r'(?i)(?:' + SENSITIVE_KEY.decode('ascii') +
     r'|(?:[a-z0-9]+[-_])*(?:signature|sig|signed|auth|key)|'
@@ -318,6 +318,15 @@ def _redact_plain_url_queries(text):
             url, units = raw, None
         query_start = url.find('?')
         changes = []
+        authority_start = url.find('://') + 3
+        authority_end = min((i for i in (url.find('/', authority_start),
+                                        url.find('?', authority_start),
+                                        url.find('#', authority_start)) if i >= 0), default=len(url))
+        at = url.rfind('@', authority_start, authority_end)
+        if at >= 0 and url[authority_start:at] != '[REDACTED]':
+            changes.append((units[authority_start][1] if units else authority_start,
+                            units[at-1][2] if units else at))
+            replacements += 1
         if query_start >= 0:
             query_end = url.find('#', query_start)
             if query_end < 0:
