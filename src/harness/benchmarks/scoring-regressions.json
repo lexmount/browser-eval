@@ -84336,5 +84336,33 @@
       "ok": true,
       "expected_task_pass": false
     }
+  ],
+  "web_extract_cases": [
+    {
+      "id": "human-eval-missing-empty-reference",
+      "reference": {}, "prediction": null,
+      "expected": {"value_score": 0, "exact_record_match": 0, "delivered": 0}
+    },
+    {
+      "id": "human-eval-delivered-empty-reference",
+      "reference": {}, "prediction": {},
+      "expected": {"value_score": 1, "exact_record_match": 1, "delivered": 1}
+    },
+    {
+      "id": "human-eval-correct-record-pairs",
+      "reference": {"items": [{"name": "A", "price": 1}, {"name": "B", "price": 2}]},
+      "prediction": {"items": [{"name": "B", "price": 2}, {"name": "A", "price": 1}]},
+      "expected": {"value_score": 1, "exact_record_match": 1, "delivered": 1}
+    },
+    {
+      "id": "human-eval-swapped-record-pairs",
+      "reference": {"items": [{"name": "A", "price": 1}, {"name": "B", "price": 2}]},
+      "prediction": {"items": [{"name": "A", "price": 2}, {"name": "B", "price": 1}]},
+      "expected": {"value_score": 1, "exact_record_match": 0, "delivered": 1}
+    },
+    {
+      "id": "human-eval-process-independent-value-score",
+      "check": "case-and-field-order-invariance"
+    }
   ]
 }

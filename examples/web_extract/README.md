@@ -59,6 +59,10 @@ while preserving duplicates, JSON value types and associations between fields.
 Official wildcard field scores can award full credit to incorrectly paired
 records; strict exact matches can reject semantically equivalent wording. Read
 the measures together. No independent result review is implied by machine scoring.
+The adapter uses the upstream leaf comparisons with a stable sum. This removes
+process-dependent floating-point differences from unordered field traversal;
+it preserves the mathematical metric. A score-only correction uses `score --output`
+and retains its original score hash, implementation hash and executable controls.
 
 ### Archived HTML
 
