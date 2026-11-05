@@ -44,12 +44,14 @@ def test_result_links_open_isolated_participant_details_on_the_same_case(tmp_pat
     create(output, mode="full-cohort-progress", language="en")
     targets_by_language = {}
     for language in ("zh", "en"):
-        inventory = BeautifulSoup((output / language / "results.html").read_text(), "html.parser")
+        inventory = BeautifulSoup(
+            (output / language / "results.html").read_text(encoding="utf-8"), "html.parser"
+        )
         targets = set()
         for row in inventory.select('tr[data-status="pass"], tr[data-status="fail"]'):
             target = urlsplit(row.select_one("a[href]")["href"])
             targets.add(target.path)
-            page = BeautifulSoup((output / target.path).read_text(), "html.parser")
+            page = BeautifulSoup((output / target.path).read_text(encoding="utf-8"), "html.parser")
             panel = page.select_one(f'details[data-result-panel][id="{target.fragment}"]')
             assert panel is not None and target.fragment == row["data-method"]
             assert len(panel.select("[data-result-summary]")) == 1
@@ -63,13 +65,13 @@ def test_result_links_open_isolated_participant_details_on_the_same_case(tmp_pat
         import copy
 
         path = output / sorted(targets_by_language["zh"])[0]
-        page = BeautifulSoup(path.read_text(), "html.parser")
+        page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
         panel = page.select_one("details[data-result-panel]")
         if damage == "missing":
             panel.decompose()
         else:
             panel.insert_after(copy.copy(panel))
-        path.write_text(str(page))
+        path.write_text(str(page), encoding="utf-8")
         manifest = read_json(output / "report-manifest.json")
         manifest["files"]["zh/" + path.name] = digest(path.read_bytes())
         save_json(output / "report-manifest.json", manifest)
