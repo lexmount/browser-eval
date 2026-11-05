@@ -114,6 +114,11 @@ For usage-priced services, convert the declared workload with
 and source dates; validate the displayed interval against that conversion.
 A formula alone does not replace a dollar figure. Label scenario estimates and
 plan quotes separately, and keep full billing terms off the compact home table.
+When a complete workload charge cannot be observed, use the owning renderer's
+explicit unavailable state. Bind the missing population and reason to evidence;
+do not substitute software license cost, a model-only subtotal or zero for the
+complete charge. Web Extract binds its cost disclosure to the frozen source plan
+and validates that receipt at both build and release boundaries.
 
 A result detail leads with the requested fields, reference and actual values,
 and the explanation of their differences. Give developer records one secondary

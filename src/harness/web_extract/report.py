@@ -9,7 +9,7 @@ import statistics
 import struct
 from html import escape as esc
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import quote, unquote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
@@ -40,6 +40,7 @@ from harness.web_extract.pipeline import (
     save_json,
     score_rows,
     score_run,
+    unsafe_parents,
     validate_dataset,
     verify_execution_snapshot,
     verify_retry_history,
@@ -471,7 +472,52 @@ def reference_populations(truth):
     }
 
 
+def cost_unavailability(value, lang):
+    unavailable = value.get("cost_unavailable")
+    if unavailable is None:
+        return None
+    if not isinstance(unavailable, dict):
+        raise ValueError("Invalid cost unavailability disclosure")
+    cases = unavailable.get("population_cases")
+    missing = unavailable.get("missing_cases")
+    evidence = unavailable.get("evidence", {})
+    reason = unavailable.get("reason", {})
+    if (
+        type(cases) is not int
+        or type(missing) is not int
+        or not 0 < missing <= cases
+        or not isinstance(reason, dict)
+        or not isinstance(reason.get(lang), str)
+        or not reason[lang].strip()
+        or not isinstance(evidence, dict)
+        or not isinstance(evidence.get("path"), str)
+        or not isinstance(evidence.get("sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", evidence.get("sha256", ""))
+        or value.get("usd_per_1000_range") is not None
+        or value.get("pricing_formula")
+    ):
+        raise ValueError("Invalid cost unavailability disclosure")
+    return unavailable
+
+
+def price_remarks(value, lang, *, summary=False):
+    text = value.get("billing_summary", {}).get(lang) if summary else None
+    text = text or value["terms"][lang]
+    unavailable = cost_unavailability(value, lang)
+    if unavailable:
+        text += " " + message(
+            "cost_unavailable_population",
+            lang,
+            missing=unavailable["missing_cases"],
+            cases=unavailable["population_cases"],
+            reason=unavailable["reason"][lang],
+        )
+    return text
+
+
 def price_quote(value, lang):
+    if cost_unavailability(value, lang):
+        return message("cost_total_unavailable", lang)
     bounds = value.get("usd_per_1000_range")
     if bounds is None:
         if value.get("pricing_formula"):
@@ -661,11 +707,17 @@ def price_table(methods, prices, lang, labels=None):
             or any(urlsplit(u).scheme != "https" for u in sources)
         ):
             raise ValueError("Every participant requires sourced cost/pricing terms: " + method)
+        terms = esc(price_remarks(value, lang))
+        unavailable = cost_unavailability(value, lang)
+        if unavailable:
+            terms += '<br><a data-cost-evidence="true" href="'
+            terms += esc(quote("../" + unavailable["evidence"]["path"], safe="/"), quote=True) + '">'
+            terms += message("cost_disclosure_receipt", lang) + "</a>"
         records.append(
             [
                 esc(labels.get(method, method)),
                 esc(price_quote(value, lang)),
-                esc(value["terms"][lang]),
+                terms,
                 esc(value["verified_at"]),
                 " · ".join(
                     f'<a href="{esc(u, quote=True)}" target="_blank" rel="noopener noreferrer">{i}</a>'
@@ -833,11 +885,7 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
                 str(len(selected) - len(values)),
                 *[f"{v:.3f}" if v is not None else "—" for v in stats],
                 esc(price_quote(prices[method], lang)),
-                esc(
-                    prices[method]
-                    .get("billing_summary", {})
-                    .get(lang, prices[method]["terms"][lang])
-                )
+                esc(price_remarks(prices[method], lang, summary=True))
                 + '<br><a href="accounts.html">'
                 + message("terms_and_sources", lang)
                 + "</a>",
@@ -2527,10 +2575,67 @@ def report_dependencies():
 def validate_release_prices(manifest):
     if manifest.get("dataset_kind") == "published-upstream":
         for value in manifest["prices"].values():
-            if "usd_per_1000_range" not in value and not value.get("pricing_formula"):
+            if (
+                "usd_per_1000_range" not in value
+                and not value.get("pricing_formula")
+                and not value.get("cost_unavailable")
+            ):
                 raise ValueError(
                     "Formal releases require normalized price ranges or a billing formula"
                 )
+
+
+def check_cost_disclosures(output, manifest):
+    """Bind missing monetary telemetry to its population and frozen source plan."""
+    selected = {
+        method: value
+        for method, value in manifest.get("prices", {}).items()
+        if value.get("cost_unavailable") is not None
+    }
+    if not selected:
+        return
+    if manifest.get("mode") == "field-extraction-cohort":
+        sources = read_json(output / "public-evidence/sources.json")
+        plans = {method: item["plan_sha256"] for method, item in sources.items()}
+    else:
+        plans = {
+            method: item.get("source_plan_sha256")
+            for item in manifest.get("source_runs", [])
+            for method in (item.get("methods") or item.get("contract", {}).get("methods", []))
+        }
+    for method, value in selected.items():
+        disclosure = cost_unavailability(value, manifest["primary_language"])
+        for lang in manifest["languages"]:
+            cost_unavailability(value, lang)
+        evidence = disclosure["evidence"]
+        relative = Path(evidence["path"])
+        path = output / relative
+        if (
+            disclosure["population_cases"] != manifest["case_count"]
+            or relative.is_absolute()
+            or ".." in relative.parts
+            or not relative.parts
+            or relative.parts[0] != "assets"
+            or not path.is_file()
+            or path.is_symlink()
+            or unsafe_parents(path)
+            or digest(path.read_bytes()) != evidence["sha256"]
+            or manifest["files"].get(relative.as_posix()) != evidence["sha256"]
+            or not re.fullmatch(r"[0-9a-f]{64}", plans.get(method) or "")
+        ):
+            raise ValueError("Cost disclosure population or evidence differs")
+        expected = {
+            "schema": "web-extract-cost-disclosure/1",
+            "method": method,
+            "case_count": disclosure["population_cases"],
+            "total_charge_receipts": disclosure["population_cases"] - disclosure["missing_cases"],
+            "source_plan_sha256": plans[method],
+        }
+        observed = read_json(path)
+        if observed != expected or any(
+            type(observed[key]) is not type(item) for key, item in expected.items()
+        ):
+            raise ValueError("Cost disclosure does not match its frozen source")
 
 
 def check_price_coverage(output, methods, prices, language, labels):
@@ -2540,6 +2645,8 @@ def check_price_coverage(output, methods, prices, language, labels):
     expected = BeautifulSoup(
         price_table(methods, prices, language, labels), "html.parser"
     ).select_one("[data-price-table]")
+    for anchor in expected.select("[data-cost-evidence]"):
+        anchor["href"] = anchor["href"].removeprefix("../")
     actual = accounts.select("[data-price-table]")
     if len(actual) != 1 or actual[0] != expected:
         raise ValueError("Cost/pricing coverage differs from bound source")
@@ -2550,6 +2657,7 @@ def check_reader_contract(output, manifest, *, release=False):
     if any(manifest.get(key) != value for key, value in report_dependencies().items()):
         raise ValueError("Report client dependencies changed; rebuild required")
     check_input_profile(output, manifest)
+    check_cost_disclosures(output, manifest)
     if release:
         validate_release_prices(manifest)
     methods = manifest.get("planned_methods") or manifest.get("methods", [])

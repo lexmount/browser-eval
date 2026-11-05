@@ -424,7 +424,10 @@
     "usage_unit_input_tokens": "input tokens",
     "usage_unit_output_tokens": "output tokens",
     "usage_unit_cached_input_tokens": "cached input tokens",
-    "usage_unit_internal_credits": "internal credits"
+    "usage_unit_internal_credits": "internal credits",
+    "cost_total_unavailable": "Total cost unavailable",
+    "cost_unavailable_population": "{missing}/{cases} tasks lack complete charges: {reason}",
+    "cost_disclosure_receipt": "Cost disclosure"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -851,6 +854,9 @@
     "usage_unit_input_tokens": "输入 tokens",
     "usage_unit_output_tokens": "输出 tokens",
     "usage_unit_cached_input_tokens": "缓存输入 tokens",
-    "usage_unit_internal_credits": "内部积分"
+    "usage_unit_internal_credits": "内部积分",
+    "cost_total_unavailable": "总费用未知",
+    "cost_unavailable_population": "{missing}/{cases} 个任务缺少完整费用记录：{reason}",
+    "cost_disclosure_receipt": "费用缺失记录"
   }
 }

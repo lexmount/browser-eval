@@ -325,9 +325,34 @@ def test_web_extract_same_case_panels_keep_native_evidence_and_keyboard_return(
     tmp_path, browser, display, language
 ):
     from harness.web_extract.example import create
+    from harness.web_extract.pipeline import digest, read_json, save_json
+    from harness.web_extract.report import build
 
+    home = create(tmp_path / 'fixture', mode='full-cohort-progress', language='en')
+    model = read_json(home / 'content.json')
+    method = 'synthetic-success'
+    evidence = home / 'cost-disclosure.json'
+    save_json(evidence, {
+        'schema': 'web-extract-cost-disclosure/1', 'method': method, 'case_count': 3,
+        'total_charge_receipts': 0, 'source_plan_sha256': model['cohort_plan']['sha256'],
+    })
+    model['prices'][method]['cost_unavailable'] = {
+        'population_cases': 3, 'missing_cases': 3,
+        'reason': {'en': 'Synthetic missing total bill.', 'zh': '合成的完整账单缺失场景。'},
+        'evidence': {'path': 'assets/cost-disclosure.json', 'sha256': digest(evidence.read_bytes())},
+    }
+    model.setdefault('assets', []).append({
+        'source': str(evidence), 'path': 'assets/cost-disclosure.json',
+        'sha256': digest(evidence.read_bytes()),
+    })
+    save_json(home / 'content.json', model)
+    profile = read_json(home / 'profile.json')
+    profile.setdefault('research_report', {}).setdefault('content', {})['sha256'] = digest(
+        (home / 'content.json').read_bytes()
+    )
+    save_json(home / 'profile.json', profile)
     output = tmp_path / 'report'
-    create(output, mode='full-cohort-progress', language='en')
+    build(output, home / 'content.json', home=home, profile=home / 'profile.json', language='en')
     with hosted_preview(output) as origin:
         page = local_page(browser, origin, **display)
         errors = []
@@ -366,6 +391,17 @@ def test_web_extract_same_case_panels_keep_native_evidence_and_keyboard_return(
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
                 page.locator(f'nav a[href="{language}/results.html"]').click()
                 assert page.url == origin + language + '/results.html'
+            account_link = page.locator(f'nav a[href="{language}/accounts.html"]')
+            if not account_link.is_visible():
+                page.locator('nav details > summary').click()
+            account_link.click()
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+            with page.expect_response(lambda r: r.url.endswith('/assets/cost-disclosure.json')) as receipt:
+                page.locator('[data-cost-evidence]').click()
+            assert receipt.value.json()['method'] == 'synthetic-success'
+            assert page.url == origin + 'assets/cost-disclosure.json'
+            page.go_back()
+            expect(page.locator('[data-price-table]')).to_be_visible()
             assert errors == []
         finally:
             page.close()
