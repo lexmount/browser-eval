@@ -53,3 +53,33 @@ def generated_sorting_tables():
         {"rows": cells(operating, "[data-operating-metrics]"), "column": 1},
         {"rows": cells(operating, "[data-operating-metrics]"), "column": 2},
     ]
+
+
+def failed_unscored_record():
+    """A real record failure has a delivery verdict but no reference coverage."""
+    from harness.web_extract.report import record_inventory_outcome, record_result_fields
+
+    result = record_result_fields(
+        {"domain": "book", "site": "a", "values": {"title": []}},
+        {
+            "case_id": "unscored-failure",
+            "method": "a",
+            "state": "call_error",
+            "http_status": None,
+            "compatibility": "no_structured_output",
+            "normalized_fields": None,
+        },
+        policy={
+            "unavailable_reference_groups": [["book", "a", "title"]],
+            "text_matching": "literal",
+        },
+    )
+    status, outcome = record_inventory_outcome(result)
+    return {
+        "case": result["case_id"],
+        "method": result["method"],
+        "status": status,
+        "outcome": outcome,
+        "scoredFields": str(result["scored_fields"]),
+        "stage": result["failure_stage"],
+    }

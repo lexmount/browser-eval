@@ -202,7 +202,16 @@ def rebind(output, route, transform):
 
 @pytest.mark.parametrize(
     "damage",
-    ["native", "field-value", "filter", "field-filter", "price", "price-duplicate", "image"],
+    [
+        "native",
+        "field-value",
+        "filter",
+        "field-filter",
+        "coverage",
+        "price",
+        "price-duplicate",
+        "image",
+    ],
 )
 def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
     output = tmp_path / "report"
@@ -221,12 +230,17 @@ def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
                 receipt["published_bytes"] = path.stat().st_size
         save_json(output / "report-manifest.json", manifest)
         error = "native response differs"
-    elif damage in {"filter", "field-filter"}:
+    elif damage in {"filter", "field-filter", "coverage"}:
 
         def change(text):
             soup = BeautifulSoup(text, "html.parser")
             row = soup.select_one('tr[data-method="scrapegraph-extract"][data-status="pass"]')
-            row["data-outcome" if damage == "filter" else "data-author"] = "wrong"
+            key = {
+                "filter": "data-outcome",
+                "field-filter": "data-author",
+                "coverage": "data-scored-fields",
+            }[damage]
+            row[key] = "0" if damage == "coverage" else "wrong"
             return str(soup)
 
         rebind(output, "zh/results.html", change)

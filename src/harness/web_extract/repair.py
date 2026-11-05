@@ -32,10 +32,17 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
     require_external_output(home)
     home = Path(home).resolve()
     participants = {}
+    seen = set()
     for selection in read_json(content)["evidence_runs"]:
         source, rows = load_selection(home, selection)
         contract = read_json(source / "contract.json")
-        method = contract["methods"][0]
+        methods = contract.get("methods")
+        if not isinstance(methods, list) or len(methods) != 1:
+            raise ValueError("Each repair parent must declare exactly one method")
+        method = methods[0]
+        if method in seen:
+            raise ValueError("Repair selections contain duplicate methods")
+        seen.add(method)
         if (
             task_bindings(home)
             and contract.get("extraction_instruction_delivery") != RECORD_INSTRUCTION_DELIVERY

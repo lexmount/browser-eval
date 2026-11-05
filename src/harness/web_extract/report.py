@@ -3817,6 +3817,8 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + record_inventory_outcome(row)[0]
                 + '" data-outcome="'
                 + record_inventory_outcome(row)[1]
+                + '" data-scored-fields="'
+                + str(row["scored_fields"])
                 + '" data-method="'
                 + esc(method)
                 + '" data-stage="'
@@ -4252,6 +4254,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     "status": record_inventory_outcome(derived)[0],
                     "outcome": record_inventory_outcome(derived)[1],
                     "stage": derived["failure_stage"],
+                    "scored-fields": str(derived["scored_fields"]),
                     **{f: v["status"] for f, v in derived["field_results"].items()},
                 }
             attrs.update(domain=ref["domain"], site=ref["site"])

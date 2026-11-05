@@ -316,6 +316,9 @@ consumes this approval and records the new profile path and hash together.
 
 ## Failure repairs and field audit
 
+Select one parent run per method. Each parent must contain one method; duplicate
+method entries are rejected before a repair plan is written.
+
 `repair-plan --content CONTENT --options OPTIONS --fixture-base URL --output PLAN`
 freezes the exact failed method/case scope. Optional `--cases CASES` selects a
 subset of current failures. Run the plan through the certified entry above with

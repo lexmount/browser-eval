@@ -2254,3 +2254,51 @@ def test_historical_record_instruction_delivery_is_not_silently_upgraded(tmp_pat
         with pytest.raises(ValueError, match="Historical instruction delivery"):
             create_plan(home, tmp_path / "content.json", output, {}, None)
     assert not output.exists()
+
+
+@pytest.mark.parametrize("distinct_run", [False, True])
+def test_repair_plan_rejects_two_parents_for_the_same_method(tmp_path, distinct_run):
+    import shutil
+
+    home, source, _, _ = parent_inputs(tmp_path)
+    second = home / "runs/second"
+    if distinct_run:
+        shutil.copytree(source, second)
+    content = tmp_path / "duplicate-selection.json"
+    save_json(
+        content,
+        {"evidence_runs": [{"run": str(source)}, {"run": str(second if distinct_run else source)}]},
+    )
+    output = tmp_path / "not-created.json"
+    with pytest.raises(ValueError, match="duplicate methods"):
+        create_plan(home, content, output, {}, None)
+    assert not output.exists()
+
+
+def test_repair_plan_rejects_a_parent_with_multiple_methods(tmp_path):
+    home, source, _, rows = parent_inputs(tmp_path)
+    contract = read_json(source / "contract.json")
+    contract["methods"] = ["cloudflare-json", "zyte-product"]
+    save_json(source / "contract.json", contract)
+    manifest = read_json(source / "manifest.json")
+    for row in rows:
+        second = {
+            **row,
+            "method": "zyte-product",
+            "response": {"product": row["normalized_fields"] or {}},
+        }
+        path = source / "calls" / ("zyte-product-" + row["case_id"] + ".json")
+        save_json(path, second)
+        manifest["calls"].append(
+            {"path": "calls/" + path.name, "sha256": digest(path.read_bytes())}
+        )
+    manifest["contract_sha256"] = digest((source / "contract.json").read_bytes())
+    save_json(source / "manifest.json", manifest)
+    save_json(
+        source / "certificate.json",
+        {"manifest_sha256": digest((source / "manifest.json").read_bytes())},
+    )
+    output = tmp_path / "not-created.json"
+    with pytest.raises(ValueError, match="exactly one method"):
+        create_plan(home, tmp_path / "content.json", output, {}, None)
+    assert not output.exists()

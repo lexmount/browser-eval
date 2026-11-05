@@ -231,7 +231,7 @@ def record_field_results(reference, row, *, text_matching="literal", unavailable
             "tp": len(expected & valid),
             "fp": len(valid - expected)
             + (
-                bool(actual)
+                field in prediction
                 if not isinstance(actual, list)
                 else sum(not isinstance(value, str) for value in actual)
             ),

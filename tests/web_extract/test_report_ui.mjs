@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const rendered = spawnSync('uv', ['run', '--frozen', '--no-sync', 'python', '-c',
-  'import json; from harness.web_extract.report_ui import JS; from tests.web_extract.sorting_fixture import generated_sorting_tables; print(json.dumps({"js":JS,"tables":generated_sorting_tables()}))'],
+  'import json; from harness.web_extract.report_ui import JS; from tests.web_extract.sorting_fixture import generated_sorting_tables, failed_unscored_record; print(json.dumps({"js":JS,"tables":generated_sorting_tables(),"failedUnscored":failed_unscored_record()}))'],
   {cwd: fileURLToPath(new URL('../..', import.meta.url)), encoding: 'utf8'});
 assert.equal(rendered.status, 0, rendered.stderr);
 const produced = JSON.parse(rendered.stdout);
@@ -339,3 +339,11 @@ comparisonRows.push(unavailablePage, {dataset: {case: 'unscored', method: 'b', s
 assert.equal(matching('different').includes('unscored'), false);
 assert.equal(matching('all_fail').includes('unscored'), false);
 console.log('PASS: wholly unannotated pages stay in All and outside whole-page quality relations');
+
+
+assert.equal(produced.failedUnscored.status, 'fail');
+assert.equal(produced.failedUnscored.scoredFields, '0');
+for (const method of ['a', 'b', 'c']) comparisonRows.push({dataset: {...produced.failedUnscored, method}});
+assert.equal(matching('all_fail').includes('unscored-failure'), false);
+assert.equal(matching('different').includes('unscored-failure'), false);
+console.log('PASS: failed calls without reference coverage retain diagnosis and stay outside quality comparisons');

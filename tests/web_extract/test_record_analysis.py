@@ -19,6 +19,11 @@ from harness.web_extract.swde import score
         (["A"], ["A", 1], "invalid", True, False),
         (["A"], ["A", "A"], "partial", True, False),
         ([], [], "correct", False, True),
+        *[
+            (gold, actual, "invalid", False, False)
+            for gold in [[], ["A"]]
+            for actual in [None, False, 0, "", {}]
+        ],
     ],
 )
 def test_record_diagnosis_preserves_official_hit_and_micro_counts(gold, actual, status, hit, exact):
@@ -95,3 +100,14 @@ def test_failed_calls_stay_in_complete_scores_and_latency_missing_is_not_zero():
     assert result["latency"]["mean"] == 2
     assert result["latency"]["missing"] == 1
     assert result["failure_stages"]["client_transport"] == 1
+
+
+@pytest.mark.parametrize("prediction", [{}, {"field": []}])
+def test_absent_and_empty_array_fields_do_not_count_as_invalid_predictions(prediction):
+    reference = {"domain": "arbitrary", "site": "source", "values": {"field": []}}
+    result = record_field_results(reference, {"http_status": 200, "normalized_fields": prediction})[
+        "field"
+    ]
+    assert result["fp"] == 0
+    assert result["status"] == "correct"
+    assert score({"case": reference}, {"case": prediction})["value_micro"]["false_positive"] == 0
