@@ -218,7 +218,15 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
 
 
 @pytest.mark.parametrize(
-    "failure", ["occupied-port", "openai-userinfo", "openai-query", "ollama-query"]
+    "failure",
+    [
+        "occupied-port",
+        "openai-userinfo",
+        "openai-query",
+        "ollama-query",
+        "malformed-openai",
+        "malformed-ollama",
+    ],
 )
 def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path, failure):
     import os
@@ -247,6 +255,10 @@ def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path,
             env["FIRECRAWL_IDENTITY_PORT"] = str(occupied.getsockname()[1])
         elif failure == "openai-userinfo":
             env["OPENAI_BASE_URL"] = "https://user:credential@model.example"
+        elif failure == "malformed-openai":
+            env["OPENAI_BASE_URL"] = "https://user:private-secret-token@host:invalid"
+        elif failure == "malformed-ollama":
+            env["OLLAMA_BASE_URL"] = "https://user:private-secret-token@[invalid"
         else:
             env["OLLAMA_BASE_URL" if failure == "ollama-query" else "OPENAI_BASE_URL"] = (
                 "https://model.example?api_key=credential"
@@ -269,11 +281,14 @@ def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path,
         try:
             stdout, stderr = process.communicate(timeout=5)
             assert process.returncode != 0 and "identity_port" not in stdout
-            assert (
-                "EADDRINUSE" in stderr
+            expected = (
+                "EADDRINUSE"
                 if failure == "occupied-port"
-                else "must not contain credentials" in stderr
+                else "credential-free HTTP(S) URL"
+                if failure.startswith("malformed-")
+                else "must not contain credentials"
             )
+            assert expected in stderr and "private-secret-token" not in stderr
             assert not marker.exists()
         finally:
             try:
@@ -383,3 +398,37 @@ def test_health_identity_rejects_credential_bearing_model_urls(monkeypatch, base
     monkeypatch.setenv("EXTRACTION_MODEL_BASE", base)
     with pytest.raises(ValueError, match="must not contain credentials"):
         local_runtime_identity("crawl4ai")
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux request subreaper containment")
+def test_interruption_during_native_launch_still_cleans_up_the_spawned_process(tmp_path):
+    import os
+
+    pid_file = tmp_path / "launch.pid"
+    native = (
+        "import os,time; from pathlib import Path; "
+        f"Path({str(pid_file)!r}).write_text(str(os.getpid()),encoding='utf-8'); time.sleep(60)"
+    )
+    helper = tmp_path / "interrupted-launch.py"
+    helper.write_text(
+        "import subprocess,sys,time\nfrom pathlib import Path\nfrom unittest.mock import patch\n"
+        "from harness.web_extract.self_hosted import supervise\nreal = subprocess.Popen\n"
+        "def interrupted(*args, **kwargs):\n"
+        "    real(*args, **kwargs)\n"
+        "    deadline=time.monotonic()+2\n"
+        f"    while not Path({str(pid_file)!r}).exists() and time.monotonic()<deadline:\n"
+        "        time.sleep(0.01)\n"
+        "    raise SystemExit(143)\n"
+        "with patch('harness.web_extract.self_hosted.subprocess.Popen', side_effect=interrupted):\n"
+        f"    supervise([sys.executable,'-c',{native!r}])\n",
+        encoding="utf-8",
+    )
+    try:
+        result = subprocess.run(
+            [sys.executable, str(helper)], capture_output=True, text=True, timeout=7
+        )
+        assert result.returncode == 143 and pid_file.exists()
+        assert not psutil.pid_exists(int(pid_file.read_text(encoding="utf-8")))
+    finally:
+        if pid_file.exists() and psutil.pid_exists(int(pid_file.read_text(encoding="utf-8"))):
+            os.kill(int(pid_file.read_text(encoding="utf-8")), 9)
