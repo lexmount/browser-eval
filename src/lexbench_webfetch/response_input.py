@@ -5,6 +5,42 @@ import re
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 
+PAGE_INFORMATION_FIELDS = frozenset({
+    'title', 'author', 'description', 'publish_time', 'published_at', 'subtitle', 'lead',
+    'source', 'editor', 'site_name', 'copyright', 'statement', 'categories',
+    'tags', 'headings', 'paragraphs', 'table_of_contents', 'breadcrumbs',
+})
+
+
+def page_information_texts(information):
+    """Read declared extracted page fields, never recursively mine metadata.
+
+    These independent values can supply unscoped information checks, not body
+    coverage, length, records, or ownership of a requested page region.
+    """
+    if information is None:
+        return []
+    if not isinstance(information, dict) or set(information) - PAGE_INFORMATION_FIELDS:
+        raise ValueError('Invalid extracted page information fields')
+    texts = []
+    for value in information.values():
+        if value is None:
+            continue
+        values = value if isinstance(value, list) else [value]
+        if any(not isinstance(text, str) for text in values):
+            raise ValueError('Extracted page information must contain text values')
+        texts.extend(text for text in values if text.strip())
+    return texts
+
+
+def unscoped_page_information(contract):
+    """Flat fields cannot prove a visible control, record, or excluded region."""
+    contract = contract or {}
+    return (contract.get('schema') in {None, 'body_text', 'page_identity'}
+            and contract.get('content_scope') != 'target_content'
+            and not any(contract.get(key) for key in ('entry_scope', 'table_scope', 'text_exclusions')))
+
+
 def join_answer_url(base_url: str, reference: str) -> str:
     """Resolve answer URLs while retaining literal semicolon path data."""
     joined = urljoin(base_url, reference)

@@ -1056,7 +1056,10 @@ def evaluate_content(
     raw_content: str | None = None,
     representation: str | None = None,
     records: list[dict] | None = None,
+    page_information: dict | None = None,
 ) -> dict[str, Any]:
+    from .response_input import page_information_texts, unscoped_page_information
+    information_texts = page_information_texts(page_information)
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     from .reference_quality import is_html_document_or_fragment, markdown_body_content
     literal = representation == 'plain_text'
@@ -1110,6 +1113,13 @@ def evaluate_content(
                 [item for item in alternatives
                  if any(_stable_literal_match(target, item, registered_fact_words, phrase_boundaries=True,
                                               representation=visible_representation) for target in targets)])
+        if (not hits and not fact.get('match_scope') and not fact.get('visible_control')
+                and identifier not in entry_hits and unscoped_page_information(acceptance_contract)):
+            from .response_input import safe_named_links
+            extra_targets = information_texts + [label for _, label in safe_named_links(named_links or [], base_url)]
+            hits = [item for item in alternatives if any(_stable_literal_match(
+                target, item, registered_fact_words, phrase_boundaries=True,
+                representation='plain_text') for target in extra_targets)]
         fact_results.append({
             "id": identifier,
             "alternatives": alternatives,
@@ -1242,10 +1252,11 @@ def evaluate_content(
         declared_body_pass = bool(result["body_coverage_pass"])
         declared_pattern_pass = all(item["pass"] for item in result["pattern_results"])
         from .stable_tasks import evaluate_stable_task
-        # Document metadata remains diagnostic; it cannot supply rendered
-        # page anchors, records, or declared body coverage.
+        # Explicit extracted fields can supply unscoped information checks.
+        # Document metadata cannot supply records or declared body coverage.
         result.update(evaluate_stable_task(prose_content, acceptance_contract,
                                            base_url, links=named_links, returned_records=records,
+                                           page_information=page_information,
                                             anchor_text=visible_content if has_html_prose else None,
                                            allow_closed_title_cards=True,
                                            representation=representation,

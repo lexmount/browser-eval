@@ -1712,7 +1712,7 @@ def _pattern_text_surface(text, *, representation=None):
     return text
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None, returned_records=None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None, returned_records=None, page_information=None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -1730,6 +1730,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     This surface belongs only to that anchor, not page identity or body coverage.
     """
     validate_acceptance_contract(contract)
+    from .response_input import page_information_texts, unscoped_page_information
+    information_texts = page_information_texts(page_information)
     if representation is None:
         from .reference_quality import normalize_native_markdown_layout
         content = normalize_native_markdown_layout(content)
@@ -1809,6 +1811,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                               else representation)
     pattern_surfaces = [_pattern_text_surface(surface, representation=pattern_representation)
                         for surface in text_surfaces] if patterns else []
+    if patterns and unscoped_page_information(contract):
+        pattern_surfaces.extend(information_texts)
     page_results = [{"pattern": p, "pass": any(re.search(p, surface, re.I | re.M)
                                                for surface in pattern_surfaces)} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
@@ -1943,6 +1947,11 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             matched = [value for value in anchor['alternatives'] if any(
                 _stable_literal_match(label, value, registered_words, representation='plain_text')
                 for label in labels)]
+        if (not matched and information_texts and unscoped_page_information(contract)
+                and not anchor.get('match_scope') and not anchor.get('visible_control')):
+            matched = [value for value in anchor['alternatives'] if any(
+                _stable_literal_match(text, value, registered_words, representation='plain_text')
+                for text in information_texts)]
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     if anchors_required:

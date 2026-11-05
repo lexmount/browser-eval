@@ -25,10 +25,29 @@ def test_prior_projection_keeps_its_original_answer_scope():
     content, fields = project_native_answer(payload, old)
     assert content == 'Body'
     assert fields == {'links': [], 'images': []}
-    current = native_answer_projection('lexmount', {}, payload, 200)
-    assert project_native_answer(payload, current)[1] == {
+    previous = native_answer_projection('lexmount', {}, payload, 200, policy_version=4)
+    assert project_native_answer(payload, previous)[1] == {
         'links': [], 'images': [], 'answer_format': 'plain_text',
         'page_structure': {'headings': ['Heading']}, 'records': [{'text': 'Review'}]}
+    current = native_answer_projection('lexmount', {}, payload, 200)
+    assert 'page_information' in project_native_answer(payload, current)[1]
+
+
+@pytest.mark.parametrize('extra,lead,breadcrumbs', [
+    ({'dek': 'Article introduction', 'breadcrumb': ['Home', 'Essays']},
+     'Article introduction', ['Home', 'Essays']),
+    ({'lead': 'Primary introduction', 'dek': 'Alternate introduction',
+      'breadcrumbs': ['Primary'], 'breadcrumb': ['Alternate']},
+     'Primary introduction', ['Primary']),
+    (None, None, []),
+])
+def test_extracted_field_aliases_are_selected_by_structure(extra, lead, breadcrumbs):
+    payload = {'result': {'main_text': 'Body', 'extra': extra}}
+    declaration = native_answer_projection('lexmount', {}, payload, 200)
+    content, fields = project_native_answer(payload, declaration)
+    assert content == 'Body'
+    assert fields['page_information']['lead'] == lead
+    assert fields['page_information']['breadcrumbs'] == breadcrumbs
 
 
 @pytest.mark.parametrize('track,kind', [('web', 'body'), ('dynamic', 'body'),
@@ -60,7 +79,8 @@ def test_native_lexmount_keeps_uniform_request_and_replayable_answers(track, kin
         require_native_answer_projection('invented', result.metadata, raw,
             title=result.title, final_url=result.final_url, request_url=case.url)
     for field, replacement in [('page_structure', {'headings': ['Invented']}),
-                               ('records', []), ('answer_format', 'html')]:
+                               ('records', []), ('answer_format', 'html'),
+                               ('page_information', {'title': 'Invented'})]:
         changed = deepcopy(result.metadata)
         changed[field] = replacement
         with pytest.raises(ValueError, match='field projection'):

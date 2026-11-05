@@ -157,6 +157,7 @@ def score_attempt(
         content, case.get("expected_any", []), title=title,
         base_url=base_url, named_links=links, raw_content=content, representation=representation,
         records=(metadata or {}).get('records', []),
+        page_information=(metadata or {}).get('page_information'),
         allow_reference_block_exemptions=(
             task_kind == "body" and not case.get("acceptance_contract")
         ),
@@ -321,7 +322,8 @@ def score_attempt(
                 continue
             component_contract = benchmark[field]
             component_result = component.verify(content, component_contract, base_url, representation=representation,
-                                                structure=(metadata or {}).get('page_structure'))
+                                                structure=(metadata or {}).get('page_structure'),
+                                                information=(metadata or {}).get('page_information'))
             result.update(component_result)
             required[component.name] = component_result[component.pass_metric] is True
             result[component.digest_metric] = hashlib.sha256(json.dumps(

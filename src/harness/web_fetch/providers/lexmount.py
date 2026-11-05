@@ -31,7 +31,7 @@ class LexmountProvider(Provider):
         return NativeRoute('http', '/v1/extract',
                            ('result.main_text', 'result.final_url', 'result.url',
                             'result.title', 'result.links', 'result.images', 'result.extra.dom_summary',
-                            'result.extra.reviews'))
+                            'result.extra.reviews', 'result.author', 'result.description', 'result.publish_time', 'result.extra'))
 
     def native_http_arguments(self, case, timeout):
         engine = self.config.get('engine', 'lightmount_domstable')

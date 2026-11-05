@@ -32,7 +32,7 @@
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
-          "after_sha256": "b388097acdf74e8edf55f528146e2d6cf4404089cb896fb09fc7329218bd7b02"
+          "after_sha256": "dd16387a71547c108aa28fc442d9218481ae85c34cd60edbce9df47585df57b7"
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "dab037dec807771bd986e0c10977954364c65d9e46bd2610170d4a12cb01be35"
+          "after_sha256": "8366a41aeaa2b311fc4574839604172f70ff6be156f4b2b6a489610b43471bf4"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -88,11 +88,11 @@
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
-          "after_sha256": "df5e9505f65385859053725326ca887af3a54b10753485c047d9f5e17f4972ca"
+          "after_sha256": "43e541aeb7edde256604ae7c8ee3d9337e8055c466ac2f74eed2320f1e84dd84"
         },
         "response_input.py": {
           "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
-          "after_sha256": "22580d7221dafa0044a43935f2fe8ce2826810c47059a5cbe344504f0f47e5c9"
+          "after_sha256": "bbe84a87082f7a118824c7d3e303131b3b97e5d405adafa96ffb27aa3bc06902"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -100,7 +100,7 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "ec1cd835e1d94b9243a0d871ec80782b986d918c123ceecfbc15204100e86802"
+          "after_sha256": "53ab32519bb3b635b4b3c6bf4f537d9966e0729ee9ec58a7e631774a86b7e311"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "2dd2ff1a2c263d11d50155928a59ecc0fe80807a3f3638f04b4c3cd28465f447"
+          "after_sha256": "b6d99fc2c2133f83b5b9df43f6312c3609a35df7a3481729e36a07ec79ae7fc6"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3812,10 +3812,10 @@
           ],
           "root_cause": "Serialized timestamp footers and colon prose were treated as comment authors. Filter timestamp metadata before author recognition and retain established standalone and explicit speech-attribution ownership.",
           "regression_ids": [
-            "comment-timestamp-owner-markdown-2024\u5e749\u670812\u65e5 15:42-False-False",
-            "comment-timestamp-owner-markdown-2024\u5e749\u670812\u65e5 15:42-False-True",
-            "comment-timestamp-owner-markdown-2024\u5e749\u670812\u65e5 15:42-True-False",
-            "comment-timestamp-owner-markdown-2024\u5e749\u670812\u65e5 15:42-True-True",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-False",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-True",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-False",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-True",
             "comment-timestamp-owner-markdown-2024-09-12 15:42-False-False",
             "comment-timestamp-owner-markdown-2024-09-12 15:42-False-True",
             "comment-timestamp-owner-markdown-2024-09-12 15:42-True-False",
@@ -3824,10 +3824,10 @@
             "comment-timestamp-owner-markdown-15:42-False-True",
             "comment-timestamp-owner-markdown-15:42-True-False",
             "comment-timestamp-owner-markdown-15:42-True-True",
-            "comment-timestamp-owner-plain_text-2024\u5e749\u670812\u65e5 15:42-False-False",
-            "comment-timestamp-owner-plain_text-2024\u5e749\u670812\u65e5 15:42-False-True",
-            "comment-timestamp-owner-plain_text-2024\u5e749\u670812\u65e5 15:42-True-False",
-            "comment-timestamp-owner-plain_text-2024\u5e749\u670812\u65e5 15:42-True-True",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-False",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-True",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-False",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-True",
             "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-False",
             "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-True",
             "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-False",
@@ -3920,6 +3920,27 @@
             "visible-typography-word-boundary",
             "returned-records-no-region-ownership",
             "returned-page-invalid-structure"
+          ]
+        },
+        {
+          "root_cause": "Structured extraction separated article information from prose; evaluate typed extracted page fields through common unscoped information and exact-title checks without synthesizing body text or page regions.",
+          "modules": [
+            "article_title.py",
+            "metrics.py",
+            "required_components.py",
+            "response_input.py",
+            "scoring.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "extracted-date-field",
+            "extracted-date-wrong",
+            "extracted-fields-no-concatenation",
+            "extracted-fields-no-body",
+            "extracted-fields-excluded-region",
+            "extracted-title-field",
+            "extracted-title-wrong",
+            "extracted-fields-explicit-body-scope"
           ]
         }
       ]

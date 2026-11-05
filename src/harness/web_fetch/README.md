@@ -186,6 +186,13 @@ Native projections bind every selected field to the original response. A changed
 projection over saved responses is an explicit offline correction, never a rewrite
 of the historical pre-call declaration or an additional provider call.
 
+The optional `page_information` object preserves explicitly extracted titles,
+authors, dates and other declared page text as separate values. Unscoped fact and
+page-identity checks may read them without concatenating fields. They do not
+increase body length or coverage, supply records, or bypass region exclusions.
+An extracted title may satisfy an exact title contract; generic HTML document
+metadata, search keywords, image alternatives and debug logs remain separate.
+
 Plain-text post lists require a blank line before each later author line and
 permalink. A name and post URL inside body prose do not establish another record.
 Markdown post headings and native HTML post containers provide explicit record
