@@ -97,7 +97,9 @@ def local_runtime_identity(engine):
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "environment_sha256": installed_environment_sha256(),
     }
-    if engine in ("scrapegraph", "stagehand"):
+    if engine == "scrapegraph":
+        identity["native_input"] = "html"
+    if engine == "stagehand":
         identity["browser_version"] = subprocess.check_output(
             [os.environ["CHROME_PATH"], "--version"],
             text=True,
@@ -179,6 +181,7 @@ async def crawl(value):
 
 
 def graph(value):
+    import requests
     from json_schema_to_pydantic import create_model
     from langchain_openai import ChatOpenAI
     from scrapegraphai.graphs import SmartScraperGraph
@@ -192,9 +195,17 @@ def graph(value):
         max_retries=0,
         timeout=150,
     )
+    response = requests.get(
+        value["url"],
+        headers={"User-Agent": "Mozilla/5.0 BrowserEval-Snapshot/1.0"},
+        timeout=30,
+        allow_redirects=False,
+    )
+    if response.status_code != 200:
+        raise ValueError(f"Snapshot returned HTTP {response.status_code}")
     extractor = SmartScraperGraph(
         prompt=value.get("instruction", "Extract the requested fields of the main record."),
-        source=value["url"],
+        source=response.content.decode("utf-8", errors="replace"),
         schema=create_model(value["schema"]),
         config={
             "llm": {
@@ -215,7 +226,11 @@ def graph(value):
         },
     )
     result = extractor.run()
-    return result, {"answer": result, "execution": extractor.get_execution_info()}
+    return result, {
+        "answer": result,
+        "execution": extractor.get_execution_info(),
+        "input_html_sha256": hashlib.sha256(response.content).hexdigest(),
+    }
 
 
 async def stagehand_extract(value):

@@ -160,3 +160,55 @@ def test_health_and_worker_environment_identity_survives_different_entrypoints(t
         check=True,
     )
     assert result.stdout.strip() == installed_environment_sha256()
+
+
+@pytest.mark.parametrize("status", [200, 302, 404])
+def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing(
+    monkeypatch, status
+):
+    import hashlib
+    import sys
+    from types import ModuleType, SimpleNamespace
+    from unittest.mock import Mock
+
+    from harness.web_extract.self_hosted import graph
+
+    source = '<html><a href="/item">Café</a><p>Price: 12</p></html>'.encode()
+    modules = {
+        name: ModuleType(name)
+        for name in (
+            "json_schema_to_pydantic",
+            "langchain_openai",
+            "scrapegraphai",
+            "scrapegraphai.graphs",
+        )
+    }
+    modules["json_schema_to_pydantic"].create_model = lambda schema: schema
+    modules["langchain_openai"].ChatOpenAI = Mock()
+    constructor = Mock()
+    constructor.return_value.run.return_value = {"price": 12}
+    constructor.return_value.get_execution_info.return_value = []
+    modules["scrapegraphai.graphs"].SmartScraperGraph = constructor
+    for name, module in modules.items():
+        monkeypatch.setitem(sys.modules, name, module)
+    for key, value in {
+        "EXTRACTION_MODEL": "model",
+        "EXTRACTION_MODEL_API_KEY": "key",
+        "EXTRACTION_MODEL_BASE": "https://model.example",
+    }.items():
+        monkeypatch.setenv(key, value)
+    request = {"url": "https://snapshots.example/item", "schema": SCHEMA}
+    with patch(
+        "requests.get", return_value=SimpleNamespace(status_code=status, content=source)
+    ) as get:
+        if status != 200:
+            with pytest.raises(ValueError, match=f"Snapshot returned HTTP {status}"):
+                graph(request)
+            constructor.assert_not_called()
+        else:
+            data, native = graph(request)
+            assert data == {"price": 12}
+            assert constructor.call_args.kwargs["source"] == source.decode()
+            assert native["input_html_sha256"] == hashlib.sha256(source).hexdigest()
+        assert get.call_args.args[0] == request["url"]
+        assert get.call_args.kwargs["allow_redirects"] is False
