@@ -12,7 +12,7 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected, assert_saved_receipt_mutation_rejected, assert_scoring_flags_rejected, assert_whitespace_record_rejected
 
 
-def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer', title=None):
+def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer', title=None, nested_artifacts=False):
     spec, source, row, _ = fixture(tmp_path)
     if title is not None:
         row['title'] = title
@@ -51,6 +51,25 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
             revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
     else:
         revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
+    if nested_artifacts:
+        import shutil
+        from harness.web_fetch.report_saved_matrix import artifact_bindings
+        records = [json.loads(line) for line in (revision/'results.jsonl').read_text().splitlines()]
+        for saved in records:
+            paths = {}
+            for relative, _ in artifact_bindings(saved):
+                target = 'evidence/saved-reports/previous/' + relative
+                (revision/target).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(revision/relative, revision/target)
+                paths[relative] = target
+            def relocate(value):
+                if isinstance(value, dict):
+                    return {key: relocate(child) for key, child in value.items()}
+                if isinstance(value, list):
+                    return [relocate(child) for child in value]
+                return paths.get(value, value) if isinstance(value, str) else value
+            saved.update(relocate(saved))
+        (revision/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
     dataset = json.loads((revision/'dataset.json').read_text(encoding='utf-8'))
     changed = deepcopy(dataset['cases'][0])
     changed['required_facts'] = []
@@ -65,6 +84,16 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
         'receipt':{'path':str(receipt),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()}}
     write(tmp_path/'spec.json', spec)
     return spec, source, revision
+
+
+def test_revision_accepts_hash_verified_nested_artifacts(tmp_path):
+    spec, _, revision = revision_fixture(tmp_path, nested_artifacts=True)
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed']
+    row = json.loads((revision/'results.jsonl').read_text())
+    (revision/row['artifact_path']).write_bytes(b'altered response')
+    with pytest.raises(ValueError):
+        build_saved_matrix(tmp_path/'spec.json', tmp_path/'tampered')
 
 
 @pytest.mark.parametrize('separator', ['\u2028', '\u2029', '\u0085'])

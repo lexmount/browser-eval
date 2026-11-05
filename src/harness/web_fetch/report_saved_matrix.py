@@ -347,6 +347,25 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
         actual = {k: v for k, v in original.items() if k not in {
             'report_invocation_status', 'report_superseded_history', 'report_retry_continuation',
             'report_parameter_rerun', 'report_completion_note'}}
+        # Composed snapshots nest the same immutable artifacts under a report
+        # prefix. Accept that relocation only after verifying every original
+        # artifact hash; all other call fields must still match exactly.
+        original_answer = actual.get('artifact_path', '')
+        answer = raw.get('artifact_path', '')
+        if answer and original_answer.endswith('/' + answer):
+            original_prefix = original_answer[:-len(answer)]
+            paths = {}
+            for relative, digest in artifact_bindings(raw):
+                sources.bind(contained_path(root, original_prefix + relative, reject_symlinks=True), digest)
+                paths[original_prefix + relative] = prefix + relative
+            def relocate(value, key=''):
+                if isinstance(value, dict):
+                    return {k: relocate(v, k) for k, v in value.items()}
+                if isinstance(value, list):
+                    return [relocate(v, key) for v in value]
+                return (paths.get(value, value)
+                        if isinstance(value, str) and (key == 'path' or key.endswith('_path')) else value)
+            actual = relocate(actual)
         if expected != actual:
             raise ValueError('Saved revision predecessor result differs: '+attempt)
         current = revised[attempt]
