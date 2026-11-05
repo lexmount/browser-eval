@@ -218,6 +218,30 @@ def test_ascii_locale_environment_really_selects_ascii():
     assert 'utf' not in name.lower()
 
 
+CHILD_OUTPUT = r"""
+import sys, tempfile
+from harness.review_runner import run_reviewer
+from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
+from lexbench_webfetch.models import EvalCase
+text = '\u9875\u9762'
+reply = 'import sys; sys.stdout.buffer.write(%r.encode())' % text
+assert run_reviewer([sys.executable, '-c', reply], timeout=30).stdout == text
+worker = ('import json, sys\nfor line in sys.stdin.buffer:\n sys.stdout.buffer.write('
+          '(json.dumps({"ok": True, "content": %r}, ensure_ascii=False) + "\\n").encode())\n'
+          ' sys.stdout.flush()\n' % text)
+provider = SubprocessJsonlProvider('fixture', {'repo_path': tempfile.mkdtemp(),
+                                               'command': [sys.executable, '-u', '-c', worker]})
+case = EvalCase('one', 'One', 'https://example.invalid', 'static', [])
+assert provider.fetch(case, 10).content == text
+"""
+
+
+def test_child_output_is_utf8_under_an_ascii_locale():
+    """Reviewers and fetch workers emit UTF-8 whatever the parent's locale."""
+    subprocess.run([sys.executable, '-c', CHILD_OUTPUT], env=ascii_locale_environment(),
+                   cwd=ROOT, check=True, timeout=60)
+
+
 def test_report_builds_are_byte_identical_under_an_ascii_locale(tmp_path):
     """Every track's multilingual build must match the snapshot taken under UTF-8."""
     result = subprocess.run(

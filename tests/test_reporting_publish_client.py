@@ -7,6 +7,7 @@ import json
 import stat
 import urllib.request
 import zipfile
+from types import SimpleNamespace
 from unittest import mock
 from urllib.error import HTTPError
 
@@ -58,6 +59,7 @@ def wire(monkeypatch):
         return response
 
     monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
+    monkeypatch.setattr(urllib.request, 'build_opener', lambda *handlers: SimpleNamespace(open=urllib.request.urlopen))
     return calls
 
 
@@ -129,7 +131,7 @@ def test_retrying_publishers_keep_the_raised_http_failure(monkeypatch, wire, cli
     failure.value.close()
 
 
-def test_response_headers_are_returned_to_the_adapter(monkeypatch):
+def test_response_headers_are_returned_to_the_adapter(monkeypatch, wire):
     monkeypatch.setattr(publication, 'load_token', lambda *, base_url: 'ahp_fixture')
 
     class Response(io.BytesIO):

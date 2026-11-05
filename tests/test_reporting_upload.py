@@ -2,6 +2,7 @@
 import json
 import urllib.request
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -200,6 +201,7 @@ def test_browser_publication_verifies_full_export_before_binding(tmp_path, monke
             assert request.get_header('X-artifact-share') == 'token'
         return Response()
     monkeypatch.setattr(urllib.request, 'urlopen', urlopen)
+    monkeypatch.setattr(urllib.request, 'build_opener', lambda *handlers: SimpleNamespace(open=urllib.request.urlopen))
     before = (profile.read_bytes(), proof.read_bytes(), receipt.read_bytes())
     if outcome == 'success':
         autonomous.main(create=False)

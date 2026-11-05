@@ -15,6 +15,7 @@ from pathlib import Path
 from urllib.error import HTTPError, URLError
 from urllib.parse import quote
 
+from harness.benchmarks.data import _TokenRedirects
 from harness.reporting.publication import archive_inventory
 from harness.web_fetch.artifact_auth import load_token
 from harness.reporting.publication_target import (
@@ -50,7 +51,7 @@ def verify_metadata(slug, base):
         endpoint,
         headers={"Authorization": "Bearer " + load_token(base_url=base)},
     )
-    with urllib.request.urlopen(request, timeout=60) as response:
+    with urllib.request.build_opener(_TokenRedirects()).open(request, timeout=60) as response:
         data = json.load(response)
     version = _validate_metadata(data, slug, require_slug=True)
     files = data.get("files")
@@ -71,7 +72,7 @@ def verify_public_files(slug, expected_archive, base):
         request = urllib.request.Request(
             endpoint, headers={"Authorization": "Bearer " + load_token(base_url=base)}
         )
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.build_opener(_TokenRedirects()).open(request, timeout=60) as response:
             data = json.load(response)
         _validate_metadata(data, slug)
         return data
