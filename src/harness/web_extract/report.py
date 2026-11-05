@@ -1476,11 +1476,15 @@ def report_metric_guide(language, *, records):
     )
 
 
-def retry_summary(statistics_by_method, labels):
+def retry_summary(statistics_by_method, labels, language="zh"):
     return (
-        "<section data-retry-summary><h2>此前重试的额外耗时</h2><p>首页耗时统计最终一次调用。此前尝试另计如下，不重复计算为新页面。</p>"
+        "<section data-retry-summary><h2>"
+        + message("retry_title", language)
+        + "</h2><p>"
+        + message("retry_explanation", language)
+        + "</p>"
         + table(
-            ["服务", "额外重试耗时（秒）", "缺少计时的重试次数"],
+            message("retry_headings", language),
             [
                 [esc(labels[m]), f"{v['retry_seconds']:.3f}", str(v["retry_missing_timers"])]
                 for m, v in statistics_by_method.items()
@@ -1565,7 +1569,9 @@ def method_examples(output, binding, language="zh"):
                         return message("example_missing", language)
                     if isinstance(value, list):
                         return (
-                            "、".join(readable(item) for item in value)
+                            message("list_separator", language).join(
+                                readable(item) for item in value
+                            )
                             if value
                             else message("example_empty", language)
                         )
@@ -2462,14 +2468,19 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     check(output)
 
 
-def check(output: Path, *, release=False, visual_receipt=None):
-    output = open_report(output)
-    manifest = read_json(output / "report-manifest.json")
-    if manifest.get("mode") == "field-extraction-cohort":
-        return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
-    check_report_identity(output, manifest, "web-extract")
-    if public_risk((output / "report-manifest.json").read_bytes()):
-        raise ValueError("Report metadata has a publication privacy risk")
+def check_price_coverage(output, methods, prices, language, labels):
+    accounts = BeautifulSoup(
+        (output / language / "accounts.html").read_text(encoding="utf-8"), "html.parser"
+    )
+    expected = BeautifulSoup(
+        price_table(methods, prices, language, labels), "html.parser"
+    ).select_one("[data-price-table]")
+    actual = accounts.select("[data-price-table]")
+    if len(actual) != 1 or actual[0] != expected:
+        raise ValueError("Cost/pricing coverage differs from bound source")
+
+
+def check_reader_contract(output, manifest):
     check_input_profile(output, manifest)
     check_method_examples(output, manifest)
     from harness.reporting.presentation import check_metric_guide
@@ -2481,6 +2492,17 @@ def check(output: Path, *, release=False, visual_receipt=None):
             title=message("guide_title", lang),
             headings=message("guide_headings", lang),
         )
+
+
+def check(output: Path, *, release=False, visual_receipt=None):
+    output = open_report(output)
+    manifest = read_json(output / "report-manifest.json")
+    if manifest.get("mode") == "field-extraction-cohort":
+        return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
+    check_report_identity(output, manifest, "web-extract")
+    if public_risk((output / "report-manifest.json").read_bytes()):
+        raise ValueError("Report metadata has a publication privacy risk")
+    check_reader_contract(output, manifest)
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     validate_catalog()
@@ -2650,17 +2672,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 anchor["href"] = lang + "/accounts.html"
             if home_view.select_one("[data-operating-metrics]") != expected:
                 raise ValueError("Home latency/pricing differs from retained calls")
-            account_view = BeautifulSoup(
-                (output / lang / "accounts.html").read_text(encoding="utf-8"), "html.parser"
-            )
-            expected_price = BeautifulSoup(
-                price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
-            ).select_one("[data-price-table]")
-            if (
-                len(account_view.select("[data-price-table]")) != 1
-                or account_view.select_one("[data-price-table]") != expected_price
-            ):
-                raise ValueError("Cost/pricing coverage differs from bound source")
+            check_price_coverage(output, methods, manifest.get("prices", {}), lang, names)
     if manifest.get("mode") == "full-cohort-progress":
         methods = manifest["planned_methods"]
         names = manifest.get("method_labels", {})
@@ -2700,17 +2712,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             protocol = BeautifulSoup(
                 (output / lang / "protocol.html").read_text(encoding="utf-8"), "html.parser"
             )
-            accounts = BeautifulSoup(
-                (output / lang / "accounts.html").read_text(encoding="utf-8"), "html.parser"
-            )
-            expected_prices = BeautifulSoup(
-                price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
-            )
-            price_views = accounts.select("[data-price-table]")
-            if len(price_views) != 1 or price_views[0] != expected_prices.select_one(
-                "[data-price-table]"
-            ):
-                raise ValueError("Cost/pricing coverage or terms differ from the bound source")
+            check_price_coverage(output, methods, manifest.get("prices", {}), lang, names)
             rows = [r for method in methods for r in data[method].values()]
             expected_home = BeautifulSoup(
                 operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
@@ -3762,7 +3764,19 @@ def build_record_cohort(output, content, *, home, language, profile):
                 body += (
                     '<section data-failure-diagnosis data-result-logs id="result-logs-'
                     + esc(method)
-                    + '"><h2>本次调用为什么失败</h2><details><summary>查看服务商错误</summary>'
+                    + '"><h2>'
+                    + message("failure_diagnosis_title", language)
+                    + "</h2><p>"
+                    + message("failure_stage", language)
+                    + ": "
+                    + esc(
+                        STAGES.get(
+                            row["failure_stage"], (row["failure_stage"], row["failure_stage"])
+                        )[0 if language == "zh" else 1]
+                    )
+                    + "</p><details><summary>"
+                    + message("provider_error", language)
+                    + "</summary>"
                     + '<pre data-kind="error">'
                     + esc(
                         row["native_error"] or json.dumps(row.get("response"), ensure_ascii=False)
@@ -3977,17 +3991,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
-    check_input_profile(output, manifest)
-    check_method_examples(output, manifest)
-    from harness.reporting.presentation import check_metric_guide
-
-    for lang in manifest["languages"]:
-        check_metric_guide(
-            (output / lang / "index.html").read_text(encoding="utf-8"),
-            metric_definitions(lang, records=manifest.get("mode") == "field-extraction-cohort"),
-            title=message("guide_title", lang),
-            headings=message("guide_headings", lang),
-        )
+    check_reader_contract(output, manifest)
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Record renderer changed; rebuild required")
     actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
@@ -4019,7 +4023,6 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         )
     ):
         raise ValueError("Record preview is not bound to its dataset snapshot")
-    check_method_examples(output, manifest)
     if manifest.get("navigation") is not None:
         navigation = manifest["navigation"]
         ordered = [e for e in navigation if e.get("primary", True)] + [
@@ -4168,20 +4171,9 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         "html.parser",
     )
     home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
-    accounts = BeautifulSoup(
-        (output / "zh/accounts.html").read_text(encoding="utf-8"), "html.parser"
+    check_price_coverage(
+        output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )
-    expected_price = BeautifulSoup(
-        price_table(
-            manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
-        ),
-        "html.parser",
-    ).select_one("[data-price-table]")
-    if (
-        len(accounts.select("[data-price-table]")) != 1
-        or accounts.select_one("[data-price-table]") != expected_price
-    ):
-        raise ValueError("Cost/pricing coverage differs from bound source")
     if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
         row.get_text(strip=True) for row in expected_operations.select("tbody tr")
     ]:

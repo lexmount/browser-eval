@@ -6,9 +6,11 @@ from pathlib import Path
 from harness.reporting.templates import metric_contract
 from harness.web_extract.dataset import benchmark_config, task_bindings
 from harness.web_extract.pipeline import (
+    RECORD_INSTRUCTIONS,
     available_methods,
     data_home,
     digest,
+    instruction_schema,
     load_run,
     probe,
     read_json,
@@ -18,6 +20,7 @@ from harness.web_extract.pipeline import (
     selected_profile,
     validate_dataset,
     validate_fixture_base,
+    validate_instruction_schema,
 )
 
 
@@ -30,6 +33,8 @@ def create_plan(home, methods, output, *, snapshots=None):
         registry[method].get("requires_custom_schema") for method in methods
     ):
         raise ValueError("Selected methods require a dataset-provided custom schema")
+    if any(registry[m].get("retired") for m in methods):
+        raise ValueError("Retired reference interfaces cannot enter a new cohort")
     validate_dataset(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     plan = {
@@ -69,6 +74,12 @@ def create_plan(home, methods, output, *, snapshots=None):
         plan.update(task_bindings(home))
         for participant in plan["participants"].values():
             participant["maximum_physical_calls"] = len(truth) + 20
+    if snapshots is None and any(
+        registry[m]["input"] == "url" or "input_route" in registry[m]["options"] for m in methods
+    ):
+        raise ValueError(
+            "URL-capable interfaces require --snapshots; upload-only methods may omit it"
+        )
     if snapshots is not None:
         from harness.web_extract.snapshots import select
 
@@ -94,6 +105,12 @@ def create_plan(home, methods, output, *, snapshots=None):
         plan["resource_decision"]["memory"] = (
             "Remote memory unavailable; local client memory does not measure the provider."
         )
+    adapter = benchmark_config(home)["adapter"]
+    if adapter is not None:
+        for case in truth.values():
+            schema = instruction_schema(adapter.task_schema(home, case), RECORD_INSTRUCTIONS)
+            for method in methods:
+                validate_instruction_schema(method, schema)
     save_json(output, plan, exclusive=True)
     return plan
 
@@ -105,6 +122,8 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         from harness.web_extract.repair import run as repair_run
 
         return repair_run(home, profile, method, run_dir)
+    if fixture_base is not None:
+        validate_fixture_base(fixture_base)
     binding = run_dir / "certification-precall.json"
     if (
         not binding.exists()

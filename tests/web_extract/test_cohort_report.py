@@ -90,7 +90,12 @@ def test_current_collector_hash_only_run_builds_progress_and_certified_reports(
 
     monkeypatch.setattr(pipeline, "provider_call", respond)
     plan = home / "fresh-plan.json"
-    certification.create_plan(home, ["cloudflare-json"], plan)
+    from tests.web_extract.snapshot_inputs import bind_inputs, serve_input
+
+    monkeypatch.setattr(pipeline, "qualify_fixture", serve_input)
+    certification.create_plan(
+        home, ["cloudflare-json"], plan, snapshots=bind_inputs(home, home / "test-snapshots.json")
+    )
     source = home / "runs/fresh"
     if completed:
         certification.run(home, plan, "cloudflare-json", source)

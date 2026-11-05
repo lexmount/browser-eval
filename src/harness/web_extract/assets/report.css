@@ -36,7 +36,7 @@ html.dark .field-unexpected,html.dark .field-wrong{color:#ffa19d}
 .page-outline{display:flex;gap:16px;flex-wrap:wrap;padding:12px 0;border-bottom:1px solid var(--line)}
 @media(max-width:700px){.report-toolbar{display:block}.report-tools{justify-content:flex-end}.example-pair{grid-template-columns:1fr}.nav-more summary{font-size:13px;padding:6px 9px}.method-example{padding:12px}}
 
-.field-values{margin:0;padding-left:18px}.field-values li+li{margin-top:4px}
+.field-values{margin:0;padding-left:18px;white-space:pre-wrap}.field-values li+li{margin-top:4px}
 [data-metric-guide]{margin:12px 0 24px}[data-metric-guide] summary{font-weight:600;padding:10px 0}
 
 a,code{overflow-wrap:anywhere}

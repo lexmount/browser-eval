@@ -989,3 +989,34 @@ def test_external_host_checks_page_bytes_even_with_a_matching_manifest(
                 public_base="https://external.example",
             )
     verify.assert_called_once()
+
+
+def test_managed_manifest_network_error_does_not_propose_redeployment(home, tmp_path, monkeypatch):
+    from unittest.mock import MagicMock
+
+    import requests
+
+    item = binding(home, tmp_path)["datasets"]["example"]
+    response = MagicMock(status_code=200)
+    response.json.return_value = {
+        "success": True,
+        "result": {"canonical_deployment": {"id": "existing", "url": "https://snapshots.example"}},
+    }
+    metadata = tmp_path / "metadata.json"
+    metadata.write_text(json.dumps(item), encoding="utf-8")
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(metadata))
+    monkeypatch.setattr(
+        "harness.web_fetch.config.repository_env",
+        lambda: {"CLOUDFLARE_ACCOUNT_ID": "account", "CLOUDFLARE_API_TOKEN": "credential"},
+    )
+    monkeypatch.setattr(
+        snapshots,
+        "check_manifest",
+        lambda *a: (_ for _ in ()).throw(requests.Timeout("Network unavailable")),
+    )
+    output = tmp_path / "no-proposal.json"
+    with patch("requests.get", side_effect=cf_lookup(response)), patch("subprocess.run") as deploy:
+        with pytest.raises(requests.Timeout):
+            snapshots.host(home, output, provider="cloudflare", project="shared")
+        deploy.assert_not_called()
+    assert not output.exists()

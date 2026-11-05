@@ -184,7 +184,16 @@ def select(home, binding):
         ),
         **({"huggingface": binding["huggingface"]} if "huggingface" in binding else {}),
         **(
-            {"snapshot_manifest": binding["snapshot_manifest"]}
+            {
+                "snapshot_manifest": {
+                    **binding["snapshot_manifest"],
+                    **(
+                        {"hosting_provider": "external"}
+                        if binding.get("hosting_provider") == "external"
+                        else {}
+                    ),
+                }
+            }
             if "snapshot_manifest" in binding
             else {}
         ),
@@ -562,7 +571,7 @@ def host(
                 receipt = check_manifest(home, deployment["url"], hf_identity)
                 binding = bind(receipt["fixture_base"])
                 binding["snapshot_manifest"] = receipt
-            except (ValueError, requests.RequestException):
+            except ValueError:
                 pass
         if binding is not None:
             state = "reused_existing_deployment"
@@ -742,7 +751,8 @@ def verify_bound_manifest(home, bound, fixture_base):
         raise ValueError("Frozen dataset snapshot manifest URL changed")
     origin = manifest_url.removesuffix("/snapshots.json")
     receipt = check_manifest(home, origin, bound["huggingface"])
-    if receipt != bound or receipt["fixture_base"] != fixture_base:
+    expected = {k: v for k, v in bound.items() if k != "hosting_provider"}
+    if receipt != expected or receipt["fixture_base"] != fixture_base:
         raise ValueError("Frozen dataset snapshot manifest changed")
     return manifest_receipt(home, receipt, fixture_base)
 

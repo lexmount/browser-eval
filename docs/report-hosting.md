@@ -40,7 +40,7 @@ The Web Fetch CLI falls back to English. `BROWSER_EVAL_REPORT_LANGUAGE=zh` chang
 | `uv run --frozen python -m harness.trajectory_replay report` | `--language en` or `--language zh`; fallback English, environment configurable |
 | Complete 545-case WebMainBench and diagnostic-cohort reports | Chinese-only content; omitted language keeps the historical Chinese default; explicit `en` is rejected |
 | Curated replay example, public WebArena recording report and catalog | Chinese-only renderers; no language option |
-| `uv run --frozen python -m harness.web_extract.cli report` | Chinese-only historical report content; `--language zh` builds it and explicit `en` is rejected; English navigation opens a not-generated notice |
+| `uv run --frozen python -m harness.web_extract.cli report` | Product reports support `--language en|zh`; record reports currently support Chinese only and reject explicit `en`. Chinese-only builds provide an English not-generated notice |
 | `uv run --frozen python -m harness.lexbench report` | Declared historical adapter: Chinese by default, `--include-english` adds English; no `--language` option |
 
 Builders keep the saved language when rebuilding without `--language`. Make follows the same rule; set an explicit override through `REPORT_LANGUAGE=en` or `REPORT_LANGUAGE=zh`.

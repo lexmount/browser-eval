@@ -6,6 +6,8 @@ from pathlib import Path
 
 from harness.web_extract.dataset import task_bindings
 from harness.web_extract.pipeline import (
+    RECORD_INSTRUCTION_DELIVERY,
+    RECORD_INSTRUCTIONS,
     available_methods,
     collect_calls,
     digest,
@@ -34,6 +36,13 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
         source, rows = load_selection(home, selection)
         contract = read_json(source / "contract.json")
         method = contract["methods"][0]
+        if (
+            task_bindings(home)
+            and contract.get("extraction_instruction_delivery") != RECORD_INSTRUCTION_DELIVERY
+        ):
+            raise ValueError(
+                "Historical instruction delivery differs; use a new cohort, not a repair"
+            )
         previous = selection.get("repair", [])
         failures = [r["case_id"] for r in rows if r.get("compatibility") != "structured_output"]
         if selected is not None and method not in selected:
@@ -43,6 +52,8 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             raise ValueError("Repair selection includes successful or duplicate cases")
         if not cases:
             continue
+        if fixture_base is None and requires_fixture(method, contract.get("native_options", {})):
+            fixture_base = contract.get("fixture_base")
         if contract.get("snapshot_manifest"):
             bound_base = contract["snapshot_manifest"]["fixture_base"]
             if fixture_base is not None and fixture_base != bound_base:
@@ -53,6 +64,12 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             raise ValueError("Repair parent certificate differs")
         participants[method] = {
             "method": method,
+            "extraction_instructions": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
+            **(
+                {"extraction_instruction_delivery": contract["extraction_instruction_delivery"]}
+                if "extraction_instruction_delivery" in contract
+                else {}
+            ),
             **(
                 {"snapshot_manifest": contract["snapshot_manifest"]}
                 if contract.get("snapshot_manifest")
@@ -119,6 +136,10 @@ def verify_parent(home, participant):
         or set(participant.get("failed_case_ids", chosen)) != failures
     ):
         raise ValueError("Repair must select declared failures, never successes")
+    if "extraction_instructions" in participant and participant[
+        "extraction_instructions"
+    ] != contract.get("extraction_instructions", RECORD_INSTRUCTIONS):
+        raise ValueError("Repair extraction instructions differ from the parent")
     return contract, rows
 
 
@@ -136,8 +157,12 @@ def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
     if snapshot_manifest is not None:
         from harness.web_extract.snapshots import verify_bound_manifest
 
-        return verify_bound_manifest(home, snapshot_manifest, base)
-    return [
+        receipts = verify_bound_manifest(home, snapshot_manifest, base)
+        if snapshot_manifest.get("hosting_provider") != "external":
+            return receipts
+    else:
+        receipts = []
+    return receipts + [
         {key: item[key] for key in ("case_id", "url", "sha256")}
         for cid in cases
         for item in [qualify_fixture(home, base, cid, suffix=suffix, timeout=45)]
@@ -218,6 +243,16 @@ def collect(home, profile, method, destination):
         "method": method,
         "profile_sha256": digest(profile.read_bytes()),
         "participant": participant,
+        **(
+            {"extraction_instruction_delivery": participant["extraction_instruction_delivery"]}
+            if "extraction_instruction_delivery" in participant
+            else {}
+        ),
+        **(
+            {"extraction_instructions": participant["extraction_instructions"]}
+            if "extraction_instructions" in participant
+            else {}
+        ),
         "access_retry_limit": plan.get("access_retries_after_repair", 1),
         "code_sha256": code,
         "code_snapshots": False,
@@ -336,6 +371,20 @@ def verify_repair(home, source, repair):
                     "Repair task adapter or dataset binding differs from certification"
                 )
     participant = contract["participant"]
+    parent_contract = read_json(source / "contract.json")
+    if "extraction_instruction_delivery" in participant and (
+        participant["extraction_instruction_delivery"]
+        != parent_contract.get("extraction_instruction_delivery")
+        or contract.get("extraction_instruction_delivery")
+        != participant["extraction_instruction_delivery"]
+    ):
+        raise ValueError("Repair instruction delivery differs from the parent")
+    if "extraction_instructions" in participant and (
+        participant["extraction_instructions"]
+        != parent_contract.get("extraction_instructions", RECORD_INSTRUCTIONS)
+        or contract.get("extraction_instructions") != participant["extraction_instructions"]
+    ):
+        raise ValueError("Repair extraction instructions differ from the parent")
     if (
         certificate["profile_sha256"] != contract["profile_sha256"]
         or certificate["method"] != contract["method"]
@@ -374,9 +423,22 @@ def verify_repair(home, source, repair):
     if needs_fixture and participant.get("snapshot_manifest"):
         from harness.web_extract.snapshots import manifest_receipt
 
-        if before != manifest_receipt(
+        expected = manifest_receipt(
             home, participant["snapshot_manifest"], participant["snapshot_manifest"]["fixture_base"]
-        ):
+        )
+        if participant["snapshot_manifest"].get("hosting_provider") == "external":
+            expected += [
+                {
+                    "case_id": cid,
+                    "url": participant["snapshot_manifest"]["fixture_base"]
+                    + "/"
+                    + cid
+                    + participant.get("fixture_suffix", ""),
+                    "sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
+                }
+                for cid in participant["case_ids"]
+            ]
+        if before != expected:
             raise ValueError("Repair dataset snapshot qualification differs")
     elif needs_fixture:
         if {item["case_id"] for item in before} != set(participant["case_ids"]):

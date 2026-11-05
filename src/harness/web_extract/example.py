@@ -236,9 +236,9 @@ def evaluate(truth, predictions, field, matcher, **options):
 
 
 def create_record(output: Path, *, language="zh"):
+    """Exercise multi-value schemas and an interrupted matrix without provider calls."""
     if language != "zh":
         raise ValueError("The record example currently supports Chinese only")
-    """Exercise multi-value schemas and an interrupted matrix without provider calls."""
     import json
 
     require_external_output(output)

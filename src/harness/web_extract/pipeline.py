@@ -827,6 +827,7 @@ METHODS = {
         "options": ["maxInputTokens", "maxOutputTokens", "input_route"],
         "custom_schema": True,
         "requires_custom_schema": True,
+        "description_limit": 300,
         "adapter": _zyte_request,
     },
     "zyte-product": {
@@ -851,6 +852,7 @@ METHODS = {
     },
     "scrapegraph-extract": {
         "custom_schema": True,
+        "schema_prompt": "Extract the fields defined by the schema.",
         **{
             "keys": ["SGAI_API_KEY"],
             "input": "html",
@@ -882,6 +884,7 @@ METHODS = {
         "adapter": _url_json_request,
     },
     "extruct": {
+        "retired": True,
         **{
             "keys": [],
             "input": "html",
@@ -904,6 +907,8 @@ METHODS = {
     },
 }
 
+
+RECORD_INSTRUCTION_DELIVERY = "schema-property-descriptions/1"
 
 RECORD_INSTRUCTIONS = (
     "Extract all requested attributes of the main record. Copy text values "
@@ -932,6 +937,18 @@ def instruction_schema(schema, prompt):
     return result
 
 
+def validate_instruction_schema(method, schema):
+    limit = METHODS[method].get("description_limit")
+    if (
+        schema is not None
+        and limit is not None
+        and any(
+            len(field.get("description", "")) > limit for field in schema["properties"].values()
+        )
+    ):
+        raise ValueError(f"{method} attribute descriptions exceed its {limit}-character limit")
+
+
 @total_deadline
 def provider_call(
     method,
@@ -951,12 +968,7 @@ def provider_call(
         if not METHODS[method].get("custom_schema", False):
             raise ValueError("Selected native interface does not support arbitrary schemas")
     schema = instruction_schema(schema, prompt)
-    if (
-        method == "zyte-custom"
-        and schema is not None
-        and any(len(field.get("description", "")) > 300 for field in schema["properties"].values())
-    ):
-        raise ValueError("Zyte custom attribute descriptions exceed its 300-character limit")
+    validate_instruction_schema(method, schema)
     prepared = METHODS[method]["adapter"](
         method,
         html,
@@ -968,9 +980,7 @@ def provider_call(
         **(
             {
                 "schema": schema,
-                "prompt": "Extract the fields defined by the schema."
-                if method == "scrapegraph-extract"
-                else None,
+                "prompt": METHODS[method].get("schema_prompt"),
             }
             if schema is not None
             else {}
@@ -1025,6 +1035,7 @@ def provider_call(
             "instructions": {"text": prompt, "location": "schema.properties.*.description"}
             if prompt
             else None,
+            "standalone_prompt": METHODS[method].get("schema_prompt") if schema else None,
             "fixture_url": fixture_url,
             "source_url": source_url,
             "native_options": native_options,
@@ -1190,7 +1201,11 @@ def access_blocker(row):
     native_error = isinstance(native, dict) and (
         native.get("success") is False or bool(native.get("error"))
     )
-    if status in (401, 402, 403, 429) or native_error:
+    if status == 401:
+        return "authentication"
+    if status == 402:
+        return "quota_or_payment"
+    if status in (403, 429) or native_error:
         if re.search(
             r"invalid (?:api[ _-]?)?key|unauthorized|unauthenticated|"
             r"authentication failed|invalid token",
@@ -1199,13 +1214,16 @@ def access_blocker(row):
         ):
             return "authentication"
         if re.search(
-            r"permission denied|access denied|forbidden|not authorized", message, re.I
+            r"permission denied|access denied|not authorized|(?:api|account|token|key).*forbidden",
+            message,
+            re.I,
         ) and not re.search(r"target page|download|fetch|session", message, re.I):
             return "permission"
         if re.search(
             r"quota|(?:insufficient|not enough|out of|exhausted|no remaining) credits?|"
             r"credits? (?:exhausted|depleted|limit)|account balance|insufficient balance|"
-            r"free plan|usage period|subscription (?:expired|required|limit)|"
+            r"credit balance (?:is )?too low|free plan|usage period|"
+            r"subscription (?:expired|required|limit)|"
             r"payment (?:required|failed)|account.*expired",
             message,
             re.I,
@@ -1221,12 +1239,7 @@ def access_blocker(row):
     )
     if target_failure:
         return None
-    if status == 401:
-        return "authentication"
-    if status == 402:
-        return "quota_or_payment"
-    if status == 403:
-        return "permission"
+    # A bare 403 can be a target-page denial; only explicit account evidence pauses dispatch.
 
     return None
 
@@ -1578,7 +1591,10 @@ def _probe_unlocked(
         if snapshot_manifest is not None:
             from harness.web_extract.snapshots import verify_bound_manifest
 
-            return verify_bound_manifest(home, snapshot_manifest, fixture_base)
+            receipts = verify_bound_manifest(home, snapshot_manifest, fixture_base)
+            if snapshot_manifest.get("hosting_provider") == "external":
+                receipts += [one(case_id) for case_id in case_ids]
+            return receipts
         return [one(case_id) for case_id in case_ids]
 
     run = Path(run_dir)
@@ -1620,6 +1636,7 @@ def _probe_unlocked(
 
         requested.update(task_bindings(home))
         requested["extraction_instructions"] = RECORD_INSTRUCTIONS
+        requested["extraction_instruction_delivery"] = RECORD_INSTRUCTION_DELIVERY
     if benchmark_config(home)["adapter"] is not None or maximum_physical_calls is not None:
         matrix_size = len(case_ids) * len(methods)
         maximum = matrix_size + 20 if maximum_physical_calls is None else maximum_physical_calls

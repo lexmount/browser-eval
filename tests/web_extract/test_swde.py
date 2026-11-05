@@ -8,6 +8,13 @@ from unittest.mock import Mock
 import pytest
 
 from harness.web_extract import certification, dataset, pipeline, swde
+from tests.web_extract.snapshot_inputs import bind_inputs, serve_input
+
+
+def plan_for_inputs(home, methods, output):
+    return certification.create_plan(
+        home, methods, output, snapshots=bind_inputs(home, output.with_suffix(".snapshots.json"))
+    )
 
 
 @pytest.fixture
@@ -77,6 +84,8 @@ def inputs(tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "test-account")
     monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "test-token-only")
+    monkeypatch.setattr(pipeline, "qualify_fixture", serve_input)
+    monkeypatch.setattr("harness.web_extract.repair.qualify_fixture", serve_input)
     return home, schemas
 
 
@@ -95,9 +104,10 @@ def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
 
     monkeypatch.setattr(pipeline, "request", request)
     plan = tmp_path / "plan.json"
-    frozen = certification.create_plan(home, ["cloudflare-json"], plan)
+    frozen = plan_for_inputs(home, ["cloudflare-json"], plan)
     if static_controls:
         frozen["participants"]["cloudflare-json"]["native_options"] = {
+            "input_route": "url",
             "setJavaScriptEnabled": False,
             "rejectRequestPattern": [".*"],
         }
@@ -180,7 +190,7 @@ def source_revision_run(inputs, tmp_path, monkeypatch, request):
 
     monkeypatch.setattr(pipeline, "request", request)
     plan, run = tmp_path / "original-plan.json", tmp_path / "original-run"
-    certification.create_plan(home, ["cloudflare-json"], plan)
+    plan_for_inputs(home, ["cloudflare-json"], plan)
     certification.run(home, plan, "cloudflare-json", run)
     qualified = swde.qualify_reference_text(truth, pages)
     references = qualified["references"]
@@ -694,7 +704,7 @@ def record_audit_material(source_revision_run, tmp_path, monkeypatch):
     monkeypatch.setattr(pipeline, "request", request)
     second = tmp_path / "second-provider"
     second_plan = tmp_path / "second-plan.json"
-    certification.create_plan(home, ["scrapegraph-extract"], second_plan)
+    plan_for_inputs(home, ["scrapegraph-extract"], second_plan)
     certification.run(home, second_plan, "scrapegraph-extract", second)
     selections = [{"run": str(first)}, {"run": str(second)}]
     content = tmp_path / "audit-content.json"
@@ -1112,7 +1122,7 @@ def test_record_certification_requires_every_frozen_binding_before_writing(
 ):
     home, _ = inputs
     path = tmp_path / "plan.json"
-    plan = certification.create_plan(home, ["cloudflare-json"], path)
+    plan = plan_for_inputs(home, ["cloudflare-json"], path)
     plan.pop(missing)
     pipeline.save_json(path, plan)
     dispatch = Mock(side_effect=AssertionError("must not dispatch"))
@@ -1136,7 +1146,7 @@ def test_record_certification_requires_every_frozen_binding_before_writing(
 def test_fixture_credentials_never_reach_precall_receipts(inputs, tmp_path, monkeypatch, base):
     home, _ = inputs
     path = tmp_path / "plan.json"
-    certification.create_plan(home, ["browserbase-json"], path)
+    plan_for_inputs(home, ["browserbase-json"], path)
     dispatch = Mock(side_effect=AssertionError("must not dispatch"))
     monkeypatch.setattr(certification, "probe", dispatch)
     target = tmp_path / "execution"
@@ -1189,7 +1199,7 @@ def test_record_compatibility_and_full_runs_budget_the_complete_method_matrix(
 def test_changed_reference_stops_before_any_provider_call(inputs, tmp_path, monkeypatch):
     home, _ = inputs
     plan = tmp_path / "plan.json"
-    certification.create_plan(home, ["cloudflare-json"], plan)
+    plan_for_inputs(home, ["cloudflare-json"], plan)
     (home / "dataset/html/book-a-0001.html").write_text("changed", encoding="utf-8")
     dispatch = Mock(side_effect=AssertionError("must not dispatch"))
     monkeypatch.setattr(pipeline, "provider_call", dispatch)
@@ -1203,7 +1213,7 @@ def test_changed_reference_stops_before_any_provider_call(inputs, tmp_path, monk
 )
 def test_product_only_interfaces_cannot_claim_swde_schema_support(inputs, tmp_path, method):
     home, _ = inputs
-    with pytest.raises(ValueError, match="arbitrary-schema"):
+    with pytest.raises(ValueError, match="arbitrary-schema|Retired"):
         certification.create_plan(home, [method], tmp_path / "plan.json")
     assert not (tmp_path / "plan.json").exists()
 
@@ -1544,7 +1554,7 @@ def test_registered_adapter_dispatch_does_not_depend_on_dataset_name(inputs, mon
     monkeypatch.setitem(
         dataset.BENCHMARKS, "another-schema-cohort", dict(dataset.BENCHMARKS["swde"])
     )
-    plan = certification.create_plan(home, ["cloudflare-json"], tmp_path / "registered.json")
+    plan = plan_for_inputs(home, ["cloudflare-json"], tmp_path / "registered.json")
     assert plan["case_count"] == 2
     assert plan["dataset_registry_sha256"] == dataset.registry_sha256()
     scores = pipeline.score_rows(
@@ -1778,7 +1788,7 @@ def test_record_repair_binds_adapter_before_resume_after_calls_and_on_read(
         ),
     )
     plan = tmp_path / "parent-plan.json"
-    certification.create_plan(home, ["cloudflare-json"], plan)
+    plan_for_inputs(home, ["cloudflare-json"], plan)
     parent = tmp_path / "parent"
     certification.run(home, plan, "cloudflare-json", parent)
     content = tmp_path / "repair-content.json"
@@ -1882,13 +1892,13 @@ def test_completed_cohort_rejects_changed_fixture_origin_without_calls(
         },
     )
     plan, run = tmp_path / "plan.json", tmp_path / "run"
-    certification.create_plan(home, ["cloudflare-json"], plan)
+    plan_for_inputs(home, ["cloudflare-json"], plan)
     certification.run(home, plan, "cloudflare-json", run, fixture_base="https://snapshot-a.example")
     monkeypatch.setattr(
         pipeline, "provider_call", lambda *a, **k: pytest.fail("Completed calls repeated")
     )
     certification.run(home, plan, "cloudflare-json", run, fixture_base="https://snapshot-a.example")
-    with pytest.raises(ValueError, match="fixture_base"):
+    with pytest.raises(ValueError, match="fixture_base|frozen public snapshot"):
         certification.run(
             home, plan, "cloudflare-json", run, fixture_base="https://snapshot-b.example"
         )
@@ -2192,6 +2202,9 @@ def test_shared_instructions_reach_every_native_request_and_its_receipt(monkeypa
     assert captured[0]["price"]["description"] == "Current price " + pipeline.RECORD_INSTRUCTIONS
     assert row["request"]["schema"]["properties"] == captured[0]
     assert row["request"]["instructions"]["text"] == pipeline.RECORD_INSTRUCTIONS
+    assert row["request"]["standalone_prompt"] == (
+        "Extract the fields defined by the schema." if method == "scrapegraph-extract" else None
+    )
     assert schema == original
 
 
@@ -2220,3 +2233,30 @@ def test_explicit_falsey_native_values_are_attempts_not_missing_fields(invalid):
     assert explicit["site_fields"][0]["predicted_pages"] == 2
     assert explicit["value_micro"]["false_positive"] == 1
     assert explicit["value_micro"]["precision"] == 0.5
+
+
+@pytest.mark.parametrize("method", ["cloudflare-json", "browserbase-json", "zyte-custom"])
+def test_url_capable_interfaces_cannot_plan_an_implicit_upload_cohort(inputs, tmp_path, method):
+    home, _ = inputs
+    with pytest.raises(ValueError, match="require --snapshots"):
+        certification.create_plan(home, [method], tmp_path / "invalid-plan.json")
+    assert not (tmp_path / "invalid-plan.json").exists()
+
+
+def test_description_limit_fails_at_planning_before_calls(inputs, tmp_path):
+    home, schemas = inputs
+    schemas["book"]["properties"]["author"]["description"] = "x" * 301
+    pipeline.save_json(home / "dataset/schemas.json", schemas)
+    # Keep the synthetic inventory valid after extending its schema.
+    manifest = pipeline.read_json(home / "dataset/manifest.json")
+    raw = (home / "dataset/schemas.json").read_bytes()
+    manifest["files"]["schemas.json"] = {"sha256": pipeline.digest(raw), "bytes": len(raw)}
+    pipeline.save_json(home / "dataset/manifest.json", manifest)
+    card = pipeline.read_json(swde.CARD)
+    card["dataset"]["inventory_sha256"] = pipeline.digest(
+        json.dumps(manifest["files"], sort_keys=True, separators=(",", ":")).encode()
+    )
+    pipeline.save_json(swde.CARD, card)
+    with pytest.raises(ValueError, match="300-character"):
+        plan_for_inputs(home, ["zyte-custom"], tmp_path / "too-long.json")
+    assert not (tmp_path / "too-long.json").exists()

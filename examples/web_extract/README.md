@@ -121,8 +121,10 @@ credentials. Their first binding checks every page against the frozen HTML, even
 when they expose a matching manifest; the manifest alone is a claim by that host.
 
 Use the generated binding in `plan --snapshots`. Each method then receives the
-same case URL. Before and after calls, the collector checks the frozen dataset
-manifest and its hash with one request; a changed manifest blocks certification.
+same case URL. URL-capable interfaces require this binding; only upload-only
+interfaces may omit it. Before and after calls, managed Cloudflare snapshots use
+the frozen whole-dataset manifest and its hash; a changed manifest blocks certification.
+External hosts additionally have every selected page hash-checked before and after calls.
 Page-by-page verification remains an explicit byte-audit command and is not used
 to identify a managed snapshot version.
 Keep raw HTML, original benchmark names, sources and licenses; exclude reference
@@ -463,8 +465,9 @@ adjudication of either review's disputes and rejects unrelated predecessor revie
 
 Shared record instructions are frozen in the run contract and appended to each
 field's schema description, including APIs that accept only property definitions.
-The request receipt retains the effective schema and instruction text. Earlier
+The request receipt retains the effective schema, instruction text and any standalone prompt. Earlier
 cohorts retain their actual requests; a new adapter cannot change their results.
-A repair inherits its parent's native options unless the repair plan explicitly
-overrides them. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
+A repair inherits its parent's instructions and native options unless the plan explicitly
+overrides the native options. The instruction-delivery format is frozen too: historical
+record runs with a different format require a new cohort instead of a mixed repair. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
 resolve from `<home>`, and absolute paths retain their meaning.

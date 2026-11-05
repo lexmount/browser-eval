@@ -271,10 +271,20 @@ def test_certified_preflight_failure_can_resume_without_replacing_receipt(tmp_pa
 
     home = create(tmp_path / "example")
     profile, target = tmp_path / "plan.json", home / "runs/preflight"
-    with patch("harness.web_extract.certification.validate_dataset"):
-        create_plan(home, ["cloudflare-json"], profile)
+    with (
+        patch("harness.web_extract.certification.validate_dataset"),
+        patch("harness.web_extract.snapshots.validate_dataset"),
+    ):
+        from tests.web_extract.snapshot_inputs import bind_inputs, serve_input
+
+        snapshot = bind_inputs(home, tmp_path / "test-snapshots.json")
+        create_plan(home, ["cloudflare-json"], profile, snapshots=snapshot)
     with (
         collection_context(),
+        patch(
+            "harness.web_extract.pipeline.qualify_fixture",
+            side_effect=serve_input,
+        ),
         patch("harness.web_extract.certification.validate_dataset"),
         patch(
             "harness.web_extract.certification.probe",
@@ -293,6 +303,10 @@ def test_certified_preflight_failure_can_resume_without_replacing_receipt(tmp_pa
 
     with (
         collection_context(),
+        patch(
+            "harness.web_extract.pipeline.qualify_fixture",
+            side_effect=serve_input,
+        ),
         patch("harness.web_extract.certification.validate_dataset"),
         patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
         patch("harness.web_extract.certification.score_run", side_effect=score),
@@ -330,14 +344,12 @@ def test_raw_html_text_denial_preserves_status_and_body():
 
 
 def test_endpoint_permission_denial_pauses_without_quota_wording():
-    assert (
-        access_blocker({"http_status": 403, "response": {"message": "Forbidden"}}) == "permission"
-    )
+    assert access_blocker({"http_status": 403, "response": {"message": "Forbidden"}}) is None
     assert (
         access_blocker({"http_status": 200, "response": {"error": "Could not download page (403)"}})
         is None
     )
-    assert access_blocker({"http_status": 403, "response": {}}) == "permission"
+    assert access_blocker({"http_status": 403, "response": {}}) is None
     assert (
         access_blocker(
             {"http_status": 200, "response": {"success": False, "error": "Insufficient credits"}}
@@ -1121,3 +1133,53 @@ def test_extraction_error_containing_a_field_name_is_not_account_quota():
 def test_account_denial_is_not_hidden_by_target_fetch_words(status, message):
     result = access_blocker({"http_status": status, "response": {"error": message}})
     assert result in {"authentication", "quota_or_payment", "quota_or_permission"}
+
+
+@pytest.mark.parametrize(
+    "status, text, expected",
+    [
+        (401, "Failed to fetch target", "authentication"),
+        (402, "Target page blocked", "quota_or_payment"),
+        (429, "Your credit balance is too low", "quota_or_permission"),
+        (403, "Target page forbidden", None),
+        (403, "", None),
+    ],
+)
+def test_account_status_and_target_denial_have_distinct_scope(status, text, expected):
+    assert access_blocker({"http_status": status, "response": {"error": text}}) == expected
+
+
+@pytest.mark.parametrize("changed", [False, True])
+def test_external_manifest_does_not_replace_page_audit_during_collection(tmp_path, changed):
+    from tests.web_extract.snapshot_inputs import serve_input
+
+    home = create(tmp_path / "external-inputs")
+    base = "https://external.example"
+    calls = []
+
+    def qualify(home, base, cid, **kwargs):
+        calls.append(cid)
+        if changed:
+            raise ValueError("Remote fixture differs")
+        return serve_input(home, base, cid)
+
+    with (
+        collection_context(),
+        patch("harness.web_extract.snapshots.verify_bound_manifest", return_value=[]),
+        patch("harness.web_extract.pipeline.qualify_fixture", side_effect=qualify),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as provider,
+    ):
+        options = dict(
+            full=True,
+            run_dir=tmp_path / "external-run",
+            fixture_base=base,
+            native_options={"input_route": "url"},
+            snapshot_manifest={"hosting_provider": "external"},
+        )
+        if changed:
+            with pytest.raises(ValueError, match="Remote fixture differs"):
+                probe(home, ["cloudflare-json"], **options)
+            provider.assert_not_called()
+        else:
+            probe(home, ["cloudflare-json"], **options)
+            assert len(calls) == 2 * provider.call_count == 6

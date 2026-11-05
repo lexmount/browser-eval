@@ -2196,3 +2196,43 @@ def test_adjudication_uses_the_same_dataset_root_for_different_audit_depths(tmp_
         for entry in result["packets"]
         for case in read_packet(Path(entry["path"]))["cases"]
     )
+
+
+@pytest.mark.parametrize("instructions", ["Keep the parent record wording.", ""])
+def test_repair_freezes_parent_instructions_and_rejects_a_changed_plan(tmp_path, instructions):
+    from harness.web_extract.repair import verify_parent
+
+    home, source, _, _ = parent_inputs(tmp_path)
+    contract = read_json(source / "contract.json")
+    contract["extraction_instructions"] = instructions
+    save_json(source / "contract.json", contract)
+    manifest = read_json(source / "manifest.json")
+    manifest["contract_sha256"] = digest((source / "contract.json").read_bytes())
+    save_json(source / "manifest.json", manifest)
+    save_json(
+        source / "certificate.json",
+        {"manifest_sha256": digest((source / "manifest.json").read_bytes())},
+    )
+    profile = tmp_path / "instruction-plan.json"
+    create_plan(home, tmp_path / "content.json", profile, {}, None)
+    participant = read_json(profile)["participants"]["cloudflare-json"]
+    assert participant["extraction_instructions"] == instructions
+    verify_parent(home, participant)
+    participant["extraction_instructions"] = "Changed meaning"
+    with pytest.raises(ValueError, match="instructions differ"):
+        verify_parent(home, participant)
+
+
+def test_historical_record_instruction_delivery_is_not_silently_upgraded(tmp_path):
+    home, source, _, rows = parent_inputs(tmp_path)
+    output = tmp_path / "not-created.json"
+    with (
+        patch("harness.web_extract.repair.load_selection", return_value=(source, rows)),
+        patch(
+            "harness.web_extract.repair.task_bindings",
+            return_value={"task_adapter_sha256": "a" * 64},
+        ),
+    ):
+        with pytest.raises(ValueError, match="Historical instruction delivery"):
+            create_plan(home, tmp_path / "content.json", output, {}, None)
+    assert not output.exists()
