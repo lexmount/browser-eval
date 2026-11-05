@@ -896,13 +896,14 @@ def _parameter_execution(root, record, case, contract, sources, baseline=None, s
         raise ValueError('Parameter rerun request differs from authorization')
     return {'provider_type': actual['provider_type'], 'transport': actual['transport'],
             'endpoint_sha256': actual.get('endpoint_sha256'), 'request': actual_parameters,
+            'input_class': list(key[1:]),
             'dns_mode': config.get('dns_mode', 'system'),
             'timeout_seconds': contract['timeout_seconds'],
             'max_failure_retries': contract.get('max_failure_retries')}
 
 
 def _uniform_execution_settings(calls):
-    """Compare observed options equally for every method and case."""
+    """Require uniform requests per input class and a shared call budget."""
     def signature(value):
         def normalize(item):
             if isinstance(item, dict):
@@ -913,15 +914,18 @@ def _uniform_execution_settings(calls):
                 return int(item)
             return item
         return json.dumps(normalize(value), sort_keys=True, allow_nan=False)
-    observed = set()
+    by_class, shared = {}, set()
     for attempts in calls.values():
         if not attempts:
             raise ValueError('Whole-group selection lacks execution settings')
         for settings in attempts:
             if not isinstance(settings, dict) or not settings:
                 raise ValueError('Whole-group selection lacks execution settings')
-            observed.add(signature(settings))
-    return len(observed) == 1
+            input_class = tuple(settings.get('input_class', ()))
+            by_class.setdefault(input_class, set()).add(signature(settings))
+            shared.add(signature([settings.get(key) for key in
+                                  ('dns_mode', 'timeout_seconds', 'max_failure_retries')]))
+    return len(shared) == 1 and all(len(values) == 1 for values in by_class.values())
 
 
 def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
@@ -1002,7 +1006,6 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
                     raise ValueError('Missing retry budget')
                 settings = _parameter_execution(call_root, call, case, policy, sources, call, split_role)
                 policies.append(policy)
-                settings['input_class'] = call['provider_metadata']['native_route_receipt']['cell'][1:]
                 group['verified_calls'] += len(physical)
                 if settings not in group['settings']:
                     group['settings'].append(settings)
@@ -1083,14 +1086,8 @@ def _matrix_execution_settings(inputs, candidates, decisions, adoptions):
             select = min if field == 'collection_start' else max
             group[field] = select(values, key=datetime.fromisoformat)
     for group in groups.values():
-        by_class = {}
-        common = []
-        for settings in group['settings']:
-            by_class.setdefault(tuple(settings['input_class']), []).append(settings)
-            common.append({key: settings[key] for key in
-                           ('dns_mode', 'timeout_seconds', 'max_failure_retries')})
-        group['uniform'] = bool(common) and not group['errors'] and all(
-            _uniform_execution_settings({'group': values}) for values in [common, *by_class.values()])
+        group['uniform'] = bool(group['settings']) and not group['errors'] and (
+            _uniform_execution_settings({'group': group['settings']}))
     return list(groups.values())
 
 

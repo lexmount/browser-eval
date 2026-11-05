@@ -1869,3 +1869,32 @@ def test_duplicate_source_case_is_rejected_in_both_orders(tmp_path, reverse):
                                          {'cases': cases[::-1] if reverse else cases})
     with pytest.raises(ValueError, match='Duplicate case ID in saved-matrix dataset'):
         build(tmp_path, spec)
+
+
+def test_family_rerun_compares_native_requests_by_input_class():
+    from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
+    from harness.web_fetch.report_saved_matrix import _parameter_group_decisions
+    from lexbench_webfetch.models import EvalCase
+
+    provider = SubprocessJsonlProvider('worker', {'command': ['unused']})
+    cases = {track: {'id': track, 'name': track, 'url': 'https://example.test/',
+                     'category': 'test', 'expected_any': ['answer'], 'track': track}
+             for track in ('image', 'video')}
+    keys = [('first', 'worker', track) for track in cases]
+    inputs = {'revision': None, 'cases': {'first': cases}, 'spec': {
+        'report_families': [{'id': 'web_media'}],
+        'parameter_reruns': {'selection': 'replace_family_if_pass_count_improves'}},
+        'selected': {}, 'parameter_settings': {}}
+    candidates = {}
+    for key in keys:
+        case = EvalCase(**cases[key[2]])
+        request = provider.native_worker_request(case, 30)
+        settings = {'input_class': [case.track, case.task_kind, None], 'request': request,
+                    'timeout_seconds': 30, 'dns_mode': 'system', 'max_failure_retries': 1}
+        inputs['parameter_settings'][key] = {
+            'before_retry_policy_valid': True, 'before': [settings], 'candidate': [dict(settings)]}
+        inputs['selected'][key] = (None, {'ok': True, 'metrics': {'content_pass': False}}, None, None)
+        candidates[key] = (None, {'ok': True, 'metrics': {'content_pass': True}}, None, None)
+    assert all(d['selected_new'] for d in _parameter_group_decisions(inputs, candidates).values())
+    inputs['parameter_settings'][keys[1]]['candidate'][0]['dns_mode'] = 'different'
+    assert not any(d['selected_new'] for d in _parameter_group_decisions(inputs, candidates).values())
