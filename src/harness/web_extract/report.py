@@ -2417,9 +2417,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "template_version": VERSION,
             "methods": methods,
             "browser_eval": build_version,
-            "asset_sha256": {
-                p.name: digest(p.read_bytes()) for p in ASSETS.iterdir() if p.is_file()
-            },
+            **report_dependencies(),
             "dataset_kind": "published-upstream"
             if not read_json(profile).get("local_example", False)
             else "local-example",
@@ -2429,9 +2427,6 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "prices": model.get("prices", {}),
             "method_examples": model.get("method_examples"),
             "renderer_sha256": digest(Path(__file__).read_bytes()),
-            "interaction_sha256": digest(Path(__file__).with_name("report_ui.py").read_bytes()),
-            "messages_sha256": messages_sha256(),
-            "analysis_sha256": digest(Path(__file__).with_name("analysis.py").read_bytes()),
             "review": {
                 k: audit[k]
                 for k in (
@@ -2468,6 +2463,24 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     check(output)
 
 
+def report_dependencies():
+    return {
+        "asset_sha256": {p.name: digest(p.read_bytes()) for p in ASSETS.iterdir() if p.is_file()},
+        "messages_sha256": messages_sha256(),
+        "interaction_sha256": digest(Path(__file__).with_name("report_ui.py").read_bytes()),
+        "analysis_sha256": digest(Path(__file__).with_name("analysis.py").read_bytes()),
+    }
+
+
+def validate_release_prices(manifest):
+    if manifest.get("dataset_kind") == "published-upstream":
+        for value in manifest["prices"].values():
+            if "usd_per_1000_range" not in value and not value.get("pricing_formula"):
+                raise ValueError(
+                    "Formal releases require normalized price ranges or a billing formula"
+                )
+
+
 def check_price_coverage(output, methods, prices, language, labels):
     accounts = BeautifulSoup(
         (output / language / "accounts.html").read_text(encoding="utf-8"), "html.parser"
@@ -2480,8 +2493,13 @@ def check_price_coverage(output, methods, prices, language, labels):
         raise ValueError("Cost/pricing coverage differs from bound source")
 
 
-def check_reader_contract(output, manifest):
+def check_reader_contract(output, manifest, *, release=False):
+    validate_catalog()
+    if any(manifest.get(key) != value for key, value in report_dependencies().items()):
+        raise ValueError("Report client dependencies changed; rebuild required")
     check_input_profile(output, manifest)
+    if release:
+        validate_release_prices(manifest)
     check_method_examples(output, manifest)
     from harness.reporting.presentation import check_metric_guide
 
@@ -2502,18 +2520,11 @@ def check(output: Path, *, release=False, visual_receipt=None):
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
-    check_reader_contract(output, manifest)
+    check_reader_contract(output, manifest, release=release)
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
-    validate_catalog()
-    if manifest.get("messages_sha256") != messages_sha256():
-        raise ValueError("Report message catalog changed; rebuild required")
     if manifest["template_version"] != VERSION:
         raise ValueError("Wrong template")
-    if manifest.get("asset_sha256") != {
-        p.name: digest(p.read_bytes()) for p in ASSETS.iterdir() if p.is_file()
-    }:
-        raise ValueError("Report assets changed; rebuild required")
     if (
         release
         and manifest.get("dataset_kind") == "published-upstream"
@@ -2536,21 +2547,8 @@ def check(output: Path, *, release=False, visual_receipt=None):
             )
         ):
             raise ValueError("Formal releases require a complete certified cohort")
-        for value in manifest["prices"].values():
-            if "usd_per_1000_range" not in value and not value.get("pricing_formula"):
-                raise ValueError(
-                    "Formal releases require normalized price ranges or a billing formula"
-                )
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Renderer identity changed; rebuild required")
-    if manifest.get("interaction_sha256") != digest(
-        Path(__file__).with_name("report_ui.py").read_bytes()
-    ):
-        raise ValueError("Interaction identity changed; rebuild required")
-    if manifest.get("analysis_sha256") != digest(
-        Path(__file__).with_name("analysis.py").read_bytes()
-    ):
-        raise ValueError("Field analysis identity changed; rebuild required")
     review = manifest.get("review")
     if manifest.get("required_review_scope") == "all" and (
         not review
@@ -3053,10 +3051,18 @@ def record_result_fields(reference, row, *, policy=None):
         "hit_fields": sum(bool(v["hit"]) for v in active),
         "status": "call_error"
         if row.get("compatibility") != "structured_output"
+        else "unavailable"
+        if not active
         else "exact"
-        if active and all(v["exact"] for v in active)
+        if all(v["exact"] for v in active)
         else "field_difference",
     }
+
+
+def record_inventory_outcome(row):
+    if row["status"] == "unavailable":
+        return "unavailable", "unavailable"
+    return ("pass", "correct") if row["status"] == "exact" else ("fail", "wrong")
 
 
 def record_field_rows(row, language):
@@ -3397,6 +3403,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     )
     status_labels = {
         "exact": t("exact_page"),
+        "unavailable": message("outcomes_unavailable", language),
         "field_difference": t("field_difference"),
         "call_error": t("call_error"),
     }
@@ -3729,7 +3736,13 @@ def build_record_cohort(output, content, *, home, language, profile):
             )
             body = (
                 '<article data-report-detail="'
-                + ("failed" if row["status"] != "exact" else "passed")
+                + (
+                    "unavailable"
+                    if row["status"] == "unavailable"
+                    else "failed"
+                    if row["status"] != "exact"
+                    else "passed"
+                )
                 + '"><section data-result-summary><p>'
                 + esc(short)
                 + " · "
@@ -3783,7 +3796,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                     )
                     + "</pre></details></section>"
                 )
-            elif row["status"] != "exact":
+            elif row["status"] == "field_difference":
                 body += (
                     "<section data-failure-diagnosis data-result-logs><p data-log-unavailable>"
                     + message("result_no_error", language)
@@ -3801,9 +3814,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                 ' data-case="'
                 + esc(cid)
                 + '" data-status="'
-                + ("pass" if row["status"] == "exact" else "fail")
+                + record_inventory_outcome(row)[0]
                 + '" data-outcome="'
-                + ("correct" if row["status"] == "exact" else "wrong")
+                + record_inventory_outcome(row)[1]
                 + '" data-method="'
                 + esc(method)
                 + '" data-stage="'
@@ -3942,6 +3955,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         output / "report-manifest.json",
         {
             "mode": "field-extraction-cohort",
+            **report_dependencies(),
             "local_example": bound_profile.get("local_example", False),
             "dataset_kind": "local-example"
             if bound_profile.get("local_example", False)
@@ -3991,7 +4005,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
-    check_reader_contract(output, manifest)
+    check_reader_contract(output, manifest, release=release)
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Record renderer changed; rebuild required")
     actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
@@ -4235,8 +4249,8 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 ):
                     raise ValueError("Record field judgments differ from native evidence")
                 attrs = {
-                    "status": "pass" if derived["status"] == "exact" else "fail",
-                    "outcome": "correct" if derived["status"] == "exact" else "wrong",
+                    "status": record_inventory_outcome(derived)[0],
+                    "outcome": record_inventory_outcome(derived)[1],
                     "stage": derived["failure_stage"],
                     **{f: v["status"] for f, v in derived["field_results"].items()},
                 }

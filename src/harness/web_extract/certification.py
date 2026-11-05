@@ -226,7 +226,15 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         if key in participant:
             pacing[key] = participant[key]
     if plan.get("public_snapshots", {}).get("snapshot_manifest"):
-        pacing["snapshot_manifest"] = plan["public_snapshots"]["snapshot_manifest"]
+        selected = plan["public_snapshots"]
+        pacing["snapshot_manifest"] = {
+            **selected["snapshot_manifest"],
+            **(
+                {"hosting_provider": selected["hosting_provider"]}
+                if selected.get("hosting_provider") in {"external", "cloudflare"}
+                else {}
+            ),
+        }
     source = probe(
         home,
         [method],

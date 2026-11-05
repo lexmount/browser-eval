@@ -2084,6 +2084,7 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
     with patch("harness.web_extract.snapshots.validate_dataset"):
         version, cases = snapshots.inventory(home)
     receipt = {
+        "hosting_provider": "cloudflare",
         "mode": "dataset_manifest",
         "manifest_url": base + "/snapshots.json",
         "manifest_sha256": "a" * 64,

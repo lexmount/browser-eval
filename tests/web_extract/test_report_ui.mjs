@@ -325,3 +325,17 @@ comparisonRows.find(row => row.dataset.case === 'shared' && row.dataset.method =
 assert.deepEqual(Array.from(vm.runInContext("matchingCaseIds(comparisonRows, 'a', ['b','c'], 'all_pass', 'price')", context)), []);
 assert.deepEqual(Array.from(vm.runInContext("matchingCaseIds(comparisonRows, 'b', ['a'], 'comparison_only', '')", context)), ['baseline']);
 console.log('PASS: baseline, multiple comparison methods, explicit outcome relations, pending and unannotated coverage');
+
+// A page with no reference coverage is neither a quality pass nor a failure.
+const unavailablePage = {dataset: {case: 'unscored', method: 'a', status: 'unavailable', outcome: 'unavailable', title: 'unavailable', stage: 'fields'}};
+rows.push(unavailablePage);
+control('field').value = '';control('status').value = 'all';control('status').listeners.change();
+assert.equal(unavailablePage.hidden, false);
+for (const state of ['pass', 'fail']) {
+  control('status').value = state;control('status').listeners.change();
+  assert.equal(unavailablePage.hidden, true);
+}
+comparisonRows.push(unavailablePage, {dataset: {case: 'unscored', method: 'b', status: 'fail', outcome: 'wrong'}}, {dataset: {case: 'unscored', method: 'c', status: 'fail', outcome: 'wrong'}});
+assert.equal(matching('different').includes('unscored'), false);
+assert.equal(matching('all_fail').includes('unscored'), false);
+console.log('PASS: wholly unannotated pages stay in All and outside whole-page quality relations');

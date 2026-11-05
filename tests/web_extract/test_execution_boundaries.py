@@ -1044,6 +1044,7 @@ def test_new_versioned_cohort_checks_dataset_manifest_without_page_fetches(tmp_p
     with collection_context():
         version, cases = inventory(home)
     receipt = {
+        "hosting_provider": "cloudflare",
         "mode": "dataset_manifest",
         "html_inventory_sha256": version,
         "case_count": len(cases),
@@ -1150,7 +1151,10 @@ def test_account_status_and_target_denial_have_distinct_scope(status, text, expe
 
 
 @pytest.mark.parametrize("changed", [False, True])
-def test_external_manifest_does_not_replace_page_audit_during_collection(tmp_path, changed):
+@pytest.mark.parametrize("hosting_provider", ["external", None])
+def test_external_manifest_does_not_replace_page_audit_during_collection(
+    tmp_path, changed, hosting_provider
+):
     from tests.web_extract.snapshot_inputs import serve_input
 
     home = create(tmp_path / "external-inputs")
@@ -1174,7 +1178,7 @@ def test_external_manifest_does_not_replace_page_audit_during_collection(tmp_pat
             run_dir=tmp_path / "external-run",
             fixture_base=base,
             native_options={"input_route": "url"},
-            snapshot_manifest={"hosting_provider": "external"},
+            snapshot_manifest={"hosting_provider": hosting_provider},
         )
         if changed:
             with pytest.raises(ValueError, match="Remote fixture differs"):

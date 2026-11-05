@@ -1592,7 +1592,7 @@ def _probe_unlocked(
             from harness.web_extract.snapshots import verify_bound_manifest
 
             receipts = verify_bound_manifest(home, snapshot_manifest, fixture_base)
-            if snapshot_manifest.get("hosting_provider") == "external":
+            if snapshot_manifest.get("hosting_provider") != "cloudflare":
                 receipts += [one(case_id) for case_id in case_ids]
             return receipts
         return [one(case_id) for case_id in case_ids]

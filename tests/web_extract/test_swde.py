@@ -2260,3 +2260,46 @@ def test_description_limit_fails_at_planning_before_calls(inputs, tmp_path):
     with pytest.raises(ValueError, match="300-character"):
         plan_for_inputs(home, ["zyte-custom"], tmp_path / "too-long.json")
     assert not (tmp_path / "too-long.json").exists()
+
+
+def test_record_repair_sends_the_parents_custom_frozen_instructions(inputs, tmp_path, monkeypatch):
+    from harness.web_extract import repair
+
+    home, _ = inputs
+    plan = tmp_path / "parent-plan.json"
+    plan_for_inputs(home, ["cloudflare-json"], plan)
+    parent = tmp_path / "parent"
+    monkeypatch.setattr(
+        pipeline,
+        "provider_call",
+        Mock(
+            side_effect=[
+                {"http_status": 500, "response": {"error": "temporary failure"}},
+                {"http_status": 200, "response": {"result": {"title": ["Engineer"]}}},
+            ]
+        ),
+    )
+    certification.run(home, plan, "cloudflare-json", parent)
+    contract = pipeline.read_json(parent / "contract.json")
+    contract["extraction_instructions"] = "Return the parent policy verbatim."
+    pipeline.save_json(parent / "contract.json", contract)
+    manifest = pipeline.read_json(parent / "manifest.json")
+    manifest["contract_sha256"] = pipeline.digest((parent / "contract.json").read_bytes())
+    pipeline.save_json(parent / "manifest.json", manifest)
+    certificate = pipeline.read_json(parent / "certificate.json")
+    certificate["manifest_sha256"] = pipeline.digest((parent / "manifest.json").read_bytes())
+    pipeline.save_json(parent / "certificate.json", certificate)
+    content = tmp_path / "selection.json"
+    pipeline.save_json(content, {"evidence_runs": [{"run": str(parent)}]})
+    profile = tmp_path / "repair-plan.json"
+    repair.create_plan(home, content, profile, {}, None)
+    dispatch = Mock(return_value={"http_status": 200, "response": {"result": {"author": ["Ada"]}}})
+    monkeypatch.setattr(pipeline, "provider_call", dispatch)
+    output = tmp_path / "repaired"
+    repair.run(home, profile, "cloudflare-json", output)
+    assert dispatch.call_count == 1
+    assert dispatch.call_args.kwargs["prompt"] == contract["extraction_instructions"]
+    assert (
+        pipeline.read_json(output / "contract.json")["extraction_instructions"]
+        == contract["extraction_instructions"]
+    )

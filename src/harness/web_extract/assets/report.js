@@ -303,7 +303,7 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
 }
 // Compare the complete same-page population, before row-level diagnosis filters.
 const qualityOutcome = (row, field) => {
-  if (!row || row.dataset.status === "pending") return null;
+  if (!row || ["pending", "unavailable"].includes(row.dataset.status)) return null;
   if (field) {
     if (row.dataset[field] === undefined || row.dataset[field] === "unavailable") return null;
     return (!row.dataset.stage || row.dataset.stage === "fields") && row.dataset[field] === "correct";
@@ -358,7 +358,7 @@ if (form) {
       const applicable = !field || row.dataset[field] !== undefined;
       const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || row.dataset[field] !== "correct" : row.dataset.status === "fail" || row.dataset.outcome === "wrong";
       const status = controls.status || "all";
-      const scored = !field || row.dataset[field] !== "unavailable";
+      const scored = field ? row.dataset[field] !== "unavailable" : row.dataset.status !== "unavailable";
       const show =
         applicable &&
         (!comparedCases || (comparedCases.has(row.dataset.case) && [baseline, ...competitors].includes(row.dataset.method))) &&

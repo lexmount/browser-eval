@@ -158,7 +158,7 @@ def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
         from harness.web_extract.snapshots import verify_bound_manifest
 
         receipts = verify_bound_manifest(home, snapshot_manifest, base)
-        if snapshot_manifest.get("hosting_provider") != "external":
+        if snapshot_manifest.get("hosting_provider") == "cloudflare":
             return receipts
     else:
         receipts = []
@@ -426,7 +426,7 @@ def verify_repair(home, source, repair):
         expected = manifest_receipt(
             home, participant["snapshot_manifest"], participant["snapshot_manifest"]["fixture_base"]
         )
-        if participant["snapshot_manifest"].get("hosting_provider") == "external":
+        if participant["snapshot_manifest"].get("hosting_provider") != "cloudflare":
             expected += [
                 {
                     "case_id": cid,

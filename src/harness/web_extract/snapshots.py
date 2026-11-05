@@ -188,8 +188,8 @@ def select(home, binding):
                 "snapshot_manifest": {
                     **binding["snapshot_manifest"],
                     **(
-                        {"hosting_provider": "external"}
-                        if binding.get("hosting_provider") == "external"
+                        {"hosting_provider": binding["hosting_provider"]}
+                        if binding.get("hosting_provider") in {"external", "cloudflare"}
                         else {}
                     ),
                 }
@@ -752,7 +752,8 @@ def verify_bound_manifest(home, bound, fixture_base):
     origin = manifest_url.removesuffix("/snapshots.json")
     receipt = check_manifest(home, origin, bound["huggingface"])
     expected = {k: v for k, v in bound.items() if k != "hosting_provider"}
-    if receipt != expected or receipt["fixture_base"] != fixture_base:
+    actual = {k: v for k, v in receipt.items() if k != "hosting_provider"}
+    if actual != expected or receipt["fixture_base"] != fixture_base:
         raise ValueError("Frozen dataset snapshot manifest changed")
     return manifest_receipt(home, receipt, fixture_base)
 

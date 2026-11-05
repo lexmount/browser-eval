@@ -583,3 +583,82 @@ def test_complete_record_report_renders_invalid_native_field_types(tmp_path, mon
     evidence = read_json(output / "public-evidence/scrapegraph-extract.json")
     assert evidence["one"]["field_results"]["author"]["status"] == "invalid"
     assert evidence["one"]["field_results"]["author"]["actual"] == invalid
+
+
+@pytest.mark.parametrize("structured", [True, False])
+def test_wholly_unannotated_page_is_unavailable_but_call_failures_remain_failures(structured):
+    from harness.web_extract.report import record_inventory_outcome, record_result_fields
+
+    reference = {"domain": "book", "site": "a", "values": {"title": []}}
+    row = {
+        "method": "firecrawl-parse-json",
+        "compatibility": "structured_output" if structured else "no_structured_output",
+        "normalized_fields": {"title": ["Example"]},
+        "http_status": 200 if structured else 500,
+        "response": {},
+    }
+    result = record_result_fields(
+        reference,
+        row,
+        policy={
+            "unavailable_reference_groups": [["book", "a", "title"]],
+            "text_matching": "literal",
+        },
+    )
+    assert result["scored_fields"] == 0
+    assert result["status"] == ("unavailable" if structured else "call_error")
+    assert record_inventory_outcome(result) == (
+        ("unavailable", "unavailable") if structured else ("fail", "wrong")
+    )
+
+
+@pytest.mark.parametrize("dependency", ["report.js", "report.css", "report_ui.py", "messages.json"])
+def test_record_report_rejects_stale_client_dependencies(tmp_path, monkeypatch, dependency):
+    import shutil
+
+    from harness.web_extract import messages, report
+
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    current = tmp_path / "current-source"
+    current.mkdir()
+    if dependency in {"report.js", "report.css"}:
+        shutil.copytree(report.ASSETS, current / "assets")
+        changed = current / "assets" / dependency
+        monkeypatch.setattr(report, "ASSETS", current / "assets")
+    elif dependency == "report_ui.py":
+        for name in ["report.py", "report_ui.py", "analysis.py"]:
+            shutil.copyfile(Path(report.__file__).with_name(name), current / name)
+        monkeypatch.setattr(report, "__file__", str(current / "report.py"))
+        changed = current / dependency
+    else:
+        changed = current / dependency
+        shutil.copyfile(messages.MESSAGES, changed)
+        monkeypatch.setattr(messages, "MESSAGES", changed)
+    changed.write_bytes(changed.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="dependencies changed"):
+        check(output)
+
+
+def test_record_release_rejects_free_text_price_without_numeric_conversion(tmp_path, monkeypatch):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "initial", mode="field-extraction-cohort")
+    model = read_json(home / "content.json")
+    for quote in model["prices"].values():
+        quote.pop("usd_per_1000_range", None)
+        quote.pop("pricing_formula", None)
+        quote["usd_per_1000"] = "Contact sales"
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "free-text"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    manifest = read_json(output / "report-manifest.json")
+    manifest["dataset_kind"] = "published-upstream"
+    save_json(output / "report-manifest.json", manifest)
+    # This control isolates quote validation from the independently tested dataset authority.
+    monkeypatch.setattr("harness.web_extract.report.check_input_profile", lambda *args: None)
+    with pytest.raises(ValueError, match="normalized price"):
+        check(output, release=True)

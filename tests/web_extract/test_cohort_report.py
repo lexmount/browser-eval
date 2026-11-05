@@ -565,7 +565,7 @@ def test_report_release_binds_the_message_catalog(tmp_path):
     manifest = read_json(output / "report-manifest.json")
     manifest["messages_sha256"] = "0" * 64
     save_json(output / "report-manifest.json", manifest)
-    with pytest.raises(ValueError, match="message catalog changed"):
+    with pytest.raises(ValueError, match="dependencies changed"):
         check(output)
 
 
@@ -916,6 +916,10 @@ def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp
             (source / "calls.journal.jsonl").write_text(
                 "".join(json.dumps(e) + "\n" for e in entries), encoding="utf-8"
             )
+    model = read_json(home / "content.json")
+    for quote in model["prices"].values():
+        quote["usd_per_1000_range"] = [1, 1]
+    save_json(home / "content.json", model)
     profile = read_json(home / "profile.json")
     profile["local_example"] = False
     save_json(home / "profile.json", profile)
