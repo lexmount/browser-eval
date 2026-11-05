@@ -211,7 +211,7 @@ def download_export(request, destination, attempts=3):
         path = None
         complete = False
         try:
-            with urllib.request.urlopen(request, timeout=180) as response:
+            with urllib.request.build_opener(_TokenRedirects()).open(request, timeout=180) as response:
                 version = response.headers.get("x-artifact-version")
                 if not version or not version.startswith("ver_"):
                     raise ValueError("Export omitted version baseline")

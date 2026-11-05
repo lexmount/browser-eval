@@ -235,7 +235,7 @@ def test_verification_never_sends_a_token_outside_the_bound_host(tmp_path, monke
         _run_verify(unbound, '--export')
 
 
-def test_redirected_requests_keep_the_token_only_on_the_publication_host(monkeypatch):
+def test_redirected_requests_keep_the_token_only_on_the_publication_host(tmp_path, monkeypatch):
     import threading
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -260,6 +260,7 @@ def test_redirected_requests_keep_the_token_only_on_the_publication_host(monkeyp
                 body = json.dumps({'slug': 'site-one', 'version': {'id': 'ver_one'},
                                    'files': ['index.html']}).encode()
                 self.send_response(200)
+                self.send_header('X-Artifact-Version', 'ver_one')
                 self.send_header('Content-Length', str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -279,11 +280,14 @@ def test_redirected_requests_keep_the_token_only_on_the_publication_host(monkeyp
     try:
         assert publication.PublicationClient(None).request(base, '/api/sites/site-one').status == 200
         assert publication_verify.verify_metadata('site-one', base)['version'] == 'ver_one'
+        export = urllib.request.Request(base + '/api/sites/site-one',
+                                        headers={'Authorization': 'Bearer ahp_fixture'})
+        assert publication_verify.download_export(export, tmp_path)[0] == 'ver_one'
     finally:
         origin.shutdown()
         other.shutdown()
     token = 'Bearer ahp_fixture'
     hops = [('/api/sites/site-one', token), ('/moved/api/sites/site-one', token)]
-    assert [(path, auth) for server, path, auth in seen if server is origin] == hops * 2
+    assert [(path, auth) for server, path, auth in seen if server is origin] == hops * 3
     assert [(path, auth) for server, path, auth in seen if server is other] == [
-        ('/moved/api/sites/site-one', None)] * 2
+        ('/moved/api/sites/site-one', None)] * 3
