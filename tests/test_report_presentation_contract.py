@@ -47,3 +47,14 @@ class SharedRankingPresentationTests(unittest.TestCase):
             self.assertEqual(esc(0), '0')
         self.assertEqual(fetch_esc(None), '')
         self.assertEqual(search_esc(None), 'None')
+
+
+def test_explicit_all_ties_policy_requires_every_extremum_without_extra_labels():
+    from harness.reporting.presentation import check_presentation
+    html = '<table data-highlight-ties="all"><tr>' + ''.join('<td data-metric="f1" data-metric-direction="max" data-sort="0.5"><span class="comparison-winner">0.5</span></td>' for _ in range(2)) + '</tr></table>'
+    check_presentation(html)
+    import pytest
+    with pytest.raises(ValueError, match="highlight"):
+        check_presentation(html.replace('<span class="comparison-winner">0.5</span>', '0.5', 1))
+    with pytest.raises(ValueError, match="highlight"):
+        check_presentation(html.replace(' data-highlight-ties="all"', ''))

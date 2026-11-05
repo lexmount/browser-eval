@@ -365,3 +365,15 @@ def test_webfetch_viewer_configurations_follow_card_subset_order(tmp_path):
     assert [row["config"] for row in manifest["viewer"]["configurations"]] == ["general-web", "embedded-documents"]
     rows = [json.loads(line) for line in (tmp_path / "out/data/general-web.jsonl").read_text(encoding="utf-8").splitlines()]
     assert [row["benchmark_category"] for row in rows] == ["web"]
+
+
+def test_component_license_is_preserved_from_its_committed_bytes(tmp_path):
+    root, _, _ = checkout(tmp_path, "websearch")
+    component = b"Apache-2.0 applies only to the authored annotation supplement.\n"
+    (root / "LICENSE-annotations").write_bytes(component)
+    git(root, "add", "LICENSE-annotations")
+    git(root, "commit", "-qm", "Component-specific license")
+    revision = git(root, "rev-parse", "HEAD")
+    (root / "LICENSE-annotations").write_bytes(b"Uncommitted replacement")
+    release = DatasetRelease.from_git(root, "websearch", revision)
+    assert release.files["LICENSE-annotations"] == component

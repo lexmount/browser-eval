@@ -38,22 +38,37 @@ def check_presentation(html):
             unique = sum(v == extreme for v, _ in values) == 1
             for value, cell in values:
                 marked = cell.select_one('.comparison-winner') is not None
-                if marked != (unique and value == extreme):
+                if marked != (
+                    (unique or table.get("data-highlight-ties") == "all") and value == extreme
+                ):
                     raise ValueError('Column extremum highlight missing, incorrect, or tied')
+    for inventory in soup.select('[data-dataset-inventory]'):
+        if not soup.select_one('form[data-dataset-controls] input[type="search"]') or not inventory.has_attr('data-sortable'):
+            raise ValueError('Dataset inventory needs independent search and sorting controls')
     for detail in soup.select('[data-report-detail]'):
         if len(detail.select('[data-result-summary]')) != 1:
             raise ValueError('Result detail requires exactly one summary')
-        if any(pre.find_parent('dialog') is None and pre.find_parent('details') is None for pre in detail.select('pre')):
+        if any(
+            pre.find_parent('dialog') is None and pre.find_parent('details') is None
+            for pre in detail.select('pre')
+        ):
             raise ValueError('Raw evidence must not be flattened into the result summary')
         ids = [node['id'] for node in detail.select('[id]')]
         if len(ids) != len(set(ids)):
             raise ValueError('Duplicate evidence target')
         for button in detail.select('[data-call-log-open]'):
             dialog = detail.find('dialog', id=button['data-call-log-open'])
-            if dialog is None or not dialog.select_one('[data-call-log-close]') or not dialog.get('aria-labelledby'):
+            if (dialog is None or not dialog.select_one('[data-call-log-close]')
+                    or not dialog.get('aria-labelledby')):
                 raise ValueError('Evidence trigger lacks an accessible closable dialog')
         if detail['data-report-detail'] == 'failed':
-            if detail.select_one('[data-failure-diagnosis]') is None or detail.select_one('#result-logs pre[data-kind="error"], #result-logs [data-log-unavailable]') is None:
+            error_target = (
+                '#result-logs pre[data-kind="error"], #result-logs [data-log-unavailable], '
+                '[data-result-logs] pre[data-kind="error"], '
+                '[data-result-logs] [data-log-unavailable]'
+            )
+            if (detail.select_one('[data-failure-diagnosis]') is None
+                    or detail.select_one(error_target) is None):
                 raise ValueError('Failed result lacks diagnosis or exact error evidence')
     return soup
 
@@ -82,3 +97,60 @@ def visible_text(html: str) -> str:
     parser = _VisibleTextParser()
     parser.feed(html)
     return " ".join(parser.parts)
+
+
+def metric_guide(definitions, *, title, headings):
+    """One reusable reader guide, driven by the same metric identities as comparisons."""
+    required = ("id", "label", "meaning", "unit", "population", "direction")
+    if not definitions or len({d.get("id") for d in definitions}) != len(definitions):
+        raise ValueError("Metric definitions must be nonempty and unique")
+    rows = []
+    for definition in definitions:
+        if any(
+            not isinstance(definition.get(k), str) or not definition[k].strip() for k in required
+        ):
+            raise ValueError("Every metric needs its meaning, unit, population and direction")
+        rows.append(
+            '<tr id="metric-'
+            + esc(definition["id"])
+            + '">'
+            + "".join(
+                "<td>" + esc(definition[k]) + "</td>"
+                for k in ("label", "meaning", "unit", "population", "direction")
+            )
+            + "</tr>"
+        )
+    return (
+        "<details data-metric-guide><summary>"
+        + esc(title)
+        + '</summary><div class="table-wrap"><table><thead><tr>'
+        + "".join("<th>" + esc(h) + "</th>" for h in headings)
+        + "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div></details>"
+    )
+
+
+def check_metric_guide(document, definitions, *, title, headings):
+    soup = BeautifulSoup(document, "html.parser") if isinstance(document, str) else document
+    actual = soup.select("[data-metric-guide]")
+    expected = BeautifulSoup(
+        metric_guide(definitions, title=title, headings=headings), "html.parser"
+    )
+    if len(actual) != 1 or actual[0].get_text(" ", strip=True) != expected.get_text(
+        " ", strip=True
+    ):
+        raise ValueError("Metric guide is missing or differs from the metric definitions")
+
+    def cells(guide):
+        return [
+            [cell.get_text(" ", strip=True) for cell in row.find_all(["th", "td"], recursive=False)]
+            for row in guide.select("thead tr, tbody tr")
+        ]
+
+    if cells(actual[0]) != cells(expected):
+        raise ValueError("Metric guide columns differ from the metric definitions")
+    if [r.get("id") for r in actual[0].select("tbody tr")] != [
+        "metric-" + d["id"] for d in definitions
+    ]:
+        raise ValueError("Metric explanation targets differ from their definitions")

@@ -68,6 +68,22 @@ def updated_receipt(receipt, response):
     return {**current, 'versionId': version, 'last_update': response}
 
 
+def _rate_limit_delay(error):
+    header = error.headers.get('Retry-After', '') if error.headers else ''
+    delay = 30.0
+    if header:
+        try:
+            delay = float(header)
+        except ValueError:
+            try:
+                delay = parsedate_to_datetime(header).timestamp() - time.time()
+            except (TypeError, ValueError, OverflowError):
+                pass
+    if not math.isfinite(delay) or delay > 120:
+        raise error
+    return max(1.0, delay)
+
+
 def put_file(request, path, data):
     """Retry only the identical idempotent staging PUT with bounded waits."""
     for attempt in range(4):
@@ -81,19 +97,7 @@ def put_file(request, path, data):
             elif error.code == 429:
                 if attempt == 3:
                     raise
-                header = error.headers.get('Retry-After', '') if error.headers else ''
-                delay = 30.0
-                if header:
-                    try:
-                        delay = float(header)
-                    except ValueError:
-                        try:
-                            delay = parsedate_to_datetime(header).timestamp() - time.time()
-                        except (TypeError, ValueError, OverflowError):
-                            pass
-                if not math.isfinite(delay) or delay > 120:
-                    raise  # Never retry earlier than a longer server-requested wait.
-                delay = max(1.0, delay)
+                delay = _rate_limit_delay(error)
             else:
                 raise
             error.close()
@@ -110,7 +114,21 @@ def put_file(request, path, data):
             time.sleep(delay)
 
 
-def upload_large_archive(request, archive, slug=None, expected=None, title=None, *, max_workers=1):
+def _archive_entries(bundle):
+    files = [info for info in bundle.infolist() if not info.is_dir()]
+    names = [info.filename for info in files]
+    if not files or len(set(names)) != len(names) or 'index.html' not in names:
+        raise ValueError('Bundle must contain unique files and a root index.html')
+    for name in names:
+        if (name.startswith('/') or '\\' in name
+                or any(part in ('', '..') or part.startswith('.')
+                       or part.lower() == 'node_modules' for part in name.split('/'))
+                or str(PurePosixPath(name)) != name):
+            raise ValueError('Unsafe bundle path: ' + name)
+    return files
+
+
+def upload_large_archive(request, archive, slug=None, expected=None, title=None, *, max_workers=1, resume=False):
     """Upload unpacked bytes to staging and commit the full tree once."""
     if slug and not expected:
         raise ValueError('An existing site requires an exported version baseline')
@@ -128,16 +146,8 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
 
     check_baseline()
     with zipfile.ZipFile(archive) as bundle:
-        files = [info for info in bundle.infolist() if not info.is_dir()]
+        files = _archive_entries(bundle)
         names = [info.filename for info in files]
-        if not files or len(set(names)) != len(names) or 'index.html' not in names:
-            raise ValueError('Bundle must contain unique files and a root index.html')
-        for name in names:
-            if (name.startswith('/') or '\\' in name
-                    or any(part in ('', '..') or part.startswith('.')
-                           or part.lower() == 'node_modules' for part in name.split('/'))
-                    or str(PurePosixPath(name)) != name):
-                raise ValueError('Unsafe bundle path: ' + name)
         query = '?expected_version=' + quote(expected, safe='') if expected else ''
         payload = {'slug': slug} if slug else {'title': title}
         _, raw = request('/api/uploads' + query, json.dumps(payload).encode(), 'application/json')
@@ -145,9 +155,24 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
         endpoint = '/api/uploads/' + quote(session, safe='')
         # The current service may choose the first uploaded HTML as the
         # version entry. Stage the root page before concurrent file uploads.
+        retained = set()
+        if resume:
+            _, staged = request(endpoint)
+            receipts = json.loads(staged).get('files', [])
+            if any(item['relpath'] not in names for item in receipts):
+                raise ValueError('Retained upload contains files outside this release')
+            by_path = {item['relpath']: item for item in receipts}
+            for info in files:
+                receipt = by_path.get(info.filename, {})
+                if (receipt.get('bytes') == info.file_size
+                        and receipt.get('sha256') == hashlib.sha256(bundle.read(info)).hexdigest()):
+                    retained.add(info.filename)
+            print(f'Reusing {len(retained)}/{len(files)} verified uploaded files', flush=True)
         entry = next(info for info in files if info.filename == 'index.html')
-        put_file(request, endpoint + '/files/index.html', bundle.read(entry))
-        remaining = [info for info in files if info.filename != 'index.html']
+        if entry.filename not in retained:
+            put_file(request, endpoint + '/files/index.html', bundle.read(entry))
+        remaining = [info for info in files
+                     if info.filename != 'index.html' and info.filename not in retained]
         if max_workers > 1:
             with ThreadPoolExecutor(max_workers=max_workers) as pool:
                 pending = {
@@ -168,8 +193,21 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
         # The manual only guarantees atomic expected_version enforcement on
         # /versions and /edit. Also recheck before chunk commit; this read is
         # explicitly not claimed to be an atomic server-side lock.
-        check_baseline()
-        _, raw = request(endpoint + '/commit' + query, b'{}', 'application/json')
+        for attempt in range(4):
+            check_baseline()
+            try:
+                _, raw = request(endpoint + '/commit' + query, b'{}', 'application/json')
+                break
+            except HTTPError as error:
+                if error.code != 429 or attempt == 3:
+                    raise
+                delay = _rate_limit_delay(error)
+                error.close()
+                print(f'Commit rate limited; retrying the same operation in {delay:g}s', flush=True)
+                while delay > 0:
+                    interval = min(delay, 30)
+                    time.sleep(interval)
+                    delay -= interval
         if slug and json.loads(raw).get('slug', slug) != slug:
             raise RuntimeError('Publication returned an unexpected site')
         return raw
@@ -697,6 +735,7 @@ class StagedUpdate:
     work: Path
     guard: Callable
     bind: Callable  # (version) inside the frozen release
+    allow_inline: bool = False
 
 
 def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
@@ -707,7 +746,8 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
     operation_hash = hashlib.sha256(json_bytes(identity)).hexdigest()
     journal = update.work / f'{update.prefix}-update-{operation_hash[:24]}.json'
     reject_evidence_symlinks(journal)
-    operation = (json.loads(journal.read_bytes()) if journal.exists()
+    resumed = journal.exists()
+    operation = (json.loads(journal.read_bytes()) if resumed
                  else {**identity, 'expected_version': update.expected_version})
     if any(operation.get(key) != value for key, value in identity.items()):
         raise ValueError(f'{label} publication journal targets another release')
@@ -721,6 +761,17 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
 
     save()
     with snapshot_publication(update.archive, inputs=update.inputs) as release:
+        with zipfile.ZipFile(release.archive) as bundle:
+            _archive_entries(bundle)
+        if 'transport' not in operation:
+            # Existing journals may already own staged bytes. Never switch them.
+            operation['transport'] = ('inline' if update.allow_inline and not resumed and
+                                      release.archive.stat().st_size <= STAGED_UPLOAD_THRESHOLD
+                                      else 'staged')
+            save()
+        if operation['transport'] not in {'inline', 'staged'}:
+            raise ValueError(f'{label} publication transport changed')
+        commit_key = f'{update.prefix}-{"inline" if operation["transport"] == "inline" else "commit"}-{operation_hash[:32]}'
         def request(path, data=None, content_type=None, auth=True, method=None):
             release.check()
             update.guard()
@@ -730,6 +781,8 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
             if path.startswith('/api/uploads') and method != 'PUT' and data is not None:
                 phase = 'commit' if '/commit?' in path else 'start'
                 extra_headers['Idempotency-Key'] = f'{update.prefix}-{phase}-{operation_hash[:32]}'
+            elif path.startswith('/api/sites/') and '/versions?' in path and data is not None:
+                extra_headers['Idempotency-Key'] = commit_key
             if transport is not None:
                 # Synthetic transports never load a real account credential.
                 headers = update.client.headers(update.base, content_type, authenticated=False,
@@ -752,13 +805,27 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
         if version is None:
             if remote['version']['id'] != expected:
                 recovered = PublicationOperation(journal, update.prefix + '-').completed(
-                    f'{update.prefix}-commit-{operation_hash[:32]}', request=request, decode=response_json,
+                    commit_key, request=request, decode=response_json,
                 )
                 if recovered is None:
                     raise ValueError(f'Remote {label} version changed; reconcile before updating')
                 response = response_json(*recovered, operation=f'{label} commit recovery')
             else:
-                response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4))
+                recovered = None
+                if resumed and operation['transport'] == 'inline':
+                    recovered = PublicationOperation(journal, update.prefix + '-').completed(
+                        commit_key, request=request, decode=response_json)
+                if recovered is not None:
+                    response = response_json(*recovered, operation=f'{label} inline recovery')
+                elif operation['transport'] == 'inline':
+                    body, content_type = multipart_archive(
+                        release.archive, update.title, boundary_prefix=update.prefix + '-',
+                        filename='report.zip')
+                    response = response_json(*request(
+                        site_path + '/versions?expected_version=' + quote(expected, safe=''),
+                        body, content_type), operation=f'{label} inline upload')
+                else:
+                    response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4, resume=resumed))
             version = response.get('versionId')
             if (response.get('slug', slug) != slug or not isinstance(version, str)
                     or not version.startswith('ver_')):

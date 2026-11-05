@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -45,6 +46,37 @@ FORBIDDEN = (
 )
 
 
+_EXTRACT_RETIRED = re.compile(
+    r"\bweb[-_]"
+    + r"scraper(?=\b|_)|\bscraper[-_](?:theme|(?:(?:cohort|record)[-_])?example)(?=\b|_)",
+    re.IGNORECASE,
+)
+
+
+def extract_name_findings(name: str, text: str) -> list[str]:
+    """Keep current names canonical while preserving original source identities."""
+    if _EXTRACT_RETIRED.search(name.replace("_", "-")):
+        return [f"{name}: use the current Web Extract namespace"]
+    if name.startswith(("research/", "evaluation/")):
+        return []
+    scanned = text
+    if name == "src/harness/benchmarks/data-lock.json":
+        value = json.loads(text)
+        # Historical release objects retain original repository identities and hashes.
+        for selection in value.get("datasets", {}).values():
+            selection.pop("history", None)
+        scanned = json.dumps(value)
+    elif name == "src/harness/benchmarks/code-migration.json":
+        value = json.loads(text)
+        value.pop("legacy_names", None)
+        scanned = json.dumps(value)
+    # URLs identify external products or pinned source revisions, not our namespace.
+    scanned = re.sub(r"https?://[^\s\"'<>]+", "", scanned)
+    if _EXTRACT_RETIRED.search(scanned):
+        return [f"{name}: use the current Web Extract namespace"]
+    return []
+
+
 def repository_contract_findings(root: Path) -> list[str]:
     findings: list[str] = []
     for path in root.rglob("*"):
@@ -52,11 +84,14 @@ def repository_contract_findings(root: Path) -> list[str]:
             continue
         relative = path.relative_to(root)
         name = relative.as_posix()
-        if EXCLUDED_PARTS.intersection(relative.parts):
+        if EXCLUDED_PARTS.intersection(relative.parts) or any(
+            part.endswith(".egg-info") for part in relative.parts
+        ):
             continue
         if any(name == root or name.startswith(root + "/") for root in EXCLUDED_ROOTS):
             continue
         text = path.read_text(encoding="utf-8", errors="ignore")
+        findings.extend(extract_name_findings(name, text))
         for term in FORBIDDEN:
             if term in text:
                 findings.append(f"{name}: retired track name {term!r}")
@@ -70,8 +105,7 @@ def repository_contract_findings(root: Path) -> list[str]:
             + ", ".join(catalog_replay_scripts)
         )
     specialized_replay_entrypoints = sorted(
-        path.relative_to(root).as_posix()
-        for path in (root / "scripts").glob("*webarena*full*.py")
+        path.relative_to(root).as_posix() for path in (root / "scripts").glob("*webarena*full*.py")
     )
     if specialized_replay_entrypoints:
         findings.append(
@@ -80,14 +114,18 @@ def repository_contract_findings(root: Path) -> list[str]:
         )
     specialized_catalog_modules = sorted(
         path.relative_to(root).as_posix()
-        for path in (source_path("harness", root=root) / "trajectory_replay").glob("*full*catalog*.py")
+        for path in (source_path("harness", root=root) / "trajectory_replay").glob(
+            "*full*catalog*.py"
+        )
     )
     if specialized_catalog_modules:
         findings.append(
             "catalog contracts belong in the shared pipeline, not full-dataset modules: "
             + ", ".join(specialized_catalog_modules)
         )
-    contracts_path = source_path("harness", root=root) / "trajectory_replay" / "catalog_contracts.py"
+    contracts_path = (
+        source_path("harness", root=root) / "trajectory_replay" / "catalog_contracts.py"
+    )
     schema_implementation_paths = [
         *(source_path("harness", root=root) / "trajectory_replay").glob("*.py"),
         *(root / "scripts").glob("*.py"),
@@ -123,7 +161,7 @@ def repository_contract_findings(root: Path) -> list[str]:
 
 
 def main() -> None:
-    check_reference_input_boundary(ROOT / 'evaluation')
+    check_reference_input_boundary(ROOT / "evaluation")
     findings = repository_contract_findings(ROOT)
     if findings:
         raise SystemExit("\n".join(findings))

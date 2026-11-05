@@ -45,3 +45,20 @@ Ground truth must be independent of the provider under test. Retain source locat
 Keep one current profile that a fresh session can validate before running, scoring, rebuilding, or publishing. Include exact case IDs or their canonical digest, the ordered method/version set, run count, timeout, concurrency policy, output contract, reference state, review requirement, and release target. Fail closed on drift instead of reconstructing intent from old reports.
 
 The [live-URL guide](../../../../src/harness/web_fetch/HEADLESS.md#native-browser-routes) owns native browser route rules.
+
+## Hosted copies of frozen inputs
+
+For Web Extract snapshot hosting, use the selected HF edition as the input
+authority. Resolve the requested tag or latest once, freeze its full commit, and
+keep historical runs pinned. Default to Cloudflare but accept other public origins.
+Public HTML hosting is optional: reuse each dataset's independent service or
+verify a caller-supplied origin. A navigation page is optional and owns no inputs.
+Managed snapshots declare their HF repository, full source commit and dataset/file
+inventory hashes in one public manifest. Identify and recheck the dataset through
+that manifest; do not download every HTML page to determine a snapshot version.
+Keep an explicit byte audit separate from normal version checks. An unversioned
+copy needs an approved replacement deployment. A mismatch
+must produce a target- and version-bound proposal without remote writes. Deploy
+only after explicit approval, reject a proposal if its HF commit or target has
+changed, and retain previous deployment URLs. Hosting metadata may accompany HF
+originals, but it must never replace them or silently advance an active cohort.

@@ -39,6 +39,21 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_future_tracks_inherit_cost_latency_and_resource_decisions(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);(root/'configs').mkdir()
+            for name in ('renderer.py','entry.py','test.py'):(root/name).write_text('# synthetic owner', encoding="utf-8")
+            registry={'schema_version':1,'tracks':{'future-type':{'renderer':'renderer.py','entrypoint':'entry.py','tests':'test.py','example':'synthetic example'}}}
+            path=root/'configs/report-templates.json';path.write_text(json.dumps(registry), encoding="utf-8")
+            contract=discover_template('future-type',root=root)['metric_contract']
+            self.assertEqual(set(contract['required']),{'latency','cost'})
+            self.assertEqual(contract['required']['latency']['summaries'],['mean','p50','p95'])
+            self.assertEqual(set(contract['contextual']),{'cpu','memory'})
+            registry['tracks']['future-type']['metric_contract']={'required':{}}
+            path.write_text(json.dumps(registry), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError,'cannot replace'):
+                resolve_template('future-type',root=root)
+
     def test_explicit_examples_do_not_load_an_unrelated_measurement_profile(self):
         for track in ('webfetch', 'browser-use', 'trajectory-replay'):
             with self.subTest(track=track), tempfile.TemporaryDirectory() as temp:
@@ -443,11 +458,16 @@ class ReportTemplateTests(unittest.TestCase):
                 resolve_template('webfetch',root=root)
 
     def test_all_supported_tracks_resolve_existing_owners_and_pinned_examples(self):
-        for track in ('webfetch','trajectory-replay','browser-use'):
+        for track in ('webfetch','trajectory-replay','browser-use','web-search','web-extract'):
             with self.subTest(track=track):
                 template=resolve_template(track)
-                self.assertTrue(template['example_env'].endswith('_REPORT_EXAMPLE_URL'))
-                self.assertTrue(template['example_version'].startswith('ver_'))
+                if template.get('example_env'):
+                    self.assertTrue(template['example_env'].endswith('_REPORT_EXAMPLE_URL'))
+                    self.assertTrue(template['example_version'].startswith('ver_'))
+                else:
+                    self.assertTrue((ROOT/template['example']).is_file())
+                    self.assertIsInstance(template['example_version'],int)
+                    self.assertIn('example_build',template)
                 self.assertTrue((ROOT/template['entrypoint']).is_file())
                 self.assertTrue(template['check'])
 

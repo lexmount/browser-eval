@@ -89,3 +89,34 @@ class ReviewerSessions:
             remaining = list(self._running)
         for process in remaining:
             _kill_session(process)
+
+
+def validate_schema(value, schema):
+    """Validate the deliberately small JSON schema used by both review backends."""
+    kind = schema.get("type")
+    valid = {
+        "object": lambda: isinstance(value, dict),
+        "array": lambda: isinstance(value, list),
+        "string": lambda: isinstance(value, str),
+        "integer": lambda: type(value) is int,
+    }
+    if kind in valid and not valid[kind]():
+        raise ValueError("Review schema type mismatch")
+    if "enum" in schema and value not in schema["enum"]:
+        raise ValueError("Review schema enum mismatch")
+    if kind == "object":
+        if set(value) != set(schema["properties"]):
+            raise ValueError("Review schema fields mismatch")
+        for name, child in schema["properties"].items():
+            validate_schema(value[name], child)
+    elif kind == "array":
+        if len(value) > schema.get("maxItems", len(value)):
+            raise ValueError("Review schema array exceeds maximum size")
+        for child in value:
+            validate_schema(child, schema["items"])
+    elif kind == "string" and len(value.strip()) < schema.get("minLength", 1):
+        raise ValueError("Review schema requires nonempty text")
+    elif kind == "integer" and not schema.get("minimum", value) <= value <= schema.get(
+        "maximum", value
+    ):
+        raise ValueError("Review schema integer range mismatch")
