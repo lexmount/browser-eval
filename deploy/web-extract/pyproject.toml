@@ -8,6 +8,7 @@ dependencies = [
   "fastapi>=0.115,<1",
   "uvicorn>=0.34,<1",
   "json-schema-to-pydantic>=0.4,<1",
+  "jsonschema>=4.25,<5",
   "stagehand==4.4.0",
   "psutil==7.2.2",
 ]

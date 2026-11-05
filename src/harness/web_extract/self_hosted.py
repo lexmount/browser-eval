@@ -27,6 +27,8 @@ ENGINES = {
 
 def validate_input(value):
     """Restrict collection to the declared immutable snapshot origins."""
+    from jsonschema import SchemaError, validators
+
     if not isinstance(value, dict) or not isinstance(value.get("url"), str):
         raise ValueError("Request must be an object with a string URL")
     parsed = urlsplit(value["url"])
@@ -46,6 +48,12 @@ def validate_input(value):
         or not schema["properties"]
     ):
         raise ValueError("An object JSON Schema with properties is required")
+    try:
+        validators.validator_for(schema).check_schema(schema)
+    except SchemaError as exc:
+        raise ValueError("Invalid JSON Schema") from exc
+    if "instruction" in value and not isinstance(value["instruction"], str):
+        raise ValueError("Instruction must be a string")
     if value.get("engine") not in ENGINES:
         raise ValueError("Unknown extraction engine")
     if value["engine"] == "firecrawl" and not os.environ.get("FIRECRAWL_BACKEND_URL"):

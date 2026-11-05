@@ -339,7 +339,13 @@ def test_web_extract_same_case_panels_keep_native_evidence_and_keyboard_return(
                     if not page.locator('html').evaluate('(e)=>e.classList.contains("dark")'):
                         page.locator('#theme').click()
                 page.locator('[data-result-filter="status"]').select_option('all')
-                page.locator(f'tr[data-method="{method}"] a[href]').first.click()
+                row = page.locator(f'tr[data-method="{method}"]').first
+                row.locator('[data-call-log-open]').first.click()
+                diagnosis = page.locator('dialog:visible')
+                expect(diagnosis).to_be_visible()
+                link = diagnosis.locator('.case-links a').first
+                assert link.get_attribute('href').endswith('#' + method)
+                link.click()
                 panel = page.locator(f'details[data-result-panel][id="{method}"]')
                 expect(panel).to_have_attribute('open', '')
                 assert page.url.endswith('#' + method)
