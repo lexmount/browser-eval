@@ -42,12 +42,16 @@ def test_local_audit_rejects_release_profile():
 
 
 def test_saved_matrix_rejects_mixed_build_modes():
-    result = subprocess.run(
-        [sys.executable, str(SCRIPT), '--saved-matrix', '/tmp/spec.json',
-         '--output', '/tmp/report', '--local-audit'],
-        cwd=ROOT, text=True, capture_output=True, check=False)
-    assert result.returncode == 2
-    assert 'cannot be combined with other build modes' in result.stderr
+    for options in [
+        ['--local-audit'], ['--wcxb-source', '/tmp/source'],
+        ['--wcxb-sample', '/tmp/sample'],
+    ]:
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), '--saved-matrix', '/tmp/spec.json',
+             '--output', '/tmp/report', *options],
+            cwd=ROOT, text=True, capture_output=True, check=False)
+        assert result.returncode == 2
+        assert 'cannot be combined with other build modes' in result.stderr
 
 
 def test_saved_matrix_check_cannot_generate_or_replace_report():

@@ -66,7 +66,7 @@ if __name__ == '__main__':
     if args.source_spec:
         parser.error('--source-spec requires --check-saved-matrix')
     if args.saved_matrix:
-        if not args.output or any((args.evidence, args.profile, args.authority_root, args.local_audit, args.diagnostic_cohorts, args.wcxb, args.webmainbench_full, args.public_benchmark_research, args.include_english, args.refresh_review, args.refresh_presentation, args.presentation_binding)):
+        if not args.output or any((args.evidence, args.profile, args.authority_root, args.local_audit, args.diagnostic_cohorts, args.wcxb, args.wcxb_source, args.wcxb_sample, args.webmainbench_full, args.public_benchmark_research, args.include_english, args.refresh_review, args.refresh_presentation, args.presentation_binding)):
             parser.error('--saved-matrix requires a new --output and cannot be combined with other build modes')
         if args.language not in (None, 'zh'):
             parser.error('--saved-matrix currently supports Chinese output only')
