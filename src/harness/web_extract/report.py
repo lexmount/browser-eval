@@ -1212,10 +1212,8 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             message("field_missing_wrong_or_unexpected_cases", lang),
             counts,
         )
-        repaired = [r for r in selected if r.get("diagnosis")]
         representative = (
             failures[:1]
-            or repaired[:1]
             or [
                 r
                 for r in selected
@@ -1228,7 +1226,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             interpretation += (
                 "<p>"
                 + esc(
-                    diagnosis.get("cause")
+                    (diagnosis.get("cause") if failures else None)
                     or row.get("native_error")
                     or (
                         message("no_recognizable_product_fields_returned", lang)
@@ -1243,6 +1241,29 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
                 )
                 + "</p><p>"
             )
+            if row.get("compatibility") == "structured_output":
+                differences = [
+                    [
+                        FIELD_LABELS[field][0 if zh else 1],
+                        displayed_values(value.get("expected"), lang, reference=True),
+                        displayed_values(value.get("actual"), lang),
+                    ]
+                    for field, value in row["field_results"].items()
+                    if value["status"] != "correct"
+                ]
+                interpretation += (
+                    "</p>"
+                    + table(
+                        [
+                            message("field", lang),
+                            message("reference", lang),
+                            message("output", lang),
+                        ],
+                        differences,
+                        attrs="data-interpretation-example",
+                    )
+                    + "<p>"
+                )
             interpretation += (
                 f'<a href="result-{method}-{row["case_id"]}.html">'
                 + (message("representative_result_and_complete_response", lang))
@@ -2182,7 +2203,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 detail += "<p>" + message("reviewer_reconciliation", lang) + "</p>"
                 detail += table(message("reviewer_findings_columns", lang), review_rows)
                 detail += "<p>" + esc(findings["reviewer_projection_issue"]) + "</p></details>"
-            if r.get("diagnosis"):
+            if r.get("diagnosis") and r.get("compatibility") != "structured_output":
                 diagnosis = r["diagnosis"]
                 detail += (
                     "<section data-reviewed-diagnosis><h2>"

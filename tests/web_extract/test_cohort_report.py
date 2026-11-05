@@ -767,8 +767,7 @@ def test_report_dataset_download_link_is_pinned_and_release_checked(tmp_path, mo
     content["dataset_distribution"] = {"track": "web-extract", "revision": "a" * 40}
     save_json(home / "content.json", content)
     url = (
-        "https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction/tree/"
-        + "a" * 40
+        "https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction/tree/" + "a" * 40
     )
     monkeypatch.setattr(
         dataset,
@@ -955,6 +954,16 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
     assert "Fields were returned" not in interpretation
     assert "these_differences_concern" not in interpretation
     assert "The upstream baseline emits" not in interpretation
+    # A successful replacement must not be described by the earlier failure.
+    rows[0].update(
+        compatibility="structured_output", native_error="", diagnosis={"cause": "STALE TLS FAILURE"}
+    )
+    rows[0]["field_results"]["price"].update(expected=["12"], actual="13", status="wrong")
+    _, current = audit_explanation(audit, rows, ["extruct"], {}, lang)
+    assert "STALE TLS FAILURE" not in current
+    specimen = BeautifulSoup(current, "html.parser").select_one("[data-interpretation-example]")
+    assert specimen is not None
+    assert "12" in specimen.get_text() and "13" in specimen.get_text()
     if lang == "zh":
         headers = BeautifulSoup(review, "html.parser").select("table")[-1].select("th")
         assert [h.get_text() for h in headers] == ["题目", "字段"]
