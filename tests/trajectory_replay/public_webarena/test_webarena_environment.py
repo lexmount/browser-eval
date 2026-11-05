@@ -1233,9 +1233,18 @@ def test_wall_clock_timeout_inside_playwright_leaves_the_page_usable():
             with pytest.raises(TimeoutError, match="final evidence capture"):
                 with wall_clock_timeout(0.3, operation="final evidence capture"):
                     page.evaluate("() => new Promise(resolve => setTimeout(resolve, 5000))")
-            assert time.monotonic() - started < 3
             # The deadline must not kill Playwright's event loop; later calls used to hang.
             assert page.evaluate("() => 1 + 1") == 2
+            assert time.monotonic() - started < 3
+
+            # Login waits for a redirect while exiting expect_navigation, not in an API call.
+            started = time.monotonic()
+            with pytest.raises(TimeoutError, match="environment prepare"):
+                with wall_clock_timeout(0.3, operation="environment prepare"):
+                    with page.expect_navigation(timeout=5_000):
+                        pass
+            assert page.evaluate("() => 2 + 2") == 4
+            assert time.monotonic() - started < 3
         finally:
             browser.close()
 
