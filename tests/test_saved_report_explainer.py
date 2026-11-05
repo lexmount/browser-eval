@@ -11,8 +11,14 @@ def test_saved_findings_keep_content_and_derive_counts(tmp_path):
     (tmp_path / 'dataset.json').write_text(json.dumps({'saved_matrix_scope': {
         'providers': [{'provider': 'sample-method', 'passed': 99}],
         'limitations': ['Saved body omitted the list. <script>bad</script>']}}), encoding='utf-8')
-    page = render_explainer(tmp_path, cases, records, authored=False)
-    assert 'sample-method' in page
+    from harness.web_fetch.report import _REPORT_PROVIDER_LABELS
+    token = _REPORT_PROVIDER_LABELS.set({'sample-method': 'Saved participant'})
+    try:
+        page = render_explainer(tmp_path, cases, records, authored=False)
+    finally:
+        _REPORT_PROVIDER_LABELS.reset(token)
+    assert 'Saved participant' in page
+    assert '&lt;span' not in page
     assert '<td>1</td><td>0</td><td>0.0%</td>' in page
     assert '<td>99</td>' not in page
     assert 'Saved body omitted the list. &lt;script&gt;bad&lt;/script&gt;' in page

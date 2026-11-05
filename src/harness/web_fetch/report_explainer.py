@@ -1113,16 +1113,17 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
     if dataset_path.is_file():
         scope = json.loads(dataset_path.read_text(encoding='utf-8')).get('saved_matrix_scope', {})
         if scope:
+            from harness.web_fetch.report import provider_label
             rows = []
             for name in dict.fromkeys(row['provider'] for row in records):
                 selected = [row for row in records if row['provider'] == name]
                 passed = sum(task_passed(row['ok'], row['metrics'],
                              cases[row['case_id']].get('task_kind', 'body')) for row in selected)
-                rows.append((escape(browser_method_label(name)), str(len(selected)),
+                rows.append((escape(provider_label(name)), str(len(selected)),
                              str(passed), f'{passed/len(selected):.1%}'))
             context = _table([('方法', 'Method'), ('保存结果', 'Saved results'),
                               ('通过', 'Passed'), ('通过率', 'Pass rate')], rows,
-                             bilingual_text('本轮方法对比', 'Current method comparison'))
+                             '本轮方法对比')
             context += '<h2>' + bilingual_text('结果说明与限制', 'Findings and limitations') + '</h2>'
             context += ''.join('<p>'+escape(note)+'</p>' for note in scope.get('limitations', []))
             context += '<p><a href="../review/index.html">' + bilingual_text(
