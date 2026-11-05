@@ -201,7 +201,8 @@ def rebind(output, route, transform):
 
 
 @pytest.mark.parametrize(
-    "damage", ["native", "field-value", "filter", "field-filter", "price", "image"]
+    "damage",
+    ["native", "field-value", "filter", "field-filter", "price", "price-duplicate", "image"],
 )
 def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
     output = tmp_path / "report"
@@ -239,11 +240,16 @@ def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
 
         rebind(output, "zh/" + record_route("c", "one") + ".html", change)
         error = "displayed fields"
-    elif damage == "price":
+    elif damage in {"price", "price-duplicate"}:
 
         def change(text):
             soup = BeautifulSoup(text, "html.parser")
-            soup.select_one("[data-price-table]").decompose()
+            if damage == "price-duplicate":
+                from copy import deepcopy
+
+                soup.select_one("main").append(deepcopy(soup.select_one("[data-price-table]")))
+            else:
+                soup.select_one("[data-price-table]").decompose()
             return str(soup)
 
         rebind(output, "zh/accounts.html", change)

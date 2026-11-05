@@ -2405,7 +2405,10 @@ def check(output: Path, *, release=False, visual_receipt=None):
             expected_price = BeautifulSoup(
                 price_table(methods, manifest.get("prices", {}), lang, names), "html.parser"
             ).select_one("[data-price-table]")
-            if account_view.select_one("[data-price-table]") != expected_price:
+            if (
+                len(account_view.select("[data-price-table]")) != 1
+                or account_view.select_one("[data-price-table]") != expected_price
+            ):
                 raise ValueError("Cost/pricing coverage differs from bound source")
     if manifest.get("mode") == "full-cohort-progress":
         methods = manifest["planned_methods"]
@@ -3911,7 +3914,10 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         ),
         "html.parser",
     ).select_one("[data-price-table]")
-    if accounts.select_one("[data-price-table]") != expected_price:
+    if (
+        len(accounts.select("[data-price-table]")) != 1
+        or accounts.select_one("[data-price-table]") != expected_price
+    ):
         raise ValueError("Cost/pricing coverage differs from bound source")
     if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
         row.get_text(strip=True) for row in expected_operations.select("tbody tr")
