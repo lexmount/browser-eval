@@ -91,7 +91,14 @@ def _translated(key: str, source: str, /, **values: Any) -> Safe:
 
 def _rationale(task: dict[str, Any]) -> str:
     """Read the frozen selection rationale, which has no English field of its own."""
-    return _Authored(english_rationale(task["rationale"])) if _language() == "en" else task["rationale"]
+    raw = task["rationale"]
+    english = english_rationale(raw) if _language() == "en" else raw
+    return _Authored(english) if english != raw else _raw(raw)
+
+
+def _raw(value: Any) -> Safe:
+    """Mark measured or dataset text that keeps its source language."""
+    return Safe(f"<span data-raw-text>{_e(value)}</span>")
 
 
 def _searchable_rationale(task: dict[str, Any]) -> str:
@@ -928,7 +935,7 @@ def _same_task_comparison(
         site = str(task["sites"][0])
         task_cell = (
             f'<div class="task-cell"><a href="datasets/{task_id}.html">#{task_id} · '
-            f'{_e(task["rationale"])}</a><div class="task-meta">'
+            f'{_raw(task["rationale"])}</a><div class="task-meta">'
             f'<span class="track-badge">{_e(_tier_label(task["tier"]))}</span>'
             f'<span class="track-badge">{_e(SITE_LABELS.get(site, site))}</span>'
             f'<span class="track-badge">{_e(task["task_type"])}</span></div></div>'
@@ -1289,7 +1296,7 @@ def _evidence_viewer_page() -> str:
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
-    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
+    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{title if isinstance(title, Safe) else _e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
 
 
 def _section(title: str, body: str) -> str:
@@ -1340,7 +1347,7 @@ def _task_contract_html(task: dict[str, Any]) -> str:
 def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
     failed = [item for item in evaluator_summary(result) if float(item.get("score") or 0) < 1]
     if not failed:
-        return _ZH("failure_diagnosis.all_official_evaluators_passed", "All official evaluators passed.")
+        return t("failure_diagnosis.all_official_evaluators_passed", "All official evaluators passed.")
     parts = []
     for item in failed:
         messages: list[str] = []
@@ -1354,11 +1361,11 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
             messages.append(str(item["error"]))
         if not messages:
             messages.append(
-                _ZH("failure_diagnosis.the_final_answer_does_not_match", "The final answer does not match the official structured answer")
+                t("failure_diagnosis.the_final_answer_does_not_match", "The final answer does not match the official structured answer")
                 if item["name"] == "AgentResponseEvaluator"
-                else _ZH("failure_diagnosis.no_required_network_request_or_side", "No required network request or side effect satisfying the contract was observed")
+                else t("failure_diagnosis.no_required_network_request_or_side", "No required network request or side effect satisfying the contract was observed")
                 if item["name"] == "NetworkEventEvaluator"
-                else _ZH("failure_diagnosis.this_rule_failed", "This rule failed")
+                else t("failure_diagnosis.this_rule_failed", "This rule failed")
             )
         expected, actual = item.get("expected"), item.get("actual")
         if expected is not None or actual is not None:
@@ -1372,7 +1379,7 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
         )
         if len(exact) > 420:
             exact = exact[:417].rstrip() + "…"
-        parts.append(_ZH("failure_diagnosis.rule", "Rule {index} {name}：{exact}", index=item['index'], name=item['name'], exact=exact))
+        parts.append(t("failure_diagnosis.rule", "Rule {index} {name}: {exact}", index=item['index'], name=item['name'], exact=exact))
     if row.get("error"):
         parts.append(str(sanitize(row["error"])))
     response = row.get("agent_response") or {}
@@ -1397,15 +1404,15 @@ def _evaluator_error_text(result: dict[str, Any] | None, row: dict[str, Any]) ->
         if item.get("error"):
             messages.append(str(item["error"]))
         if not messages:
-            messages.append(_rule_outcome_summary(item, _ZH))
+            messages.append(_rule_outcome_summary(item, t))
         for message in dict.fromkeys(messages):
-            lines.append(_ZH("evaluator_error_text.rule", "Rule {index} · {name}: {message}", index=item['index'], name=item['name'], message=sanitize(message)))
+            lines.append(t("evaluator_error_text.rule", "Rule {index} · {name}: {message}", index=item['index'], name=item['name'], message=sanitize(message)))
     if row.get("error"):
-        lines.append(_ZH("evaluator_error_text.runtime_error", "Runtime error: {error}", error=sanitize(row['error'])))
+        lines.append(t("evaluator_error_text.runtime_error", "Runtime error: {error}", error=sanitize(row['error'])))
     response = row.get("agent_response") or {}
     if response.get("error_details"):
-        lines.append(_ZH("evaluator_error_text.agent_error", "Agent error: {error_details}", error_details=sanitize(response['error_details'])))
-    return "\n".join(lines) or _ZH("evaluator_error_text.the_program_did_not_provide_a", "The program did not provide a more specific error message.")
+        lines.append(t("evaluator_error_text.agent_error", "Agent error: {error_details}", error_details=sanitize(response['error_details'])))
+    return "\n".join(lines) or t("evaluator_error_text.the_program_did_not_provide_a", "The program did not provide a more specific error message.")
 
 
 def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
@@ -1535,7 +1542,7 @@ def _rule_outcome_summary(item: dict[str, Any], t: Callable[..., str]) -> str:
     message = messages[0] if messages else str(item.get("error") or "")
     status = re.fullmatch(r"Expected ([^,]+), got (.+)", message)
     if status:
-        return t("rule_outcome_summary.final_status_mismatch_expected_observed", "Final status mismatch: expected {value}, observed {value_2}.", value=status.group(1), value_2=status.group(2))
+        return Safe(t("rule_outcome_summary.final_status_mismatch_expected_observed", "Final status mismatch: expected {value}, observed {value_2}.", value=_raw(status.group(1)), value_2=_raw(status.group(2))))
     missing = re.fullmatch(
         r"Array is missing (\d+) expected element\(s\)\. Matched \((\d+)/(\d+)\)",
         message,
@@ -1546,7 +1553,7 @@ def _rule_outcome_summary(item: dict[str, Any], t: Callable[..., str]) -> str:
         return t("rule_outcome_summary.the_final_data_differs_from_the", "The final data differs from the official expectation.")
     if "No matching network event" in message:
         return t("rule_outcome_summary.no_browser_network_event_satisfying_this", "No browser network event satisfying this rule was observed.")
-    return message or t("rule_outcome_summary.this_rule_failed", "This rule failed.")
+    return _raw(message) if message else t("rule_outcome_summary.this_rule_failed", "This rule failed.")
 
 
 def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, response: Any) -> str:
@@ -1562,6 +1569,7 @@ def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, resp
             for key in ("assertions", "error", "should_not_exist")
             if item.get(key) not in (None, [], {})
         }
+        summary = _rule_outcome_summary(item, t)
         cards.append(
             f'<article class="verification-rule rule-{"pass" if passed else "fail"}">'
             '<header><div><span class="rule-index">'
@@ -1572,7 +1580,7 @@ def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, resp
             + (t("same_task_comparison.pass", "Pass") if passed else t("same_task_comparison.fail", "Fail"))
             + "</span></header>"
             + f'<p class="rule-purpose">{_e(_rule_purpose(item["name"]))}</p>'
-            + f'<p class="rule-summary">{_e(_rule_outcome_summary(item, t))}</p>'
+            + f'<p class="rule-summary">{summary if isinstance(summary, Safe) else _e(summary)}</p>'
             + ("<details><summary>" + t("verification_html.view_the_official_expectation_and_this", "View the official expectation and this run's observation") + '</summary><div class="evidence-pair compact-evidence"><div><h4>' + t("verification_html.official_expectation", "Official expectation") + "</h4>")
             + _json_pre(item.get("expected"))
             + ("</div><div><h4>" + t("verification_html.observed_in_this_run", "Observed in this run") + "</h4>")
@@ -1610,7 +1618,7 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
             meta += (" " + t("trajectory_html.s", "· {duration:.2f} s", duration=float(duration)))
         rows.append(
             f'<li id="trajectory-step-{step_number}" class="trajectory-step{" failure-step" if failed else ""}"><div><details{" open" if failed else ""}><summary>'
-            + _e(trajectory_label(step))
+            + _raw(trajectory_label(step))
             + (f'</summary><p class="fine">{meta}</p><h4>' + t("trajectory_html.call_arguments", "Call arguments") + "</h4>")
             + _json_pre(step.get("arguments"))
             + ("<h4>" + t("trajectory_html.execution_output_excerpt", "Execution output excerpt") + "</h4>")
@@ -2359,13 +2367,13 @@ def _diagnosis_dialog(
     dialog_id = f"diagnosis-{result_id}"
     detail_url = f"results/{result_id}.html"
     return (
-        (f'<dialog class="diagnosis-dialog" id="{_e(dialog_id)}" aria-labelledby="{_e(dialog_id)}-title"><div class="diagnosis-dialog-head"><div><span class="table-kicker">' + t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis") + f'</span><h2 id="{_e(dialog_id)}-title">Task #{task_id} · {_e(configuration)}</h2></div><button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="' + t("diagnosis_dialog.close", "Close") + '">×</button></div><div class="diagnosis-dialog-grid"><div><b>' + t("diagnosis_dialog.location", "Location") + f'</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div><div><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(automatic_failure or _ZH('failure_cause_table.unclassified', 'Unclassified'))}</div><div><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or _ZH('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f"</b>{_e(owner)}</div></div>")
+        (f'<dialog class="diagnosis-dialog" id="{_e(dialog_id)}" aria-labelledby="{_e(dialog_id)}-title"><div class="diagnosis-dialog-head"><div><span class="table-kicker">' + t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis") + f'</span><h2 id="{_e(dialog_id)}-title">Task #{task_id} · {_e(configuration)}</h2></div><button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="' + t("diagnosis_dialog.close", "Close") + '">×</button></div><div class="diagnosis-dialog-grid"><div><b>' + t("diagnosis_dialog.location", "Location") + f'</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div><div><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(automatic_failure or t('failure_cause_table.unclassified', 'Unclassified'))}</div><div><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or t('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f"</b>{_e(owner)}</div></div>")
         + (
-            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_e(step_context)}</a></div>'
+            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_raw(step_context)}</a></div>'
             if step_context
             else ""
         )
-        + ('<section class="dialog-error"><h3>' + t("diagnosis_dialog.program_error", "Program error") + f'</h3><pre class="log-view">{_e(evaluator_error)}</pre></section><section class="dialog-review"><h3>' + t("diagnosis_dialog.reviewed_conclusion", "Reviewed conclusion") + f"</h3><p>{_e(reason or t('diagnosis_dialog.root_cause_review_is_not_complete', 'Root-cause review is not complete.'))}</p><p><strong>" + _ZH("diagnosis_dialog.treatment", "Treatment:") + f'</strong>{_e(action)}</p></section><div class="dialog-actions"><a class="button-link" href="{_e(detail_url)}#verification">' + t("diagnosis_dialog.view_expected_and_actual_values", "View expected and actual values") + f'</a><a href="{_e(step_link)}">' + t("diagnosis_dialog.view_trajectory_near_the_failure", "View trajectory near the failure") + f'</a><a href="{_e(detail_url)}#screenshots">' + t("diagnosis_dialog.view_page_screenshots", "View page screenshots") + f'</a><a href="{_e(detail_url)}#runtime">' + t("diagnosis_dialog.view_logs_and_complete_evidence", "View logs and complete evidence") + f'</a><button type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')">' + t("diagnosis_dialog.close", "Close") + "</button></div></dialog>")
+        + ('<section class="dialog-error"><h3>' + t("diagnosis_dialog.program_error", "Program error") + f'</h3><pre class="log-view">{_e(evaluator_error)}</pre></section><section class="dialog-review"><h3>' + t("diagnosis_dialog.reviewed_conclusion", "Reviewed conclusion") + f"</h3><p>{_e(reason or t('diagnosis_dialog.root_cause_review_is_not_complete', 'Root-cause review is not complete.'))}</p><p><strong>" + t("diagnosis_dialog.treatment", "Treatment:") + f'</strong>{_e(action)}</p></section><div class="dialog-actions"><a class="button-link" href="{_e(detail_url)}#verification">' + t("diagnosis_dialog.view_expected_and_actual_values", "View expected and actual values") + f'</a><a href="{_e(step_link)}">' + t("diagnosis_dialog.view_trajectory_near_the_failure", "View trajectory near the failure") + f'</a><a href="{_e(detail_url)}#screenshots">' + t("diagnosis_dialog.view_page_screenshots", "View page screenshots") + f'</a><a href="{_e(detail_url)}#runtime">' + t("diagnosis_dialog.view_logs_and_complete_evidence", "View logs and complete evidence") + f'</a><button type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')">' + t("diagnosis_dialog.close", "Close") + "</button></div></dialog>")
     )
 
 
@@ -2426,7 +2434,7 @@ def _attempt_table(
             _status(row),
             Safe(f'<a href="{point_link}">{_e(failure_point)}</a>') if result == "fail" else "—",
             automatic_failure or "—",
-            subcategory or _ZH("diagnosis_dialog.awaiting_review", "Awaiting review") if result == "fail" else "—",
+            subcategory or t("diagnosis_dialog.awaiting_review", "Awaiting review") if result == "fail" else "—",
             Safe(f'<strong>{_e(owner)}</strong><span class="table-kicker">{_e(action)}</span>')
             if result == "fail"
             else "—",
@@ -3324,11 +3332,11 @@ def _result_failure_section(
         t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis"),
         ('<article class="failure-lead"><span class="status-line">' + t("same_task_comparison.fail", "Fail") + f'</span><h3><a href="{step_href}">{_e(failure_point)}</a></h3><p>{_e(_failure_brief(evaluation_record, row))}</p></article>')
         + (
-            f'<p class="step-signature"><strong>{_e(step_context_label)}：</strong><a href="{step_href}">{_e(step_context)}</a></p>'
+            f'<p class="step-signature"><strong>{_e(t("result_failure_section.step_signature", "{label}: ", label=step_context_label))}</strong><a href="{step_href}">{_raw(step_context)}</a></p>'
             if step_context
             else ""
         )
-        + ('<div class="diagnosis-grid"><div class="attempt-fact"><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(_automatic_failure_type(evaluation_record)[1] or t('filters.none', 'None'))}</div><div class=\"attempt-fact\"><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or _ZH('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div class=\"attempt-fact\"><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f'</b>{_e(remediation_owner)}</div><div class="attempt-fact"><b>' + t("review_history.treatment", "Treatment") + f'</b>{_e(remediation_action)}</div></div><div class="failure-error"><h3>' + t("diagnosis_dialog.program_error", "Program error") + f'</h3><pre class="log-view">{_e(_evaluator_error_text(evaluation_record, row))}</pre></div><div class="diagnosis-reason"><strong>' + t("result_failure_section.reviewed_conclusion", "Reviewed conclusion:") + "</strong>")
+        + ('<div class="diagnosis-grid"><div class="attempt-fact"><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(_automatic_failure_type(evaluation_record)[1] or t('filters.none', 'None'))}</div><div class=\"attempt-fact\"><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or t('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div class=\"attempt-fact\"><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f'</b>{_e(remediation_owner)}</div><div class="attempt-fact"><b>' + t("review_history.treatment", "Treatment") + f'</b>{_e(remediation_action)}</div></div><div class="failure-error"><h3>' + t("diagnosis_dialog.program_error", "Program error") + f'</h3><pre class="log-view">{_e(_evaluator_error_text(evaluation_record, row))}</pre></div><div class="diagnosis-reason"><strong>' + t("result_failure_section.reviewed_conclusion", "Reviewed conclusion:") + "</strong>")
         + _e(reason or t("result_failure_section.no_verified_root_cause_is_available", "No verified root cause is available yet."))
         + (f'</div><p class="page-links"><a href="{attempt_page}#verification">' + t("diagnosis_dialog.view_expected_and_actual_values", "View expected and actual values") + f'</a><a href="{step_href}">' + t("diagnosis_dialog.view_trajectory_near_the_failure", "View trajectory near the failure") + f'</a><a href="{attempt_page}#screenshots">' + t("diagnosis_dialog.view_page_screenshots", "View page screenshots") + f'</a><a href="{attempt_page}#runtime">' + t("result_failure_section.view_complete_logs", "View complete logs") + "</a></p>")
         + runtime_facts
@@ -3407,7 +3415,7 @@ def _write_result_page(
     cause_code = _cause_code(verified_causes, public["id"])
     failure_point, failure_step = _failure_point(cause_code, steps)
     step_context_label, step_context = _trajectory_context(
-        steps, failure_step, failure_point, _ZH
+        steps, failure_step, failure_point, t
     )
     remediation_owner, remediation_action, external_interference = _remediation(cause_code)
     subcategory, reason = localized_cause(verified_causes, public["id"], _language())
