@@ -181,12 +181,12 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
     external = tmp_path / "external-package"
     external.mkdir()
     target = external / "index.js"
-    target.write_text("module.exports = 1;\n")
+    target.write_text("module.exports = 1;\n", encoding="utf-8")
     (external / "cycle").symlink_to(external, target_is_directory=True)
     (tmp_path / "node_modules/linked").symlink_to(external, target_is_directory=True)
     with backend("test-model") as linked:
         pass
-    target.write_text("module.exports = 2;\n")
+    target.write_text("module.exports = 2;\n", encoding="utf-8")
     with backend("test-model") as changed_link:
         assert (
             linked["backend"]["native_dependencies_sha256"]
@@ -220,7 +220,8 @@ def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path,
     marker = tmp_path / "native-started"
     (bundle / "harness.js").write_text(
         f"require('fs').writeFileSync({json.dumps(str(marker))}, String(process.pid));"
-        "setInterval(() => {}, 1000);"
+        "setInterval(() => {}, 1000);",
+        encoding="utf-8",
     )
     env = {
         **os.environ,
@@ -323,7 +324,7 @@ def test_timeout_reaps_reparented_detached_processes_without_killing_other_reque
     pid_file = tmp_path / "orphan.pid"
     orphan = (
         f"from pathlib import Path; import os,time; Path({str(pid_file)!r})"
-        ".write_text(str(os.getpid())); time.sleep(60)"
+        ".write_text(str(os.getpid()),encoding='utf-8'); time.sleep(60)"
     )
     intermediate = (
         f"import subprocess,sys; subprocess.Popen([sys.executable,'-c',{orphan!r}],"
@@ -332,7 +333,8 @@ def test_timeout_reaps_reparented_detached_processes_without_killing_other_reque
     script = tmp_path / "native.py"
     script.write_text(
         "import subprocess,sys,time\n"
-        f"subprocess.run([sys.executable,'-c',{intermediate!r}])\ntime.sleep(60)\n"
+        f"subprocess.run([sys.executable,'-c',{intermediate!r}])\ntime.sleep(60)\n",
+        encoding="utf-8",
     )
     invocation = (
         "from harness.web_extract.self_hosted import run_worker; run_worker({},timeout=1,command="
@@ -345,13 +347,13 @@ def test_timeout_reaps_reparented_detached_processes_without_killing_other_reque
             [sys.executable, "-c", invocation], capture_output=True, text=True, timeout=7
         )
         assert "TimeoutExpired" in result.stderr
-        assert pid_file.exists() and not psutil.pid_exists(int(pid_file.read_text()))
+        assert pid_file.exists() and not psutil.pid_exists(int(pid_file.read_text(encoding="utf-8")))
         assert unrelated.poll() is None
     finally:
         unrelated.kill()
         unrelated.wait(timeout=2)
-        if pid_file.exists() and psutil.pid_exists(int(pid_file.read_text())):
-            os.kill(int(pid_file.read_text()), 9)
+        if pid_file.exists() and psutil.pid_exists(int(pid_file.read_text(encoding="utf-8"))):
+            os.kill(int(pid_file.read_text(encoding="utf-8")), 9)
 
 
 @pytest.mark.parametrize(
