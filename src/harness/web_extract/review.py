@@ -965,25 +965,33 @@ def assemble_record(
                 inputs[key], reviewed[key] = native, by_method[native["method"]]
     if supplemental_keys != changed:
         raise ValueError("Record changed repairs require their complete supplemental review")
-    predecessors = {}
+    predecessors, predecessor_claims = {}, {}
     for work in [*works, *([supplemental] if supplemental is not None else [])]:
         for entry in read_manifest(work)["packets"]:
             packet = Path(entry["path"])
             predecessors[str(packet)] = entry["sha256"]
             review_path = Path(work).resolve() / "reviews" / packet.name
             predecessors[str(review_path)] = digest(review_path.read_bytes())
+            for opinion in read_json(review_path)["cases"]:
+                predecessor_claims.setdefault(opinion["case_id"], []).append(
+                    (str(review_path), opinion["reference"])
+                )
     for work in adjudications:
         bound = read_manifest(work)["bindings"]
-        prior_bindings = {
-            name: sha for name, sha in bound.items() if "/packets/" in name or "/reviews/" in name
-        }
-        if not prior_bindings or any(
-            predecessors.get(name) != sha for name, sha in prior_bindings.items()
-        ):
+        if any(name in bound and bound[name] != sha for name, sha in predecessors.items()):
             raise ValueError("Record adjudication belongs to different predecessor reviews")
         cases, opinions = retain(work, "record-reference-adjudication/1")
         for cid, case in cases.items():
             source_case(cid, case)
+            claims = case.get("prior_reference_findings", {})
+            if set(claims) != set(truth[cid]["values"]) or any(
+                not any(
+                    bound.get(name) == predecessors[name] and findings[field] == claim
+                    for name, findings in predecessor_claims[cid]
+                )
+                for field, claim in claims.items()
+            ):
+                raise ValueError("Record adjudication belongs to different predecessor reviews")
             if cid in resolved or case["outputs"] or not case.get("benchmark_rules"):
                 raise ValueError("Duplicate or unbound record reference adjudication")
             resolved[cid] = opinions[cid]

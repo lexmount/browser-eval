@@ -1983,3 +1983,48 @@ def test_record_preview_binds_host_output_to_exact_local_inventory(inputs, tmp_p
     model["preview_snapshot"]["sha256"] = pipeline.digest(saved.read_bytes())
     with pytest.raises(ValueError, match="differs from selected inputs"):
         report.record_preview(home, model, local_example=False)
+
+
+def test_record_adjudication_accepts_hash_bound_readonly_review_projection(
+    record_audit_material, tmp_path
+):
+    import shutil
+
+    from harness.web_extract import review
+
+    home, content, works, _, authority = record_audit_material
+    projected = tmp_path / "readonly-projection"
+    shutil.copytree(works[0], projected)
+    manifest = pipeline.read_json(projected / "manifest.json")
+    for entry in manifest["packets"]:
+        original_review = works[0] / "reviews" / Path(entry["path"]).name
+        # The projection explicitly retains the selected original review identity.
+        import os
+
+        root = review.manifest_root(projected, manifest)
+        manifest["bindings"][os.path.relpath(original_review, root)] = pipeline.digest(
+            original_review.read_bytes()
+        )
+    pipeline.save_json(projected / "manifest.json", manifest)
+    adjudication = tmp_path / "projected-adjudication"
+    selected = review.prepare_adjudication(projected, adjudication, tmp_path / "rules.txt")
+    originals = {
+        c["case_id"]: c for c in pipeline.read_json(works[0] / "reviews/000.json")["cases"]
+    }
+    for entry in selected["packets"]:
+        packet = review.read_packet(Path(entry["path"]))
+        pipeline.save_json(
+            adjudication / "reviews" / Path(entry["path"]).name,
+            {"cases": [{**originals[c["case_id"]], "outputs": []} for c in packet["cases"]]},
+        )
+    pipeline.save_json(adjudication / "reviewer.json", {"model": "synthetic"})
+    result = review.assemble_record(
+        home,
+        content,
+        works,
+        tmp_path / "projected-complete.json",
+        profile=swde.CARD,
+        adjudications=[adjudication],
+        reference_revision=authority,
+    )
+    assert result["unresolved"] == 0
