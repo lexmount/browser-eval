@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "133f1adab222f0e31741675da232d3984b4d20ea51611c748ceb6f7eae48d76f"
+          "after_sha256": "4257d735f9b32b523d2316b34e9dd90b6001007ee2725e99b76b86f0bdc97165"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -4057,7 +4057,9 @@
             "escape-with-hidden-span-does-not-supply-anchor",
             "escape-with-inline-script-does-not-supply-anchor",
             "escape-with-inline-style-does-not-supply-anchor",
-            "escaped-backticks-in-inline-script-do-not-supply-anchor"
+            "escaped-backticks-in-inline-script-do-not-supply-anchor",
+            "masked-code-before-word-keeps-joined-word",
+            "masked-code-after-word-keeps-joined-word"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"

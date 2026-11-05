@@ -1252,6 +1252,7 @@ def _escaped_prose_surface(content, schema):
 
     A reference is observed page text, so its Markdown delimiters are characters.
     Code and hidden comments keep their own meaning and never supply this surface.
+    Their mask is a word letter, so it adds no word boundary the answer does not have.
     """
     escape = re.compile(r'\\[!-/:-@\[-`{-~]')
     if not escape.search(content):
@@ -1259,7 +1260,7 @@ def _escaped_prose_surface(content, schema):
     from .reference_quality import markdown_comment_spans, markdown_literal_spans
     prose = content
     for start, end in sorted(markdown_literal_spans(content) + markdown_comment_spans(content), reverse=True):
-        prose = prose[:start] + '\ufffc' + prose[end:]
+        prose = prose[:start] + '\u01a3' + prose[end:]
     return _visible(prose, schema) if escape.search(prose) else ''
 
 
