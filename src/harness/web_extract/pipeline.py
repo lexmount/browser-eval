@@ -457,6 +457,22 @@ def validate_native_options(method, native_options):
     native_options = native_options or {}
     if set(native_options) - set(METHODS[method]["options"]):
         raise ValueError("Unsupported native extraction option")
+    if METHODS[method].get("deployment") == "self-hosted-open-source":
+        identity = native_options.get("runtime_identity")
+        if not native_options.get("endpoint") or not isinstance(identity, dict):
+            raise ValueError("Self-hosted methods require an endpoint and frozen runtime identity")
+        if any(
+            not identity.get(key)
+            for key in (
+                "engine",
+                "version",
+                "model",
+                "model_base",
+                "implementation_sha256",
+                "environment_sha256",
+            )
+        ):
+            raise ValueError("Incomplete self-hosted runtime identity")
     if native_options.get("input_route", "html") not in ("html", "url"):
         raise ValueError("Native input route must be html or url")
     for key in ("setJavaScriptEnabled", "discussion", "use_fixture_context", "norender"):
@@ -783,7 +799,68 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
         }
 
 
+def _self_hosted_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
+    """Invoke a version-bound native extractor deployed by the caller."""
+    if not fixture_url:
+        raise ValueError("Self-hosted extraction requires a frozen snapshot URL")
+    endpoint = native_options.get("endpoint")
+    validate_http_url(endpoint)
+    parsed = urlsplit(endpoint)
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("Extraction endpoint must not contain credentials, query or fragment")
+    identity = native_options.get("runtime_identity")
+    engine = {
+        "crawl4ai-json": "crawl4ai",
+        "scrapegraph-oss-json": "scrapegraph",
+        "stagehand-local-json": "stagehand",
+    }[method]
+    if not isinstance(identity, dict) or identity.get("engine") != engine:
+        raise ValueError("Self-hosted extraction requires a matching frozen runtime identity")
+    return (
+        endpoint.rstrip("/") + "/extract/" + engine,
+        {
+            "Authorization": "Bearer " + os.environ["EXTRACTION_API_KEY"],
+        },
+        {
+            "url": fixture_url,
+            "schema": schema or SCHEMA,
+            "instruction": prompt
+            or (
+                "Extract the fields defined by the schema from the main record."
+                if schema
+                else "Extract the main product current price, SKU and stock availability. "
+                "Use null for absent fields."
+            ),
+            "expected_runtime": identity,
+        },
+    )
+
+
 METHODS = {
+    **{
+        name: {
+            "keys": ["EXTRACTION_API_KEY"],
+            "input": "url",
+            "custom_schema": True,
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": ["endpoint", "runtime_identity"],
+            "adapter": _self_hosted_request,
+            "deployment": "self-hosted-open-source",
+        }
+        for name in ("crawl4ai-json", "scrapegraph-oss-json", "stagehand-local-json")
+    },
     "firecrawl-parse-json": {
         "keys": ["FIRECRAWL_API_KEY"],
         "input": "html",
@@ -1062,7 +1139,9 @@ def normalize(method: str, payload: dict, *, schema=None):
     def mapping(value):
         return value if isinstance(value, dict) else {}
 
-    if method in ("firecrawl-json", "firecrawl-parse-json"):
+    if method in ("crawl4ai-json", "scrapegraph-oss-json", "stagehand-local-json"):
+        item = payload.get("data")
+    elif method in ("firecrawl-json", "firecrawl-parse-json"):
         item = mapping(payload.get("data")).get("json")
     elif method == "browserbase-json":
         status = payload.get("statusCode")

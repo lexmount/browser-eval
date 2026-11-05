@@ -1353,6 +1353,9 @@ def test_partial_labels_need_field_role_adjudication_not_suffix_matching():
 def test_custom_schema_projection_retains_fields_and_invalid_types(method):
     value = {"author": ["Ada"], "year": "invalid scalar", "extra": 123}
     payload = {
+        "crawl4ai-json": {"data": value},
+        "scrapegraph-oss-json": {"data": value},
+        "stagehand-local-json": {"data": value},
         "cloudflare-json": {"result": value},
         "firecrawl-json": {"data": {"json": value}},
         "firecrawl-parse-json": {"data": {"json": value}},

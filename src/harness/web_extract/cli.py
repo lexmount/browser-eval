@@ -56,6 +56,7 @@ def main(argv=None):
     p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("plan")
     p.add_argument("--methods", nargs="+", required=True)
+    p.add_argument("--native-options", type=Path, help="Per-method frozen native options JSON")
     p.add_argument("--output", type=Path, required=True)
     p.add_argument(
         "--snapshots",
@@ -198,7 +199,17 @@ def main(argv=None):
     elif args.command == "plan":
         from harness.web_extract.certification import create_plan
 
-        print(create_plan(args.home, args.methods, args.output, snapshots=args.snapshots))
+        print(
+            create_plan(
+                args.home,
+                args.methods,
+                args.output,
+                snapshots=args.snapshots,
+                native_options=json.loads(args.native_options.read_text(encoding="utf-8"))
+                if args.native_options
+                else None,
+            )
+        )
     elif args.command == "serve":
         serve_fixtures(args.home, port=args.port)
     elif args.command == "repair-plan":
