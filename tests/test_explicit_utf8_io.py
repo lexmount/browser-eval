@@ -224,11 +224,12 @@ from harness.review_runner import run_reviewer
 from harness.web_fetch.providers.subprocess_jsonl import SubprocessJsonlProvider
 from lexbench_webfetch.models import EvalCase
 text = '\u9875\u9762'
-reply = 'import sys; sys.stdout.buffer.write(%r.encode())' % text
+# Child sources stay ASCII: Linux encodes argv with the ASCII locale codec.
+reply = 'import sys; sys.stdout.buffer.write(%s.encode())' % ascii(text)
 assert run_reviewer([sys.executable, '-c', reply], timeout=30).stdout == text
 worker = ('import json, sys\nfor line in sys.stdin.buffer:\n sys.stdout.buffer.write('
-          '(json.dumps({"ok": True, "content": %r}, ensure_ascii=False) + "\\n").encode())\n'
-          ' sys.stdout.flush()\n' % text)
+          '(json.dumps({"ok": True, "content": %s}, ensure_ascii=False) + "\\n").encode())\n'
+          ' sys.stdout.flush()\n' % ascii(text))
 provider = SubprocessJsonlProvider('fixture', {'repo_path': tempfile.mkdtemp(),
                                                'command': [sys.executable, '-u', '-c', worker]})
 case = EvalCase('one', 'One', 'https://example.invalid', 'static', [])
