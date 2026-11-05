@@ -78632,6 +78632,271 @@
       "artifact": "Alpha\n\n#### $10\n\n##### Blue machine\n\n2 reviews\n",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "nested-indented-links-named-records-complete",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "\n    [Nav](https://allowed.example/nav)\n\n        [First item](https://allowed.example/item/1)\n\n            [Second\n                item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "nested-indented-links-wrong-path-incomplete",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "\n    [Nav](https://allowed.example/nav)\n\n        [First item](https://allowed.example/about)\n\n            [Second\n                item](https://allowed.example/help)\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "nested-indented-links-product-records-complete",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "\n    [Nav](https://shop.example/nav)\n\n        [![Alpha](https://shop.example/a.png)\n\n            Alpha\n\n            $10](https://shop.example/a)\n\n        [![Beta](https://shop.example/b.png)\n\n            Beta\n\n            $20](https://shop.example/b)\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "nested-indented-links-product-without-price-incomplete",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "\n    [Nav](https://shop.example/nav)\n\n        [![Alpha](https://shop.example/a.png)\n\n            Alpha\n\n            ](https://shop.example/a)\n\n        [![Beta](https://shop.example/b.png)\n\n            Beta\n\n            ](https://shop.example/b)\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "nested-indented-links-declared-markdown-literal",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "\n    [Nav](https://allowed.example/nav)\n\n        [First item](https://allowed.example/item/1)\n\n            [Second\n                item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "two-depth-indented-links-stay-literal",
+      "category": "format-normalization",
+      "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://allowed.example/",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "allowed.example"
+          ],
+          "entry_path": "^/item/\\d+$",
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "\n    [First item](https://allowed.example/item/1)\n\n        [Second item](https://allowed.example/item/2)\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "cjk-spaced-anchor-matches-link-label",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "登录"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[登 录](https://example.test/login)",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "cjk-spaced-anchor-matches-declared-plain-text",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "登录"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "首页 登 录",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "cjk-spaced-other-label-rejected",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "登录"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[登 出](https://example.test/logout)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "latin-split-words-do-not-match-joined-anchor",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "login"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[log in](https://example.test/login)",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "latin-joined-word-does-not-match-split-anchor",
+      "category": "format-normalization",
+      "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "label",
+              "alternatives": [
+                "log in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "[login](https://example.test/login)",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

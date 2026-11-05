@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "990ab7aea8f4ba95d0bdcdae9b555c980dba982851dd5afa0c853ee3a7b38a7a"
+          "after_sha256": "0d8d03dd897cfee58c50e2bbe851fe28ef1c0bd7e382faa5ac7d86ef98804d17"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -84,7 +84,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "6541cee44b73a2308b0f94efb7f8b7d95a198940ee70b0c969e62ca81e168f1e"
+          "after_sha256": "3da8fa5b56bb0aba7703c7ac3e3b5d8055c8aeef159d9ed8bd166e52ad614d51"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "d1f062dcb4d8d8e52ebbbcda61ef870f134ac37150ae8af3e83f4340fc58fa24"
+          "after_sha256": "0924606f47a02ceaaadf6e97e70ffc16d140dd92cd48bb642775ffa84495af90"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3970,6 +3970,40 @@
             "product-plain-title-above-heading-price-complete",
             "product-plain-title-above-heading-price-and-heading-complete",
             "catalog-plain-title-above-heading-price-deeper-description-complete"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "root_cause": "A serializer that keeps source-HTML nesting left link lines at three or more depths inside indented blocks, so an undeclared answer's links were read as code and parsed to no records. Declared Markdown and shallower code examples stay literal.",
+          "regression_ids": [
+            "nested-indented-links-named-records-complete",
+            "nested-indented-links-wrong-path-incomplete",
+            "nested-indented-links-product-records-complete",
+            "nested-indented-links-product-without-price-incomplete",
+            "nested-indented-links-declared-markdown-literal",
+            "two-depth-indented-links-stay-literal"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py",
+            "stable_tasks.py"
+          ],
+          "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors matched through the plain-text view failed on a label split by an inline DOM boundary, such as '登 录'. Latin word boundaries stay significant.",
+          "regression_ids": [
+            "cjk-spaced-anchor-matches-link-label",
+            "cjk-spaced-anchor-matches-declared-plain-text",
+            "cjk-spaced-other-label-rejected",
+            "latin-split-words-do-not-match-joined-anchor",
+            "latin-joined-word-does-not-match-split-anchor"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"
