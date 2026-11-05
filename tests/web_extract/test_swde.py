@@ -1935,6 +1935,24 @@ def test_record_assessment_preserves_dataset_schema_in_report_input(source_revis
     assert rows[1]["normalized_fields"] == {"title": ["Engineer & Co"]}
 
 
+def test_historical_projection_reproduces_without_rewriting_creation_identity(
+    source_revision_run, tmp_path
+):
+    home, run, _, _ = source_revision_run
+    assessment = tmp_path / "historical-assessment.json"
+    saved = pipeline.score_run(home, run, reproject=True, output=assessment)
+    saved["projection_revision"]["pipeline_sha256"] = "a" * 64
+    pipeline.save_json(assessment, saved)
+    frozen = assessment.read_bytes()
+    actual = pipeline.score_run(home, run, reproject=True, output=assessment, verify_existing=True)
+    assert actual == saved
+    assert assessment.read_bytes() == frozen
+    saved["scores"] = {}
+    pipeline.save_json(assessment, saved)
+    with pytest.raises(ValueError, match="Existing score differs"):
+        pipeline.score_run(home, run, reproject=True, output=assessment, verify_existing=True)
+
+
 def test_record_adjudication_rejects_another_review_of_same_sources(
     record_audit_material, tmp_path
 ):

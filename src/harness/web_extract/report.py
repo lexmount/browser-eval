@@ -345,7 +345,9 @@ def cohort_source(source, selection, home, truth):
             assessment_path = Path(assessment["path"])
             if digest(assessment_path.read_bytes()) != assessment["sha256"]:
                 raise ValueError("Field projection assessment changed")
-            saved = score_run(home, source, reproject=True, output=assessment_path)
+            saved = score_run(
+                home, source, reproject=True, output=assessment_path, verify_existing=True
+            )
             rows = [
                 {
                     **r,

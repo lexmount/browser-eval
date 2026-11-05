@@ -1869,7 +1869,15 @@ def check_record_projection_controls():
     return list(RECORD_PROJECTION_REGRESSIONS)
 
 
-def score_run(home: Path, run: Path, *, reproject=False, output=None, reference_revision=None):
+def score_run(
+    home: Path,
+    run: Path,
+    *,
+    reproject=False,
+    output=None,
+    reference_revision=None,
+    verify_existing=False,
+):
     """Score the declared population; retain empty predictions for failed calls."""
     require_external_output(Path(output) if output else run / "scores.json")
     if output and (
@@ -2006,6 +2014,18 @@ def score_run(home: Path, run: Path, *, reproject=False, output=None, reference_
         run / "scores.json"
     ).resolve():
         raise ValueError("A correction must preserve original scores")
+    if verify_existing:
+        if not reproject or not output or not target.is_file():
+            raise ValueError("Projection verification requires an existing revision")
+        # A frozen revision records the implementation that created it. Reproduce
+        # its scores and correction scope without claiming today's code created it.
+        previous = read_json(target)
+        recorded_pipeline = previous.get("projection_revision", {}).get("pipeline_sha256")
+        if not isinstance(recorded_pipeline, str) or not re.fullmatch(
+            r"[0-9a-f]{64}", recorded_pipeline
+        ):
+            raise ValueError("Invalid recorded projection implementation")
+        result["projection_revision"]["pipeline_sha256"] = recorded_pipeline
     if target.exists():
         if read_json(target) != result:
             raise ValueError("Existing score differs; use an explicit correction")
