@@ -857,7 +857,19 @@ def test_record_audit_retains_model_disagreement_and_source_bound_final_decision
     assert source["source_decisions"]["title"] == decision
 
 
-@pytest.mark.parametrize("scope", ["current", "missing", "unchanged-extra", "stale-identity"])
+@pytest.mark.parametrize(
+    "scope",
+    [
+        "current",
+        "missing",
+        "unchanged-extra",
+        "stale-identity",
+        "later-dispute",
+        "later-value-dispute",
+        "same-proposal-new-wording",
+        "covered-later-dispute",
+    ],
+)
 def test_record_audit_supplemental_review_covers_only_changed_repair_identities(
     record_audit_material, tmp_path, monkeypatch, scope
 ):
@@ -883,8 +895,37 @@ def test_record_audit_supplemental_review_covers_only_changed_repair_identities(
     assert len(packet["cases"]) == len(packet["cases"][0]["outputs"]) == 1
     opinion = pipeline.read_json(works[0] / "reviews/000.json")
     opinion["cases"] = [c for c in opinion["cases"] if c["case_id"] == "book-a-0001"]
+    if scope in {"later-dispute", "covered-later-dispute"}:
+        opinion["cases"][0]["reference"]["author"].update(
+            status="ambiguous", reason="Later source-scope dispute"
+        )
+    elif scope == "later-value-dispute":
+        opinion["cases"][0]["reference"]["author"].update(
+            values=[], reason="Later proposed absence"
+        )
+    elif scope == "same-proposal-new-wording":
+        opinion["cases"][0]["reference"]["author"]["reason"] = (
+            "Same proposed reference correction, rephrased"
+        )
     pipeline.save_json(work / "reviews/000.json", opinion)
     pipeline.save_json(work / "reviewer.json", {"model": "synthetic-current-execution-review"})
+    if scope == "covered-later-dispute":
+        adjudication = tmp_path / "current-dispute-adjudication"
+        selected = review.prepare_adjudication(
+            works[0], adjudication, tmp_path / "rules.txt", additional_priors=[work]
+        )
+        originals = {
+            c["case_id"]: c for c in pipeline.read_json(works[0] / "reviews/000.json")["cases"]
+        }
+        for entry in selected["packets"]:
+            packet = review.read_packet(Path(entry["path"]))
+            pipeline.save_json(
+                adjudication / "reviews" / Path(entry["path"]).name,
+                {"cases": [{**originals[c["case_id"]], "outputs": []} for c in packet["cases"]]},
+            )
+        pipeline.save_json(
+            adjudication / "reviewer.json", {"model": "synthetic-current-adjudicator"}
+        )
     if scope == "unchanged-extra":
         # A second complete review is not a valid supplement for one changed identity.
         work = works[1]
@@ -909,8 +950,10 @@ def test_record_audit_supplemental_review_covers_only_changed_repair_identities(
         reference_revision=authority,
         supplemental=None if scope == "missing" else work,
     )
-    if scope != "current":
-        with pytest.raises(ValueError, match="supplemental|current native execution"):
+    if scope not in {"current", "covered-later-dispute", "same-proposal-new-wording"}:
+        with pytest.raises(
+            ValueError, match="supplemental|current native execution|different predecessor reviews"
+        ):
             review.assemble_record(home, content, works, output, **kwargs)
     else:
         review.assemble_record(home, content, works, output, **kwargs)

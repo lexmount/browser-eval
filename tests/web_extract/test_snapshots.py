@@ -394,6 +394,9 @@ def test_cloudflare_discovers_and_reuses_existing_dataset_service(home, tmp_path
 
 
 def test_external_host_requires_no_cloudflare_credentials(home, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        snapshots, "check_manifest", lambda *a: (_ for _ in ()).throw(ValueError("No manifest"))
+    )
     monkeypatch.setattr(snapshots, "verify", lambda *a, **k: {"pages": [], "verified_pages": 1})
     with patch("harness.web_fetch.config.repository_env") as credentials:
         result = snapshots.host(
@@ -752,6 +755,9 @@ def test_entire_snapshot_is_identified_by_one_version_manifest(home, tmp_path, m
 
 
 def test_external_hosting_remains_usable_without_cloudflare_manifest(home, tmp_path, monkeypatch):
+    monkeypatch.setattr(
+        snapshots, "check_manifest", lambda *a: (_ for _ in ()).throw(ValueError("No manifest"))
+    )
     monkeypatch.setattr(snapshots, "verify", lambda *a, **k: {"verified_pages": 1, "pages": []})
     snapshots.host(
         home,
@@ -765,6 +771,40 @@ def test_external_hosting_remains_usable_without_cloudflare_manifest(home, tmp_p
     assert plan["public_snapshots"]["hosting_provider"] == "external"
     assert "snapshot_manifest" not in plan["public_snapshots"]
     assert plan["public_snapshots"]["huggingface"]["revision"] == "a" * 40
+
+
+@pytest.mark.parametrize(
+    "origin", ["https://external.example", "https://external.example/team/dataset"]
+)
+def test_external_host_manifest_output_is_usable_as_record_preview(
+    home, tmp_path, monkeypatch, origin
+):
+    from unittest.mock import MagicMock
+
+    from harness.web_extract.report import record_preview
+
+    manifest = build_snapshot({"example": home}, tmp_path / "external-site")
+    response = MagicMock(status_code=200)
+    response.url = origin + "/snapshots.json"
+    response.content = json.dumps(manifest).encode()
+    response.json.return_value = manifest
+    monkeypatch.setattr(snapshots, "check_manifest", CHECK_MANIFEST)
+    with patch("requests.get", return_value=response):
+        output = tmp_path / "external-manifest.json"
+        snapshots.host(home, output, provider="external", public_base=origin)
+        hosted = snapshots.read_json(output)
+        base = hosted["snapshot_manifest"]["fixture_base"]
+        preview = record_preview(
+            home,
+            {
+                "snapshot_base": base,
+                "preview_snapshot": {"path": str(output), "sha256": digest(output.read_bytes())},
+            },
+            local_example=False,
+        )
+    assert preview == hosted["snapshot_manifest"]
+    assert preview["case_count"] == 1
+    assert hosted["hosting_provider"] == "external"
 
 
 def test_snapshot_publication_reserves_receipt_before_remote_change(tmp_path, monkeypatch, capsys):

@@ -473,8 +473,14 @@ def host(
     if provider == "external":
         if not public_base:
             raise ValueError("External hosting requires a public HTTPS base URL")
-        binding = bind(public_base)
-        receipt = verify({name: home}, binding)
+        try:
+            receipt = check_manifest(home, public_base, hf_identity)
+        except (ValueError, requests.HTTPError):
+            binding = bind(public_base)
+            receipt = verify({name: home}, binding)
+        else:
+            binding = bind(receipt["fixture_base"])
+            binding["snapshot_manifest"] = receipt
         state = "external_verified"
     elif provider == "cloudflare":
         credentials = repository_env()
@@ -722,7 +728,10 @@ def check_manifest(home, origin, hf_identity):
 
 def verify_bound_manifest(home, bound, fixture_base):
     """Recheck a frozen dataset manifest before collection or failure repair."""
-    origin = "https://" + urlsplit(bound["manifest_url"]).netloc
+    manifest_url = bound.get("manifest_url", "")
+    if not manifest_url.endswith("/snapshots.json"):
+        raise ValueError("Frozen dataset snapshot manifest URL changed")
+    origin = manifest_url.removesuffix("/snapshots.json")
     receipt = check_manifest(home, origin, bound["huggingface"])
     if receipt != bound or receipt["fixture_base"] != fixture_base:
         raise ValueError("Frozen dataset snapshot manifest changed")

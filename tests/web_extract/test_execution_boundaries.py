@@ -36,6 +36,50 @@ def accepted(*args, **kwargs):
     }
 
 
+@pytest.mark.parametrize("budget", [0, 2, True, "3", 24])
+def test_product_call_budget_is_validated_before_dispatch(tmp_path, budget):
+    home = create(tmp_path / "example")
+    with collection_context(), patch("harness.web_extract.pipeline.provider_call") as call:
+        with pytest.raises(ValueError, match="Physical call budget"):
+            probe(
+                home,
+                ["cloudflare-json"],
+                full=True,
+                run_dir=home / "runs/budget",
+                maximum_physical_calls=budget,
+            )
+        call.assert_not_called()
+
+
+def test_product_call_budget_includes_access_retries_and_is_frozen_on_resume(tmp_path):
+    from harness.web_extract.pipeline import read_json
+
+    home = create(tmp_path / "example")
+    run = home / "runs/budget"
+    with (
+        collection_context(),
+        patch(
+            "harness.web_extract.pipeline.provider_call",
+            return_value={"http_status": 402, "response": {"error": "Insufficient credits"}},
+        ) as call,
+    ):
+        with pytest.raises(PermissionError):
+            probe(home, ["cloudflare-json"], full=True, run_dir=run, maximum_physical_calls=3)
+        assert call.call_count == 1
+    assert read_json(run / "contract.json")["maximum_physical_calls"] == 3
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        with pytest.raises(ValueError, match="Resume physical call budget changed"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=run, maximum_physical_calls=4)
+        call.assert_not_called()
+        with pytest.raises(PermissionError, match="physical call budget exhausted"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=run, maximum_physical_calls=3)
+        assert call.call_count == 2
+    assert len((run / "calls.journal.jsonl").read_text().splitlines()) == 3
+
+
 @pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
 @pytest.mark.parametrize("header", ["Authorization", "X-BB-API-Key", "SGAI-APIKEY"])
 def test_native_redirect_retains_response_without_sending_credentials_to_target(

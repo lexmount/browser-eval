@@ -978,25 +978,6 @@ def assemble_record(
                 predecessor_claims.setdefault(opinion["case_id"], []).append(
                     (str(review_path), opinion["reference"])
                 )
-    for work in adjudications:
-        bound = read_manifest(work)["bindings"]
-        if any(name in bound and bound[name] != sha for name, sha in predecessors.items()):
-            raise ValueError("Record adjudication belongs to different predecessor reviews")
-        cases, opinions = retain(work, "record-reference-adjudication/1")
-        for cid, case in cases.items():
-            source_case(cid, case)
-            claims = case.get("prior_reference_findings", {})
-            if set(claims) != set(truth[cid]["values"]) or any(
-                not any(
-                    bound.get(name) == predecessors[name] and findings[field] == claim
-                    for name, findings in predecessor_claims[cid]
-                )
-                for field, claim in claims.items()
-            ):
-                raise ValueError("Record adjudication belongs to different predecessor reviews")
-            if cid in resolved or case["outputs"] or not case.get("benchmark_rules"):
-                raise ValueError("Duplicate or unbound record reference adjudication")
-            resolved[cid] = opinions[cid]
     references = copy.deepcopy(truth)
     policy = {"unavailable_reference_groups": [], "text_matching": "literal"}
     source_decisions = {}
@@ -1007,6 +988,54 @@ def assemble_record(
             (d["case_id"], d["field"]): d for d in revision.get("field_decisions", [])
         }
     unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
+
+    def reference_claim(finding):
+        # The proposal is its status and accepted value set. Quotes and reasons
+        # remain hash-bound evidence, but rewording alone is not a new proposal.
+        return finding["status"], tuple(sorted(finding["values"]))
+
+    for work in adjudications:
+        bound = read_manifest(work)["bindings"]
+        if any(name in bound and bound[name] != sha for name, sha in predecessors.items()):
+            raise ValueError("Record adjudication belongs to different predecessor reviews")
+        cases, opinions = retain(work, "record-reference-adjudication/1")
+        for cid, case in cases.items():
+            source_case(cid, case)
+            claims = [
+                case.get("prior_reference_findings", {}),
+                *case.get("additional_prior_reference_findings", []),
+            ]
+            current = predecessor_claims[cid]
+            # New disputes need current adjudication claims or an independently
+            # validated source-node decision for that field; old opinions alone
+            # cannot resolve them. Identical claims may share one bound source.
+            if any(
+                set(claim) != set(truth[cid]["values"])
+                or not any(
+                    bound.get(name) == predecessors[name] and findings == claim
+                    for name, findings in current
+                )
+                for claim in claims
+            ) or any(
+                any(
+                    (
+                        finding["status"] in ("incorrect", "ambiguous")
+                        or (finding["status"] == "absent" and truth[cid]["values"][field])
+                    )
+                    and not any(
+                        reference_claim(claim[field]) == reference_claim(finding)
+                        for claim in claims
+                    )
+                    and (cid, field) not in source_decisions
+                    and (truth[cid]["domain"], truth[cid]["site"], field) not in unavailable
+                    for field, finding in findings.items()
+                )
+                for name, findings in current
+            ):
+                raise ValueError("Record adjudication belongs to different predecessor reviews")
+            if cid in resolved or case["outputs"] or not case.get("benchmark_rules"):
+                raise ValueError("Duplicate or unbound record reference adjudication")
+            resolved[cid] = opinions[cid]
     matching = adapter.canonical_text if policy["text_matching"] == "whitespace" else str
     unresolved, final_sources = [], {}
     for cid, prior in sources.items():
@@ -1033,7 +1062,7 @@ def assemble_record(
             if group in unavailable:
                 continue
             reason = None
-            if disputed and cid not in resolved:
+            if disputed and cid not in resolved and (cid, field) not in source_decisions:
                 reason = "Disputed reference requires source adjudication"
             elif (cid, field) in source_decisions:
                 # Source-bound final decisions retain, rather than overwrite, model findings.

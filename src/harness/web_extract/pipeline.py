@@ -1555,6 +1555,7 @@ def _probe_unlocked(
         from harness.web_extract.dataset import task_bindings
 
         requested.update(task_bindings(home))
+    if benchmark_config(home)["adapter"] is not None or maximum_physical_calls is not None:
         matrix_size = len(case_ids) * len(methods)
         maximum = matrix_size + 20 if maximum_physical_calls is None else maximum_physical_calls
         if type(maximum) is not int or not matrix_size <= maximum <= matrix_size + 20:
