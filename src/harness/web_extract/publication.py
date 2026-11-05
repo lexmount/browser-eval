@@ -21,6 +21,18 @@ def publish(source, target, work, visual_receipt, *, transport=None):
         or not bound.get("expected_version", "").startswith("ver_")
     ):
         raise ValueError("Publication requires this report's complete existing target binding")
+    manifest = read_json(source / "report-manifest.json")
+    previous = bound.get("profile_sha256") or bound.get("profile", {}).get("sha256")
+    current = manifest.get("profile_sha256")
+    successor = bound.get("approved_profile_successor")
+    if (
+        not previous
+        or not current
+        or (current != previous and successor != {"from_sha256": previous, "to_sha256": current})
+    ):
+        raise ValueError(
+            "Report profile differs from its publication target; approve its successor"
+        )
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     if archive.exists():
@@ -58,6 +70,7 @@ def publish(source, target, work, visual_receipt, *, transport=None):
             "archive_sha256": proof["archive_sha256"],
             "report_manifest_sha256": proof["report_manifest_sha256"],
         }
+        updated.pop("approved_profile_successor", None)
         atomic_write(target, json_bytes(updated))
 
     version = publish_staged_update(

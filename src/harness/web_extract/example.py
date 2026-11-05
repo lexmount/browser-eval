@@ -287,7 +287,7 @@ def create_record(output: Path, *, language="zh"):
         "mode": "field-extraction-cohort",
         "title": "多值字段合成示例",
         "dataset_manifest": str(root / "manifest.json"),
-        "participants": {m: {"label": m} for m in ("fixture-a", "fixture-b")},
+        "participants": {m: {"label": m} for m in ("scrapegraph-extract", "firecrawl-json")},
         "evidence_runs": [],
         "snapshot_base": "https://example.org/frozen",
         "prices": {
@@ -297,7 +297,7 @@ def create_record(output: Path, *, language="zh"):
                 "verified_at": "2026-01-01",
                 "sources": ["https://example.org/pricing"],
             }
-            for m in ("fixture-a", "fixture-b")
+            for m in ("scrapegraph-extract", "firecrawl-json")
         },
     }
     plan = {
@@ -334,14 +334,16 @@ def create_record(output: Path, *, language="zh"):
         )
         entries = []
         for i, cid in enumerate(truth):
-            if method == "fixture-b" and i > 0:
+            if method == "firecrawl-json" and i > 0:
                 continue
             good = i != 2
             row = {
                 "case_id": cid,
                 "method": method,
                 "http_status": 200 if good else 422,
-                "response": {"json": {"title": ["Example"], "author": ["A"]}}
+                "response": {
+                    "json": {"title": ["Example"], "author": ["A", "B"] if i == 0 else ["A"]}
+                }
                 if good
                 else {"error": "Synthetic navigation timeout"},
                 "normalized_fields": {
@@ -355,6 +357,8 @@ def create_record(output: Path, *, language="zh"):
                 "state": "response_received",
                 "input_sha256": digest((root / "html" / (cid + ".html")).read_bytes()),
             }
+            if good and method == "firecrawl-json":
+                row["response"] = {"data": row["response"]}
             dest = run / "calls" / (cid + ".json")
             save_json(dest, row)
             entries.append(

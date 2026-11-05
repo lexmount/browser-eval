@@ -20,6 +20,7 @@ def setup_report(tmp_path):
             "expected_version": "ver_before",
             "title": "Existing report",
             "visibility": "private",
+            "profile_sha256": "profile",
             "profile": {"path": "profile.json"},
         },
     )
@@ -62,6 +63,34 @@ def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
     with pytest.raises(ValueError, match="complete existing target"):
         publication.publish(source, target, work, visual)
     assert not work.exists()
+
+
+@pytest.mark.parametrize("approved", [False, True])
+def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch, approved):
+    source, target, work, visual = setup_report(tmp_path)
+    save_json(source / "report-manifest.json", {"profile_sha256": "new-profile"})
+    bound = read_json(target)
+    if approved:
+        bound["approved_profile_successor"] = {"from_sha256": "profile", "to_sha256": "new-profile"}
+        save_json(target, bound)
+    called = []
+    monkeypatch.setattr(
+        publication,
+        "package",
+        lambda *a, **k: (
+            called.append("package")
+            or {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+        ),
+    )
+    monkeypatch.setattr(publication, "publish_staged_update", lambda *a, **k: "ver_after")
+    if approved:
+        assert publication.publish(source, target, work, visual)["versionId"] == "ver_after"
+        assert called == ["package"]
+    else:
+        with pytest.raises(ValueError, match="profile differs"):
+            publication.publish(source, target, work, visual)
+        assert not called
+        assert not work.exists()
 
 
 def test_tampered_resume_package_never_dispatches(tmp_path, monkeypatch):

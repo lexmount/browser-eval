@@ -26,7 +26,12 @@ def generic_methods():
 
 def prepare(home: Path, source: Path):
     """Compile the predeclared site-balanced scope from an immutable source archive."""
-    from harness.web_extract.pipeline import digest, read_json, require_external_output
+    from harness.web_extract.pipeline import (
+        digest,
+        read_json,
+        require_external_output,
+        validate_dataset,
+    )
     from harness.web_fetch.safety import reject_evidence_symlinks
 
     require_external_output(home)
@@ -36,8 +41,6 @@ def prepare(home: Path, source: Path):
     if digest(source.read_bytes()) != card["source"]["archive_sha256"]:
         raise ValueError("SWDE source archive differs from the pinned release")
     if (home / "dataset/manifest.json").exists():
-        from harness.web_extract.pipeline import validate_dataset
-
         return validate_dataset(home, CARD)
     target = home / "dataset"
     if target.exists():
@@ -62,6 +65,7 @@ def prepare(home: Path, source: Path):
         root = Path(temporary) / "dataset"
         root.mkdir()
         manifest = _compile(home, source, card, root, scorer_bytes)
+        validate_dataset(root.parent, CARD)
         root.rename(target)
         return manifest
 
@@ -252,7 +256,7 @@ def qualify_reference_text(truth, html_pages):
                 nodes[value].append(
                     {
                         "xpath": tree.getroottree().getpath(node.getparent())
-                        + ("/tail" if node.is_tail else "/text()"),
+                        + ("/following-sibling::text()[1]" if node.is_tail else "/text()[1]"),
                         "text": str(node),
                     }
                 )

@@ -51,10 +51,15 @@ def distribution(tmp_path, monkeypatch):
     return source, profile, manifest
 
 
+@pytest.mark.parametrize("archived", [False, True])
 def test_clean_prepare_uses_public_inputs_and_offline_resume_never_calls_provider(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, archived
 ):
     source, profile, expected = distribution(tmp_path, monkeypatch)
+    if archived:
+        saved = read_json(profile)
+        saved["dataset"]["distribution"]["track"] = "web-" + "scraper"
+        save_json(profile, saved)
     home = tmp_path / "new-home"
     monkeypatch.setenv("HF_HUB_OFFLINE", "1")
     with patch("harness.web_extract.pipeline.request") as network:
@@ -195,7 +200,10 @@ def test_shared_publisher_reads_committed_extract_inputs_and_rejects_unknown_bin
 
 
 @pytest.mark.parametrize("damage", [None, "other-html", "other-upstream"])
-def test_report_distribution_requires_the_same_frozen_inputs(tmp_path, monkeypatch, damage):
+@pytest.mark.parametrize("archived", [False, True])
+def test_report_distribution_requires_the_same_frozen_inputs(
+    tmp_path, monkeypatch, damage, archived
+):
     from harness.web_extract.dataset import distribution_identity
 
     source, profile, manifest = distribution(tmp_path, monkeypatch)
@@ -220,6 +228,8 @@ def test_report_distribution_requires_the_same_frozen_inputs(tmp_path, monkeypat
         },
     )
     selection = {"track": "web-extract", "revision": "b" * 40}
+    if archived:
+        selection["track"] = "web-" + "scraper"
     if damage:
         with pytest.raises(ValueError, match="distribution"):
             distribution_identity(home, read_json(profile)["dataset"], selection)

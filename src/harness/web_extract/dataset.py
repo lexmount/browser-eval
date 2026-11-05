@@ -7,7 +7,7 @@ import importlib
 import tempfile
 from pathlib import Path
 
-from harness.benchmarks.data import binding, definition_path
+from harness.benchmarks.data import binding, canonical_source_name, definition_path
 from harness.record_io import bytes_sha256, read_json
 
 BENCHMARKS = {
@@ -77,12 +77,11 @@ def task_bindings(home):
 
 def distribution_identity(home: Path, pin, selection):
     """Link a published dataset only after matching the report's frozen inputs."""
-    if selection["track"] != "web-extract" or not selection.get("revision"):
+    track = canonical_source_name("tracks", selection["track"])
+    if track != "web-extract" or not selection.get("revision"):
         raise ValueError("Report dataset distribution requires a pinned Web Extract edition")
-    selected = binding(selection["track"], selection["revision"])
-    manifest = read_json(
-        definition_path(selection["track"], "runtime/manifest.json", selection["revision"])
-    )
+    selected = binding(track, selection["revision"])
+    manifest = read_json(definition_path(track, "runtime/manifest.json", selection["revision"]))
     if manifest["commit"] != pin["commit"] or manifest["cases"] != pin["cases"]:
         raise ValueError("Report dataset distribution belongs to different upstream inputs")
     html = {name for name in manifest["files"] if name.startswith("html/")}
@@ -93,7 +92,7 @@ def distribution_identity(home: Path, pin, selection):
         if expected != bytes_sha256((home / "dataset" / name).read_bytes()):
             raise ValueError("Report dataset distribution differs from frozen input: " + name)
     return {
-        "track": selection["track"],
+        "track": track,
         "repository": selected["repository"],
         "revision": selected["revision"],
         "archive_sha256": selected["archive"]["sha256"],
@@ -112,8 +111,9 @@ def verify_distribution(manifest, pin):
     revision = manifest.get("distribution_revision")
     if not revision:
         raise ValueError("Public dataset requires an immutable distribution revision")
-    selected = binding(selection["track"], revision)
-    expected = read_json(definition_path(selection["track"], selection["manifest"], revision))
+    track = canonical_source_name("tracks", selection["track"])
+    selected = binding(track, revision)
+    expected = read_json(definition_path(track, selection["manifest"], revision))
     if manifest != {**expected, "distribution_revision": selected["revision"]}:
         raise ValueError("Public dataset runtime inventory changed")
 
@@ -124,9 +124,10 @@ def materialize(home: Path, pin):
 
     require_external_output(home)
     selection = pin["distribution"]
-    selected = binding(selection["track"])
+    track = canonical_source_name("tracks", selection["track"])
+    selected = binding(track)
     revision = selected["revision"]
-    manifest = read_json(definition_path(selection["track"], selection["manifest"], revision))
+    manifest = read_json(definition_path(track, selection["manifest"], revision))
     if manifest["commit"] != pin["commit"] or manifest["cases"] != pin["cases"]:
         raise ValueError("Public dataset differs from the selected upstream cohort")
     if set(manifest["source_files"]) != set(manifest["files"]) or any(
@@ -145,7 +146,7 @@ def materialize(home: Path, pin):
             if Path(name).is_absolute() or ".." in Path(name).parts:
                 raise ValueError("Unsafe runtime input path")
             source = manifest["source_files"][name]
-            raw = definition_path(selection["track"], source["path"], revision).read_bytes()
+            raw = definition_path(track, source["path"], revision).read_bytes()
             if source.get("compression") == "gzip":
                 raw = gzip.decompress(raw)
             elif source.get("compression") is not None:

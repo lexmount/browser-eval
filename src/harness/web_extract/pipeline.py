@@ -1465,6 +1465,10 @@ def _probe_unlocked(
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
         raise ValueError("Select supported methods explicitly")
+    if benchmark_config(home)["adapter"] is not None and any(
+        not METHODS[method].get("custom_schema") for method in methods
+    ):
+        raise ValueError("Record datasets require methods supporting a custom schema")
     if benchmark_config(home)["adapter"] is None and any(
         METHODS[method].get("requires_custom_schema") for method in methods
     ):

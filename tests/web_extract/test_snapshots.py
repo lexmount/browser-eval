@@ -549,7 +549,10 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     )
 
 
-def test_approved_unchanged_proposal_deploys_and_checks_new_pages(home, tmp_path, monkeypatch):
+@pytest.mark.parametrize("receipt_mode", ["normal", "symlink", "unwritable", "persist-error"])
+def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
+    home, tmp_path, monkeypatch, capsys, receipt_mode
+):
     from unittest.mock import MagicMock
 
     old = MagicMock(status_code=200)
@@ -588,13 +591,47 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(home, tmp_path
             snapshots.host(home, proposal, provider="cloudflare", project="shared")["state"]
             == "approval_required"
         )
+    output = tmp_path / "host.json"
+    original_write = snapshots.save_json
+    if receipt_mode == "symlink":
+        linked = tmp_path / "linked"
+        linked.symlink_to(tmp_path, target_is_directory=True)
+        output = linked / "host.json"
+    elif receipt_mode in {"unwritable", "persist-error"}:
+
+        def write(path, data, **kwargs):
+            if path == output and (
+                (receipt_mode == "unwritable" and kwargs.get("exclusive"))
+                or (
+                    receipt_mode == "persist-error"
+                    and data.get("state") == "deployed_pending_verification"
+                )
+            ):
+                raise PermissionError("Synthetic unwritable receipt")
+            return original_write(path, data, **kwargs)
+
+        monkeypatch.setattr(snapshots, "save_json", write)
     with (
         patch("requests.get", side_effect=cf_lookup(old, new)),
         patch("subprocess.run", return_value=MagicMock(returncode=0)) as deploy,
+        patch("requests.post") as create_project,
     ):
+        if receipt_mode != "normal":
+            with pytest.raises((ValueError, PermissionError)):
+                snapshots.host(
+                    home, output, provider="cloudflare", project="shared", approve_plan=proposal
+                )
+            if receipt_mode == "persist-error":
+                assert deploy.called
+                assert '"deployment_id": "new"' in capsys.readouterr().out
+                assert snapshots.read_json(output)["state"] == "pending"
+            else:
+                deploy.assert_not_called()
+                create_project.assert_not_called()
+            return
         result = snapshots.host(
             home,
-            tmp_path / "host.json",
+            output,
             provider="cloudflare",
             project="shared",
             approve_plan=proposal,

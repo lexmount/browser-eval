@@ -1679,7 +1679,10 @@ def test_review_batch_size_is_validated_before_any_io(tmp_path, batch_size, adju
 
 
 @pytest.mark.parametrize("field", ["price", "sku", "availability"])
-def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_path, field):
+@pytest.mark.parametrize("finding_status", ["ambiguous", "absent"])
+def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(
+    tmp_path, field, finding_status
+):
     from harness.web_extract.report import build, check
     from harness.web_extract.review import assemble, prepare, prepare_adjudication
 
@@ -1689,7 +1692,7 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_p
     for entry in manifest["packets"]:
         payload = review_payload(read_packet(Path(entry["path"])))
         for case in payload["cases"]:
-            case["reference"][field]["status"] = "ambiguous"
+            case["reference"][field]["status"] = finding_status
         save_json(work / "reviews" / Path(entry["path"]).name, payload)
     save_json(work / "reviewer.json", {"model": "synthetic-test"})
     for name in ("supplemental", "adjudication"):
@@ -1702,9 +1705,22 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_p
     for entry in adjudication["packets"]:
         payload = review_payload(read_packet(Path(entry["path"])))
         for case in payload["cases"]:
-            case["reference"][field]["status"] = "ambiguous"
+            case["reference"][field]["status"] = finding_status
         save_json(tmp_path / "adjudication/reviews" / Path(entry["path"]).name, payload)
     audit_path = tmp_path / "audit.json"
+    if finding_status == "absent" and field != "price":
+        with pytest.raises(ValueError, match="Absent nonempty reference"):
+            assemble(
+                home,
+                home / "content.json",
+                work,
+                tmp_path / "supplemental",
+                tmp_path / "adjudication",
+                audit_path,
+                profile=home / "profile.json",
+            )
+        assert not audit_path.exists()
+        return
     audit = assemble(
         home,
         home / "content.json",
@@ -1714,6 +1730,10 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(tmp_p
         audit_path,
         profile=home / "profile.json",
     )
+    if finding_status == "absent":
+        assert audit["unresolved"] == 0
+        assert not audit["reference_changes"]
+        return
     for scores in audit["audited_scores"].values():
         for excluded in [field, "OutOfStock"] if field == "availability" else [field]:
             assert scores[excluded] == {"precision": None, "recall": None, "f1": None, "cases": 0}

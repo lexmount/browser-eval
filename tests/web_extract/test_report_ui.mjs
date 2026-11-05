@@ -33,7 +33,7 @@ const control = key => controls.find(x => x.dataset.resultFilter === key);
 const rows = [
   {dataset: {method: 'a', status: 'pass', price: 'correct', outcome: 'correct', search: 'alpha'}},
   {dataset: {method: 'b', status: 'fail', price: 'missing', outcome: 'wrong', stage: 'model_capacity', search: 'beta CAPACITY'}},
-  {dataset: {method: 'b', status: 'pending', outcome: 'pending', search: 'not executed'}},
+  {dataset: {method: 'b', status: 'pending', price: 'pending', outcome: 'pending', search: 'not executed'}},
 ];
 const form = {querySelectorAll() { return controls; }};
 const count = new Element('output');
@@ -264,3 +264,9 @@ for (const [status, hidden] of [['all', false], ['pass', true], ['fail', true]])
 control('field').value = 'author';control('status').value = 'pass';control('status').listeners.change();
 assert.equal(unannotated.hidden, false, 'Scored fields on the same record remain selectable');
 console.log('PASS: same-document modal navigation and unannotated-field quality subsets');
+const pendingBook = {dataset: {method: 'a', status: 'pending', outcome: 'pending', author: 'pending'}};
+const pendingCar = {dataset: {method: 'a', status: 'pending', outcome: 'pending', model: 'pending'}};
+rows.push(pendingBook, pendingCar);
+control('field').value = 'author';control('status').value = 'all';control('status').listeners.change();
+assert.equal(pendingBook.hidden, false);
+assert.equal(pendingCar.hidden, true, 'Pending pages must request the selected field');

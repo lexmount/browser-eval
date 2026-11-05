@@ -182,10 +182,10 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
         (output / "zh" / (record_route("c", "three") + ".html")).read_text(encoding="utf-8"),
         "html.parser",
     )
-    assert len(failed.select("#fixture-a [data-result-summary]")) == 1
+    assert len(failed.select("#scrapegraph-extract [data-result-summary]")) == 1
     assert (
         "Synthetic navigation timeout"
-        in failed.select_one("#fixture-a [data-result-logs]").get_text()
+        in failed.select_one("#scrapegraph-extract [data-result-logs]").get_text()
     )
     assert "data-language-notice" in (output / "en/index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="Synthetic record evidence"):
@@ -198,6 +198,65 @@ def rebind(output, route, transform):
     manifest = read_json(output / "report-manifest.json")
     manifest["files"][route] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
+
+
+@pytest.mark.parametrize(
+    "damage", ["native", "field-value", "filter", "field-filter", "price", "image"]
+)
+def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    if damage == "native":
+        path = output / "public-evidence/scrapegraph-extract.json"
+        bucket = read_json(path)
+        bucket["one"]["response"]["json"]["author"] = ["Unsupported answer"]
+        save_json(path, bucket)
+        manifest = read_json(output / "report-manifest.json")
+        relative = path.relative_to(output).as_posix()
+        manifest["files"][relative] = digest(path.read_bytes())
+        for receipt in manifest["public_evidence_views"]:
+            if receipt["path"] == relative:
+                receipt["published_sha256"] = digest(path.read_bytes())
+                receipt["published_bytes"] = path.stat().st_size
+        save_json(output / "report-manifest.json", manifest)
+        error = "native response differs"
+    elif damage in {"filter", "field-filter"}:
+
+        def change(text):
+            soup = BeautifulSoup(text, "html.parser")
+            row = soup.select_one('tr[data-method="scrapegraph-extract"][data-status="pass"]')
+            row["data-outcome" if damage == "filter" else "data-author"] = "wrong"
+            return str(soup)
+
+        rebind(output, "zh/results.html", change)
+        error = "filter verdict"
+    elif damage == "field-value":
+
+        def change(text):
+            soup = BeautifulSoup(text, "html.parser")
+            soup.select_one("[data-record-fields] tbody tr td:nth-child(3)").string = "Wrong value"
+            return str(soup)
+
+        rebind(output, "zh/" + record_route("c", "one") + ".html", change)
+        error = "displayed fields"
+    elif damage == "price":
+
+        def change(text):
+            soup = BeautifulSoup(text, "html.parser")
+            soup.select_one("[data-price-table]").decompose()
+            return str(soup)
+
+        rebind(output, "zh/accounts.html", change)
+        error = "pricing coverage"
+    else:
+        rebind(
+            output,
+            "zh/interpretation.html",
+            lambda s: s.replace("</main>", '<img src="assets/missing.png"></main>'),
+        )
+        error = "Broken record evidence"
+    with pytest.raises(ValueError, match=error):
+        check(output)
 
 
 @pytest.mark.parametrize(
@@ -293,7 +352,7 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
 
     home = create(tmp_path / "initial", mode="field-extraction-cohort")
     model = read_json(home / "content.json")
-    model["participants"]["fixture-b"].update(
+    model["participants"]["firecrawl-json"].update(
         include_in_comparison=False, exclusion_reason="User omitted the interrupted participant"
     )
     save_json(home / "content.json", model)
@@ -303,8 +362,10 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     manifest = check(output)
-    assert manifest["comparison_methods"] == ["fixture-a"]
-    assert manifest["skipped_methods"] == {"fixture-b": "User omitted the interrupted participant"}
+    assert manifest["comparison_methods"] == ["scrapegraph-extract"]
+    assert manifest["skipped_methods"] == {
+        "firecrawl-json": "User omitted the interrupted participant"
+    }
     assert manifest["observations"] == 4
     assert (
         len(
@@ -413,7 +474,7 @@ def test_record_inventory_sorts_exact_counts_and_missing_timers_numerically(tmp_
     from harness.web_extract.report import build
 
     home = create(tmp_path / "initial", mode="field-extraction-cohort")
-    run = home / "runs/fixture-a"
+    run = home / "runs/scrapegraph-extract"
     entries = []
     for cid, seconds in zip(["one", "two", "three"], [10.0, 2.0, None], strict=True):
         path = run / "calls" / (cid + ".json")
@@ -429,7 +490,7 @@ def test_record_inventory_sorts_exact_counts_and_missing_timers_numerically(tmp_
     out = tmp_path / "new"
     build(out, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     soup = BeautifulSoup((out / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
-    rows = soup.select('tr[data-method="fixture-a"]')
+    rows = soup.select('tr[data-method="scrapegraph-extract"]')
     values = {row.select("td")[0].get_text(): row.select("td")[5].get("data-sort") for row in rows}
     assert values == {"one": "10.0", "two": "2.0", "three": ""}
     assert all(row.select("td")[4].get("data-sort").isdigit() for row in rows)

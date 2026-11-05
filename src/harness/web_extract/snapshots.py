@@ -416,6 +416,8 @@ def host(
 
     from harness.web_fetch.config import repository_env
 
+    require_external_output(output)
+    reserved = False
     if output.exists():
         raise ValueError("Snapshot output already exists")
     config = benchmark_config(home)
@@ -578,6 +580,8 @@ def host(
                     "HF version or Cloudflare deployment changed since approval; "
                     "approve a fresh proposal"
                 )
+            save_json(output, {"state": "pending", "proposal": proposal}, exclusive=True)
+            reserved = True
             if not existing:
                 created = requests.post(
                     api,
@@ -635,6 +639,17 @@ def host(
             response = requests.get(api + "/" + project, headers=headers, timeout=40)
             response.raise_for_status()
             deployment = response.json()["result"]["canonical_deployment"]
+            pending = {
+                "state": "deployed_pending_verification",
+                "proposal": proposal,
+                "cloudflare": {
+                    "project": project,
+                    "deployment_id": deployment["id"],
+                    "url": deployment["url"],
+                },
+            }
+            print(json.dumps(pending), flush=True)
+            save_json(output, pending)
             binding = bind(deployment["url"].rstrip("/") + "/" + name + "/" + version)
             receipt = check_manifest(home, deployment["url"], hf_identity)
             binding["snapshot_manifest"] = receipt
@@ -649,7 +664,7 @@ def host(
     binding["hosting_provider"] = provider
     binding["hosting_state"] = state
     binding["verification"] = receipt
-    save_json(output, binding, exclusive=True)
+    save_json(output, binding, exclusive=not reserved)
     return {
         "state": state,
         "pages": len(cases),

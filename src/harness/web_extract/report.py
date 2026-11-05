@@ -27,6 +27,7 @@ from harness.web_extract.analysis import (
 )
 from harness.web_extract.messages import message, messages_sha256, validate_catalog
 from harness.web_extract.pipeline import (
+    FIELDS,
     PROFILE,
     digest,
     execution_identity,
@@ -2103,7 +2104,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     if (method, cid) not in observed:
                         search = esc(cid + " " + truth[cid].get("url", ""), quote=True)
                         inventory.append(
-                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{message("not_executed", lang)}</td>'
+                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"'
+                            + "".join(
+                                " data-" + field + '="pending"' for field in (*FIELDS, "OutOfStock")
+                            )
+                            + f"><td>{esc(names.get(method, method))}</td><td><code>{cid[:12]}</code></td><td>{message('not_executed', lang)}</td>"
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )
@@ -2758,6 +2763,14 @@ def record_cohort_inputs(home, model, *, profile):
     return result
 
 
+def verify_record_projection(reference, row):
+    """The published native payload must support every scored record value."""
+    schema = {"type": "object", "properties": {field: {} for field in reference["values"]}}
+    fields = normalize(row["method"], row.get("response", {}), schema=schema)
+    if (fields or {}) != (row.get("normalized_fields") or {}):
+        raise ValueError("Record native response differs from its scored field projection")
+
+
 def record_result_fields(reference, row, *, policy=None):
     from harness.web_extract.analysis import record_field_results
 
@@ -2789,6 +2802,23 @@ def record_result_fields(reference, row, *, policy=None):
         if active and all(v["exact"] for v in active)
         else "field_difference",
     }
+
+
+def record_field_rows(row, language):
+    def t(key):
+        return message("records_" + key, language)
+
+    return [
+        [
+            esc(field),
+            esc(json.dumps(f["expected"], ensure_ascii=False)),
+            esc(json.dumps(f["actual"], ensure_ascii=False)),
+            message("outcomes_" + f["status"], language),
+            "—" if f["hit"] is None else t("yes") if f["hit"] else t("no"),
+            "—" if f["exact"] is None else t("yes") if f["exact"] else t("no"),
+        ]
+        for field, f in row["field_results"].items()
+    ]
 
 
 def record_route(kind, *identities):
@@ -2988,6 +3018,8 @@ def build_record_cohort(output, content, *, home, language, profile):
             host_names=publication_host_names(),
         )
         after = json.loads(raw)
+        for cid, row in after.items():
+            verify_record_projection(truth[cid], row)
         (output / "public-evidence" / (method + ".json")).write_bytes(raw)
         data["methods"][method]["results"] = after
         public_receipts.append(receipt)
@@ -3257,7 +3289,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         )
         + "</details>"
     )
-    bodies["accounts"] += usage_table(
+    bodies["accounts"] += price_table(methods, prices, language, labels) + usage_table(
         methods,
         [row for method in methods for row in data["methods"][method]["results"].values()],
         language,
@@ -3396,7 +3428,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + esc(ref["domain"])
                     + '" data-site="'
                     + esc(ref["site"])
-                    + '" data-search="'
+                    + '"'
+                    + "".join(" data-" + field + '="pending"' for field in schema["properties"])
+                    + ' data-search="'
                     + esc(cid + " " + ref["site"])
                     + '"><td>'
                     + esc(cid)
@@ -3411,17 +3445,6 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + "</td></tr>"
                 )
                 continue
-            field_rows = [
-                [
-                    esc(field),
-                    value(f["expected"]),
-                    value(f["actual"]),
-                    message("outcomes_" + f["status"], language),
-                    "—" if f["hit"] is None else t("yes") if f["hit"] else t("no"),
-                    "—" if f["exact"] is None else t("yes") if f["exact"] else t("no"),
-                ]
-                for field, f in row["field_results"].items()
-            ]
             short = status_labels[row["status"]]
             comparisons.append(
                 [
@@ -3465,7 +3488,8 @@ def build_record_cohort(output, content, *, home, language, profile):
                     t("hit"),
                     t("equal"),
                 ],
-                field_rows,
+                record_field_rows(row, language),
+                attrs="data-record-fields",
             )
             body += (
                 '<section data-failure-diagnosis data-result-logs id="result-logs-'
@@ -3824,6 +3848,8 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
     for method in manifest["planned_methods"]:
         rows = list(read_json(output / "public-evidence" / (method + ".json")).values())
+        for row in rows:
+            verify_record_projection(truth[row["case_id"]], row)
         recomputed = record_statistics(
             truth,
             rows,
@@ -3876,6 +3902,17 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         "html.parser",
     )
     home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    accounts = BeautifulSoup(
+        (output / "zh/accounts.html").read_text(encoding="utf-8"), "html.parser"
+    )
+    expected_price = BeautifulSoup(
+        price_table(
+            manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
+        ),
+        "html.parser",
+    ).select_one("[data-price-table]")
+    if accounts.select_one("[data-price-table]") != expected_price:
+        raise ValueError("Cost/pricing coverage differs from bound source")
     if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
         row.get_text(strip=True) for row in expected_operations.select("tbody tr")
     ]:
@@ -3912,8 +3949,39 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         inventory.select('tr[data-status="pending"]')
     ) != sum(x["unexecuted"] for x in metrics.values()):
         raise ValueError("Record inventory omits planned or pending results")
+    indexed = {(row.get("data-method"), row.select_one("td").get_text()): row for row in rows}
+    if set(indexed) != {(m, cid) for m in metrics for cid in truth}:
+        raise ValueError("Record inventory method/case population changed")
     for method in manifest["planned_methods"]:
         bucket = read_json(output / "public-evidence" / (method + ".json"))
+        for cid, ref in truth.items():
+            rendered = indexed[(method, cid)]
+            row = bucket.get(cid)
+            if row is None:
+                attrs = {"status": "pending", "outcome": "pending"}
+                attrs.update({field: "pending" for field in ref["values"]})
+            else:
+                derived = record_result_fields(ref, row, policy=manifest.get("reference_policy"))
+                if any(
+                    row.get(key) != derived[key]
+                    for key in (
+                        "field_results",
+                        "status",
+                        "exact_fields",
+                        "scored_fields",
+                        "failure_stage",
+                    )
+                ):
+                    raise ValueError("Record field judgments differ from native evidence")
+                attrs = {
+                    "status": "pass" if derived["status"] == "exact" else "fail",
+                    "outcome": "correct" if derived["status"] == "exact" else "wrong",
+                    "stage": derived["failure_stage"],
+                    **{f: v["status"] for f, v in derived["field_results"].items()},
+                }
+            attrs.update(domain=ref["domain"], site=ref["site"])
+            if any(rendered.get("data-" + key) != val for key, val in attrs.items()):
+                raise ValueError("Record inventory filter verdict differs from native evidence")
         for cid, row in bucket.items():
             detail = BeautifulSoup(
                 (output / "zh" / (record_route("c", cid) + ".html")).read_text(encoding="utf-8"),
@@ -3922,6 +3990,16 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             detail = detail.find("details", id=method)
             if detail is None:
                 raise ValueError("Record case page omits a participant detail")
+            expected_cells = [
+                [BeautifulSoup(cell, "html.parser").get_text(strip=True) for cell in cells]
+                for cells in record_field_rows(row, "zh")
+            ]
+            displayed = [
+                [cell.get_text(strip=True) for cell in tr.select("td")]
+                for tr in detail.select("[data-record-fields] tbody tr")
+            ]
+            if displayed != expected_cells:
+                raise ValueError("Record displayed fields differ from native evidence")
             button = detail.select_one("[data-call-log-open]")
             if (
                 button is None
@@ -3945,7 +4023,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 or soup.select_one('a[href="' + expected + '"]') is None
             ):
                 raise ValueError("Record preview URL differs from the verified dataset snapshot")
-        for node in soup.select("a[href],script[src],link[href]"):
+        for node in soup.select("a[href],script[src],link[href],img[src]"):
             value = node.get("href", node.get("src", ""))
             parsed = urlsplit(value)
             if node.name == "a" and (parsed.scheme in {"http", "https"} or parsed.netloc):

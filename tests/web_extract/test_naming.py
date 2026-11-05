@@ -8,6 +8,9 @@ def test_original_provider_names_and_source_references_are_preserved():
 
     for text in [
         'OFFICIAL_NAME = "Bright Data Web Scraper API"',
+        'OFFICIAL_NAME = "Oxylabs Web Scraper API"',
+        'OFFICIAL_NAME = "ScrapingBee API"',
+        'OFFICIAL_NAME = "Scraping Browser"',
         'OFFICIAL_NAME = "Web Scraper API"',
         'SOURCE = "https://brightdata.com/products/web-scraper"',
         'SDK = "PDFContentScrapingStrategy"',
@@ -48,6 +51,8 @@ def test_current_extract_names_cover_code_configuration_and_example_paths():
         ("src/harness/web_extract/report.py", 'LABEL = "' + retired + '"'),
         ("configs/report-templates.json", '{"tracks":{"' + retired + '":{}}}'),
         ("src/harness/" + retired.replace("-", "_") + "/cli.py", ""),
+        ("scripts/run_" + retired.replace("-", "_") + ".py", ""),
+        ("src/harness/" + retired.replace("-", "_") + "_report.py", ""),
         ("configs/report-templates.json", '"/tmp/' + retired.rsplit("-", 1)[-1] + "-example" + '"'),
     ]:
         assert extract_name_findings(name, text)

@@ -54,7 +54,7 @@ _EXTRACT_RETIRED = re.compile(
 
 def extract_name_findings(name: str, text: str) -> list[str]:
     """Keep current names canonical while preserving original source identities."""
-    if _EXTRACT_RETIRED.search(name):
+    if _EXTRACT_RETIRED.search(name.replace("_", "-")):
         return [f"{name}: use the current Web Extract namespace"]
     if name.startswith(("research/", "evaluation/")):
         return []

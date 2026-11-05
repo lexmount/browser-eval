@@ -1228,6 +1228,7 @@ def test_wholly_unavailable_reference_returns_no_quality_score():
     "source,label,expected,changed",
     [
         ("<p>AT&amp;T</p>", "AT&amp;T", "AT&T", True),
+        ("<p><b>Label:</b>AT&amp;T<i>End</i>AT&amp;T</p>", "AT&amp;T", "AT&T", True),
         ("<p>AT&amp;amp;T</p>", "AT&amp;T", "AT&amp;T", False),
         ("<p>AT&amp;amp;T</p><footer>AT&amp;T</footer>", "AT&amp;T", "AT&amp;T", False),
         ("<p>Bold title</p>", "<b>Bold</b> title", "Bold title", True),
@@ -1246,6 +1247,12 @@ def test_reference_text_changes_require_exact_source_nodes(source, label, expect
     assert bool(result["changes"]) is changed
     assert truth == original
     if changed:
+        from lxml import html
+
+        tree = html.fromstring(source)
+        for change in result["changes"]:
+            for node in change["nodes"]:
+                assert list(map(str, tree.xpath(node["xpath"]))) == [node["text"]]
         assert result["changes"][0]["source_sha256"] == pipeline.digest(source.encode())
         assert result["changes"][0]["nodes"]
     with pytest.raises(ValueError, match="exact frozen HTML"):
@@ -1447,6 +1454,22 @@ def test_schema_only_interfaces_are_rejected_before_any_dispatch(tmp_path, monke
     call.assert_not_called()
 
 
+@pytest.mark.parametrize(
+    "method", ["extruct", "zyte-product", "diffbot-product", "scrapfly-product"]
+)
+def test_product_only_probe_rejects_record_schema_before_dispatch(
+    inputs, tmp_path, monkeypatch, method
+):
+    home, _ = inputs
+    call = Mock()
+    monkeypatch.setattr(pipeline, "provider_call", call)
+    run = tmp_path / "probe"
+    with pytest.raises(ValueError, match="require methods supporting a custom schema"):
+        pipeline.probe(home, [method], full=True, run_dir=run)
+    call.assert_not_called()
+    assert not (run / "contract.json").exists()
+
+
 def test_missing_schema_dependency_fails_before_paid_dispatch(inputs, monkeypatch, tmp_path):
     import builtins
 
@@ -1556,8 +1579,9 @@ def test_swde_prepare_rejects_linked_storage_before_download_or_write(
     download.assert_not_called()
 
 
+@pytest.mark.parametrize("wrong_pin", [False, True])
 def test_clean_prepare_downloads_pinned_scorer_and_recovers_after_partial_extraction(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, wrong_pin
 ):
     import io
     import tarfile
@@ -1590,7 +1614,7 @@ def test_clean_prepare_downloads_pinned_scorer_and_recovers_after_partial_extrac
             "dataset": {
                 "commit": "a" * 40,
                 "cases": 80,
-                "files": {"evaluate.py": pipeline.digest(scorer)},
+                "files": {"evaluate.py": "0" * 64 if wrong_pin else pipeline.digest(scorer)},
             },
             "selection": {"pages_per_site": 1},
         },
@@ -1628,6 +1652,11 @@ def test_clean_prepare_downloads_pinned_scorer_and_recovers_after_partial_extrac
     with pytest.raises(RuntimeError, match="interrupted archive extraction"):
         swde.prepare(home, archive)
     assert not (home / "dataset").exists()
+    if wrong_pin:
+        with pytest.raises(ValueError, match="Pinned source binding"):
+            swde.prepare(home, archive)
+        assert not (home / "dataset").exists()
+        return
     result = swde.prepare(home, archive)
     assert result["cases"] == 80
     assert len(list((home / "dataset/html").glob("*.html"))) == 80

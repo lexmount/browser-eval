@@ -753,6 +753,8 @@ def assemble(
             },
         }
         for field, finding in opinion["reference"].items():
+            if finding["status"] == "absent" and truth[cid].get(field):
+                raise ValueError("Absent nonempty reference requires a source-qualified decision")
             if finding["status"] == "ambiguous":
                 excluded.setdefault(cid, []).append(field)
             if finding["status"] == "incorrect":
