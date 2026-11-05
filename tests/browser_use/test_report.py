@@ -1032,7 +1032,9 @@ def _use_single_model_profile(monkeypatch) -> None:
     )
 
 
-def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, failed=False):
+def build_browser_use_fixture(
+    tmp_path: Path, monkeypatch, language="zh", *, failed=False, arguments=None
+):
     _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
     output = tmp_path / "report"
@@ -1090,7 +1092,7 @@ def build_browser_use_fixture(tmp_path: Path, monkeypatch, language="zh", *, fai
                         "data": {
                             "tool_call_id": str(row["attempt"]),
                             "tool_name": "browser",
-                            "arguments": {"action": "click"},
+                            "arguments": arguments or {"action": "click"},
                         },
                     },
                     {
