@@ -793,12 +793,15 @@ def normalize_for_match(value: str, *, representation=None) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links, normalize_native_markdown_layout
     if representation is None:
         value = normalize_native_markdown_layout(value)
+    # Preserve the punctuation itself while folding layout gaps after CJK
+    # punctuation, before NFKC turns some marks into ASCII punctuation.
+    value = re.sub(r'([，。！？、；：])\s+', r'\1', value)
     normalized = unicodedata.normalize("NFKC", value).casefold()
     # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
     # They are layout artifacts, not required prose; preserve meaningful joiners.
     normalized = clean_reference_text(normalized)
     if representation == 'plain_text':
-        return re.sub(r'\s+', ' ', normalized).strip()
+        return _normalize_visible_typography(normalized, literal=True)
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
     literal_pipe = '\ue000'
@@ -846,12 +849,20 @@ def normalize_for_match(value: str, *, representation=None) -> str:
             line = re.sub(r'\s*\|\s*', ' ', line)
         table_lines.append(line)
     normalized = '\n'.join(table_lines).replace(literal_pipe, '|')
+    return _normalize_visible_typography(normalized)
+
+
+def _normalize_visible_typography(normalized: str, *, literal=False) -> str:
+    """Fold display typography without interpreting Markdown or HTML syntax."""
+    normalized = normalized.replace('\u2060', '')  # Invisible word-joiner, not a word boundary.
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
     # Start only at a whitespace-run boundary: a long run not followed by CJK
     # must not be rescanned from every suffix (quadratic backtracking).
-    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])', '', normalized)
+    cjk_spacing = (r'(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])' if literal else
+                   r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])')
+    normalized = re.sub(cjk_spacing, '', normalized)
     # Menu breadcrumbs commonly lose spaces when inline links are extracted.
     # Keep the separator itself (and all operands); do not collapse >=, signs
     # or English word boundaries. Fold layout newlines on both sides first:
@@ -1044,6 +1055,7 @@ def evaluate_content(
     allow_reference_block_exemptions: bool = False,
     raw_content: str | None = None,
     representation: str | None = None,
+    records: list[dict] | None = None,
 ) -> dict[str, Any]:
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     from .reference_quality import is_html_document_or_fragment, markdown_body_content
@@ -1233,7 +1245,7 @@ def evaluate_content(
         # Document metadata remains diagnostic; it cannot supply rendered
         # page anchors, records, or declared body coverage.
         result.update(evaluate_stable_task(prose_content, acceptance_contract,
-                                           base_url, links=named_links,
+                                           base_url, links=named_links, returned_records=records,
                                             anchor_text=visible_content if has_html_prose else None,
                                            allow_closed_title_cards=True,
                                            representation=representation,

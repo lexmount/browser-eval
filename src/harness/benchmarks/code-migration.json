@@ -12,7 +12,7 @@
         },
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "53a0616b0aa0010c93d7d4b361aeb9f360035bccb306d384f8de50ab23deb3db"
+          "after_sha256": "b5c7e91599c843edca59fa05640696fdc2a13ec5e87d5498310a3024b4ad70bc"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -32,7 +32,7 @@
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
-          "after_sha256": "a55c0ce27a48f6944f62dea6a9555fecda782439e225f5f00d196c775a349ed5"
+          "after_sha256": "b388097acdf74e8edf55f528146e2d6cf4404089cb896fb09fc7329218bd7b02"
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "7250343ab59429d3981e73800e35155afbbe968c4b7e90e256696f4e46bd9159"
+          "after_sha256": "dab037dec807771bd986e0c10977954364c65d9e46bd2610170d4a12cb01be35"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -88,7 +88,7 @@
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
-          "after_sha256": "666136bd21d6231770962a4b96176dbf0c071ee828ff1bbb1d2e720459b1a493"
+          "after_sha256": "df5e9505f65385859053725326ca887af3a54b10753485c047d9f5e17f4972ca"
         },
         "response_input.py": {
           "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
@@ -100,7 +100,7 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "919f94c4c14ce799c4dc40b3c78ba85ef8f209a80f72161082c750362677bead"
+          "after_sha256": "ec1cd835e1d94b9243a0d871ec80782b986d918c123ceecfbc15204100e86802"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "8b8eebd4cbe07760473ee87774274e13bcaad774ceed6ecbad330c80c0c80131"
+          "after_sha256": "2dd2ff1a2c263d11d50155928a59ecc0fe80807a3f3638f04b4c3cd28465f447"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3887,6 +3887,40 @@
             "mixed-unquoted-apostrophe-visible"
           ],
           "root_cause": "CommonMark tag rejection exposed browser-tolerated hidden and raw-text content; retain tolerant HTML tags while escaping comparisons without their own closing bracket."
+        },
+        {
+          "root_cause": "Plain text skipped typography matching; explicit returned headings, records and link labels were omitted. Preserve frozen record hashing and use explicit discussion headings to exclude preceding biographies.",
+          "modules": [
+            "metrics.py",
+            "stable_tasks.py",
+            "article_title.py",
+            "required_components.py",
+            "scoring.py",
+            "article_comments.py"
+          ],
+          "regression_ids": [
+            "plain-text-typography",
+            "plain-text-missing-word",
+            "plain-text-literal-markup",
+            "returned-page-heading",
+            "returned-page-wrong-heading",
+            "returned-page-metadata-title",
+            "returned-records-complete",
+            "returned-records-incomplete",
+            "returned-records-duplicate",
+            "returned-records-missing-field",
+            "returned-link-label",
+            "returned-link-split-label",
+            "returned-link-url-only",
+            "comment-heading-biography-not-comment",
+            "comment-heading-actual-discussion",
+            "visible-typography-cjk-punctuation",
+            "visible-typography-cjk-wrong-word",
+            "visible-typography-word-joiner",
+            "visible-typography-word-boundary",
+            "returned-records-no-region-ownership",
+            "returned-page-invalid-structure"
+          ]
         }
       ]
     },

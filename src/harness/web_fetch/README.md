@@ -175,6 +175,17 @@ checks where applicable, and one authoritative task predicate. Live execution an
 offline rescoring use the same entry point. Case contracts define the differences;
 provider identity never selects a more lenient evaluator.
 
+Adapters declare `answer_format` and retain structurally selected answer fields.
+The common scorer accepts `page_structure.headings` as standalone title candidates,
+and `records` as explicit field dictionaries subject to the existing completeness,
+uniqueness and source-membership checks. Flat records cannot establish a scoped
+section or bypass excluded page regions. Returned named-link labels can satisfy
+unscoped page-text anchors, but separate labels cannot form a phrase. These fields
+are not inferred from document metadata, request echoes or diagnostic logs.
+Native projections bind every selected field to the original response. A changed
+projection over saved responses is an explicit offline correction, never a rewrite
+of the historical pre-call declaration or an additional provider call.
+
 Plain-text post lists require a blank line before each later author line and
 permalink. A name and post URL inside body prose do not establish another record.
 Markdown post headings and native HTML post containers provide explicit record

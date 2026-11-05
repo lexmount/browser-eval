@@ -1099,10 +1099,13 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
 
 def _record_field_key(value):
     """Normalize rendered field text without interpreting Markdown syntax."""
-    from .metrics import normalize_for_match
+    from .reference_quality import clean_reference_text
+    import unicodedata
     value = value.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"',
                                          "–": "-", "—": "-", "−": "-"}))
-    value = normalize_for_match(value, representation='plain_text').strip('“”"‘’ ')
+    # Frozen record hashes use literal whitespace, not evolving prose matching.
+    value = clean_reference_text(unicodedata.normalize('NFKC', value).casefold())
+    value = re.sub(r'\s+', ' ', value).strip('“”"‘’ ')
     return re.sub(r'([$£€¥]) +(?=[+-]?\d)', r'\1', value)
 
 
@@ -1709,7 +1712,7 @@ def _pattern_text_surface(text, *, representation=None):
     return text
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None, returned_records=None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -1865,6 +1868,22 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         source_mismatches = []
         records = _structured_record_view(content, contract, representation=representation,
             allow_closed_title_cards=allow_closed_title_cards, visible=visible)
+    # Flat structured rows prove field ownership, but cannot establish a
+    # reviewed DOM selector, table region or excluded section boundary.
+    if returned_records and SCHEMA_FIELDS[schema] and schema not in {'named_link', 'linked_product'} and not exclusions and not any(
+            contract.get(key) for key in ('entry_scope', 'table_scope')):
+        if not isinstance(returned_records, list):
+            raise ValueError('returned records must be a list')
+        names = SCHEMA_FIELDS[schema]
+        known = {source_record_hash(row['fields'], names, schema) for row in records}
+        for fields in returned_records:
+            if not isinstance(fields, dict) or not all(isinstance(fields.get(key), str) for key in names):
+                continue
+            selected = {key: fields[key] for key in names}
+            identity = source_record_hash(selected, names, schema)
+            if identity not in known:
+                records.append(_record(selected, schema))
+                known.add(identity)
     anchor_records = records
     if exclusions and (SCHEMA_FIELDS[schema] or schema == 'table_row') and schema not in {'named_link', 'linked_product'}:
         anchor_records = _structured_record_view(non_record_content, contract, representation=representation,
@@ -1915,6 +1934,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if native_labels:
                 matched = _anchor_matches(anchor, anchor_records, visible, schema,
                                           anchor_visible=native_labels, representation=match_representation, contract=contract)
+        if (not matched and links and schema in {'body_text', 'page_identity'}
+                and not exclusions and not anchor.get('match_scope')
+                and not anchor.get('visible_control')):
+            from .response_input import safe_named_links
+            # Keep each label separate: unrelated links cannot form a phrase.
+            labels = [label for _, label in safe_named_links(links, base_url)]
+            matched = [value for value in anchor['alternatives'] if any(
+                _stable_literal_match(label, value, registered_words, representation='plain_text')
+                for label in labels)]
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     if anchors_required:

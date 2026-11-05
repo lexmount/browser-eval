@@ -121,7 +121,7 @@ def validate_title_contract(contract):
         raise ValueError('invalid article title contract') from error
 
 
-def verify_article_title(content, contract, *, representation=None):
+def verify_article_title(content, contract, *, representation=None, headings=()):
     """Require a visible selected HTML title or an exact standalone text line.
 
     Explicit visibility follows the shared HTML projection. External stylesheet
@@ -163,7 +163,16 @@ def verify_article_title(content, contract, *, representation=None):
             if heading or restore_inline_code(text, remove=True).strip():
                 candidates.append(article_field_text(text, restore_inline_code))
         surface = 'standalone_text_line'
+    # Explicit extracted headings are page content; the document/SEO title
+    # and arbitrary metadata are deliberately not title candidates.
+    if not isinstance(headings, (list, tuple)) or any(not isinstance(x, str) for x in headings):
+        raise ValueError('returned headings must be a list of text values')
     matched = next((text for text in candidates if _title_key(text, representation='plain_text') in expected), None)
+    if matched is None:
+        matched = next((text for text in headings
+                        if _title_key(text, representation='plain_text') in expected), None)
+        if matched is not None:
+            surface = 'returned_heading_field'
     return {'article_title_pass': matched is not None,
             'article_title_surface': surface,
             'article_title_matched': matched}

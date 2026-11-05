@@ -12,15 +12,18 @@ class Component(NamedTuple):
     digest_metric: str
 
 
-def _title(content, contract, url, *, representation=None):
-    return verify_article_title(content, contract, representation=representation)
+def _title(content, contract, url, *, representation=None, structure=None):
+    if structure is not None and not isinstance(structure, dict):
+        raise ValueError('page_structure must be an object')
+    return verify_article_title(content, contract, representation=representation,
+                                headings=(structure or {}).get("headings", []))
 
 
-def _comments(content, contract, url, *, representation=None):
+def _comments(content, contract, url, *, representation=None, structure=None):
     return verify_article_comments(content, contract, representation=representation)
 
 
-def _posts(content, contract, url, *, representation=None):
+def _posts(content, contract, url, *, representation=None, structure=None):
     # Relative permalinks require the response document URL, unlike title/comment text.
     return verify_article_posts(content, contract, url=url, representation=representation)
 
