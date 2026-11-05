@@ -48,7 +48,7 @@ The [live-URL guide](../../../../src/harness/web_fetch/HEADLESS.md#native-browse
 
 ## Hosted copies of frozen inputs
 
-For Web Scraper snapshot hosting, use the selected HF edition as the input
+For Web Extract snapshot hosting, use the selected HF edition as the input
 authority. Resolve the requested tag or latest once, freeze its full commit, and
 keep historical runs pinned. Default to Cloudflare but accept other public origins.
 Public HTML hosting is optional: reuse each dataset's independent service or

@@ -458,7 +458,7 @@ class ReportTemplateTests(unittest.TestCase):
                 resolve_template('webfetch',root=root)
 
     def test_all_supported_tracks_resolve_existing_owners_and_pinned_examples(self):
-        for track in ('webfetch','trajectory-replay','browser-use','web-search','web-scraper'):
+        for track in ('webfetch','trajectory-replay','browser-use','web-search','web-extract'):
             with self.subTest(track=track):
                 template=resolve_template(track)
                 if template.get('example_env'):

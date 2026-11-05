@@ -23,7 +23,8 @@
     "scorer_url": "https://github.com/microsoft/unilm/blob/566958149f591bba214426940c81af54b8ad7d18/markuplm/examples/fine_tuning/run_swde/eval_utils.py",
     "scorer_sha256": "7575a05207eb9bba4b773476a520d60a908f41f311afc460fad9e709d90e6b7d",
     "scorer_commit": "566958149f591bba214426940c81af54b8ad7d18",
-    "scorer_download_url": "https://raw.githubusercontent.com/microsoft/unilm/566958149f591bba214426940c81af54b8ad7d18/markuplm/examples/fine_tuning/run_swde/eval_utils.py"
+    "scorer_download_url": "https://raw.githubusercontent.com/microsoft/unilm/566958149f591bba214426940c81af54b8ad7d18/markuplm/examples/fine_tuning/run_swde/eval_utils.py",
+    "annotation_archive_sha256": "473d248296878daf2b08f65f0e530f54eb336064d6d4617acf723a12b9d74db9"
   },
   "selection": {
     "kind": "predeclared_site_balanced_subset",

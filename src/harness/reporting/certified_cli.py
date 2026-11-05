@@ -5,10 +5,10 @@ import argparse
 
 def main(argv=None):
     parser = argparse.ArgumentParser(add_help=False, allow_abbrev=False)
-    parser.add_argument("--track", choices=["webfetch", "web-scraper"], default="webfetch")
+    parser.add_argument("--track", choices=["webfetch", "web-extract"], default="webfetch")
     args, remaining = parser.parse_known_args(argv)
-    if args.track == "web-scraper":
-        from harness.web_scraper.certification import main as run
+    if args.track == "web-extract":
+        from harness.web_extract.certification import main as run
     else:
         from harness.web_fetch.certification import main as run
     return run(remaining)

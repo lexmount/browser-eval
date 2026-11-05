@@ -69,7 +69,7 @@ oss-eval = [
     "python-pptx==1.0.2",
 ]
 
-web-scraper-eval = [
+web-extract-eval = [
   "huggingface-hub==1.31.0",
   "jsonschema>=4.25,<5",
   "extruct==0.18.0",
@@ -88,8 +88,8 @@ markers = [
 [tool.ruff]
 line-length = 100
 include = [
-  "src/harness/web_scraper/**/*.py",
-  "tests/web_scraper/**/*.py",
+  "src/harness/web_extract/**/*.py",
+  "tests/web_extract/**/*.py",
   "src/harness/environments/**/*.py",
   "tests/environments/**/*.py",
   "src/harness/browser_use/**/*.py",
@@ -126,7 +126,7 @@ select = ["B", "E", "F", "I", "TID252", "UP"]
 ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
-"src/harness/web_scraper/report.py" = ["E501"]
+"src/harness/web_extract/report.py" = ["E501"]
 # Retain scorer import spelling so published source hashes remain verifiable.
 "src/lexbench_webfetch/*.py" = ["TID252", "B023", "B905"]
 "src/lexbench_websearch/*.py" = ["TID252", "B905"]
@@ -174,7 +174,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 [tool.setuptools.package-data]
 "harness.benchmarks" = ["data-lock.json", "code-migration.json", "scoring-regressions.json", "cards/*.md", "cards/*.json"]
 "harness.web_search" = ["messages.json", "data/*.json"]
-"harness.web_scraper" = ["messages.json", "assets/*.css", "assets/*.js"]
+"harness.web_extract" = ["messages.json", "assets/*.css", "assets/*.js"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json", "resources/fixtures/*.html"]
 "harness.browser_use" = ["messages.json"]

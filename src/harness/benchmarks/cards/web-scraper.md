@@ -66,10 +66,10 @@ Browser Eval uses the shared immutable dataset cache and
 ```sh
 git clone https://github.com/lexmount/browser-eval
 cd browser-eval
-{{tooling_checkout}}uv sync --frozen --extra web-scraper-eval
+{{tooling_checkout}}uv sync --frozen --extra web-extract-eval
 make pin-dataset DATASET=web-scraper REV=YOUR_FULL_HF_COMMIT
 uv run --frozen python -m harness.benchmarks.data web-scraper
-uv run --frozen python -m harness.web_scraper.cli prepare
+uv run --frozen python -m harness.web_extract.cli prepare
 ```
 
 The download verifies the archive and every file. A verified cache works offline
@@ -89,7 +89,7 @@ Record latency for every logical result, physical retry time separately, and
 native usage or actual charges where available. API tiers, input limits and
 billing units differ. This dataset defines extraction inputs and references;
 it contains no vendor ranking. Browser Eval's
-[execution guide](https://github.com/lexmount/browser-eval/blob/main/examples/web_scraper/README.md)
+[execution guide](https://github.com/lexmount/browser-eval/blob/main/examples/web_extract/README.md)
 describes native HTML/URL routes and certification.
 
 ## License, attribution and revisions

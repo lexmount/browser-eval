@@ -49,7 +49,7 @@ Use `Browser Use` for the autonomous track and `Browser Trajectory Replay` for t
 
 - Reports are optional. Generate and inspect HTML locally; local construction requires no publication account. Upload only when the user requests sharing and authorizes the selected host. Building, checking or rebuilding a report does not authorize publication.
 - Select report instances explicitly with `--profile` (or an external `--authority-root` bundle for historical full-cohort formats). Store their matrices, publication targets and mutable version receipts outside Git alongside the frozen evidence. Each report and track owns its own publication binding; never borrow another report's target.
-- Before report authoring, run `uv run --frozen python scripts/report_template.py <webfetch|trajectory-replay|browser-use|web-search|web-scraper>` and inspect its renderer, version-pinned example and checks. Update the owning code and relevant skill when a repeated gap is demonstrated; keep report-specific findings outside instructions. Do not generate a disposable parallel renderer under a work directory.
+- Before report authoring, run `uv run --frozen python scripts/report_template.py <webfetch|trajectory-replay|browser-use|web-search|web-extract>` and inspect its renderer, version-pinned example and checks. Update the owning code and relevant skill when a repeated gap is demonstrated; keep report-specific findings outside instructions. Do not generate a disposable parallel renderer under a work directory.
 - A new track must first gain a runnable synthetic example, evidence/detail behavior tests and a release check, then register those resources in `configs/report-templates.json`. `src/harness/lexbench/` is a declared historical adapter and is exempt.
 - New or substantially rewritten report renderers must wire semantic presentation checks into their release gate, with negative controls for missing/wrong highlights, duplicate summaries, broken evidence targets and missing failure logs. Use `src/harness/reporting/presentation.py` or equivalent track-specific adapters. A written instruction or a route-count check is not proof that the UI requirement is enforced.
 
@@ -66,7 +66,7 @@ Use `Browser Use` for the autonomous track and `Browser Trajectory Replay` for t
 | Live-URL browser comparisons and native callers | `src/harness/web_fetch/HEADLESS.md` |
 | WebMainBench | `src/harness/web_fetch/WEBMAINBENCH.md` |
 | Web Search | `src/harness/web_search/README.md` |
-| Web Scraper | `examples/web_scraper/README.md` |
+| Web Extract | `examples/web_extract/README.md` |
 | Browser Use | `examples/browser_use/README.md` |
 | Browser Trajectory Replay | `docs/trajectory-replay-protocol.md` |
 | Public WebArena recording replay | `examples/trajectory_replay/public_webarena/README.md` |

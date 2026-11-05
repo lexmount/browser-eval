@@ -38,7 +38,7 @@ Every displayed metric must declare one interpretation in the report model:
 - **lower is better** when a smaller value directly improves it;
 - **observational** when direction depends on context or another metric.
 
-Highlight extrema only for metrics with a declared direction. Web Scraper highlights every tied best value without extra tie labels; other tracks highlight unique extrema. Unavailable values stay neutral. Observational metrics must be visibly identified rather than silently left unstyled. Color cannot be the only explanation: provide a short legend or row label that tells the reader why emphasis is present or absent.
+Highlight extrema only for metrics with a declared direction. Web Extract highlights every tied best value without extra tie labels; other tracks highlight unique extrema. Unavailable values stay neutral. Observational metrics must be visibly identified rather than silently left unstyled. Color cannot be the only explanation: provide a short legend or row label that tells the reader why emphasis is present or absent.
 
 For ratios, name numerator and denominator, state whether ratios are computed per matched item or from aggregates, and explain the meaning of values below, equal to, and above 1×. Keep absolute values and ratios visually distinct. Do not infer a winner from a ratio for an observational metric.
 
