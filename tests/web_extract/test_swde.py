@@ -2410,3 +2410,34 @@ def test_unselected_historical_parent_does_not_block_a_current_repair(
     plan = repair.create_plan(home, content, tmp_path / "selected-plan.json", {}, None, selected)
     assert list(plan["participants"]) == ["firecrawl-parse-json"]
     assert plan["fixture_base"] is None
+
+
+def test_frozen_legacy_url_plan_still_uses_run_fixture_base(inputs, tmp_path, monkeypatch):
+    home, _ = inputs
+    profile = tmp_path / "legacy-plan.json"
+    plan = plan_for_inputs(home, ["browserbase-json"], profile)
+    plan.pop("public_snapshots")
+    pipeline.save_json(profile, plan)
+    dispatch = Mock(
+        return_value={
+            "http_status": 200,
+            "response": {"statusCode": 200, "content": {"author": ["Ada"]}},
+        }
+    )
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "synthetic")
+    monkeypatch.setattr(pipeline, "provider_call", dispatch)
+    with pytest.raises(ValueError, match="requires frozen HTTPS fixtures"):
+        certification.run(home, profile, "browserbase-json", tmp_path / "missing-origin")
+    dispatch.assert_not_called()
+    certification.run(
+        home,
+        profile,
+        "browserbase-json",
+        tmp_path / "legacy-run",
+        fixture_base="https://legacy.example/inputs",
+    )
+    assert dispatch.call_count == 2
+    assert all(
+        call.args[3].startswith("https://legacy.example/inputs/")
+        for call in dispatch.call_args_list
+    )
