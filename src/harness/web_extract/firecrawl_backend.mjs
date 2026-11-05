@@ -27,7 +27,7 @@ async function treeHash(root) {
 
 const controls = [
   'MODEL_NAME', 'OPENAI_BASE_URL', 'OLLAMA_BASE_URL', 'MODEL_EMBEDDING_NAME',
-  'NUM_WORKERS_PER_QUEUE', 'MAX_CONCURRENT_JOBS', 'CRAWL_CONCURRENT_REQUESTS', 'BROWSER_POOL_SIZE',
+  'NUM_WORKERS_PER_QUEUE', 'NUQ_WORKER_COUNT', 'MAX_CONCURRENT_JOBS', 'CRAWL_CONCURRENT_REQUESTS', 'BROWSER_POOL_SIZE',
 ];
 // The native child inherits this exact environment; none of its credentials are exposed.
 const childEnv = { ...process.env };
@@ -49,7 +49,7 @@ const server = createServer((request, response) => {
   response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
   response.end(JSON.stringify(identity));
 });
-server.listen(Number(process.env.FIRECRAWL_IDENTITY_PORT ?? 3010), '0.0.0.0', () => {
+server.listen(Number(process.env.FIRECRAWL_IDENTITY_PORT ?? 3020), '0.0.0.0', () => {
   console.log(JSON.stringify({ identity_port: server.address().port }));
 });
 for (const name of ['SIGINT', 'SIGTERM']) process.on(name, () => child.kill(name));

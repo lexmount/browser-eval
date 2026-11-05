@@ -72,11 +72,12 @@ Historical predictions are separate from new measurements.
 | `browserbase-json` | Native JSON extraction | Frozen HTTPS URL and JSON Schema; built-in extraction |
 | `extruct` | Upstream local baseline | Archived HTML |
 
-Browser infrastructure requiring a separately connected model is outside this
-comparison. Browserbase JSON uses only the Browserbase API key. The separately
-registered Stagehand route uses its native Model Gateway and needs a project ID;
-it does not read an OpenAI key. Bright Data's site-specific extractor remains discoverable as a candidate, but
-is rejected by the full archived-page plan because it cannot parse arbitrary HTML.
+The hosted API cohort uses each provider's built-in extraction. Browserbase JSON
+uses only the Browserbase API key. The separately registered hosted Stagehand route
+uses its Model Gateway and needs a project ID; it does not read an OpenAI key.
+Self-hosted configurations use a separate model and are described below. Bright
+Data's site-specific extractor is rejected by the full archived-page plan because
+it cannot parse arbitrary archived HTML.
 
 New cohorts give every native API the same public URL for each frozen page.
 Each dataset has its own hosting service. Browser Eval can find and reuse a
@@ -523,7 +524,7 @@ Set `EXTRACTION_MODEL_CONTEXT_TOKENS` to the configured model's documented conte
 limit. For Firecrawl, configure `FIRECRAWL_BACKEND_URL` as its private service URL
 and `FIRECRAWL_IMAGE` as its immutable image digest. Mount the packaged
 `firecrawl_backend.mjs` on the backend and start it with Node. It launches the
-unchanged native server and exposes a private `/identity` endpoint on port 3010;
+unchanged native server and exposes a private `/identity` endpoint on port 3020;
 set `FIRECRAWL_IDENTITY_URL` to that endpoint. The identity binds the backend's
 actual bundle, dependencies, Node executable and model configuration. A changed
 backend is rejected even when the facade itself has not changed. The backend keeps its own
