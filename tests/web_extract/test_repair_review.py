@@ -150,12 +150,16 @@ def native_test_credentials(monkeypatch):
             monkeypatch.setenv(key, "synthetic-test-credential")
 
 
-def parent_inputs(tmp_path, method="cloudflare-json", failed_overrides=None, success_count=2):
+def parent_inputs(
+    tmp_path, method="cloudflare-json", failed_overrides=None, success_count=2, native_options=None
+):
     home = create(tmp_path / "example")
     source = home / "runs/parent"
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     cases = sorted(truth)
     contract = {"methods": [method], "case_ids": cases}
+    if native_options is not None:
+        contract["native_options"] = native_options
     save_json(source / "contract.json", contract)
     entries, rows = [], []
     for i, cid in enumerate(cases):
@@ -2127,3 +2131,30 @@ def test_literal_backslashes_in_multiple_citations_require_every_fragment(source
     assert (span is not None) is accepted
     if accepted:
         assert r"C:\SKU" in span and "Price" in span
+
+
+def test_malformed_literal_citation_does_not_crash_recovery():
+    from harness.web_extract.review import citation_fragments
+
+    assert citation_fragments('{["a"]: 1}') == []
+
+
+def test_empty_repair_options_inherit_the_parent_url_route(tmp_path):
+    home, source, _, _ = parent_inputs(
+        tmp_path, native_options={"input_route": "url", "setJavaScriptEnabled": False}
+    )
+    contract = read_json(source / "contract.json")
+    output = tmp_path / "inherited-plan.json"
+    create_plan(home, tmp_path / "content.json", output, {}, "https://frozen.example")
+    participant = read_json(output)["participants"]["cloudflare-json"]
+    assert participant["native_options"] == contract["native_options"]
+
+
+@pytest.mark.parametrize("value", ["parent", "runs/parent", "absolute"])
+def test_repair_and_review_selection_accept_explicit_or_bare_run_names(tmp_path, value):
+    from harness.web_extract.repair import load_selection
+
+    home, source, _, _ = parent_inputs(tmp_path)
+    selected, rows = load_selection(home, {"run": str(source) if value == "absolute" else value})
+    assert selected == source
+    assert len(rows) == 3

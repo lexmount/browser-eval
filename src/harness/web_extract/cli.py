@@ -60,8 +60,7 @@ def main(argv=None):
     p.add_argument(
         "--snapshots",
         type=Path,
-        required=True,
-        help="Verified public snapshot registry for new URL-only cohorts",
+        help="Verified public snapshot registry; required for URL-based methods",
     )
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8767)

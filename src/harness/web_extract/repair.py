@@ -15,6 +15,7 @@ from harness.web_extract.pipeline import (
     read_json,
     require_external_output,
     requires_fixture,
+    resolve_run_path,
     save_json,
     validate_dataset,
     validate_fixture_base,
@@ -65,7 +66,9 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             "case_ids": cases,
             "failed_case_ids": failures,
             "previous_repairs": previous,
-            "native_options": validate_native_options(method, options.get(method, {})),
+            "native_options": validate_native_options(
+                method, {**contract.get("native_options", {}), **options.get(method, {})}
+            ),
             "fixture_suffix": contract.get("fixture_suffix", "")
             if contract.get("fixture_base")
             else ".html",
@@ -434,8 +437,7 @@ def load_selection(home, selection):
     """Verify each selected run and repair once, then return its current logical rows."""
     require_external_output(home)
     home = Path(home).resolve()
-    source = Path(selection["run"])
-    source = source if source.is_absolute() else home / "runs" / source
+    source = resolve_run_path(home, selection["run"])
     require_external_output(source)
     source = source.resolve()
     _, rows = load_run(source)

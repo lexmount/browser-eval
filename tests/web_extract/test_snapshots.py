@@ -804,7 +804,12 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     response.content = json.dumps(manifest).encode()
     response.json.return_value = manifest
     monkeypatch.setattr(snapshots, "check_manifest", CHECK_MANIFEST)
-    with patch("requests.get", return_value=response):
+    with (
+        patch("requests.get", return_value=response),
+        patch.object(
+            snapshots, "verify", return_value={"verified_pages": 1, "pages": []}
+        ) as page_check,
+    ):
         output = tmp_path / "external-manifest.json"
         snapshots.host(home, output, provider="external", public_base=origin)
         hosted = snapshots.read_json(output)
@@ -817,6 +822,7 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
             },
             local_example=False,
         )
+    page_check.assert_called_once()
     assert preview == hosted["snapshot_manifest"]
     assert preview["case_count"] == 1
     assert hosted["hosting_provider"] == "external"
@@ -960,3 +966,26 @@ def test_fixture_gzip_decodes_with_frozen_size_cap_inside_deadline(home, monkeyp
             original
         )
     assert sizes == [len(original) + 1]
+
+
+@pytest.mark.parametrize("manifest_error", [None, "timeout"])
+def test_external_host_checks_page_bytes_even_with_a_matching_manifest(
+    home, tmp_path, monkeypatch, manifest_error
+):
+    import requests
+
+    if manifest_error:
+        monkeypatch.setattr(
+            snapshots, "check_manifest", lambda *a: (_ for _ in ()).throw(requests.Timeout())
+        )
+    with patch.object(
+        snapshots, "verify", side_effect=ValueError("Remote fixture differs")
+    ) as verify:
+        with pytest.raises(ValueError, match="Remote fixture differs"):
+            snapshots.host(
+                home,
+                tmp_path / "host.json",
+                provider="external",
+                public_base="https://external.example",
+            )
+    verify.assert_called_once()

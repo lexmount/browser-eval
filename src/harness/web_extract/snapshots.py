@@ -318,7 +318,9 @@ def publish(home, binding, verification, *, revision):
         "and complete input inventory before adding this binding. Changed HTML requires "
         "a new deployment and a new "
         "HF commit; previous files and deployment URLs remain available. Pin the full "
-        "HF commit for evaluation and verify page hashes before and after calls. "
+        "HF commit for evaluation. Managed immutable deployments are checked through the "
+        "whole-dataset manifest before and after calls; external hosts have every page "
+        "byte-checked when first bound. "
         "A mismatch stops collection rather than silently replacing the input. "
         "The navigation index does not host dataset HTML.\n"
     )
@@ -479,12 +481,13 @@ def host(
         validate_fixture_base(public_base)
         try:
             receipt = check_manifest(home, public_base, hf_identity)
-        except (ValueError, requests.HTTPError):
+        except (ValueError, requests.RequestException):
             binding = bind(public_base)
             receipt = verify({name: home}, binding)
         else:
             binding = bind(receipt["fixture_base"])
             binding["snapshot_manifest"] = receipt
+            receipt = verify({name: home}, binding)
         state = "external_verified"
     elif provider == "cloudflare":
         credentials = repository_env()
@@ -559,7 +562,7 @@ def host(
                 receipt = check_manifest(home, deployment["url"], hf_identity)
                 binding = bind(receipt["fixture_base"])
                 binding["snapshot_manifest"] = receipt
-            except (ValueError, requests.HTTPError):
+            except (ValueError, requests.RequestException):
                 pass
         if binding is not None:
             state = "reused_existing_deployment"

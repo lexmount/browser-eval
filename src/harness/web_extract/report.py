@@ -35,6 +35,7 @@ from harness.web_extract.pipeline import (
     normalize,
     read_json,
     require_external_output,
+    resolve_run_path,
     save_json,
     score_rows,
     score_run,
@@ -1487,8 +1488,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     rows = []
     bindings = []
     for selection in selections:
-        source = Path(selection["run"])
-        source = source if source.is_absolute() else home / "runs" / source
+        source = resolve_run_path(home, selection["run"])
         extra = {}
         if cohort:
             if selection.get("methods") is not None and set(selection["methods"]) != set(
@@ -2683,8 +2683,7 @@ def record_cohort_inputs(home, model, *, profile):
     native_rows = []
     seen = set()
     for selection in selections:
-        source = Path(selection["run"])
-        source = source if source.is_absolute() else home / source
+        source = resolve_run_path(home, selection["run"])
         contract, rows, receipt = cohort_source(source, selection, home, truth)
         native_rows.extend(rows)
         method = contract["methods"][0]

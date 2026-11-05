@@ -500,3 +500,23 @@ def test_record_inventory_sorts_exact_counts_and_missing_timers_numerically(tmp_
     values = {row.select("td")[0].get_text(): row.select("td")[5].get("data-sort") for row in rows}
     assert values == {"one": "10.0", "two": "2.0", "three": ""}
     assert all(row.select("td")[4].get("data-sort").isdigit() for row in rows)
+
+
+@pytest.mark.parametrize("selection", ["{method}", "runs/{method}", "absolute"])
+def test_record_build_resolves_the_same_run_ids_as_review_and_repair(tmp_path, selection):
+    from harness.web_extract.pipeline import resolve_run_path
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "example", mode="field-extraction-cohort")
+    model = read_json(home / "content.json")
+    for item in model["evidence_runs"]:
+        method = Path(item["run"]).name
+        item["run"] = item["run"] if selection == "absolute" else selection.format(method=method)
+        assert resolve_run_path(home, item["run"]) == home / "runs" / method
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)

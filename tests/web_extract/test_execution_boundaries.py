@@ -1093,3 +1093,21 @@ def test_changed_dataset_snapshot_blocks_native_calls_and_repair(tmp_path):
         call.assert_not_called()
         with pytest.raises(ValueError, match="snapshot manifest changed"):
             fixture_check(home, base, ["any-case"], snapshot_manifest=receipt)
+
+
+@pytest.mark.parametrize("status", [200, 403, 429])
+@pytest.mark.parametrize(
+    "message", ["Target page blocked", "Download failed: forbidden", "Target page mentions credits"]
+)
+def test_target_failures_do_not_pause_the_account(status, message):
+    row = {"http_status": status, "response": {"success": False, "error": message}}
+    assert access_blocker(row) is None
+
+
+def test_extraction_error_containing_a_field_name_is_not_account_quota():
+    assert (
+        access_blocker(
+            {"http_status": 200, "response": {"error": "Cannot extract credit card field"}}
+        )
+        is None
+    )

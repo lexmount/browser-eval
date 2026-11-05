@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import ast
 import base64
+import copy
 import fcntl
 import gzip
 import io
@@ -904,6 +905,33 @@ METHODS = {
 }
 
 
+RECORD_INSTRUCTIONS = (
+    "Extract all requested attributes of the main record. Copy text values "
+    "exactly, including units and punctuation. Return an empty array for "
+    "absent fields. Exclude navigation and other records."
+)
+
+
+def resolve_run_path(home, value):
+    """Bare run IDs live under runs/; explicit relative paths start at the data home."""
+    path = Path(value)
+    if path.is_absolute():
+        return path
+    return Path(home) / (Path("runs") / path if len(path.parts) == 1 else path)
+
+
+def instruction_schema(schema, prompt):
+    """Put shared instructions in each field, including APIs that accept only properties."""
+    if not prompt:
+        return schema
+    if not isinstance(schema, dict) or not isinstance(schema.get("properties"), dict):
+        raise ValueError("Extraction instructions require an object schema")
+    result = copy.deepcopy(schema)
+    for field in result["properties"].values():
+        field["description"] = " ".join(filter(None, [field.get("description"), prompt]))
+    return result
+
+
 @total_deadline
 def provider_call(
     method,
@@ -922,6 +950,13 @@ def provider_call(
     if schema is not None:
         if not METHODS[method].get("custom_schema", False):
             raise ValueError("Selected native interface does not support arbitrary schemas")
+    schema = instruction_schema(schema, prompt)
+    if (
+        method == "zyte-custom"
+        and schema is not None
+        and any(len(field.get("description", "")) > 300 for field in schema["properties"].values())
+    ):
+        raise ValueError("Zyte custom attribute descriptions exceed its 300-character limit")
     prepared = METHODS[method]["adapter"](
         method,
         html,
@@ -930,7 +965,16 @@ def provider_call(
         timeout=timeout,
         home=home,
         native_options=native_options,
-        **({"schema": schema, "prompt": prompt} if schema is not None else {}),
+        **(
+            {
+                "schema": schema,
+                "prompt": "Extract the fields defined by the schema."
+                if method == "scrapegraph-extract"
+                else None,
+            }
+            if schema is not None
+            else {}
+        ),
     )
     if isinstance(prepared, dict):
         return prepared
@@ -978,6 +1022,9 @@ def provider_call(
             else available_methods()[method]["input"],
             "html_sha256": digest(html.encode()),
             "schema": schema or SCHEMA,
+            "instructions": {"text": prompt, "location": "schema.properties.*.description"}
+            if prompt
+            else None,
             "fixture_url": fixture_url,
             "source_url": source_url,
             "native_options": native_options,
@@ -1139,6 +1186,16 @@ def access_blocker(row):
             str(response.get(key, ""))
             for key in ("error", "errors", "message", "non_json_response")
         )
+    target_failure = bool(
+        re.search(
+            r"target (?:page|site|url|website)|(?:could not |failed to |error (?:while )?)"
+            r"(?:download|fetch)|(?:download|fetch|crawl)(?:ing)? (?:failed|error)",
+            message,
+            re.I,
+        )
+    )
+    if target_failure:
+        return None
     if status == 401:
         return "authentication"
     if status == 402:
@@ -1162,8 +1219,10 @@ def access_blocker(row):
         ) and not re.search(r"target page|download|fetch|session", message, re.I):
             return "permission"
         if re.search(
-            r"quota|credits?|account balance|insufficient balance|free plan|usage period|"
-            r"subscription|payment|account.*expired",
+            r"quota|(?:insufficient|not enough|out of|exhausted|no remaining) credits?|"
+            r"credits? (?:exhausted|depleted|limit)|account balance|insufficient balance|"
+            r"free plan|usage period|subscription (?:expired|required|limit)|"
+            r"payment (?:required|failed)|account.*expired",
             message,
             re.I,
         ):
@@ -1306,11 +1365,7 @@ def collect_calls(
             if custom_schema:
                 schema_options = {
                     "schema": adapter.task_schema(home, truth[case_id]),
-                    "prompt": (
-                        "Extract all requested attributes of the main record. Copy text values "
-                        "exactly, including units and punctuation. Return an empty array for "
-                        "absent fields. Exclude navigation and other records."
-                    ),
+                    "prompt": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
                 }
             row = {
                 "method": method,
@@ -1563,6 +1618,7 @@ def _probe_unlocked(
         from harness.web_extract.dataset import task_bindings
 
         requested.update(task_bindings(home))
+        requested["extraction_instructions"] = RECORD_INSTRUCTIONS
     if benchmark_config(home)["adapter"] is not None or maximum_physical_calls is not None:
         matrix_size = len(case_ids) * len(methods)
         maximum = matrix_size + 20 if maximum_physical_calls is None else maximum_physical_calls
@@ -1577,6 +1633,8 @@ def _probe_unlocked(
         contract = read_json(run / "contract.json")
         if contract.get("snapshot_manifest") != requested.get("snapshot_manifest"):
             raise ValueError("Resume dataset snapshot manifest changed")
+        if contract.get("extraction_instructions") != requested.get("extraction_instructions"):
+            raise ValueError("Resume extraction instructions changed")
         if contract.get("native_options") != requested.get("native_options"):
             raise ValueError("Resume native options changed")
         if contract.get("maximum_physical_calls") != requested.get("maximum_physical_calls"):

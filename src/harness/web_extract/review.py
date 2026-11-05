@@ -332,7 +332,7 @@ def citation_fragments(quote):
     except (ValueError, TypeError):
         try:
             decoded = ast.literal_eval(quote)
-        except (ValueError, SyntaxError):
+        except (ValueError, SyntaxError, TypeError):
             decoded = None
     if isinstance(decoded, str):
         return [decoded]

@@ -117,7 +117,8 @@ and a fresh output path. A changed HF commit or Cloudflare deployment invalidate
 the proposal before any write. The deployment is checked before it can be used.
 A new HTML version gets a new immutable deployment URL. Earlier cohorts retain
 their original URLs and input protocols. External services require no Cloudflare
-credentials and undergo the same complete page-hash check.
+credentials. Their first binding checks every page against the frozen HTML, even
+when they expose a matching manifest; the manifest alone is a claim by that host.
 
 Use the generated binding in `plan --snapshots`. Each method then receives the
 same case URL. Before and after calls, the collector checks the frozen dataset
@@ -458,3 +459,12 @@ The release check also verifies the preview and download URLs on every source pa
 For repaired product calls, `adjudicate --additional-prior /absolute/supplemental-review`
 includes new reference disputes alongside the original review. Assembly requires
 adjudication of either review's disputes and rejects unrelated predecessor reviews.
+
+
+Shared record instructions are frozen in the run contract and appended to each
+field's schema description, including APIs that accept only property definitions.
+The request receipt retains the effective schema and instruction text. Earlier
+cohorts retain their actual requests; a new adapter cannot change their results.
+A repair inherits its parent's native options unless the repair plan explicitly
+overrides them. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
+resolve from `<home>`, and absolute paths retain their meaning.

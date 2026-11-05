@@ -117,7 +117,10 @@ def test_certified_multi_domain_run_uses_task_schema_and_never_sends_labels(
             pipeline.read_json(run / "contract.json")["native_options"]
             == frozen["participants"]["cloudflare-json"]["native_options"]
         )
-    assert [c["response_format"]["json_schema"] for c in calls] == [schemas["book"], schemas["job"]]
+    assert [c["response_format"]["json_schema"] for c in calls] == [
+        pipeline.instruction_schema(schemas[domain], pipeline.RECORD_INSTRUCTIONS)
+        for domain in ["book", "job"]
+    ]
     assert "GOLD_DO_NOT_SEND" not in json.dumps(calls)
     assert all(r["schema_valid"] and r["elapsed_seconds"] >= 0 for r in rows)
     assert rows[0]["normalized_fields"] == {"author": ["Ada"]}
@@ -2100,3 +2103,87 @@ def test_record_adjudication_accepts_hash_bound_readonly_review_projection(
         reference_revision=authority,
     )
     assert result["unresolved"] == 0
+
+
+@pytest.mark.parametrize(
+    "method",
+    [
+        "cloudflare-json",
+        "zyte-custom",
+        "browserbase-json",
+        "oxylabs-json",
+        "scrapegraph-extract",
+        "firecrawl-parse-json",
+        "firecrawl-json",
+    ],
+)
+def test_shared_instructions_reach_every_native_request_and_its_receipt(monkeypatch, method):
+    from copy import deepcopy
+    from email.parser import BytesParser
+    from email.policy import default
+
+    schema = {
+        "type": "object",
+        "properties": {
+            "price": {"type": "array", "items": {"type": "string"}, "description": "Current price"}
+        },
+        "required": ["price"],
+    }
+    original = deepcopy(schema)
+    for key in pipeline.available_methods()[method]["keys"]:
+        monkeypatch.setenv(key, "synthetic")
+    captured = []
+
+    def send(url, **kwargs):
+        if "body" in kwargs:
+            envelope = BytesParser(policy=default).parsebytes(
+                ("Content-Type: " + kwargs["headers"]["Content-Type"] + "\r\n\r\n").encode()
+                + kwargs["body"]
+            )
+            options = next(
+                part
+                for part in envelope.iter_parts()
+                if part.get_param("name", header="content-disposition") == "options"
+            )
+            body = json.loads(options.get_payload(decode=True))
+            fields = body["formats"][0]["schema"]["properties"]
+        else:
+            body = kwargs["json_body"]
+            if method == "zyte-custom":
+                fields = body["customAttributes"]
+            elif method == "cloudflare-json":
+                fields = body["response_format"]["json_schema"]["properties"]
+            elif method == "oxylabs-json":
+                fields = body["json"]["schema"]["properties"]
+            elif method == "firecrawl-json":
+                fields = body["formats"][0]["schema"]["properties"]
+            else:
+                fields = body["schema"]["properties"]
+        captured.append(fields)
+        return SimpleNamespace(status=200, headers={}, text=lambda: "{}")
+
+    monkeypatch.setattr(pipeline, "request", send)
+    row = pipeline.provider_call(
+        method,
+        "<p>12</p>",
+        "https://source.example",
+        "https://frozen.example/case",
+        schema=schema,
+        prompt=pipeline.RECORD_INSTRUCTIONS,
+    )
+    assert captured[0]["price"]["description"] == "Current price " + pipeline.RECORD_INSTRUCTIONS
+    assert row["request"]["schema"]["properties"] == captured[0]
+    assert row["request"]["instructions"]["text"] == pipeline.RECORD_INSTRUCTIONS
+    assert schema == original
+
+
+def test_upload_only_record_method_can_be_planned_through_the_public_cli(inputs, tmp_path):
+    from harness.web_extract.cli import main
+
+    home, _ = inputs
+    output = tmp_path / "upload-plan.json"
+    main(
+        ["--home", str(home), "plan", "--methods", "firecrawl-parse-json", "--output", str(output)]
+    )
+    assert "public_snapshots" not in pipeline.read_json(output)
+    assert pipeline.read_json(output)["participants"]["firecrawl-parse-json"]["input"] == "html"
