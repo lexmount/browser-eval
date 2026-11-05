@@ -57,6 +57,9 @@ browser-use-eval = [
   "webarena-verified @ git+https://github.com/lexmount/webarena-verified.git@da7b992eb10de78000f11a7f34fd4590c171fbd6",
 ]
 test = [
+  "fastapi==0.162.0",
+  "httpx>=0.28,<1",
+  "psutil>=7,<8",
   "pytest>=8,<10",
   "pytest-xdist>=3.8,<4",
   "ruff>=0.9,<1",
@@ -174,7 +177,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 [tool.setuptools.package-data]
 "harness.benchmarks" = ["data-lock.json", "code-migration.json", "scoring-regressions.json", "cards/*.md", "cards/*.json"]
 "harness.web_search" = ["messages.json", "data/*.json"]
-"harness.web_extract" = ["messages.json", "assets/*.css", "assets/*.js"]
+"harness.web_extract" = ["messages.json", "assets/*.css", "assets/*.js", "firecrawl_backend.mjs"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json", "resources/fixtures/*.html"]
 "harness.browser_use" = ["messages.json"]

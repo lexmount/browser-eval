@@ -113,6 +113,11 @@ def create_plan(home, methods, output, *, snapshots=None, native_options=None):
     for method, options in native_options.items():
         participant = plan["participants"][method]
         participant["native_options"] = {**participant.get("native_options", {}), **options}
+        effective_input = participant["native_options"].get(
+            "input_route", registry[method]["input"]
+        )
+        if participant["input"] != effective_input:
+            raise ValueError("Native options conflict with the frozen participant input route")
     if adapter is not None:
         for case in truth.values():
             schema = instruction_schema(adapter.task_schema(home, case), RECORD_INSTRUCTIONS)
@@ -159,6 +164,11 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         not fixture_base or not fixture_base.startswith("https://")
     ):
         raise ValueError("URL participant requires frozen HTTPS fixtures before collection")
+    effective_input = participant.get("native_options", {}).get(
+        "input_route", available_methods()[method]["input"]
+    )
+    if participant.get("input", effective_input) != effective_input:
+        raise ValueError("Native options conflict with the frozen participant input route")
     records = benchmark_config(home)["adapter"] is not None
     if records and plan.get("schema") != "archived-extraction-full-cohort/1":
         raise ValueError("Frozen plan schema differs from the selected record benchmark")

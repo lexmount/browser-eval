@@ -1155,3 +1155,26 @@ def test_existing_deployment_missing_manifest_requires_approval_not_a_network_by
                     approve_plan=output,
                 )
             deploy.assert_called_once()
+
+
+@pytest.mark.parametrize("method", ["cloudflare-json", "scrapegraph-extract", "zyte-product"])
+def test_native_options_cannot_relabel_an_upload_as_a_snapshot_call(home, tmp_path, method):
+    source = tmp_path / "binding.json"
+    source.write_text(json.dumps(binding(home, tmp_path)), encoding="utf-8")
+    with pytest.raises(ValueError, match="frozen participant input route"):
+        create_plan(
+            home,
+            [method],
+            tmp_path / "plan.json",
+            snapshots=source,
+            native_options={method: {"input_route": "html"}},
+        )
+    assert not (tmp_path / "plan.json").exists()
+    plan = create_plan(
+        home,
+        [method],
+        tmp_path / "url-plan.json",
+        snapshots=source,
+        native_options={method: {"input_route": "url"}},
+    )
+    assert plan["participants"][method]["input"] == "url"

@@ -151,7 +151,8 @@ def test_health_and_worker_environment_identity_survives_different_entrypoints(t
         [
             sys.executable,
             "-c",
-            "from harness.web_extract.self_hosted import installed_environment_sha256; print(installed_environment_sha256())",
+            "from harness.web_extract.self_hosted import installed_environment_sha256; "
+            "print(installed_environment_sha256())",
         ],
         cwd=tmp_path,
         capture_output=True,

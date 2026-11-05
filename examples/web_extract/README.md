@@ -516,10 +516,16 @@ additional fields, rather than using the placeholders above. Each request carrie
 that identity; a changed model, dependency environment or worker implementation
 is rejected. Use the normal certified runner and scorer. Keep the API key in the
 caller's repository `.env`, never in the options file. An extraction process has a
-115-second deadline within the track's existing 120-second request budget.
+110-second deadline within the track's existing 120-second request budget. Timed-out
+workers and their browser descendants are terminated and reaped.
 
 Set `EXTRACTION_MODEL_CONTEXT_TOKENS` to the configured model's documented context
 limit. For Firecrawl, configure `FIRECRAWL_BACKEND_URL` as its private service URL
-and `FIRECRAWL_IMAGE` as its immutable image digest. The backend keeps its own
+and `FIRECRAWL_IMAGE` as its immutable image digest. Mount the packaged
+`firecrawl_backend.mjs` on the backend and start it with Node. It launches the
+unchanged native server and exposes a private `/identity` endpoint on port 3010;
+set `FIRECRAWL_IDENTITY_URL` to that endpoint. The identity binds the backend's
+actual bundle, dependencies, Node executable and model configuration. A changed
+backend is rejected even when the facade itself has not changed. The backend keeps its own
 native extraction; the authenticated facade forwards its JSON result and receipt.
 Keep the database, queue, browser and backend API internal.

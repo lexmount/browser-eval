@@ -148,11 +148,12 @@ SHARED_VALUES = {"A": "quoted", "B": "exported", "C": "token", "D": "${HOME}", "
 def test_every_loader_reads_the_same_values(tmp_path, monkeypatch):
     path = tmp_path / ".env"
     path.write_text(SHARED_SYNTAX, encoding="utf-8")
+    monkeypatch.setenv("OPENAI_API_KEY", "process-only-key")
+    monkeypatch.setenv("OPENAI_BASE_URL", "https://process-only.example")
     assert catalog_runner._load_env_values(path) == SHARED_VALUES
     assert _load_repo_env(tmp_path) == {
         **SHARED_VALUES,
-        **{key: os.environ[key] for key in ("OPENAI_API_KEY", "OPENAI_BASE_URL", "COWAGENT_REPO")
-           if os.environ.get(key)},
+        **{key: os.environ[key] for key in ("COWAGENT_REPO",) if os.environ.get(key)},
     }
     for load in (web_fetch_config.load_env_file, webarena_config.load_runtime_env):
         for key in SHARED_VALUES:
@@ -193,9 +194,9 @@ def test_wcxb_visual_check_reports_an_unreadable_binary_as_missing(tmp_path, tex
         # complete credentials that the runtime parser reads as missing or empty.
         "{key}=\"mismatched'",
         "{key}=first\n{key}=",
-        "{key}=\"secret\n{other}=\"",
+        '{key}="secret\n{other}="',
         "{key}=stale\n{key}=\"mismatched'",
-        "{key}=stale\n{key}=\"new\nvalue\"",
+        '{key}=stale\n{key}="new\nvalue"',
     ],
 )
 def test_import_uses_the_values_the_runtime_will_read(tmp_path, statement):
@@ -216,7 +217,7 @@ def test_import_uses_the_values_the_runtime_will_read(tmp_path, statement):
         "{key}=first\n{key}=",
         "{key}=",
         "{key}=stale\n{key}=\"mismatched'",
-        "{key}=stale\n{key}=\"new\nvalue\"",
+        '{key}=stale\n{key}="new\nvalue"',
     ],
 )
 def test_import_replaces_a_target_value_the_runtime_cannot_read(tmp_path, line):
@@ -239,7 +240,9 @@ def test_import_replaces_a_target_value_the_runtime_cannot_read(tmp_path, line):
         ("{key}=stale\n{key}=latest", "latest"),
     ],
 )
-def test_import_copies_the_statement_so_the_target_reads_the_same_value(tmp_path, statement, expected):
+def test_import_copies_the_statement_so_the_target_reads_the_same_value(
+    tmp_path, statement, expected
+):
     key = HOSTED_KEYS[0]
     source = tmp_path / "source.env"
     target = tmp_path / "target.env"
@@ -293,9 +296,11 @@ ENV_PARSER = re.compile(
 def test_only_the_shared_module_parses_env_files():
     allowed = {"src/harness/env_file.py"}
     sources = [*(ROOT / "src/harness").rglob("*.py"), *(ROOT / "scripts").rglob("*.py")]
-    found = [str(path.relative_to(ROOT)) for path in sources
-             if str(path.relative_to(ROOT)) not in allowed
-             and ENV_PARSER.search(path.read_text("utf-8"))]
+    found = [
+        str(path.relative_to(ROOT))
+        for path in sources
+        if str(path.relative_to(ROOT)) not in allowed and ENV_PARSER.search(path.read_text("utf-8"))
+    ]
     assert found == []
 
 
