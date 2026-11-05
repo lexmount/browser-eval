@@ -205,6 +205,17 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
             != two_files["backend"]["native_dependencies_sha256"]
         )
 
+    optional = tmp_path / "optional-package.js"
+    (tmp_path / "node_modules/optional").symlink_to(optional)
+    with backend("test-model") as missing_optional:
+        pass
+    optional.write_text("module.exports = 3;\n", encoding="utf-8")
+    with backend("test-model") as installed_optional:
+        assert (
+            missing_optional["backend"]["native_dependencies_sha256"]
+            != installed_optional["backend"]["native_dependencies_sha256"]
+        )
+
 
 @pytest.mark.parametrize(
     "failure", ["occupied-port", "openai-userinfo", "openai-query", "ollama-query"]
