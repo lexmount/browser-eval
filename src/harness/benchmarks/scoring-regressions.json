@@ -78594,6 +78594,25 @@
       "artifact": "Alpha\n\n#### $10\n",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "product-plain-title-above-heading-price-and-heading-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha\n#### $10\n#### Free shipping\n",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

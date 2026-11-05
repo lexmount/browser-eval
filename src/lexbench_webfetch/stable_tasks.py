@@ -509,9 +509,10 @@ def _product_start(lines, index, schema, levels):
     current = _field(lines[index], "price")
     price_first = bool(re.fullmatch(_MONEY, current, re.I))
     inline = None if price_first else re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[index], re.I)
-    # Heading price then heading title is its own card; a plain line above it is not its title.
+    # In a catalog, heading price then heading title is its own card; a plain line above is not its title.
     next_price = (index + 1 < len(lines)
-                  and not (levels[index] is None and levels[index + 1] is not None
+                  and not (schema == "catalog_product"
+                           and levels[index] is None and levels[index + 1] is not None
                            and index + 2 < len(lines) and levels[index + 2] is not None)
                   and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I))
     if not price_first and not inline and not next_price:
