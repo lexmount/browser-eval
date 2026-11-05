@@ -529,3 +529,25 @@ def test_external_report_labels_are_text(tmp_path, family_override):
     for page in root.rglob('*.html'):
         dom = BeautifulSoup(page.read_bytes(), 'html.parser')
         assert not dom.select('[onload="familyProbe()"], [onload="providerProbe()"]'), page
+
+
+def test_same_ranked_case_requires_one_definition_across_providers(tmp_path):
+    from harness.web_fetch.report import generate_saved_matrix
+
+    spec, source, record, raw = fixture(tmp_path)
+    spec['providers'].append({'id': 'other', 'label': 'Other'})
+    spec['ranking'] = 'saved_task_pass_rate'
+    path = source/'results.jsonl'
+    other = {**record, 'provider': 'other', 'attempt_id': 'run-other'}
+    path.write_bytes(raw + (json.dumps(other) + '\n').encode())
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    root = build(tmp_path, spec).parent
+    home = BeautifulSoup((root/'index.html').read_bytes(), 'html.parser')
+    assert home.select_one('[data-ranking-scope="saved-task-pass-rate"]')
+    model = json.loads((root/'matrix.json').read_bytes())
+    row = next(r for r in model['rows'] if r['provider'] == 'other')
+    original = json.loads((root/row['case_path']).read_bytes())
+    row['case_path'] = 'conflicting-case.json'
+    write(root/row['case_path'], {**original, 'expected_any': ['different rule']})
+    with pytest.raises(ValueError, match='Conflicting saved case definitions for first--same'):
+        generate_saved_matrix(root, model)

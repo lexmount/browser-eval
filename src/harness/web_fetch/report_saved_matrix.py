@@ -2515,7 +2515,8 @@ def _saved_renderer_projection(output, model):
         family = _presentation_family(case, row['suite'], groups) if 'report_families' in model else row['suite']
         case['report_family'] = family
         case['report_family_label'] = labels[family]
-        cases.setdefault(route, case)
+        if cases.setdefault(route, case) != case:
+            raise ValueError(f"Conflicting saved case definitions for {route}")
         if not row.get('record_path'):
             continue
         raw = _json(contained_path(output, row['record_path']))
