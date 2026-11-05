@@ -502,16 +502,17 @@ def _table_records(lines, schema):
     return records, occupied
 
 
-def _product_start(lines, index, schema, levels=()):
+def _product_start(lines, index, schema, levels):
     """Recognize the same supported title/price layouts at every card boundary."""
     if re.match(r"description\s*:", lines[index], re.I):
         return None
     current = _field(lines[index], "price")
     price_first = bool(re.fullmatch(_MONEY, current, re.I))
     inline = None if price_first else re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[index], re.I)
-    # A heading price starts its own card; a plain line above it is not its title.
+    # Heading price then heading title is its own card; a plain line above it is not its title.
     next_price = (index + 1 < len(lines)
-                  and not (levels and levels[index] is None and levels[index + 1] is not None)
+                  and not (levels[index] is None and levels[index + 1] is not None
+                           and index + 2 < len(lines) and levels[index + 2] is not None)
                   and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I))
     if not price_first and not inline and not next_price:
         return None
