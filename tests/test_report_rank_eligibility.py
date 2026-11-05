@@ -120,3 +120,19 @@ def test_family_participants_do_not_include_other_tracks(declared_missing):
     soup = BeautifulSoup(markup, 'html.parser')
     assert bool(soup.select('td[data-rank]')) is (not declared_missing)
     assert ('仅供诊断' in card) is declared_missing
+
+
+def test_overall_ranks_require_even_wholly_missing_declared_methods():
+    from harness.web_fetch import report
+    c = case('example', kind='body', track='web')
+    row = record(c)
+    token = report._RENDER_CONTEXT.set(report.RenderContext(
+        coverage_plan={'web': ['fixture', 'missing-method']}))
+    try:
+        markup = report.overall_ranking([row], {c['id']: c})
+    finally:
+        report._RENDER_CONTEXT.reset(token)
+    soup = BeautifulSoup(markup, 'html.parser')
+    assert not soup.select('td[data-rank]')
+    assert not soup.select('#ranking-overall .comparison-winner')
+    assert '结果未覆盖同一组完整任务' in soup.get_text()

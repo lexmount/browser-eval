@@ -81,8 +81,8 @@ def _write(path, value):
     _write_bytes(path, json_bytes(value))
 
 
-def _require_public_missing_receipt(receipt):
-    """Reject private receipt fields before copying source bytes into a report."""
+def _require_public_json(receipt, *, label="Missing receipt"):
+    """Reject private values and absolute path fields in distributable JSON."""
     from harness.web_fetch.publication_privacy import publication_risk
     risk = publication_risk(json_bytes(receipt))
 
@@ -96,7 +96,7 @@ def _require_public_missing_receipt(receipt):
         return False
 
     if risk or local_path(receipt):
-        raise ValueError('Missing receipt contains private content; use a portable receipt')
+        raise ValueError(label + ' contains private content; use portable public evidence')
 
 
 def _path(base, value):
@@ -1676,7 +1676,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                     item['completion_note'] = completion_notes[key]
                 if key in missing:
                     entry, receipt = missing[key]
-                    _require_public_missing_receipt(_json(receipt))
+                    _require_public_json(_json(receipt))
                     item.update(status=entry['status'], called=entry['status'] == 'uncommitted',
                                 normal=False, passed=None, error=entry['reason'],
                                 receipt_path=copy(receipt, prefix + '/receipt.json'))
@@ -1823,7 +1823,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                         note['prior_answer_path'] = history_prefix + '/' + old_record['artifact_path']
                     else:
                         prior_receipt = binding(entry['prior_uncommitted'])
-                        _require_public_missing_receipt(_json(prior_receipt))
+                        _require_public_json(_json(prior_receipt))
                         note['prior_uncommitted_path'] = copy(prior_receipt, prefix+'/prior-uncommitted.json')
                         note['prior_log_sha256'] = entry['prior_log']['sha256']
                     item['retry_continuation'] = note
@@ -2285,6 +2285,22 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     for relative, digest in audit['files'].items():
         if _sha(contained_path(output, relative, reject_symlinks=True)) != digest:
             raise ValueError('Portable saved-matrix file changed')
+    # Scan the complete distributable tree, not just selected receipt types.
+    # The builder verifies staging here before installing the output directory.
+    from harness.web_fetch.publication_privacy import publication_file_risk
+    for relative in sorted(actual_files):
+        raw = contained_path(output, relative, reject_symlinks=True).read_bytes()
+        if publication_file_risk(relative, raw):
+            raise ValueError('Saved report file contains private content: ' + relative)
+        if relative.endswith(('.json', '.jsonl')):
+            try:
+                values = [json.loads(line) for line in raw.splitlines() if line.strip()] if relative.endswith('.jsonl') else [json.loads(raw)]
+            except (ValueError, UnicodeError):
+                # Raw provider answers may have a JSON suffix without valid JSON.
+                # The shared text privacy scan above still applies to their bytes.
+                values = []
+            for value in values:
+                _require_public_json(value, label='Saved report file')
     model = _json(output / 'matrix.json')
     if model.get('presentation') == 'final' and (inputs is None or inputs['spec'].get('presentation') != 'final'):
         raise ValueError('Final saved results require the original final source specification')
@@ -2341,7 +2357,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                 raise ValueError('Saved record values differ from matrix')
         else:
             receipt = _json(contained_path(output, row['receipt_path'], reject_symlinks=True))
-            _require_public_missing_receipt(receipt)
+            _require_public_json(receipt)
             if (row['status'] not in {'not_called', 'uncommitted'}
                     or not _receipt_covers(receipt, *identity, row['status'])
                     or row['called'] != (row['status'] == 'uncommitted')
@@ -2383,7 +2399,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
                 raise ValueError('Missing saved-matrix evidence link')
         continuation = row.get('retry_continuation') or {}
         if continuation.get('prior_uncommitted_path'):
-            _require_public_missing_receipt(_json(contained_path(output, continuation['prior_uncommitted_path'], reject_symlinks=True)))
+            _require_public_json(_json(contained_path(output, continuation['prior_uncommitted_path'], reject_symlinks=True)))
         for field in ('prior_record_path', 'prior_answer_path', 'prior_uncommitted_path'):
             if continuation.get(field) and not contained_path(output, continuation[field], reject_symlinks=True).is_file():
                 raise ValueError('Missing retry continuation evidence')

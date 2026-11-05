@@ -850,7 +850,7 @@ def test_retry_continuation_preserves_uncommitted_prior_without_invented_time(tm
     audit = json.loads(audit_path.read_bytes())
     audit['files'][relative] = write(entry.parent/relative, value)['sha256']
     write(audit_path, audit)
-    with pytest.raises(ValueError, match='Missing receipt contains private content'):
+    with pytest.raises(ValueError, match='Saved report file contains private content'):
         check_saved_matrix(entry.parent)
 
 
@@ -1243,7 +1243,7 @@ def test_source_bound_retry_launch_keeps_its_original_contract(tmp_path, defect)
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
 
 
-@pytest.mark.parametrize('defect', [None, 'scope', 'method', 'task', 'missing_execution', 'overlap', 'uncovered'])
+@pytest.mark.parametrize('defect', [None, 'scope', 'method', 'task', 'missing_execution', 'overlap', 'uncovered', 'private_authority'])
 def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, defect, monkeypatch):
     monkeypatch.setattr('harness.web_fetch.report_saved_matrix._parameter_execution', lambda *args: {'request': 'fixture'})
     spec, source, before, before_raw = fixture(tmp_path)
@@ -1266,6 +1266,8 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
     authority = {'kind': 'user_selected_complete_report_groups',
                  'description': 'Adopt this complete group, including failures.',
                  'groups': [{'provider': 'unknown' if defect == 'method' else 'method', 'family': 'web'}]}
+    if defect == 'private_authority':
+        authority['authorization'] = 'Bearer private-value'
     spec['adoptions'] = [{'authority': write(tmp_path/'authority.json', authority),
                          'saved_matrix_spec': write(tmp_path/'candidate/spec.json', nested)}]
     contract = write(tmp_path/'execution-contract.json', {'created_at': '2026-10-01T00:00:00Z',
@@ -1275,6 +1277,11 @@ def test_explicit_group_adoption_keeps_regressions_and_other_groups(tmp_path, de
             'case_ids': [] if defect == 'uncovered' else ['same'], 'contract': contract}]
     if defect == 'overlap':
         spec['adoptions'][0]['execution_contract'] = contract
+    if defect == 'private_authority':
+        with pytest.raises(ValueError, match='Saved report file contains private content'):
+            build(tmp_path, spec)
+        assert not (tmp_path/'report').exists()
+        return
     if defect:
         with pytest.raises(ValueError, match='Adoption'):
             build(tmp_path, spec)
@@ -1772,3 +1779,40 @@ def test_missing_receipt_private_content_is_rejected_before_publication(tmp_path
         build(tmp_path, spec)
     assert not (tmp_path/'report').exists()
     assert source.read_bytes() == original
+
+
+@pytest.mark.parametrize('extra', [
+    {'authorization': 'Bearer private-value'},
+    {'debug_path': '/tmp/private-run/log.json'},
+])
+def test_saved_records_reject_private_metadata_before_publication(tmp_path, extra):
+    spec, root, row, _ = fixture(tmp_path)
+    row['provider_metadata'].update(extra)
+    spec['sources'][0]['results'] = write(root/'results.jsonl', row)
+    original = (root/'results.jsonl').read_bytes()
+    with pytest.raises(ValueError, match='Saved report file contains private content'):
+        build(tmp_path, spec)
+    assert not (tmp_path/'report').exists()
+    assert (root/'results.jsonl').read_bytes() == original
+
+
+def test_portable_checker_scans_auxiliary_json_even_with_updated_hash(tmp_path):
+    spec, _, _, _ = fixture(tmp_path)
+    output = build(tmp_path, spec).parent
+    audit_path = output/'saved-matrix-audit.json'
+    audit = json.loads(audit_path.read_bytes())
+    relative = 'auxiliary.json'
+    audit['files'][relative] = write(output/relative, {'authorization': 'Bearer private-value'})['sha256']
+    write(audit_path, audit)
+    with pytest.raises(ValueError, match='Saved report file contains private content'):
+        check_saved_matrix(output)
+
+
+def test_private_gate_preserves_safe_non_json_provider_answer(tmp_path):
+    spec, root, row, _ = fixture(tmp_path)
+    row['artifact_path'] = 'artifacts/answer.json'
+    (root/row['artifact_path']).write_bytes(b'answer')
+    spec['sources'][0]['results'] = write(root/'results.jsonl', row)
+    output = build(tmp_path, spec).parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
+    assert (output/'evidence/first/method/same/artifacts/answer.json').read_bytes() == b'answer'

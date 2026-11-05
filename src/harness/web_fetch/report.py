@@ -1618,7 +1618,7 @@ def family_participants(records,cases):
 
 def ranking_readiness(records,cases,*,participants=None):
  """Require a complete shared task population and one recorded scorer."""
- groups={name:[] for name in (participants if participants is not None else {r['provider'] for r in records}|set(_REPORT_PROVIDER_LABELS.get()))}
+ groups={name:[] for name in (participants if participants is not None else family_participants(records,cases)|set(_REPORT_PROVIDER_LABELS.get()))}
  for r in records:
   if r['case_id'] in cases:groups[r['provider']].append(r)
  populations=[Counter(r['case_id'] for r in rs) for rs in groups.values()]
