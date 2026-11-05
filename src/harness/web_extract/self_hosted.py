@@ -8,6 +8,7 @@ import importlib.metadata
 import json
 import os
 import resource
+import signal
 import subprocess
 import sys
 import sysconfig
@@ -26,6 +27,8 @@ ENGINES = {
 
 def validate_input(value):
     """Restrict collection to the declared immutable snapshot origins."""
+    if not isinstance(value, dict) or not isinstance(value.get("url"), str):
+        raise ValueError("Request must be an object with a string URL")
     parsed = urlsplit(value["url"])
     origins = {
         s.strip().rstrip("/")
@@ -39,7 +42,8 @@ def validate_input(value):
     if (
         not isinstance(schema, dict)
         or schema.get("type") != "object"
-        or not schema.get("properties")
+        or not isinstance(schema.get("properties"), dict)
+        or not schema["properties"]
     ):
         raise ValueError("An object JSON Schema with properties is required")
     if value.get("engine") not in ENGINES:
@@ -62,8 +66,8 @@ def installed_environment_sha256():
 
 
 @lru_cache(maxsize=len(ENGINES))
-def runtime_identity(engine):
-    return {
+def local_runtime_identity(engine):
+    identity = {
         "engine": engine,
         "version": importlib.metadata.version(ENGINES[engine])
         if ENGINES[engine]
@@ -75,6 +79,46 @@ def runtime_identity(engine):
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "environment_sha256": installed_environment_sha256(),
     }
+    if engine in ("scrapegraph", "stagehand"):
+        identity["browser_version"] = subprocess.check_output(
+            [os.environ["CHROME_PATH"], "--version"],
+            text=True,
+            timeout=5,
+        ).strip()
+    return identity
+
+
+def runtime_identity(engine):
+    identity = dict(local_runtime_identity(engine))
+    if engine == "firecrawl":
+        import requests
+
+        response = requests.get(
+            os.environ["FIRECRAWL_IDENTITY_URL"],
+            timeout=5,
+            allow_redirects=False,
+        )
+        response.raise_for_status()
+        backend = response.json()
+        if any(
+            not isinstance(backend.get(key), str) or len(backend[key]) != 64
+            for key in (
+                "native_bundle_sha256",
+                "native_dependencies_sha256",
+                "node_sha256",
+                "wrapper_sha256",
+            )
+        ):
+            raise ValueError("Incomplete Firecrawl backend attestation")
+        controls = backend.get("controls", {})
+        if controls.get("MODEL_NAME") != identity["model"] or controls.get(
+            "OPENAI_BASE_URL", ""
+        ).rstrip("/") != identity["model_base"].rstrip("/"):
+            raise ValueError("Firecrawl backend model differs from the declared configuration")
+        identity["backend"] = backend
+        identity["backend_url"] = os.environ["FIRECRAWL_BACKEND_URL"]
+        identity["identity_url"] = os.environ["FIRECRAWL_IDENTITY_URL"]
+    return identity
 
 
 async def crawl(value):
@@ -290,12 +334,16 @@ def worker(value):
             data, native = asyncio.run(
                 crawl(value) if value["engine"] == "crawl4ai" else stagehand_extract(value)
             )
+    observed_runtime = runtime_identity(value["engine"])
+    runtime_matches = observed_runtime == value["expected_runtime"]
     return {
-        "success": isinstance(data, dict),
-        "error": None if isinstance(data, dict) else "Native extraction did not return one record",
+        "success": isinstance(data, dict) and runtime_matches,
+        "error": "Runtime changed during extraction"
+        if not runtime_matches
+        else (None if isinstance(data, dict) else "Native extraction did not return one record"),
         "data": data,
         "native": native,
-        "runtime": runtime_identity(value["engine"]),
+        "runtime": observed_runtime,
         "usage": {
             "wall_seconds": time.monotonic() - started,
             "process_cpu_seconds": time.process_time(),
@@ -303,6 +351,84 @@ def worker(value):
             "rss_unit": "bytes" if sys.platform == "darwin" else "KiB",
         },
     }
+
+
+def run_worker(value, *, timeout=110, command=None):
+    """Contain native browser descendants, including SDK-created sessions."""
+    import psutil
+
+    # Fail before spawning when the host cannot enumerate this process's children.
+    psutil.Process().children(recursive=True)
+    if sys.platform == "linux":
+        import ctypes
+
+        if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "Cannot enable child-process reaping")
+    process = subprocess.Popen(
+        command or [sys.executable, "-m", "harness.web_extract.self_hosted"],
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(json.dumps(value), timeout=timeout)
+    except subprocess.TimeoutExpired:
+        descendants = {}
+        try:
+            parent = psutil.Process(process.pid)
+            parent.suspend()
+            for _ in range(2):
+                for child in parent.children(recursive=True):
+                    descendants[child.pid] = child
+                    try:
+                        child.suspend()
+                    except psutil.NoSuchProcess:
+                        pass
+            for child in reversed(list(descendants.values())):
+                try:
+                    child.kill()
+                except psutil.NoSuchProcess:
+                    pass
+        except psutil.NoSuchProcess:
+            pass
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.communicate()
+            for child in descendants.values():
+                try:
+                    os.waitpid(child.pid, 0)
+                except ChildProcessError:
+                    pass
+        raise
+    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+
+
+async def read_request_body(request, *, limit=100_000):
+    """Bound streamed and fixed-length requests before JSON decoding."""
+    declared = request.headers.get("content-length")
+    if declared is not None:
+        try:
+            size = int(declared)
+        except ValueError as exc:
+            raise ValueError("Invalid Content-Length") from exc
+        if size < 0:
+            raise ValueError("Invalid Content-Length")
+        if size > limit:
+            raise OverflowError("Request too large")
+    body = bytearray()
+    async for chunk in request.stream():
+        if len(body) + len(chunk) > limit:
+            raise OverflowError("Request too large")
+        body.extend(chunk)
+    try:
+        return json.loads(body)
+    except (ValueError, UnicodeError) as exc:
+        raise ValueError("Request must contain valid JSON") from exc
 
 
 def create_app():
@@ -324,27 +450,27 @@ def create_app():
     @app.post("/extract/{engine}")
     async def extract(engine: str, request: Request, authorization: str = Header(default="")):
         token = os.environ.get("EXTRACTION_API_KEY", "")
-        if not token or not hmac.compare_digest(authorization, "Bearer " + token):
+        if not token or not hmac.compare_digest(
+            authorization.encode("utf-8"), ("Bearer " + token).encode("utf-8")
+        ):
             raise HTTPException(401, "Invalid API key")
-        if int(request.headers.get("content-length", "0")) > 100_000:
-            raise HTTPException(413, "Request too large")
-        value = await request.json()
-        value["engine"] = engine
         try:
+            value = await read_request_body(request)
+            if not isinstance(value, dict):
+                raise ValueError("Request must be a JSON object")
+            value["engine"] = engine
             validate_input(value)
+        except OverflowError as exc:
+            raise HTTPException(413, str(exc)) from exc
         except (KeyError, ValueError) as exc:
             raise HTTPException(400, str(exc)) from exc
         try:
             completed = await asyncio.to_thread(
-                subprocess.run,
-                [sys.executable, "-m", "harness.web_extract.self_hosted"],
-                input=json.dumps(value),
-                text=True,
-                capture_output=True,
-                timeout=115,
+                run_worker,
+                value,
             )
         except subprocess.TimeoutExpired as exc:
-            raise HTTPException(504, "Native extraction exceeded 115 seconds") from exc
+            raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
         if completed.returncode:
             error = completed.stderr[-6000:]
             for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
