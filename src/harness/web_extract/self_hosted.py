@@ -15,7 +15,12 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
-ENGINES = {"crawl4ai": "crawl4ai", "scrapegraph": "scrapegraphai", "stagehand": "stagehand"}
+ENGINES = {
+    "crawl4ai": "crawl4ai",
+    "scrapegraph": "scrapegraphai",
+    "stagehand": "stagehand",
+    "firecrawl": None,
+}
 
 
 def validate_input(value):
@@ -38,18 +43,23 @@ def validate_input(value):
         raise ValueError("An object JSON Schema with properties is required")
     if value.get("engine") not in ENGINES:
         raise ValueError("Unknown extraction engine")
+    if value["engine"] == "firecrawl" and not os.environ.get("FIRECRAWL_BACKEND_URL"):
+        raise ValueError("Firecrawl backend is not configured")
     if value.get("expected_runtime") != runtime_identity(value["engine"]):
         raise ValueError("Runtime differs from the frozen extraction configuration")
     return value
 
 
-@lru_cache(maxsize=3)
+@lru_cache(maxsize=len(ENGINES))
 def runtime_identity(engine):
     return {
         "engine": engine,
-        "version": importlib.metadata.version(ENGINES[engine]),
+        "version": importlib.metadata.version(ENGINES[engine])
+        if ENGINES[engine]
+        else os.environ["FIRECRAWL_IMAGE"],
         "model": os.environ["EXTRACTION_MODEL"],
         "model_base": os.environ["EXTRACTION_MODEL_BASE"],
+        "model_context_tokens": int(os.environ.get("EXTRACTION_MODEL_CONTEXT_TOKENS", "128000")),
         "implementation": "native-open-source/1",
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "environment_sha256": hashlib.sha256(
@@ -118,7 +128,10 @@ def graph(value):
         source=value["url"],
         schema=create_model(value["schema"]),
         config={
-            "llm": {"model_instance": model, "model_tokens": 1_000_000},
+            "llm": {
+                "model_instance": model,
+                "model_tokens": int(os.environ.get("EXTRACTION_MODEL_CONTEXT_TOKENS", "128000")),
+            },
             "verbose": False,
             "headless": True,
             "reattempt": False,
@@ -190,6 +203,13 @@ async def stagehand_extract(value):
                     "output_format": "json_schema",
                     "structured_content": json.loads(text),
                     "stop_reason": response.choices[0].finish_reason,
+                    "usage": {
+                        "input_tokens": response.usage.prompt_tokens,
+                        "output_tokens": response.usage.completion_tokens,
+                        "total_tokens": response.usage.total_tokens,
+                    }
+                    if response.usage
+                    else None,
                 }
             )
 
@@ -221,11 +241,41 @@ async def stagehand_extract(value):
             await browser.close()
 
 
+def firecrawl_extract(value):
+    import requests
+
+    response = requests.post(
+        os.environ["FIRECRAWL_BACKEND_URL"].rstrip("/") + "/v2/scrape",
+        json={
+            "url": value["url"],
+            "formats": [
+                {
+                    "type": "json",
+                    "schema": value["schema"],
+                    "prompt": value.get("instruction", "Extract the fields defined by the schema."),
+                }
+            ],
+            "onlyMainContent": False,
+            "maxAge": 0,
+            "timeout": 100000,
+        },
+        timeout=105,
+        allow_redirects=False,
+    )
+    response.raise_for_status()
+    native = response.json()
+    if native.get("success") is not True:
+        raise RuntimeError("Firecrawl extraction failed: " + json.dumps(native))
+    return native["data"]["json"], native
+
+
 def worker(value):
     validate_input(value)
     started = time.monotonic()
     with contextlib.redirect_stdout(sys.stderr):
-        if value["engine"] == "scrapegraph":
+        if value["engine"] == "firecrawl":
+            data, native = firecrawl_extract(value)
+        elif value["engine"] == "scrapegraph":
             data, native = graph(value)
         else:
             data, native = asyncio.run(
@@ -252,7 +302,14 @@ def create_app():
 
     @app.get("/health")
     def health():
-        return {"status": "ok", "engines": {e: runtime_identity(e) for e in ENGINES}}
+        return {
+            "status": "ok",
+            "engines": {
+                e: runtime_identity(e)
+                for e in ENGINES
+                if e != "firecrawl" or os.environ.get("FIRECRAWL_BACKEND_URL")
+            },
+        }
 
     @app.post("/extract/{engine}")
     async def extract(engine: str, request: Request, authorization: str = Header(default="")):

@@ -1,4 +1,4 @@
-FROM python:3.12.10-slim-bookworm
+FROM docker.1ms.run/library/python:3.12.10-slim-bookworm
 RUN apt-get update && apt-get install -y --no-install-recommends chromium libgeos-c1v5 libspatialindex6 && rm -rf /var/lib/apt/lists/*
 RUN pip install --no-cache-dir uv==0.7.8
 WORKDIR /app

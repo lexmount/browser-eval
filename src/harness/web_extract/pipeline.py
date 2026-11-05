@@ -824,6 +824,7 @@ def _self_hosted_request(
         "crawl4ai-json": "crawl4ai",
         "scrapegraph-oss-json": "scrapegraph",
         "stagehand-local-json": "stagehand",
+        "firecrawl-oss-json": "firecrawl",
     }[method]
     if not isinstance(identity, dict) or identity.get("engine") != engine:
         raise ValueError("Self-hosted extraction requires a matching frozen runtime identity")
@@ -859,7 +860,12 @@ METHODS = {
             "adapter": _self_hosted_request,
             "deployment": "self-hosted-open-source",
         }
-        for name in ("crawl4ai-json", "scrapegraph-oss-json", "stagehand-local-json")
+        for name in (
+            "crawl4ai-json",
+            "scrapegraph-oss-json",
+            "stagehand-local-json",
+            "firecrawl-oss-json",
+        )
     },
     "firecrawl-parse-json": {
         "keys": ["FIRECRAWL_API_KEY"],
@@ -1139,7 +1145,12 @@ def normalize(method: str, payload: dict, *, schema=None):
     def mapping(value):
         return value if isinstance(value, dict) else {}
 
-    if method in ("crawl4ai-json", "scrapegraph-oss-json", "stagehand-local-json"):
+    if method in (
+        "crawl4ai-json",
+        "scrapegraph-oss-json",
+        "stagehand-local-json",
+        "firecrawl-oss-json",
+    ):
         item = payload.get("data")
     elif method in ("firecrawl-json", "firecrawl-parse-json"):
         item = mapping(payload.get("data")).get("json")

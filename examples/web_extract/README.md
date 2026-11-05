@@ -492,8 +492,8 @@ resolve from `<home>`, and absolute paths retain their meaning.
 
 ## Self-hosted open-source extraction
 
-`crawl4ai-json`, `scrapegraph-oss-json` and `stagehand-local-json` use the native
-Crawl4AI, ScrapeGraphAI and Stagehand extractors. They accept the same frozen
+`crawl4ai-json`, `scrapegraph-oss-json`, `stagehand-local-json` and `firecrawl-oss-json` use the native
+Crawl4AI, ScrapeGraphAI, Stagehand and Firecrawl extractors. They accept the same frozen
 Cloudflare page URLs and field schemas as hosted participants. They require a
 separately configured model; identify both the library and model in comparisons.
 Do not label these configurations as model-free extraction.
@@ -504,7 +504,7 @@ The root Dockerfile builds an authenticated service using
 service. `SNAPSHOT_ORIGINS` is a comma-separated list of the exact immutable
 snapshot origins. The container provides Chromium; `CHROME_PATH` selects its
 executable. The service exposes `GET /health` and `POST /extract/{engine}`
-(`crawl4ai`, `scrapegraph` or `stagehand`). Extraction requires bearer authentication.
+(`crawl4ai`, `scrapegraph`, `stagehand` or `firecrawl`). Extraction requires bearer authentication.
 
 Save the health response before calls. Pass a per-method options object to
 `plan --native-options /absolute/native-options.json`:
@@ -524,3 +524,9 @@ that identity; a changed model, dependency environment or worker implementation
 is rejected. Use the normal certified runner and scorer. Keep the API key in the
 caller's repository `.env`, never in the options file. An extraction process has a
 115-second deadline within the track's existing 120-second request budget.
+
+Set `EXTRACTION_MODEL_CONTEXT_TOKENS` to the configured model's documented context
+limit. For Firecrawl, configure `FIRECRAWL_BACKEND_URL` as its private service URL
+and `FIRECRAWL_IMAGE` as its immutable image digest. The backend keeps its own
+native extraction; the authenticated facade forwards its JSON result and receipt.
+Keep the database, queue, browser and backend API internal.

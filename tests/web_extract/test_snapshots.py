@@ -195,6 +195,7 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
             "crawl4ai-json": "crawl4ai",
             "scrapegraph-oss-json": "scrapegraph",
             "stagehand-local-json": "stagehand",
+            "firecrawl-oss-json": "firecrawl",
         }.items()
     }
     plan = create_plan(

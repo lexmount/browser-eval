@@ -1356,6 +1356,7 @@ def test_custom_schema_projection_retains_fields_and_invalid_types(method):
         "crawl4ai-json": {"data": value},
         "scrapegraph-oss-json": {"data": value},
         "stagehand-local-json": {"data": value},
+        "firecrawl-oss-json": {"data": value},
         "cloudflare-json": {"result": value},
         "firecrawl-json": {"data": {"json": value}},
         "firecrawl-parse-json": {"data": {"json": value}},
