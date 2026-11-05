@@ -54,7 +54,7 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
     if nested_artifacts:
         import shutil
         from harness.web_fetch.report_saved_matrix import artifact_bindings
-        records = [json.loads(line) for line in (revision/'results.jsonl').read_text().splitlines()]
+        records = [json.loads(line) for line in (revision/'results.jsonl').read_text(encoding='utf-8').splitlines()]
         for saved in records:
             paths = {}
             for relative, _ in artifact_bindings(saved):
@@ -69,7 +69,7 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
                     return [relocate(child) for child in value]
                 return paths.get(value, value) if isinstance(value, str) else value
             saved.update(relocate(saved))
-        (revision/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records))
+        (revision/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
     dataset = json.loads((revision/'dataset.json').read_text(encoding='utf-8'))
     changed = deepcopy(dataset['cases'][0])
     changed['required_facts'] = []
@@ -90,7 +90,7 @@ def test_revision_accepts_hash_verified_nested_artifacts(tmp_path):
     spec, _, revision = revision_fixture(tmp_path, nested_artifacts=True)
     output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed']
-    row = json.loads((revision/'results.jsonl').read_text())
+    row = json.loads((revision/'results.jsonl').read_text(encoding='utf-8'))
     (revision/row['artifact_path']).write_bytes(b'altered response')
     with pytest.raises(ValueError):
         build_saved_matrix(tmp_path/'spec.json', tmp_path/'tampered')
