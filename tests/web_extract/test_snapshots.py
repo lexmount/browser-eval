@@ -552,7 +552,9 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     )
 
 
-@pytest.mark.parametrize("receipt_mode", ["normal", "symlink", "unwritable", "persist-error"])
+@pytest.mark.parametrize(
+    "receipt_mode", ["normal", "symlink", "unwritable", "persist-error", "broken-pipe"]
+)
 def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
     home, tmp_path, monkeypatch, capsys, receipt_mode
 ):
@@ -614,17 +616,30 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
             return original_write(path, data, **kwargs)
 
         monkeypatch.setattr(snapshots, "save_json", write)
+    if receipt_mode == "broken-pipe":
+
+        def closed(*args, **kwargs):
+            raise BrokenPipeError("Closed output")
+
+        monkeypatch.setattr("builtins.print", closed)
     with (
         patch("requests.get", side_effect=cf_lookup(old, new)),
         patch("subprocess.run", return_value=MagicMock(returncode=0)) as deploy,
         patch("requests.post") as create_project,
     ):
         if receipt_mode != "normal":
-            with pytest.raises((ValueError, PermissionError)):
+            with pytest.raises((ValueError, PermissionError, BrokenPipeError)):
                 snapshots.host(
                     home, output, provider="cloudflare", project="shared", approve_plan=proposal
                 )
-            if receipt_mode == "persist-error":
+            if receipt_mode == "broken-pipe":
+                assert deploy.called
+                assert snapshots.read_json(output)["cloudflare"] == {
+                    "project": "shared",
+                    "deployment_id": "new",
+                    "url": "https://new.dataset.pages.dev",
+                }
+            elif receipt_mode == "persist-error":
                 assert deploy.called
                 assert '"deployment_id": "new"' in capsys.readouterr().out
                 assert snapshots.read_json(output)["state"] == "pending"
@@ -805,6 +820,10 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     assert preview == hosted["snapshot_manifest"]
     assert preview["case_count"] == 1
     assert hosted["hosting_provider"] == "external"
+    with patch("requests.get", return_value=response) as fetch:
+        metadata = snapshots.publication_metadata(home, hosted, preview)
+    assert metadata["snapshot_manifest"] == preview
+    fetch.assert_called_once_with(origin + "/snapshots.json", timeout=40)
 
 
 def test_snapshot_publication_reserves_receipt_before_remote_change(tmp_path, monkeypatch, capsys):
@@ -896,3 +915,48 @@ def test_malformed_source_schema_is_not_a_known_format(value):
     from harness.benchmarks.data import canonical_source_name
 
     assert canonical_source_name("schemas", value) is None
+
+
+@pytest.mark.parametrize(
+    "base", ["http://example.org/archive", "https://u:p@example.org", "https://example.org?x=1"]
+)
+def test_external_host_rejects_unusable_base_before_remote_lookup(
+    home, tmp_path, monkeypatch, base
+):
+    with patch.object(snapshots, "check_manifest") as lookup, pytest.raises(ValueError):
+        snapshots.host(home, tmp_path / "output.json", provider="external", public_base=base)
+    lookup.assert_not_called()
+
+
+@pytest.mark.parametrize("expanded", [False, True])
+def test_fixture_gzip_decodes_with_frozen_size_cap_inside_deadline(home, monkeypatch, expanded):
+    import gzip
+    import signal
+    from types import SimpleNamespace
+
+    from harness.web_extract import pipeline
+
+    original = (home / "dataset/html/case-a.html").read_bytes()
+    remote = original * 10000 if expanded else original
+    url = "https://example.org/case-a"
+    response = SimpleNamespace(
+        status=200, headers={"content-encoding": "gzip"}, body=gzip.compress(remote), url=url
+    )
+    monkeypatch.setattr(pipeline, "request", lambda *a, **k: response)
+    read = gzip.GzipFile.read
+    sizes = []
+
+    def bounded(stream, size=-1):
+        assert signal.getitimer(signal.ITIMER_REAL)[0] > 0
+        sizes.append(size)
+        return read(stream, size)
+
+    monkeypatch.setattr(gzip.GzipFile, "read", bounded)
+    if expanded:
+        with pytest.raises(ValueError, match="differs from frozen HTML"):
+            pipeline.qualify_fixture(home, "https://example.org", "case-a")
+    else:
+        assert pipeline.qualify_fixture(home, "https://example.org", "case-a")["sha256"] == digest(
+            original
+        )
+    assert sizes == [len(original) + 1]

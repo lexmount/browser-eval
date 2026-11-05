@@ -6,6 +6,7 @@ import ast
 import base64
 import fcntl
 import gzip
+import io
 import json
 import math
 import os
@@ -137,22 +138,29 @@ def fixture_url(base, case_id, suffix=""):
 
 def qualify_fixture(home, base, case_id, *, suffix="", timeout=60):
     url = fixture_url(base, case_id, suffix)
+    frozen = (home / "dataset/html" / (case_id + ".html")).read_bytes()
+
+    @total_deadline
+    def fetch(*, timeout):
+        response = request(
+            url, headers={"Accept-Encoding": "gzip"}, timeout=timeout, max_bytes=10_000_000
+        )
+        if response.headers.get("content-encoding") == "gzip":
+            with gzip.GzipFile(fileobj=io.BytesIO(response.body)) as compressed:
+                body = compressed.read(len(frozen) + 1)
+        else:
+            body = response.body
+        return response, body
+
     for attempt in range(3):
         try:
-            response = total_deadline(request)(
-                url, headers={"Accept-Encoding": "gzip"}, timeout=timeout, max_bytes=10_000_000
-            )
+            response, body = fetch(timeout=timeout)
             break
         except (TimeoutError, OSError):
             if attempt == 2:
                 raise
             time.sleep(2)
-    body = (
-        gzip.decompress(response.body)
-        if response.headers.get("content-encoding") == "gzip"
-        else response.body
-    )
-    expected = digest((home / "dataset/html" / (case_id + ".html")).read_bytes())
+    expected = digest(frozen)
     if response.status != 200 or digest(body) != expected:
         raise ValueError("Remote fixture differs from frozen HTML: " + case_id)
     if response.url != url:

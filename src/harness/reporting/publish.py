@@ -114,6 +114,20 @@ def put_file(request, path, data):
             time.sleep(delay)
 
 
+def _archive_entries(bundle):
+    files = [info for info in bundle.infolist() if not info.is_dir()]
+    names = [info.filename for info in files]
+    if not files or len(set(names)) != len(names) or 'index.html' not in names:
+        raise ValueError('Bundle must contain unique files and a root index.html')
+    for name in names:
+        if (name.startswith('/') or '\\' in name
+                or any(part in ('', '..') or part.startswith('.')
+                       or part.lower() == 'node_modules' for part in name.split('/'))
+                or str(PurePosixPath(name)) != name):
+            raise ValueError('Unsafe bundle path: ' + name)
+    return files
+
+
 def upload_large_archive(request, archive, slug=None, expected=None, title=None, *, max_workers=1, resume=False):
     """Upload unpacked bytes to staging and commit the full tree once."""
     if slug and not expected:
@@ -132,16 +146,8 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
 
     check_baseline()
     with zipfile.ZipFile(archive) as bundle:
-        files = [info for info in bundle.infolist() if not info.is_dir()]
+        files = _archive_entries(bundle)
         names = [info.filename for info in files]
-        if not files or len(set(names)) != len(names) or 'index.html' not in names:
-            raise ValueError('Bundle must contain unique files and a root index.html')
-        for name in names:
-            if (name.startswith('/') or '\\' in name
-                    or any(part in ('', '..') or part.startswith('.')
-                           or part.lower() == 'node_modules' for part in name.split('/'))
-                    or str(PurePosixPath(name)) != name):
-                raise ValueError('Unsafe bundle path: ' + name)
         query = '?expected_version=' + quote(expected, safe='') if expected else ''
         payload = {'slug': slug} if slug else {'title': title}
         _, raw = request('/api/uploads' + query, json.dumps(payload).encode(), 'application/json')
@@ -729,6 +735,7 @@ class StagedUpdate:
     work: Path
     guard: Callable
     bind: Callable  # (version) inside the frozen release
+    allow_inline: bool = False
 
 
 def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
@@ -754,6 +761,17 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
 
     save()
     with snapshot_publication(update.archive, inputs=update.inputs) as release:
+        with zipfile.ZipFile(release.archive) as bundle:
+            _archive_entries(bundle)
+        if 'transport' not in operation:
+            # Existing journals may already own staged bytes. Never switch them.
+            operation['transport'] = ('inline' if update.allow_inline and not resumed and
+                                      release.archive.stat().st_size <= STAGED_UPLOAD_THRESHOLD
+                                      else 'staged')
+            save()
+        if operation['transport'] not in {'inline', 'staged'}:
+            raise ValueError(f'{label} publication transport changed')
+        commit_key = f'{update.prefix}-{"inline" if operation["transport"] == "inline" else "commit"}-{operation_hash[:32]}'
         def request(path, data=None, content_type=None, auth=True, method=None):
             release.check()
             update.guard()
@@ -763,6 +781,8 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
             if path.startswith('/api/uploads') and method != 'PUT' and data is not None:
                 phase = 'commit' if '/commit?' in path else 'start'
                 extra_headers['Idempotency-Key'] = f'{update.prefix}-{phase}-{operation_hash[:32]}'
+            elif path.startswith('/api/sites/') and '/versions?' in path and data is not None:
+                extra_headers['Idempotency-Key'] = commit_key
             if transport is not None:
                 # Synthetic transports never load a real account credential.
                 headers = update.client.headers(update.base, content_type, authenticated=False,
@@ -785,13 +805,27 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
         if version is None:
             if remote['version']['id'] != expected:
                 recovered = PublicationOperation(journal, update.prefix + '-').completed(
-                    f'{update.prefix}-commit-{operation_hash[:32]}', request=request, decode=response_json,
+                    commit_key, request=request, decode=response_json,
                 )
                 if recovered is None:
                     raise ValueError(f'Remote {label} version changed; reconcile before updating')
                 response = response_json(*recovered, operation=f'{label} commit recovery')
             else:
-                response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4, resume=resumed))
+                recovered = None
+                if resumed and operation['transport'] == 'inline':
+                    recovered = PublicationOperation(journal, update.prefix + '-').completed(
+                        commit_key, request=request, decode=response_json)
+                if recovered is not None:
+                    response = response_json(*recovered, operation=f'{label} inline recovery')
+                elif operation['transport'] == 'inline':
+                    body, content_type = multipart_archive(
+                        release.archive, update.title, boundary_prefix=update.prefix + '-',
+                        filename='report.zip')
+                    response = response_json(*request(
+                        site_path + '/versions?expected_version=' + quote(expected, safe=''),
+                        body, content_type), operation=f'{label} inline upload')
+                else:
+                    response = json.loads(upload_large_archive(request, release.archive, slug, expected, max_workers=4, resume=resumed))
             version = response.get('versionId')
             if (response.get('slug', slug) != slug or not isinstance(version, str)
                     or not version.startswith('ver_')):

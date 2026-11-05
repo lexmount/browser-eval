@@ -2111,3 +2111,19 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         assert provider.call_count == 1
     assert composed[-1]["normalized_fields"]["sku"] == "recovered"
     assert read_json(target / "fixture-before.json")[0]["case_id"] == "dataset-snapshot"
+
+
+@pytest.mark.parametrize(
+    "source,quote,accepted",
+    [
+        (r"<p>C:\SKU</p><p>Price</p>", r'"C:\SKU"; "Price"', True),
+        (r"<p>C:\SKU</p><p>Price</p>", r'"C:\SKU"; "Invented"', False),
+    ],
+)
+def test_literal_backslashes_in_multiple_citations_require_every_fragment(source, quote, accepted):
+    from harness.web_extract.review import citation_fragments, literal_citation_span
+
+    span = literal_citation_span(source, citation_fragments(quote))
+    assert (span is not None) is accepted
+    if accepted:
+        assert r"C:\SKU" in span and "Price" in span

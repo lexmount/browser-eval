@@ -342,10 +342,17 @@ def citation_fragments(quote):
         matches = list(re.finditer(pattern, quote))
         remaining = re.sub(pattern, "", quote)
         if len(matches) >= 2 and not re.search(r"[^\s；;，,|/\[\]]", remaining):
-            return [
-                json.loads(m.group()) if m.group().startswith('"') else m.group()[1:-1]
-                for m in matches
-            ]
+            fragments = []
+            for match in matches:
+                literal = match.group()[1:-1]
+                try:
+                    fragment = (
+                        json.loads(match.group()) if match.group().startswith('"') else literal
+                    )
+                except ValueError:
+                    fragment = literal
+                fragments.append(fragment)
+            return fragments
     for separator in (" || ", " | ", " / ", "；", "; ", "\n"):
         if separator in quote:
             return [part.strip() for part in quote.split(separator)]

@@ -251,7 +251,10 @@ def publication_metadata(home, binding, verification):
         if row["url"].startswith(selected["fixture_base"] + "/") and row["http_status"] == 200
     ]
     if verification.get("mode") == "dataset_manifest":
-        origin = "https://" + urlsplit(verification["manifest_url"]).netloc
+        manifest_url = verification["manifest_url"]
+        if not manifest_url.endswith("/snapshots.json"):
+            raise ValueError("Snapshot manifest requires its canonical path")
+        origin = manifest_url.removesuffix("/snapshots.json")
         checked = check_manifest(home, origin, verification["huggingface"])
         if checked != verification or checked["fixture_base"] != selected["fixture_base"]:
             raise ValueError("Snapshot publication dataset manifest changed")
@@ -473,6 +476,7 @@ def host(
     if provider == "external":
         if not public_base:
             raise ValueError("External hosting requires a public HTTPS base URL")
+        validate_fixture_base(public_base)
         try:
             receipt = check_manifest(home, public_base, hf_identity)
         except (ValueError, requests.HTTPError):
@@ -654,8 +658,10 @@ def host(
                     "url": deployment["url"],
                 },
             }
-            print(json.dumps(pending), flush=True)
-            save_json(output, pending)
+            try:
+                save_json(output, pending)
+            finally:
+                print(json.dumps(pending), flush=True)
             binding = bind(deployment["url"].rstrip("/") + "/" + name + "/" + version)
             receipt = check_manifest(home, deployment["url"], hf_identity)
             binding["snapshot_manifest"] = receipt

@@ -87,6 +87,7 @@ def publish(source, target, work, visual_receipt, *, transport=None):
 
     version = publish_staged_update(
         StagedUpdate(
+            allow_inline=True,
             label="Web Extract",
             prefix="web-extract",
             client=PublicationClient("Browser-Eval-Web-Extract/1.0"),

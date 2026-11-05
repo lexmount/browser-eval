@@ -77,7 +77,7 @@ def test_product_call_budget_includes_access_retries_and_is_frozen_on_resume(tmp
         with pytest.raises(PermissionError, match="physical call budget exhausted"):
             probe(home, ["cloudflare-json"], full=True, run_dir=run, maximum_physical_calls=3)
         assert call.call_count == 2
-    assert len((run / "calls.journal.jsonl").read_text().splitlines()) == 3
+    assert len((run / "calls.journal.jsonl").read_text(encoding="utf-8").splitlines()) == 3
 
 
 @pytest.mark.parametrize("status", [301, 302, 303, 307, 308])
