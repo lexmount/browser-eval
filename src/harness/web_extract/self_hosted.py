@@ -118,7 +118,7 @@ def graph(value):
         source=value["url"],
         schema=create_model(value["schema"]),
         config={
-            "llm": {"model_instance": model, "model_tokens": 65536},
+            "llm": {"model_instance": model, "model_tokens": 1_000_000},
             "verbose": False,
             "headless": True,
             "reattempt": False,
