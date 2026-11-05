@@ -16,11 +16,7 @@ from harness.browser_use.failure_cause_review import (
 from harness.browser_use.failure_cause_review import (
     review_path as failure_review_path,
 )
-from harness.browser_use.publication import (
-    evidence_metadata,
-    require_no_private_hosts,
-    trajectory_label,
-)
+from harness.browser_use.publication import evidence_metadata, require_no_private_hosts
 from harness.browser_use.report import (
     PUBLIC_EXECUTION_ARTIFACTS,
     SITE_LABELS,
@@ -88,27 +84,15 @@ def _check_reader_facing_ux(report_dir: Path, rendered_pages: dict[Path, str]) -
             raise ValueError(f"report home page is missing the core metrics table: {homepage}")
 
 
-def _check_english_prose(
-    report_dir: Path, english_pages: dict[Path, str], rationales: set[str]
-) -> None:
-    """Reject Chinese report-authored prose.
-
-    Frozen task rationales and measured BrowserTool step labels keep their raw language.
-    """
+def _check_english_prose(english_pages: dict[Path, str]) -> None:
+    """Reject Chinese report-authored prose outside raw-text and language-switch nodes."""
 
     cjk = re.compile(r"[\u3400-\u9fff]")
-    step_labels = {
-        re.sub(r"\s+", " ", trajectory_label(step)).strip()
-        for path in report_dir.glob("artifacts/*/executions/*/execution-evidence.json")
-        for step in read_json(path).get("trajectory") or []
-    }
-    allowed = sorted(
-        {_ZH("check.chinese", "Chinese"), *rationales, *step_labels}, key=len, reverse=True
-    )
     for page, text in english_pages.items():
-        visible = re.sub(r"\s+", " ", _visible_text(text))
-        for token in allowed:
-            visible = visible.replace(token, "")
+        soup = BeautifulSoup(text, "html.parser")
+        for node in soup.select('[data-raw-text], a[hreflang^="zh"]'):
+            node.decompose()
+        visible = re.sub(r"\s+", " ", _visible_text(str(soup)))
         match = cjk.search(visible)
         if match:
             excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
@@ -580,11 +564,7 @@ def check(
         excluded_lists = re.findall(r"tasks excluded in this run: ([^<]+)", text)
         if any("、" in value for value in excluded_lists):
             raise ValueError(f"English excluded-task list uses Chinese punctuation: {page}")
-    _check_english_prose(
-        report_dir,
-        {page: rendered_pages[page] for page in english_pages},
-        {task.rationale for task in selection.tasks},
-    )
+    _check_english_prose({page: rendered_pages[page] for page in english_pages})
     for engine in engines:
         engine_page = rendered_pages[report_dir / "engines" / f"{engine}.html"]
         if "engine-result-table" in engine_page or f"f_engine={engine}" not in engine_page:

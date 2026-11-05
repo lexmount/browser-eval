@@ -335,18 +335,18 @@ def test_listed_recording_host_is_redacted_and_then_passes(tmp_path, monkeypatch
     checker.check_public_privacy(tmp_path)
 
 
-@pytest.mark.parametrize("leak", [False, True], ids=["measured-chinese-argument", "authored-leak"])
-def test_english_prose_check_covers_every_route_but_not_raw_text(tmp_path, monkeypatch, leak):
+@pytest.mark.parametrize("leak", [None, "authored", "reused-raw-text"])
+def test_english_prose_check_skips_only_marked_raw_text(tmp_path, monkeypatch, leak):
     report, _, _ = build_browser_use_fixture(
         tmp_path, monkeypatch, "en", failed=True, arguments={"action": "type", "text": "你好"}
     )
     pages = {page: page.read_text(encoding="utf-8") for page in (report / "en").rglob("*.html")}
     result = report / "en/results/gpt-5.6-sol-moli-44.html"
-    assert "type 你好" in pages[result]
-    rationales = {task.rationale for task in checker.load_pilot(SELECTION).tasks}
-    if not leak:
-        checker._check_english_prose(report, pages, rationales)
+    assert "<span data-raw-text>type 你好</span>" in pages[result]
+    if leak is None:
+        checker._check_english_prose(pages)
         return
-    pages[result] = pages[result].replace("Awaiting review", "待复核")
+    authored = "待复核" if leak == "authored" else "type 你好"
+    pages[result] = pages[result].replace("Awaiting review", authored)
     with pytest.raises(ValueError, match="Chinese prose: .*gpt-5.6-sol-moli-44"):
-        checker._check_english_prose(report, pages, rationales)
+        checker._check_english_prose(pages)

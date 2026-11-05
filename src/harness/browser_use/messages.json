@@ -133,7 +133,6 @@
     "changes_page.each_release_records_only_formal_corrections": "每个版本只记录影响读者判断的正式修正；结论、分母、耗时与证据影响直接展示，技术依据按需展开。",
     "check.another_179_task_set_covering_more": "另一个覆盖更多站点的 179 题",
     "check.baseline_only": "仅基准通过",
-    "check.chinese": "中文",
     "check.compare_all_configurations": "全部 {models_count} 种配置中比较",
     "check.comparison_only": "仅对比通过",
     "check.complete_within_model_pairs": "模型内完整配对",

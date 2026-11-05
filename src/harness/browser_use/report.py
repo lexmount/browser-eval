@@ -91,7 +91,14 @@ def _translated(key: str, source: str, /, **values: Any) -> Safe:
 
 def _rationale(task: dict[str, Any]) -> str:
     """Read the frozen selection rationale, which has no English field of its own."""
-    return _Authored(english_rationale(task["rationale"])) if _language() == "en" else task["rationale"]
+    raw = task["rationale"]
+    english = english_rationale(raw) if _language() == "en" else raw
+    return _Authored(english) if english != raw else _raw(raw)
+
+
+def _raw(value: Any) -> Safe:
+    """Mark measured or dataset text that keeps its source language."""
+    return Safe(f"<span data-raw-text>{_e(value)}</span>")
 
 
 def _searchable_rationale(task: dict[str, Any]) -> str:
@@ -928,7 +935,7 @@ def _same_task_comparison(
         site = str(task["sites"][0])
         task_cell = (
             f'<div class="task-cell"><a href="datasets/{task_id}.html">#{task_id} · '
-            f'{_e(task["rationale"])}</a><div class="task-meta">'
+            f'{_raw(task["rationale"])}</a><div class="task-meta">'
             f'<span class="track-badge">{_e(_tier_label(task["tier"]))}</span>'
             f'<span class="track-badge">{_e(SITE_LABELS.get(site, site))}</span>'
             f'<span class="track-badge">{_e(task["task_type"])}</span></div></div>'
@@ -1289,7 +1296,7 @@ def _evidence_viewer_page() -> str:
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
-    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
+    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{title if isinstance(title, Safe) else _e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
 
 
 def _section(title: str, body: str) -> str:
@@ -1610,7 +1617,7 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
             meta += (" " + t("trajectory_html.s", "· {duration:.2f} s", duration=float(duration)))
         rows.append(
             f'<li id="trajectory-step-{step_number}" class="trajectory-step{" failure-step" if failed else ""}"><div><details{" open" if failed else ""}><summary>'
-            + _e(trajectory_label(step))
+            + _raw(trajectory_label(step))
             + (f'</summary><p class="fine">{meta}</p><h4>' + t("trajectory_html.call_arguments", "Call arguments") + "</h4>")
             + _json_pre(step.get("arguments"))
             + ("<h4>" + t("trajectory_html.execution_output_excerpt", "Execution output excerpt") + "</h4>")
@@ -2361,7 +2368,7 @@ def _diagnosis_dialog(
     return (
         (f'<dialog class="diagnosis-dialog" id="{_e(dialog_id)}" aria-labelledby="{_e(dialog_id)}-title"><div class="diagnosis-dialog-head"><div><span class="table-kicker">' + t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis") + f'</span><h2 id="{_e(dialog_id)}-title">Task #{task_id} · {_e(configuration)}</h2></div><button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="' + t("diagnosis_dialog.close", "Close") + '">×</button></div><div class="diagnosis-dialog-grid"><div><b>' + t("diagnosis_dialog.location", "Location") + f'</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div><div><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(automatic_failure or t('failure_cause_table.unclassified', 'Unclassified'))}</div><div><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or t('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f"</b>{_e(owner)}</div></div>")
         + (
-            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_e(step_context)}</a></div>'
+            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_raw(step_context)}</a></div>'
             if step_context
             else ""
         )
@@ -3324,7 +3331,7 @@ def _result_failure_section(
         t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis"),
         ('<article class="failure-lead"><span class="status-line">' + t("same_task_comparison.fail", "Fail") + f'</span><h3><a href="{step_href}">{_e(failure_point)}</a></h3><p>{_e(_failure_brief(evaluation_record, row))}</p></article>')
         + (
-            f'<p class="step-signature"><strong>{_e(t("result_failure_section.step_signature", "{label}: ", label=step_context_label))}</strong><a href="{step_href}">{_e(step_context)}</a></p>'
+            f'<p class="step-signature"><strong>{_e(t("result_failure_section.step_signature", "{label}: ", label=step_context_label))}</strong><a href="{step_href}">{_raw(step_context)}</a></p>'
             if step_context
             else ""
         )
