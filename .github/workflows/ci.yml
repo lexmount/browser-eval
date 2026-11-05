@@ -35,7 +35,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        partition: ${{ fromJSON(needs.scope.outputs.docs_only == 'true' && '["harness"]' || '["harness","benchmarks"]') }}
+        partition: ${{ fromJSON(needs.scope.outputs.docs_only == 'true' && '["primary"]' || '["primary","secondary"]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -48,25 +48,20 @@ jobs:
           version: "0.7.8"
           enable-cache: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'harness'
+        if: needs.scope.outputs.docs_only == 'false'
         with:
           node-version: "22"
           cache: npm
       - run: make docs-check
         if: needs.scope.outputs.docs_only == 'true'
       - run: make setup-test
-        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'harness'
-      - name: Prepare benchmark tests
-        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'benchmarks'
-        run: |
-          uv sync --frozen --all-extras
-          uv run --frozen --all-extras python -m harness.benchmarks.data
-      - name: Check harness and shared components
-        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'harness'
-        run: make ci-tests PYTEST_ARGS='--ignore=tests/benchmarks -n 4 --dist worksteal --durations=20'
-      - name: Check benchmark definitions and scorers
-        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'benchmarks'
-        run: make test-python TEST_PATHS=tests/benchmarks PYTEST_ARGS='-n 4 --dist worksteal --durations=20'
+        if: needs.scope.outputs.docs_only == 'false'
+      - name: Check primary Python shard and static contracts
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'primary'
+        run: make ci-tests PYTEST_ARGS='--ci-shard=1/2 -n 4 --dist worksteal --durations=20'
+      - name: Check secondary Python shard
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'secondary'
+        run: make test-python PYTEST_ARGS='--ci-shard=2/2 -n 4 --dist worksteal --durations=20' BROWSER_TESTS=exclude
 
   package:
     name: Installation and packaging
@@ -118,9 +113,7 @@ jobs:
         run: |
           uv sync --frozen --extra test --extra headless-eval --extra browser-use-eval
           uv run --frozen --no-sync python -m harness.benchmarks.data
-          uv run --frozen --no-sync playwright install chromium
-          export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
-          uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q
+          make browser-check PY='uv run --frozen --no-sync python' TEST_PY='uv run --frozen --no-sync python'
 
   test:
     name: Python 3.11

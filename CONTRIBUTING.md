@@ -104,8 +104,9 @@ Without `TEST_PATHS`, Python tests cover the entire suite. `make docs-check`
 checks README navigation, citations, track naming and source-language policy;
 it needs neither Node.js nor downloaded benchmark data.
 
-CI runs `tests/benchmarks` and the remaining Python tests on separate runners,
-with four workers per runner. Static, Node and fixture checks run once. Local
+CI splits Python tests by a stable hash of their node IDs across two runners,
+with four workers per runner. Browser-test modules run once in `browser-check`;
+static, Node and fixture checks run once. Local
 `make ci` remains serial unless `PYTEST_ARGS` requests workers; focused checks
 are usually enough while editing, followed by the complete checks before release.
 

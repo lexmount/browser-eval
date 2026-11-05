@@ -12,14 +12,17 @@ Playwright; `ubuntu-latest` can advance to an unsupported browser platform:
 
 | Job | Coverage |
 | --- | --- |
-| Tests and static checks (harness) | `make ci-tests` excluding `tests/benchmarks`: shared and track Python tests, naming, lint, Node UI/native-adapter tests and the fixture smoke test |
-| Tests and static checks (benchmarks) | Every Python test under `tests/benchmarks`; no duplicate static or Node checks |
+| Tests and static checks (primary) | First Python shard, naming, lint, Node UI/native-adapter tests and the fixture smoke test |
+| Tests and static checks (secondary) | Second Python shard; no duplicate static or Node checks |
 | Installation and packaging | Base installation and CLI language checks, sdist/pip installation, wheel smoke checks and all existing optional installation profiles |
 | Rendered reference and report checks | Chromium reference capture, report interactions and Web Search visual checks |
 
-The two Python partitions are disjoint and together cover the complete suite,
-including new test directories. Both must pass the existing required status.
-Documentation-only PRs run only the harness partition's documentation checks.
+Each Python test's node ID selects one of two shards through SHA-256, independent
+of Python's random hash seed. Both shards use the full inventory, so slow tests and
+new directories can reach either runner. The three browser-test modules listed in
+the Makefile run only in the dedicated browser job. Together these jobs cover the
+complete Python suite without overlap. All must pass the existing required status.
+Documentation-only PRs run only the primary partition's documentation checks.
 Each Python partition uses the worker count configured in `ci.yml`, with
 `--dist worksteal` redistributing pending tests when a worker becomes available.
 Slow-test durations appear in the job log. Local `make ci` remains serial by

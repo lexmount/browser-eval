@@ -235,29 +235,52 @@ def test_only_documentation_uses_one_test_partition():
         text=True, capture_output=True, check=True,
     )
     assert [row["partitions"] for row in json.loads(result.stdout)] == [
-        ["harness"], ["harness", "benchmarks"], ["harness", "benchmarks"], ["harness", "benchmarks"]]
+        ["primary"], ["primary", "secondary"], ["primary", "secondary"], ["primary", "secondary"]]
 
 
 def test_python_partitions_cover_existing_and_future_test_directories_once(tmp_path):
-    for name in ["test_shared.py", "benchmarks/test_scorer.py", "future_track/test_new.py"]:
+    names = ["test_shared.py", "benchmarks/test_scorer.py", "future_track/test_new.py",
+             "test_browser_observation_contracts.py", "test_report_browser_interactions.py",
+             "web_search/test_visual.py"]
+    for name in names:
         path = tmp_path / "tests" / name
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text("def test_example(): pass\n", encoding="utf-8")
+        path.write_text("".join(f"def test_example_{i}(): pass\n" for i in range(10)), encoding="utf-8")
     selected = []
-    for step in ci_workflow()["jobs"]["checks"]["steps"]:
-        command = step.get("run", "")
-        if not command.startswith(("make ci-tests ", "make test-python ")):
-            continue
-        assignments = dict(token.split("=", 1) for token in shlex.split(command) if "=" in token)
-        paths = shlex.split(assignments.get("TEST_PATHS", "tests"))
-        exclusions = [token for token in shlex.split(assignments.get("PYTEST_ARGS", ""))
-                      if token.startswith("--ignore=")]
+    commands = [step['run'] for step in ci_workflow()["jobs"]["checks"]["steps"]
+                if step.get('run', '').startswith(("make ci-tests ", "make test-python "))]
+    for command in [*commands, 'make browser-check']:
+        dry_run = subprocess.run(
+            [*shlex.split(command)[:2], "-n", *shlex.split(command)[2:]],
+            cwd=ROOT, text=True, capture_output=True, check=True,
+        )
+        python = next(line for line in dry_run.stdout.splitlines() if ' -m pytest ' in line)
+        arguments = iter(shlex.split(python)[shlex.split(python).index('pytest') + 1:])
+        options = []
+        for argument in arguments:
+            if argument in {'-n', '--dist'}:
+                next(arguments)
+            else:
+                options.append(argument)
         result = subprocess.run(
-            [sys.executable, "-m", "pytest", "--collect-only", "-q", *paths, *exclusions],
+            [sys.executable, "-m", "pytest", "-p", "tests.conftest", "--collect-only", *options],
             cwd=tmp_path, text=True, capture_output=True, check=True,
+            env={**os.environ, 'PYTHONPATH': str(ROOT)},
         )
         selected.append({line for line in result.stdout.splitlines() if "::test_example" in line})
-    assert len(selected) == 2
-    assert selected[0].isdisjoint(selected[1])
-    assert set.union(*selected) == {f"tests/{name}::test_example" for name in [
-        "test_shared.py", "benchmarks/test_scorer.py", "future_track/test_new.py"]}
+    assert len(selected) == 3
+    for index, population in enumerate(selected):
+        assert all(population.isdisjoint(other) for other in selected[index + 1:])
+    assert set.union(*selected) == {f"tests/{name}::test_example_{i}"
+                                   for name in names for i in range(10)}
+
+
+@pytest.mark.parametrize('shard', ['0/2', '3/2', '1/0', 'bad', '1/2/3'])
+def test_invalid_shard_fails_instead_of_silently_omitting_tests(tmp_path, shard):
+    (tmp_path / 'test_example.py').write_text('def test_example(): pass\n', encoding='utf-8')
+    result = subprocess.run(
+        [sys.executable, '-m', 'pytest', '-p', 'tests.conftest', '--collect-only', '--ci-shard=' + shard],
+        cwd=tmp_path, env={**os.environ, 'PYTHONPATH': str(ROOT)}, text=True, capture_output=True,
+    )
+    assert result.returncode == 4
+    assert '--ci-shard requires' in result.stderr

@@ -198,7 +198,8 @@ def test_makefile_declares_every_target_phony_exactly_once():
     assert MAKEFILE.count(".PHONY") == 1
     block = re.search(r"^\.PHONY:((?:.*\\\n)*.*)$", MAKEFILE, re.M)[1]
     declared = block.replace("\\\n", " ").split()
-    targets = re.findall(r"^([a-z][a-z0-9-]*):(?!=)", MAKEFILE, re.M)
+    targets = re.findall(
+        r"^([a-z][a-z0-9-]*):(?!=)(?!\s*(?:override\s+)?\w+\s*[+:?]?=)", MAKEFILE, re.M)
     assert sorted(declared) == sorted(targets) and len(targets) == len(set(targets))
 
 
@@ -216,10 +217,21 @@ def test_make_ci_runs_each_ci_job():
         for step in workflow["jobs"][job]["steps"]:
             for target in re.findall(r"^make ([a-z-]+)", step.get("run", ""), re.M):
                 if target not in {"docs-check", "setup", "setup-test"}:
-                    assert f"{target}:" in MAKEFILE and target in re.search(
-                        r"^ci: (.*?) ##", MAKEFILE, re.M)[1]
+                    prerequisites = {'ci'}
+                    pending = ['ci']
+                    while pending:
+                        current = pending.pop()
+                        rule = re.search(r'^' + re.escape(current) + r': ([^=\n]*?) ##', MAKEFILE, re.M)
+                        if rule:
+                            for dependency in rule[1].split():
+                                if dependency not in prerequisites:
+                                    prerequisites.add(dependency)
+                                    pending.append(dependency)
+                    assert f"{target}:" in MAKEFILE and target in prerequisites
     browser = workflow["jobs"]["browser"]["steps"][-1]["run"]
-    for path in re.search(r"pytest (.*?) -q", browser)[1].split():
+    assert re.search(r'^\s*make browser-check\b', browser, re.M)
+    browser_recipe = make('-n', 'browser-check').stdout
+    for path in re.search(r"pytest (.*?) -q", browser_recipe)[1].split():
         assert path in ci
     assert "scripts/check_package.py" in ci and "shellcheck" in ci
 

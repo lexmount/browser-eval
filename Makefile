@@ -3,6 +3,8 @@ PY := $(UV) run --frozen python
 TEST_PY := $(UV) run --frozen --all-extras python
 PYTEST_ARGS ?=
 TEST_PATHS ?= tests
+BROWSER_TESTS ?= include
+BROWSER_TEST_PATHS := tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 WEBMAINBENCH_PROFILE ?= $(PROFILE)
 REPORT_LANGUAGE ?=
@@ -117,7 +119,7 @@ lint-check: runtime-check ## Run Ruff
 	$(TEST_PY) -m ruff check
 
 test-python: runtime-check ## Run Python tests: TEST_PATHS, PYTEST_ARGS
-	$(TEST_PY) -m pytest $(TEST_PATHS) -q $(PYTEST_ARGS)
+	$(TEST_PY) -m pytest $(TEST_PATHS) -q $(PYTEST_ARGS) $(if $(filter exclude,$(BROWSER_TESTS)),$(addprefix --ignore=,$(BROWSER_TEST_PATHS)))
 
 test-reference-inputs: runtime-check ## Run strict historical-input tests
 	$(TEST_PY) -m pytest tests -q --require-reference-inputs
@@ -134,6 +136,7 @@ fixture-smoke: runtime-check ## Run the offline fixture CLI
 
 test: test-python test-ui test-native-adapters ## Run Python, UI and native adapter tests
 
+ci-tests: override BROWSER_TESTS = exclude
 ci-tests: track-naming-check lint-check shell-check test fixture-smoke ## Run the CI test and static check job
 
 ci: ci-tests package-check browser-check ## Run every CI job: tests, packaging and browser checks
@@ -145,7 +148,7 @@ shell-check: ## Run shellcheck on deploy scripts
 browser-check: runtime-check ## Run the CI rendered reference and report checks
 	$(TEST_PY) -m playwright install chromium
 	BROWSER_EVAL_TEST_BROWSER_BINARY="$$($(TEST_PY) -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')" \
-	  $(TEST_PY) -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q
+	  $(TEST_PY) -m pytest $(BROWSER_TEST_PATHS) -q
 
 package-check: runtime-check ## Verify the sdist and wheel outside the checkout
 	$(PY) scripts/check_package.py --uv "$(UV)"
