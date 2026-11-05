@@ -40,3 +40,4 @@ html.dark .field-unexpected,html.dark .field-wrong{color:#ffa19d}
 [data-metric-guide]{margin:12px 0 24px}[data-metric-guide] summary{font-weight:600;padding:10px 0}
 
 a,code{overflow-wrap:anywhere}
+.example-pair>div{min-width:0}
