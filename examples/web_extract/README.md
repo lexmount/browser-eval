@@ -559,6 +559,11 @@ is rejected. Use the normal certified runner and scorer. Keep the API key in the
 caller's repository `.env`, never in the options file. An extraction process has a
 110-second deadline within the track's existing 120-second request budget. Timed-out
 workers and their browser descendants are terminated and reaped.
+Configure the reverse proxy read timeout above the 120-second client budget
+(for example, 150 seconds). A shorter gateway timeout can cut off a healthy native
+extraction before its worker deadline; preserve that physical call when collecting
+a declared infrastructure repair. Gateway settings do not extend the worker or
+client deadline.
 
 Set `EXTRACTION_MODEL_CONTEXT_TOKENS` to the configured model's documented context
 limit. For Firecrawl, configure `FIRECRAWL_BACKEND_URL` as its private service URL
