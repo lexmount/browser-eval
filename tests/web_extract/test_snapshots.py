@@ -179,7 +179,29 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
     methods = [
         name for name in METHODS if name not in {"extruct", "firecrawl-parse-json", "zyte-custom"}
     ]
-    plan = create_plan(home, methods, tmp_path / "plan.json", snapshots=source)
+    options = {
+        method: {
+            "endpoint": "https://extract.example",
+            "runtime_identity": {
+                "engine": engine,
+                "version": "synthetic",
+                "model": "test-model",
+                "model_base": "https://model.example",
+                "implementation_sha256": "a" * 64,
+                "environment_sha256": "b" * 64,
+            },
+        }
+        for method, engine in {
+            "crawl4ai-json": "crawl4ai",
+            "scrapegraph-oss-json": "scrapegraph",
+            "stagehand-local-json": "stagehand",
+        }.items()
+    }
+    plan = create_plan(
+        home, methods, tmp_path / "plan.json", snapshots=source, native_options=options
+    )
+    for method, native in options.items():
+        assert plan["participants"][method]["native_options"] == native
     assert all(
         row["input"] == "url" and row["fixture_suffix"] == ""
         for row in plan["participants"].values()

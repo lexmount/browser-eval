@@ -21,10 +21,11 @@ from harness.web_extract.pipeline import (
     validate_dataset,
     validate_fixture_base,
     validate_instruction_schema,
+    validate_native_options,
 )
 
 
-def create_plan(home, methods, output, *, snapshots=None):
+def create_plan(home, methods, output, *, snapshots=None, native_options=None):
     require_external_output(output)
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
@@ -35,6 +36,11 @@ def create_plan(home, methods, output, *, snapshots=None):
         raise ValueError("Selected methods require a dataset-provided custom schema")
     if any(registry[m].get("retired") for m in methods):
         raise ValueError("Retired reference interfaces cannot enter a new cohort")
+    native_options = native_options or {}
+    if set(native_options) - set(methods):
+        raise ValueError("Native options name methods outside this cohort")
+    for method in methods:
+        validate_native_options(method, native_options.get(method))
     validate_dataset(home)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     plan = {
@@ -104,6 +110,9 @@ def create_plan(home, methods, output, *, snapshots=None):
             "Remote memory unavailable; local client memory does not measure the provider."
         )
     adapter = benchmark_config(home)["adapter"]
+    for method, options in native_options.items():
+        participant = plan["participants"][method]
+        participant["native_options"] = {**participant.get("native_options", {}), **options}
     if adapter is not None:
         for case in truth.values():
             schema = instruction_schema(adapter.task_schema(home, case), RECORD_INSTRUCTIONS)

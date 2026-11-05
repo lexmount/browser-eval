@@ -482,3 +482,38 @@ A repair inherits its parent's instructions and native options unless the plan e
 overrides the native options. The instruction-delivery format is frozen too: historical
 record runs with a different format require a new cohort instead of a mixed repair. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
 resolve from `<home>`, and absolute paths retain their meaning.
+
+## Self-hosted open-source extraction
+
+`crawl4ai-json`, `scrapegraph-oss-json` and `stagehand-local-json` use the native
+Crawl4AI, ScrapeGraphAI and Stagehand extractors. They accept the same frozen
+Cloudflare page URLs and field schemas as hosted participants. They require a
+separately configured model; identify both the library and model in comparisons.
+Do not label these configurations as model-free extraction.
+
+The root Dockerfile builds an authenticated service using
+`deploy/web-extract/uv.lock`. Set `EXTRACTION_API_KEY`, `EXTRACTION_MODEL`,
+`EXTRACTION_MODEL_BASE`, `EXTRACTION_MODEL_API_KEY` and `SNAPSHOT_ORIGINS` on the
+service. `SNAPSHOT_ORIGINS` is a comma-separated list of the exact immutable
+snapshot origins. The container provides Chromium; `CHROME_PATH` selects its
+executable. The service exposes `GET /health` and `POST /extract/{engine}`
+(`crawl4ai`, `scrapegraph` or `stagehand`). Extraction requires bearer authentication.
+
+Save the health response before calls. Pass a per-method options object to
+`plan --native-options /absolute/native-options.json`:
+
+```json
+{
+  "crawl4ai-json": {
+    "endpoint": "https://your-extraction-service.example",
+    "runtime_identity": {"engine": "crawl4ai", "version": "FROM_HEALTH", "model": "FROM_HEALTH", "model_base": "FROM_HEALTH", "implementation_sha256": "FROM_HEALTH", "environment_sha256": "FROM_HEALTH"}
+  }
+}
+```
+
+Copy the complete identity object from `health.engines.crawl4ai`, including any
+additional fields, rather than using the placeholders above. Each request carries
+that identity; a changed model, dependency environment or worker implementation
+is rejected. Use the normal certified runner and scorer. Keep the API key in the
+caller's repository `.env`, never in the options file. An extraction process has a
+115-second deadline within the track's existing 120-second request budget.
