@@ -98,3 +98,24 @@ def test_tolerated_unquoted_attribute_does_not_expose_hidden_facts(tag, value):
 @pytest.mark.parametrize('value', ['a<b', 'a<1', 'a=b<c'])
 def test_tolerated_unquoted_attribute_keeps_visible_body(value):
     assert visible_mixed_html_text(f'<div data-x={value}>visible fact</div>') == 'visible fact'
+
+
+@pytest.mark.parametrize('tag', ['script', 'style', 'div hidden', 'span style="display:none"', 'div'])
+@pytest.mark.parametrize('attribute', ['data<x', 'data<', 'data<<x', 'data<x="a>b"'])
+def test_less_than_in_attribute_name_preserves_visibility(tag, attribute):
+    from lexbench_webfetch.evaluation import evaluate_response
+    source = f'Prefix<sup>1</sup>\nx<y\n<{tag} {attribute}> secret fact</{tag.split()[0]}> after'
+    visible = tag == 'div'
+    projected = visible_mixed_html_text(source)
+    assert ('secret fact' in projected) == visible
+    assert 'x<y' in projected and 'after' in projected
+    case = {'id': 'attribute-name', 'name': 'Attribute name',
+            'url': 'https://example.test/attribute', 'category': 'web',
+            'expected_any': ['secret fact']}
+    assert evaluate_response(case, source.encode())['passed'] == visible
+
+
+def test_unclosed_tag_does_not_consume_an_unrelated_later_tag():
+    source = 'Prefix<sup>1</sup> x<y data <span>visible fact</span>'
+    projected = visible_mixed_html_text(source)
+    assert 'x<y data' in projected and 'visible fact' in projected

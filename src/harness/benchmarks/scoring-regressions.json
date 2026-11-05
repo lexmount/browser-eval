@@ -83125,6 +83125,90 @@
       "artifact": "`P`EDIT \\!",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-less-than-script",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<script data<x> Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-less-than-hidden",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<div hidden data<x> Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-less-than-visible",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<div data<x> Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

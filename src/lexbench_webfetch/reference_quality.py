@@ -1018,6 +1018,11 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
         tag = _MIXED_HTML_TAG_PATTERN.match(protected, left)
         if tag is None:
             tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|[^<>])*>''').match(protected, left)
+        if tag is None:
+            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|\s+[^\s<>/="'][^\s>/="']*|[^<>])*>''').match(protected, left)
+            # A tolerant attribute name cannot borrow a later paragraph's tag.
+            if tag and re.search(r"\n[ \t]*\r?\n", re.sub(r'''(?:"[^"]*"|'[^']*')''', "", tag[0])):
+                tag = None
         if tag:
             pieces.append(tag[0])
             cursor = tag.end()
