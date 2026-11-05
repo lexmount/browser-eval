@@ -1504,11 +1504,12 @@ def method_examples(output, binding, language="zh"):
                         return json.dumps(value, ensure_ascii=False)
                     return str(value)
 
+                requested_fields = entry.get("requested_fields", list(values))
                 output_table = table(
                     [message("field", language), message("output", language)],
                     [
-                        [esc(entry.get("field_labels", {}).get(k, k)), esc(readable(v))]
-                        for k, v in values.items()
+                        [esc(entry.get("field_labels", {}).get(k, k)), esc(readable(values.get(k)))]
+                        for k in requested_fields
                     ],
                 )
                 record = {

@@ -154,7 +154,19 @@ def test_reader_examples_verify_fields_against_the_correct_native_contract(tmp_p
     save_json(path, value)
     binding = {"path": path.name, "sha256": digest(path.read_bytes())}
     assert "12" in method_examples(tmp_path, binding, "en")
-    value["benchmarks"][0]["methods"][0]["example"]["fields"]["price"] = ["invented"]
+    entry = value["benchmarks"][0]["methods"][0]
+    entry["requested_fields"] = list(schema["properties"])
+    del response["result"]["price"]
+    entry["example"]["fields"] = normalize(
+        "cloudflare-json", response, **({"schema": schema} if records else {})
+    )
+    save_json(path, value)
+    binding["sha256"] = digest(path.read_bytes())
+    reader = BeautifulSoup(method_examples(tmp_path, binding, "en"), "html.parser")
+    shown = reader.select(".example-pair tbody tr")
+    assert [r.select("td")[0].get_text() for r in shown] == list(schema["properties"])
+    assert shown[0].select("td")[1].get_text() in {"Not returned", "Not found"}
+    entry["example"]["fields"]["price"] = ["invented"]
     save_json(path, value)
     binding["sha256"] = digest(path.read_bytes())
     with pytest.raises(ValueError, match="native response"):
