@@ -54,6 +54,9 @@ const controls = [
 ];
 // The native child inherits this exact environment; none of its credentials are exposed.
 const childEnv = { ...process.env };
+for (const key of ['NODE_OPTIONS', 'NODE_PATH']) {
+  if (childEnv[key]?.trim()) throw new Error('Node code-loading overrides are unsupported');
+}
 for (const key of ['OPENAI_BASE_URL', 'OLLAMA_BASE_URL']) {
   if (!childEnv[key]) continue;
   let url;

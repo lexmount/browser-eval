@@ -528,10 +528,11 @@ def create_app():
         except subprocess.TimeoutExpired as exc:
             raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
         if completed.returncode:
-            error = completed.stderr[-6000:]
+            error = completed.stderr
             for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
                 if os.environ.get(key):
                     error = error.replace(os.environ[key], "[REDACTED]")
+            error = error[-6000:]
             return {
                 "success": False,
                 "error": error,
