@@ -1121,3 +1121,131 @@ def test_failed_details_use_the_same_error_as_dialog_evidence(tmp_path, payload)
             assert page.select_one('pre[data-kind="error"]').get_text() == expected
             if payload:
                 assert expected == json.dumps(payload["error"], ensure_ascii=False)
+
+
+@pytest.mark.parametrize(
+    ("mode", "language"),
+    [
+        ("full-cohort-progress", "en"),
+        ("full-cohort-progress", "zh"),
+        ("field-extraction-cohort", "zh"),
+    ],
+)
+@pytest.mark.parametrize(
+    "damage",
+    [
+        None,
+        "partial",
+        "special_path",
+        "population",
+        "missing_reason",
+        "missing_evidence",
+        "hash",
+        "source",
+        "method",
+        "receipts",
+        "receipt_boolean",
+        "float_population",
+        "zero_missing",
+        "zero_price",
+        "formula",
+    ],
+)
+def test_unknown_total_cost_requires_scoped_bound_evidence(tmp_path, mode, language, damage):
+    from harness.web_extract.report import validate_release_prices
+
+    home = create(tmp_path / "original", mode=mode, language=language)
+    model = read_json(home / "content.json")
+    method = next(iter(model["prices"]))
+    selection = model["evidence_runs"][0]
+    cases = 3
+    missing = 1 if damage == "partial" else cases
+    disclosure = {
+        "schema": "web-extract-cost-disclosure/1",
+        "method": method,
+        "case_count": cases,
+        "total_charge_receipts": cases - missing,
+        "source_plan_sha256": selection["plan_sha256"],
+    }
+    if damage == "source":
+        disclosure["source_plan_sha256"] = "0" * 64
+    if damage == "method":
+        disclosure["method"] = "unrelated-provider"
+    if damage == "receipts":
+        disclosure["total_charge_receipts"] = 1
+    if damage == "receipt_boolean":
+        disclosure["total_charge_receipts"] = False
+    if damage == "float_population":
+        disclosure["case_count"] = float(cases)
+    filename = "cost receipt#1.json" if damage == "special_path" else "cost-disclosure.json"
+    public_path = "assets/" + filename
+    evidence = home / filename
+    save_json(evidence, disclosure)
+    unavailable = {
+        "population_cases": cases,
+        "missing_cases": missing,
+        "reason": {"en": "Hosting charges were not collected.", "zh": "未收集服务器账单。"},
+        "evidence": {
+            "path": public_path,
+            "sha256": digest(evidence.read_bytes()),
+        },
+    }
+    if damage == "population":
+        unavailable["population_cases"] += 1
+    if damage == "missing_reason":
+        unavailable["reason"] = {}
+    if damage == "zero_missing":
+        unavailable["missing_cases"] = 0
+    if damage == "hash":
+        unavailable["evidence"]["sha256"] = "0" * 64
+    quote = model["prices"][method]
+    quote.update(cost_unavailable=unavailable, usd_per_1000="No total bill")
+    if damage == "zero_price":
+        quote["usd_per_1000_range"] = [0, 0]
+    if damage == "formula":
+        quote["pricing_formula"] = True
+    if damage != "missing_evidence":
+        model.setdefault("assets", []).append(
+            {
+                "source": str(evidence),
+                "path": public_path,
+                "sha256": digest(evidence.read_bytes()),
+            }
+        )
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile.setdefault("research_report", {}).setdefault("content", {})["sha256"] = digest(
+        (home / "content.json").read_bytes()
+    )
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "rebuilt"
+    if damage not in (None, "partial", "special_path"):
+        with pytest.raises(ValueError, match="[Cc]ost unavailability|[Cc]ost disclosure"):
+            build(
+                output,
+                home / "content.json",
+                home=home,
+                profile=home / "profile.json",
+                language=language,
+            )
+        return
+    build(
+        output, home / "content.json", home=home, profile=home / "profile.json", language=language
+    )
+    check(output)
+    manifest = read_json(output / "report-manifest.json")
+    validate_release_prices(
+        {**manifest, "dataset_kind": "published-upstream", "prices": {method: quote}}
+    )
+    for edition in manifest["languages"]:
+        for route in ["index", "accounts"]:
+            page = BeautifulSoup(
+                (output / edition / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
+            )
+            assert f"{missing}/{cases}" in page.get_text()
+            assert unavailable["reason"][edition] in page.get_text()
+            assert (
+                "Total cost unavailable" in page.get_text()
+                if edition == "en"
+                else "总费用未知" in page.get_text()
+            )

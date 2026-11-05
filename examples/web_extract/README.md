@@ -393,6 +393,15 @@ and release. Reports retain original annotations and scores next to the qualifie
 comparison, with native outputs and timings unchanged.
 
 The report home exposes all-call mean/P50/P95 and sourced pricing for every method.
+
+When total charges are unavailable, a price entry can declare `cost_unavailable`
+with `population_cases`, `missing_cases`, localized `reason`, and an `evidence`
+path/SHA-256 binding. Materialize that JSON under `assets/` using the existing
+asset registry. The disclosure uses schema `web-extract-cost-disclosure/1`, the
+method ID, `case_count`, `total_charge_receipts` and `source_plan_sha256`.
+Build and release checks require matching populations and source-plan hashes;
+an unavailable total cannot also declare a numeric price or billing formula.
+
 Quality cells link to method/field filters; result rows open lazy evidence dialogs
 and link to full field diagnostics, same-case comparisons and safe source previews.
 Optional `source_screenshots` binds author-provided images by source path/hash;
