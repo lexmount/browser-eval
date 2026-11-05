@@ -769,3 +769,16 @@ def test_committed_hf_revision_is_emitted_even_if_receipt_finalization_fails(
         snapshots.publish_receipt(tmp_path, {}, {}, revision="a" * 40, output=output)
     assert "c" * 40 in capsys.readouterr().out
     assert snapshots.read_json(output)["state"] == "pending"
+
+
+def test_committed_hf_receipt_is_saved_even_if_stdout_is_closed(tmp_path, monkeypatch):
+    output = tmp_path / "receipt.json"
+    monkeypatch.setattr(snapshots, "publish", lambda *a, **kw: {"revision": "c" * 40})
+
+    def closed_pipe(*args, **kwargs):
+        raise BrokenPipeError("Output consumer closed")
+
+    monkeypatch.setattr("builtins.print", closed_pipe)
+    with pytest.raises(BrokenPipeError):
+        snapshots.publish_receipt(tmp_path, {}, {}, revision="a" * 40, output=output)
+    assert snapshots.read_json(output) == {"revision": "c" * 40}

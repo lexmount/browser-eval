@@ -280,8 +280,10 @@ def publish_receipt(home, binding, verification, *, revision, output):
     require_external_output(output)
     save_json(output, {"state": "pending", "source_revision": revision}, exclusive=True)
     result = publish(home, binding, verification, revision=revision)
-    print(json.dumps(result, ensure_ascii=False), flush=True)
-    save_json(output, result)
+    try:
+        print(json.dumps(result, ensure_ascii=False), flush=True)
+    finally:
+        save_json(output, result)
     return result
 
 
