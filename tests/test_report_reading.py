@@ -119,8 +119,8 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     guide = (tmp_path / 'en/guide/index.html').read_text(encoding='utf-8')
     assert 'data-evidence-state="local_measurement"' in guide
     assert 'Archive-only label' in guide
-    assert 'Local uncertified result rankings' in guide
-    assert 'data-ranking-scope="saved-task-pass-rate"' in guide
+    assert 'Local uncertified diagnostic results' in guide
+    assert 'data-ranking-scope="saved-task-pass-rate"' not in guide
 
 
 def test_model_translation_is_scoped_and_escaped():

@@ -748,9 +748,9 @@ def comparative_rows(rows, directions):
  return result
 
 
-def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header=t('no', 'No.'),default_sort=None,include_index=True):
+def table(headers,rows,id='',sortable=False,cls='',metrics=None,index_header=t('no', 'No.'),default_sort=None,include_index=True,rank_values=None):
  head=(f'<th>{esc(index_header)}</th>' if include_index else '')+''.join(f'<th><button class="sort-button" onclick="sortTable(\'{id}\',{i+int(include_index)})">{h} ↕</button></th>' if sortable else f'<th>{h}</th>' for i,h in enumerate(headers))
- body=''.join(f'<tr{attrs}>'+ (f'<td>{i+1}</td>' if include_index else '')+f'{values}</tr>' for i,(attrs,values) in enumerate(rows))
+ body=''.join(f'<tr{attrs}>'+ ((f'<td data-rank="{rank_values[i]}">{rank_values[i]}</td>' if rank_values is not None else f'<td>{i+1}</td>') if include_index else '')+f'{values}</tr>' for i,(attrs,values) in enumerate(rows))
  sort_attrs=(f' data-col="{default_sort[0]}" data-dir="{default_sort[1]}"' if default_sort else '')
  if not include_index:sort_attrs+=' data-row-index="false"'
  return metric_legend(headers if metrics is None else metrics)+f'<div class="table-wrap"><table class="{cls}"'+(f' id="{id}"' if id else '')+sort_attrs+f'><thead><tr>{head}</tr></thead><tbody'+(' id="rows"' if id=='filtered-table' else '')+f'>{body}</tbody></table></div>'
@@ -1107,8 +1107,8 @@ def overview_card(records,cases,track,label,names,*,diagnostic=False):
  if not selected:return ''
  rs=[r for r in records if report_family(cases[r['case_id']])==track]
  eligible=[r for r in rs if measured(r,cases[r['case_id']])]
- if diagnostic:
-  return f'<div class="card"><div class="eyebrow">{len(selected)} 个任务</div><h3>{link("#home-rankings-"+track,label)}</h3><p>本次保存结果按任务通过率排名，未完成认证。</p></div>'
+ if diagnostic or not ranking_readiness(records,{c['id']:c for c in selected})[0]:
+  return f'<div class="card"><div class="eyebrow">{len(selected)} 个任务</div><h3>{link("#home-rankings-"+track,label)}</h3><p>本次保存结果仅供诊断，未完成认证。</p></div>'
  rates={n:sum(succeeded(r,cases[r['case_id']]) for r in eligible if r['provider']==n)/sum(r['provider']==n for r in eligible) for n in names if any(r['provider']==n for r in eligible)}
  maximum=max(rates.values(),default=None)
  winners='、'.join(provider_label(n) for n in names if rates.get(n)==maximum) if maximum else t('no_passing_tasks_in_this_run', 'No passing tasks in this run') if rates else t('no_call_records_yet', 'No call records yet')
@@ -1606,6 +1606,29 @@ def stable_checks(m):
  if len(records)>5:record_table=f'<div class="record-scroll" data-scroll-after="5">{record_table}</div>'
  return content+record_table+(('<p>' + t('failure_reason', 'Failure reason:') + f'{esc(stable_failure_summary(m))}。</p>') if m.get('stable_task_errors') else '')
 
+def ranking_readiness(records,cases):
+ """Require a complete shared task population and one recorded scorer."""
+ groups={name:[] for name in ({r['provider'] for r in records}|set(_REPORT_PROVIDER_LABELS.get()))}
+ for r in records:
+  if r['case_id'] in cases:groups[r['provider']].append(r)
+ populations=[Counter(r['case_id'] for r in rs) for rs in groups.values()]
+ complete=bool(cases) and bool(groups) and all(p==populations[0] for p in populations) and all(
+  {r['case_id'] for r in rs}==set(cases)
+  and all(measured(r,cases[r['case_id']]) and r.get('report_invocation_status') != 'adapter_rejected' for r in rs)
+  for rs in groups.values())
+ identities=[r['metrics'].get('scoring_source_sha256') for rs in groups.values() for r in rs]
+ same_scorer=bool(identities) and all(isinstance(value,str) and re.fullmatch(r'[0-9a-f]{64}',value) for value in identities) and len(set(identities))==1
+ notes=[]
+ if not complete:notes.append(model_text('结果未覆盖同一组完整任务，仅展示成绩，不计算名次。','Results do not cover the same complete task population; scores are shown without ranks.'))
+ if not same_scorer:notes.append(model_text('评分版本不同或缺失，仅展示成绩，不计算名次。','Scorer identities differ or are missing; scores are shown without ranks.'))
+ return complete and same_scorer, ''.join('<p class="callout">'+n+'</p>' for n in notes)
+
+
+def shared_ranks(scores):
+ """Competition ranks preserve exact ties independently of display ordering."""
+ return [1+sum(other>score for other in scores) for score in scores]
+
+
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagnostic=False):
  if _REPORT_SUITES.get():return saved_suite_ranking(records,cases,track,base=base,id=id,diagnostic=diagnostic)
  excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
@@ -1681,8 +1704,11 @@ def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagn
   if missing:note+=(' ' + t('unmeasured_methods_not_counted_as_failures', 'Unmeasured methods (not counted as failures):') + f"{esc('、'.join(missing))}。")
  directions={i:('quality_'+str(i),'max') for i in range(1,len(heads)) if heads[i] not in {t('mean', 'Mean'),'P50','P95',t('judgement_coverage', 'Judgement coverage'),t('review_coverage', 'Review coverage')}}
  directions.update({i:('latency_'+str(i),'min') for i,h in enumerate(heads) if h in {t('mean', 'Mean'),'P50','P95'}})
- rows=comparative_rows(rows,directions)
- result=table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=True,default_sort=(3,'desc'))
+ eligible,rank_note=ranking_readiness(records,selected)
+ ranked=not diagnostic and eligible
+ if ranked:rows=comparative_rows(rows,directions)
+ scores=[-sort_key(item)[0] for item in sorted(groups.items(),key=sort_key)]
+ result=rank_note+table(heads,rows,id or 'ranking-'+track,True,'ranking',metrics=[] if compact else None,include_index=ranked,rank_values=shared_ranks(scores) if ranked else None,default_sort=(2+int(ranked),'desc'))
  if text_scopes and len(set(text_scopes.values()))>1:
   result=('<details><summary>' + t('text_check_coverage', 'Text-check coverage') + f"""</summary><ul>{''.join((f"<li>{esc(name)}：{len(scope)}/{len(selected)} 例；{esc('、'.join((selected[k]['name'] for k in sorted(scope))) or t('no_text_check_record', 'No text-check record'))}</li>" for name, scope in sorted(text_scopes.items())))}</ul></details>{result}""")
  if compact:
@@ -1909,22 +1935,24 @@ def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seco
  offset=2+int(combined)
  directions={i:('acceptance_'+str(i),'max') for i in range(1,offset+len(tracks)+int(has_unknown))}
  if has_unknown:directions.pop(offset,None)
- rows=comparative_rows(rows,directions)
+ eligible,rank_note=ranking_readiness(records,cases)
+ ranked=combined and not diagnostic and eligible
+ if ranked:rows=comparative_rows(rows,directions)
  timing_note='<p>'+SAVED_MATRIX_ZH['final_call_timing_note']
  if call_budget_seconds is not None:
   timing_note+=model_text(f'每次物理调用预算为 {call_budget_seconds:g} 秒。',f'Each physical call has a {call_budget_seconds:g}-second budget.')
  timing_note+='</p>'
  if diagnostic:
-  intro='<p class="decision-lead">'+model_text('按所列最终结果的任务通过率排名；未完成认证，配置选择和规则修订见评测方法。通过不代表返回内容干净。','Ranked by task pass rate on the listed final results; uncertified. See methodology for configuration selection and rule revisions. Passing does not imply clean content.')+'</p>'
+  intro+='<p>'+model_text('诊断结果仅展示成绩，不计算名次。','Diagnostic results show scores without ranks.')+'</p>'
   help=help.replace('总榜指标说明','诊断指标说明')
   if _RENDER_CONTEXT.get().score_audit:
-   intro=''
    help=help.replace('诊断指标说明','指标说明')
  if not combined:
   intro='<p class="decision-lead">'+model_text('按各自冻结的任务组比较，不将不同组直接合成通过率总榜。跨组同网址案例保留原始身份；记录数量不等于独立网站数量。','Compare each frozen task group separately, without a combined pass-rate ranking. Cross-group cases retain their original identities; record counts are not unique-site counts.')+'</p>'
   help=''
- rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=combined,default_sort=(3,'desc') if combined else (0,'asc'))
- return intro+timing_note+help+rendered+successful_final_call_latency(records,cases)
+ scores=[sum(succeeded(r,cases[r['case_id']]) for r in rs) for _,rs in sorted(groups.items(),key=lambda item:(-sum(succeeded(r,cases[r['case_id']]) for r in item[1]),item[0]))]
+ rendered=table(heads,rows,'ranking-overall',True,'ranking',metrics=[],include_index=ranked,rank_values=shared_ranks(scores) if ranked else None,default_sort=(2+int(ranked),'desc') if combined else (0,'asc'))
+ return intro+rank_note+timing_note+help+rendered+successful_final_call_latency(records,cases)
 
 def filter_controls(options,all_first=()):
  controls=''
@@ -2002,16 +2030,16 @@ def local_pass_rate_ranking(dataset):
 
 def local_audit_banner(dataset):
  if dataset.get('saved_matrix_scope') and local_pass_rate_ranking(dataset):
-  return '<div class="wrap source-note" data-evidence-state="saved_results" data-ranking-scope="saved-task-pass-rate"><strong>'+model_text('保存结果排名 · 不构成基准认证','Saved-result rankings · not benchmark certification')+'</strong><p>'+model_text('名次按所列结果和验收规则计算。来源及执行设置核验不等于基准认证；配置和采集时间见评测方法。','Ranks describe the listed results and acceptance rules. Source and execution-setting verification is not benchmark certification; see methodology for configurations and collection dates.')+'</p></div>'
+  return '<div class="wrap source-note" data-evidence-state="saved_results" data-ranking-scope="saved-task-pass-rate"><strong>'+model_text('保存结果排名 · 不构成基准认证','Saved-result rankings · not benchmark certification')+'</strong><p>'+model_text('名次按所列结果及保存记录中的验收规则计算。来源及执行设置核验不等于基准认证；配置和采集时间见评测方法。','Ranks describe the listed results and the acceptance rules recorded with them. Source and execution-setting verification is not benchmark certification; see methodology for configurations and collection dates.')+'</p></div>'
  if dataset.get('comparison',{}).get('publication_state')!='local_audit_only_not_for_release':
   return ''
  if dataset.get('saved_matrix_scope'):
-  return '<div class="wrap callout" data-evidence-state="saved_diagnostic" data-ranking-scope="saved-task-pass-rate"><strong>'+model_text('保存结果排名 · 未认证','Saved-result rankings · uncertified')+'</strong><p>'+model_text('名次按最终选用的结果和当前验收规则计算。分类配置选择、规则修订及运行条件见评测方法；本榜不代表未经调参的同条件比较。','Ranks use the selected final results and current acceptance rules. See methodology for category configuration selection, rule revisions and execution conditions; this is not an untuned controlled comparison.')+'</p></div>'
+  return '<div class="wrap callout" data-evidence-state="saved_diagnostic"><strong>'+model_text('保存结果诊断 · 未认证','Saved-result diagnostics · uncertified')+'</strong><p>'+model_text('展示保存结果使用的验收规则下的成绩，不计算名次。','Scores use the acceptance rules recorded with the saved results; ranks are not shown.')+'</p></div>'
  if measurement_presentation(dataset).local_matrix:
   if local_pass_rate_ranking(dataset):
    return '<p class="wrap source-note" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate">'+model_text('按本次所列任务的通过率排序；未完成仓库认证流程。测试日期和核验范围见详情。','Ordered by pass rate on the listed tasks; repository certification is incomplete. See details for test dates and verification scope.')+'</p>'
   note='已有复核记录；覆盖和裁定依据见核验页面。' if dataset['comparison'].get('independent_review') else '结果为机器判定，未进行独立人工审核。'
-  return '<div class="wrap callout" role="alert" data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate"><strong>本地未认证结果排名</strong><p>名次仅对应本次保存结果。来源未在调用前后完成全量核验，不代表正式发布或认证结果。</p><p>'+note+'</p></div>'
+  return '<div class="wrap callout" role="alert" data-evidence-state="local_measurement"><strong>本地未认证诊断结果</strong><p>展示本次保存结果，不计算名次。来源未在调用前后完成全量核验，不代表正式发布或认证结果。</p><p>'+note+'</p></div>'
  return '<div class="wrap callout"><strong>'+model_text('本地审核版','Local audit report')+'</strong><p>'+model_text('本报告未正式发布。工具版本、调用时间与核验范围以保存记录为准。','This report is not a formal release. Consult the saved records for tool versions, call times and verification scope.')+'</p></div>'
 
 
@@ -2132,7 +2160,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   selected=[c for c in cases.values() if report_family(c)==track]
   coverage=f'{len(selected)} 个案例 · {len({r["provider"] for r in records if report_family(cases[r["case_id"]])==track})} 种已测方法'
   panels.append((track,label,f'<div class="track-heading"><h3>{label}</h3><span>{coverage}</span></div>'+ranking(records,cases,track,compact=True,audit=audit,diagnostic=diagnostic)+f'<p>{link("datasets/index.html#track-"+track,"案例与参考 →")}</p>'))
- overall_title=model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if diagnostic or local_pass_rate_ranking(dataset) else '综合通过率总榜'
+ overall_title=model_text('本轮任务通过率排名','Task pass-rate ranking for this sample') if local_pass_rate_ranking(dataset) else ('任务通过情况' if diagnostic else '综合通过率总榜')
  combined=dataset.get('comparison',{}).get('presentation',{}).get('combined_ranking',True)
  if not combined:overall_title='任务通过情况'
  budgets={m['timeout_seconds'] for m in manifests if m.get('timeout_seconds') is not None}
@@ -4393,5 +4421,8 @@ def saved_suite_ranking(records,cases,suite,*,base='',id=None,diagnostic=False):
   values+=cell(f'{passed}/{len(judged)} · '+rate(passed,len(judged)),ratio)
   rows.append((-ratio,provider,('',values)))
  rows=[row for _,_,row in sorted(rows,key=lambda item:item[:2])]
- rows=comparative_rows(rows,{6:('task_pass_rate','max')})
- return '<p>'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'+table(SAVED_MATRIX_ZH['suite_result_headers'],rows,id or 'ranking-'+suite,sortable=True,metrics=[],include_index=True,default_sort=(7,'desc'))
+ eligible,rank_note=ranking_readiness(records,selected)
+ ranked=not diagnostic and eligible
+ if ranked:rows=comparative_rows(rows,{6:('task_pass_rate','max')})
+ scores=sorted([sum(succeeded(r,selected[r['case_id']]) for r in records if r['provider']==provider and r['case_id'] in selected) for provider in {r['provider'] for r in records}|set(_REPORT_PROVIDER_LABELS.get())],reverse=True)
+ return rank_note+'<p>'+SAVED_MATRIX_ZH['suite_denominator_note']+'</p>'+table(SAVED_MATRIX_ZH['suite_result_headers'],rows,id or 'ranking-'+suite,sortable=True,metrics=[],include_index=ranked,rank_values=shared_ranks(scores) if ranked else None,default_sort=(6+int(ranked),'desc'))

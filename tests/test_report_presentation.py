@@ -66,27 +66,27 @@ class ReportRevisionTests(unittest.TestCase):
   self.assertIn('包含通过与失败',rendered)
   self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
   self.assertIn('150 ms',rendered)
- def test_comparison_ranks_saved_pass_rates_including_diagnostics(self):
+ def test_comparison_ranks_only_when_enabled(self):
   from bs4 import BeautifulSoup
   from harness.web_fetch.report import ranking
   cases={key:{'id':key,'track':'web','task_kind':'body'} for key in ('a','b')}
   records=[{'provider':name,'case_id':key,'ok':True,'elapsed_ms':10,
-            'metrics':{'content_pass':key=='a' or name=='z-high'}}
+            'metrics':{'content_pass':key=='a' or name=='z-high','scoring_source_sha256':'a'*64}}
            for name in ('a-low','z-high','b-low') for key in cases]
   for diagnostic in (False,True):
    for render in (lambda diagnostic=diagnostic:overall_ranking(records,cases,diagnostic=diagnostic),
                   lambda diagnostic=diagnostic:ranking(records,cases,'web',diagnostic=diagnostic)):
     with self.subTest(diagnostic=diagnostic,render=render):
      doc=BeautifulSoup(render(),'html.parser');table=doc.select_one('table.ranking')
-     column=3
-     self.assertEqual(table.get('data-col'),'3')
+     column=2 if diagnostic else 3
+     self.assertEqual(table.get('data-col'),str(column))
      self.assertEqual(table.get('data-dir'),'desc')
      rows=table.select('tbody tr')
      self.assertIn('z-high',rows[0].get_text())
      expected=['100.0%','50.0%','50.0%']
      self.assertEqual([row.select('td')[column].get_text() for row in rows],expected)
-     self.assertNotEqual(table.get('data-row-index'),'false')
-     self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
+     self.assertEqual(table.get('data-row-index'), 'false' if diagnostic else None)
+     self.assertEqual(bool(rows[0].select('td')[column].select_one('.comparison-winner')), not diagnostic)
      self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
   # A shared maximum has no winner; unavailable metrics remain neutral.
   for row in records:row['metrics']['content_pass']=True
@@ -381,7 +381,7 @@ def test_measurement_display_policy_does_not_grant_certification():
  assert policy.local_matrix
  assert policy.native_outputs and policy.all_call_latency and policy.explain_unjudged
  assert 'data-evidence-state="local_measurement"' in local_audit_banner(local)
- assert '本地未认证结果排名' in local_audit_banner(local)
+ assert '本地未认证诊断结果' in local_audit_banner(local)
  local['comparison']['presentation']={'ranking':'saved_task_pass_rate'}
  assert 'data-ranking-scope="saved-task-pass-rate"' in local_audit_banner(local)
 

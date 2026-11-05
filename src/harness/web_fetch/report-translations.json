@@ -3319,7 +3319,11 @@
     "本地未认证诊断快照 · 不可用于排名": "Local uncertified diagnostic snapshot · not for ranking",
     "默认按任务通过率降序排列，不提供名次。任务判定、内容质量和耗时分别展示。": "Methods are sorted by task pass rate in descending order without ranks. Task judgments, content quality and latency are shown separately.",
     "来源未在调用前后完成全量核验。保存的评分、质量指标和复核记录仅供诊断，不代表正式发布或认证结果。": "Sources were not fully verified before and after calls. Saved scores, quality metrics and review records are diagnostic evidence, not a certified release.",
-    "代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。": "The browser-eval repository is authoritative for code, dataset, and reproduction instructions. This page lists only the configuration required for this run."
+    "代码、评测集和复现说明以 browser-eval 仓库为准；本页只列本轮必要配置。": "The browser-eval repository is authoritative for code, dataset, and reproduction instructions. This page lists only the configuration required for this run.",
+    "本地未认证诊断结果": "Local uncertified diagnostic results",
+    "展示本次保存结果，不计算名次。来源未在调用前后完成全量核验，不代表正式发布或认证结果。": "Saved results are shown without ranks. Sources were not fully verified before and after calls; these results are not a certified release.",
+    "本次保存结果仅供诊断，未完成认证。": "These saved results are diagnostic and uncertified.",
+    "任务通过情况": "Task results"
   },
   "PHRASES": {
     "处理路线：": "Retrieval path: ",

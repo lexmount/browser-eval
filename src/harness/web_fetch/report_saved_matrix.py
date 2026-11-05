@@ -420,6 +420,8 @@ def _load_saved_matrix(spec_path):
     spec = _json(spec_path)
     if spec.get('schema_version') != 1:
         raise ValueError('Unsupported saved-matrix specification')
+    if spec.get('ranking', 'diagnostic') not in {'diagnostic', 'saved_task_pass_rate'}:
+        raise ValueError('Unsupported saved-matrix ranking selection')
     if spec.get('presentation', 'audit') not in {'audit', 'final'}:
         raise ValueError('Unknown saved-matrix presentation')
     sources = _SourceBindings(spec_path.parent)
@@ -1829,6 +1831,7 @@ def _build_saved_matrix(spec_path: Path, output: Path) -> Path:
                                  'reported_positions': len(model_rows)}
     if spec.get('presentation') == 'final':
         model['presentation'] = 'final'
+    model['ranking'] = spec.get('ranking', 'diagnostic')
     model['combined_ranking'] = spec.get('combined_ranking', True)
     if revision:
         model['offline_revision'] = revision['receipt']
@@ -1914,7 +1917,7 @@ def _validate_source_disclosures(output, model, inputs, adoptions, keys):
         'providers': [{'id': p['id'], 'label': p['label']} for p in spec['providers']
                       if p['id'] not in spec.get('excluded_report_providers', [])],
         'suites': [{'id': p['id'], 'label': p['label']} for p in spec['suites']],
-        'limitations': spec.get('limitations', []), 'combined_ranking': spec.get('combined_ranking', True),
+        'limitations': spec.get('limitations', []), 'ranking': spec.get('ranking', 'diagnostic'), 'combined_ranking': spec.get('combined_ranking', True),
         'report_families': ([g for g in spec['report_families']
                             if g['id'] not in spec.get('excluded_report_families', [])]
                            if 'report_families' in spec else None),
@@ -2391,7 +2394,8 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
     # Source HTML captures are immutable evidence, not generated navigation routes.
     routes = sorted(p for p in output.rglob('*.html')
                     if p.relative_to(output).parts[0] != 'evidence')
-    from harness.web_fetch.report_check import VisibleLocalScope
+    from harness.web_fetch.report_check import VisibleLocalScope, check_local_diagnostic_presentation
+    check_local_diagnostic_presentation(output, ranked=model.get('presentation') == 'final' or model.get('ranking') == 'saved_task_pass_rate')
     from harness.report_languages import english_notice
     virtual_root = 'https://saved-matrix.invalid/__report__/'
     for page in routes:
@@ -2402,7 +2406,7 @@ def _check_saved_matrix(output: Path, *, spec_path: Path | None = None) -> dict:
         disclosure = VisibleLocalScope()
         disclosure.feed(content)
         is_notice = relative == 'en/index.html' and content == english_notice()
-        if not is_notice and (not disclosure.is_report or not {'evidence', 'ranking'} <= disclosure.visible):
+        if not is_notice and (not disclosure.is_report or not ({'evidence', 'ranking'} if model.get('presentation') == 'final' or model.get('ranking') == 'saved_task_pass_rate' else {'evidence'}) <= disclosure.visible):
             raise ValueError('Saved-result evidence/ranking scope disclosure missing: ' + relative)
         parser = _Links()
         parser.feed(content)
@@ -2523,7 +2527,7 @@ def _saved_renderer_projection(output, model):
     dataset = {'name': model['title'], 'cases': list(cases.values()),
         'coverage_plan': {c.get('track','web'): providers for c in cases.values()},
         'comparison': {'publication_state': ('final_saved_results' if final else 'local_audit_only_not_for_release'),
-                       'presentation': {'ranking': 'saved_task_pass_rate' if final else 'diagnostic',
+                       'presentation': {'ranking': 'saved_task_pass_rate' if final else model.get('ranking', 'diagnostic'),
                                         'combined_ranking': model.get('combined_ranking', True)}},
         'saved_matrix_scope': scope}
     if model.get('offline_revision'):

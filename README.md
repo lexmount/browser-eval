@@ -262,9 +262,13 @@ the final view. The methodology table exposes settings and collection dates;
 equal settings do not establish a shared measurement window. Post-outcome
 parameter selection and changed task or acceptance requirements belong in separate audit reports,
 not the primary original-contract ranking. Saved records are never rewritten to
-make historical cohorts comparable. Audit reports retain overall and family ranks
-on the selected final results, with configuration-selection and rule-revision
-limits disclosed. These descriptive ranks do not upgrade certification. Ranking
+make historical cohorts comparable. Audit reports show scores by default. Set `ranking: "saved_task_pass_rate"` in
+the external saved-matrix specification to request overall and family ranks.
+Each ranked table requires complete coverage of the same task population and
+one recorded scorer identity; otherwise it retains scores with a visible reason
+for withholding ranks. Exact ties share competition ranks (1, 1, 3), preserved
+when sorting other columns. Configuration-selection and recorded-rule limits
+remain disclosed; descriptive ranks do not upgrade certification. Ranking
 tables use final-call latency; accumulated retry cost stays in the evidence.
 
 - The hash-bound specification declares datasets, providers, selected results and evidenced missing outcomes. Suite-qualified identities preserve original cases and scores. No provider calls, rescoring or certification are added.

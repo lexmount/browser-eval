@@ -400,7 +400,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('各方法文字核对范围不同',rendered)
         self.assertIn('<summary>文字核对覆盖范围</summary>',rendered)
         for row in table_cells(rendered,'ranking-challenge'):
-            self.assertEqual(row[7],'100.0%')
+            self.assertEqual(row[6],'100.0%')
         self.assertNotIn('· 1/2 例',rendered)
 
     def test_all_text_tracks_share_columns_and_text_coverage_semantics(self):

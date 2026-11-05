@@ -12,6 +12,7 @@ from tests.test_saved_matrix_evidence import fixture, build, write
 @pytest.mark.parametrize('tie', [False, True])
 def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
     spec, source, record, raw = fixture(tmp_path)
+    spec['ranking'] = 'saved_task_pass_rate'
     spec.update(presentation='audit', combined_ranking=True)
     other = deepcopy(record)
     other.update(provider='alphabetic-first', attempt_id='other-run', elapsed_ms=12 if tie else 6)
@@ -49,6 +50,7 @@ def test_saved_ranking_keeps_failed_call_latency_neutral(tmp_path, tie):
 @pytest.mark.parametrize('tie', [False, True])
 def test_saved_audit_suite_ranks_pass_rate_with_ties_neutral(tmp_path, tie):
     spec, source, record, raw = fixture(tmp_path)
+    spec['ranking'] = 'saved_task_pass_rate'
     other = deepcopy(record)
     other['provider'] = 'other'
     other['attempt_id'] = 'other-run'
@@ -253,7 +255,7 @@ def test_precall_rejection_preserves_score_but_excludes_product_failure(tmp_path
     assert '1/2' in home.select_one('#ranking-overall').get_text()
     assert '1/2' in home.select_one('#ranking-first').get_text()
     suite_cells = home.select('#ranking-first tbody tr td')
-    assert [c.get_text() for c in suite_cells[2:5]] == ['3', '3', '1']
+    assert [c.get_text() for c in suite_cells[1:4]] == ['3', '3', '1']
     overall = home.select_one('#ranking-overall')
     assert '无法判定（含未调用）' in overall.get_text()
     timing_cells = overall.select('tbody tr td')[-3:]
@@ -362,7 +364,7 @@ def test_entirely_missing_method_stays_in_both_rankings(tmp_path):
         assert '未完成' in absent.get_text()
     absent_page = BeautifulSoup((root/'providers/absent.html').read_text(encoding='utf-8'), 'html.parser')
     assert absent_page.select_one('[data-evidence-state="saved_diagnostic"]')
-    assert absent_page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
+    assert not absent_page.select_one('[data-ranking-scope="saved-task-pass-rate"]')
     assert '2 种方法' in home.get_text()
     assert '调用矩阵尚不完整，暂不汇总全部方法共同成功任务的耗时。' in home.get_text()
     assert '全部 1 种受测配置共同通过' not in home.get_text()
@@ -385,7 +387,7 @@ def test_suite_ranking_orders_final_and_diagnostic_results(diagnostic, tie):
     cases = {'a': {'id': 'a', 'report_family': 'suite'},
              'b': {'id': 'b', 'report_family': 'suite'}}
     records = [dict(provider=provider, case_id=cid, ok=True,
-                    metrics={'content_pass': passed})
+                    metrics={'content_pass': passed, 'scoring_source_sha256': 'a'*64})
                for provider, cid, passed in [('alphabetic-first','a',True),
                    ('alphabetic-first','b',tie), ('z-winner','a',True),
                    ('z-winner','b',True)]]
@@ -400,11 +402,11 @@ def test_suite_ranking_orders_final_and_diagnostic_results(diagnostic, tie):
     expected = ['1.0','1.0'] if tie else ['1.0','0.5']
     assert [r.select('td')[-1]['data-sort'] for r in rows] == expected
     assert len(soup.select('thead button')) == 7
-    assert len(table.select('.comparison-winner')) == (0 if tie else 1)
-    assert table.get('data-row-index') is None
-    assert (table['data-col'], table['data-dir']) == ('7','desc')
+    assert len(table.select('.comparison-winner')) == (0 if tie or diagnostic else 1)
+    assert table.get('data-row-index') == ('false' if diagnostic else None)
+    assert (table['data-col'], table['data-dir']) == ('6' if diagnostic else '7','desc')
     for row in rows:
-        offset = 2
+        offset = 1 if diagnostic else 2
         assert all(cell['data-sort'] == cell.get_text() for cell in row.select('td')[offset:offset+5])
 
 

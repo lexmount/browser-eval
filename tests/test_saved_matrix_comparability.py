@@ -356,20 +356,21 @@ def test_saved_ranks_preserve_diagnostic_evidence_disclosure(tmp_path, presentat
     from bs4 import BeautifulSoup
     spec = matrix(tmp_path)
     spec['presentation'] = presentation
+    spec['ranking'] = 'saved_task_pass_rate'
     spec['combined_ranking'] = combined
     output = build(tmp_path, spec).parent
     dataset = json.loads((output/'dataset.json').read_bytes())
     page = BeautifulSoup((output/'index.html').read_text(encoding='utf-8'), 'html.parser')
     diagnostic = presentation == 'audit'
-    assert dataset['comparison']['presentation']['ranking'] == ('diagnostic' if diagnostic else 'saved_task_pass_rate')
+    assert dataset['comparison']['presentation']['ranking'] == 'saved_task_pass_rate'
     for selector in ['#ranking-overall', '#ranking-web']:
         table = page.select_one(selector)
         assert (table.get('data-row-index') is None) == (combined or selector != '#ranking-overall')
         assert table['data-dir'] == ('desc' if combined or selector != '#ranking-overall' else 'asc')
-    assert bool(page.select_one('[data-evidence-state="saved_diagnostic"]')) is diagnostic
+    assert page.select_one('[data-evidence-state="saved_results"]')
     if diagnostic:
-        assert '名次按最终选用的结果和当前验收规则计算' in page.get_text()
-        assert '未认证' in page.get_text()
+        assert '名次按所列结果及保存记录中的验收规则计算' in page.get_text()
+        assert '不构成基准认证' in page.get_text()
         assert '不提供名次' not in page.get_text()
         if combined:
             assert '本轮任务通过率排名' in page.get_text()
@@ -519,6 +520,7 @@ def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presen
     from harness.web_fetch.report_saved_matrix import check_saved_matrix
     spec = matrix(tmp_path)
     spec['presentation'] = presentation
+    spec['ranking'] = 'saved_task_pass_rate'
     root = build(tmp_path, spec).parent
     path = next((root/'attempts').glob('*.html')) if route == 'attempt' else root/route
     page = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
