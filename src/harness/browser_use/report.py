@@ -1542,7 +1542,7 @@ def _rule_outcome_summary(item: dict[str, Any], t: Callable[..., str]) -> str:
     message = messages[0] if messages else str(item.get("error") or "")
     status = re.fullmatch(r"Expected ([^,]+), got (.+)", message)
     if status:
-        return t("rule_outcome_summary.final_status_mismatch_expected_observed", "Final status mismatch: expected {value}, observed {value_2}.", value=status.group(1), value_2=status.group(2))
+        return Safe(t("rule_outcome_summary.final_status_mismatch_expected_observed", "Final status mismatch: expected {value}, observed {value_2}.", value=_raw(status.group(1)), value_2=_raw(status.group(2))))
     missing = re.fullmatch(
         r"Array is missing (\d+) expected element\(s\)\. Matched \((\d+)/(\d+)\)",
         message,
@@ -1553,7 +1553,7 @@ def _rule_outcome_summary(item: dict[str, Any], t: Callable[..., str]) -> str:
         return t("rule_outcome_summary.the_final_data_differs_from_the", "The final data differs from the official expectation.")
     if "No matching network event" in message:
         return t("rule_outcome_summary.no_browser_network_event_satisfying_this", "No browser network event satisfying this rule was observed.")
-    return message or t("rule_outcome_summary.this_rule_failed", "This rule failed.")
+    return _raw(message) if message else t("rule_outcome_summary.this_rule_failed", "This rule failed.")
 
 
 def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, response: Any) -> str:
@@ -1569,6 +1569,7 @@ def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, resp
             for key in ("assertions", "error", "should_not_exist")
             if item.get(key) not in (None, [], {})
         }
+        summary = _rule_outcome_summary(item, t)
         cards.append(
             f'<article class="verification-rule rule-{"pass" if passed else "fail"}">'
             '<header><div><span class="rule-index">'
@@ -1579,7 +1580,7 @@ def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, resp
             + (t("same_task_comparison.pass", "Pass") if passed else t("same_task_comparison.fail", "Fail"))
             + "</span></header>"
             + f'<p class="rule-purpose">{_e(_rule_purpose(item["name"]))}</p>'
-            + f'<p class="rule-summary">{_e(_rule_outcome_summary(item, t))}</p>'
+            + f'<p class="rule-summary">{summary if isinstance(summary, Safe) else _e(summary)}</p>'
             + ("<details><summary>" + t("verification_html.view_the_official_expectation_and_this", "View the official expectation and this run's observation") + '</summary><div class="evidence-pair compact-evidence"><div><h4>' + t("verification_html.official_expectation", "Official expectation") + "</h4>")
             + _json_pre(item.get("expected"))
             + ("</div><div><h4>" + t("verification_html.observed_in_this_run", "Observed in this run") + "</h4>")

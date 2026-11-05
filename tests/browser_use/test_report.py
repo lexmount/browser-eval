@@ -1033,7 +1033,7 @@ def _use_single_model_profile(monkeypatch) -> None:
 
 
 def build_browser_use_fixture(
-    tmp_path: Path, monkeypatch, language="zh", *, failed=False, arguments=None
+    tmp_path: Path, monkeypatch, language="zh", *, failed=False, arguments=None, evaluators=None
 ):
     _use_single_model_profile(monkeypatch)
     evidence = tmp_path / "evidence"
@@ -1082,6 +1082,7 @@ def build_browser_use_fixture(
             ("evaluation", "evaluation.json", {
                 "score": row["score"], "evaluator": "AgentResponseEvaluator",
                 "error": "Fixture expected mutation missing" if not row["score"] else None,
+                **({"evaluators_results": evaluators} if evaluators and not row["score"] else {}),
             }),
             (
                 "events",

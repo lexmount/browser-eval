@@ -335,14 +335,33 @@ def test_listed_recording_host_is_redacted_and_then_passes(tmp_path, monkeypatch
     checker.check_public_privacy(tmp_path)
 
 
-@pytest.mark.parametrize("leak", [None, "authored", "reused-raw-text"])
-def test_english_prose_check_skips_only_marked_raw_text(tmp_path, monkeypatch, leak):
+def _failed_rule(**fields):
+    return [{"evaluator_name": "AgentResponseEvaluator", "score": 0, **fields}]
+
+
+@pytest.mark.parametrize("leak, evaluators, rendered", [
+    (None, None, None),
+    (None, _failed_rule(assertions=[{"assertion_msgs": ["Value mismatch: got '你好'"]}]),
+     "<span data-raw-text>Value mismatch: got &#x27;你好&#x27;</span>"),
+    (None, _failed_rule(error_msg="回答错误"), "<span data-raw-text>回答错误</span>"),
+    (None, _failed_rule(error_msg="Expected done, got 你好"),
+     "expected <span data-raw-text>done</span>, observed <span data-raw-text>你好</span>."),
+    ("authored", None, None),
+    ("reused-raw-text", None, None),
+], ids=["typed-argument", "assertion-message", "error-message", "status-values",
+        "authored", "reused-raw-text"])
+def test_english_prose_check_skips_only_marked_raw_text(
+    tmp_path, monkeypatch, leak, evaluators, rendered
+):
     report, _, _ = build_browser_use_fixture(
-        tmp_path, monkeypatch, "en", failed=True, arguments={"action": "type", "text": "你好"}
+        tmp_path, monkeypatch, "en", failed=True, arguments={"action": "type", "text": "你好"},
+        evaluators=evaluators,
     )
     pages = {page: page.read_text(encoding="utf-8") for page in (report / "en").rglob("*.html")}
     result = report / "en/results/gpt-5.6-sol-moli-44.html"
     assert "<span data-raw-text>type 你好</span>" in pages[result]
+    if rendered:
+        assert rendered in pages[result]
     if leak is None:
         checker._check_english_prose(pages)
         return
