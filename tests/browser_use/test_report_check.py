@@ -333,3 +333,14 @@ def test_listed_recording_host_is_redacted_and_then_passes(tmp_path, monkeypatch
     assert host not in public
     (tmp_path / "data.json").write_text(json.dumps({"note": public}), encoding="utf-8")
     checker.check_public_privacy(tmp_path)
+
+
+def test_english_prose_check_covers_every_route_but_not_dataset_text(tmp_path, monkeypatch):
+    report, _, _ = build_browser_use_fixture(tmp_path, monkeypatch, "en", failed=True)
+    pages = {page: page.read_text(encoding="utf-8") for page in (report / "en").rglob("*.html")}
+    rationales = {task.rationale for task in checker.load_pilot(SELECTION).tasks}
+    checker._check_english_prose(pages, rationales)
+    result = report / "en/results/gpt-5.6-sol-moli-44.html"
+    pages[result] = pages[result].replace("Awaiting review", "待复核")
+    with pytest.raises(ValueError, match="Chinese prose: .*gpt-5.6-sol-moli-44"):
+        checker._check_english_prose(pages, rationales)

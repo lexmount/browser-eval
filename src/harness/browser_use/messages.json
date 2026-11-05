@@ -531,6 +531,7 @@
     "result_failure_section.comparison_treatment": "对比口径：",
     "result_failure_section.no_verified_root_cause_is_available": "当前尚无已核验根因。",
     "result_failure_section.reviewed_conclusion": "复核结论：",
+    "result_failure_section.step_signature": "{label}：",
     "result_failure_section.this_result_contains_confirmed_interference_outside": "该结果已确认含非模型/浏览器干扰，官方分数保留，但暂不纳入干净子集。",
     "result_failure_section.view_complete_logs": "查看完整日志",
     "result_hero.the_failure_occurred_at_the_exact": "失败发生在{failure_point}；下方保留程序报错、复核根因和对应执行证据。",

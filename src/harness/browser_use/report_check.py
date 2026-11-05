@@ -84,6 +84,23 @@ def _check_reader_facing_ux(report_dir: Path, rendered_pages: dict[Path, str]) -
             raise ValueError(f"report home page is missing the core metrics table: {homepage}")
 
 
+def _check_english_prose(english_pages: dict[Path, str], dataset_text: set[str]) -> None:
+    """Reject Chinese report-authored prose; frozen task rationales keep their raw language."""
+
+    cjk = re.compile(r"[\u3400-\u9fff]")
+    allowed = sorted({_ZH("check.chinese", "Chinese"), *dataset_text}, key=len, reverse=True)
+    for page, text in english_pages.items():
+        visible = re.sub(r"\s+", " ", _visible_text(text))
+        for token in allowed:
+            visible = visible.replace(token, "")
+        match = cjk.search(visible)
+        if match:
+            excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
+            raise ValueError(
+                f"English reader-facing page contains Chinese prose: {page}: {excerpt}"
+            )
+
+
 def _check_execution_artifacts(
     report_dir: Path,
     logical_rows: list[dict],
@@ -547,21 +564,10 @@ def check(
         excluded_lists = re.findall(r"tasks excluded in this run: ([^<]+)", text)
         if any("、" in value for value in excluded_lists):
             raise ValueError(f"English excluded-task list uses Chinese punctuation: {page}")
-    for relative, allowed in {
-        "index.html": {_ZH("check.chinese", "Chinese")},
-    }.items():
-        page = report_dir / "en" / relative
-        if page not in rendered_pages:
-            continue
-        visible = re.sub(r"\s+", " ", _visible_text(rendered_pages[page]))
-        for token in allowed:
-            visible = visible.replace(token, "")
-        match = cjk.search(visible)
-        if match:
-            excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
-            raise ValueError(
-                f"English reader-facing page contains Chinese prose: {page}: {excerpt}"
-            )
+    _check_english_prose(
+        {page: rendered_pages[page] for page in english_pages},
+        {task.rationale for task in selection.tasks},
+    )
     for engine in engines:
         engine_page = rendered_pages[report_dir / "engines" / f"{engine}.html"]
         if "engine-result-table" in engine_page or f"f_engine={engine}" not in engine_page:
