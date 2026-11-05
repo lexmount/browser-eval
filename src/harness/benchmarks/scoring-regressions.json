@@ -78433,6 +78433,205 @@
         "answer_format": "markdown"
       },
       "expected_task_pass": false
+    },
+    {
+      "id": "structured-resource-route-image-links-answer",
+      "category": "answer-surface",
+      "root_cause": "The rendered-DOM image route declares structured_resource_urls and returns only <img>/<picture source> URLs as a JSON links list; only that declared list is an image answer.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "{\"links\":[\"https://shop.example/target.png\"]}",
+      "ok": true,
+      "metadata": {
+        "output_contract": "structured_resource_urls"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "structured-resource-route-undeclared-links-rejected",
+      "category": "answer-surface",
+      "root_cause": "The rendered-DOM image route declares structured_resource_urls and returns only <img>/<picture source> URLs as a JSON links list; only that declared list is an image answer.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "{\"links\":[\"https://shop.example/target.png\"]}",
+      "ok": true,
+      "metadata": {},
+      "expected_task_pass": false
+    },
+    {
+      "id": "structured-resource-route-diagnostic-json-rejected",
+      "category": "answer-surface",
+      "root_cause": "The rendered-DOM image route declares structured_resource_urls and returns only <img>/<picture source> URLs as a JSON links list; only that declared list is an image answer.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "task_kind": "resource",
+        "content_score_applicable": false,
+        "expected_resources": [
+          {
+            "urls": [
+              "/target.png"
+            ]
+          }
+        ],
+        "resource_output_contract": {
+          "candidate_scope": "image_answer_fields",
+          "unexpected": "allow"
+        }
+      },
+      "artifact": "{\"links\":[],\"requests\":[{\"url\":\"https://shop.example/target.png\"}],\"debug\":{\"links\":[\"https://shop.example/target.png\"]}}",
+      "ok": true,
+      "metadata": {
+        "output_contract": "structured_resource_urls"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "catalog-heading-price-title-cards-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "# Laptops\n\n117 items\n\n![item](/img/cart.png)\n\n#### $295.99\n\n#### [Asus VivoBook](/p/60)\n\nAsus VivoBook 14 inch Celeron\n\n1 reviews\n\n![item](/img/cart.png)\n\n#### $299\n\n#### [Prestigio SmartBook](/p/61)\n\nPrestigio SmartBook 13 inch\n\n9 reviews\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog-heading-price-without-title-incomplete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 2
+        }
+      },
+      "artifact": "# Laptops\n\n117 items\n\n#### $295.99\n\nAsus VivoBook 14 inch Celeron\n\n1 reviews\n\n#### $299\n\nPrestigio SmartBook 13 inch\n\n9 reviews\n",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "catalog-plain-title-above-heading-price-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha\n\n#### $10\n\nBlue machine\n\n2 reviews\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "product-plain-title-above-heading-price-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha\n\n#### $10\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "product-plain-title-above-heading-price-and-heading-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha\n#### $10\n#### Free shipping\n",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "catalog-plain-title-above-heading-price-deeper-description-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha\n\n#### $10\n\n##### Blue machine\n\n2 reviews\n",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

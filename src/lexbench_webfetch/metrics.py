@@ -647,6 +647,16 @@ def evaluate_resources(
                 candidates.extend(_image_answer_candidates(content, base_url=base_url, representation=representation))
             except _InlineFrameLimitError as exc:
                 resource_error = str(exc)
+        if metadata.get("output_contract") == "structured_resource_urls":
+            # The rendered-DOM image route declares that its JSON `links` list
+            # holds only <img>/<picture source> URLs; other keys stay diagnostic.
+            try:
+                links = json.loads(content).get("links")
+            except (ValueError, TypeError, RecursionError, AttributeError):
+                links = None
+            if isinstance(links, list):
+                candidates.extend((url, "content.structured_resource_urls.links")
+                                  for url in links if isinstance(url, str))
     elif eligible:
         answer_fields = {key: metadata[key] for key in ('links','images','videos','media','extras') if key in metadata}
         candidates.extend(_metadata_resource_candidates(answer_fields))
