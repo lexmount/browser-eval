@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "990ab7aea8f4ba95d0bdcdae9b555c980dba982851dd5afa0c853ee3a7b38a7a"
+          "after_sha256": "be2c6316d0c4cfe2419a117b00c0c94ec3eb092c0306f9d169aed77141786c03"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -4017,6 +4017,22 @@
             "cjk-adjacent-word-edges-anchor-rejected",
             "latin-split-words-do-not-match-joined-anchor",
             "latin-joined-word-does-not-match-split-anchor"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "root_cause": "A declared forbidden term vetoed a correct answer when the page itself legitimately contains it, such as CAPTCHA in a WCAG definition or '404 Not Found' in RFC 9110. A term inside the task's frozen reference now stays a reported exemption when declared body regions can still reject a block page repeating it; a term outside the reference, a task with no reference, or a task without body regions still vetoes.",
+          "regression_ids": [
+            "forbidden-term-in-reference-correct-answer-passes",
+            "forbidden-term-in-reference-block-page-fails-coverage",
+            "forbidden-term-absent-from-reference-still-vetoes",
+            "forbidden-term-without-reference-still-vetoes",
+            "declared-forbidden-reference-cannot-waive-ban"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"

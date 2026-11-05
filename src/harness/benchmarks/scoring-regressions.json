@@ -79234,6 +79234,172 @@
       "artifact": "[login](https://example.test/login)",
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "forbidden-term-in-reference-correct-answer-passes",
+      "category": "acceptance-contract",
+      "root_cause": "A declared forbidden term vetoed a correct answer when the page itself legitimately contains it, such as CAPTCHA in a WCAG definition or '404 Not Found' in RFC 9110. A term inside the task's frozen reference now stays a reported exemption when declared body regions can still reject a block page repeating it; a term outside the reference, a task with no reference, or a task without body regions still vetoes.",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "forbidden-reference",
+        "name": "Forbidden term in reference",
+        "category": "web",
+        "url": "https://allowed.example/guide",
+        "expected_any": [],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help.",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "automated tests can tell people apart from programs and a captcha asks a visitor to read distorted letters before the form opens sites should offer an audio alternative so that blind visitors can finish the same form without any help",
+              "source_text": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help."
+            }
+          ]
+        }
+      },
+      "artifact": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help.",
+      "ok": true,
+      "expected_metrics": {
+        "forbidden_requirement_hits": [],
+        "forbidden_requirement_reference_exemptions": [
+          "CAPTCHA"
+        ],
+        "body_coverage_pass": true
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "forbidden-term-in-reference-block-page-fails-coverage",
+      "category": "acceptance-contract",
+      "root_cause": "A declared forbidden term vetoed a correct answer when the page itself legitimately contains it, such as CAPTCHA in a WCAG definition or '404 Not Found' in RFC 9110. A term inside the task's frozen reference now stays a reported exemption when declared body regions can still reject a block page repeating it; a term outside the reference, a task with no reference, or a task without body regions still vetoes.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "forbidden-reference",
+        "name": "Forbidden term in reference",
+        "category": "web",
+        "url": "https://allowed.example/guide",
+        "expected_any": [],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help.",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "automated tests can tell people apart from programs and a captcha asks a visitor to read distorted letters before the form opens sites should offer an audio alternative so that blind visitors can finish the same form without any help",
+              "source_text": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help."
+            }
+          ]
+        }
+      },
+      "artifact": "Please complete the CAPTCHA to continue. Verify you are human before this site lets you in.",
+      "ok": true,
+      "expected_metrics": {
+        "forbidden_requirement_hits": [],
+        "forbidden_requirement_reference_exemptions": [
+          "CAPTCHA"
+        ],
+        "body_coverage_pass": false
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "forbidden-term-absent-from-reference-still-vetoes",
+      "category": "acceptance-contract",
+      "root_cause": "A declared forbidden term vetoed a correct answer when the page itself legitimately contains it, such as CAPTCHA in a WCAG definition or '404 Not Found' in RFC 9110. A term inside the task's frozen reference now stays a reported exemption when declared body regions can still reject a block page repeating it; a term outside the reference, a task with no reference, or a task without body regions still vetoes.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "forbidden-reference",
+        "name": "Forbidden term in reference",
+        "category": "web",
+        "url": "https://allowed.example/guide",
+        "expected_any": [],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "Automated tests can tell people apart from programs, and a puzzle asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help.",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "automated tests can tell people apart from programs and a captcha asks a visitor to read distorted letters before the form opens sites should offer an audio alternative so that blind visitors can finish the same form without any help",
+              "source_text": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help."
+            }
+          ]
+        }
+      },
+      "artifact": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help.",
+      "ok": true,
+      "expected_metrics": {
+        "forbidden_requirement_hits": [
+          "CAPTCHA"
+        ],
+        "forbidden_requirement_reference_exemptions": []
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "forbidden-term-without-reference-still-vetoes",
+      "category": "acceptance-contract",
+      "root_cause": "A declared forbidden term vetoed a correct answer when the page itself legitimately contains it, such as CAPTCHA in a WCAG definition or '404 Not Found' in RFC 9110. A term inside the task's frozen reference now stays a reported exemption when declared body regions can still reject a block page repeating it; a term outside the reference, a task with no reference, or a task without body regions still vetoes.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "forbidden-reference",
+        "name": "Forbidden term in reference",
+        "category": "web",
+        "url": "https://allowed.example/guide",
+        "expected_any": [],
+        "forbidden_any": [
+          "CAPTCHA"
+        ],
+        "ground_truth_main_content": "",
+        "body_requirements": {
+          "version": 3,
+          "unit": "region_compact_hexagram_recall",
+          "minimum_coverage": 0.8,
+          "minimum_floor": 0.6,
+          "minimum_region_passes": 1,
+          "segmentation_method": "balanced_tokens_fallback",
+          "regions": [
+            {
+              "id": "body-region-1",
+              "text": "automated tests can tell people apart from programs and a captcha asks a visitor to read distorted letters before the form opens sites should offer an audio alternative so that blind visitors can finish the same form without any help",
+              "source_text": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help."
+            }
+          ]
+        }
+      },
+      "artifact": "Automated tests can tell people apart from programs, and a CAPTCHA asks a visitor to read distorted letters before the form opens. Sites should offer an audio alternative so that blind visitors can finish the same form without any help.",
+      "ok": true,
+      "expected_metrics": {
+        "forbidden_requirement_hits": [
+          "CAPTCHA"
+        ],
+        "forbidden_requirement_reference_exemptions": []
+      },
+      "expected_task_pass": false
     }
   ]
 }

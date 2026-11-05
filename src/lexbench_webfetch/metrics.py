@@ -1133,10 +1133,18 @@ def evaluate_content(
             if (term := normalize_for_match(hit)) and term in reference_block_terms
         ]
         block_hits = [hit for hit in block_hits if hit not in block_reference_exemptions]
-    # Explicit forbidden text is a task requirement, not a challenge-page guess.
-    # A reference mentioning it cannot silently remove the declared requirement.
+    # Explicit forbidden text is a task requirement, not a challenge-page guess,
+    # so it vetoes unless the frozen reference proves the term belongs to the
+    # page and declared body regions can still reject a block page repeating it.
+    # An exempted term stays reported.
     forbidden = [item for item in (forbidden_any or [])
                  if (text := normalize_for_match(item, representation=visible_representation)) and forbidden_in_text(folded, text)]
+    forbidden_reference_exemptions = [
+        item for item in forbidden
+        if (body_requirements or {}).get('regions')
+        and forbidden_in_text(reference_folded, normalize_for_match(item))
+    ]
+    forbidden = [item for item in forbidden if item not in forbidden_reference_exemptions]
     lines = [re.sub(r"\s+", " ", line).strip().casefold() for line in answer_text.splitlines()]
     lines = [line for line in lines if line]
     unique_line_ratio = round(len(set(lines)) / len(lines), 4) if lines else 1.0
@@ -1196,6 +1204,7 @@ def evaluate_content(
         "diagnostic_hits": [item for item in (diagnostic_any or [])
                             if (text := normalize_for_match(item, representation=visible_representation)) and forbidden_in_text(folded, text)],
         "forbidden_requirement_pass": not forbidden,
+        "forbidden_requirement_reference_exemptions": forbidden_reference_exemptions,
         "blocked_page": bool(block_hits),
         "blocked_page_hits": block_hits,
         "blocked_page_reference_exemptions": block_reference_exemptions,
