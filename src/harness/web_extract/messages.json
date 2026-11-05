@@ -393,7 +393,19 @@
     "examples_timing": "This call took {seconds} seconds.",
     "example_missing": "Not found",
     "example_empty": "No values returned",
-    "examples_delivery": "Page delivery: "
+    "examples_delivery": "Page delivery: ",
+    "original_field_judgments": "Field judgments against original annotations",
+    "case_comparison": "Compare outcomes on the same page",
+    "comparison_baseline": "Baseline",
+    "comparison_methods": "Comparison methods (multiple)",
+    "comparison_relation": "Outcome relation",
+    "comparison_off": "No comparison filter",
+    "comparison_different": "Selected methods disagree",
+    "comparison_baseline_only": "Baseline matches; at least one comparison differs",
+    "comparison_comparison_only": "Baseline differs; at least one comparison matches",
+    "comparison_all_pass": "All selected methods match",
+    "comparison_all_fail": "All selected methods differ",
+    "comparison_scope": "Correct means all scored fields match, or the selected field matches. Pending and unannotated outcomes do not establish a relation. Activate a relation to show the selected methods on the matching pages."
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -789,6 +801,18 @@
     "examples_timing": "本次调用耗时 {seconds} 秒。",
     "example_missing": "未找到",
     "example_empty": "未返回值",
-    "examples_delivery": "网页交付方式："
+    "examples_delivery": "网页交付方式：",
+    "original_field_judgments": "原标注下的字段判定",
+    "case_comparison": "比较同一页的结果",
+    "comparison_baseline": "基准方法",
+    "comparison_methods": "对照方法（可多选）",
+    "comparison_relation": "结果关系",
+    "comparison_off": "不限制对照关系",
+    "comparison_different": "选中方法结果不同",
+    "comparison_baseline_only": "基准正确，至少一家对照有差异",
+    "comparison_comparison_only": "基准有差异，至少一家对照正确",
+    "comparison_all_pass": "选中方法都正确",
+    "comparison_all_fail": "选中方法都有差异",
+    "comparison_scope": "正确指全部参与评分的字段一致，或当前所选字段一致。未执行和无标注的结果不参与关系判断。选定关系后，展示对应网页中选中方法的结果。"
   }
 }

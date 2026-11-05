@@ -856,7 +856,12 @@ def displayed_values(value, language, *, reference=False):
     values = value if isinstance(value, list) else [value]
     return (
         '<ul class="field-values">'
-        + "".join("<li>" + esc(item) + "</li>" for item in values)
+        + "".join(
+            "<li>"
+            + esc(item if isinstance(item, str) else json.dumps(item, ensure_ascii=False))
+            + "</li>"
+            for item in values
+        )
         + "</ul>"
     )
 
@@ -892,6 +897,68 @@ def field_table(row, lang):
         records,
         attrs='data-field-diagnostics="true"',
     )
+
+
+def case_comparison_controls(methods, labels, language):
+    if len(methods) <= 2:
+        return ""
+
+    def options(selected=()):
+        return "".join(
+            '<option value="'
+            + esc(method)
+            + '"'
+            + (" selected" if method in selected else "")
+            + ">"
+            + esc(labels.get(method, method))
+            + "</option>"
+            for method in methods
+        )
+
+    return (
+        "<details data-case-comparison><summary>"
+        + message("case_comparison", language)
+        + '</summary><div class="controls"><label>'
+        + message("comparison_baseline", language)
+        + "<select data-comparison-baseline>"
+        + options(methods[:1])
+        + "</select></label><label>"
+        + message("comparison_methods", language)
+        + '<select multiple data-comparison-methods size="4">'
+        + options(methods[1:])
+        + "</select></label><label>"
+        + message("comparison_relation", language)
+        + "<select data-comparison-relation>"
+        + "".join(
+            '<option value="' + value + '">' + message("comparison_" + key, language) + "</option>"
+            for value, key in [
+                ("", "off"),
+                ("different", "different"),
+                ("baseline_only", "baseline_only"),
+                ("comparison_only", "comparison_only"),
+                ("all_pass", "all_pass"),
+                ("all_fail", "all_fail"),
+            ]
+        )
+        + "</select></label></div><p>"
+        + message("comparison_scope", language)
+        + "</p></details>"
+    )
+
+
+def check_case_comparison_controls(output, methods, labels, language):
+    if len(methods) <= 2:
+        return
+    soup = BeautifulSoup(
+        (output / language / "results.html").read_text(encoding="utf-8"), "html.parser"
+    )
+    expected = BeautifulSoup(case_comparison_controls(methods, labels, language), "html.parser")
+    if str(soup.select_one("[data-case-comparison]")) != str(
+        expected.select_one("[data-case-comparison]")
+    ):
+        raise ValueError("Missing or changed same-page comparison controls")
+    if any(not row.get("data-case") for row in soup.select("tr[data-status]")):
+        raise ValueError("Same-page comparison requires a case identity on every result")
 
 
 def result_controls(methods, rows, names, lang):
@@ -951,7 +1018,9 @@ def result_controls(methods, rows, names, lang):
             + (message("search", lang))
             + '<input type="search" data-result-filter="query"'
             + (message("aria_label_search_case_domain_or_error", lang))
-            + '></label><output data-result-count aria-live="polite"></output></form>'
+            + '></label><output data-result-count aria-live="polite"></output>'
+            + case_comparison_controls(methods, names, lang)
+            + "</form>"
         )
     )
 
@@ -1585,6 +1654,10 @@ def method_examples(output, binding, language="zh"):
 
 
 def check_method_examples(output, manifest):
+    methods = manifest.get("planned_methods") or manifest.get("methods", [])
+    labels = manifest.get("method_labels", {})
+    for language in manifest["languages"]:
+        check_case_comparison_controls(output, methods, labels, language)
     if not manifest.get("method_examples"):
         return
     for language in manifest["languages"]:
@@ -2155,7 +2228,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             detail += (
                 (
-                    "<details><summary>原标注下的字段判定</summary>"
+                    "<details><summary>"
+                    + message("original_field_judgments", lang)
+                    + "</summary>"
                     + field_table(r, lang)
                     + "</details>"
                 )
@@ -2256,7 +2331,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             correct = all(v["status"] == "correct" for v in r["field_results"].values())
             search = cid + " " + truth[cid]["url"] + " " + error
             inventory.append(
-                f'<tr data-status="{"pass" if ok else "fail"}" data-method="{r["method"]}" data-stage="{r["failure_stage"]}" data-outcome="{"correct" if correct and ok else "wrong"}" data-search="{esc(search, quote=True)}" {data_fields}><td>{esc(names.get(r["method"], r["method"]))}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td>{field_cells}<td>{r.get("http_status") or "—"}</td><td data-sort="{r.get("elapsed_seconds", "")}">{elapsed}</td><td><button data-call-log-open="diagnosis" data-src="{evidence}"{evidence_key}>{lab[9]}</button> · <a href="{url}">'
+                f'<tr data-case="{cid}" data-status="{"pass" if ok else "fail"}" data-method="{r["method"]}" data-stage="{r["failure_stage"]}" data-outcome="{"correct" if correct and ok else "wrong"}" data-search="{esc(search, quote=True)}" {data_fields}><td>{esc(names.get(r["method"], r["method"]))}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td>{field_cells}<td>{r.get("http_status") or "—"}</td><td data-sort="{r.get("elapsed_seconds", "")}">{elapsed}</td><td><button data-call-log-open="diagnosis" data-src="{evidence}"{evidence_key}>{lab[9]}</button> · <a href="{url}">'
                 + (message("full_result", lang))
                 + "</a></td></tr>"
             )
@@ -2267,7 +2342,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     if (method, cid) not in observed:
                         search = esc(cid + " " + truth[cid].get("url", ""), quote=True)
                         inventory.append(
-                            f'<tr data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"'
+                            f'<tr data-case="{cid}" data-status="pending" data-method="{method}" data-outcome="pending" data-search="{search}"'
                             + "".join(
                                 " data-" + field + '="pending"' for field in (*FIELDS, "OutOfStock")
                             )
@@ -2334,6 +2409,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         {
             "template": template_identity("web-extract"),
             "template_version": VERSION,
+            "methods": methods,
             "browser_eval": build_version,
             "asset_sha256": {
                 p.name: digest(p.read_bytes()) for p in ASSETS.iterdir() if p.is_file()
@@ -3614,7 +3690,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + "</section></details>"
                 )
                 inventory_rows.append(
-                    '<tr data-status="pending" data-outcome="pending" data-method="'
+                    '<tr data-case="'
+                    + esc(cid)
+                    + '" data-status="pending" data-outcome="pending" data-method="'
                     + esc(method)
                     + '" data-domain="'
                     + esc(ref["domain"])
@@ -3706,7 +3784,9 @@ def build_record_cohort(output, content, *, home, language, profile):
             )
             panels.append(panel_start + body + "</details>")
             attrs = (
-                ' data-status="'
+                ' data-case="'
+                + esc(cid)
+                + '" data-status="'
                 + ("pass" if row["status"] == "exact" else "fail")
                 + '" data-outcome="'
                 + ("correct" if row["status"] == "exact" else "wrong")
@@ -3764,6 +3844,9 @@ def build_record_cohort(output, content, *, home, language, profile):
             + route_link(data_route, t("source"))
             + "".join(panels),
         )
+    controls = controls.replace(
+        "</form>", case_comparison_controls(methods, labels, language) + "</form>"
+    )
     bodies["results"] += (
         controls
         + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'

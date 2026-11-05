@@ -37,6 +37,7 @@ const rows = [
 ];
 const form = new Element('form');
 form.querySelectorAll = () => controls;
+form.querySelector = () => null;
 const datasetQuery = new Element('input'); datasetQuery.value = '';
 const datasetCount = new Element('output');
 const datasetRows = [new Element('tr', '汽车 alpha page-1'), new Element('tr', '图书 beta page-2')];
@@ -84,8 +85,19 @@ const context = vm.createContext({URL, URLSearchParams, Map, Error, String, Numb
     createElement: tag => new Element(tag),
     addEventListener: (name, action) => { documentListeners[name] = action; },
     getElementById: id => id === 'diagnosis' ? dialog : null,
-    querySelector(selector) { if (selector === '[data-dataset-inventory]') return datasetTable; return selector === '[data-result-controls]' ? form : selector === '[data-result-count]' ? count : null; },
-    querySelectorAll(selector) { if (selector === 'form[data-result-controls], form[data-dataset-controls]') return [form, datasetForm]; if (selector === 'form[data-dataset-controls]') return [datasetForm]; return selector === 'table[data-sortable]' ? [table, ...generatedTables] : selector === 'tr[data-status]' ? rows : []; },
+    querySelector(selector) {
+      if (selector === '[data-dataset-inventory]') return datasetTable;
+      if (selector === '[data-result-controls]') return form;
+      if (selector === '[data-result-count]') return count;
+      return null;
+    },
+    querySelectorAll(selector) {
+      if (selector === 'form[data-result-controls], form[data-dataset-controls]') return [form, datasetForm];
+      if (selector === 'form[data-dataset-controls]') return [datasetForm];
+      if (selector === 'table[data-sortable]') return [table, ...generatedTables];
+      if (selector === 'tr[data-status]') return rows;
+      return [];
+    },
   },
 });
 vm.runInContext(js, context);
@@ -289,3 +301,27 @@ assert.equal(datasetCount.textContent, '1 / 2');
 datasetQuery.value = '汽车'; datasetForm.listeners.input();
 assert.deepEqual(datasetRows.map(row => row.hidden), [false, true]);
 console.log('PASS: dataset page/site/category search stays separate from result filters, and Enter preserves controls');
+
+// Compare three or more methods on the same page, without selecting a shared-pass subset.
+const comparisonRows = [];
+for (const [id, outcomes] of Object.entries({
+  shared: [true, true, true], baseline: [true, false, false],
+  mixed: [false, true, false], failed: [false, false, false],
+})) for (const [i, method] of ['a', 'b', 'c'].entries()) comparisonRows.push({dataset: {
+  case: id, method, status: outcomes[i] ? 'pass' : 'fail', outcome: outcomes[i] ? 'correct' : 'wrong',
+  price: outcomes[i] ? 'correct' : 'wrong', stage: 'fields',
+}});
+comparisonRows.push({dataset: {case: 'pending', method: 'a', status: 'pass'}});
+comparisonRows.push({dataset: {case: 'pending', method: 'b', status: 'pending'}});
+comparisonRows.push({dataset: {case: 'pending', method: 'c', status: 'fail'}});
+context.comparisonRows = comparisonRows;
+const matching = relation => Array.from(vm.runInContext(`matchingCaseIds(comparisonRows, 'a', ['b','c'], '${relation}', '')`, context));
+assert.deepEqual(matching('baseline_only'), ['baseline']);
+assert.deepEqual(matching('comparison_only'), ['mixed']);
+assert.deepEqual(matching('different'), ['baseline', 'mixed']);
+assert.deepEqual(matching('all_pass'), ['shared']);
+assert.deepEqual(matching('all_fail'), ['failed']);
+comparisonRows.find(row => row.dataset.case === 'shared' && row.dataset.method === 'c').dataset.price = 'unavailable';
+assert.deepEqual(Array.from(vm.runInContext("matchingCaseIds(comparisonRows, 'a', ['b','c'], 'all_pass', 'price')", context)), []);
+assert.deepEqual(Array.from(vm.runInContext("matchingCaseIds(comparisonRows, 'b', ['a'], 'comparison_only', '')", context)), ['baseline']);
+console.log('PASS: baseline, multiple comparison methods, explicit outcome relations, pending and unannotated coverage');

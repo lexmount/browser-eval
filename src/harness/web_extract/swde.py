@@ -539,7 +539,9 @@ def score(truth, predictions, *, unavailable_reference_groups=(), text_matching=
             valid = {v for v in values if isinstance(v, str)} if isinstance(values, list) else set()
             counts = groups[(reference["domain"], reference["site"], field)]
             counts["truth_pages"] += bool(gold)
-            counts["predicted_pages"] += bool(values)
+            counts["predicted_pages"] += (
+                bool(values) if isinstance(values, list) else field in prediction
+            )
             counts["hit_pages"] += bool(set(gold) & valid)
             exact["total"] += 1
             exact["correct"] += (
@@ -547,7 +549,7 @@ def score(truth, predictions, *, unavailable_reference_groups=(), text_matching=
             )
             value_counts["true_positive"] += len(set(gold) & valid)
             value_counts["false_positive"] += len(valid - set(gold)) + (
-                bool(values)
+                field in prediction
                 if not isinstance(values, list)
                 else sum(not isinstance(v, str) for v in values)
             )

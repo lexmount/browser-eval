@@ -556,3 +556,30 @@ def test_record_release_requires_all_retry_time_totals(tmp_path, damage):
     rebind(output, "zh/protocol.html", change)
     with pytest.raises(ValueError, match="Retry timing"):
         check(output)
+
+
+@pytest.mark.parametrize("invalid", [2024, ["Ada", 1], None, False, {"value": "Ada"}])
+def test_complete_record_report_renders_invalid_native_field_types(tmp_path, monkeypatch, invalid):
+    import copy
+
+    from harness.web_extract import example
+
+    save = example.save_json
+
+    def write(path, value, **kwargs):
+        if path.parent.name == "calls" and value.get("http_status") == 200:
+            value = copy.deepcopy(value)
+            value["normalized_fields"]["author"] = invalid
+            payload = value["response"]
+            if "data" in payload:
+                payload = payload["data"]
+            payload["json"]["author"] = invalid
+        return save(path, value, **kwargs)
+
+    monkeypatch.setattr(example, "save_json", write)
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    check(output)
+    evidence = read_json(output / "public-evidence/scrapegraph-extract.json")
+    assert evidence["one"]["field_results"]["author"]["status"] == "invalid"
+    assert evidence["one"]["field_results"]["author"]["actual"] == invalid

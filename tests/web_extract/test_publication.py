@@ -165,3 +165,43 @@ def test_self_consistent_zip_hash_cannot_replace_checked_contents(tmp_path, monk
     )
     with pytest.raises(ValueError, match="ZIP inventory"):
         publication.publish(source, target, work, visual)
+
+
+@pytest.mark.parametrize("when", ["package", "upload", "bind"])
+def test_approved_profile_cannot_change_during_publication(tmp_path, monkeypatch, when):
+    source, target, work, visual = setup_report(tmp_path)
+    selected = tmp_path / "successor.json"
+    save_json(selected, {"cohort": "approved"})
+    expected = digest(selected.read_bytes())
+    save_json(source / "report-manifest.json", {"profile_sha256": expected})
+    bound = read_json(target)
+    bound["approved_profile_successor"] = {
+        "from_sha256": "profile",
+        "to_sha256": expected,
+        "profile_path": str(selected),
+    }
+    save_json(target, bound)
+
+    def change():
+        save_json(selected, {"cohort": "changed"})
+
+    def package(*args, **kwargs):
+        if when == "package":
+            change()
+        return {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+
+    def update(staged, **kwargs):
+        assert selected in staged.inputs
+        change()
+        if when == "bind":
+            staged.bind("ver_after")
+        else:
+            staged.guard()
+        pytest.fail("changed profile accepted")
+
+    monkeypatch.setattr(publication, "package", package)
+    monkeypatch.setattr(publication, "publish_staged_update", update)
+    with pytest.raises(ValueError, match="successor profile changed"):
+        publication.publish(source, target, work, visual)
+    assert read_json(target)["expected_version"] == "ver_before"
+    assert read_json(target)["approved_profile_successor"]["to_sha256"] == expected

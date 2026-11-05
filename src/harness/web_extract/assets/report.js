@@ -301,6 +301,37 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
     });
   }
 }
+// Compare the complete same-page population, before row-level diagnosis filters.
+const qualityOutcome = (row, field) => {
+  if (!row || row.dataset.status === "pending") return null;
+  if (field) {
+    if (row.dataset[field] === undefined || row.dataset[field] === "unavailable") return null;
+    return (!row.dataset.stage || row.dataset.stage === "fields") && row.dataset[field] === "correct";
+  }
+  return row.dataset.status !== "fail" && row.dataset.outcome !== "wrong";
+};
+const matchingCaseIds = (rows, baseline, competitors, relation, field) => {
+  const groups = new Map();
+  const methods = [baseline, ...competitors.filter(method => method !== baseline)];
+  if (methods.length < 2) return new Set();
+  for (const row of rows) {
+    if (!row.dataset.case || !methods.includes(row.dataset.method)) continue;
+    if (!groups.has(row.dataset.case)) groups.set(row.dataset.case, new Map());
+    groups.get(row.dataset.case).set(row.dataset.method, qualityOutcome(row, field));
+  }
+  const selected = new Set();
+  for (const [id, group] of groups) {
+    const outcomes = methods.map(method => group.get(method));
+    if (outcomes.some(value => typeof value !== "boolean")) continue;
+    const base = outcomes[0], others = outcomes.slice(1);
+    if ((relation === "different" && outcomes.some(value => value !== base)) ||
+        (relation === "baseline_only" && base && others.some(value => !value)) ||
+        (relation === "comparison_only" && !base && others.some(value => value)) ||
+        (relation === "all_pass" && outcomes.every(Boolean)) ||
+        (relation === "all_fail" && outcomes.every(value => !value))) selected.add(id);
+  }
+  return selected;
+};
 const form = document.querySelector("[data-result-controls]");
 if (form) {
   const params = new URLSearchParams(location.search);
@@ -315,8 +346,14 @@ if (form) {
         x.value,
       ]),
     );
+    const resultRows = [...document.querySelectorAll("tr[data-status]")];
+    const comparison = form.querySelector("[data-case-comparison]");
+    const relation = comparison?.querySelector("[data-comparison-relation]").value || "";
+    const baseline = comparison?.querySelector("[data-comparison-baseline]").value;
+    const competitors = [...(comparison?.querySelector("[data-comparison-methods]").selectedOptions || [])].map(option => option.value);
+    const comparedCases = relation ? matchingCaseIds(resultRows, baseline, competitors, relation, controls.field || "") : null;
     let shown = 0;
-    for (const row of document.querySelectorAll("tr[data-status]")) {
+    for (const row of resultRows) {
       const field = controls.field || "";
       const applicable = !field || row.dataset[field] !== undefined;
       const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || row.dataset[field] !== "correct" : row.dataset.status === "fail" || row.dataset.outcome === "wrong";
@@ -324,6 +361,7 @@ if (form) {
       const scored = !field || row.dataset[field] !== "unavailable";
       const show =
         applicable &&
+        (!comparedCases || (comparedCases.has(row.dataset.case) && [baseline, ...competitors].includes(row.dataset.method))) &&
         (!controls.domain || row.dataset.domain === controls.domain) &&
         (!controls.site || row.dataset.site === controls.site) &&
         (!controls.method || row.dataset.method === controls.method) &&
@@ -341,6 +379,12 @@ if (form) {
   };
   for (const control of form.querySelectorAll("[data-result-filter]"))
     control.addEventListener(control.tagName === "INPUT" ? "input" : "change", update);
+  const comparison = form.querySelector("[data-case-comparison]");
+  if (comparison) for (const control of comparison.querySelectorAll("select")) control.addEventListener("change", () => {
+    form.querySelector('[data-result-filter="status"]').value = "all";
+    form.querySelector('[data-result-filter="method"]').value = "";
+    update();
+  });
   update();
 }
 

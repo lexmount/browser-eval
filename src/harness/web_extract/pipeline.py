@@ -1186,27 +1186,11 @@ def access_blocker(row):
             str(response.get(key, ""))
             for key in ("error", "errors", "message", "non_json_response")
         )
-    target_failure = bool(
-        re.search(
-            r"target (?:page|site|url|website)|(?:could not |failed to |error (?:while )?)"
-            r"(?:download|fetch)|(?:download|fetch|crawl)(?:ing)? (?:failed|error)",
-            message,
-            re.I,
-        )
-    )
-    if target_failure:
-        return None
-    if status == 401:
-        return "authentication"
-    if status == 402:
-        return "quota_or_payment"
-    if status == 403:
-        return "permission"
     native = row.get("response", {})
     native_error = isinstance(native, dict) and (
         native.get("success") is False or bool(native.get("error"))
     )
-    if status == 429 or native_error:
+    if status in (401, 402, 403, 429) or native_error:
         if re.search(
             r"invalid (?:api[ _-]?)?key|unauthorized|unauthenticated|"
             r"authentication failed|invalid token",
@@ -1226,7 +1210,24 @@ def access_blocker(row):
             message,
             re.I,
         ):
-            return "quota_or_permission"
+            return "quota_or_payment" if status == 402 else "quota_or_permission"
+    target_failure = bool(
+        re.search(
+            r"target (?:page|site|url|website)|(?:could not |failed to |error (?:while )?)"
+            r"(?:download|fetch)|(?:download|fetch|crawl)(?:ing)? (?:failed|error)",
+            message,
+            re.I,
+        )
+    )
+    if target_failure:
+        return None
+    if status == 401:
+        return "authentication"
+    if status == 402:
+        return "quota_or_payment"
+    if status == 403:
+        return "permission"
+
     return None
 
 

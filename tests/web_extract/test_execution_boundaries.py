@@ -1111,3 +1111,13 @@ def test_extraction_error_containing_a_field_name_is_not_account_quota():
         )
         is None
     )
+
+
+@pytest.mark.parametrize("status", [200, 402, 429])
+@pytest.mark.parametrize(
+    "message",
+    ["Insufficient credits to fetch target URL", "Invalid API key while fetching target page"],
+)
+def test_account_denial_is_not_hidden_by_target_fetch_words(status, message):
+    result = access_blocker({"http_status": status, "response": {"error": message}})
+    assert result in {"authentication", "quota_or_payment", "quota_or_permission"}

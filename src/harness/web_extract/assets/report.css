@@ -41,3 +41,4 @@ html.dark .field-unexpected,html.dark .field-wrong{color:#ffa19d}
 
 a,code{overflow-wrap:anywhere}
 .example-pair>div{min-width:0}
+.controls select{max-width:100%}.controls label{max-width:100%;min-width:0;flex-wrap:wrap}

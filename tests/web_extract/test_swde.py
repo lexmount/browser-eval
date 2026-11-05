@@ -2205,3 +2205,18 @@ def test_upload_only_record_method_can_be_planned_through_the_public_cli(inputs,
     )
     assert "public_snapshots" not in pipeline.read_json(output)
     assert pipeline.read_json(output)["participants"]["firecrawl-parse-json"]["input"] == "html"
+
+
+@pytest.mark.parametrize("invalid", [None, False, 0, "", {}])
+def test_explicit_falsey_native_values_are_attempts_not_missing_fields(invalid):
+    truth = {
+        cid: {"domain": "book", "site": "a", "values": {"title": ["Example"]}}
+        for cid in ["one", "two"]
+    }
+    baseline = swde.score(truth, {"one": {"title": ["Example"]}, "two": {}})
+    explicit = swde.score(truth, {"one": {"title": ["Example"]}, "two": {"title": invalid}})
+    empty = swde.score(truth, {"one": {"title": ["Example"]}, "two": {"title": []}})
+    assert baseline == empty
+    assert explicit["site_fields"][0]["predicted_pages"] == 2
+    assert explicit["value_micro"]["false_positive"] == 1
+    assert explicit["value_micro"]["precision"] == 0.5

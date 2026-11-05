@@ -47,7 +47,8 @@ FORBIDDEN = (
 
 
 _EXTRACT_RETIRED = re.compile(
-    r"\bweb[-_]" + r"scraper\b|\bscraper-(?:theme|(?:cohort-|record-)?example)\b",
+    r"\bweb[-_]"
+    + r"scraper(?=\b|_)|\bscraper[-_](?:theme|(?:(?:cohort|record)[-_])?example)(?=\b|_)",
     re.IGNORECASE,
 )
 

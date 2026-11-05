@@ -423,7 +423,21 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     content = read_json(content_path)
     content["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
     save_json(content_path, content)
-    build(tmp_path / "reviewed-report", content_path, home=home, profile=home / "profile.json")
+    build(
+        tmp_path / "reviewed-report",
+        content_path,
+        home=home,
+        profile=home / "profile.json",
+        language="en",
+    )
+    from bs4 import BeautifulSoup
+
+    english_detail = next((tmp_path / "reviewed-report/en").glob("result-*.html"))
+    summaries = BeautifulSoup(english_detail.read_text(encoding="utf-8"), "html.parser").select(
+        "summary"
+    )
+    assert any(s.get_text() == "Field judgments against original annotations" for s in summaries)
+    assert all("原标注" not in s.get_text() for s in summaries)
     for mutation in ("scorer", "reference", "projection", "aggregate", "accepted-reference"):
         stale = deepcopy(result)
         if mutation in ("scorer", "reference"):

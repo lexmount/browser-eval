@@ -49,6 +49,11 @@ def test_current_extract_names_cover_code_configuration_and_example_paths():
     for name, text in [
         ("evaluation/" + retired + "/swde/report-assets.json", '{"assets":[]}'),
         ("src/harness/web_extract/report.py", 'LABEL = "' + retired + '"'),
+        (
+            "src/harness/web_extract/report.py",
+            'SCHEMA = "' + retired.replace("-", "_") + '_public_snapshots"',
+        ),
+        ("configs/report-templates.json", '"' + retired.rsplit("-", 1)[-1] + '_theme"'),
         ("configs/report-templates.json", '{"tracks":{"' + retired + '":{}}}'),
         ("src/harness/" + retired.replace("-", "_") + "/cli.py", ""),
         ("scripts/run_" + retired.replace("-", "_") + ".py", ""),

@@ -45,6 +45,11 @@ def publish(source, target, work, visual_receipt, *, transport=None):
         if digest(selected.read_bytes()) != current:
             raise ValueError("Publication successor profile bytes differ from their approved hash")
         next_profile = str(selected)
+
+    def unchanged_profile():
+        if current != previous and digest(Path(next_profile).read_bytes()) != current:
+            raise ValueError("Publication successor profile changed")
+
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     if archive.exists():
@@ -64,11 +69,15 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     else:
         proof = package(source, archive, visual_receipt=visual_receipt)
 
+    unchanged_profile()
+
     def unchanged_target():
+        unchanged_profile()
         if target.read_bytes() != original:
             raise ValueError("Web Extract publication target changed")
 
     def bind(version):
+        unchanged_target()
         manifest = read_json(source / "report-manifest.json")
         builder = read_json(source / "browser-eval-version.json")
         updated = {
@@ -98,7 +107,12 @@ def publish(source, target, work, visual_receipt, *, transport=None):
             title=bound["title"],
             archive=archive,
             archive_sha256=proof["archive_sha256"],
-            inputs=(source, target, Path(visual_receipt)),
+            inputs=(
+                source,
+                target,
+                Path(visual_receipt),
+                *((Path(next_profile),) if current != previous else ()),
+            ),
             work=work,
             guard=unchanged_target,
             bind=bind,

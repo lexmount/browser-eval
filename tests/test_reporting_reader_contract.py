@@ -97,8 +97,9 @@ def test_report_price_cannot_drift_from_its_declared_conversion():
 
 
 def test_every_template_inherits_the_same_reader_requirements():
-    from harness.reporting.templates import ROOT, discover_template
     import json
+
+    from harness.reporting.templates import ROOT, discover_template
 
     tracks = json.loads((ROOT / "configs/report-templates.json").read_text(encoding="utf-8"))[
         "tracks"
@@ -175,3 +176,28 @@ def test_reader_examples_verify_fields_against_the_correct_native_contract(tmp_p
 
 def test_plan_rate_intervals_keep_native_quantities_unchanged():
     assert usd_per_thousand(1000, [{"quantity": 2_000_000, "usd_per_unit": [1e-6, 2e-6]}]) == [2, 4]
+
+
+@pytest.mark.parametrize("language", ["en", "zh"])
+def test_same_page_comparison_controls_use_complete_registry_and_reject_missing_controls(
+    tmp_path, language
+):
+    from harness.web_extract.report import case_comparison_controls, check_case_comparison_controls
+
+    methods = ["first", "second", "third", "fourth"]
+    labels = {method: method.title() for method in methods}
+    body = case_comparison_controls(methods, labels, language)
+    soup = BeautifulSoup(body, "html.parser")
+    for selector in ["[data-comparison-baseline]", "[data-comparison-methods]"]:
+        assert [o["value"] for o in soup.select(selector + " option")] == methods
+    assert soup.select_one("[data-comparison-methods]").has_attr("multiple")
+    root = tmp_path / language
+    root.mkdir()
+    (root / "results.html").write_text(
+        body + '<tr data-status="pass" data-case="one"></tr>', encoding="utf-8"
+    )
+    check_case_comparison_controls(tmp_path, methods, labels, language)
+    soup.select_one("[data-comparison-baseline]").decompose()
+    (root / "results.html").write_text(str(soup), encoding="utf-8")
+    with pytest.raises(ValueError, match="same-page comparison"):
+        check_case_comparison_controls(tmp_path, methods, labels, language)
