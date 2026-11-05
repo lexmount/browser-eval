@@ -497,6 +497,11 @@ Cloudflare page URLs and field schemas as hosted participants. They require a
 separately configured model; identify both the library and model in comparisons.
 Do not label these configurations as model-free extraction.
 
+The ScrapeGraphAI adapter fetches the immutable snapshot bytes and passes them to
+the native graph's HTML input. Its receipt retains the fetched HTML hash. This
+avoids the 2.3.1 URL path's incorrect HTML-as-base-URL conversion; no custom field
+extractor replaces the graph. The health identity declares `native_input: html`.
+
 The root Dockerfile builds an authenticated service using
 `deploy/web-extract/uv.lock`. Set `EXTRACTION_API_KEY`, `EXTRACTION_MODEL`,
 `EXTRACTION_MODEL_BASE`, `EXTRACTION_MODEL_API_KEY` and `SNAPSHOT_ORIGINS` on the
