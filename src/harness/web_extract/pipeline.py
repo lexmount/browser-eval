@@ -1230,17 +1230,23 @@ def access_blocker(row):
         re.I,
     ):
         return "authentication"
-    account = re.search(
-        r"\b(?:api|account|plan|token|key|credential|subscription)\b", message, re.I
+    subject = (
+        r"\b(?:(?:(?:your|this|the)\s+)?"
+        r"(?:account|plan|subscription|credentials?|api[ _-]?key|api[ _-]?token)"
+        r"|(?:your|this|the)\s+(?:key|token)|api\s+(?:access|permissions?|entitlements?))\b"
     )
-    denied = re.search(
-        r"permission denied|access denied|not authorized|forbidden|not enabled|"
-        r"does not include|not included|not allowed|disabled|"
-        r"(?:key|token|account|credential)\s+cannot",
+    denied = (
+        r"(?:(?:is|are|was)\s+|has\s+been\s+)?"
+        r"(?:not enabled|disabled|forbidden|not authorized|not allowed|not included|"
+        r"permission denied|access denied)"
+        r"|does not include|cannot\s+(?:fetch|access|use|call)"
+    )
+    if re.search(subject + r"\s+(?:" + denied + r")", message, re.I) or re.search(
+        r"(?:permission denied|access denied|forbidden|not authorized)"
+        r"(?:\s*:\s*|\s+(?:for|to)\s+)" + subject,
         message,
         re.I,
-    )
-    if account and denied:
+    ):
         return "permission"
     if re.search(
         r"quota|(?:insufficient|not enough|out of|exhausted|no remaining) credits?|"

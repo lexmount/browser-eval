@@ -1291,7 +1291,8 @@ def denial_inputs(tmp_path, same_site=False):
     return home
 
 
-def test_three_distinct_site_403s_pause_and_resume_only_the_stopping_case(tmp_path):
+@pytest.mark.parametrize("denial", ["Forbidden", "API failed to fetch target URL: forbidden"])
+def test_three_distinct_site_403s_pause_and_resume_only_the_stopping_case(tmp_path, denial):
     from harness.web_extract.pipeline import read_json
 
     home = denial_inputs(tmp_path)
@@ -1300,7 +1301,7 @@ def test_three_distinct_site_403s_pause_and_resume_only_the_stopping_case(tmp_pa
         collection_context(),
         patch(
             "harness.web_extract.pipeline.provider_call",
-            return_value={"http_status": 403, "response": {"error": "Forbidden"}},
+            return_value={"http_status": 403, "response": {"error": denial}},
         ) as call,
     ):
         with pytest.raises(PermissionError, match="repeated_http_403"):
@@ -1432,3 +1433,32 @@ def test_extraction_failures_named_after_account_concepts_are_not_permission_den
         )
         is None
     )
+
+
+@pytest.mark.parametrize("status", [200, 403, 429])
+@pytest.mark.parametrize(
+    "message",
+    [
+        "API failed to fetch target URL: forbidden",
+        "Account API failed to fetch target URL: forbidden",
+        "Provider API response does not include required key",
+        "Failed to fetch target URL: access denied by target firewall",
+        "Target page has a plan field; forbidden by target firewall",
+        "The API key field was not included in the extracted response",
+    ],
+)
+def test_account_keywords_do_not_change_the_scope_of_a_target_or_extraction_error(status, message):
+    assert access_blocker({"http_status": status, "response": {"error": message}}) is None
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "Account is disabled",
+        "Forbidden for your account",
+        "API permissions are not enabled",
+        "This token is not authorized to fetch this resource",
+    ],
+)
+def test_permission_denial_tied_directly_to_an_entitlement_pauses(message):
+    assert access_blocker({"http_status": 403, "response": {"error": message}}) == "permission"
