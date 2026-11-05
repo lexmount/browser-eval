@@ -15,7 +15,16 @@ async function treeHash(root) {
     const info = await lstat(target);
     if (info.isSymbolicLink()) {
       record(['link', relative, await readlink(target)]);
-      await visit(await realpath(target), relative + '/@target');
+      let resolved;
+      try {
+        resolved = await realpath(target);
+      } catch (error) {
+        if (!['ENOENT', 'ENOTDIR', 'ELOOP'].includes(error.code)) throw error;
+        // Pruned optional packages may leave links that Node cannot load.
+        record(['unresolved-link', relative, error.code]);
+        return;
+      }
+      await visit(resolved, relative + '/@target');
       return;
     }
     const resolved = await realpath(target);
