@@ -21,6 +21,17 @@ This page is the technical reference for larger experiments and historical repor
 
 ## Certified cohorts and report builds
 
+For an explicit dataset population, export each suite with the declared annotation
+revision first, then replace manual `--case-ids` with
+`--population /path/to/definitions/populations/<revision>.json --population-suite articles`
+(or the corresponding suite). The selection must bind `revision_sha256` and the
+suite's frozen task hash to the exported dataset. Missing, duplicate, unexpected,
+or mismatched cases fail before provider calls. Repeat for every declared suite;
+a single-suite run does not certify the complete cross-suite population.
+The output retains `task-population.json`; `execution.json` and the dataset's
+comparison metadata record its hash, rule revision, input dataset hash, suite and
+actual selected IDs. Existing explicit `--case-ids` runs retain their behavior.
+
 Run every publishable Web Fetch provider cohort through `scripts/run_certified_benchmark.py`, which freezes executable task inputs. Existing compiled reference answers stay frozen; pre/post source checks require an explicit `source_verification.reference_mode: live_exact` task declaration. Missing newer acceptance-contract fields, source metadata and capture dates never imply a live-reference task. For a live-exact task, fail closed: verify and freeze references immediately before calls, verify the same declared scope afterward, and certify the cohort only when both checks pass. Direct `run_benchmark.py` output and incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. An explicitly requested diagnostic report uses the diagnostic build and check entries and labels every page.
 
 For reruns of unchanged compiled stable-contract datasets, invoke `scripts/run_certified_benchmark.py` normally. Freeze existing task definitions and acceptance rules; do not require historical qualification raw files or repeat admission review, and a missing old archive does not turn the run into a diagnostic result. Source qualification belongs to adding tasks or changing references/acceptance rules, through the matching build and revision flow; an explicit reference-answer revision still goes through the separate reference-revision entry. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol. Live exact-reference cases retain pre/post reference checks. Reserve `--diagnostic` for explicitly diagnostic runs, whose outputs cannot be upgraded to certified evidence. `--retrieval-mode native` selects ordinary WebFetch completion while preserving scenario categories and every acceptance requirement; it rejects selector-guided retrieval hints instead of dropping them. Independent whole-page auditing, when requested, uses the existing browser capturer with `--observation-scope visible_page --checkpoint-dir ...`; checkpoint identities include capture inputs and observer code so observations from another protocol cannot be reused silently.
