@@ -148,7 +148,7 @@
     "本次保存结果按任务通过率排名，未完成认证。": "Saved results are ranked by task pass rate; certification is incomplete.",
     "任务判定汇总（非排名）": "Task judgments (not a ranking)",
     "按任务类别查看诊断结果": "Diagnostic results by task family",
-    "名次按本次保存结果的任务通过率降序排列，不代表未经调参的同条件比较。任务判定、内容质量和耗时分别展示。": "Ranks describe descending task pass rates on the saved results, not an untuned controlled comparison. Task judgments, content quality and latency are shown separately.",
+    "诊断表按任务通过率排列，便于查看，不计算名次。任务判定、内容质量和耗时分别展示。": "Diagnostic rows are sorted by task pass rate for inspection; no ranks are assigned. Task judgments, content quality and latency are shown separately.",
     "本地未认证诊断结果，仅展示保存的任务判定与耗时，不用于产品排名。通过不代表返回内容干净；请同时查看全文指标和挑战提示。": "Local uncertified diagnostic results show saved task judgments and latency, not product rankings. Passing does not establish clean content; also inspect full-text metrics and challenge indicators.",
     "诊断指标说明": "Diagnostic metric definitions",
     "无命中": "No matches",

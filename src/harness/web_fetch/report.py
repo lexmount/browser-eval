@@ -2195,7 +2195,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
  home+=section('全部方法共同成功任务的耗时',overview_matched_latency(records,cases),'overall-matched-latency')
  if (out/'resource-cohort/resource-comparison.json').is_file():
   home+=section('CPU、内存与网络',overview_resources(out),'overall-resources')
- home+=section('按任务类别查看结果' if score_audit else '按任务类别查看诊断结果' if diagnostic else model_text(f'{track_label} 类分榜',f'{len(tracks)} family rankings'),('<p>任务通过率、内容质量和耗时分别展示。</p>' if score_audit else '<p class="ranking-orientation">名次按本次保存结果的任务通过率降序排列，不代表未经调参的同条件比较。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
+ home+=section('按任务类别查看结果' if score_audit else '按任务类别查看诊断结果' if diagnostic else model_text(f'{track_label} 类分榜',f'{len(tracks)} family rankings'),('<p>任务通过率、内容质量和耗时分别展示。</p>' if score_audit else '<p class="ranking-orientation">诊断表按任务通过率排列，便于查看，不计算名次。任务判定、内容质量和耗时分别展示。</p>' if diagnostic else '<p class="ranking-orientation">分榜用于判断具体能力。默认按任务通过率排序，点击列名可切换；质量分数与通过率分别计算。</p>')+tabs('home-rankings',panels),'results')
  write(out,'index.html','评测报告',home+'</div>')
  controls=filter_controls([('track','类型',tracks),('category','类别',[(x,x) for x in dict.fromkeys(c['category'] for c in cases.values())])])
  rows=[]

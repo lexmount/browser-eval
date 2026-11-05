@@ -70,6 +70,15 @@ def test_saved_builder_ranks_require_selection_and_matching_scorer(tmp_path, sel
         else:
             assert table.get('data-row-index') == 'false'
             assert not table.select('.comparison-winner')
+    if selection == 'diagnostic':
+        from pathlib import PurePosixPath
+        from harness.web_fetch.report_i18n import localize_html
+        assert '诊断表按任务通过率排列，便于查看，不计算名次。' in soup.get_text()
+        assert '名次按本次保存结果' not in soup.get_text()
+        english = localize_html(str(soup), PurePosixPath('index.html'))
+        assert 'Diagnostic rows are sorted by task pass rate for inspection; no ranks are assigned.' in english
+    else:
+        assert '诊断表按任务通过率排列' not in soup.get_text()
     if mixed:
         assert '评分版本不同或缺失' in soup.get_text()
     assert (source/'results.jsonl').read_bytes() == raw
