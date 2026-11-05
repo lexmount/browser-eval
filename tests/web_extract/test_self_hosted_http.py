@@ -347,7 +347,8 @@ def test_timeout_reaps_reparented_detached_processes_without_killing_other_reque
             [sys.executable, "-c", invocation], capture_output=True, text=True, timeout=7
         )
         assert "TimeoutExpired" in result.stderr
-        assert pid_file.exists() and not psutil.pid_exists(int(pid_file.read_text(encoding="utf-8")))
+        assert pid_file.exists()
+        assert not psutil.pid_exists(int(pid_file.read_text(encoding="utf-8")))
         assert unrelated.poll() is None
     finally:
         unrelated.kill()
