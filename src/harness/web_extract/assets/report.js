@@ -219,7 +219,7 @@ function diagnosisContent(container, row, field, technical = false) {
   const links = node("p", "");
   links.className = "case-links";
   for (const [path, label] of [
-    [`${lang}/result-${row.method}-${row.case_id}.html`, tr("full_result")],
+    [`${lang}/case-${row.case_id}.html#${row.method}`, tr("full_result")],
     [`${lang}/case-${row.case_id}.html`, tr("compare_all_methods_a24f79dd")],
     [`${lang}/source-${row.case_id}.html`, tr("source_and_annotations_cf191383")],
   ]) {

@@ -57,6 +57,10 @@ def client(monkeypatch):
         {},
         {**BODY, "url": 123},
         {**BODY, "schema": {"type": "object", "properties": ["name"]}},
+        {**BODY, "schema": {"type": "object", "properties": {"name": 123}}},
+        {**BODY, "schema": {"type": "object", "properties": {"name": {"type": "bogus"}}}},
+        {**BODY, "instruction": 123},
+        {**BODY, "instruction": None},
     ],
 )
 def test_malformed_shapes_are_client_errors_without_starting_a_worker(client, body):
