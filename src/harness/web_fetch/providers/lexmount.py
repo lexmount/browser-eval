@@ -168,7 +168,7 @@ class LexmountProvider(Provider):
         error = payload.get("error")
         error = error if isinstance(error, dict) else {}
         message = error.get("message") or payload.get("message")
-        declaration = native_answer_projection(self.type, case, payload, response.status)
+        declaration = native_answer_projection("lexmount", case, payload, response.status)
         _, answer_fields = project_native_answer(payload, declaration)
         return ProviderResult(
             ok=ok,
