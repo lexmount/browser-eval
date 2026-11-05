@@ -84,7 +84,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "0ba4d3b14f0a2a06f2e5ec361d4e30bd28d1b7ba9e35da062cdeaa627a42d145"
+          "after_sha256": "cb6076d83a445253383a62e5b2866f8e389c7eee6447af760b1e3ffb2c1d9b13"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "d1f062dcb4d8d8e52ebbbcda61ef870f134ac37150ae8af3e83f4340fc58fa24"
+          "after_sha256": "3716d84eda05a9d47dbe804fbf1f59e2ca46678840a5c5b718bdd388c120c2e1"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -4070,6 +4070,53 @@
             "product-plain-title-above-heading-price-complete",
             "product-plain-title-above-heading-price-and-heading-complete",
             "catalog-plain-title-above-heading-price-deeper-description-complete"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "root_cause": "A serializer that keeps source-HTML nesting put links in indented blocks and left whitespace-only deep lines, so an undeclared answer's links were read as code and parsed to no records. Those lines are the signature: declared Markdown and code samples without them stay literal, and their contents stay unparsed.",
+          "regression_ids": [
+            "nested-indented-links-named-records-complete",
+            "nested-indented-links-wrong-path-incomplete",
+            "nested-indented-links-product-records-complete",
+            "nested-indented-links-product-without-price-incomplete",
+            "nested-indented-links-declared-markdown-literal",
+            "indented-cheatsheet-nested-samples-stay-literal",
+            "indented-unrelated-samples-stay-literal",
+            "indented-product-sample-stays-literal",
+            "indented-python-call-sample-stays-literal",
+            "indented-sample-unbalanced-fence-keeps-page-links",
+            "indented-sample-open-comment-keeps-page-links",
+            "indented-sample-script-tag-keeps-page-links"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "root_cause": "The fold for layout space around CJK characters ran only in Markdown normalization, so anchors and required facts matched through the plain-text view failed on a label letter-spaced into single characters, such as '登 录'. Only single characters fold: separate words and Latin words stay separate.",
+          "regression_ids": [
+            "cjk-spaced-anchor-matches-link-label",
+            "cjk-spaced-anchor-matches-declared-plain-text",
+            "cjk-spaced-fact-matches-declared-plain-text",
+            "cjk-spaced-other-label-rejected",
+            "cjk-separate-paragraphs-fact-rejected",
+            "cjk-word-split-across-lines-fact-rejected",
+            "cjk-digit-before-word-fact-rejected",
+            "cjk-digit-groups-fact-rejected",
+            "cjk-two-links-anchor-rejected",
+            "cjk-two-labels-anchor-rejected",
+            "cjk-adjacent-word-edges-anchor-rejected",
+            "latin-split-words-do-not-match-joined-anchor",
+            "latin-joined-word-does-not-match-split-anchor"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"

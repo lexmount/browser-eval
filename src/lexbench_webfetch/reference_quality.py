@@ -2,6 +2,7 @@
 import re
 import unicodedata
 from dataclasses import dataclass
+from functools import lru_cache
 from html import unescape
 from html.entities import html5 as _HTML_ENTITIES
 
@@ -486,6 +487,11 @@ def _same_inline_block(text, start, end):
 
 def _markdown_html_tag_spans(text, *, excluded_spans=()):
     """Use the shared HTML tokenizer to keep quoted attributes opaque."""
+    return _cached_markdown_html_tag_spans(text, tuple(excluded_spans))
+
+
+@lru_cache(maxsize=256)
+def _cached_markdown_html_tag_spans(text, excluded_spans):
     from bs4.builder import HTMLTreeBuilder
     from .dynamic_lists import _HTMLRanges
 
@@ -499,7 +505,7 @@ def _markdown_html_tag_spans(text, *, excluded_spans=()):
     parser = _HTMLRanges(source, HTMLTreeBuilder.DEFAULT_EMPTY_ELEMENT_TAGS)
     parser.feed(source)
     parser.close()
-    return list(parser.starts.items())
+    return tuple(parser.starts.items())
 
 
 def _next_markdown_comment(text, cursor, stop, *, excluded_spans=()):
@@ -558,7 +564,10 @@ def markdown_inline_code_spans(text, *, excluded_spans=()):
             spans.append((run.start(), closing.end()))
             consumed = closing.end()
             comment_cursor = consumed
-            if '<' in text:
+            # Skip the reparse for a span without tag delimiters or quotes. Masking one can
+            # still move a boundary after a tag name (<script></script`x`>); that case is
+            # accepted to avoid reparsing the document per code span.
+            if '<' in text and re.search(r'''[<>"']''', text[run.start():consumed]):
                 tags = _markdown_html_tag_spans(text, excluded_spans=(*excluded_spans, *spans))
     return spans
 
@@ -762,6 +771,22 @@ def markdown_indented_code_contents(text):
     return {(start, end): content for start, end, content in _markdown_indented_code_blocks(text)}
 
 
+def _without_nested_link_indentation(text):
+    """Remove source-HTML nesting that a serializer kept around Markdown links.
+
+    Its signature is whitespace-only lines left by emptied deep elements. A
+    code example does not leave them, so its indentation stays literal.
+    """
+    if (not re.search(r'(?m)^(?: {4}|\t)[^\n]*\]\(', text)
+            or len(re.findall(r'(?m)^[ \t]{8,}$', text)) < 5):
+        return text
+    pieces, cursor = [], 0
+    for left, right in markdown_indented_code_spans(text):
+        pieces += [text[cursor:left], re.sub(r'(?m)^[ \t]+', '', text[left:right])]
+        cursor = right
+    return ''.join(pieces) + text[cursor:]
+
+
 def normalize_native_markdown_layout(text):
     """Restore supported serializer card indentation in an inferred answer view.
 
@@ -769,6 +794,7 @@ def normalize_native_markdown_layout(text):
     view only for undeclared/native serialization, never for declared Markdown.
     A card needs unindented body fields; fully indented examples stay literal.
     """
+    text = _without_nested_link_indentation(text)
     if (not re.search(r'(?m)^[ \t]+(?:[^\n]*#{1,6}[ \t]+|[-+*][ \t]+\[!\[)', text)
             or is_html_document_or_fragment(text)):
         return text
