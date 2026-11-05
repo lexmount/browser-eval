@@ -58,6 +58,8 @@ def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[st
         raise ValueError("Population selection rejects symlinks")
     raw = path.read_bytes()
     spec = json.loads(raw)
+    if not isinstance(spec, dict) or not isinstance(dataset, dict):
+        raise ValueError("Population and exported dataset must be JSON objects")
     if spec.get("schema_version") != 1 or spec.get("kind") != "task_population_selection":
         raise ValueError("Unsupported population selection")
     selected = [(r["suite"], r["id"]) for r in spec["cases"]]
@@ -70,19 +72,25 @@ def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[st
     if not suite or suite not in spec["suite_counts"]:
         raise ValueError("Choose a suite declared in the population")
     revision = dataset.get("definition_revision", {})
+    bindings = spec["frozen_task_bindings"]
+    if not isinstance(revision, dict) or not isinstance(bindings, dict):
+        raise ValueError("Definition revision and frozen task bindings must be objects")
+    suite_binding = bindings[suite]
+    if not isinstance(suite_binding, dict):
+        raise ValueError("Frozen suite binding must be an object")
     revision_sha = spec.get("revision_sha256", "")
     if (not isinstance(revision_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", revision_sha)
             or spec["id"] != spec["revision"]
             or revision.get("id") != spec["revision"]
             or revision.get("sha256") != revision_sha
-            or revision.get("parent_tasks_sha256") != spec["frozen_task_bindings"][suite]["sha256"]):
+            or revision.get("parent_tasks_sha256") != suite_binding["sha256"]):
         raise ValueError("Exported suite does not match the population's rules or frozen tasks")
     known = [case["id"] for case in dataset["cases"]]
     allowed = {cid for sid, cid in selected + excluded if sid == suite}
     if len(known) != len(set(known)) or set(known) != allowed:
         raise ValueError("Exported cases do not match the population's suite")
     from harness.record_io import canonical_json_sha256
-    expected_cases = spec["frozen_task_bindings"][suite].get("exported_cases_sha256")
+    expected_cases = suite_binding.get("exported_cases_sha256")
     if (not isinstance(expected_cases, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_cases)
             or canonical_json_sha256(dataset["cases"]) != expected_cases):
         raise ValueError("Exported definitions do not match the population's bound task content")

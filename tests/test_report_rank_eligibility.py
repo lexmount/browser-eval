@@ -145,3 +145,17 @@ def test_overall_ranks_require_even_wholly_missing_declared_methods():
     assert not soup.select('td[data-rank]')
     assert not soup.select('#ranking-overall .comparison-winner')
     assert '结果未覆盖同一组完整任务' in soup.get_text()
+
+
+def test_overview_and_rankings_exclude_the_same_tasks():
+    from harness.web_fetch.report import overview_card
+
+    included, excluded = (case(name, kind='body', track='web') for name in ('included', 'excluded'))
+    cases = {item['id']: item for item in (included, excluded)}
+    excluded_row = record(excluded)
+    excluded_row['metrics']['evaluation_excluded'] = True
+    records = [record(included), excluded_row]
+    assert BeautifulSoup(ranking(records, cases, 'web'), 'html.parser').select_one('td[data-rank]')
+    assert BeautifulSoup(overall_ranking(records, cases), 'html.parser').select_one('td[data-rank]')
+    assert overview_card(records, cases, 'web', 'Web', ['fixture']) == overview_card(
+        records[:1], {'included': included}, 'web', 'Web', ['fixture'])

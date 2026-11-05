@@ -1103,12 +1103,19 @@ def case_rate(rs,c):
  value=rate(sum(succeeded(r,c) for r in rs),len(rs))
  return value
 
+def comparison_population(records,cases):
+ """Remove evaluation exclusions from every method's comparison population."""
+ excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
+ return ([r for r in records if r['case_id'] not in excluded],
+         {k:c for k,c in cases.items() if k not in excluded})
+
+
 def overview_card(records,cases,track,label,names,*,diagnostic=False):
- selected=[c for c in cases.values() if report_family(c)==track]
+ records,cases=comparison_population(records,cases)
+ selected={k:c for k,c in cases.items() if report_family(c)==track}
  if not selected:return ''
- rs=[r for r in records if report_family(cases[r['case_id']])==track]
- eligible=[r for r in rs if measured(r,cases[r['case_id']])]
- if diagnostic or not ranking_readiness(records,{c['id']:c for c in selected},participants=family_participants(records,{c['id']:c for c in selected}))[0]:
+ eligible=[r for r in records if r['case_id'] in selected and measured(r,selected[r['case_id']])]
+ if diagnostic or not ranking_readiness(records,selected,participants=family_participants(records,selected))[0]:
   return (f"""<div class="card"><div class="eyebrow">{len(selected)}{t('report_tasks_e5ff3d', ' tasks')}</div><h3>{link('#home-rankings-' + track, label)}</h3><p>{t('report_these_saved_results_are_diagnostic_and_uncertified_543b73', 'These saved results are diagnostic and uncertified.')}</p></div>""")
  rates={n:sum(succeeded(r,cases[r['case_id']]) for r in eligible if r['provider']==n)/sum(r['provider']==n for r in eligible) for n in names if any(r['provider']==n for r in eligible)}
  maximum=max(rates.values(),default=None)
@@ -1641,10 +1648,9 @@ def shared_ranks(scores):
 
 def ranking(records,cases,track,base='',id=None,compact=False,audit=None,*,diagnostic=False):
  if _REPORT_SUITES.get():return saved_suite_ranking(records,cases,track,base=base,id=id,diagnostic=diagnostic)
- excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
- records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
+ records,cases=comparison_population(records,cases)
  title_scope=track=='challenge' and any('title_quality' in r for r in records if report_family(cases[r['case_id']])==track)
- selected={k:c for k,c in cases.items() if report_family(c)==track and k not in excluded}
+ selected={k:c for k,c in cases.items() if report_family(c)==track}
  text_track=track in {'web','dynamic','document','challenge','risk_control'} and any(c.get('task_kind','body') in {'body','structure'} for c in selected.values())
  groups=defaultdict(list)
  for r in records:
@@ -1889,9 +1895,7 @@ def successful_final_call_latency(records,cases):
 
 
 def overall_ranking(records,cases,audit=None,*,diagnostic=False,call_budget_seconds=None,combined=True):
- excluded={r['case_id'] for r in records if r['metrics'].get('evaluation_excluded')}
- records=[r for r in records if not r['metrics'].get('evaluation_excluded')]
- cases={k:c for k,c in cases.items() if k not in excluded}
+ records,cases=comparison_population(records,cases)
  has_unknown=any(not measured(r,cases[r["case_id"]]) for r in records)
  has_not_called=any(r.get('report_invocation_status') == 'adapter_rejected' for r in records)
  groups=defaultdict(list)
@@ -4410,6 +4414,7 @@ def saved_matrix_scope_section(scope,*,show_completion=True):
 
 def saved_suite_ranking(records,cases,suite,*,base='',id=None,diagnostic=False):
  """Summarize saved outcomes by declared input suite, including missing slots."""
+ records,cases=comparison_population(records,cases)
  selected={k:c for k,c in cases.items() if report_family(c)==suite}
  rows=[]
  for provider in sorted({r['provider'] for r in records} | set(_REPORT_PROVIDER_LABELS.get())):
