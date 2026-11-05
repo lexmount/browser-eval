@@ -1,10 +1,12 @@
 import io
 import json
 import tempfile
+import urllib.request
 import unittest
 import zipfile
 from http.client import IncompleteRead
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -18,6 +20,9 @@ from harness.web_fetch.publication_verify import (
 
 
 class PublicationVerifyTests(unittest.TestCase):
+    def setUp(self):
+        self.enterContext(patch('urllib.request.build_opener', lambda *handlers: SimpleNamespace(open=urllib.request.urlopen)))
+
     def test_exported_tree_verification_is_shared_and_byte_exact(self):
         from harness.web_fetch.publication import verify_published_tree
         with tempfile.TemporaryDirectory() as temp:
@@ -228,3 +233,61 @@ def test_verification_never_sends_a_token_outside_the_bound_host(tmp_path, monke
     unbound.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError, match='explicit HTTPS base URL'):
         _run_verify(unbound, '--export')
+
+
+def test_redirected_requests_keep_the_token_only_on_the_publication_host(tmp_path, monkeypatch):
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from harness.reporting import publication
+    from harness.web_fetch import publication_verify
+
+    seen = []
+
+    def serve(redirect):
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args):
+                pass
+
+            def do_GET(self):
+                seen.append((self.server, self.path, self.headers.get('Authorization')))
+                location = redirect(self.path)
+                if location:
+                    self.send_response(302)
+                    self.send_header('Location', location)
+                    self.end_headers()
+                    return
+                body = json.dumps({'slug': 'site-one', 'version': {'id': 'ver_one'},
+                                   'files': ['index.html']}).encode()
+                self.send_response(200)
+                self.send_header('X-Artifact-Version', 'ver_one')
+                self.send_header('Content-Length', str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+        server = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        return server
+
+    other = serve(lambda path: None)
+    # The publication host first redirects to itself, then to another host.
+    origin = serve(lambda path: '/moved' + path if path.startswith('/api/')
+                   else f'http://localhost:{other.server_port}{path}')
+    base = f'http://127.0.0.1:{origin.server_port}'
+    monkeypatch.setattr(publication, 'load_token', lambda *, base_url: 'ahp_fixture')
+    monkeypatch.setattr(publication_verify, 'load_token', lambda *, base_url: 'ahp_fixture')
+    monkeypatch.setattr(publication_verify, 'validate_service_base', lambda value: value)
+    try:
+        assert publication.PublicationClient(None).request(base, '/api/sites/site-one').status == 200
+        assert publication_verify.verify_metadata('site-one', base)['version'] == 'ver_one'
+        export = urllib.request.Request(base + '/api/sites/site-one',
+                                        headers={'Authorization': 'Bearer ahp_fixture'})
+        assert publication_verify.download_export(export, tmp_path)[0] == 'ver_one'
+    finally:
+        origin.shutdown()
+        other.shutdown()
+    token = 'Bearer ahp_fixture'
+    hops = [('/api/sites/site-one', token), ('/moved/api/sites/site-one', token)]
+    assert [(path, auth) for server, path, auth in seen if server is origin] == hops * 3
+    assert [(path, auth) for server, path, auth in seen if server is other] == [
+        ('/moved/api/sites/site-one', None)] * 3

@@ -1022,8 +1022,8 @@ def test_whole_parameter_group_never_keeps_a_regression_from_the_old_group(after
     cases = {'main':{'a':{'track':'dynamic'}, 'b':{'track':'dynamic'}},
              'supplement':{'c':{'track':'dynamic'}}}
     inputs = {'revision':None, 'cases':cases,
-              'selected':{k:(None,record(p),None,None) for k,p in zip(keys,before)}}
-    candidates = {k:(None,record(p),None,None) for k,p in zip(keys,after)}
+              'selected':{k:(None,record(p),None,None) for k,p in zip(keys,before,strict=True)}}
+    candidates = {k:(None,record(p),None,None) for k,p in zip(keys,after,strict=True)}
     decisions = _parameter_group_decisions(inputs, candidates)
     assert all(d['selected_new'] is selected for d in decisions.values())
     # When the group improves, its formerly passing first case must also use the new failure.
@@ -1046,8 +1046,8 @@ def test_presentation_exclusions_preserve_frozen_parameter_population(before, af
               'spec': {'excluded_report_families': ['base-dynamic'], 'report_families': [
                   {'id': 'dynamic', 'source_suites': ['main']},
                   {'id': 'base-dynamic', 'task_family': 'dynamic', 'source_suites': ['base']}]},
-              'selected': {key: saved(value) for key, value in zip(keys, before)}}
-    decisions = _parameter_group_decisions(inputs, {key: saved(value) for key, value in zip(keys, after)})
+              'selected': {key: saved(value) for key, value in zip(keys, before, strict=True)}}
+    decisions = _parameter_group_decisions(inputs, {key: saved(value) for key, value in zip(keys, after, strict=True)})
     assert set(decisions) == set(keys)
     assert decisions[keys[0]]['count'] == 2
     assert decisions[keys[0]]['selected_new'] is expected

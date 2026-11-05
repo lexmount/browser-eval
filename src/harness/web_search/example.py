@@ -4,11 +4,10 @@ import argparse
 import json
 from pathlib import Path
 
-from lexbench_websearch.scoring import evaluate
-
 from harness.record_io import bytes_sha256
 from harness.web_search.core import normalize, write_json
 from harness.web_search.report import build
+from lexbench_websearch.scoring import evaluate
 
 
 def synthetic_profile():

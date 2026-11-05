@@ -119,7 +119,7 @@ def validate_teds_revision(root):
         raise ValueError("Duplicate corrected result")
     _require_teds_matrix(json.loads(teds_dataset_path.read_text(encoding="utf-8")), receipt, original, current)
     _require_finite_metrics(current)
-    for before, after in zip(original, current):
+    for before, after in zip(original, current, strict=True):
         if after.get("official_metrics") != before.get("official_metrics", before.get("metrics")):
             raise ValueError("Official metrics changed in correction")
         left = {k: v for k, v in before.items() if k not in ("metrics", "official_metrics")}
@@ -192,7 +192,7 @@ def validate_reference_revision(root):
         raise ValueError("Reference correction result scope mismatch")
     corrections = {item["track_id"]: item for item in receipt.get("corrections", [])}
     affected = 0
-    for before, after in zip(previous, current):
+    for before, after in zip(previous, current, strict=True):
         if before["attempt_id"] != after["attempt_id"]:
             raise ValueError("Reference correction reordered logical results")
         if before["case_id"] in corrections:
@@ -254,7 +254,7 @@ def validate_webmainbench_scoring_revision(root):
     if len(before) != len(after) or len(after) != receipt.get("logical_results"):
         raise ValueError("WebMainBench scoring correction result scope mismatch")
     allowed = {"metrics", "meta", "reference_sha256", "pre_scoring_correction_metrics"}
-    for left, right in zip(before, after):
+    for left, right in zip(before, after, strict=True):
         if (
             left["attempt_id"] != right["attempt_id"]
             or right.get("pre_scoring_correction_metrics") != left.get("metrics")
@@ -529,7 +529,7 @@ def _revise_teds(source, output, scorer_repo, prior_corrected, scorer_commit):
             for axis, values in summary["dimensions"].items():
                 for value in values:
 
-                    def category(row):
+                    def category(row, cases=cases, axis=axis):
                         item = cases[row["case_id"]]["meta"].get(axis)
                         if isinstance(item, list):
                             return "+".join(sorted(item)) if item else "none"
@@ -673,7 +673,7 @@ def review_teds_correction(source, corrected):
     _require_teds_matrix(json.loads((source / "dataset.json").read_text(encoding="utf-8")), receipt, before, after)
     _require_finite_metrics(after)
     changed = []
-    for old, new in zip(before, after):
+    for old, new in zip(before, after, strict=True):
         if {k: v for k, v in new.items() if k not in ("metrics", "official_metrics")} != {
             k: v for k, v in old.items() if k not in ("metrics", "official_metrics")
         }:

@@ -1755,11 +1755,11 @@ def build_webarena_replay_report(
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
             '<script>(function(){const b=document.querySelector("base[href]");'
             'if(b)b.href=new URL("en/",b.href).href;})();</script>'
-            '<title>英文报告未生成</title></head><body>'
-            '<main data-english-not-generated><h1>英文报告未生成</h1>'
+            f'<title>{report_text("zh")("english_notice.title", "English report not generated")}</title></head><body>'
+            f'<main data-english-not-generated><h1>{report_text("zh")("english_notice.title", "English report not generated")}</h1>'
             '<p>English report has not been generated.</p>'
-            '<p>当前报告仅提供中文版。英文版需单独生成。</p>'
-            '<a href="../index.html">返回中文报告</a></main></body></html>',
+            f'<p>{report_text("zh")("english_notice.body", "This report is available in Chinese only. The English edition must be generated separately.")}</p>'
+            f'<a href="../index.html">{report_text("zh")("english_notice.back", "Back to the Chinese report")}</a></main></body></html>',
             encoding="utf-8",
         )
     manifest = {
@@ -1802,27 +1802,30 @@ def build_webarena_replay_report(
 
 CATALOG_REPORT_CSS = (ASSETS / "webarena-catalog.css").read_text(encoding="utf-8")
 
-CATALOG_SITE_LABELS = {
-    "gitlab": "GitLab",
-    "map": "地图",
-    "reddit": "Reddit",
-    "shopping": "购物网站",
-    "shopping_admin": "购物后台",
-    "wikipedia": "维基百科",
-}
+def _catalog_site_labels() -> dict[str, str]:
+    t = report_text("zh")
+    return {
+        "gitlab": "GitLab",
+        "map": t("catalog.site.map", "Map"),
+        "reddit": "Reddit",
+        "shopping": t("catalog.site.shopping", "Shopping site"),
+        "shopping_admin": t("catalog.site.shopping_admin", "Shopping admin"),
+        "wikipedia": t("catalog.site.wikipedia", "Wikipedia"),
+    }
 
 
 def _catalog_shell(title: str, body: str, participant: str) -> str:
+    t = report_text("zh")
     nav = (
-        '<nav><a href="index.html">结果</a>'
-        '<a href="dataset.html">数据集</a>'
-        '<a href="method.html">方法与边界</a></nav>'
+        f'<nav><a href="index.html">{t("catalog.nav.results", "Results")}</a>'
+        f'<a href="dataset.html">{t("catalog.nav.dataset", "Dataset")}</a>'
+        f'<a href="method.html">{t("catalog.nav.method", "Method and boundaries")}</a></nav>'
     )
     return (
         '<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><base href="/">'
         f"<title>{html.escape(title)}</title><style>{CATALOG_REPORT_CSS}</style></head><body>{nav}{body}"
-        f"<footer>WebArena-Verified 全量轨迹重放 · {html.escape(participant)}</footer>"
+        f"<footer>{t('catalog.heading', 'WebArena-Verified full trajectory replay')} · {html.escape(participant)}</footer>"
         "</body></html>"
     )
 
@@ -1861,6 +1864,8 @@ def build_catalog_acceptance_report(
 ) -> dict:
     """Build a Chinese-only report from a complete accepted catalog."""
 
+    t = report_text("zh")
+    site_labels = _catalog_site_labels()
     if output.exists() or archive.exists():
         raise FileExistsError("report output already exists")
     ledger = read_json(ledger_path)
@@ -1914,7 +1919,7 @@ def build_catalog_acceptance_report(
     catalog_by_id = {int(row["task_id"]): row for row in catalog["rows"]}
     contracts = []
     durations = []
-    site_counts = {site: 0 for site in CATALOG_SITE_LABELS}
+    site_counts = {site: 0 for site in site_labels}
     result_rows = []
     first_statuses: dict[str, int] = {}
     for accepted_row in ledger["rows"]:
@@ -1931,12 +1936,12 @@ def build_catalog_acceptance_report(
         sites = [str(site) for site in task["sites"]]
         for site in sites:
             site_counts[site] += 1
-        site_text = "、".join(CATALOG_SITE_LABELS[site] for site in sites)
+        site_text = t("replay.separator.list", ", ").join(site_labels[site] for site in sites)
         intent = str(task["intent"])
         result_rows.append(
             f'<tr data-search="{task_id} {html.escape(site_text)} {html.escape(intent)}">'
             f'<td><a href="case/{task_id:03}.html">{task_id}</a></td>'
-            f"<td>{html.escape(site_text)}</td><td class=\"ok\">通过</td>"
+            f"<td>{html.escape(site_text)}</td><td class=\"ok\">{t('catalog.pass', 'Pass')}</td>"
             f'<td>{len(accepted_row["attempts"])}</td><td>{seconds:.2f}</td></tr>'
         )
         task_dir = run_dir / f"task-{task_id}"
@@ -2000,18 +2005,17 @@ def build_catalog_acceptance_report(
         }
         write_json(output / "evidence" / f"{task_id:03}.json", evidence)
         case_body = (
-            f"<h1>第 {task_id} 题 · {html.escape(participant)} 通过</h1>"
+            f"<h1>{t('catalog.case.heading', 'Task {task} · {participant} passed', task=task_id, participant=html.escape(participant))}</h1>"
             f'<p class="lead">{html.escape(intent)}</p>'
-            '<section class="panel" data-report-detail="passed"><h2>官方判分</h2>'
-            f'<p class="ok">通过 · score 1.0</p><p>网站：{html.escape(site_text)}；'
-            f"最终执行耗时：{seconds:.2f} 秒；物理执行：{physical_attempt_count} 次。</p>"
-            f'<p>最终动作哈希：<code>{html.escape(str(row["executed_actions_sha256"]))}</code></p>'
-            '</section><section class="panel"><h2>执行证据</h2>'
-            f'<p><a href="evidence.html?task={task_id:03}">查看轨迹与官方评测结果</a> · '
-            f'<a href="evidence/{task_id:03}.json">下载 JSON</a></p></section>'
+            f'<section class="panel" data-report-detail="passed"><h2>{t("catalog.case.official_score", "Official score")}</h2>'
+            f'<p class="ok">{t("catalog.case.pass_score", "Pass · score 1.0")}</p><p>{t("catalog.case.facts", "Sites: {sites}; final execution duration: {seconds:.2f} s; physical executions: {count}.", sites=html.escape(site_text), seconds=seconds, count=physical_attempt_count)}</p>'
+            f'<p>{t("catalog.case.action_hash", "Final action hash: <code>{sha}</code>", sha=html.escape(str(row["executed_actions_sha256"])))}</p>'
+            f'</section><section class="panel"><h2>{t("catalog.case.evidence", "Execution evidence")}</h2>'
+            f'<p><a href="evidence.html?task={task_id:03}">{t("catalog.case.view_evidence", "View trajectory and official evaluation result")}</a> · '
+            f'<a href="evidence/{task_id:03}.json">{t("catalog.case.download", "Download JSON")}</a></p></section>'
         )
         (output / "case" / f"{task_id:03}.html").write_text(
-            _catalog_shell(f"第 {task_id} 题结果", case_body, participant),
+            _catalog_shell(t("catalog.case.title", "Task {task} result", task=task_id), case_body, participant),
             encoding="utf-8",
         )
         catalog_row = catalog_by_id[task_id]
@@ -2032,7 +2036,7 @@ def build_catalog_acceptance_report(
         )
 
     site_html = "".join(
-        f"<tr><td>{CATALOG_SITE_LABELS[site]}</td><td>{count}</td></tr>"
+        f"<tr><td>{site_labels[site]}</td><td>{count}</td></tr>"
         for site, count in site_counts.items()
     )
     first_pass = first_statuses.get("pass", 0)
@@ -2044,13 +2048,13 @@ def build_catalog_acceptance_report(
     runtime_count = binary_count + remote_count
     hosted_runtime = bool(remote_count)
     initial_physical = first_pass + first_fail
-    index_body = f"""<h1>WebArena-Verified 全量轨迹重放</h1><p class="lead">{html.escape(participant)}：{task_count} / {task_count} 题至少一次获得官方 evaluator 通过（100%）。通过后不再执行该 case。</p>
-<section class="panel"><h2>核心结果</h2><div class="scroll"><table><thead><tr><th>浏览器引擎 / 执行后端</th><th>题数</th><th>通过</th><th>Mean</th><th>P50</th><th>P95</th></tr></thead><tbody><tr><td>{html.escape(participant)}</td><td>{task_count}</td><td>{counts["pass"]}</td><td>{statistics.mean(durations):.2f} 秒</td><td>{statistics.median(durations):.2f} 秒</td><td>{percentile(durations, .95):.2f} 秒</td></tr></tbody></table></div><p class="muted">耗时统计使用每题最终通过调用。接受审计覆盖 {counts["physical_attempts"]:,} 次物理执行；通过后重复执行 {counts["excluded_duplicate_attempts"]} 次。</p></section>
+    index_body = f"""<h1>{t("catalog.heading", "WebArena-Verified full trajectory replay")}</h1><p class="lead">{t("catalog.index.lead", "{participant}: {tasks} / {tasks} tasks passed the official evaluator at least once (100%). ", participant=html.escape(participant), tasks=task_count)}{t("catalog.index.stop_after_pass", "A case does not run again after it passes.")}</p>
+<section class="panel"><h2>{t("catalog.index.core_results", "Core results")}</h2><div class="scroll"><table><thead><tr><th>{t("catalog.index.engine_backend", "Browser engine / execution backend")}</th><th>{t("catalog.index.tasks", "Tasks")}</th><th>{t("catalog.pass", "Pass")}</th><th>Mean</th><th>P50</th><th>P95</th></tr></thead><tbody><tr><td>{html.escape(participant)}</td><td>{task_count}</td><td>{counts["pass"]}</td><td>{t("catalog.seconds", "{value:.2f} s", value=statistics.mean(durations))}</td><td>{t("catalog.seconds", "{value:.2f} s", value=statistics.median(durations))}</td><td>{t("catalog.seconds", "{value:.2f} s", value=percentile(durations, .95))}</td></tr></tbody></table></div><p class="muted">{t("catalog.index.timing_note", "Timing uses the final passing call of each task. The acceptance audit covers {physical_executions}; {duplicates} duplicate executions ran after a pass.", physical_executions=t("catalog.physical_executions", "{count:,} physical executions", count=counts["physical_attempts"]), duplicates=counts["excluded_duplicate_attempts"])}</p></section>
 <section class="panel"><h2>执行收敛</h2><p>初始顺序扫描完成 {initial_physical} 次物理执行：{first_pass} 题通过，{first_fail} 题未通过；其余 {setup_failure} 题因执行环境中断记录为准备失败。恢复环境后继续按官方题号处理未通过项，并逐类修复轨迹、执行器、站点状态和已确认的评测问题，直至 {task_count} 题全部通过。</p><p>接受链包含 {len(ledger["runs"])} 个执行段和 {runtime_count} 个浏览器运行时身份。浏览器引擎、执行后端和站点映射保持一致；每次修复只进入尚未通过的 case。</p></section>
-<section class="panel"><h2>网站分布</h2><p>一题可涉及多个网站，计数之和可能大于 {task_count}。</p><div class="scroll"><table><thead><tr><th>网站</th><th>涉及题数</th></tr></thead><tbody>{site_html}</tbody></table></div></section>
-<section class="panel"><h2>逐题结果</h2><label for="find">筛选题号、网站或任务内容</label><p><input id="find" type="search" aria-label="筛选逐题结果"></p><div class="scroll"><table id="results"><thead><tr><th>题号</th><th>网站</th><th>最终判分</th><th>接受链记录数</th><th>最终耗时（秒）</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><script>const q=document.getElementById("find");q.addEventListener("input",()=>{{for(const row of document.querySelectorAll("#results tbody tr"))row.hidden=!row.dataset.search.toLowerCase().includes(q.value.toLowerCase())}})</script>"""
+<section class="panel"><h2>{t("catalog.index.sites", "Site distribution")}</h2><p>{t("catalog.index.sites_note", "One task can involve several sites, so counts can sum to more than {tasks}.", tasks=task_count)}</p><div class="scroll"><table><thead><tr><th>{t("catalog.index.site", "Site")}</th><th>{t("catalog.index.tasks_involved", "Tasks involved")}</th></tr></thead><tbody>{site_html}</tbody></table></div></section>
+<section class="panel"><h2>{t("catalog.index.per_task", "Per-task results")}</h2><label for="find">{t("catalog.index.filter", "Filter by task ID, site or task content")}</label><p><input id="find" type="search" aria-label="{t("catalog.index.filter_label", "Filter per-task results")}"></p><div class="scroll"><table id="results"><thead><tr><th>{t("catalog.index.task_id", "Task ID")}</th><th>{t("catalog.index.site", "Site")}</th><th>{t("catalog.index.final_score", "Final score")}</th><th>{t("catalog.index.chain_records", "Acceptance chain records")}</th><th>{t("catalog.index.final_duration", "Final duration (s)")}</th></tr></thead><tbody>{''.join(result_rows)}</tbody></table></div></section><script>const q=document.getElementById("find");q.addEventListener("input",()=>{{for(const row of document.querySelectorAll("#results tbody tr"))row.hidden=!row.dataset.search.toLowerCase().includes(q.value.toLowerCase())}})</script>"""
     (output / "index.html").write_text(
-        _catalog_shell("全量轨迹重放结果", index_body, participant), encoding="utf-8"
+        _catalog_shell(t("catalog.index.title", "Full trajectory replay results"), index_body, participant), encoding="utf-8"
     )
 
     runtime_method = (
@@ -2068,9 +2072,9 @@ def build_catalog_acceptance_report(
         if request_bridge is not None
         else ""
     )
-    method_body = f"""<h1>方法与边界</h1><section class="panel"><h2>执行方法</h2><p>评测集按官方题号 {task_ids[0]}–{task_ids[-1]} 排列。每题执行冻结轨迹，由 {html.escape(engine.capitalize())} 浏览器引擎通过 {html.escape(backend.capitalize())} 协议后端完成动作。接受标准是 WebArena-Verified 官方 evaluator 返回 score 1.0。</p><p>初始扫描中断后，后续执行只选择接受账本里尚未通过的题。最终接受账本绑定每个物理调用、{runtime_method}、站点映射、轨迹、实际响应、网络证据和 evaluator 结果。</p>{f'<p>{html.escape(bridge_method)}</p>' if bridge_method else ''}</section><section class="panel"><h2>代码与评测边界</h2><p>确认属于评测集或 evaluator 的通用修复维护在 lexmount/webarena-verified 的 lex-main 分支；轨迹、执行器、站点绑定、证据聚合和报告维护在 browser-eval。评测答案和通过条件没有为浏览器适配而放宽。</p><p>旧 evaluator 版本下的通过证据通过固定实际响应和 HAR 离线重评，浏览器动作没有重跑。{revision_method}</p></section><section class="panel"><h2>结果范围</h2><p>该结果证明当前 {html.escape(participant)} 配置下 {task_count} 题各自至少成功一次。812-case 全量 split 与既有 90-case 抽样 split 数据独立；两者共享轨迹执行和 evaluator 基础模块，并分别绑定自己的证据与发布目标。</p></section>"""
+    method_body = f"""<h1>{t("catalog.nav.method", "Method and boundaries")}</h1><section class="panel"><h2>{t("catalog.method.execution", "Execution method")}</h2><p>评测集按官方题号 {task_ids[0]}–{task_ids[-1]} 排列。每题执行冻结轨迹，由 {html.escape(engine.capitalize())} 浏览器引擎通过 {html.escape(backend.capitalize())} 协议后端完成动作。接受标准是 WebArena-Verified 官方 evaluator 返回 score 1.0。</p><p>初始扫描中断后，后续执行只选择接受账本里尚未通过的题。最终接受账本绑定每个物理调用、{runtime_method}、站点映射、轨迹、实际响应、网络证据和 evaluator 结果。</p>{f'<p>{html.escape(bridge_method)}</p>' if bridge_method else ''}</section><section class="panel"><h2>{t("catalog.method.boundary", "Code and evaluation boundary")}</h2><p>确认属于评测集或 evaluator 的通用修复维护在 lexmount/webarena-verified 的 lex-main 分支；轨迹、执行器、站点绑定、证据聚合和报告维护在 browser-eval。评测答案和通过条件没有为浏览器适配而放宽。</p><p>旧 evaluator 版本下的通过证据通过固定实际响应和 HAR 离线重评，浏览器动作没有重跑。{revision_method}</p></section><section class="panel"><h2>{t("catalog.method.scope", "Result scope")}</h2><p>该结果证明当前 {html.escape(participant)} 配置下 {task_count} 题各自至少成功一次。812-case 全量 split 与既有 90-case 抽样 split 数据独立；两者共享轨迹执行和 evaluator 基础模块，并分别绑定自己的证据与发布目标。</p></section>"""
     (output / "method.html").write_text(
-        _catalog_shell("方法与边界", method_body, participant), encoding="utf-8"
+        _catalog_shell(t("catalog.nav.method", "Method and boundaries"), method_body, participant), encoding="utf-8"
     )
 
     write_json(
@@ -2079,22 +2083,22 @@ def build_catalog_acceptance_report(
     )
     dataset_rows = "".join(
         f'<tr><td><a href="case/{task["task_id"]:03}.html">{task["task_id"]}</a></td>'
-        f'<td>{html.escape("、".join(CATALOG_SITE_LABELS[site] for site in task["sites"]))}</td>'
+        f'<td>{html.escape(t("replay.separator.list", ", ").join(site_labels[site] for site in task["sites"]))}</td>'
         f'<td>{html.escape(task["intent"])}</td></tr>'
         for task in contracts
     )
-    dataset_body = f"""<h1>数据集与轨迹合同</h1><p class="lead">{task_count} 题按 WebArena-Verified 官方顺序冻结。此页只展示任务定义；判分和执行证据在逐题结果页。</p><section class="panel"><div class="scroll"><table><thead><tr><th>题号</th><th>网站</th><th>任务</th></tr></thead><tbody>{dataset_rows}</tbody></table></div><p><a href="dataset-contracts.json">下载完整任务、evaluator 与固定动作合同</a></p></section>"""
+    dataset_body = f"""<h1>{t("catalog.dataset.heading", "Dataset and trajectory contract")}</h1><p class="lead">{t("catalog.dataset.lead", "{tasks} tasks are frozen in official WebArena-Verified order. This page only shows task definitions; scoring and execution evidence are on the per-task result pages.", tasks=task_count)}</p><section class="panel"><div class="scroll"><table><thead><tr><th>{t("catalog.index.task_id", "Task ID")}</th><th>{t("catalog.index.site", "Site")}</th><th>{t("catalog.dataset.task", "Task")}</th></tr></thead><tbody>{dataset_rows}</tbody></table></div><p><a href="dataset-contracts.json">{t("catalog.dataset.download", "Download complete task, evaluator and fixed-action contracts")}</a></p></section>"""
     (output / "dataset.html").write_text(
-        _catalog_shell("数据集与轨迹合同", dataset_body, participant), encoding="utf-8"
+        _catalog_shell(t("catalog.dataset.heading", "Dataset and trajectory contract"), dataset_body, participant), encoding="utf-8"
     )
     (output / "contract.html").write_text(
-        _catalog_shell("评测合同", dataset_body, participant), encoding="utf-8"
+        _catalog_shell(t("catalog.contract.title", "Evaluation contract"), dataset_body, participant), encoding="utf-8"
     )
-    viewer = """<h1>证据查看器</h1><p><a id="back" href="index.html">返回结果</a></p><pre id="payload" role="region" aria-label="完整执行证据">加载中…</pre><script>const id=new URLSearchParams(location.search).get("task");const ok=/^\\d{3}$/.test(id||"");if(ok){document.getElementById("back").href="case/"+id+".html";fetch("evidence/"+id+".json").then(r=>{if(!r.ok)throw Error("证据不存在");return r.json()}).then(x=>document.getElementById("payload").textContent=JSON.stringify(x,null,2)).catch(e=>document.getElementById("payload").textContent=String(e))}else document.getElementById("payload").textContent="无效的题号";</script>"""
+    viewer = f"""<h1>{t("catalog.viewer.title", "Evidence viewer")}</h1><p><a id="back" href="index.html">{t("catalog.viewer.back", "Back to results")}</a></p><pre id="payload" role="region" aria-label="{t("catalog.viewer.label", "Complete execution evidence")}">{t("catalog.viewer.loading", "Loading...")}</pre><script>const id=new URLSearchParams(location.search).get("task");const ok=/^\\d{{3}}$/.test(id||"");if(ok){{document.getElementById("back").href="case/"+id+".html";fetch("evidence/"+id+".json").then(r=>{{if(!r.ok)throw Error("{t("catalog.viewer.missing", "Evidence does not exist")}");return r.json()}}).then(x=>document.getElementById("payload").textContent=JSON.stringify(x,null,2)).catch(e=>document.getElementById("payload").textContent=String(e))}}else document.getElementById("payload").textContent="{t("catalog.viewer.invalid", "Invalid task ID")}";</script>"""
     (output / "evidence.html").write_text(
-        _catalog_shell("证据查看器", viewer, participant), encoding="utf-8"
+        _catalog_shell(t("catalog.viewer.title", "Evidence viewer"), viewer, participant), encoding="utf-8"
     )
-    notice = '<h1>English edition not generated</h1><p>This release is Chinese only.</p><p><a href="index.html">返回中文版</a></p>'
+    notice = f'<h1>English edition not generated</h1><p>This release is Chinese only.</p><p><a href="index.html">{t("catalog.notice.back", "Back to the Chinese edition")}</a></p>'
     (output / "en").mkdir()
     (output / "en" / "index.html").write_text(
         _catalog_shell("English edition not generated", notice, participant),
@@ -2208,12 +2212,13 @@ def validate_catalog_acceptance_report(
                 missing.append((str(path.relative_to(output)), value))
     if missing:
         raise ValueError(f"catalog report has missing local links: {missing[:5]}")
+    t = report_text("zh")
     index = (output / "index.html").read_text(encoding="utf-8")
     method = (output / "method.html").read_text(encoding="utf-8")
     if (
         f'{task_count} / {task_count}' not in index
-        or f'{manifest["physical_attempts"]:,} 次物理执行' not in index
-        or "通过后不再执行" not in index
+        or t("catalog.physical_executions", "{count:,} physical executions", count=manifest["physical_attempts"]) not in index
+        or t("catalog.index.stop_after_pass", "A case does not run again after it passes.") not in index
         or "lexmount/webarena-verified" not in method
         or "评测答案和通过条件没有为浏览器适配而放宽" not in method
     ):

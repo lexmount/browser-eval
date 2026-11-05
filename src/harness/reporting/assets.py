@@ -10,10 +10,9 @@ import zipfile
 from contextlib import ExitStack
 from pathlib import Path
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.reporting.packs import read_packed_file
 from harness.web_fetch.safety import unlinked_path
+from lexbench_webfetch.paths import contained_path
 
 
 def authored_main(raw: bytes) -> str:

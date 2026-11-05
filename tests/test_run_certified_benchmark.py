@@ -61,7 +61,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 config.write_text(json.dumps({'providers':{'fixture':{'type':'fixture'}}}), encoding="utf-8")
                 (root/'evaluation/list-references').mkdir(parents=True)
 
-                def execute(stage, arguments):
+                def execute(stage, arguments, root=root, output=output):
                     command = [stage, *arguments]
                     script=stage_name(command)
                     if script=='source_capture.main':

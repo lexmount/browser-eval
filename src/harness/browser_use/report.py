@@ -16,7 +16,7 @@ from collections import Counter, defaultdict
 from collections.abc import Callable, Iterable
 from dataclasses import dataclass
 from io import BytesIO
-from pathlib import Path, PurePosixPath
+from pathlib import Path
 from typing import Any
 
 from harness.browser_use.failure_cause_review import (
@@ -39,6 +39,12 @@ from harness.browser_use.publication import (
     trajectory,
     trajectory_label,
 )
+from harness.browser_use.report_i18n import (
+    bilingual_text,
+    english_rationale,
+    report_text,
+    write_english_report,
+)
 from harness.browser_use.selection import (
     PilotSelection,
     load_pilot,
@@ -58,7 +64,64 @@ from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 from lexbench_webfetch.metrics import percentile
 
-TIER_LABELS = {"easy": "简单", "medium": "中等", "hard": "困难"}
+_ZH, _english = report_text("zh"), report_text("en")
+
+
+class _Authored(str):
+    """English report text, which keeps its apostrophes literal in page text."""
+
+
+def _EN(key: str, source: str, /, **values: Any) -> str:
+    return _Authored(_english(key, source, **values))
+
+
+# The edition being rendered. Page functions read it; `_write_english_edition`
+# switches it for one pass over the pages.
+t = _ZH
+
+
+def _language() -> str:
+    return "en" if t is _EN else "zh"
+
+
+def _translated(key: str, source: str, /, **values: Any) -> Safe:
+    """Keep dynamic text and its English form beside the same values."""
+    return Safe(bilingual_text(_ZH(key, source, **values), _EN(key, source, **values)))
+
+
+def _rationale(task: dict[str, Any]) -> str:
+    """Read the frozen selection rationale, which has no English field of its own."""
+    raw = task["rationale"]
+    english = english_rationale(raw) if _language() == "en" else raw
+    return _Authored(english) if english != raw else _raw(raw)
+
+
+def _raw(value: Any) -> Safe:
+    """Mark measured or dataset text that keeps its source language."""
+    return Safe(f"<span data-raw-text>{_e(value)}</span>")
+
+
+def _searchable_rationale(task: dict[str, Any]) -> str:
+    """The search index of the English edition has always rewritten this one word."""
+    rationale = str(task.get("rationale"))
+    return rationale.replace(_ZH("search.rule_word", "Rule"), "Rule") if _language() == "en" else rationale
+
+
+def _tier_label(tier: str) -> str:
+    return {"easy": t("tier_label.easy", "Easy"), "medium": t("tier_label.medium", "Medium"), "hard": t("tier_label.hard", "Hard")}[tier]
+
+
+def _recorded(value: str) -> str:
+    """Show a value that was missing at load time in the edition being rendered."""
+    return t("common.not_recorded", "Not recorded") if value == _ZH("common.not_recorded", "Not recorded") else value
+
+
+def _record_text(record: dict[str, Any], field: str) -> Any:
+    """Read one release or review field in the edition being rendered."""
+    english = ((record.get("i18n") or {}).get("en") or {}).get(field)
+    return english if english and _language() == "en" else record.get(field)
+
+
 SITE_LABELS = {
     "shopping": "Shopping",
     "shopping_admin": "Shopping Admin",
@@ -113,7 +176,7 @@ class Participants:
         """Join registered browser names, without the versions a label may carry."""
 
         names = [_engine_name(engine) for engine in self.engines]
-        return " 与 ".join(filter(None, ("、".join(names[:-1]), names[-1])))
+        return (" " + t("participants.and", "and") + " ").join(filter(None, (t("list.separator", ", ").join(names[:-1]), names[-1])))
 
 
 def _engine_name(engine: str) -> str:
@@ -124,7 +187,7 @@ METHODOLOGY_FIGURE = Path(__file__).parent / "assets" / "webarena-autonomous-eva
 
 
 def _e(value: Any) -> str:
-    return html.escape(str(value), quote=True)
+    return html.escape(str(value), quote=not isinstance(value, _Authored))
 
 
 class Safe(str):
@@ -254,7 +317,12 @@ def _pct(value: float | None) -> str:
 
 
 def _seconds(value: float | None) -> str:
-    return "—" if value is None else f"{value / 1000:.1f} 秒"
+    return "—" if value is None else t("seconds.seconds", "{value:.1f} seconds", value=value / 1000)
+
+
+def _seconds_short(value: float | None) -> str:
+    """Seconds inside a longer line; the English edition abbreviates the unit there."""
+    return "—" if value is None else t("seconds.short", "{value:.1f} s", value=value / 1000)
 
 
 def _number(value: float | int | None) -> str:
@@ -279,12 +347,12 @@ def _best(
     return winners if len(winners) == 1 else set()
 
 
-def _winner(value: str, *, won: bool, label: str = "更优") -> Safe:
+def _winner(value: str, *, won: bool, label: str | None = None) -> Safe:
     if not won:
         return Safe(_e(value))
+    better = t("winner.better", "Better")
     return Safe(
-        f'<strong class="comparison-winner" title="{_e(label)}">{_e(value)}'
-        '<span class="winner-mark" aria-label="更优">优</span></strong>'
+        f'<strong class="comparison-winner" title="{_e(label or better)}">{_e(value)}<span class="winner-mark" aria-label="{better}">' + t("winner.best", "Best") + "</span></strong>"
     )
 
 
@@ -718,36 +786,29 @@ def _resolve_tasks(
     return tasks
 
 
-TASK_TYPE_COPY = {
-    "RETRIEVE": ("信息提取", "从页面读取、筛选或汇总信息，不修改站点状态"),
-    "NAVIGATE": ("页面导航", "打开符合指定条件的页面或列表"),
-    "MUTATE": ("页面操作", "提交表单、修改记录、结账等会改变站点状态的任务"),
-}
-
-
 def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
     groups = {
-        "agent": ("Agent / 模型行为", "保留", "属于当前被测组合；按轨迹定位检索、选择或提交错误。"),
+        "agent": (t("failure_cause_table.agent_model_behavior", "Agent / model behavior"), t("failure_cause_table.retain", "Retain"), t("failure_cause_table.part_of_the_configuration_under_test", "Part of the configuration under test; use the trajectory to locate retrieval, selection, or submission errors.")),
         "benchmark": (
-            "任务 / evaluator",
-            "排除并修复",
-            "修正验收合同，通过独立预检后重跑全部参评配置。",
+            t("failure_cause_table.task_evaluator", "Task / evaluator"),
+            t("failure_cause_table.exclude_and_fix", "Exclude and fix"),
+            t("failure_cause_table.correct_the_acceptance_contract_complete_independent", "Correct the acceptance contract, complete independent preflight checks, then rerun every configuration."),
         ),
-        "site": ("自托管站点", "排除并修复", "修复依赖、会话或保存链路，通过读写预检后重跑。"),
+        "site": (t("failure_cause_table.self_hosted_site", "Self-hosted site"), t("failure_cause_table.exclude_and_fix", "Exclude and fix"), t("failure_cause_table.fix_the_dependency_session_or_save", "Fix the dependency, session, or save path, then rerun after read/write preflight checks.")),
         "evidence": (
-            "浏览器证据接口",
-            "保留并修复",
-            "这是浏览器集成能力的一部分；补齐响应正文或 Referer 采集后重跑。",
+            t("failure_cause_table.browser_evidence_interface", "Browser evidence interface"),
+            t("failure_cause_table.retain_and_fix", "Retain and fix"),
+            t("failure_cause_table.this_is_part_of_browser_integration", "This is part of browser integration capability; complete response-body or Referer capture and rerun."),
         ),
         "environment": (
-            "共享测试环境",
-            "排除，修复已完成",
-            "跨进程串行锁已经上线；受污染任务仍需重跑。",
+            t("failure_cause_table.shared_test_environment", "Shared test environment"),
+            t("failure_cause_table.exclude_fix_completed", "Exclude; fix completed"),
+            t("failure_cause_table.the_cross_process_serialization_lock_is", "The cross-process serialization lock is deployed; contaminated tasks still require reruns."),
         ),
         "mixed": (
-            "参考状态与 Agent 混合",
-            "排除并重建",
-            "重新冻结参考状态，再重跑以区分 Agent 错误。",
+            t("failure_cause_table.reference_state_mixed_with_agent_behavior", "Reference state mixed with Agent behavior"),
+            t("failure_cause_table.exclude_and_rebuild", "Exclude and rebuild"),
+            t("failure_cause_table.refreeze_the_reference_state_then_rerun", "Refreeze the reference state, then rerun to distinguish Agent errors."),
         ),
     }
 
@@ -763,7 +824,7 @@ def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
     for diagnosis in verified_causes.values():
         subcategory = diagnosis.get("subcategory") or {}
         code = str(subcategory.get("code") or "evidence_capture")
-        label = str(subcategory.get("zh") or "未分类")
+        label = str(subcategory.get("zh") or _ZH("failure_cause_table.unclassified", "Unclassified"))
         counts[group_for(code)][label] += 1
 
     rows = []
@@ -773,7 +834,7 @@ def _failure_cause_table(verified_causes: dict[str, dict[str, Any]]) -> str:
             continue
         rows.append([groups[key][0], total, groups[key][1], groups[key][2]])
     return _table(
-        ["原因范围", "失败结果数", "本轮处理", "修复与验证"],
+        [t("failure_cause_table.cause_scope", "Cause scope"), t("failure_cause_table.failed_results", "Failed results"), t("failure_cause_table.treatment_in_this_run", "Treatment in this run"), t("failure_cause_table.fix_and_verification", "Fix and verification")],
         rows,
         table_id="failure-cause-table",
         classes="wide-data-table",
@@ -789,6 +850,15 @@ def _external_interference_task_ids(
         for result_id in verified_causes
         if _cause_code(verified_causes, result_id).startswith(prefixes)
     }
+
+
+def _adopter_names(adopters: list[str]) -> str:
+    if _language() == "zh":
+        return t("list.separator", ", ").join(adopters)
+    if len(adopters) < 2:
+        return "".join(adopters)
+    last = ", and " if len(adopters) == 3 else " and "
+    return ", ".join(adopters[:-1]) + last + adopters[-1]
 
 
 def _adoption_top3(evidence: dict[str, Any]) -> str:
@@ -807,24 +877,19 @@ def _adoption_top3(evidence: dict[str, Any]) -> str:
             "tasks and graders and must not share a score table."
         ):
             warning = (
-                "原版 Mind2Web、Online-Mind2Web 与 Mind2Web 2 的任务和评分器不同，"
-                "不能合并到同一成绩表。"
+                t("adoption_top3.original_mind2web_online_mind2web_and_mind2web", "Original Mind2Web, Online-Mind2Web and Mind2Web 2 use different tasks and evaluators; their scores cannot be combined in one table.")
             )
         note = warning or {
-            "WebArena": "自托管、可重置、结果验收，更适合浏览器 A/B。",
-            "WebVoyager": "真实网站直观，但网页漂移与 LLM judge 降低精确复现性。",
-        }.get(str(item.get("family")), "采用数不代表评测质量。")
+            "WebArena": t("adoption_top3.self_hosting_resettable_state_and_outcome", "Self-hosting, resettable state, and outcome evaluation make it a stronger fit for browser A/B tests."),
+            "WebVoyager": t("adoption_top3.live_websites_are_intuitive_but_page", "Live websites are intuitive, but page drift and LLM judging reduce exact reproducibility."),
+        }.get(str(item.get("family")), t("adoption_top3.adoption_counts_do_not_indicate_evaluation", "Adoption counts do not indicate evaluation quality."))
         cards.append(
-            '<article class="rank-item"><div>'
-            f"<h3>{_e(item.get('family'))} 家族 · {len(adopters)} 家</h3>"
-            f"<p>{_e('、'.join(adopters))}。{_e(note)}</p></div></article>"
+            '<article class="rank-item"><div><h3>' + t("adoption_top3.family_organizations", "{family} family · {adopters_count} organizations", family=_e(item.get('family')), adopters_count=len(adopters)) + "</h3><p>" + t("adoption_top3.text", "{adopters}. {note}", adopters=_e(_adopter_names(adopters)), note=_e(note)) + "</p></div></article>"
         )
     return (
         '<div class="rank-list">'
         + "".join(cards)
-        + '</div><p class="fine">采用次数来自公开一手材料中的机构去重计数，不是质量分；'
-        f"证据核对日期 {_e(evidence.get('verified_at') or '未记录')}。未找到 DeepSeek、Kimi "
-        "公开的一手 UI browser-use benchmark，不等于内部没有评测。</p>"
+        + ('</div><p class="fine">' + t("adoption_top3.adoption_counts_are_deduplicated_organizations_in", "Adoption counts are deduplicated organizations in public primary sources, not quality scores; evidence was checked on {value}. No primary public UI browser-use benchmark was found for DeepSeek or Kimi, which does not imply that they perform no internal evaluation.", value=_e(evidence.get('verified_at') or t('common.not_recorded', 'Not recorded'))) + "</p>")
     )
 
 
@@ -837,7 +902,7 @@ def _same_task_comparison(
     engines = participants.engines_baseline_first
     configurations = [(model, engine) for model in participants.models for engine in engines]
     if len(configurations) < 2:
-        return '<p class="muted-box">至少需要两个参评配置才能进行同题比较。</p>'
+        return ('<p class="muted-box">' + t("same_task_comparison.at_least_two_configurations_are_required", "At least two configurations are required for a same-task comparison.") + "</p>")
 
     rows = []
     for task in tasks:
@@ -847,17 +912,17 @@ def _same_task_comparison(
         for model, engine in configurations:
             result = results.get((model, engine, task_id))
             if result is None:
-                state, label = "missing", "未测"
+                state, label = "missing", t("same_task_comparison.not_measured", "Not measured")
             elif float(result["score"]) == 1:
-                state, label = "pass", "通过"
+                state, label = "pass", t("same_task_comparison.pass", "Pass")
             else:
-                state, label = "fail", "失败"
+                state, label = "fail", t("same_task_comparison.fail", "Fail")
             states.append(state)
             cells.append(
                 f'<td><a class="outcome-pill {state}" href="results/{model}-{engine}-{task_id}.html">'
                 f"{label}</a></td>"
                 if result is not None
-                else '<td><span class="outcome-pill missing">未测</span></td>'
+                else ('<td><span class="outcome-pill missing">' + t("same_task_comparison.not_measured", "Not measured") + "</span></td>")
             )
         present = [state for state in states if state != "missing"]
         relation = (
@@ -870,8 +935,8 @@ def _same_task_comparison(
         site = str(task["sites"][0])
         task_cell = (
             f'<div class="task-cell"><a href="datasets/{task_id}.html">#{task_id} · '
-            f'{_e(task["rationale"])}</a><div class="task-meta">'
-            f'<span class="track-badge">{_e(TIER_LABELS[task["tier"]])}</span>'
+            f'{_raw(task["rationale"])}</a><div class="task-meta">'
+            f'<span class="track-badge">{_e(_tier_label(task["tier"]))}</span>'
             f'<span class="track-badge">{_e(SITE_LABELS.get(site, site))}</span>'
             f'<span class="track-badge">{_e(task["task_type"])}</span></div></div>'
         )
@@ -887,18 +952,7 @@ def _same_task_comparison(
         for model, engine in configurations
     )
     return (
-        '<article class="browser-comparison" id="configuration-matrix"><header class="comparison-heading"><div>'
-        "<h3>同题全配置矩阵</h3><p>每行是同一任务，每列是一个模型×浏览器配置。新增配置只增加列。</p></div>"
-        '<b class="comparison-count" data-matrix-count></b></header>'
-        '<div class="filters matrix-filters"><label>关系 <select data-matrix-filter="relation"><option value="">全部</option>'
-        '<option value="mixed" selected>结果有差异</option><option value="all_pass">全部通过</option>'
-        '<option value="all_fail">全部失败</option></select></label>'
-        '<label>层级 <select data-matrix-filter="tier"><option value="">全部</option><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
-        '<label>站点 <select data-matrix-filter="site"><option value="">全部</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
-        '<label>类型 <select data-matrix-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label></div>'
-        '<div class="comparison-result"><div class="table-wrap"><table class="comparison-table configuration-matrix">'
-        f"<thead><tr><th>任务</th>{headers}</tr></thead>"
-        f"<tbody>{''.join(rows)}</tbody></table></div></div></article>"
+        '<article class="browser-comparison" id="configuration-matrix"><header class="comparison-heading"><div><h3>' + t("same_task_comparison.same_task_all_configuration_matrix", "Same-task all-configuration matrix") + "</h3><p>" + t("same_task_comparison.each_row_is_one_task_and", "Each row is one task and each column is one model-by-browser configuration. New configurations add columns only.") + '</p></div><b class="comparison-count" data-matrix-count></b></header><div class="filters matrix-filters"><label>' + t("same_task_comparison.outcome_pattern", "Outcome pattern") + ' <select data-matrix-filter="relation"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="mixed" selected>' + t("same_task_comparison.outcomes_differ", "Outcomes differ") + '</option><option value="all_pass">' + t("same_task_comparison.all_pass", "All pass") + '</option><option value="all_fail">' + t("same_task_comparison.all_fail", "All fail") + "</option></select></label><label>" + t("same_task_comparison.tier", "Tier") + ' <select data-matrix-filter="tier"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="easy">' + t("tier_label.easy", "Easy") + '</option><option value="medium">' + t("tier_label.medium", "Medium") + '</option><option value="hard">' + t("tier_label.hard", "Hard") + "</option></select></label><label>" + t("same_task_comparison.site", "Site") + ' <select data-matrix-filter="site"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label><label>' + t("same_task_comparison.type", "Type") + ' <select data-matrix-filter="kind"><option value="">' + t("same_task_comparison.all", "All") + '</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label></div><div class="comparison-result"><div class="table-wrap"><table class="comparison-table configuration-matrix"><thead><tr><th>' + t("same_task_comparison.task", "Task") + f"</th>{headers}</tr></thead><tbody>{''.join(rows)}</tbody></table></div></div></article>"
     )
 
 
@@ -939,17 +993,14 @@ def _action_duration_cards(attempts: list[dict[str, Any]], participants: Partici
                 key = f"{model}|{engine}"
                 total, count, average = metrics[key]
                 width = 0 if average is None or maximum <= 0 else max(2.0, average / maximum * 100)
-                average_text = "—" if average is None else f"{average / 1000:.3f} 秒"
+                average_text = "—" if average is None else t("action_duration_cards.seconds", "{average:.3f} seconds", average=average / 1000)
                 browser_rows.append(
-                    f'<div class="action-browser-row{" action-winner" if key in average_winners else ""}"><div class="action-browser-head">'
-                    f"<b>{_e(participants.models[model])} · {_e(participants.engines[engine])}</b>{_winner(average_text, won=key in average_winners, label='全部配置中单次均值最低')}"
-                    f'</div><div class="action-bar" aria-hidden="true"><i style="width:{width:.1f}%"></i></div>'
-                    f'<div class="action-browser-meta">总耗时 {total / 1000:.1f} 秒 · {count} 次调用</div></div>'
+                    f'''<div class="action-browser-row{' action-winner' if key in average_winners else ''}"><div class="action-browser-head"><b>{_e(participants.models[model])} · {_e(participants.engines[engine])}</b>{_winner(average_text, won=key in average_winners, label=t('action_duration_cards.lowest_mean_per_call_latency_across', 'Lowest mean per-call latency across all configurations'))}</div><div class="action-bar" aria-hidden="true"><i style="width:{width:.1f}%"></i></div><div class="action-browser-meta">''' + t("action_duration_cards.total_s_calls", "Total {total:.1f} s · {count} calls", total=total / 1000, count=count) + "</div></div>"
                 )
         cards.append(
             '<article class="action-card"><header><code>'
             + _e(action)
-            + "</code><span>全部配置 · 单次调用墙钟时间</span></header>"
+            + ("</code><span>" + t("action_duration_cards.all_configurations_per_call_wall_time", "All configurations · per-call wall time") + "</span></header>")
             + "".join(browser_rows)
             + "</article>"
         )
@@ -1003,17 +1054,17 @@ def _summary_comparison_rows(
                     _winner(
                         f"{current['passed']}/{current['completed']}",
                         won=key in higher_metrics["passed"],
-                        label="全部配置中通过数最高",
+                        label=t("summary_comparison_rows.highest_pass_count_across_all_configurations", "Highest pass count across all configurations"),
                     ),
                     _winner(
                         _pct(current["score"]),
                         won=key in higher_metrics["score"],
-                        label="全部配置中通过率最高",
+                        label=t("summary_comparison_rows.highest_pass_rate_across_all_configurations", "Highest pass rate across all configurations"),
                     ),
                     _metric_stack(
                         [
                             (
-                                "均值",
+                                t("summary_comparison_rows.mean", "Mean"),
                                 _seconds(current["mean_duration_ms"]),
                                 key in lower_metrics["mean_duration_ms"],
                             ),
@@ -1032,7 +1083,7 @@ def _summary_comparison_rows(
                     _metric_stack(
                         [
                             (
-                                "均值",
+                                t("summary_comparison_rows.mean", "Mean"),
                                 _seconds(current["mean_browser_tool_duration_ms"]),
                                 key in lower_metrics["mean_browser_tool_duration_ms"],
                             ),
@@ -1051,7 +1102,7 @@ def _summary_comparison_rows(
                     _metric_stack(
                         [
                             (
-                                "均值",
+                                t("summary_comparison_rows.mean", "Mean"),
                                 _number(current["mean_tokens"]),
                                 key in lower_metrics["mean_tokens"],
                             ),
@@ -1076,7 +1127,7 @@ def _resource_value(value: float | None, unit: str) -> str:
     if value is None:
         return "—"
     if unit == "ms":
-        return f"{value / 1000:.1f} 秒"
+        return t("seconds.seconds", "{value:.1f} seconds", value=value / 1000)
     if unit == "pct":
         return f"{value:.1f}%"
     if unit == "mib":
@@ -1088,13 +1139,13 @@ def _resource_value(value: float | None, unit: str) -> str:
 
 def _resource_detail_rows(resource: dict[str, Any]) -> list[list[str]]:
     fields = (
-        ("cpu_ms", "浏览器 CPU 时间", "ms"),
-        ("cpu_average_utilization_pct", "平均单核 CPU 占用", "pct"),
-        ("memory_mean_bytes", "时间加权平均内存", "mib"),
-        ("memory_peak_bytes", "峰值内存", "mib"),
-        ("memory_retained_bytes", "结束时新增常驻内存", "mib"),
-        ("network_rx_bytes", "网络接收量", "mib_net"),
-        ("network_tx_bytes", "网络发送量", "mib_net"),
+        ("cpu_ms", t("resource_detail_rows.browser_cpu_time", "Browser CPU time"), "ms"),
+        ("cpu_average_utilization_pct", t("resource_detail_rows.average_single_core_cpu_utilization", "Average single-core CPU utilization"), "pct"),
+        ("memory_mean_bytes", t("resource_detail_rows.time_weighted_mean_memory", "Time-weighted mean memory"), "mib"),
+        ("memory_peak_bytes", t("resource_detail_rows.peak_memory", "Peak memory"), "mib"),
+        ("memory_retained_bytes", t("resource_detail_rows.additional_resident_memory_at_completion", "Additional resident memory at completion"), "mib"),
+        ("network_rx_bytes", t("resource_detail_rows.network_received", "Network received"), "mib_net"),
+        ("network_tx_bytes", t("resource_detail_rows.network_transmitted", "Network transmitted"), "mib_net"),
     )
     return [
         [label, _resource_value(float(resource[key]), unit)]
@@ -1105,46 +1156,46 @@ def _resource_detail_rows(resource: dict[str, Any]) -> list[list[str]]:
 
 def _evidence_check_rows(checks: dict[str, Any]) -> list[list[str]]:
     labels = {
-        "network_har_exists": "浏览器网络记录存在",
-        "agent_trace_exists": "浏览器执行轨迹存在",
-        "response_exists": "Agent 最终回答存在",
-        "evaluation_exists": "官方判分明细存在",
-        "events_exists": "Agent 事件流存在",
-        "environment_prepare_exists": "环境准备记录存在",
-        "evaluation_json": "判分明细可读取",
-        "response_json": "最终回答可读取",
-        "response_matches_record": "最终回答与运行记录一致",
-        "score_matches_evaluator": "报告分数与官方判分一致",
-        "status_matches_evaluator": "报告状态与官方判分一致",
-        "official_evaluator_version_present": "官方 evaluator 版本已记录",
-        "official_evaluator_checksum_matches": "官方 evaluator 文件校验一致",
-        "official_data_checksum_matches": "官方题集文件校验一致",
-        "model_request_attempts_accounted": "模型请求次数已完整计入",
+        "network_har_exists": t("evidence_check_rows.browser_network_record_exists", "Browser network record exists"),
+        "agent_trace_exists": t("evidence_check_rows.browser_execution_trace_exists", "Browser execution trace exists"),
+        "response_exists": t("evidence_check_rows.agent_final_response_exists", "Agent final response exists"),
+        "evaluation_exists": t("evidence_check_rows.official_evaluation_details_exist", "Official evaluation details exist"),
+        "events_exists": t("evidence_check_rows.agent_event_stream_exists", "Agent event stream exists"),
+        "environment_prepare_exists": t("evidence_check_rows.environment_preparation_record_exists", "Environment preparation record exists"),
+        "evaluation_json": t("evidence_check_rows.evaluation_details_are_readable", "Evaluation details are readable"),
+        "response_json": t("evidence_check_rows.final_response_is_readable", "Final response is readable"),
+        "response_matches_record": t("evidence_check_rows.final_response_matches_the_run_record", "Final response matches the run record"),
+        "score_matches_evaluator": t("evidence_check_rows.reported_score_matches_official_evaluation", "Reported score matches official evaluation"),
+        "status_matches_evaluator": t("evidence_check_rows.reported_status_matches_official_evaluation", "Reported status matches official evaluation"),
+        "official_evaluator_version_present": t("evidence_check_rows.official_evaluator_version_is_recorded", "Official evaluator version is recorded"),
+        "official_evaluator_checksum_matches": t("evidence_check_rows.official_evaluator_checksum_matches", "Official evaluator checksum matches"),
+        "official_data_checksum_matches": t("evidence_check_rows.official_dataset_checksum_matches", "Official dataset checksum matches"),
+        "model_request_attempts_accounted": t("evidence_check_rows.all_model_request_attempts_are_accounted", "All model request attempts are accounted for"),
     }
     return [
-        [labels.get(key, key.replace("_", " ")), "通过" if value else "未通过"]
+        [labels.get(key, key.replace("_", " ")), t("same_task_comparison.pass", "Pass") if value else t("evidence_check_rows.fail", "Fail")]
         for key, value in checks.items()
     ]
 
 
 def _publication_label(value: Any) -> str:
     return {
-        "private_only_session_sensitive": "仅保留哈希与字节数（含登录态）",
-        "sanitized_projection": "已脱敏公开副本",
-        "public": "公开原文件",
-    }.get(str(value), "按证据清单处理")
+        "private_only_session_sensitive": t("publication_label.hash_and_byte_count_only_session", "Hash and byte count only (session-sensitive)"),
+        "sanitized_projection": t("publication_label.sanitized_public_copy", "Sanitized public copy"),
+        "public": t("publication_label.public_original_file", "Public original file"),
+    }.get(str(value), t("publication_label.handled_according_to_the_evidence_inventory", "Handled according to the evidence inventory"))
 
 
 def _resource_comparison_table(
     summary: dict[str, dict[str, dict[str, Any]]], participants: Participants
 ) -> str:
     metrics = (
-        ("cpu_ms", "CPU 时间", "ms"),
-        ("cpu_average_utilization_pct", "平均 CPU 单核占用", "pct"),
-        ("memory_mean_bytes", "时间加权平均内存", "mib"),
-        ("memory_peak_bytes", "峰值内存", "mib"),
-        ("network_rx_bytes", "网络接收量", "mib_net"),
-        ("network_tx_bytes", "网络发送量", "mib_net"),
+        ("cpu_ms", t("resource_comparison_table.cpu_time", "CPU time"), "ms"),
+        ("cpu_average_utilization_pct", t("resource_comparison_table.mean_single_core_cpu_utilization", "Mean single-core CPU utilization"), "pct"),
+        ("memory_mean_bytes", t("resource_detail_rows.time_weighted_mean_memory", "Time-weighted mean memory"), "mib"),
+        ("memory_peak_bytes", t("resource_detail_rows.peak_memory", "Peak memory"), "mib"),
+        ("network_rx_bytes", t("resource_detail_rows.network_received", "Network received"), "mib_net"),
+        ("network_tx_bytes", t("resource_detail_rows.network_transmitted", "Network transmitted"), "mib_net"),
     )
     flat = {
         f"{model}|{engine}": values
@@ -1178,7 +1229,7 @@ def _resource_comparison_table(
                         _metric_stack(
                             [
                                 (
-                                    stat.upper() if stat != "mean" else "均值",
+                                    stat.upper() if stat != "mean" else t("summary_comparison_rows.mean", "Mean"),
                                     _resource_value((resources.get(name) or {}).get(stat), unit),
                                     key in winners[(name, stat)],
                                 )
@@ -1190,7 +1241,7 @@ def _resource_comparison_table(
                 ]
             )
     return _table(
-        ["模型", "浏览器", *[label for _, label, _ in metrics]],
+        [t("resource_comparison_table.model", "Model"), t("resource_comparison_table.browser", "Browser"), *[label for _, label, _ in metrics]],
         rows,
         table_id="resource-metrics-table",
         classes="wide-data-table resource-comparison-table",
@@ -1202,19 +1253,20 @@ REPORT_STYLE = (
     SHARED_STYLE
     + (Path(__file__).parent / "assets" / "report.css").read_text(encoding="utf-8")
 )
-NAV = [
+def _nav() -> list[tuple[str, str, str]]:
+    return [
     ("", "Browser Use", "home"),
-    ("datasets/", "评测集", "datasets"),
-    ("methodology/", "评测方法", "methodology"),
-    ("analysis/", "结果分析", "analysis"),
-    ("review/", "核验记录", "review"),
-    ("fixes/", "修复日志", "fixes"),
-    ("adoption/", "被测浏览器", "adoption"),
-    ("reproduce/", "环境与复现", "reproduce"),
-    ("changes/", "变更记录", "changes"),
-    ("accounts/", "账号与安装", "accounts"),
+    ("datasets/", t("nav.dataset", "Dataset"), "datasets"),
+    ("methodology/", t("nav.methodology", "Methodology"), "methodology"),
+    ("analysis/", t("nav.results_analysis", "Results analysis"), "analysis"),
+    ("review/", t("nav.review", "Review"), "review"),
+    ("fixes/", t("nav.fix_log", "Fix log"), "fixes"),
+    ("adoption/", t("nav.browsers_tested", "Browsers tested"), "adoption"),
+    ("reproduce/", t("nav.environment_and_reproduction", "Environment and reproduction"), "reproduce"),
+    ("changes/", t("nav.changes", "Changes"), "changes"),
+    ("accounts/", t("nav.accounts_and_setup", "Accounts and setup"), "accounts"),
     ("en/", "English", "en"),
-]
+    ]
 
 
 def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
@@ -1224,32 +1276,27 @@ def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
         + (' class="brand"' if key == "home" else "")
         + (' aria-current="page"' if key == active else "")
         + f">{_e(label)}</a>"
-        for href, label, key in NAV
+        for href, label, key in _nav()
     )
-    return f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)} · Browser Use 评测</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">切换主题</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>结论只适用于本轮预注册样本、Agent、模型与运行配置；展示调整不改变测量结果。</p></div></footer></body></html>'
+    return (f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + t("page.browser_use_evaluation", "{title} · Browser Use evaluation", title=_e(title)) + f'</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">' + t("page.toggle_theme", "Toggle theme") + f'</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>' + t("page.conclusions_apply_only_to_this_preregistered", "Conclusions apply only to this preregistered sample, agent, model, and runtime configuration. Presentation changes do not alter measured results.") + "</p></div></footer></body></html>")
 
 
 def _evidence_viewer_page() -> str:
     body = _hero(
         "Execution evidence",
-        "完整执行证据",
-        "按原始结构展示本次物理执行的脱敏回答、evaluator、事件流、轨迹、计量与公开画面索引。",
+        t("evidence_viewer_page.complete_execution_evidence", "Complete execution evidence"),
+        t("evidence_viewer_page.shows_the_sanitized_response_evaluator_record", "Shows the sanitized response, evaluator record, event stream, trajectory, measurements, and public-frame index for this physical execution in their original structure."),
     )
     body += (
-        '<section class="section evidence-viewer-shell"><div class="wrap">'
-        '<div class="evidence-viewer-head"><h2>执行证据 JSON</h2>'
-        '<a id="evidence-raw-link" class="button-link" hidden download>下载原始 JSON</a></div>'
-        '<p id="evidence-viewer-status" class="fine" role="status">正在读取证据…</p>'
-        '<pre id="evidence-viewer-content" class="json-view" tabindex="0"></pre>'
-        "</div></section><script>"
+        ('<section class="section evidence-viewer-shell"><div class="wrap"><div class="evidence-viewer-head"><h2>' + t("evidence_viewer_page.execution_evidence_json", "Execution evidence JSON") + '</h2><a id="evidence-raw-link" class="button-link" hidden download>' + t("evidence_viewer_page.download_raw_json", "Download raw JSON") + '</a></div><p id="evidence-viewer-status" class="fine" role="status">' + t("evidence_viewer_page.loading_evidence", "Loading evidence…") + '</p><pre id="evidence-viewer-content" class="json-view" tabindex="0"></pre></div></section><script>')
         + (Path(__file__).parent / "assets" / "evidence-viewer.js").read_text(encoding="utf-8")
         + "</script>"
     )
-    return _page(title="完整执行证据", active="analysis", body=body)
+    return _page(title=t("evidence_viewer_page.complete_execution_evidence", "Complete execution evidence"), active="analysis", body=body)
 
 
 def _hero(eyebrow: str, title: str, lead: str) -> str:
-    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{_e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
+    return f'<section class="hero compact"><div class="wrap"><div class="eyebrow">{_e(eyebrow)}</div><h1>{title if isinstance(title, Safe) else _e(title)}</h1><p class="lead">{lead if isinstance(lead, Safe) else _e(lead)}</p></div></section>'
 
 
 def _section(title: str, body: str) -> str:
@@ -1259,7 +1306,7 @@ def _section(title: str, body: str) -> str:
 def _status(row: dict[str, Any]) -> Safe:
     passed = float(row["score"]) == 1
     return Safe(
-        f'<span class="status-{"pass" if passed else "fail"}">{"通过" if passed else "失败"}</span>'
+        f"<span class=\"status-{'pass' if passed else 'fail'}\">{t('same_task_comparison.pass', 'Pass') if passed else t('same_task_comparison.fail', 'Fail')}</span>"
     )
 
 
@@ -1279,19 +1326,18 @@ def _task_contract_html(task: dict[str, Any]) -> str:
         }
         cards.append(
             '<article class="evidence-card"><h3>'
-            + _e(f"规则 {index} · {evaluator}")
-            + '</h3><p><span class="badge">程序化验收</span>该规则必须得分 1.0。</p>'
+            + _e(t("task_contract_html.rule", "Rule {index} · {evaluator}", index=index, evaluator=evaluator))
+            + ('</h3><p><span class="badge">' + t("task_contract_html.programmatic_acceptance", "Programmatic acceptance") + "</span>" + t("task_contract_html.this_rule_must_score_1_0", "This rule must score 1.0.") + "</p>")
             + _json_pre(expected)
             + (
-                f"<details><summary>匹配选项与结果 schema</summary>{_json_pre(qualifiers)}</details>"
+                ("<details><summary>" + t("task_contract_html.matching_options_and_result_schema", "Matching options and result schema") + f"</summary>{_json_pre(qualifiers)}</details>")
                 if qualifiers
                 else ""
             )
             + "</article>"
         )
     return (
-        '<div class="muted-box"><strong>没有唯一参考点击路径。</strong> WebArena‑Verified 允许 Agent 自主选择任意 UI 路径；'
-        "ground truth 是以下最终回答与必要网络副作用的合取。报告因此比较结果合同，而不把某条人工路径当作标准答案。</div>"
+        ('<div class="muted-box"><strong>' + t("task_contract_html.there_is_no_single_reference_click", "There is no single reference click path.") + "</strong> " + t("task_contract_html.webarena_verified_lets_the_agent_choose", "WebArena-Verified lets the agent choose any UI path. Ground truth is the conjunction of the final-answer and required network-side-effect contracts below. The report therefore compares outcome contracts rather than treating a human path as the answer key.") + "</div>")
         + '<div class="evidence-pair">'
         + "".join(cards)
         + "</div>"
@@ -1301,7 +1347,7 @@ def _task_contract_html(task: dict[str, Any]) -> str:
 def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
     failed = [item for item in evaluator_summary(result) if float(item.get("score") or 0) < 1]
     if not failed:
-        return "全部官方 evaluator 均通过。"
+        return t("failure_diagnosis.all_official_evaluators_passed", "All official evaluators passed.")
     parts = []
     for item in failed:
         messages: list[str] = []
@@ -1315,11 +1361,11 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
             messages.append(str(item["error"]))
         if not messages:
             messages.append(
-                "最终回答与官方结构化答案不一致"
+                t("failure_diagnosis.the_final_answer_does_not_match", "The final answer does not match the official structured answer")
                 if item["name"] == "AgentResponseEvaluator"
-                else "未观察到满足合同的必要网络请求或副作用"
+                else t("failure_diagnosis.no_required_network_request_or_side", "No required network request or side effect satisfying the contract was observed")
                 if item["name"] == "NetworkEventEvaluator"
-                else "该规则未通过"
+                else t("failure_diagnosis.this_rule_failed", "This rule failed")
             )
         expected, actual = item.get("expected"), item.get("actual")
         if expected is not None or actual is not None:
@@ -1333,7 +1379,7 @@ def _failure_diagnosis(result: dict[str, Any] | None, row: dict[str, Any]) -> st
         )
         if len(exact) > 420:
             exact = exact[:417].rstrip() + "…"
-        parts.append(f"规则 {item['index']} {item['name']}：{exact}")
+        parts.append(t("failure_diagnosis.rule", "Rule {index} {name}: {exact}", index=item['index'], name=item['name'], exact=exact))
     if row.get("error"):
         parts.append(str(sanitize(row["error"])))
     response = row.get("agent_response") or {}
@@ -1358,20 +1404,20 @@ def _evaluator_error_text(result: dict[str, Any] | None, row: dict[str, Any]) ->
         if item.get("error"):
             messages.append(str(item["error"]))
         if not messages:
-            messages.append(_rule_outcome_summary(item))
+            messages.append(_rule_outcome_summary(item, t))
         for message in dict.fromkeys(messages):
-            lines.append(f"规则 {item['index']} · {item['name']}: {sanitize(message)}")
+            lines.append(t("evaluator_error_text.rule", "Rule {index} · {name}: {message}", index=item['index'], name=item['name'], message=sanitize(message)))
     if row.get("error"):
-        lines.append(f"运行错误: {sanitize(row['error'])}")
+        lines.append(t("evaluator_error_text.runtime_error", "Runtime error: {error}", error=sanitize(row['error'])))
     response = row.get("agent_response") or {}
     if response.get("error_details"):
-        lines.append(f"Agent 错误: {sanitize(response['error_details'])}")
-    return "\n".join(lines) or "程序没有提供更具体的错误文本。"
+        lines.append(t("evaluator_error_text.agent_error", "Agent error: {error_details}", error_details=sanitize(response['error_details'])))
+    return "\n".join(lines) or t("evaluator_error_text.the_program_did_not_provide_a", "The program did not provide a more specific error message.")
 
 
 def _failed_rule_labels(result: dict[str, Any] | None) -> list[str]:
     return [
-        f"规则 {item['index']} {item['name']}"
+        t("failed_rule_labels.rule", "Rule {index} {name}", index=item['index'], name=item['name'])
         for item in evaluator_summary(result)
         if float(item.get("score") or 0) < 1
     ]
@@ -1386,16 +1432,20 @@ def _automatic_failure_type(result: dict[str, Any] | None) -> tuple[str, str]:
     if not names:
         return "", ""
     if names == {"AgentResponseEvaluator"}:
-        return "response", "最终回答验收失败"
+        return "response", t("automatic_failure_type.final_answer_acceptance_failure", "Final-answer acceptance failure")
     if names == {"NetworkEventEvaluator"}:
-        return "network", "网络副作用验收失败"
+        return "network", t("automatic_failure_type.network_side_effect_acceptance_failure", "Network-side-effect acceptance failure")
     if names == {"AgentResponseEvaluator", "NetworkEventEvaluator"}:
-        return "mixed", "多项验收失败"
+        return "mixed", t("automatic_failure_type.multiple_acceptance_failures", "Multiple acceptance failures")
     raise ValueError(f"unknown failed evaluator combination: {sorted(names)}")
 
 
 def _cause_code(verified: dict[str, dict[str, Any]], result_id: str) -> str:
     return str(((verified.get(result_id) or {}).get("subcategory") or {}).get("code") or "")
+
+
+def _tool_error_point(step: int) -> str:
+    return t("tool_error_point.step_browsertool_execution_error", "Step {step}: BrowserTool execution error", step=step)
 
 
 def _failure_point(code: str, steps: list[dict[str, Any]]) -> tuple[str, int | None]:
@@ -1411,25 +1461,25 @@ def _failure_point(code: str, steps: list[dict[str, Any]]) -> tuple[str, int | N
     )
     last_step = int(steps[-1].get("step") or len(steps)) if steps else None
     if code.startswith("environment_"):
-        return "环境准备后、Agent 读取前", None
+        return t("failure_point.after_environment_preparation_and_before_the", "After environment preparation and before the Agent read"), None
     if code.startswith("benchmark_"):
-        return "运行结束后的 evaluator 验收", last_step
+        return t("failure_point.evaluator_acceptance_after_execution", "Evaluator acceptance after execution"), last_step
     if code.startswith("evidence_") or code == "evidence_capture":
-        return "运行结束后的网络证据验收", last_step
+        return t("failure_point.network_evidence_acceptance_after_execution", "Network-evidence acceptance after execution"), last_step
     if code.startswith("site_"):
-        return (f"第 {last_step} 步后的站点响应/保存" if last_step else "站点响应/保存"), last_step
+        return (t("failure_point.after_steps_site_response_save", "After {last_step} steps: site response/save", last_step=last_step) if last_step else t("failure_point.site_response_save", "Site response/save")), last_step
     if failed_step:
         number = int(failed_step.get("step") or last_step or 1)
-        return f"第 {number} 步 BrowserTool 执行异常", number
+        return _tool_error_point(number), number
     if code == "agent_step_budget":
-        return (f"第 {last_step} 步后达到步骤上限" if last_step else "达到步骤上限"), last_step
+        return (t("failure_point.after_steps_step_limit_reached", "After {last_step} steps: step limit reached", last_step=last_step) if last_step else t("failure_point.step_limit_reached", "Step limit reached")), last_step
     return (
-        f"第 {last_step} 步后的最终回答/任务状态" if last_step else "最终回答/任务状态"
+        t("failure_point.after_steps_final_answer_task_state", "After {last_step} steps: final answer/task state", last_step=last_step) if last_step else t("failure_point.final_answer_task_state", "Final answer/task state")
     ), last_step
 
 
 def _trajectory_context(
-    steps: list[dict[str, Any]], step_number: int | None, failure_point: str
+    steps: list[dict[str, Any]], step_number: int | None, failure_point: str, t: Callable[..., str]
 ) -> tuple[str, str]:
     """Describe the linked step without claiming a successful action caused evaluator failure."""
 
@@ -1439,7 +1489,7 @@ def _trajectory_context(
     if step is None:
         return "", ""
     label = trajectory_label(step)
-    prefix = "失败动作" if "BrowserTool 执行异常" in failure_point else "验收前最后一步"
+    prefix = t("trajectory_context.failed_action", "Failed action") if failure_point == _tool_error_point(step_number) else t("trajectory_context.last_step_before_evaluation", "Last step before evaluation")
     return prefix, label
 
 
@@ -1447,41 +1497,42 @@ def _remediation(code: str) -> tuple[str, str, bool]:
     """Return owner, current action, and whether this is an external interference."""
 
     if code.startswith("benchmark_"):
-        return "评测集 / evaluator", "修正合同并重跑；当前仅纳入官方分数", True
+        return t("remediation.benchmark_evaluator", "Benchmark / evaluator"), t("remediation.fix_the_contract_and_rerun_retain", "Fix the contract and rerun; retain only the official score for now"), True
     if code.startswith("site_"):
-        return "自托管站点", "修复依赖或保存链路，通过写入预检后重跑", True
+        return t("failure_cause_table.self_hosted_site", "Self-hosted site"), t("remediation.fix_the_dependency_or_save_path", "Fix the dependency or save path, then rerun after a write preflight"), True
     if code.startswith("environment_"):
-        return "运行环境", "跨进程锁已上线；受污染任务待重跑", True
+        return t("remediation.runtime_environment", "Runtime environment"), t("remediation.the_cross_process_lock_is_implemented", "The cross-process lock is implemented; contaminated tasks await rerun"), True
     if code.startswith("mixed_"):
-        return "任务与 Agent", "先冻结参考状态，再重跑区分 Agent 错误", True
+        return t("remediation.task_and_agent", "Task and Agent"), t("remediation.freeze_reference_state_then_rerun_to", "Freeze reference state, then rerun to distinguish Agent errors"), True
     if code.startswith("evidence_") or code == "evidence_capture":
-        return "浏览器证据接口", "保留为浏览器集成信号；补齐 HAR 后重跑", False
-    return "Agent / 模型", "保留为目标变量；按轨迹修正策略或工具合同", False
+        return t("failure_cause_table.browser_evidence_interface", "Browser evidence interface"), t("remediation.keep_as_a_browser_integration_signal", "Keep as a browser-integration signal; rerun after completing HAR capture"), False
+    return t("remediation.agent_model", "Agent / model"), t("remediation.keep_as_a_target_variable_signal", "Keep as a target-variable signal; improve the strategy or tool contract from the trajectory"), False
 
 
 def _failure_brief(result: dict[str, Any] | None, row: dict[str, Any]) -> str:
     labels = _failed_rule_labels(result)
     if labels:
-        return f"{len(labels)} 项规则未通过：{'、'.join(labels)}。"
+        joined = t("list.separator", ", ").join(labels)
+        return t("failure_brief.rules_failed", "{labels_count} rules failed: {joined}.", labels_count=len(labels), joined=joined)
     if row.get("error"):
-        return "执行未完成；错误信息见运行与证据。"
-    return "全部官方 evaluator 均通过。"
+        return t("failure_brief.execution_did_not_complete_see_runtime", "Execution did not complete; see runtime and evidence for the error.")
+    return t("failure_diagnosis.all_official_evaluators_passed", "All official evaluators passed.")
 
 
 def _rule_purpose(name: str) -> str:
     if name == "AgentResponseEvaluator":
-        return "检查 Agent 最终回答的状态、字段和值是否符合官方答案合同。"
+        return t("rule_purpose.checks_whether_the_status_fields_and", "Checks whether the status, fields, and values in the agent's final answer satisfy the official answer contract.")
     if name == "NetworkEventEvaluator":
-        return "检查浏览器网络记录中是否出现合同要求的页面副作用。"
-    return "检查该题官方合同声明的结果条件。"
+        return t("rule_purpose.checks_whether_the_browser_network_record", "Checks whether the browser network record contains the side effect required by the contract.")
+    return t("rule_purpose.checks_an_outcome_condition_declared_by", "Checks an outcome condition declared by the task's official contract.")
 
 
-def _rule_outcome_summary(item: dict[str, Any]) -> str:
+def _rule_outcome_summary(item: dict[str, Any], t: Callable[..., str]) -> str:
     if float(item.get("score") or 0) == 1:
         return (
-            "已观察到满足合同的网络事件。"
+            t("rule_outcome_summary.a_network_event_satisfying_the_contract", "A network event satisfying the contract was observed.")
             if item.get("name") == "NetworkEventEvaluator"
-            else "最终回答符合该规则。"
+            else t("rule_outcome_summary.the_final_answer_satisfies_this_rule", "The final answer satisfies this rule.")
         )
     messages = [
         str(message)
@@ -1491,24 +1542,24 @@ def _rule_outcome_summary(item: dict[str, Any]) -> str:
     message = messages[0] if messages else str(item.get("error") or "")
     status = re.fullmatch(r"Expected ([^,]+), got (.+)", message)
     if status:
-        return f"最终状态不符：期望 {status.group(1)}，实际为 {status.group(2)}。"
+        return Safe(t("rule_outcome_summary.final_status_mismatch_expected_observed", "Final status mismatch: expected {value}, observed {value_2}.", value=_raw(status.group(1)), value_2=_raw(status.group(2))))
     missing = re.fullmatch(
         r"Array is missing (\d+) expected element\(s\)\. Matched \((\d+)/(\d+)\)",
         message,
     )
     if missing:
-        return f"最终数据缺少 {missing.group(1)} 项；官方期望 {missing.group(3)} 项，匹配 {missing.group(2)} 项。"
+        return t("rule_outcome_summary.the_final_data_is_missing_item", "The final data is missing {value} item(s); {value_3} of {value_2} expected item(s) matched.", value=missing.group(1), value_2=missing.group(3), value_3=missing.group(2))
     if "Array value mismatch" in message:
-        return "最终数据与官方期望值不一致。"
+        return t("rule_outcome_summary.the_final_data_differs_from_the", "The final data differs from the official expectation.")
     if "No matching network event" in message:
-        return "浏览器网络记录中没有出现满足该规则的事件。"
-    return message or "该规则未通过。"
+        return t("rule_outcome_summary.no_browser_network_event_satisfying_this", "No browser network event satisfying this rule was observed.")
+    return _raw(message) if message else t("rule_outcome_summary.this_rule_failed", "This rule failed.")
 
 
 def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, response: Any) -> str:
     items = evaluator_summary(result)
     if not items:
-        return '<p class="muted-box">没有 evaluator 明细。</p>'
+        return ('<p class="muted-box">' + t("verification_html.no_evaluator_details_are_available", "No evaluator details are available.") + "</p>")
     cards = []
     for item in items:
         passed = float(item.get("score") or 0) == 1
@@ -1518,33 +1569,34 @@ def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, resp
             for key in ("assertions", "error", "should_not_exist")
             if item.get(key) not in (None, [], {})
         }
+        summary = _rule_outcome_summary(item, t)
         cards.append(
             f'<article class="verification-rule rule-{"pass" if passed else "fail"}">'
             '<header><div><span class="rule-index">'
-            + _e(f"规则 {item['index']}")
+            + _e(t("verification_html.rule", "Rule {index}", index=item['index']))
             + "</span><h3>"
             + _e(item["name"])
             + f'</h3></div><span class="rule-verdict {"pass" if passed else "fail"}">'
-            + ("通过" if passed else "失败")
+            + (t("same_task_comparison.pass", "Pass") if passed else t("same_task_comparison.fail", "Fail"))
             + "</span></header>"
             + f'<p class="rule-purpose">{_e(_rule_purpose(item["name"]))}</p>'
-            + f'<p class="rule-summary">{_e(_rule_outcome_summary(item))}</p>'
-            + '<details><summary>查看官方期望与本次观察</summary><div class="evidence-pair compact-evidence"><div><h4>官方期望</h4>'
+            + f'<p class="rule-summary">{summary if isinstance(summary, Safe) else _e(summary)}</p>'
+            + ("<details><summary>" + t("verification_html.view_the_official_expectation_and_this", "View the official expectation and this run's observation") + '</summary><div class="evidence-pair compact-evidence"><div><h4>' + t("verification_html.official_expectation", "Official expectation") + "</h4>")
             + _json_pre(item.get("expected"))
-            + "</div><div><h4>本次观察</h4>"
+            + ("</div><div><h4>" + t("verification_html.observed_in_this_run", "Observed in this run") + "</h4>")
             + _json_pre(observed)
             + "</div></div></details>"
             + (
-                f"<details><summary>查看 evaluator 技术明细</summary>{_json_pre(technical)}</details>"
+                ("<details><summary>" + t("verification_html.view_evaluator_technical_details", "View evaluator technical details") + f"</summary>{_json_pre(technical)}</details>")
                 if technical
                 else ""
             )
             + "</article>"
         )
     return (
-        '<div class="task-goal"><span>任务目标</span><p>'
+        ('<div class="task-goal"><span>' + t("verification_html.task_objective", "Task objective") + "</span><p>")
         + _e(task.get("intent") or "—")
-        + "</p><small>Agent 可自主选择 UI 路径；计分只看以下最终回答与必要网络副作用。</small></div>"
+        + ("</p><small>" + t("verification_html.the_agent_may_choose_any_ui", "The agent may choose any UI path. Scoring uses only the final answer and required network side effects below.") + "</small></div>")
         + '<div class="verification-list">'
         + "".join(cards)
         + "</div>"
@@ -1553,7 +1605,7 @@ def _verification_html(task: dict[str, Any], result: dict[str, Any] | None, resp
 
 def _trajectory_html(steps: list[dict[str, Any]]) -> str:
     if not steps:
-        return '<p class="muted-box">没有可展示的 BrowserTool 调用。</p>'
+        return ('<p class="muted-box">' + t("trajectory_html.no_browsertool_calls_are_available_to", "No BrowserTool calls are available to display.") + "</p>")
     rows = []
     for step in steps:
         step_number = int(step.get("step") or len(rows) + 1)
@@ -1563,13 +1615,13 @@ def _trajectory_html(steps: list[dict[str, Any]]) -> str:
         duration = step.get("duration_seconds")
         meta = f"Turn {step.get('turn') or '—'} · {_e(step.get('status') or 'unknown')}"
         if duration is not None:
-            meta += f" · {float(duration):.2f} 秒"
+            meta += (" " + t("trajectory_html.s", "· {duration:.2f} s", duration=float(duration)))
         rows.append(
             f'<li id="trajectory-step-{step_number}" class="trajectory-step{" failure-step" if failed else ""}"><div><details{" open" if failed else ""}><summary>'
-            + _e(trajectory_label(step))
-            + f'</summary><p class="fine">{meta}</p><h4>调用参数</h4>'
+            + _raw(trajectory_label(step))
+            + (f'</summary><p class="fine">{meta}</p><h4>' + t("trajectory_html.call_arguments", "Call arguments") + "</h4>")
             + _json_pre(step.get("arguments"))
-            + "<h4>执行输出节选</h4>"
+            + ("<h4>" + t("trajectory_html.execution_output_excerpt", "Execution output excerpt") + "</h4>")
             + f'<pre class="log-view">{_e(result_excerpt(step))}</pre>'
             + "</details></div></li>"
         )
@@ -1632,7 +1684,7 @@ def _extract_trace_screenshots(
                     {
                         "path": f"screenshots/{destination.name}",
                         "sha256": optional_file_sha256(destination),
-                        "label": f"最后页面画面 {index}/{total}",
+                        "label": _ZH("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=total),
                         "source": "playwright-screencast-frame",
                         "width": width,
                         "height": height,
@@ -1647,10 +1699,7 @@ def _artifact_links(result_id: str, execution: int) -> str:
     root = f"artifacts/{result_id}/executions/{execution}"
     viewer = f"evidence-viewer.html?src={root}/execution-evidence.json"
     return (
-        '<div class="page-links">'
-        f'<a href="{viewer}">在页面中查看完整执行证据</a>'
-        f'<a href="{root}/execution-evidence.json" download>下载原始 JSON</a>'
-        "</div>"
+        f'<div class="page-links"><a href="{viewer}">' + t("artifact_links.view_complete_execution_evidence_on_this", "View complete execution evidence on this page") + f'</a><a href="{root}/execution-evidence.json" download>' + t("evidence_viewer_page.download_raw_json", "Download raw JSON") + "</a></div>"
     )
 
 
@@ -1713,7 +1762,7 @@ def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str
     execution = int(authoritative.get("execution") or 0)
     screenshots = authoritative.get("screenshots") or []
     if not screenshots:
-        return '<p class="muted-box">该执行没有可公开的 trace 页面画面；错误日志与执行证据仍可下载。</p>'
+        return ('<p class="muted-box">' + t("screenshot_gallery.this_execution_has_no_publishable_trace", "This execution has no publishable trace page frame; the error log and execution evidence remain available.") + "</p>")
     root = f"artifacts/{result_id}/executions/{execution}"
     figures = "".join(
         '<figure><a href="'
@@ -1721,16 +1770,14 @@ def _screenshot_gallery(result_id: str, executions: list[dict[str, Any]]) -> str
         + '"><img loading="lazy" src="'
         + _e(f"{root}/{item['path']}")
         + '" alt="'
-        + _e(item["label"])
+        + _e(t("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=len(screenshots)))
         + '"></a><figcaption>'
-        + _e(item["label"])
+        + _e(t("extract_trace_screenshots.final_page_frame", "Final page frame {index}/{total}", index=index, total=len(screenshots)))
         + f" · SHA-256 {_e(str(item['sha256'])[:12])}…</figcaption></figure>"
-        for item in screenshots
+        for index, item in enumerate(screenshots, start=1)
     )
     return (
-        "<p>下图是判分权威执行的最后页面画面，用于核对失败前的可见状态；"
-        "它们不一定正好对应错误发生的瞬间。</p>"
-        f'<div class="screenshot-grid">{figures}</div>'
+        "<p>" + t("screenshot_gallery.these_are_the_final_page_frames", "These are the final page frames from the scoring execution. They help verify visible state before failure but may not capture the exact instant the error occurred.") + f'</p><div class="screenshot-grid">{figures}</div>'
     )
 
 
@@ -1738,25 +1785,19 @@ def _execution_evidence_html(result_id: str, executions: list[dict[str, Any]]) -
     cards = []
     for execution in executions:
         usage = execution["model_usage"]
-        authority = " · 判分权威" if execution["authoritative"] else ""
+        authority = (" " + t("execution_evidence_html.scoring_authority", "· scoring authority")) if execution["authoritative"] else ""
         hashes = _table(
-            ["公开文件", "SHA-256"],
+            [t("execution_evidence_html.public_files", "Public files"), "SHA-256"],
             [[label, artifact["sha256"]] for label, artifact in execution["artifacts"].items()],
         )
         cards.append(
-            '<article class="review-round">'
-            f"<h3>物理执行 {execution['execution']}{authority}</h3>"
-            f"<p>判分 {_number(execution['score'])} · Agent 链路 {_seconds(execution['duration_ms'])} · "
-            f"BrowserTool {execution['action_count']} 次 / {_seconds(execution['browser_tool_duration_ms'])} · "
-            f"模型 tokens {_number(usage['total_tokens'])}</p>"
+            ('<article class="review-round"><h3>' + t("execution_evidence_html.physical_execution", "Physical execution {execution}{authority}", execution=execution['execution'], authority=authority) + "</h3><p>" + t("execution_evidence_html.score_agent_path_browsertool_calls_model", "Score {score} · Agent path {duration_ms} · BrowserTool {action_count} calls / {browser_tool_duration_ms} · model tokens {total_tokens}", score=_number(execution['score']), duration_ms=_seconds_short(execution['duration_ms']), action_count=execution['action_count'], browser_tool_duration_ms=_seconds_short(execution['browser_tool_duration_ms']), total_tokens=_number(usage['total_tokens'])) + "</p>")
             + _artifact_links(result_id, int(execution["execution"]))
             + hashes
             + "</article>"
         )
     return (
-        f"<p>该逻辑结果包含 <strong>{len(executions)}</strong> 次物理执行。"
-        "标记为判分权威的执行决定最终得分；累计耗时、tokens 与 BrowserTool 指标是下列各次执行之和。</p>"
-        '<div class="review-rounds">' + "".join(cards) + "</div>"
+        ("<p>" + t("execution_evidence_html.this_logical_result_contains", "This logical result contains") + f" <strong>{len(executions)}</strong> " + t("execution_evidence_html.physical_execution_s_the_scoring_authority", "physical execution(s). The scoring-authority execution determines the final score; cumulative latency, tokens, and BrowserTool metrics sum all executions shown below.") + '</p><div class="review-rounds">') + "".join(cards) + "</div>"
     )
 
 
@@ -1824,12 +1865,12 @@ def _common_final_success_resource_rows(
 
 def _failure_scope_counts(verified_causes: dict[str, dict[str, Any]]) -> list[tuple[str, int, str]]:
     copy = {
-        "agent": ("Agent / 模型", "检索不全、选错对象、字段遗漏或流程提前结束"),
-        "benchmark": ("任务 / evaluator", "验收合同与页面语义不一致，或 evaluator 自身报错"),
-        "site": ("自托管站点", "搜索、会话或保存依赖故障"),
-        "evidence": ("浏览器证据接口", "HAR 缺少 Referer、响应正文或出现重复记录"),
-        "environment": ("共享环境", "并发执行改写了任务初始状态"),
-        "mixed": ("参考状态与 Agent 混合", "参考漂移与 Agent 遗漏同时存在"),
+        "agent": (t("remediation.agent_model", "Agent / model"), t("failure_scope_counts.incomplete_retrieval_wrong_selection_omitted_fields", "Incomplete retrieval, wrong selection, omitted fields, or premature termination")),
+        "benchmark": (t("failure_cause_table.task_evaluator", "Task / evaluator"), t("failure_scope_counts.acceptance_contracts_disagree_with_page_semantics", "Acceptance contracts disagree with page semantics, or the evaluator itself errors")),
+        "site": (t("failure_cause_table.self_hosted_site", "Self-hosted site"), t("failure_scope_counts.search_session_or_persistence_dependency_failure", "Search, session, or persistence dependency failure")),
+        "evidence": (t("failure_cause_table.browser_evidence_interface", "Browser evidence interface"), t("failure_scope_counts.har_lacks_referer_or_response_bodies", "HAR lacks Referer or response bodies, or contains duplicate records")),
+        "environment": (t("failure_scope_counts.shared_environment", "Shared environment"), t("failure_scope_counts.concurrent_execution_changed_the_task_s", "Concurrent execution changed the task's initial state")),
+        "mixed": (t("failure_cause_table.reference_state_mixed_with_agent_behavior", "Reference state mixed with Agent behavior"), t("failure_scope_counts.reference_drift_and_an_agent_omission", "Reference drift and an agent omission both contributed")),
     }
 
     def scope(code: str) -> str:
@@ -1860,7 +1901,7 @@ def _failure_scope_figure(verified_causes: dict[str, dict[str, Any]]) -> str:
         + f'</b><strong>{count}</strong></div><span>{_e(description)}</span><i style="width:{count / maximum * 100:.1f}%"></i></article>'
         for label, count, description in rows
     )
-    return f'<div class="cause-bars" aria-label="{sum(count for _, count, _ in rows)} 个失败结果的复核原因分布">' + bars + "</div>"
+    return ('<div class="cause-bars" aria-label="' + t("failure_scope_figure.reviewed_cause_distribution_for_failed_results", "Reviewed cause distribution for {value} failed results", value=sum((count for _, count, _ in rows))) + '">') + bars + "</div>"
 
 
 def _replay_engine_field(bridge: dict[str, Any], suffix: str) -> tuple[str, dict[str, Any]]:
@@ -2070,20 +2111,14 @@ def _trajectory_replay_control(
     if bridge is None:
         return ""
 
-    # Report assets are loaded only when rendering, not for CLI help.
-    from harness.browser_use.report_i18n import bilingual_text
-
-    def text(zh, en):
-        return Safe(bilingual_text(zh, en))
-
     result_rows = [
         [str(value.get("label") or key.capitalize()), f"{value['passes']}/{value['tasks']}"]
         for key, value in _replay_results(bridge).items()
     ]
     _, provenance = _replay_engine_field(bridge, "_trajectory_provenance")
     source_labels = {
-        "authoritative_successful_browser_use_execution": text("历史成功轨迹", "Historical successful executions"),
-        "expert_repair_spec": text("专家修复轨迹", "Expert-repaired trajectories"),
+        "authoritative_successful_browser_use_execution": _translated("trajectory_replay_control.historical_successful_executions", "Historical successful executions"),
+        "expert_repair_spec": _translated("trajectory_replay_control.expert_repaired_trajectories", "Expert-repaired trajectories"),
     }
     source_rows = [
         [source_labels["authoritative_successful_browser_use_execution"], provenance["successful_browser_use_execution"]],
@@ -2095,25 +2130,18 @@ def _trajectory_replay_control(
         [source_labels.get(source, source.replace("_", " ")), counts["official_task_contract"], counts["corrected_replay_contract"]]
         for source, counts in bridge["source_contract_counts"].items()
     ]
-    body = '<section id="trajectory-replay-control"><h2>' + text(
-        "固定轨迹控制", "Fixed-trajectory control") + '</h2><p>' + text(
-        "轨迹重放执行固定动作，验收使用预录回答（recorded_response）和本次网络记录（HAR）。它不测 Agent 的自主规划；回答通过也不证明本次读到了目标数据。要求网络事件的合同仍检查本次 HAR。",
-        "Replay executes fixed actions and evaluates the recorded_response and current HAR. It does not measure autonomous Agent planning; an accepted recorded answer does not establish a fresh reading. Contracts requiring network events still inspect the current HAR.") + '</p>'
-    body += _table([text("配置", "Configuration"), text("通过数／任务数", "Passes / tasks")], result_rows)
-    body += '<h3>' + text("轨迹来源", "Trajectory provenance") + '</h3>'
-    body += _table([text("来源", "Source"), text("任务数", "Tasks")], source_rows)
-    body += '<h3>' + text("轨迹来源与验收合同", "Trajectory source and acceptance contract") + '</h3>'
-    body += _table([text("来源", "Source"), text("官方原合同", "Original official contract"), text("修订合同", "Revised contract")], contract_rows)
+    body = '<section id="trajectory-replay-control"><h2>' + _translated("trajectory_replay_control.fixed_trajectory_control", "Fixed-trajectory control") + '</h2><p>' + _translated("trajectory_replay_control.replay_executes_fixed_actions_and_evaluates", "Replay executes fixed actions and evaluates the recorded_response and current HAR. It does not measure autonomous Agent planning; an accepted recorded answer does not establish a fresh reading. Contracts requiring network events still inspect the current HAR.") + '</p>'
+    body += _table([_translated("trajectory_replay_control.configuration", "Configuration"), _translated("trajectory_replay_control.passes_tasks", "Passes / tasks")], result_rows)
+    body += '<h3>' + _translated("trajectory_replay_control.trajectory_provenance", "Trajectory provenance") + '</h3>'
+    body += _table([_translated("trajectory_replay_control.source", "Source"), _translated("trajectory_replay_control.tasks", "Tasks")], source_rows)
+    body += '<h3>' + _translated("trajectory_replay_control.trajectory_source_and_acceptance_contract", "Trajectory source and acceptance contract") + '</h3>'
+    body += _table([_translated("trajectory_replay_control.source", "Source"), _translated("trajectory_replay_control.original_official_contract", "Original official contract"), _translated("trajectory_replay_control.revised_contract", "Revised contract")], contract_rows)
     if attempts is not None:
-        body += '<p>' + text(
-            "以下为保留原合同任务的事后诊断，不替代自主执行的完整任务分母或官方结果。",
-            "The following post-hoc diagnostic uses original-contract tasks. It does not replace the full autonomous-run population or official outcomes.") + '</p>'
-        body += _table([text("配置", "Configuration"), text("全部原合同任务", "All original-contract tasks"), text("历史成功路径来源", "Historical-success paths"), text("专家修复路径来源", "Expert-repaired paths")], _replay_original_contract_rows(bridge, attempts, participants))
-    body += '<p class="source-note"><a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">' + text(
-        "跨轨迹控制证据", "Cross-track control evidence") + '</a>'
+        body += '<p>' + _translated("trajectory_replay_control.the_following_post_hoc_diagnostic_uses", "The following post-hoc diagnostic uses original-contract tasks. It does not replace the full autonomous-run population or official outcomes.") + '</p>'
+        body += _table([_translated("trajectory_replay_control.configuration", "Configuration"), _translated("trajectory_replay_control.all_original_contract_tasks", "All original-contract tasks"), _translated("trajectory_replay_control.historical_success_paths", "Historical-success paths"), _translated("trajectory_replay_control.expert_repaired_paths", "Expert-repaired paths")], _replay_original_contract_rows(bridge, attempts, participants))
+    body += '<p class="source-note"><a href="evidence-viewer.html?src=data/trajectory-replay-bridge.json">' + _translated("trajectory_replay_control.cross_track_control_evidence", "Cross-track control evidence") + '</a>'
     if _replay_engine_field(bridge, "_failure_review")[1]:
-        body += ' · <a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">' + text(
-            "固定轨迹失败复核", "Replay failure review") + '</a>'
+        body += ' · <a href="evidence-viewer.html?src=data/trajectory-replay-failure-review.json">' + _translated("trajectory_replay_control.replay_failure_review", "Replay failure review") + '</a>'
     return body + '</p></section>'
 
 
@@ -2131,15 +2159,15 @@ def _automatic_failure_counts(attempts: list[dict[str, Any]]) -> Counter[str]:
 
 def _automatic_failure_figure(counts: Counter[str]) -> str:
     items = (
-        ("network", "只有网络副作用规则未通过", "evaluator 没找到合同要求的请求或可观察副作用"),
-        ("response", "只有最终回答规则未通过", "最终回答与结构化答案合同不一致"),
-        ("mixed", "两类规则同时未通过", "最终回答和网络副作用均未满足合同"),
+        ("network", t("automatic_failure_figure.only_the_network_side_effect_rule", "Only the network-side-effect rule failed"), t("automatic_failure_figure.the_evaluator_did_not_find_the", "The evaluator did not find the required request or observable side effect")),
+        ("response", t("automatic_failure_figure.only_the_final_answer_rule_failed", "Only the final-answer rule failed"), t("automatic_failure_figure.the_final_answer_disagreed_with_the", "The final answer disagreed with the structured answer contract")),
+        ("mixed", t("automatic_failure_figure.both_rule_classes_failed", "Both rule classes failed"), t("automatic_failure_figure.neither_the_final_answer_nor_the", "Neither the final answer nor the network side effect satisfied the contract")),
     )
     cards = "".join(
         f'<article><strong>{counts[key]}</strong><b>{_e(label)}</b><p>{_e(description)}</p></article>'
         for key, label, description in items
     )
-    return '<div class="verdict-strip" aria-label="官方 evaluator 的失败规则组合">' + cards + "</div>"
+    return ('<div class="verdict-strip" aria-label="' + t("automatic_failure_figure.failed_rule_combinations_from_the_official", "Failed rule combinations from the official evaluator") + '">') + cards + "</div>"
 
 
 def _article_body(
@@ -2151,16 +2179,13 @@ def _article_body(
     trajectory_replay_bridge: dict[str, Any] | None,
     participants: Participants,
 ) -> str:
-    from harness.browser_use.report_i18n import bilingual_text
-
-    text = bilingual_text
     task_count = len(tasks)
     configurations = {(row['model'], row['engine']) for row in attempts}
     configuration_count = len(configurations)
     expected_count = task_count * configuration_count
     complete = {(row['model'], row['engine'], int(row['task_id'])) for row in attempts} == {
         (model, engine, int(task['task_id'])) for model, engine in configurations for task in tasks}
-    scope = '完整结果' if complete else '已记录结果'
+    scope = t("article_body.complete_results", "Complete results") if complete else t("article_body.recorded_results", "Recorded results")
     excluded = _external_interference_task_ids(verified_causes)
     eligible = [row for row in attempts if int(row['task_id']) not in excluded]
     clean_count = task_count - len(excluded)
@@ -2188,12 +2213,13 @@ def _article_body(
         specimen = next(iter(causes), _attempt_id(failures[0]))
         cause = causes.get(specimen) or {}
         reason = cause.get('reason') or {}
-        explanation = text(str(reason.get('zh') or '此结果尚无已核验根因。'),
-                           str(reason.get('en') or 'This result has no verified root cause.'))
+        explanation = bilingual_text(
+            str(reason.get('zh') or _ZH('article_body.no_verified_cause', 'This result has no verified root cause.')),
+            str(reason.get('en') or _EN('article_body.no_verified_cause', 'This result has no verified root cause.')),
+        )
         chapters.append(
             f'<section data-browser-failure-profile="{_e(model)}-{_e(engine)}"><h3>{_e(label)}</h3>'
-            + text(f'{len(failures)} 个失败结果，其中 {len(causes)} 个已有根因复核。',
-                   f'{len(failures)} failed results; {len(causes)} have a verified cause.')
+            + _translated("article_body.failed_results_have_a_verified_cause", "{failures_count} failed results; {causes_count} have a verified cause.", failures_count=len(failures), causes_count=len(causes))
             + _failure_cause_table(causes)
             + f'<p><a href="results/{_e(specimen)}.html#verification">{_e(specimen)}</a> · {explanation}</p></section>'
         )
@@ -2203,47 +2229,40 @@ def _article_body(
     recorded = int(coverage.get('recorded_attempts') or 0)
     return (
         '<article class="publication-article interpretation-v2"><header class="essay-head"><div class="eyebrow">Browser Use</div><h1>'
-        + text(f'{task_count} 题 Browser Use {scope}', f'Browser Use results across {task_count} declared tasks')
+        + _translated("article_body.browser_use_results_across_declared_tasks", "Browser Use results across {task_count} declared tasks", task_count=task_count, scope=scope)
         + '</h1><p class="lead">'
-        + text(f'声明范围为 {task_count} 个任务、{configuration_count} 种配置，已记录 {len(attempts)}/{expected_count} 个逻辑结果。官方 evaluator 的结果保留不变；另列排除 {len(excluded)} 个已核验外部干扰任务后的 {clean_count} 题诊断子集。',
-               f'The declared scope contains {task_count} tasks and {configuration_count} configurations; {len(attempts)}/{expected_count} logical results are recorded. Official evaluator results remain unchanged. A separate {clean_count}-task diagnostic subset excludes {len(excluded)} tasks with verified external interference.')
-        + '</p><p class="page-links"><a href="datasets/">查看评测集</a><a href="analysis/">下钻全部结果</a><a href="data/interpretation-evidence.json" download>下载论点与证据</a></p></header><section><h2>'
-        + text(f'{task_count} 题核心指标', f'Core metrics across {task_count} tasks') + '</h2>'
-        + _table(['模型', '浏览器', '通过任务', '通过率', 'Agent 总耗时', 'BrowserTool 耗时', 'Tokens'],
+        + _translated("article_body.the_declared_scope_contains_tasks_and", "The declared scope contains {task_count} tasks and {configuration_count} configurations; {attempts_count}/{expected_count} logical results are recorded. Official evaluator results remain unchanged. A separate {clean_count}-task diagnostic subset excludes {excluded_count} tasks with verified external interference.", task_count=task_count, configuration_count=configuration_count, attempts_count=len(attempts), expected_count=expected_count, excluded_count=len(excluded), clean_count=clean_count)
+        + ('</p><p class="page-links"><a href="datasets/">' + t("article_body.view_dataset", "View dataset") + '</a><a href="analysis/">' + t("article_body.inspect_all_results", "Inspect all results") + '</a><a href="data/interpretation-evidence.json" download>' + t("article_body.download_claims_and_evidence", "Download claims and evidence") + "</a></p></header><section><h2>")
+        + _translated("article_body.core_metrics_across_tasks", "Core metrics across {task_count} tasks", task_count=task_count) + '</h2>'
+        + _table([t("resource_comparison_table.model", "Model"), t("resource_comparison_table.browser", "Browser"), t("article_body.tasks_passed", "Tasks passed"), t("article_body.pass_rate", "Pass rate"), t("article_body.agent_total_time", "Agent total time"), t("article_body.browsertool_latency", "BrowserTool latency"), 'Tokens'],
                  _summary_comparison_rows(summary, participants), table_id='home-core-metrics', classes='core-comparison-table')
-        + '<p class="source-note">' + text('每个模型与浏览器配置使用同一任务范围；结果页保留全部物理执行。',
-            'Every configuration uses the same task scope; result pages retain all physical executions.') + '</p></section>'
-        + '<section><h2>按同题比较浏览器</h2>'
-        + _table(['模型', '浏览器 A', '浏览器 B', '同题数', '两边都通过', 'A 通过、B 失败', 'A 失败、B 通过', '两边都失败'], comparison_rows)
+        + '<p class="source-note">' + _translated("article_body.every_configuration_uses_the_same_task", "Every configuration uses the same task scope; result pages retain all physical executions.") + '</p></section>'
+        + ("<section><h2>" + t("article_body.compare_browsers_task_by_task", "Compare browsers task by task") + "</h2>")
+        + _table([t("resource_comparison_table.model", "Model"), t("article_body.browser_a", "Browser A"), t("article_body.browser_b", "Browser B"), t("article_body.matched_tasks", "Matched tasks"), t("article_body.both_passed", "Both passed"), t("article_body.a_passed_b_failed", "A passed, B failed"), t("article_body.a_failed_b_passed", "A failed, B passed"), t("article_body.both_failed", "Both failed")], comparison_rows)
         + _trajectory_replay_control(trajectory_replay_bridge, participants, attempts) + '</section>'
-        + '<section id="failure-findings"><h2>程序判分落点与复核根因</h2>'
-        + text('程序判分说明未通过的规则；根因复核解释已有证据支持的原因，两者不互相替代。',
-               'Programmatic findings identify failed rules; cause reviews explain the evidence-supported cause. They serve different purposes.')
+        + ('<section id="failure-findings"><h2>' + t("article_body.programmatic_failure_location_and_reviewed_root", "Programmatic failure location and reviewed root cause") + "</h2>")
+        + _translated("article_body.programmatic_findings_identify_failed_rules_cause", "Programmatic findings identify failed rules; cause reviews explain the evidence-supported cause. They serve different purposes.")
         + _automatic_failure_figure(automatic_failure_counts) + _failure_scope_figure(verified_causes)
-        + ''.join(chapters) + '<h3>' + text('官方结果与事后诊断', 'Official results and post-hoc diagnostics') + '</h3>'
-        + _table(['模型', '浏览器', text(f'{clean_count} 题通过', f'Passes across {clean_count} tasks'), '通过率'], clean_rows,
+        + ''.join(chapters) + '<h3>' + _translated("article_body.official_results_and_post_hoc_diagnostics", "Official results and post-hoc diagnostics") + '</h3>'
+        + _table([t("resource_comparison_table.model", "Model"), t("resource_comparison_table.browser", "Browser"), bilingual_text(t("article_body.passes_on_tasks", "Passes on {clean_count} tasks", clean_count=clean_count), f'Passes across {clean_count} tasks'), t("article_body.pass_rate", "Pass rate")], clean_rows,
                  table_id='home-qualified-results', classes='core-comparison-table')
-        + '<p class="source-note">' + text('诊断子集不替代官方分数，原始失败证据继续保留。',
-               'The diagnostic subset does not replace official scores. Original failure evidence remains available.') + '</p></section>'
-        + '<section><h2>审查覆盖与边界</h2><div class="audit-ladder"><article><h3>证据完整性</h3>'
-        + text(f'{reviewed}/{recorded} 个物理执行证据包经过完整性核对。', f'Integrity checks cover {reviewed}/{recorded} physical-execution evidence bundles.')
-        + '</article><article><h3>官方程序验收</h3>'
-        + text('每题检查最终回答和任务声明的网络副作用，不使用 LLM judge。', 'Each task checks the final answer and declared network effects, without an LLM judge.')
-        + '</article><article><h3>失败根因复核</h3>'
-        + text(f'{len(verified_causes)}/{len(failed)} 个失败逻辑结果有已绑定的原因复核。', f'Bound cause reviews cover {len(verified_causes)}/{len(failed)} failed logical results.')
-        + '</article></div><p>' + text('已通过结果没有再做独立语义盲审', 'Passed results have not received an independent blind semantic review.') + '</p><a href="review/">查看核验记录 →</a></section>'
-        + '<section><h2>' + text(f'完整 {task_count} 题的速度与浏览器资源', f'Latency and browser resources across {task_count} tasks') + '</h2>'
-        + text(f'均值、P50、P95 在全部 {configuration_count} 种配置中比较。CPU、内存和网络只计浏览器，不含 Agent 和模型服务。',
-               f'Mean, P50 and P95 compare all {configuration_count} configurations. CPU, memory and network cover the browser, excluding the Agent and model service.')
+        + '<p class="source-note">' + _translated("article_body.the_diagnostic_subset_does_not_replace", "The diagnostic subset does not replace official scores. Original failure evidence remains available.") + '</p></section>'
+        + ("<section><h2>" + t("article_body.review_coverage_and_boundaries", "Review coverage and boundaries") + '</h2><div class="audit-ladder"><article><h3>' + t("article_body.evidence_integrity", "Evidence integrity") + "</h3>")
+        + _translated("article_body.integrity_checks_cover_physical_execution_evidence", "Integrity checks cover {reviewed}/{recorded} physical-execution evidence bundles.", reviewed=reviewed, recorded=recorded)
+        + ("</article><article><h3>" + t("article_body.official_programmatic_evaluation", "Official programmatic evaluation") + "</h3>")
+        + _translated("article_body.each_task_checks_the_final_answer", "Each task checks the final answer and declared network effects, without an LLM judge.")
+        + ("</article><article><h3>" + t("article_body.failure_root_cause_review", "Failure root-cause review") + "</h3>")
+        + _translated("article_body.bound_cause_reviews_cover_failed_logical", "Bound cause reviews cover {verified_causes_count}/{failed_count} failed logical results.", verified_causes_count=len(verified_causes), failed_count=len(failed))
+        + '</article></div><p>' + _translated("article_body.passed_results_have_not_received_an", "Passed results have not received an independent blind semantic review.") + ('</p><a href="review/">' + t("article_body.view_review_records", "View review records →") + "</a></section>")
+        + '<section><h2>' + _translated("article_body.latency_and_browser_resources_across_tasks", "Latency and browser resources across {task_count} tasks", task_count=task_count) + '</h2>'
+        + _translated("article_body.mean_p50_and_p95_compare_all", "Mean, P50 and P95 compare all {configuration_count} configurations. CPU, memory and network cover the browser, excluding the Agent and model service.", configuration_count=configuration_count)
         + _resource_comparison_table(summary, participants)
-        + text('最低值标记只描述各配置的实际运行条件，不能视为统一视口下的资源效率结论。',
-               'Minimum markers describe the recorded configuration; they do not establish resource efficiency at a common viewport.')
-        + '</section><section><h2>共同成功任务的性能与资源</h2>'
-        + text(f'{common_count} 个任务在全部配置中最终通过；下表以每个逻辑结果的全部物理执行计算 P50。',
-               f'All configurations finally passed {common_count} tasks. The table computes P50 over all physical executions within each logical result.')
-        + _table(['模型', '浏览器', 'Agent 链路 P50', 'BrowserTool P50', 'Tokens P50', '峰值内存 P50', 'CPU 时间 P50'], resource_rows,
+        + _translated("article_body.minimum_markers_describe_the_recorded_configuration", "Minimum markers describe the recorded configuration; they do not establish resource efficiency at a common viewport.")
+        + ("</section><section><h2>" + t("article_body.performance_and_resources_on_common_final", "Performance and resources on common final successes") + "</h2>")
+        + _translated("article_body.all_configurations_finally_passed_tasks_the", "All configurations finally passed {common_count} tasks. The table computes P50 over all physical executions within each logical result.", common_count=common_count)
+        + _table([t("resource_comparison_table.model", "Model"), t("resource_comparison_table.browser", "Browser"), t("article_body.agent_path_p50", "Agent path P50"), 'BrowserTool P50', 'Tokens P50', t("article_body.peak_memory_p50", "Peak memory P50"), t("article_body.cpu_time_p50", "CPU time P50")], resource_rows,
                  table_id='home-resource-table', classes='core-comparison-table')
-        + text('共同成功子集仍保留各配置记录的运行环境，不能据此推断统一条件下的资源效率。', 'The common-success subset retains each configuration’s recorded environment; it does not establish resource efficiency under identical conditions.')
+        + _translated("article_body.the_common_success_subset_retains_each", "The common-success subset retains each configuration’s recorded environment; it does not establish resource efficiency under identical conditions.")
         + '</section></article>'
     )
 
@@ -2254,14 +2273,13 @@ def _filters(participants: Participants, *, attempts: bool = False, dataset: boo
         for engine, label in participants.engines.items()
     )
     extra = (
-        '<label>模型 <select data-filter="model"><option value="">全部</option>'
+        ("<label>" + t("resource_comparison_table.model", "Model") + ' <select data-filter="model"><option value="">' + t("same_task_comparison.all", "All") + "</option>")
         + "".join(
             f'<option value="{_e(model)}">{_e(label)}</option>'
             for model, label in participants.models.items()
         )
         + "</select></label>"
-        + f'<label>浏览器 <select data-filter="engine"><option value="">全部</option>{engine_options}</select></label>'
-        '<label>失败环节 <select data-filter="failure"><option value="">全部</option><option value="none">无</option><option value="response">最终回答</option><option value="network">网络副作用</option><option value="mixed">多项</option></select></label>'
+        + ("<label>" + t("resource_comparison_table.browser", "Browser") + ' <select data-filter="engine"><option value="">' + t("same_task_comparison.all", "All") + f"</option>{engine_options}</select></label><label>" + t("filters.failure_stage", "Failure stage") + ' <select data-filter="failure"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="none">' + t("filters.none", "None") + '</option><option value="response">' + t("filters.final_answer", "Final answer") + '</option><option value="network">' + t("filters.network_side_effect", "Network side effect") + '</option><option value="mixed">' + t("filters.multiple_stages", "Multiple stages") + "</option></select></label>")
         if attempts
         else ""
     )
@@ -2269,18 +2287,12 @@ def _filters(participants: Participants, *, attempts: bool = False, dataset: boo
         ""
         if dataset
         else (
-            '<label>结果 <select data-filter="result"><option value="">全部</option>'
-            '<option value="pass">通过</option><option value="fail"'
-            + (" selected" if attempts else "")
-            + ">失败</option></select></label>"
+            "<label>" + t("filters.result", "Result") + ' <select data-filter="result"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="pass">' + t("same_task_comparison.pass", "Pass") + f"</option><option value=\"fail\"{' selected' if attempts else ''}>" + t("same_task_comparison.fail", "Fail") + "</option></select></label>"
         )
     )
-    placeholder = "任务、意图、验收合同" if dataset else "任务、意图、答案、错误"
+    placeholder = t("filters.task_intent_or_acceptance_contract", "Task, intent, or acceptance contract") if dataset else t("filters.task_intent_answer_or_error", "Task, intent, answer, or error")
     return (
-        f'<div class="filters"><label>全文搜索 <input data-search type="search" placeholder="{placeholder}"></label>'
-        '<label>层级 <select data-filter="tier"><option value="">全部</option><option value="easy">简单</option><option value="medium">中等</option><option value="hard">困难</option></select></label>'
-        '<label>站点 <select data-filter="site"><option value="">全部</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label>'
-        '<label>类型 <select data-filter="kind"><option value="">全部</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>'
+        ('<div class="filters"><label>' + t("filters.full_text_search", "Full-text search") + f' <input data-search type="search" placeholder="{placeholder}"></label><label>' + t("same_task_comparison.tier", "Tier") + ' <select data-filter="tier"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="easy">' + t("tier_label.easy", "Easy") + '</option><option value="medium">' + t("tier_label.medium", "Medium") + '</option><option value="hard">' + t("tier_label.hard", "Hard") + "</option></select></label><label>" + t("same_task_comparison.site", "Site") + ' <select data-filter="site"><option value="">' + t("same_task_comparison.all", "All") + '</option><option value="shopping">Shopping</option><option value="shopping_admin">Shopping Admin</option><option value="reddit">Reddit</option><option value="gitlab">GitLab</option></select></label><label>' + t("same_task_comparison.type", "Type") + ' <select data-filter="kind"><option value="">' + t("same_task_comparison.all", "All") + "</option><option>RETRIEVE</option><option>NAVIGATE</option><option>MUTATE</option></select></label>")
         + result_filter
         + extra
         + '<span class="count-note" data-visible-count></span></div>'
@@ -2293,14 +2305,14 @@ def _task_table(tasks: list[dict[str, Any]], participants: Participants) -> str:
         task_id, site, kind = int(task["task_id"]), task["sites"][0], task["task_type"]
         values = [
             Safe(f'<a href="datasets/{task_id}.html">#{task_id}</a>'),
-            TIER_LABELS[task["tier"]],
+            _tier_label(task["tier"]),
             SITE_LABELS.get(site, site),
             kind,
             task["estimated_min_steps"],
-            task["rationale"],
+            _rationale(task),
             task.get("intent") or "—",
-            "是" if task["official_hard"] else "否",
-            Safe(f'<a href="datasets/{task_id}.html">查看任务合同</a>'),
+            t("task_table.yes", "Yes") if task["official_hard"] else t("task_table.no", "No"),
+            Safe(f'<a href="datasets/{task_id}.html">' + t("task_table.view_task_contract", "View task contract") + "</a>"),
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
         search = " ".join(
@@ -2308,7 +2320,7 @@ def _task_table(tasks: list[dict[str, Any]], participants: Participants) -> str:
             for x in (
                 task_id,
                 task.get("intent"),
-                task.get("rationale"),
+                _searchable_rationale(task),
                 json.dumps(task.get("contract") or {}, ensure_ascii=False),
             )
         )
@@ -2316,15 +2328,15 @@ def _task_table(tasks: list[dict[str, Any]], participants: Participants) -> str:
             f'<tr data-tier="{task["tier"]}" data-site="{site}" data-kind="{kind}" data-search="{_e(search)}">{cells}</tr>'
         )
     labels = [
-        "任务",
-        "层级",
-        "站点",
-        "类型",
-        "最少步",
-        "入选理由",
-        "官方任务意图",
-        "官方 Hard",
-        "任务合同",
+        t("same_task_comparison.task", "Task"),
+        t("same_task_comparison.tier", "Tier"),
+        t("same_task_comparison.site", "Site"),
+        t("task_table.family", "Family"),
+        t("task_table.minimum_steps", "Minimum steps"),
+        t("task_table.selection_rationale", "Selection rationale"),
+        t("task_table.official_task_intent", "Official task intent"),
+        t("task_table.official_hard_subset", "Official hard subset"),
+        t("task_table.task_contract", "Task contract"),
     ]
     headers = "".join(
         f'<th><button class="sort-button" onclick="sortTable(\'task-table\',{i})">{_e(x)} ↕</button></th>'
@@ -2355,30 +2367,13 @@ def _diagnosis_dialog(
     dialog_id = f"diagnosis-{result_id}"
     detail_url = f"results/{result_id}.html"
     return (
-        f'<dialog class="diagnosis-dialog" id="{_e(dialog_id)}" aria-labelledby="{_e(dialog_id)}-title">'
-        '<div class="diagnosis-dialog-head"><div><span class="table-kicker">失败诊断</span>'
-        f'<h2 id="{_e(dialog_id)}-title">Task #{task_id} · {_e(configuration)}</h2></div>'
-        f'<button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="关闭">×</button></div>'
-        '<div class="diagnosis-dialog-grid">'
-        f'<div><b>发生位置</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div>'
-        f"<div><b>程序判定</b>{_e(automatic_failure or '未分类')}</div>"
-        f"<div><b>复核根因</b>{_e(subcategory or '待复核')}</div>"
-        f"<div><b>负责范围</b>{_e(owner)}</div></div>"
+        (f'<dialog class="diagnosis-dialog" id="{_e(dialog_id)}" aria-labelledby="{_e(dialog_id)}-title"><div class="diagnosis-dialog-head"><div><span class="table-kicker">' + t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis") + f'</span><h2 id="{_e(dialog_id)}-title">Task #{task_id} · {_e(configuration)}</h2></div><button class="dialog-close" type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')" aria-label="' + t("diagnosis_dialog.close", "Close") + '">×</button></div><div class="diagnosis-dialog-grid"><div><b>' + t("diagnosis_dialog.location", "Location") + f'</b><a href="{_e(step_link)}">{_e(failure_point)}</a></div><div><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(automatic_failure or t('failure_cause_table.unclassified', 'Unclassified'))}</div><div><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or t('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f"</b>{_e(owner)}</div></div>")
         + (
-            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_e(step_context)}</a></div>'
+            f'<div class="dialog-step"><b>{_e(step_context_label)}</b><a href="{_e(step_link)}">{_raw(step_context)}</a></div>'
             if step_context
             else ""
         )
-        + '<section class="dialog-error"><h3>程序报错</h3>'
-        f'<pre class="log-view">{_e(evaluator_error)}</pre></section>'
-        '<section class="dialog-review"><h3>复核结论</h3>'
-        f"<p>{_e(reason or '尚未完成根因复核。')}</p><p><strong>处理：</strong>{_e(action)}</p></section>"
-        '<div class="dialog-actions">'
-        f'<a class="button-link" href="{_e(detail_url)}#verification">查看期望与实际值</a>'
-        f'<a href="{_e(step_link)}">查看失败附近轨迹</a>'
-        f'<a href="{_e(detail_url)}#screenshots">查看页面画面</a>'
-        f'<a href="{_e(detail_url)}#runtime">查看日志与完整证据</a>'
-        f'<button type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')">关闭</button></div></dialog>'
+        + ('<section class="dialog-error"><h3>' + t("diagnosis_dialog.program_error", "Program error") + f'</h3><pre class="log-view">{_e(evaluator_error)}</pre></section><section class="dialog-review"><h3>' + t("diagnosis_dialog.reviewed_conclusion", "Reviewed conclusion") + f"</h3><p>{_e(reason or t('diagnosis_dialog.root_cause_review_is_not_complete', 'Root-cause review is not complete.'))}</p><p><strong>" + t("diagnosis_dialog.treatment", "Treatment:") + f'</strong>{_e(action)}</p></section><div class="dialog-actions"><a class="button-link" href="{_e(detail_url)}#verification">' + t("diagnosis_dialog.view_expected_and_actual_values", "View expected and actual values") + f'</a><a href="{_e(step_link)}">' + t("diagnosis_dialog.view_trajectory_near_the_failure", "View trajectory near the failure") + f'</a><a href="{_e(detail_url)}#screenshots">' + t("diagnosis_dialog.view_page_screenshots", "View page screenshots") + f'</a><a href="{_e(detail_url)}#runtime">' + t("diagnosis_dialog.view_logs_and_complete_evidence", "View logs and complete evidence") + f'</a><button type="button" onclick="closeDiagnosis(\'{_e(dialog_id)}\')">' + t("diagnosis_dialog.close", "Close") + "</button></div></dialog>")
     )
 
 
@@ -2397,12 +2392,12 @@ def _attempt_table(
         result = "pass" if p["score"] == 1 else "fail"
         result_record = read_public_json(Path((row.get("paths") or {}).get("evaluation", "")))
         failure, automatic_failure = _automatic_failure_type(result_record)
-        subcategory, reason = localized_cause(verified_causes, p["id"])
+        subcategory, reason = localized_cause(verified_causes, p["id"], _language())
         code = _cause_code(verified_causes, p["id"])
         event_record = read_public_json(Path((row.get("paths") or {}).get("events", "")))
         steps = trajectory(event_record if isinstance(event_record, list) else [])
         failure_point, step_number = _failure_point(code, steps)
-        step_context_label, step_context = _trajectory_context(steps, step_number, failure_point)
+        step_context_label, step_context = _trajectory_context(steps, step_number, failure_point, t)
         owner, action, _external = _remediation(code)
         task = task_meta.get(p["task_id"], {})
         point_link = (
@@ -2439,16 +2434,16 @@ def _attempt_table(
             _status(row),
             Safe(f'<a href="{point_link}">{_e(failure_point)}</a>') if result == "fail" else "—",
             automatic_failure or "—",
-            subcategory or "待复核" if result == "fail" else "—",
+            subcategory or t("diagnosis_dialog.awaiting_review", "Awaiting review") if result == "fail" else "—",
             Safe(f'<strong>{_e(owner)}</strong><span class="table-kicker">{_e(action)}</span>')
             if result == "fail"
             else "—",
             Safe(
                 (
-                    f'<button class="diagnosis-button" type="button" onclick="openDiagnosis(\'{_e(dialog_id)}\')">查看诊断</button>'
+                    (f'<button class="diagnosis-button" type="button" onclick="openDiagnosis(\'{_e(dialog_id)}\')">' + t("attempt_table.open_diagnosis", "Open diagnosis") + "</button>")
                 )
                 if result == "fail"
-                else f'<a href="results/{p["id"]}.html">详情</a>'
+                else (f"<a href=\"results/{p['id']}.html\">" + t("attempt_table.details", "Details") + "</a>")
             ),
         ]
         cells = "".join(f"<td>{x if isinstance(x, Safe) else _e(x)}</td>" for x in values)
@@ -2461,15 +2456,15 @@ def _attempt_table(
     headers = "".join(
         f"<th>{_e(x)}</th>"
         for x in [
-            "结果",
-            "运行配置",
-            "任务",
-            "判定",
-            "失败位置",
-            "程序自动定位",
-            "复核根因",
-            "负责对象与处理",
-            "证据",
+            t("filters.result", "Result"),
+            t("attempt_table.run_configuration", "Run configuration"),
+            t("same_task_comparison.task", "Task"),
+            t("attempt_table.verdict", "Verdict"),
+            t("attempt_table.failure_stage", "Failure stage"),
+            t("attempt_table.automatic_failure_locator", "Automatic failure locator"),
+            t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause"),
+            t("attempt_table.owner_and_treatment", "Owner and treatment"),
+            t("attempt_table.evidence", "Evidence"),
         ]
     )
     return (
@@ -2480,11 +2475,11 @@ def _attempt_table(
 
 
 def _release_details(release: dict[str, Any]) -> str:
-    rows = release.get("changes") or []
+    rows = _record_text(release, "changes") or []
     details = (
-        "<details><summary>查看修正依据、处理与影响</summary>"
+        ("<details><summary>" + t("release_details.view_findings_treatment_and_impact", "View findings, treatment, and impact") + "</summary>")
         + _table(
-            ["项目", "发现的问题", "正式处理", "结果影响与边界"],
+            [t("release_details.item", "Item"), t("release_details.issue_found", "Issue found"), t("release_details.formal_treatment", "Formal treatment"), t("release_details.result_impact_and_limits", "Result impact and limits")],
             rows,
             table_id="change-table",
         )
@@ -2493,18 +2488,16 @@ def _release_details(release: dict[str, Any]) -> str:
         else ""
     )
     return (
-        f'<div class="eyebrow">{_e(release.get("date") or "未记录")}</div>'
-        f"<h3>{_e(release.get('title') or '未命名版本')}</h3>"
-        f"<p>{_e(release.get('summary') or '')}</p>{details}"
+        f"<div class=\"eyebrow\">{_e(release.get('date') or t('common.not_recorded', 'Not recorded'))}</div><h3>{_e(_record_text(release, 'title') or t('release_details.untitled_release', 'Untitled release'))}</h3><p>{_e(_record_text(release, 'summary') or '')}</p>{details}"
     )
 
 
 def _release_history(releases: list[dict[str, Any]], history_scope: str) -> str:
     if not releases:
-        return "<p>暂无发布记录。</p>"
+        return ("<p>" + t("release_history.no_release_has_been_recorded", "No release has been recorded.") + "</p>")
     latest, *older = releases
     body = _section(
-        "当前版本",
+        t("release_history.current_release", "Current release"),
         f'<article class="release-current" id="{_e(latest.get("id") or "current")}">'
         + _release_details(latest)
         + "</article>",
@@ -2517,36 +2510,32 @@ def _release_history(releases: list[dict[str, Any]], history_scope: str) -> str:
             for release in older
         )
         body += _section(
-            "历史版本",
-            f'<details class="release-history"><summary>展开 {len(older)} 个较早版本</summary>{entries}</details>',
+            t("release_history.earlier_releases", "Earlier releases"),
+            ('<details class="release-history"><summary>' + t("release_history.expand_earlier_releases", "Expand {older_count} earlier releases", older_count=len(older)) + f"</summary>{entries}</details>"),
         )
     body += _section(
-        "范围与下载",
-        f'<p>{_e(history_scope)}</p><p class="page-links"><a href="report-changes.json" download>下载结构化版本记录</a><a href="https://github.com/lexmount/browser-eval/commits/main">查看仓库变更</a></p>',
+        t("release_history.scope_and_downloads", "Scope and downloads"),
+        (f'<p>{_e(history_scope)}</p><p class="page-links"><a href="report-changes.json" download>' + t("release_history.download_structured_release_history", "Download structured release history") + '</a><a href="https://github.com/lexmount/browser-eval/commits/main">' + t("release_history.view_repository_changes", "View repository changes") + "</a></p>"),
     )
     return body
 
 
 def _review_history(rounds: list[dict[str, Any]]) -> str:
     if not rounds:
-        return "<p>暂无核验记录。</p>"
+        return ("<p>" + t("review_history.no_review_records", "No review records.") + "</p>")
     cards = []
     for item in rounds:
         fields = "".join(
-            f"<div><b>{_e(label)}</b><p>{_e(item.get(key) or '—')}</p></div>"
+            f"<div><b>{_e(label)}</b><p>{_e(_record_text(item, key) or '—')}</p></div>"
             for label, key in (
-                ("核验范围", "scope"),
-                ("发现", "findings"),
-                ("处理", "corrections"),
-                ("遗留事项", "remaining"),
+                (t("review_history.scope", "Scope"), "scope"),
+                (t("review_history.findings", "Findings"), "findings"),
+                (t("review_history.treatment", "Treatment"), "corrections"),
+                (t("review_history.remaining_items", "Remaining items"), "remaining"),
             )
         )
         cards.append(
-            f'<article class="review-round" id="{_e(item.get("id") or "")}"><header><div>'
-            f'<div class="eyebrow">{_e(item.get("date") or "未记录")}</div>'
-            f"<h3>{_e(item.get('title') or '未命名核验')}</h3></div>"
-            f'<span class="review-status">{_e(item.get("status") or "未记录")}</span>'
-            f'</header><div class="review-fields">{fields}</div></article>'
+            f"<article class=\"review-round\" id=\"{_e(item.get('id') or '')}\"><header><div><div class=\"eyebrow\">{_e(item.get('date') or t('common.not_recorded', 'Not recorded'))}</div><h3>{_e(_record_text(item, 'title') or t('review_history.untitled_review', 'Untitled review'))}</h3></div><span class=\"review-status\">{_e(_record_text(item, 'status') or t('common.not_recorded', 'Not recorded'))}</span></header><div class=\"review-fields\">{fields}</div></article>"
         )
     return "".join(cards)
 
@@ -2559,23 +2548,20 @@ def _load_fix_log(profile: dict[str, Any]) -> dict[str, Any]:
     return load_fix_log(profile, sanitize_value=sanitize)
 
 
-def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False) -> None:
-    """Render both views from one manifest; screenshots never imply pixel change."""
-    lang = "en" if english else "zh"
-    def pick(zh: str, en: str) -> str:
-        return en if english else zh
-    folder = stage / ("en/fixes" if english else "fixes")
+def _write_fix_log(stage: Path, model: dict[str, Any]) -> None:
+    """Render one edition from the manifest; screenshots never imply pixel change."""
+    lang = _language()
+    folder = stage / "fixes"
     folder.mkdir(parents=True, exist_ok=True)
     artifacts = {}
     for item in model["artifacts"]:
         suffix = ".json" if item["kind"] == "receipt" else item["extension"]
         relative = f'artifacts/fixes/{item["sha256"]}{suffix}'
         destination = stage / relative
-        if not english:
-            destination.parent.mkdir(parents=True, exist_ok=True)
-            shutil.copyfile(item["path"], destination)
-            if optional_file_sha256(destination) != item["sha256"]:
-                raise ValueError("fix artifact changed during materialization")
+        destination.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(item["path"], destination)
+        if optional_file_sha256(destination) != item["sha256"]:
+            raise ValueError("fix artifact changed during materialization")
         artifacts[item["id"]] = {**{k: v for k, v in item.items() if k != "path"}, "href": relative}
 
     def link(identifier: str, label: str) -> str:
@@ -2583,75 +2569,66 @@ def _write_fix_log(stage: Path, model: dict[str, Any], *, english: bool = False)
 
     def save(name: str, title: str, body: str) -> None:
         page = _page(title=title, active="fixes", body=body, depth=1)
-        if english:
-            from harness.browser_use.report_i18n import localize_html
-
-            page = localize_html(page, PurePosixPath(f"fixes/{name}"))
         (folder / name).write_text(page, encoding="utf-8")
 
-    title = pick("修复日志", "Fix log")
-    intro = pick("修复证据与历史成绩分开：本页记录根因、修改原理和验证边界，不替换官方结果。",
-                 "Fix evidence is separate from historical scores: root causes, changes, and validation limits do not replace official results.")
+    title = t("nav.fix_log", "Fix log")
+    intro = t("fix_log.fix_evidence_is_separate_from_historical", "Fix evidence is separate from historical scores: root causes, changes, and validation limits do not replace official results.")
     rows = []
     for record in model["records"]:
-        scope = pick("诊断验证", "Diagnostic validation") if record["scope"] == "diagnostic" else pick("正式范围验证", "Formal-scope validation")
+        scope = t("fix_log.diagnostic_validation", "Diagnostic validation") if record["scope"] == "diagnostic" else t("fix_log.formal_scope_validation", "Formal-scope validation")
         rows.append([Safe(f'<a href="fixes/{record["id"]}.html">{_e(record["title"][lang])}</a>'), scope])
         body = _hero("Fix evidence", record["title"][lang], scope)
-        for key, zh, en in (("symptom", "问题表现", "Symptom"), ("root_cause", "代码与流程根因", "Code and process root cause"), ("principle", "修复原理", "Fix principle")):
-            body += _section(pick(zh, en), f'<p>{_e(record[key][lang])}</p>')
-        body += _section(pick("代码位置", "Code locations"), "".join(
+        for key, label in (("symptom", t("fix_log.symptom", "Symptom")), ("root_cause", t("fix_log.code_and_process_root_cause", "Code and process root cause")), ("principle", t("fix_log.fix_principle", "Fix principle"))):
+            body += _section(label, f'<p>{_e(record[key][lang])}</p>')
+        body += _section(t("fix_log.code_locations", "Code locations"), "".join(
             f'<p><code>{_e(code["repository"])} · {_e(code["path"])} · {_e(code["symbol"])}</code></p>' for code in record["code_paths"]
         ))
         basis = record["comparison_basis"]
         if basis["kind"] == "identical_inputs":
             comparison = (
-                f'<p>{pick("共同输入 SHA-256", "Shared input SHA-256")}: '
-                f'<code>{record["input_sha256"]}</code></p>'
+                f"<p>{t('fix_log.shared_input_sha_256', 'Shared input SHA-256')}: <code>{record['input_sha256']}</code></p>"
             )
         else:
             comparison = (
-                f'<p class="callout">{pick("验收合同相同，轨迹已修订。", "The acceptance contract is unchanged; the trajectory was revised.")}</p>'
-                f'<p>{pick("验收合同 SHA-256", "Task contract SHA-256")}: '
-                f'<code>{basis["task_contract_sha256"]}</code></p>'
+                f"<p class=\"callout\">{t('fix_log.the_acceptance_contract_is_unchanged_the', 'The acceptance contract is unchanged; the trajectory was revised.')}</p><p>{t('fix_log.task_contract_sha_256', 'Task contract SHA-256')}: <code>{basis['task_contract_sha256']}</code></p>"
                 + _table(
-                    [pick("绑定项", "Binding"), pick("修复前", "Before"), pick("修复后", "After")],
+                    [t("fix_log.binding", "Binding"), t("fix_log.before", "Before"), t("fix_log.after", "After")],
                     [
-                        [pick("输入 SHA-256", "Input SHA-256"), Safe(f'<code>{record["before"]["input_sha256"]}</code>'), Safe(f'<code>{record["after"]["input_sha256"]}</code>')],
-                        [pick("轨迹 SHA-256", "Trajectory SHA-256"), Safe(f'<code>{record["before"]["trajectory_sha256"]}</code>'), Safe(f'<code>{record["after"]["trajectory_sha256"]}</code>')],
-                        [pick("动作数", "Action count"), record["before"]["action_count"], record["after"]["action_count"]],
+                        [t("fix_log.input_sha_256", "Input SHA-256"), Safe(f'<code>{record["before"]["input_sha256"]}</code>'), Safe(f'<code>{record["after"]["input_sha256"]}</code>')],
+                        [t("fix_log.trajectory_sha_256", "Trajectory SHA-256"), Safe(f'<code>{record["before"]["trajectory_sha256"]}</code>'), Safe(f'<code>{record["after"]["trajectory_sha256"]}</code>')],
+                        [t("fix_log.action_count", "Action count"), record["before"]["action_count"], record["after"]["action_count"]],
                     ],
                 )
             )
-        body += _section(pick("前后对照", "Before and after"), comparison)
-        for side, zh, en in (("before", "修复前", "Before"), ("after", "修复后", "After")):
+        body += _section(t("fix_log.before_and_after", "Before and after"), comparison)
+        for side, side_label in (("before", t("fix_log.before", "Before")), ("after", t("fix_log.after", "After"))):
             run = record[side]
             content = f'<p>{_e(run["observation"][lang])}</p><pre>{_e(json.dumps({key: run[key] for key in ("method", "version", "source_base", "source_diff_sha256", "binary_sha256", "run_id")}, indent=2))}</pre>'
             if run.get("source_diff_sha256") is None:
-                content += f'<p>{pick("该次构建未记录源码差异哈希；只能按已绑定二进制确认身份，不能追认当前源码就是当时构建输入。", "This build did not record a source-diff hash. Identity is bound only to the recorded binary; the current source cannot retrospectively establish its build inputs.")}</p>'
-            content += link(run["receipt"], pick("对照凭据 JSON", "Comparison receipt JSON"))
+                content += f"<p>{t('fix_log.this_build_did_not_record_a', 'This build did not record a source-diff hash. Identity is bound only to the recorded binary; the current source cannot retrospectively establish its build inputs.')}</p>"
+            content += link(run["receipt"], t("fix_log.comparison_receipt_json", "Comparison receipt JSON"))
             if run.get("image"):
                 artifact = artifacts[run["image"]]
                 provenance = artifact["provenance"]
-                label = pick("最后观测页面", "Last observed page") if provenance["observation"] == "last_observed_page" else pick("精确错误时刻画面", "Exact error-time frame")
+                label = t("fix_log.last_observed_page", "Last observed page") if provenance["observation"] == "last_observed_page" else t("fix_log.exact_error_time_frame", "Exact error-time frame")
                 content += f'<figure><a href="{artifact["href"]}"><img loading="lazy" style="max-width:100%;height:auto" src="{artifact["href"]}" alt="{_e(label)}"></a><figcaption>{_e(label)} · {_e(provenance["timing_note"][lang])}</figcaption></figure>'
             else:
-                content += f'<p>{pick("此观测没有公开截图。", "No public screenshot is available for this observation.")}</p>'
-            body += _section(pick(zh, en), content)
+                content += f"<p>{t('fix_log.no_public_screenshot_is_available_for', 'No public screenshot is available for this observation.')}</p>"
+            body += _section(side_label, content)
         if record["before"].get("image") and record["after"].get("image") and artifacts[record["before"]["image"]]["sha256"] == artifacts[record["after"]["image"]]["sha256"]:
-            body += f'<p class="callout">{pick("前后截图字节相同，不能作为像素变化证据；状态或几何差异以对照凭据为准。", "The before/after screenshots are byte-identical and do not demonstrate a pixel change; consult the comparison receipts for state or geometry differences.")}</p>'
-        body += _section(pick("验证测试", "Validation tests"), "".join(
-            f'<pre>{_e(test["command"])}</pre><p>{_e(test["result"])} · {link(test["receipt"], pick("测试凭据 JSON", "Test receipt JSON"))}</p>' for test in record["tests"]
+            body += f"<p class=\"callout\">{t('fix_log.the_before_after_screenshots_are_byte', 'The before/after screenshots are byte-identical and do not demonstrate a pixel change; consult the comparison receipts for state or geometry differences.')}</p>"
+        body += _section(t("fix_log.validation_tests", "Validation tests"), "".join(
+            f"<pre>{_e(test['command'])}</pre><p>{_e(test['result'])} · {link(test['receipt'], t('fix_log.test_receipt_json', 'Test receipt JSON'))}</p>" for test in record["tests"]
         ))
-        body += _section(pick("验证边界", "Validation limits"), f'<p>{_e(record["limitations"][lang])}</p><p>{intro}</p>')
+        body += _section(t("fix_log.validation_limits", "Validation limits"), f'<p>{_e(record["limitations"][lang])}</p><p>{intro}</p>')
         if record.get("pr_url"):
-            body += f'<p><a href="{_e(record["pr_url"])}">{pick("代码变更 PR", "Change PR")}</a></p>'
-        body += f'<p><a href="fixes/">{title}</a> · <a href="data/fix-log.json">{pick("结构化证据索引", "Structured evidence index")}</a></p>'
+            body += f"<p><a href=\"{_e(record['pr_url'])}\">{t('fix_log.change_pr', 'Change PR')}</a></p>"
+        body += f"<p><a href=\"fixes/\">{title}</a> · <a href=\"data/fix-log.json\">{t('fix_log.structured_evidence_index', 'Structured evidence index')}</a></p>"
         save(f'{record["id"]}.html', record["title"][lang], body)
     body = _hero("Fix evidence", title, intro)
-    body += _table([pick("修复项", "Fix"), pick("验证范围", "Validation scope")], rows) if rows else f'<p>{pick("暂无已绑定验证证据的修复记录。", "No fix records with bound validation evidence are available.")}</p>'
+    body += _table([t("fix_log.fix", "Fix"), t("fix_log.validation_scope", "Validation scope")], rows) if rows else f"<p>{t('fix_log.no_fix_records_with_bound_validation', 'No fix records with bound validation evidence are available.')}</p>"
     save("index.html", title, body)
-    if not english:
-        write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())}, parents=True)
+    write_json(stage / "data/fix-log.json", {**model, "artifacts": list(artifacts.values())}, parents=True)
 
 
 @dataclass(frozen=True)
@@ -2813,12 +2790,12 @@ def _load_report_inputs(
     tasks = _resolve_measured_tasks(profile, selection, manifest)
     task_count = len(tasks)
     result_count = len(attempts)
-    reasoning_effort = str(config.get("reasoning_effort") or protocol.get("reasoning_effort") or profile.get("reasoning_effort") or "未记录")
+    reasoning_effort = str(config.get("reasoning_effort") or protocol.get("reasoning_effort") or profile.get("reasoning_effort") or t("common.not_recorded", "Not recorded"))
     max_agent_steps = str(
-        config.get("max_agent_steps") or protocol.get("max_agent_steps") or "未记录"
+        config.get("max_agent_steps") or protocol.get("max_agent_steps") or t("common.not_recorded", "Not recorded")
     )
     site_access_host = str(
-        environment.get("site_access_host") or config.get("site_access_host") or "未记录"
+        environment.get("site_access_host") or config.get("site_access_host") or t("common.not_recorded", "Not recorded")
     )
     preparation_receipt_count = sum(
         Path(str((row.get("paths") or {}).get("environment_prepare") or "")).is_file()
@@ -2941,7 +2918,7 @@ def _write_home_page(
     )
     home = f'<section class="section"><div class="wrap">{article}</div></section>'
     (stage / "index.html").write_text(
-        _page(title="首页", active="home", body=home), encoding="utf-8"
+        _page(title=t("home_page.home", "Home"), active="home", body=home), encoding="utf-8"
     )
 
 
@@ -2953,12 +2930,15 @@ def _write_changes_page(stage: Path, inputs: ReportInputs) -> dict[str, Any]:
     releases = release_data.get("browser_use_releases") or []
     changes = _hero(
         "Report releases",
-        "报告版本说明",
-        "每个版本只记录影响读者判断的正式修正；结论、分母、耗时与证据影响直接展示，技术依据按需展开。",
-    ) + _release_history(releases, str(release_data.get("history_scope") or ""))
+        t("changes_page.changelog", "Changelog"),
+        t("changes_page.each_release_records_only_formal_corrections", "Each release records only formal corrections that affect reader interpretation. Effects on conclusions, denominators, latency, and evidence are shown directly, with supporting details available on demand."),
+    ) + _release_history(releases, str(_record_text({
+        "history_scope": release_data.get("history_scope"),
+        "i18n": {"en": {"history_scope": (release_data.get("history_scope_i18n") or {}).get("en")}},
+    }, "history_scope") or ""))
     write_json(stage / "report-changes.json", release_data, parents=True)
     (stage / "changes/index.html").write_text(
-        _page(title="变更记录", active="changes", body=changes, depth=1), encoding="utf-8"
+        _page(title=t("nav.changes", "Changes"), active="changes", body=changes, depth=1), encoding="utf-8"
     )
     return release_data
 
@@ -2971,30 +2951,30 @@ def _write_dataset_index(stage: Path, inputs: ReportInputs) -> None:
     adoption_evidence = inputs.adoption_evidence
     datasets = _hero(
         "Dataset",
-        f"候选 benchmark、选择依据与 {task_count} 个预注册任务",
-        "先区分最终结果、动作过程和模型裁判，再谈采用率；同一家族不同变体的成绩不能合并。",
+        t("dataset_index.candidate_benchmarks_selection_rationale_and_preregistered", "Candidate benchmarks, selection rationale and {task_count} preregistered tasks", task_count=task_count),
+        t("dataset_index.first_separate_final_outcome_evaluation_action", "First separate final-outcome evaluation, action prediction, and model judging. Scores from different variants of one benchmark family are not interchangeable."),
     )
     datasets += _section(
-        "公开采用信号 Top 3",
+        t("dataset_index.top_three_public_adoption_signals", "Top three public adoption signals"),
         _adoption_top3(adoption_evidence),
     )
     datasets += (
         _section(
-            "Mind2Web 的拆分不是 easy / medium / hard",
-            f"<p>原始 Mind2Web 使用 cross-task、cross-website、cross-domain 衡量泛化；Online‑Mind2Web 没有统一三档；Mind2Web 2 的 short / medium / long 按动作跨度划分。本报告的简单 {tier_counts['easy']}、中等 {tier_counts['medium']}、困难 {tier_counts['hard']} 是预注册的操作长度层级。</p>",
+            t("dataset_index.mind2web_splits_are_not_easy_medium", "Mind2Web splits are not easy, medium, and hard"),
+            ("<p>" + t("dataset_index.original_mind2web_measures_cross_task_cross", "Original Mind2Web measures cross-task, cross-website and cross-domain generalization. Online-Mind2Web has no standard three-tier split; Mind2Web 2 groups short, medium and long tasks by action span. This report preregisters {easy} easy, {medium} medium and {hard} hard tasks by operation length.", easy=tier_counts['easy'], medium=tier_counts['medium'], hard=tier_counts['hard']) + "</p>"),
         )
         + _section(
-            "怎样阅读任务 ground truth",
-            "<p><strong>WebArena‑Verified 的 ground truth 不是一条固定点击脚本。</strong>每题声明一个结构化最终回答合同，并在需要确认页面副作用时附加一个或多个网络事件合同。所有合同都通过才记 1 分。任务页只解释合同；各浏览器的实际回答、失败规则和 CowAgent 自主轨迹统一放在结果页。</p>",
+            t("dataset_index.how_to_read_task_ground_truth", "How to read task ground truth"),
+            ("<p><strong>" + t("dataset_index.webarena_verified_ground_truth_is_not", "WebArena-Verified ground truth is not a fixed click script.") + "</strong>" + t("dataset_index.each_task_declares_a_structured_final", "Each task declares a structured final-answer contract and, where required, one or more network-event contracts for page side effects. Every contract must pass for a score of 1. Task pages explain only the contract; browser answers, failed rules, and CowAgent trajectories appear on result pages.") + "</p>"),
         )
         + _section(
-            "题集范围",
-            f"<p>本轮在模型执行前固定 {task_count} 个任务，覆盖四个已部署站点以及 RETRIEVE、NAVIGATE、MUTATE 三种最终合同。这里仅描述题目与验收规则；通过率、耗时、轨迹和可完成性观察统一放在结果分析中。</p>",
+            t("dataset_index.dataset_scope", "Dataset scope"),
+            ("<p>" + t("dataset_index.all_tasks_were_fixed_before_model", "All {task_count} tasks were fixed before model execution, covering four deployed sites and RETRIEVE, NAVIGATE and MUTATE outcome contracts. This page describes tasks and acceptance rules. Pass rates, timings, trajectories and feasibility observations belong in results analysis.", task_count=task_count) + "</p>"),
         )
-        + _section(f"{task_count} 个任务", _task_table(tasks, participants))
+        + _section(t("dataset_index.tasks", "{task_count} tasks", task_count=task_count), _task_table(tasks, participants))
     )
     (stage / "datasets/index.html").write_text(
-        _page(title="评测集", active="datasets", body=datasets, depth=1), encoding="utf-8"
+        _page(title=t("nav.dataset", "Dataset"), active="datasets", body=datasets, depth=1), encoding="utf-8"
     )
 
 
@@ -3007,85 +2987,78 @@ def _write_task_pages(stage: Path, inputs: ReportInputs) -> None:
         task_id, site = int(task["task_id"]), task["sites"][0]
         detail = _hero(
             f"Task #{task_id}",
-            task["rationale"],
-            "官方任务身份、公开意图与程序化验收合同。运行结果位于结果分析，不混入评测集定义。",
+            _rationale(task),
+            t("task_pages.official_task_identity_public_intent_and", "Official task identity, public intent, and programmatic acceptance contract. Measured outcomes appear in Results and are kept separate from the dataset definition."),
         )
         detail += _section(
-            "任务身份",
-            f'<div class="detail-grid"><div class="kv"><b>站点</b>{_e(SITE_LABELS.get(site, site))}</div><div class="kv"><b>本项目层级</b>{_e(TIER_LABELS[task["tier"]])} · {_e(task["estimated_min_steps"])} 步起</div><div class="kv"><b>任务类型</b>{_e(task["task_type"])}</div><div class="kv"><b>官方 hard subset</b>{"是" if task["official_hard"] else "否"}</div></div><h3>公开任务意图</h3><p>{_e(task["intent"])}</p><p class="fine">官方来源：<a href="https://github.com/ServiceNow/webarena-verified">WebArena‑Verified {_e(environment.get("webarena_verified_version", "—"))}</a> · Task #{task_id} · 模板 ID {task.get("intent_template_id") or "—"} · revision {task.get("revision") or "—"}</p>',
+            t("task_pages.task_identity", "Task identity"),
+            ('<div class="detail-grid"><div class="kv"><b>' + t("same_task_comparison.site", "Site") + f'</b>{_e(SITE_LABELS.get(site, site))}</div><div class="kv"><b>' + t("task_pages.project_tier", "Project tier") + "</b>" + t("task_pages.minimum_steps", "{tier} · {estimated_min_steps} minimum steps", tier=_e(_tier_label(task['tier'])), estimated_min_steps=_e(task['estimated_min_steps'])) + '</div><div class="kv"><b>' + t("task_pages.task_type", "Task type") + f"</b>{_e(task['task_type'])}</div><div class=\"kv\"><b>" + t("task_pages.official_hard_subset", "Official hard subset") + f"</b>{t('task_table.yes', 'Yes') if task['official_hard'] else t('task_table.no', 'No')}</div></div><h3>" + t("task_pages.public_task_intent", "Public task intent") + f"</h3><p>{_e(task['intent'])}</p><p class=\"fine\">" + t("task_pages.official_source", "Official source:") + f"<a href=\"https://github.com/ServiceNow/webarena-verified\">WebArena‑Verified {_e(environment.get('webarena_verified_version', '—'))}</a> " + t("task_pages.task_template_id_revision", "· Task #{task_id} · template ID {value} · revision {value_2}", task_id=task_id, value=task.get('intent_template_id') or '—', value_2=task.get('revision') or '—') + "</p>"),
         )
-        detail += _section("Ground truth · 官方验收合同", _task_contract_html(task))
+        detail += _section(t("task_pages.ground_truth_official_acceptance_contract", "Ground truth · official acceptance contract"), _task_contract_html(task))
         detail += _section(
-            "查看本题运行结果",
-            '<p>评测集页面保持为冻结输入；实测输出、判分和轨迹在结果页查看。</p><div class="page-links">'
+            t("task_pages.view_measured_results_for_this_task", "View measured results for this task"),
+            ("<p>" + t("task_pages.dataset_pages_remain_frozen_inputs_measured", "Dataset pages remain frozen inputs. Measured outputs, verdicts, and trajectories appear on result pages.") + '</p><div class="page-links">')
             + "".join(
-                f'<a href="results/{model_id}-{engine}-{task_id}.html">'
-                f"{_e(participants.models[model_id])} · {_e(participants.engines[engine])} 结果</a>"
+                (f'<a href="results/{model_id}-{engine}-{task_id}.html">' + t("task_pages.result", "{models} · {engines} result", models=_e(participants.models[model_id]), engines=_e(participants.engines[engine])) + "</a>")
                 for model_id in participants.models
                 for engine in participants.engines
                 if (model_id, engine, task_id) in by_attempt
             )
-            + '<a href="analysis/#same-task">全部浏览器对照</a></div>',
+            + ('<a href="analysis/#same-task">' + t("task_pages.compare_all_browsers", "Compare all browsers") + "</a></div>"),
         )
         (stage / f"datasets/{task_id}.html").write_text(
-            _page(title=f"任务 {task_id}", active="datasets", body=detail, depth=1),
+            _page(title=t("task_pages.task", "Task {task_id}", task_id=task_id), active="datasets", body=detail, depth=1),
             encoding="utf-8",
         )
-
-
-def _translated(zh: str, en: str) -> Safe:
-    from harness.browser_use.report_i18n import bilingual_text
-
-    return Safe(bilingual_text(zh, en))
 
 
 def _methodology_intro() -> str:
     benchmarks = [
         [
             "WebArena‑Verified",
-            "自托管真实交互",
-            "最终 JSON + 必要网络副作用",
-            "程序化；无 LLM judge",
-            "部署重，最适合内核 A/B",
+            t("methodology_intro.self_hosted_interactive_websites", "Self-hosted interactive websites"),
+            t("methodology_intro.final_json_plus_required_network_side", "Final JSON plus required network side effects"),
+            t("methodology_intro.programmatic_no_llm_judge", "Programmatic; no LLM judge"),
+            t("methodology_intro.heavy_deployment_strongest_fit_for_browser", "Heavy deployment; strongest fit for browser A/B testing"),
         ],
-        ["Mind2Web", "离线网页快照", "每步目标元素与操作", "程序化动作指标", "评过程模仿"],
+        ["Mind2Web", t("methodology_intro.offline_webpage_snapshots", "Offline webpage snapshots"), t("methodology_intro.target_element_and_action_at_each", "Target element and action at each step"), t("methodology_intro.programmatic_action_metrics", "Programmatic action metrics"), t("methodology_intro.evaluates_process_imitation", "Evaluates process imitation")],
         [
             "Online‑Mind2Web",
-            "136 个真实网站",
-            "动作历史与最终完成",
-            "WebJudge + 人工标签",
-            "漂移、CAPTCHA、judge 偏差",
+            t("methodology_intro.136_live_websites", "136 live websites"),
+            t("methodology_intro.action_history_and_final_completion", "Action history and final completion"),
+            t("methodology_intro.webjudge_plus_human_labels", "WebJudge plus human labels"),
+            t("methodology_intro.drift_captcha_and_judge_bias", "Drift, CAPTCHA, and judge bias"),
         ],
         [
             "WebVoyager",
-            "实时网站视觉交互",
-            "最终回答与执行证据",
-            "多模态 LLM + 人工核验",
-            "精确复现较弱",
+            t("methodology_intro.visual_interaction_with_live_websites", "Visual interaction with live websites"),
+            t("methodology_intro.final_answer_and_execution_evidence", "Final answer and execution evidence"),
+            t("methodology_intro.multimodal_llm_plus_human_verification", "Multimodal LLM plus human verification"),
+            t("methodology_intro.weaker_exact_reproducibility", "Weaker exact reproducibility"),
         ],
         [
             "Mind2Web 2",
-            "长链多站搜索",
-            "带引用研究答案",
-            "rubric Agent-as-a-Judge",
-            "非 UI 内核首选",
+            t("methodology_intro.long_horizon_multi_site_search", "Long-horizon multi-site search"),
+            t("methodology_intro.research_answer_with_citations", "Research answer with citations"),
+            t("methodology_intro.rubric_agent_as_a_judge", "Rubric Agent-as-a-Judge"),
+            t("methodology_intro.not_the_first_choice_for_ui", "Not the first choice for UI browser cores"),
         ],
         [
             "BU Bench V1",
-            "100 个混合任务",
-            "最终结果与轨迹",
+            t("methodology_intro.100_mixed_tasks", "100 mixed tasks"),
+            t("methodology_intro.final_outcomes_and_trajectories", "Final outcomes and trajectories"),
             "Google judge LLM",
-            "云浏览器条件影响可比性",
+            t("methodology_intro.cloud_browser_conditions_affect_comparability", "Cloud-browser conditions affect comparability"),
         ],
-        ["Odysseys", "200 个长链多站任务", "rubric 完成度", "模型评审", "成本高"],
+        ["Odysseys", t("methodology_intro.200_long_horizon_multi_site_tasks", "200 long-horizon multi-site tasks"), t("methodology_intro.rubric_completion", "Rubric completion"), t("methodology_intro.model_grading", "Model grading"), t("methodology_intro.high_cost", "High cost")],
     ]
     return _hero(
         "Methodology",
-        "评最终结果，不评参考点击路径",
-        _translated("唯一成绩来源是运行记录绑定的官方 evaluator；确定性证据审计只验证记录一致性。", "Scores come from the official evaluator bound by the execution records; deterministic auditing checks evidence consistency."),
+        t("methodology_intro.evaluate_final_outcomes_not_a_reference", "Evaluate final outcomes, not a reference click path"),
+        _translated("methodology_intro.scores_come_from_the_official_evaluator", "Scores come from the official evaluator bound by the execution records; deterministic auditing checks evidence consistency."),
     ) + _section(
-        "候选 benchmark 的验收边界",
-        _table(["Benchmark", "评什么", "验收对象", "判分", "问题"], benchmarks),
+        t("methodology_intro.acceptance_boundaries_of_candidate_benchmarks", "Acceptance boundaries of candidate benchmarks"),
+        _table(["Benchmark", t("methodology_intro.what_it_evaluates", "What it evaluates"), t("methodology_intro.acceptance_target", "Acceptance target"), t("methodology_intro.scoring", "Scoring"), t("methodology_intro.limit", "Limit")], benchmarks),
     )
 
 
@@ -3098,12 +3071,10 @@ def _methodology_scoring_chain(inputs: ReportInputs) -> str:
         for rule in (task.get("contract") or {}).get("evaluation_contract", [])
     )
     return _section(
-        "本轮判分链",
-        f'<ol class="flow"><li>预注册 {task_count} 题</li><li>CowAgent 自主规划</li><li>BrowserTool</li><li>官方 evaluator 验收</li><li>确定性证据复核</li></ol>'
-        + '<p>' + _translated(
-            "以下计数来自本轮选中任务的冻结验收合同。所有已配置 evaluator 都返回 1.0 才通过。",
-            "The counts below come from the selected tasks' frozen acceptance contracts. Every configured evaluator must return 1.0 for a task to pass.") + '</p>'
-        + _table(["Evaluator", _translated("任务数", "Tasks")], sorted(evaluator_counts.items()), table_id="methodology-evaluators"),
+        t("methodology_scoring_chain.scoring_chain_for_this_run", "Scoring chain for this run"),
+        ('<ol class="flow"><li>' + t("methodology_scoring_chain.preregister_tasks", "Preregister {task_count} tasks", task_count=task_count) + "</li><li>" + t("methodology_scoring_chain.cowagent_plans_autonomously", "CowAgent plans autonomously") + "</li><li>BrowserTool</li><li>" + t("methodology_scoring_chain.run_official_evaluators", "Run official evaluators") + "</li><li>" + t("methodology_scoring_chain.review_deterministic_evidence", "Review deterministic evidence") + "</li></ol>")
+        + '<p>' + _translated("methodology_scoring_chain.the_counts_below_come_from_the", "The counts below come from the selected tasks' frozen acceptance contracts. Every configured evaluator must return 1.0 for a task to pass.") + '</p>'
+        + _table(["Evaluator", _translated("trajectory_replay_control.tasks", "Tasks")], sorted(evaluator_counts.items()), table_id="methodology-evaluators"),
     )
 
 
@@ -3115,73 +3086,64 @@ def _methodology_deployment(inputs: ReportInputs) -> str:
     by_attempt = inputs.by_attempt
     tasks = inputs.tasks
     task_count = inputs.task_count
-    max_agent_steps = inputs.max_agent_steps
-    site_access_host = inputs.site_access_host
+    max_agent_steps = _recorded(inputs.max_agent_steps)
+    site_access_host = _recorded(inputs.site_access_host)
     preparation_receipt_count = inputs.preparation_receipt_count
     selected_sites = Counter(site for task in tasks for site in task.get("sites", []))
     site_images = environment.get("site_images") or config.get("site_images") or {}
     return _section(
-        f"这 {task_count} 题如何部署并由 Agent 执行",
+        t("methodology_deployment.how_the_tasks_were_deployed_and", "How the {task_count} tasks were deployed and run by the agent", task_count=task_count),
         '<figure id="deployment-flow" class="method-figure"><img src="assets/webarena-autonomous-evaluation-flow.png" alt="Browser Use evaluation flow: tasks, recorded environment, autonomous actions, registered browsers and official evaluators"><figcaption>'
-        + _translated("流程图说明职责；本轮部署身份与环境准备范围见下表及逐执行证据。",
-                     "The diagram explains responsibilities. The recorded deployment and preparation coverage are specified below and in each execution's evidence.")
+        + _translated("methodology_deployment.the_diagram_explains_responsibilities_the_recorded", "The diagram explains responsibilities. The recorded deployment and preparation coverage are specified below and in each execution's evidence.")
         + '</figcaption></figure><p>'
-        + _translated(
-            f"预注册文件不含点击序列。CowAgent 在最多 {max_agent_steps} 步内观察页面、请求模型决策并生成 BrowserTool 调用。具体浏览器、版本和环境以运行记录为准。",
-            f"The selection contains no click sequence. CowAgent observes pages, requests model decisions and generates BrowserTool calls within a {max_agent_steps}-step budget. Browser versions and environment identity follow the execution records.") + '</p>'
-        + _table([_translated("环境字段", "Environment field"), _translated("本轮身份", "Recorded identity")], [
-            [_translated("宿主", "Host"), environment.get("platform", "—")],
-            [_translated("Docker 上下文", "Docker context"), config.get("docker_context", "—")],
-            [_translated("站点访问入口", "Site access host"), site_access_host],
+        + _translated("methodology_deployment.the_selection_contains_no_click_sequence", "The selection contains no click sequence. CowAgent observes pages, requests model decisions and generates BrowserTool calls within a {max_agent_steps}-step budget. Browser versions and environment identity follow the execution records.", max_agent_steps=max_agent_steps) + '</p>'
+        + _table([_translated("methodology_deployment.environment_field", "Environment field"), _translated("methodology_deployment.recorded_identity", "Recorded identity")], [
+            [_translated("methodology_deployment.host", "Host"), environment.get("platform", "—")],
+            [_translated("methodology_deployment.docker_context", "Docker context"), config.get("docker_context", "—")],
+            [_translated("methodology_deployment.site_access_host", "Site access host"), site_access_host],
         ])
-        + _table([_translated("站点", "Site"), _translated("选中任务数", "Selected tasks"), _translated("记录的镜像", "Recorded image")], [
+        + _table([_translated("same_task_comparison.site", "Site"), _translated("methodology_deployment.selected_tasks", "Selected tasks"), _translated("methodology_deployment.recorded_image", "Recorded image")], [
             [SITE_LABELS.get(site, site), count, (site_images.get(site) or {}).get("reference", "—")]
             for site, count in sorted(selected_sites.items())
         ], table_id="methodology-sites")
-        + '<p>' + _translated(
-            f"环境准备回执：{preparation_receipt_count}/{len(source_attempts)} 个物理执行。逐执行的重置、就绪和健康检查状态以对应回执为准。",
-            f"Environment preparation receipts: {preparation_receipt_count}/{len(source_attempts)} physical executions. Reset, readiness and health-check states follow the corresponding receipts.") + '</p>'
+        + '<p>' + _translated("methodology_deployment.environment_preparation_receipts_physical_executions_reset", "Environment preparation receipts: {preparation_receipt_count}/{source_attempts_count} physical executions. Reset, readiness and health-check states follow the corresponding receipts.", preparation_receipt_count=preparation_receipt_count, source_attempts_count=len(source_attempts)) + '</p>'
         + '<p class="page-links">'
         + "".join(
             f'<a href="results/{model_id}-{engine}-{example_id}.html#trajectory">'
-            + _translated(f"{participants.models[model_id]} · {participants.engines[engine]} 自主轨迹示例",
-                         f"{participants.models[model_id]} · {participants.engines[engine]} autonomous trajectory") + '</a>'
+            + _translated("methodology_deployment.autonomous_trajectory", "{models} · {engines} autonomous trajectory", models=participants.models[model_id], engines=participants.engines[engine]) + '</a>'
             for model_id in participants.models for engine in participants.engines
             for example_id in [next((int(task["task_id"]) for task in tasks
                                      if (model_id, engine, int(task["task_id"])) in by_attempt), None)]
             if example_id is not None
-        ) + '<a href="reproduce/">核对镜像与运行身份</a></p>',
+        ) + ('<a href="reproduce/">' + t("methodology_deployment.verify_image_and_runtime_identities", "Verify image and runtime identities") + "</a></p>"),
     )
 
 
 def _methodology_protocol(inputs: ReportInputs) -> str:
-    from harness.browser_use.report_i18n import bilingual_text
-
     profile = inputs.profile
     protocol = inputs.protocol
-    reasoning_effort = inputs.reasoning_effort
+    reasoning_effort = _recorded(inputs.reasoning_effort)
+    limit = protocol.get('max_task_executions') or profile.get('max_task_executions')
     model_names = inputs.model_names
     return _section(
-        "固定协议",
+        t("methodology_protocol.fixed_protocol", "Fixed protocol"),
         _table(
-            ["项目", "规则"],
+            [t("release_details.item", "Item"), t("methodology_protocol.rule", "Rule")],
             [
-                ["Agent / 模型", Safe(bilingual_text(f"CowAgent；{model_names}；推理强度 {reasoning_effort}", f"CowAgent; {model_names}; reasoning effort {reasoning_effort}"))],
-                ["计划与实际对照", Safe(bilingual_text("模型、提示、工具、资源和执行环境以冻结配置及实际执行记录为准。", "Model, prompt, tool, resource and environment controls follow the frozen configuration and recorded executions."))],
-                ["结果口径", Safe(bilingual_text("每题×模型×浏览器一个最终逻辑结果；二元通过率；逐题配对。", "One retained logical result per task, model and browser; binary acceptance and task-paired comparison."))],
+                [t("remediation.agent_model", "Agent / model"), _translated("methodology_protocol.cowagent_reasoning_effort", "CowAgent; {model_names}; reasoning effort {reasoning_effort}", model_names=model_names, reasoning_effort=reasoning_effort)],
+                [t("methodology_protocol.planned_and_actual_controls", "Planned and actual controls"), _translated("methodology_protocol.model_prompt_tool_resource_and_environment", "Model, prompt, tool, resource and environment controls follow the frozen configuration and recorded executions.")],
+                [t("methodology_protocol.logical_results", "Logical results"), _translated("methodology_protocol.one_retained_logical_result_per_task", "One retained logical result per task, model and browser; binary acceptance and task-paired comparison.")],
                 [
-                    "执行上限",
+                    t("methodology_protocol.execution_limit", "Execution limit"),
                     Safe(bilingual_text(
-                        f"冻结协议的每题执行上限：{protocol.get('max_task_executions') or profile.get('max_task_executions') or '未记录'}；实际执行耗时和模型用量累计。",
-                        f"Frozen execution limit per task: {protocol.get('max_task_executions') or profile.get('max_task_executions') or 'not recorded'}; execution latency and model usage are cumulative.")),
+                        _ZH('protocol.execution_limit', 'Frozen execution limit per task: {limit}; execution latency and model usage are cumulative.', limit=limit or _ZH('protocol.limit_not_recorded', 'not recorded')),
+                        _EN('protocol.execution_limit', 'Frozen execution limit per task: {limit}; execution latency and model usage are cumulative.', limit=limit or 'not recorded'))),
                 ],
                 [
-                    "排除",
-                    Safe(bilingual_text(
-                        "只报告冻结任务清单及其验收合同覆盖的任务。",
-                        "Only tasks and acceptance contracts in the frozen selection are reported.")),
+                    t("methodology_protocol.exclusions", "Exclusions"),
+                    _translated("methodology_protocol.only_tasks_and_acceptance_contracts_in", "Only tasks and acceptance contracts in the frozen selection are reported."),
                 ],
-                ["裁判", "官方程序化 evaluator；无 LLM judge；人工不得改分"],
+                [t("methodology_protocol.judge", "Judge"), t("methodology_protocol.official_programmatic_evaluators_no_llm_judge", "Official programmatic evaluators; no LLM judge; no manual score changes")],
             ],
         ),
     )
@@ -3189,27 +3151,27 @@ def _methodology_protocol(inputs: ReportInputs) -> str:
 
 def _methodology_evaluators() -> str:
     return _section(
-        "两类程序化 evaluator 到底检查什么",
+        t("methodology_evaluators.what_the_two_programmatic_evaluators_check", "What the two programmatic evaluators check"),
         _table(
-            ["Evaluator", "输入", "比较方式", "能证明什么", "不能证明什么"],
+            ["Evaluator", t("methodology_evaluators.input", "Input"), t("methodology_evaluators.comparison", "Comparison"), t("methodology_evaluators.what_it_establishes", "What it establishes"), t("methodology_evaluators.what_it_does_not_establish", "What it does not establish")],
             [
                 [
                     "AgentResponseEvaluator",
-                    "Agent 最终 JSON",
-                    "先按 JSON schema 和数据类型归一化，再比较 task_type、status 与 retrieved_data；按题可声明列表有序或无序。",
-                    "最终回答符合该题公开答案合同。",
-                    "没有检查回答是通过哪条 UI 路径得到的，也不评操作效率。",
+                    t("methodology_evaluators.agent_final_json", "Agent final JSON"),
+                    t("methodology_evaluators.normalize_by_json_schema_and_data", "Normalize by JSON schema and data type, then compare task_type, status, and retrieved_data; each task may declare ordered or unordered lists."),
+                    t("methodology_evaluators.the_final_answer_satisfies_the_task", "The final answer satisfies the task's public answer contract."),
+                    t("methodology_evaluators.it_does_not_inspect_which_ui", "It does not inspect which UI path produced the answer or evaluate action efficiency."),
                 ],
                 [
                     "NetworkEventEvaluator",
-                    "本次浏览器 HAR",
-                    "在网络事件中匹配 URL、方法、状态码以及按需声明的 query、POST、响应字段或 Cookie 条件。",
-                    "导航或页面变更产生了指定的可观察副作用。",
-                    "没有要求复刻固定点击序列；未声明的页面状态不在验收范围内。",
+                    t("methodology_evaluators.har_from_this_browser_attempt", "HAR from this browser attempt"),
+                    t("methodology_evaluators.match_url_method_status_code_and", "Match URL, method, status code, and, when declared, query, POST, response-field, or cookie conditions in network events."),
+                    t("methodology_evaluators.navigation_or_state_changes_produced_the", "Navigation or state changes produced the specified observable side effect."),
+                    t("methodology_evaluators.it_does_not_require_a_fixed", "It does not require a fixed click sequence; undeclared page state is outside the acceptance scope."),
                 ],
             ],
         )
-        + "<p><strong>合取规则：</strong>一题配置的每个 evaluator 都必须得分 1.0，整题才通过。这里没有 LLM-as-a-judge，也没有人工改分。</p>",
+        + ("<p><strong>" + t("methodology_evaluators.conjunction_rule", "Conjunction rule:") + "</strong>" + t("methodology_evaluators.every_evaluator_configured_for_a_task", "Every evaluator configured for a task must score 1.0 for the task to pass. There is no LLM-as-a-judge and no manual score override.") + "</p>"),
     )
 
 
@@ -3220,14 +3182,12 @@ def _write_methodology_page(stage: Path, inputs: ReportInputs) -> None:
     methodology += _methodology_protocol(inputs)
     methodology += _methodology_evaluators()
     (stage / "methodology/index.html").write_text(
-        _page(title="评测方法", active="methodology", body=methodology, depth=1),
+        _page(title=t("nav.methodology", "Methodology"), active="methodology", body=methodology, depth=1),
         encoding="utf-8",
     )
 
 
 def _write_analysis_page(stage: Path, inputs: ReportInputs) -> None:
-    from harness.browser_use.report_i18n import bilingual_text
-
     participants = inputs.participants
     attempts = inputs.attempts
     verified_causes = inputs.verified_causes
@@ -3237,33 +3197,30 @@ def _write_analysis_page(stage: Path, inputs: ReportInputs) -> None:
     excluded_task_ids = inputs.excluded_task_ids
     analysis = _hero(
         "Results",
-        "结果分析",
-        "全部参评配置在同一张表和任务矩阵中比较；失败结果可打开诊断和证据。",
+        t("nav.results_analysis", "Results analysis"),
+        t("analysis_page.all_configurations_appear_in_one_comparison", "All configurations appear in one comparison and task matrix; failed results open their diagnosis and evidence."),
     )
     analysis += _section(
-        f"完整 {len(tasks)} 题结果入口",
-        '<p>' + bilingual_text('首页比较全部配置的通过率、耗时、Tokens 和浏览器资源；本页提供同题矩阵与逐结果诊断。', 'The homepage compares pass rates, latency, tokens and browser resources across all configurations. This page owns the same-task matrix and result diagnosis.') + '</p>'
-        '<p class="page-links"><a href="./#home-core-metrics">查看首页核心指标</a></p>',
+        t("analysis_page.complete_task_results_entry", "Complete {tasks_count}-task results entry", tasks_count=len(tasks)),
+        '<p>' + _translated("analysis_page.the_homepage_compares_pass_rates_latency", "The homepage compares pass rates, latency, tokens and browser resources across all configurations. This page owns the same-task matrix and result diagnosis.") + ('</p><p class="page-links"><a href="./#home-core-metrics">' + t("analysis_page.view_core_metrics_on_the_home", "View core metrics on the home page") + "</a></p>"),
     )
     analysis += _section(
-        f"同题全配置对比：完整 {len(tasks)} 题",
-        "<p>" + bilingual_text(
-            f"每行是一道预注册任务，{len(participants.models) * len(participants.engines)} 列对应模型×浏览器配置；可筛出结果有差异、全部通过或全部失败的任务。",
-            f"Each row is a registered task, with {len(participants.models) * len(participants.engines)} columns for model-by-browser configurations. Filter for disagreement, all-pass or all-fail tasks.") + "</p>"
+        t("analysis_page.same_task_comparison_across_all_configurations", "Same-task comparison across all configurations: complete {tasks_count}-task set", tasks_count=len(tasks)),
+        "<p>" + _translated("analysis_page.each_row_is_a_registered_task", "Each row is a registered task, with {models_count} columns for model-by-browser configurations. Filter for disagreement, all-pass or all-fail tasks.", models_count=len(participants.models) * len(participants.engines)) + "</p>"
         + _same_task_comparison(tasks, attempts, participants),
     ).replace('<section class="section">', '<section class="section" id="same-task">', 1)
     analysis += _section(
-        "BrowserTool 动作延迟",
-        "<p>每个动作把全部模型×浏览器配置放在一起比较单次调用墙钟均值，只标记全局唯一最低值。总耗时和调用数受 Agent 行为量影响，仅用于解释工作量，不参与快慢判定。</p>"
+        t("analysis_page.browsertool_action_latency", "BrowserTool action latency"),
+        ("<p>" + t("analysis_page.for_each_action_every_model_by", "For each action, every model-by-browser configuration is compared together by mean per-call wall time, and only a unique global minimum is marked. Total time and call count depend on agent workload and provide context rather than a speed ranking.") + "</p>")
         + _action_duration_cards(attempts, participants),
     )
     analysis += _section(
-        f"{result_count} 个结果与失败诊断",
-        f"<p>这里保留预注册 {task_count} 题的全部官方结果；其中 {len(excluded_task_ids)} 题已标记外部干扰。默认显示失败；点击“查看诊断”可核对发生位置、程序报错、复核根因、轨迹、画面和日志。</p>"
+        t("analysis_page.results_and_failure_diagnoses", "{result_count} results and failure diagnoses", result_count=result_count),
+        ("<p>" + t("analysis_page.all_official_results_for_the_preregistered", "All official results for the {task_count} preregistered tasks are retained; {excluded_task_ids_count} tasks are marked as affected by external interference. Failures are shown by default. Open a diagnosis to inspect the failure stage, program error, reviewed cause, trajectory, screenshots and logs.", task_count=task_count, excluded_task_ids_count=len(excluded_task_ids)) + "</p>")
         + _attempt_table(attempts, tasks, participants, verified_causes),
     )
     (stage / "analysis/index.html").write_text(
-        _page(title="结果分析", active="analysis", body=analysis, depth=1), encoding="utf-8"
+        _page(title=t("nav.results_analysis", "Results analysis"), active="analysis", body=analysis, depth=1), encoding="utf-8"
     )
 
 
@@ -3316,41 +3273,36 @@ def _result_hero(public: dict[str, Any], participants: Participants, failure_poi
         public["id"],
         f"{participants.models[public['model']]} · {participants.engines[public['engine']]} · Task #{public['task_id']}",
         (
-            f"失败发生在{failure_point}；下方保留程序报错、复核根因和对应执行证据。"
+            t("result_hero.the_failure_occurred_at_the_exact", "The failure occurred at {failure_point}. The exact program error, reviewed root cause, and corresponding execution evidence are provided below.", failure_point=failure_point)
             if float(public["score"]) < 1
-            else "该结果通过全部官方程序化验收；下方可核对任务合同、执行轨迹和运行证据。"
+            else t("result_hero.this_result_passed_every_official_programmatic", "This result passed every official programmatic evaluator. The task contract, execution trajectory, and runtime evidence are available below.")
         ),
     )
 
 
 def _result_navigation(public: dict[str, Any], attempt_page: str) -> str:
     return (
-        '<nav class="page-links wrap" aria-label="结果详情导航">'
+        ('<nav class="page-links wrap" aria-label="' + t("result_navigation.result_detail_navigation", "Result detail navigation") + '">')
         + (
-            f'<a href="{attempt_page}#diagnosis">失败诊断</a>'
+            (f'<a href="{attempt_page}#diagnosis">' + t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis") + "</a>")
             if float(public["score"]) < 1
             else ""
         )
-        + f'<a href="{attempt_page}#verification">任务与验收</a>'
-        + f'<a href="{attempt_page}#trajectory">执行轨迹</a>'
+        + (f'<a href="{attempt_page}#verification">' + t("result_navigation.task_and_acceptance", "Task and acceptance") + "</a>")
+        + (f'<a href="{attempt_page}#trajectory">' + t("result_navigation.execution_trajectory", "Execution trajectory") + "</a>")
         + (
-            f'<a href="{attempt_page}#screenshots">页面画面</a>'
+            (f'<a href="{attempt_page}#screenshots">' + t("result_navigation.page_frames", "Page frames") + "</a>")
             if float(public["score"]) < 1
             else ""
         )
-        + f'<a href="{attempt_page}#runtime">运行与证据</a>'
+        + (f'<a href="{attempt_page}#runtime">' + t("result_navigation.runtime_and_evidence", "Runtime and evidence") + "</a>")
         + "</nav>"
     )
 
 
 def _result_runtime_facts(public: dict[str, Any], usage: dict[str, Any]) -> str:
     return (
-        '<div class="attempt-secondary runtime-strip">'
-        f'<div class="attempt-fact"><b>自主操作</b>{public["action_count"]} 次</div>'
-        f'<div class="attempt-fact"><b>Agent 链路</b>{_seconds(public["duration_ms"])}</div>'
-        f'<div class="attempt-fact"><b>BrowserTool</b>{_seconds(public["browser_tool_duration_ms"])}</div>'
-        f'<div class="attempt-fact"><b>模型 tokens</b>{_number(usage["total_tokens"])}</div>'
-        f'<div class="attempt-fact"><b>模型请求</b>{usage["request_count"]} 次 / {usage["request_attempt_count"]} 次传输</div></div>'
+        '<div class="attempt-secondary runtime-strip"><div class="attempt-fact"><b>' + t("result_runtime_facts.autonomous_actions", "Autonomous actions") + "</b>" + t("result_runtime_facts.times", "{action_count} times", action_count=public['action_count']) + '</div><div class="attempt-fact"><b>' + t("result_runtime_facts.agent_path", "Agent path") + f"</b>{_seconds(public['duration_ms'])}</div><div class=\"attempt-fact\"><b>BrowserTool</b>{_seconds(public['browser_tool_duration_ms'])}</div><div class=\"attempt-fact\"><b>" + t("result_runtime_facts.model_tokens", "Model tokens") + f"</b>{_number(usage['total_tokens'])}</div><div class=\"attempt-fact\"><b>" + t("result_runtime_facts.model_requests", "Model requests") + "</b>" + t("result_runtime_facts.calls_transport_attempts", "{request_count} calls / {request_attempt_count} transport attempts", request_count=usage['request_count'], request_attempt_count=usage['request_attempt_count']) + "</div></div>"
     )
 
 
@@ -3368,6 +3320,8 @@ def _result_failure_section(
     remediation_action: str,
     external_interference: bool,
     runtime_facts: str,
+    subcategory: str,
+    reason: str,
 ) -> str:
     step_href = (
         f"{attempt_page}#trajectory-step-{failure_step}"
@@ -3375,32 +3329,19 @@ def _result_failure_section(
         else f"{attempt_page}#trajectory"
     )
     return '<div id="diagnosis"></div>' + _section(
-        "失败诊断",
-        '<article class="failure-lead"><span class="status-line">失败</span>'
-        f'<h3><a href="{step_href}">{_e(failure_point)}</a></h3>'
-        f"<p>{_e(_failure_brief(evaluation_record, row))}</p></article>"
+        t("diagnosis_dialog.failure_diagnosis", "Failure diagnosis"),
+        ('<article class="failure-lead"><span class="status-line">' + t("same_task_comparison.fail", "Fail") + f'</span><h3><a href="{step_href}">{_e(failure_point)}</a></h3><p>{_e(_failure_brief(evaluation_record, row))}</p></article>')
         + (
-            f'<p class="step-signature"><strong>{_e(step_context_label)}：</strong><a href="{step_href}">{_e(step_context)}</a></p>'
+            f'<p class="step-signature"><strong>{_e(t("result_failure_section.step_signature", "{label}: ", label=step_context_label))}</strong><a href="{step_href}">{_raw(step_context)}</a></p>'
             if step_context
             else ""
         )
-        + '<div class="diagnosis-grid">'
-        f'<div class="attempt-fact"><b>程序判定</b>{_e(public["automatic_failure_type"] or "无")}</div>'
-        f'<div class="attempt-fact"><b>复核根因</b>{_e(public["verified_failure_subcategory"] or "待复核")}</div>'
-        f'<div class="attempt-fact"><b>负责范围</b>{_e(remediation_owner)}</div>'
-        f'<div class="attempt-fact"><b>处理</b>{_e(remediation_action)}</div></div>'
-        '<div class="failure-error"><h3>程序报错</h3>'
-        f'<pre class="log-view">{_e(_evaluator_error_text(evaluation_record, row))}</pre></div>'
-        '<div class="diagnosis-reason"><strong>复核结论：</strong>'
-        + _e(public["verified_failure_reason"] or "当前尚无已核验根因。")
-        + '</div><p class="page-links">'
-        f'<a href="{attempt_page}#verification">查看期望与实际值</a>'
-        f'<a href="{step_href}">查看失败附近轨迹</a>'
-        f'<a href="{attempt_page}#screenshots">查看页面画面</a>'
-        f'<a href="{attempt_page}#runtime">查看完整日志</a></p>'
+        + ('<div class="diagnosis-grid"><div class="attempt-fact"><b>' + t("diagnosis_dialog.program_verdict", "Program verdict") + f"</b>{_e(_automatic_failure_type(evaluation_record)[1] or t('filters.none', 'None'))}</div><div class=\"attempt-fact\"><b>" + t("diagnosis_dialog.reviewed_root_cause", "Reviewed root cause") + f"</b>{_e(subcategory or t('diagnosis_dialog.awaiting_review', 'Awaiting review'))}</div><div class=\"attempt-fact\"><b>" + t("diagnosis_dialog.owning_scope", "Owning scope") + f'</b>{_e(remediation_owner)}</div><div class="attempt-fact"><b>' + t("review_history.treatment", "Treatment") + f'</b>{_e(remediation_action)}</div></div><div class="failure-error"><h3>' + t("diagnosis_dialog.program_error", "Program error") + f'</h3><pre class="log-view">{_e(_evaluator_error_text(evaluation_record, row))}</pre></div><div class="diagnosis-reason"><strong>' + t("result_failure_section.reviewed_conclusion", "Reviewed conclusion:") + "</strong>")
+        + _e(reason or t("result_failure_section.no_verified_root_cause_is_available", "No verified root cause is available yet."))
+        + (f'</div><p class="page-links"><a href="{attempt_page}#verification">' + t("diagnosis_dialog.view_expected_and_actual_values", "View expected and actual values") + f'</a><a href="{step_href}">' + t("diagnosis_dialog.view_trajectory_near_the_failure", "View trajectory near the failure") + f'</a><a href="{attempt_page}#screenshots">' + t("diagnosis_dialog.view_page_screenshots", "View page screenshots") + f'</a><a href="{attempt_page}#runtime">' + t("result_failure_section.view_complete_logs", "View complete logs") + "</a></p>")
         + runtime_facts
         + (
-            '<p class="callout"><strong>对比口径：</strong>该结果已确认含非模型/浏览器干扰，官方分数保留，但暂不纳入干净子集。</p>'
+            ('<p class="callout"><strong>' + t("result_failure_section.comparison_treatment", "Comparison treatment:") + "</strong>" + t("result_failure_section.this_result_contains_confirmed_interference_outside", "This result contains confirmed interference outside the model/browser variables. Its official score is retained, but it is temporarily excluded from the clean subset.") + "</p>")
             if external_interference
             else ""
         ),
@@ -3409,9 +3350,8 @@ def _result_failure_section(
 
 def _result_success_section(evaluation_record: Any, row: dict[str, Any], runtime_facts: str) -> str:
     return _section(
-        "结果",
-        '<article class="failure-lead success-lead"><span class="status-line">通过</span>'
-        f"<h3>{_e(_failure_brief(evaluation_record, row))}</h3></article>"
+        t("filters.result", "Result"),
+        ('<article class="failure-lead success-lead"><span class="status-line">' + t("same_task_comparison.pass", "Pass") + f"</span><h3>{_e(_failure_brief(evaluation_record, row))}</h3></article>")
         + runtime_facts,
     )
 
@@ -3424,23 +3364,23 @@ def _result_evidence_section(
     metadata: dict[str, Any],
 ) -> str:
     return '<div id="runtime"></div>' + _section(
-        "运行、日志与证据",
+        t("result_evidence_section.runtime_logs_and_evidence", "Runtime, logs, and evidence"),
         _execution_evidence_html(public["id"], execution_records)
-        + '<p class="fine">公开包包含脱敏的回答、evaluator、事件流与轨迹。原始 HAR 和 Playwright trace 可能携带登录态、Cookie、页面快照或请求正文，因此不公开；其字节数和 SHA-256 保留用于证明证据绑定。</p>'
-        + _table(["浏览器资源指标", "值"], _resource_detail_rows(resource))
-        + '<p class="fine">整次 Agent 运行的容器计量只作诊断；不同进程模型下不直接比较内存或 PID。</p>'
-        + "<h3>证据完整性检查</h3>"
+        + ('<p class="fine">' + t("result_evidence_section.the_public_bundle_contains_sanitized_answers", "The public bundle contains sanitized answers, evaluator records, event streams, and trajectories. Raw HAR and Playwright traces may contain authenticated state, cookies, page snapshots, or request bodies, so they are withheld; byte counts and SHA-256 hashes retain the evidence binding.") + "</p>")
+        + _table([t("result_evidence_section.browser_resource_metric", "Browser resource metric"), t("result_evidence_section.value", "Value")], _resource_detail_rows(resource))
+        + ('<p class="fine">' + t("result_evidence_section.whole_run_container_measurements_are_diagnostic", "Whole-run container measurements are diagnostic only; memory and PID are not compared directly across different process models.") + "</p>")
+        + ("<h3>" + t("result_evidence_section.evidence_completeness_checks", "Evidence completeness checks") + "</h3>")
         + _table(
-            ["检查", "结果"],
+            [t("result_evidence_section.check", "Check"), t("filters.result", "Result")],
             _evidence_check_rows(checks),
         )
-        + "<h3>判分权威执行的原始证据绑定</h3>"
+        + ("<h3>" + t("result_evidence_section.source_evidence_binding_for_the_authoritative", "Source-evidence binding for the authoritative execution") + "</h3>")
         + _table(
-            ["证据", "存在", "字节", "SHA-256", "公开策略"],
+            [t("attempt_table.evidence", "Evidence"), t("result_evidence_section.present", "Present"), t("result_evidence_section.bytes", "Bytes"), "SHA-256", t("result_evidence_section.publication_policy", "Publication policy")],
             [
                 [
                     label,
-                    "是" if value.get("present") else "否",
+                    t("task_table.yes", "Yes") if value.get("present") else t("task_table.no", "No"),
                     value.get("bytes"),
                     value.get("sha256") or "—",
                     _publication_label(value.get("publication")),
@@ -3448,7 +3388,7 @@ def _result_evidence_section(
                 for label, value in (metadata.get("files") or {}).items()
             ],
         )
-        + f'<p class="page-links"><a href="datasets/{public["task_id"]}.html">返回任务页</a></p>',
+        + (f"<p class=\"page-links\"><a href=\"datasets/{public['task_id']}.html\">" + t("result_evidence_section.return_to_the_task_page", "Return to the task page") + "</a></p>"),
     )
 
 
@@ -3475,9 +3415,10 @@ def _write_result_page(
     cause_code = _cause_code(verified_causes, public["id"])
     failure_point, failure_step = _failure_point(cause_code, steps)
     step_context_label, step_context = _trajectory_context(
-        steps, failure_step, failure_point
+        steps, failure_step, failure_point, t
     )
     remediation_owner, remediation_action, external_interference = _remediation(cause_code)
+    subcategory, reason = localized_cause(verified_causes, public["id"], _language())
     detail = _result_hero(public, participants, failure_point)
     # Pages declare <base href="../"> so every internal URL is rooted at
     # the report bundle, including same-page fragment links.
@@ -3498,22 +3439,24 @@ def _write_result_page(
             remediation_action=remediation_action,
             external_interference=external_interference,
             runtime_facts=runtime_facts,
+            subcategory=subcategory,
+            reason=reason,
         )
     else:
         detail += _result_success_section(evaluation_record, row, runtime_facts)
     detail += '<div id="verification"></div>' + _section(
-        "任务要求与验收结果",
+        t("result_page.task_requirements_and_acceptance_result", "Task requirements and acceptance result"),
         _verification_html(task, evaluation_record, response_record)
-        + '<p class="fine">所有规则均为官方程序化验收，必须全部得分 1.0。页面先给出可读结论；官方期望、实际观察和断言保留在折叠技术明细及下载文件中。</p>',
+        + ('<p class="fine">' + t("result_page.all_rules_are_official_programmatic_checks", "All rules are official programmatic checks and every rule must score 1.0. The page leads with a readable conclusion; expectations, observations, and assertions remain in collapsed technical details and downloadable files.") + "</p>"),
     )
     detail += '<div id="trajectory"></div>' + _section(
-        "CowAgent 自主执行轨迹",
-        "<p>以下顺序来自本次执行的 Agent 事件流，不是固定动作回放。展开可查看调用参数和输出摘录；完整脱敏日志可下载。</p>"
+        t("result_page.cowagent_autonomous_trajectory", "CowAgent autonomous trajectory"),
+        ("<p>" + t("result_page.this_sequence_comes_from_the_run", "This sequence comes from the run's agent event stream, not a fixed action replay. Expand a step for arguments and an output excerpt; the complete sanitized log is downloadable.") + "</p>")
         + _trajectory_html(steps),
     )
     if float(public["score"]) < 1:
         detail += '<div id="screenshots"></div>' + _section(
-            "失败执行的最后页面画面",
+            t("result_page.final_page_frames_from_the_failed", "Final page frames from the failed execution"),
             _screenshot_gallery(public["id"], execution_records),
         )
     detail += _result_evidence_section(public, execution_records, resource, checks, metadata)
@@ -3544,20 +3487,19 @@ def _write_result_pages(stage: Path, inputs: ReportInputs) -> list[dict[str, Any
 def _write_review_page(stage: Path, release_data: dict[str, Any]) -> None:
     review_page = _hero(
         "Review history",
-        "核验与修订记录",
-        "按轮次记录核验范围、发现、正式处理和遗留事项；单个任务的判定证据位于结果详情页。",
+        t("review_page.review_and_revision_history", "Review and revision history"),
+        t("review_page.each_round_records_its_scope_findings", "Each round records its scope, findings, formal corrections, and remaining items. Per-task verdict evidence remains on result detail pages."),
     )
     review_page += _section(
-        "当前状态",
-        '<p class="callout success"><strong>发布门禁：</strong>证据文件、哈希、分数、状态、官方版本与报告链接已通过程序化一致性检查。</p>'
-        "<p>官方 WebArena‑Verified evaluator 是成绩来源；核验记录只说明报告和实现经过了哪些检查与修订，不替代任务判分。</p>",
+        t("review_page.current_status", "Current status"),
+        ('<p class="callout success"><strong>' + t("review_page.release_gate", "Release gate:") + "</strong>" + t("review_page.evidence_files_hashes_scores_statuses_the", "Evidence files, hashes, scores, statuses, the official version, and report links passed programmatic consistency checks.") + "</p><p>" + t("review_page.the_official_webarena_verified_evaluator_is", "The official WebArena-Verified evaluator is the scoring authority. This history records checks and revisions to the implementation and report; it does not replace task scoring.") + "</p>"),
     )
     review_page += _section(
-        "核验轮次",
+        t("review_page.review_rounds", "Review rounds"),
         _review_history(release_data.get("browser_use_reviews") or []),
     )
     (stage / "review/index.html").write_text(
-        _page(title="核验记录", active="review", body=review_page, depth=1), encoding="utf-8"
+        _page(title=t("nav.review", "Review"), active="review", body=review_page, depth=1), encoding="utf-8"
     )
 
 
@@ -3568,23 +3510,23 @@ def _adoption_versions_section(inputs: ReportInputs) -> str:
     participant_versions = environment.get("browser_versions") or {}
     participant_images = environment.get("browser_images") or {}
     return _section(
-        "浏览器与版本",
+        t("adoption_versions_section.browsers_and_versions", "Browsers and versions"),
         _table(
-            ["模型", "浏览器", "运行版本", "镜像 ID", "接入方式", "通过任务"],
+            [t("resource_comparison_table.model", "Model"), t("resource_comparison_table.browser", "Browser"), t("adoption_versions_section.runtime_version", "Runtime version"), t("adoption_versions_section.image_id", "Image ID"), t("adoption_versions_section.integration", "Integration"), t("article_body.tasks_passed", "Tasks passed")],
             [
                 [
                     participants.models[model_id],
                     Safe(f'<a href="engines/{engine}.html">{_e(label)}</a>'),
                     (participant_versions.get(engine) or {}).get("Browser", "—"),
                     (participant_images.get(engine) or {}).get("id", "—"),
-                    "独立容器 · CDP · CowAgent BrowserTool",
+                    t("adoption_versions_section.dedicated_container_cdp_cowagent_browsertool", "Dedicated container · CDP · CowAgent BrowserTool"),
                     f"{summary_by_model[model_id][engine]['passed']}/{summary_by_model[model_id][engine]['completed']}",
                 ]
                 for model_id in participants.models
                 for engine, label in participants.engines.items()
             ],
         )
-        + "<p>每个模型分别比较各浏览器，不把不同模型的结果合并排名。</p>",
+        + ("<p>" + t("adoption_versions_section.browsers_are_compared_separately_within_each", "Browsers are compared separately within each model; results from different models are not merged into one ranking.") + "</p>"),
     )
 
 
@@ -3593,58 +3535,60 @@ def _adoption_conditions_section(inputs: ReportInputs) -> str:
     protocol = inputs.protocol
     task_count = inputs.task_count
     max_agent_steps = inputs.max_agent_steps
+    if max_agent_steps == _ZH("common.not_recorded", "Not recorded"):
+        max_agent_steps = t("conditions.unrecorded_steps", "an unrecorded number of")
     return _section(
-        "共同实验条件",
+        t("adoption_conditions_section.shared_experimental_conditions", "Shared experimental conditions"),
         _table(
-            ["栈字段", "本轮固定值", "角色"],
+            [t("adoption_conditions_section.stack_field", "Stack field"), t("adoption_conditions_section.fixed_value_in_this_run", "Fixed value in this run"), t("adoption_conditions_section.role", "Role")],
             [
                 [
                     "Agent",
                     f"CowAgent · commit {protocol.get('cowagent_commit', '—')}",
-                    "自主观察、规划并调用 BrowserTool",
+                    t("adoption_conditions_section.observe_plan_and_call_browsertool_autonomously", "Observe, plan, and call BrowserTool autonomously"),
                 ],
                 [
-                    "模型",
+                    t("resource_comparison_table.model", "Model"),
                     ", ".join(participants.models.values())
                     + f" · reasoning={protocol.get('reasoning_effort', '—')}",
-                    "作为分层变量为各浏览器生成决策",
+                    t("adoption_conditions_section.generates_browser_decisions_within_each_separately", "Generates browser decisions within each separately reported model run"),
                 ],
                 [
-                    "任务与站点",
-                    f"同一 {task_count} 题；同一批本地站点镜像",
-                    "提供一致输入与网页状态",
+                    t("adoption_conditions_section.tasks_and_sites", "Tasks and sites"),
+                    t("adoption_conditions_section.same_tasks_same_local_site_images", "Same {task_count} tasks; same local site images", task_count=task_count),
+                    t("adoption_conditions_section.provide_identical_inputs_and_website_state", "Provide identical inputs and website state"),
                 ],
-                ["动作接口", "CowAgent BrowserTool · CDP", "把 Agent 动作交给浏览器"],
+                [t("adoption_conditions_section.action_interface", "Action interface"), "CowAgent BrowserTool · CDP", t("adoption_conditions_section.deliver_agent_actions_to_the_browser", "Deliver agent actions to the browser")],
                 [
-                    "验收",
-                    "WebArena‑Verified 1.2.3 官方 evaluator",
-                    "对最终 JSON 与必要网络副作用判分",
+                    t("adoption_conditions_section.evaluation", "Evaluation"),
+                    t("adoption_conditions_section.official_webarena_verified_1_2_3", "Official WebArena-Verified 1.2.3 evaluator"),
+                    t("adoption_conditions_section.score_final_json_and_required_network", "Score final JSON and required network side effects"),
                 ],
                 [
-                    "资源与上限",
-                    f"相同 CPU、内存与最多 {max_agent_steps} 步；历史视口未统一",
-                    "控制运行预算",
+                    t("adoption_conditions_section.resources_and_limits", "Resources and limits"),
+                    t("adoption_conditions_section.same_cpu_memory_and_up_to", "Same CPU, memory, and up to {max_agent_steps} steps; historical viewports differed", max_agent_steps=max_agent_steps),
+                    t("adoption_conditions_section.control_the_execution_budget", "Control the execution budget"),
                 ],
             ],
         )
-        + f"<p><strong>这 {task_count} 题由 CowAgent 自主执行。</strong>仓库中的 Browser Trajectory Replay（轨迹重放）是另一项固定动作测试，不计入这里的成绩。</p>",
+        + ("<p><strong>" + t("adoption_conditions_section.cowagent_executes_all_tasks_autonomously", "CowAgent executes all {task_count} tasks autonomously.", task_count=task_count) + "</strong>" + t("adoption_conditions_section.the_repository_s_browser_trajectory_replay", "The repository's Browser Trajectory Replay track is a separate fixed-action test and is not included in these scores.") + "</p>"),
     )
 
 
 def _write_adoption_page(stage: Path, inputs: ReportInputs) -> None:
     adoption = _hero(
         "Participants",
-        "被测浏览器与固定实验条件",
-        "本报告比较浏览器。每个模型单独统计，CowAgent、任务、资源上限、网站和 evaluator 均保持一致。",
+        t("adoption_page.browsers_tested_and_fixed_experimental_controls", "Browsers tested and fixed experimental controls"),
+        t("adoption_page.this_report_compares_browsers_results_are", "This report compares browsers. Results are calculated separately for each model, while CowAgent, tasks, resource limits, sites, and evaluators remain fixed."),
     )
     adoption += _adoption_versions_section(inputs)
     adoption += _adoption_conditions_section(inputs)
     adoption += _section(
-        "增加新的浏览器",
-        "<p>新增浏览器时，需要注册其容器镜像、版本与 CDP 端点，并在同一冻结任务集和共同条件下形成完整结果。总榜按浏览器逐行扩展；同题矩阵按浏览器增加列；统计比较按浏览器对单独生成，不能把多个浏览器压成一个总胜负。</p>",
+        t("adoption_page.adding_another_browser", "Adding another browser"),
+        ("<p>" + t("adoption_page.register_the_new_browser_s_container", "Register the new browser's container image, version, and CDP endpoint, then complete the same frozen task set under the shared controls. The leaderboard adds a browser row, the task matrix adds a browser column, and statistical comparisons are generated per browser pair rather than collapsing multiple browsers into one win/loss label.") + "</p>"),
     )
     (stage / "adoption/index.html").write_text(
-        _page(title="被测浏览器", active="adoption", body=adoption, depth=1), encoding="utf-8"
+        _page(title=t("nav.browsers_tested", "Browsers tested"), active="adoption", body=adoption, depth=1), encoding="utf-8"
     )
 
 
@@ -3669,38 +3613,37 @@ def _write_engine_pages(stage: Path, inputs: ReportInputs) -> list[list[Any]]:
             ]
         )
         body = _hero(
-            "Engine", participants.engines[engine], "本轮浏览器运行身份、完整任务结果与失败证据入口。"
+            "Engine", participants.engines[engine], t("engine_pages.runtime_identity_complete_task_results_and", "Runtime identity, complete task results, and failure evidence for this browser.")
         ) + _section(
-            "运行身份",
+            t("engine_pages.runtime_identity", "Runtime identity"),
             _table(
-                ["字段", "值"],
+                [t("engine_pages.field", "Field"), t("result_evidence_section.value", "Value")],
                 [
                     ["Browser", version.get("Browser", "—")],
                     ["DevTools Protocol", version.get("Protocol-Version", "—")],
-                    ["架构", image.get("architecture", "—")],
-                    ["镜像 ID", image.get("id", "—")],
+                    [t("engine_pages.architecture", "Architecture"), image.get("architecture", "—")],
+                    [t("adoption_versions_section.image_id", "Image ID"), image.get("id", "—")],
                     [
-                        "各模型任务成绩",
+                        t("engine_pages.task_scores_by_model_cohort", "Task scores by model cohort"),
                         "；".join(
                             f"{participants.models[model_id]} {summary_by_model[model_id][engine]['passed']}/{summary_by_model[model_id][engine]['completed']}"
                             for model_id in participants.models
                         ),
                     ],
                     [
-                        "各模型逻辑结果耗时 P50",
+                        t("engine_pages.p50_logical_result_latency_by_model", "P50 logical-result latency by model cohort"),
                         "；".join(
-                            f"{participants.models[model_id]} {_seconds(summary_by_model[model_id][engine]['p50_duration_ms'])}"
+                            f"{participants.models[model_id]} {_seconds_short(summary_by_model[model_id][engine]['p50_duration_ms'])}"
                             for model_id in participants.models
                         ),
                     ],
                 ],
             )
-            + '<p class="fine">版本与镜像身份用于限定复现边界，不参与评分。</p>',
+            + ('<p class="fine">' + t("engine_pages.version_and_image_identity_bound_reproducibility", "Version and image identity bound reproducibility and do not affect scoring.") + "</p>"),
         )
         body += _section(
-            "查看该浏览器的全部结果",
-            "<p>完整结果只保留一份。下方入口打开结果分析页，并预先筛选当前浏览器；失败诊断、轨迹、页面画面与日志均从该清单进入。</p>"
-            f'<div class="report-entry-links"><a class="button-link" href="analysis/index.html?f_engine={engine}#result-table">打开筛选后的结果清单 →</a></div>',
+            t("engine_pages.view_all_results_for_this_browser", "View all results for this browser"),
+            ("<p>" + t("engine_pages.the_report_keeps_one_result_inventory", "The report keeps one result inventory. The link below opens it with this browser preselected; failure diagnoses, trajectories, page frames, and logs are all reached from that inventory.") + f'</p><div class="report-entry-links"><a class="button-link" href="analysis/index.html?f_engine={engine}#result-table">' + t("engine_pages.open_the_filtered_result_inventory", "Open the filtered result inventory →") + "</a></div>"),
         )
         (stage / f"engines/{engine}.html").write_text(
             _page(title=participants.engines[engine], active="adoption", body=body, depth=1),
@@ -3716,17 +3659,17 @@ def _reproduce_identity_section(inputs: ReportInputs, engine_rows: list[list[Any
     environment = inputs.environment
     model_names = inputs.model_names
     return _section(
-        "浏览器与代码身份",
-        _table(["浏览器", "版本", "协议", "架构", "镜像 ID"], engine_rows)
+        t("reproduce_identity_section.browser_and_code_identities", "Browser and code identities"),
+        _table([t("resource_comparison_table.browser", "Browser"), t("reproduce_identity_section.version", "Version"), t("reproduce_identity_section.protocol", "Protocol"), t("engine_pages.architecture", "Architecture"), t("adoption_versions_section.image_id", "Image ID")], engine_rows)
         + _table(
-            ["项目", "值"],
+            [t("release_details.item", "Item"), t("result_evidence_section.value", "Value")],
             [
                 ["browser-eval commit", protocol.get("browser_eval_commit", "—")],
                 ["CowAgent commit", protocol.get("cowagent_commit", "—")],
-                ["模型", f"{model_names} · reasoning={protocol.get('reasoning_effort', '—')}"],
+                [t("resource_comparison_table.model", "Model"), f"{model_names} · reasoning={protocol.get('reasoning_effort', '—')}"],
                 ["WebArena‑Verified", environment.get("webarena_verified_version", "—")],
-                ["运行配置选择集 SHA-256", config.get("selection_sha256", selection.sha256)],
-                ["当前选择集 SHA-256", selection.sha256],
+                [t("reproduce_identity_section.run_config_selection_sha_256", "Run-config selection SHA-256"), config.get("selection_sha256", selection.sha256)],
+                [t("reproduce_identity_section.current_selection_sha_256", "Current selection SHA-256"), selection.sha256],
                 [
                     "evaluator checksum",
                     (environment.get("official_evaluator") or {}).get(
@@ -3745,33 +3688,31 @@ def _reproduce_deployment_section(inputs: ReportInputs) -> str:
     preparation_receipts_complete = inputs.preparation_receipts_complete
     site_images = environment.get("site_images") or {}
     return _section(
-        "部署环境与网络拓扑",
-        "<p>" + _translated(
-            "下表展示运行记录中的宿主、容器运行时、站点访问入口与镜像身份。它们属于所选证据，不作为其他报告实例的默认部署配置。",
-            "The table shows the recorded host, container runtime, site access entry and image identities. These describe the selected evidence and do not prescribe deployment defaults for another instance.") + "</p>"
+        t("reproduce_deployment_section.deployment_environment_and_network_topology", "Deployment environment and network topology"),
+        "<p>" + _translated("reproduce_deployment_section.the_table_shows_the_recorded_host", "The table shows the recorded host, container runtime, site access entry and image identities. These describe the selected evidence and do not prescribe deployment defaults for another instance.") + "</p>"
         + _table(
-            ["层", "本轮身份", "作用"],
+            [t("reproduce_deployment_section.layer", "Layer"), t("reproduce_deployment_section.identity_in_this_run", "Identity in this run"), t("reproduce_deployment_section.purpose", "Purpose")],
             [
-                ["宿主", environment.get("platform", "—"), _translated("记录的执行宿主", "Recorded execution host")],
+                [t("methodology_deployment.host", "Host"), environment.get("platform", "—"), _translated("reproduce_deployment_section.recorded_execution_host", "Recorded execution host")],
                 [
                     "Docker",
                     f"{environment.get('docker_name', '—')} · {environment.get('docker_architecture', '—')} · {environment.get('docker_server_version', '—')}",
-                    "承载站点和浏览器容器",
+                    t("reproduce_deployment_section.hosts_site_and_browser_containers", "Hosts site and browser containers"),
                 ],
                 [
-                    "浏览器到宿主网关",
+                    t("reproduce_deployment_section.browser_to_host_gateway", "Browser-to-host gateway"),
                     environment.get("site_access_host", "—"),
-                    "访问站点容器发布端口",
+                    t("reproduce_deployment_section.accesses_published_ports_from_site_containers", "Accesses published ports from site containers"),
                 ],
                 [
-                    "ARM 兼容模式",
-                    (environment.get("site_runtime_compatibility") or {}).get("mode", "未启用"),
-                    _translated("记录的运行兼容配置", "Recorded runtime compatibility"),
+                    t("reproduce_deployment_section.arm_compatibility_mode", "ARM compatibility mode"),
+                    (environment.get("site_runtime_compatibility") or {}).get("mode", t("reproduce_deployment_section.disabled", "Disabled")),
+                    _translated("reproduce_deployment_section.recorded_runtime_compatibility", "Recorded runtime compatibility"),
                 ],
             ],
         )
         + _table(
-            ["站点镜像", "镜像引用", "镜像 ID", "Repo digest"],
+            [t("reproduce_deployment_section.site_image", "Site image"), t("reproduce_deployment_section.image_reference", "Image reference"), t("adoption_versions_section.image_id", "Image ID"), "Repo digest"],
             [
                 [
                     SITE_LABELS.get(site, site),
@@ -3783,40 +3724,38 @@ def _reproduce_deployment_section(inputs: ReportInputs) -> str:
             ],
         )
         + (
-            f'<p class="fine">本轮 {preparation_receipt_count}/{len(source_attempts)} 个物理执行均保存环境准备回执；公开环境摘要保留逐项状态，原始登录态不发布。</p>'
+            ('<p class="fine">' + t("reproduce_deployment_section.all_physical_executions_retain_environment_preparation", "All {preparation_receipt_count}/{source_attempts_count} physical executions retain environment-preparation receipts. The public summary preserves each status while authenticated session state remains private.", preparation_receipt_count=preparation_receipt_count, source_attempts_count=len(source_attempts)) + "</p>")
             if preparation_receipts_complete
-            else '<p class="fine">逐执行环境准备回执尚不完整；现有记录只能核对运行器配置与镜像身份。</p>'
+            else ('<p class="fine">' + t("reproduce_deployment_section.per_execution_environment_preparation_receipts_are", "Per-execution environment-preparation receipts are incomplete; current records can verify only runner configuration and image identity.") + "</p>")
         ),
     )
 
 
 def _reproduce_isolation_section(participants: Participants) -> str:
-    from harness.browser_use.report_i18n import bilingual_text
-
     return _section(
-        "环境隔离与并行边界",
-        "<p>修正后的运行器把一个 Docker daemon 及其固定站点端口视为一个环境 lane。同一 lane 内的任务和浏览器必须串行：每次尝试先重置站点，再完成 Agent、证据收尾和 evaluator，整个周期由跨进程锁保护。缺少 Docker daemon 身份时直接停止，不降级为无锁执行。</p>"
+        t("reproduce_isolation_section.environment_isolation_and_parallelism_boundary", "Environment isolation and parallelism boundary"),
+        ("<p>" + t("reproduce_isolation_section.the_corrected_runner_treats_one_docker", "The corrected runner treats one Docker daemon and its fixed site ports as one environment lane. Tasks and browsers in the same lane run serially: each attempt resets the sites first, then completes the Agent run, evidence finalization, and evaluation while one cross-process lock protects the full lifecycle. If the Docker daemon identity is unavailable, execution stops instead of falling back to an unlocked run.") + "</p>")
         + _table(
-            ["运行方式", "是否允许", "隔离要求"],
+            [t("reproduce_isolation_section.execution_mode", "Execution mode"), t("reproduce_isolation_section.allowed", "Allowed"), t("reproduce_isolation_section.isolation_requirement", "Isolation requirement")],
             [
                 [
-                    f"一套站点环境，{participants.engine_names} 串行",
-                    "允许，默认方案",
-                    "同一 daemon 锁；每次尝试前重置并核对初态",
+                    t("reproduce_isolation_section.one_site_stack_run_serially", "One site stack; {engine_names} run serially", engine_names=participants.engine_names),
+                    t("reproduce_isolation_section.allowed_default", "Allowed; default"),
+                    t("reproduce_isolation_section.one_daemon_scoped_lock_reset_and", "One daemon-scoped lock; reset and verify initial state before every attempt"),
                 ],
                 [
-                    f"一套站点环境，{'两个' if len(participants.engines) == 2 else '多个'}浏览器并行",
-                    "不允许",
-                    "账号不同仍会共享对象、索引、缓存和后台任务",
+                    t("reproduce_isolation_section.one_site_stack_browsers_run_in", "One site stack; {value} browsers run in parallel", value=t('reproduce_isolation_section.two', 'two') if len(participants.engines) == 2 else t('reproduce_isolation_section.multiple', 'multiple')),
+                    t("reproduce_isolation_section.not_allowed", "Not allowed"),
+                    t("reproduce_isolation_section.separate_accounts_still_share_objects_indexes", "Separate accounts still share objects, indexes, caches, and background jobs"),
                 ],
                 [
-                    "多个任务并行",
-                    "允许",
-                    "每个 worker 使用独立 daemon、站点容器、网络、端口和可写卷；镜像只读层可复用",
+                    t("reproduce_isolation_section.multiple_tasks_in_parallel", "Multiple tasks in parallel"),
+                    t("reproduce_isolation_section.allowed_2", "Allowed"),
+                    t("reproduce_isolation_section.each_worker_uses_an_independent_daemon", "Each worker uses an independent daemon, site containers, network, ports, and writable volumes; read-only image layers may be shared"),
                 ],
             ],
         )
-        + '<p class="fine">' + bilingual_text('账号隔离用于避免用户级对象冲突，不能替代环境隔离。已核验的外部干扰与诊断子集见首页。', 'Account isolation prevents user-object collisions; it does not replace environment isolation. The homepage identifies verified external interference and its diagnostic subset.') + '</p>',
+        + '<p class="fine">' + _translated("reproduce_isolation_section.account_isolation_prevents_user_object_collisions", "Account isolation prevents user-object collisions; it does not replace environment isolation. The homepage identifies verified external interference and its diagnostic subset.") + '</p>',
     )
 
 
@@ -3824,41 +3763,41 @@ def _write_reproduce_page(stage: Path, inputs: ReportInputs, engine_rows: list[l
     result_count = inputs.result_count
     reproduce = _hero(
         "Reproduction",
-        "复现从公开仓库、预注册题集和固定运行身份开始",
-        "公开包提供脱敏投影；模型回答、Cookie 和完整网络正文不进入 Git 或站点。",
+        t("reproduce_page.reproduction_starts_with_the_public_repository", "Reproduction starts with the public repository, preregistered cohort, and fixed runtime identities"),
+        t("reproduce_page.the_public_bundle_provides_sanitized_projections", "The public bundle provides sanitized projections. Model credentials, cookies, and complete network bodies do not enter Git or the site."),
     )
     reproduce += _reproduce_identity_section(inputs, engine_rows)
     reproduce += _reproduce_deployment_section(inputs)
     reproduce += _reproduce_isolation_section(inputs.participants)
     reproduce += _section(
-        "公开复现入口",
-        f'<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> 是代码、题集和锁文件的唯一来源。</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">每次物理执行的脱敏回答、evaluator、事件和轨迹位于 <code>artifacts/&lt;result-id&gt;/executions/&lt;n&gt;/</code>；<code>evidence-index.json</code> 给出全部 {result_count} 个逻辑结果及其物理执行、下载路径和公开文件哈希。</p>',
+        t("reproduce_page.public_reproduction_entry_points", "Public reproduction entry points"),
+        ('<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> ' + t("reproduce_page.is_the_canonical_source_for_code", "is the canonical source for code, task definitions, and lockfiles.") + '</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">' + t("reproduce_page.the_sanitized_answer_evaluator_output_events", "The sanitized answer, evaluator output, events, and trajectory for each physical execution are located under") + " <code>artifacts/&lt;result-id&gt;/executions/&lt;n&gt;/</code>；<code>evidence-index.json</code> " + t("reproduce_page.lists_all_logical_results_their_physical", "lists all {result_count} logical results, their physical executions, download paths, and public-file hashes.", result_count=result_count) + "</p>"),
     )
     (stage / "reproduce/index.html").write_text(
-        _page(title="环境与复现", active="reproduce", body=reproduce, depth=1), encoding="utf-8"
+        _page(title=t("nav.environment_and_reproduction", "Environment and reproduction"), active="reproduce", body=reproduce, depth=1), encoding="utf-8"
     )
 
 
 def _write_accounts_page(stage: Path, inputs: ReportInputs) -> None:
-    reasoning_effort = inputs.reasoning_effort
+    reasoning_effort = _recorded(inputs.reasoning_effort)
     model_names = inputs.model_names
     accounts = _hero(
         "Accounts",
-        "本地站点账号、模型权限与发布权限分开处理",
-        "不展示密钥、Cookie 或真实个人信息；官方合同中的内置测试邮箱和用户名作为合成 ground truth 保留。",
+        t("accounts_page.local_site_accounts_model_access_and", "Local site accounts, model access, and publication access are separate"),
+        t("accounts_page.keys_cookies_and_real_personal_information", "Keys, cookies, and real personal information are not shown. Built-in test emails and usernames in official contracts remain as synthetic ground truth."),
     ) + _section(
-        "权限与费用",
+        t("accounts_page.access_and_cost", "Access and cost"),
         _table(
-            ["范围", "本轮做法", "外部付费账号"],
+            [t("accounts_page.scope", "Scope"), t("accounts_page.configuration_in_this_run", "Configuration in this run"), t("accounts_page.paid_external_account", "Paid external account")],
             [
-                ["四个自托管站点", "官方 Docker 镜像与内置测试账号；每题前重置", "不需要"],
-                ["模型 API", f"{model_names}, reasoning={reasoning_effort}", "需要相应 API 权限"],
-                ["Artifact Site", "只发布脱敏静态报告", "发布者需已有站点权限"],
+                [t("accounts_page.four_self_hosted_sites", "Four self-hosted sites"), t("accounts_page.official_docker_images_and_built_in", "Official Docker images and built-in test accounts; reset before each task"), t("accounts_page.not_required", "Not required")],
+                [t("accounts_page.model_api", "Model API"), f"{model_names}, reasoning={reasoning_effort}", t("accounts_page.corresponding_api_access_required", "Corresponding API access required")],
+                ["Artifact Site", t("accounts_page.publishes_only_the_sanitized_static_report", "Publishes only the sanitized static report"), t("accounts_page.publisher_must_already_have_site_access", "Publisher must already have site access")],
             ],
         ),
     )
     (stage / "accounts/index.html").write_text(
-        _page(title="账号", active="accounts", body=accounts, depth=1), encoding="utf-8"
+        _page(title=t("accounts_page.accounts", "Accounts"), active="accounts", body=accounts, depth=1), encoding="utf-8"
     )
 
 
@@ -3877,10 +3816,10 @@ def _write_interpretation_evidence(
     claims = {
         "schema": "lex_browser_use_interpretation/1",
         "claims": [
-            {"claim": "审查合格比较集的模型内浏览器配对结果", "basis": _paired_summary(qualified_attempts, participants)},
-            {"claim": "失败根因以当前证据绑定的逐结果核验为准", "basis": verified_causes},
+            {"claim": t("interpretation_evidence.within_model_browser_pairs_on_the", "Within-model browser pairs on the review-qualified comparison set"), "basis": _paired_summary(qualified_attempts, participants)},
+            {"claim": t("interpretation_evidence.failure_causes_follow_the_per_result", "Failure causes follow the per-result reviews bound to the current evidence"), "basis": verified_causes},
             {
-                "claim": "官方 evaluator 的失败规则组合",
+                "claim": t("automatic_failure_figure.failed_rule_combinations_from_the_official", "Failed rule combinations from the official evaluator"),
                 "basis": {
                     "denominator": sum(automatic_failure_counts.values()),
                     "authority": "final logical execution",
@@ -3893,7 +3832,7 @@ def _write_interpretation_evidence(
                 },
             },
             {
-                "claim": "已证实外部干扰按整题排除后的正式比较集",
+                "claim": t("interpretation_evidence.formal_comparison_set_after_excluding_whole", "Formal comparison set after excluding whole tasks with verified external interference"),
                 "basis": {
                     "excluded_task_ids": sorted(
                         _external_interference_task_ids(verified_causes)
@@ -3911,8 +3850,7 @@ def _write_interpretation_evidence(
             },
             {
                 "claim": (
-                    f"{'四' if configuration_count == 4 else f'{configuration_count} 种'}"
-                    "配置最终共同成功任务的性能与资源 P50"
+                    t("interpretation_evidence.p50_performance_and_resources_on_tasks", "P50 performance and resources on tasks that all {value} configurations finally passed", value=t('interpretation_evidence.four', 'four') if configuration_count == 4 else t('interpretation_evidence.text', '{configuration_count}', configuration_count=configuration_count))
                 ),
                 "basis": dict(
                     zip(
@@ -3922,7 +3860,7 @@ def _write_interpretation_evidence(
                     )
                 ),
             },
-            {"claim": "执行证据完整性审查覆盖", "basis": review.get("coverage") or {}},
+            {"claim": t("interpretation_evidence.execution_evidence_integrity_review_coverage", "Execution-evidence integrity review coverage"), "basis": review.get("coverage") or {}},
         ],
         "bound_attempts_sha256": attempts_sha256,
         "selection_sha256": selection.sha256,
@@ -4199,18 +4137,39 @@ def _write_publication_privacy(stage: Path) -> None:
     )
 
 
-def _write_language_editions(
-    stage: Path, fix_log: dict[str, Any], include_english: bool, language: str | None
-) -> None:
-    _write_fix_log(stage, fix_log)
-    if include_english:
-        from harness.browser_use.report_i18n import write_english_report
+def _write_pages(
+    stage: Path, inputs: ReportInputs, automatic_failure_counts: Counter[str]
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    """Write every page of the edition `t` selects, with the files those pages link to."""
+    _write_stage_assets(stage)
+    _write_home_page(stage, inputs, automatic_failure_counts)
+    release_data = _write_changes_page(stage, inputs)
+    _write_dataset_index(stage, inputs)
+    _write_task_pages(stage, inputs)
+    _write_methodology_page(stage, inputs)
+    _write_analysis_page(stage, inputs)
+    public_evidence_results = _write_result_pages(stage, inputs)
+    _write_review_page(stage, release_data)
+    _write_adoption_page(stage, inputs)
+    engine_rows = _write_engine_pages(stage, inputs)
+    _write_reproduce_page(stage, inputs, engine_rows)
+    _write_accounts_page(stage, inputs)
+    _write_fix_log(stage, inputs.fix_log)
+    return release_data, public_evidence_results
 
-        write_english_report(stage)
-        _write_fix_log(stage, fix_log, english=True)
-    write_language_contract(stage, include_english=include_english)
-    if language is not None:
-        select_report_language(stage, language)
+
+def _write_english_edition(
+    stage: Path, inputs: ReportInputs, automatic_failure_counts: Counter[str]
+) -> None:
+    """Render the pages again in English; only their HTML joins the report."""
+    global t
+    t = _EN
+    try:
+        with tempfile.TemporaryDirectory(dir=stage.parent) as scratch:
+            _write_pages(Path(scratch), inputs, automatic_failure_counts)
+            write_english_report(Path(scratch), stage)
+    finally:
+        t = _ZH
 
 
 def _bind_build_version(stage: Path, audit: dict[str, Any]) -> None:
@@ -4243,20 +4202,8 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
     inputs = _load_report_inputs(evidence, selection_path, profile_path)
     stage = _open_stage(output)
     try:
-        _write_stage_assets(stage)
         automatic_failure_counts = _automatic_failure_counts(inputs.attempts)
-        _write_home_page(stage, inputs, automatic_failure_counts)
-        release_data = _write_changes_page(stage, inputs)
-        _write_dataset_index(stage, inputs)
-        _write_task_pages(stage, inputs)
-        _write_methodology_page(stage, inputs)
-        _write_analysis_page(stage, inputs)
-        public_evidence_results = _write_result_pages(stage, inputs)
-        _write_review_page(stage, release_data)
-        _write_adoption_page(stage, inputs)
-        engine_rows = _write_engine_pages(stage, inputs)
-        _write_reproduce_page(stage, inputs, engine_rows)
-        _write_accounts_page(stage, inputs)
+        _, public_evidence_results = _write_pages(stage, inputs, automatic_failure_counts)
         _write_interpretation_evidence(stage, inputs, automatic_failure_counts)
         _write_selection_and_results(stage, inputs)
         _write_failure_cause_data(stage, inputs)
@@ -4266,7 +4213,11 @@ def build_report(*, evidence: Path | Iterable[Path], output: Path, selection_pat
         _write_public_environment(stage, inputs)
         _write_review_data(stage, inputs)
         _write_publication_privacy(stage)
-        _write_language_editions(stage, inputs.fix_log, include_english, language)
+        if include_english:
+            _write_english_edition(stage, inputs, automatic_failure_counts)
+        write_language_contract(stage, include_english=include_english)
+        if language is not None:
+            select_report_language(stage, language)
         _bind_build_version(stage, audit)
         _publish_stage(stage, output)
     except Exception:

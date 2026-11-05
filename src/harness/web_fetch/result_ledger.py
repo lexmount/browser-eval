@@ -82,7 +82,7 @@ def validate_ledger(ledger, records=None, *, source=None):
         count = len(prior['states'])
         if ledger['states'][:count] != prior['states'] or len(ledger['states']) <= count:
             raise ValueError('Result ledger does not retain the complete predecessor chain')
-        for previous, state in zip(ledger['states'], ledger['states'][1:]):
+        for previous, state in zip(ledger['states'], ledger['states'][1:], strict=False):
             event = state.get('replacement')
             if not event:
                 continue

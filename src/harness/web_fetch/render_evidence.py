@@ -150,7 +150,7 @@ def validate_render_reference(
     coverage = {key: _coverage(text, facts) for key, text in texts.items()}
     # Union per group: a page can have some facts in DOM and others in state.
     initial_hits = sum(a["pass"] or b["pass"] for a, b in zip(
-        coverage["initial_visible"]["groups"], coverage["initial_payload"]["groups"]))
+        coverage["initial_visible"]["groups"], coverage["initial_payload"]["groups"], strict=True))
     if not facts:
         classification = "unclassified"
     elif coverage["initial_visible"]["all_present"]:

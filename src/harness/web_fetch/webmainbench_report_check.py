@@ -140,11 +140,11 @@ def check_latency_diagnostic(section, evidence: dict, *, formal_round=None) -> N
     rows = table.select('tbody tr') if table else []
     if len(rows) != len(runs):
         raise ValueError('Latency diagnostic version population differs')
-    for rendered, (version, run) in zip(rows, runs.items()):
+    for rendered, (version, run) in zip(rows, runs.items(), strict=True):
         cells = rendered.find_all('td', recursive=False)
         if len(cells) != 6 or not cells[1].get_text(strip=True).endswith(version) or cells[2].get_text(strip=True) != f"{run['n']}/{run['calls']}":
             raise ValueError('Latency diagnostic version or call count differs')
-        for cell, metric in zip(cells[3:], ('mean', 'p50', 'p95')):
+        for cell, metric in zip(cells[3:], ('mean', 'p50', 'p95'), strict=True):
             values = [item[metric] for item in runs.values()]
             won = run[metric] == min(values) and values.count(run[metric]) == 1
             if (not close(float(cell['data-sort']), run[metric])
@@ -160,11 +160,11 @@ def check_latency_diagnostic(section, evidence: dict, *, formal_round=None) -> N
     case_rows = section.select('.wmb-rerun-cases tbody tr')
     if len(case_rows) != len(cases):
         raise ValueError('Latency diagnostic repeat population differs')
-    for rendered, case in zip(case_rows, cases):
+    for rendered, case in zip(case_rows, cases, strict=True):
         cells = rendered.find_all('td', recursive=False)
         if len(cells) != 6 or not cells[1].select_one(f'a[href$="datasets/{case["case_id"]}.html"]'):
             raise ValueError('Latency diagnostic page evidence differs')
-        for cell, metric in zip(cells[2:], ('older_median_ms', 'newer_median_ms', 'older_max_ms', 'newer_max_ms')):
+        for cell, metric in zip(cells[2:], ('older_median_ms', 'newer_median_ms', 'older_max_ms', 'newer_max_ms'), strict=True):
             if not close(float(cell['data-sort']), case[metric]):
                 raise ValueError('Latency diagnostic page timing differs')
     outliers = [case for case in cases if abs(case['older_median_ms'] - case['newer_median_ms']) > 20]
@@ -243,7 +243,7 @@ def check(root: Path, *, authority_root: Path | None = None) -> None:
     if ([row['data-release-id'] for row in history_rows] != [item['id'] for item in expected_releases]
             or any(item['title'] not in row.get_text(' ', strip=True) or
                    item['summary'] not in row.get_text(' ', strip=True)
-                   for row, item in zip(history_rows, expected_releases))):
+                   for row, item in zip(history_rows, expected_releases, strict=True))):
         raise ValueError('WebMainBench release history differs from structured records')
     binding_path = repo / "evaluation/webmainbench-full/content-binding.json"
     binding = read_json(binding_path)
@@ -555,7 +555,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
                 or localized['summary'] not in changes.select_one('.hero').get_text(' ', strip=True)
                 or len(current.select('tbody tr')) != len(localized['changes'])):
             raise ValueError(prefix + 'Current release content differs from structured record')
-        for row, cells in zip(localized['changes'], current.select('tbody tr')):
+        for row, cells in zip(localized['changes'], current.select('tbody tr'), strict=True):
             if [cell.get_text(' ', strip=True) for cell in cells.select('td')[-4:]] != row:
                 raise ValueError(prefix + 'Current release effect differs from structured record')
         if latency_correction and not (changes.select_one('a[href$="latency-corrections.json"]')
@@ -796,7 +796,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             values = [row['elapsed_ms'] for row in successes[name]]
             expected_times = (statistics.fmean(values), statistics.median(values), percentile(values, .95))
             if cells[-4].get_text(strip=True) != f'{len(values)}/200' or any(
-                    not close(float(td['data-sort']), value) for td, value in zip(cells[-3:], expected_times)):
+                    not close(float(td['data-sort']), value) for td, value in zip(cells[-3:], expected_times, strict=True)):
                 raise ValueError(name + ': final successful-fetch timing differs from immutable calls')
 
         matched = localized_home.select_one('.wmb-matched-latency')
@@ -807,7 +807,7 @@ def check_sample_report(root: Path, dataset: dict | None = None,
             name = Path(cells[1].a['href']).stem
             values = [row['elapsed_ms'] for row in successes[name] if row['case_id'] in shared_cases]
             expected_times = (statistics.fmean(values), statistics.median(values), percentile(values, .95))
-            if any(not close(float(td['data-sort']), value) for td, value in zip(cells[-3:], expected_times)):
+            if any(not close(float(td['data-sort']), value) for td, value in zip(cells[-3:], expected_times, strict=True)):
                 raise ValueError(name + ': matched-page timing differs from the common final-call population')
         if (len(localized_home.select(".wmb-denominator-matrix tbody tr")) != 2
                 or len(localized_home.select(".wmb-denominator-matrix tbody td")) != 6

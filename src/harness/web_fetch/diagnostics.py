@@ -69,5 +69,5 @@ def diagnostic_context(sink, names=("urllib3","requests","langchain_community"))
     try:yield
     finally:
         if sink:
-            for logger,level in zip(loggers,levels):logger.removeHandler(handler);logger.setLevel(level)
+            for logger,level in zip(loggers,levels,strict=True):logger.removeHandler(handler);logger.setLevel(level)
         _LOCAL.sink=old

@@ -37,13 +37,31 @@ from harness.web_fetch.storage import current_evidence_dir
 ROOT = repository_root()
 
 
+def _stored_verdict(r, c):
+    """Read a stored verdict, including one from retired forbidden-text fields."""
+    try:
+        return succeeded(r, c)
+    except ValueError as error:
+        if not str(error).startswith("Historical scoring metrics"):
+            raise
+    m = r["metrics"]
+    # The retired scorer failed these hits only under policy 1; otherwise they
+    # were diagnostics. The rescore below replaces them with current fields.
+    if m.get("acceptance_policy_version", 2) == 1 and (
+            m.get("forbidden_hits") or m.get("blocked_page") or m.get("stable_blocked_page")):
+        return False
+    retired = ("acceptance_policy_version", "forbidden_hits", "blocked_page")
+    return task_passed(r["ok"], {k: v for k, v in m.items() if k not in retired},
+                       c.get("task_kind", "body"))
+
+
 def _rescore_one(arguments):
     r,c,source,audit,validate_only=arguments
     original = deepcopy(r) if validate_only else None
     raw = contained_path(source, r["artifact_path"]).read_bytes()
     if hashlib.sha256(raw).hexdigest() != r["metrics"]["content_sha256"]:
         raise ValueError("Output integrity failure: " + r["attempt_id"])
-    before = succeeded(r, c)
+    before = _stored_verdict(r, c)
     # Status and artifact normalization are shared with live execution.
     r["metrics"] = score_attempt(
         c,
@@ -118,7 +136,7 @@ def rescore(source, case_ids=None, *, allow_rule_revision=False, reference_revis
             )
         checker = (
             (
-                lambda case, binding: check_case_reference_revision_binding(
+                lambda case, binding, revised_hashes=revised_hashes: check_case_reference_revision_binding(
                     case, binding, revised_hashes
                 )
             )

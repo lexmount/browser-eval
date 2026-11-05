@@ -72,7 +72,7 @@ class BoundedAnchorEvidenceTests(unittest.TestCase):
         rendered = stable_anchor_evidence(metrics, output)
         cards = BeautifulSoup(rendered, 'html.parser').select('.anchor-card')
         self.assertEqual(len(cards), 3)
-        for card, label in zip(cards, labels):
+        for card, label in zip(cards, labels, strict=True):
             fragment = card.select('.evidence-sample')[1].p.get_text()
             self.assertIn(label, fragment)
             self.assertIn(fragment, output)

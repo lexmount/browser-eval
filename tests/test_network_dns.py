@@ -88,7 +88,7 @@ class NetworkDnsTests(unittest.TestCase):
             with self.subTest(payload=payload):
                 with self.assertRaises((ValueError, socket.gaierror)):
                     lookup_public_dns('fixture.example', timeout=45,
-                                      opener=lambda *args, **kwargs: io.BytesIO(json.dumps(payload).encode()))
+                                      opener=lambda *args, payload=payload, **kwargs: io.BytesIO(json.dumps(payload).encode()))
         with self.assertRaisesRegex(ValueError, '64 KiB'):
             lookup_public_dns('fixture.example', timeout=45,
                               opener=lambda *args, **kwargs: io.BytesIO(b'x'*65537))
@@ -268,7 +268,7 @@ class HostedDnsBoundaryTests(unittest.TestCase):
                     endpoint, kwargs = provider.native_http_arguments(case, 30)
                     hostname = urlsplit(endpoint).hostname
                     seen = []
-                    def transport(url, **arguments):
+                    def transport(url, seen=seen, **arguments):
                         seen.append(socket.getaddrinfo(urlsplit(url).hostname, 443,
                                                      type=socket.SOCK_STREAM)[0][4][0])
                         return HttpResponse(200, url, {}, b'{}')

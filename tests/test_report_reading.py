@@ -52,11 +52,22 @@ def test_archived_html_cannot_import_active_content_or_global_styles():
     assert not rejected.img.get('src')
 
 
+def test_escaped_value_keeps_its_translated_prefix():
+    from pathlib import PurePosixPath
+    from harness.web_fetch.report import empty_output_reason
+    from harness.web_fetch.report_i18n import localize_html
+    from harness.reporting.presentation import esc
+    reason = empty_output_reason({'ok': False, 'error_message': "can't connect"}, {}, '')
+    english = localize_html('<p>' + esc(reason) + '</p>', PurePosixPath('attempts/example.html'))
+    assert 'The final output is genuinely empty' in english
+    assert 'can&#x27;t connect' in english
+
+
 def test_english_chrome_preserves_raw_evidence_and_filter_keys():
     from pathlib import PurePosixPath
-    from harness.web_fetch.report_i18n import localize_html
+    from harness.web_fetch.report_i18n import localize_html, t
     raw = '<pre data-original="true">验证码 &amp; 原始返回 26/26</pre>'
-    source = '<html lang="zh-CN"><body><input aria-label="搜索" placeholder="搜索案例、方法或原因"><p data-failure-category="规则不满足">任务规则未满足</p>' + raw + '</body></html>'
+    source = '<html lang="zh-CN"><body><input aria-label="搜索" placeholder="搜索案例、方法或原因"><p data-failure-category="规则不满足">' + t('task_requirements_not_met', 'Task requirements not met') + '</p>' + raw + '</body></html>'
     english = localize_html(source, PurePosixPath('analysis/index.html'))
     assert raw in english
     assert 'data-failure-category="规则不满足"' in english

@@ -20,11 +20,11 @@ from pathlib import Path
 from typing import NamedTuple
 from urllib.error import HTTPError
 
-from lexbench_webfetch.paths import contained_path
-
+from harness.benchmarks.data import _TokenRedirects
 from harness.record_io import file_sha256, json_bytes
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
+from lexbench_webfetch.paths import contained_path
 
 
 @dataclass(frozen=True)
@@ -295,7 +295,8 @@ class PublicationClient:
         headers = self.headers(base, content_type, authenticated=authenticated, extra_headers=extra_headers)
         request = urllib.request.Request(base + path, data=data, headers=headers, method=method)
         try:
-            with urllib.request.urlopen(request, timeout=self.timeout_for(method)) as response:
+            opener = urllib.request.build_opener(_TokenRedirects())
+            with opener.open(request, timeout=self.timeout_for(method)) as response:
                 return PublicationResponse(response.status, response.read(), dict(response.headers.items()))
         except HTTPError as error:
             if not self.return_http_errors:

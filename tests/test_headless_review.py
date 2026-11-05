@@ -29,11 +29,11 @@ class HeadlessReviewTests(unittest.TestCase):
         ]
         for message, expected in cases:
             with self.subTest(message=message):
-                page = SimpleNamespace(goto=lambda *a, **kw: (_ for _ in ()).throw(RuntimeError(message)))
-                context = SimpleNamespace(new_page=lambda: page)
-                browser = SimpleNamespace(version='fixture', new_context=lambda **kw: context, close=lambda: None)
+                page = SimpleNamespace(goto=lambda *a, message=message, **kw: (_ for _ in ()).throw(RuntimeError(message)))
+                context = SimpleNamespace(new_page=lambda page=page: page)
+                browser = SimpleNamespace(version='fixture', new_context=lambda context=context, **kw: context, close=lambda: None)
                 class Driver:
-                    def __enter__(self):
+                    def __enter__(self, browser=browser):
                         return SimpleNamespace(chromium=SimpleNamespace(launch=lambda **kw: browser))
                     def __exit__(self, *args):
                         return False

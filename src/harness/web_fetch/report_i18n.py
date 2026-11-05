@@ -17,6 +17,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from bs4 import BeautifulSoup, Comment
 
+from harness.reporting.locales import catalog_text, translate
 from harness.web_fetch.report_reading import archived_translations, render_archived_reading
 
 NAV = [
@@ -37,6 +38,24 @@ NAV = [
 _TRANSLATIONS = json.loads(Path(__file__).with_name("report-translations.json").read_text(encoding="utf-8"))
 
 TEXT = dict(_TRANSLATIONS['TEXT'])
+MESSAGES = Path(__file__).with_name("messages.json")
+
+
+def report_text(language: str):
+    """Return `t(id, english, **values)` for a renderer that writes one edition directly."""
+    return catalog_text(MESSAGES, language)
+
+
+def t(key: str, source: str, /, **values) -> str:
+    """Render one Chinese text node and declare its English for the post-render pass."""
+    chinese = translate(MESSAGES, key, "zh", **values)
+    TEXT.setdefault(chinese.strip(), source.format_map(values))
+    return chinese
+
+
+def pair(key: str, source: str, /, **values) -> tuple[str, str]:
+    """Return both editions of a text the page itself carries, as `model_text` does."""
+    return translate(MESSAGES, key, "zh", **values), source.format_map(values)
 
 
 # These strings are presentation copy shared by the overview, methodology,

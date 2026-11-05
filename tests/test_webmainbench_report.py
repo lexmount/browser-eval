@@ -237,6 +237,29 @@ class WebMainBenchReportTests(unittest.TestCase):
             with self.subTest(change=change), self.assertRaises(ValueError):
                 validate_webmainbench_correction({**receipt, **change}, dataset)
 
+    def test_anomaly_review_renders_in_both_languages(self):
+        with tempfile.TemporaryDirectory() as folder:
+            output = Path(folder)
+            dataset, records, summaries, manifests = sample_report_inputs(output)
+            anomaly_review = {
+                "scope": {"signal_triggered_results": 3, "distinct_cases": 1},
+                "cases": [{
+                    "case_id": "case-one",
+                    "affected_providers": ["moli"],
+                    "observed_zh": "观察",
+                    "observed_en": "observed",
+                    "cause_zh": "原因",
+                    "cause_en": "cause",
+                }],
+            }
+            generate_webmainbench(
+                output, dataset, records, summaries, manifests,
+                {"status": "passed", "reviewed_at": "2026-09-14T00:00:00Z", "checks": []},
+                anomaly_review=anomaly_review, include_english=True,
+            )
+            self.assertIn("Root-cause review of anomalous results", (output / "en/review/index.html").read_text(encoding="utf-8"))
+            self.assertIn("异常结果根因复核", (output / "review/index.html").read_text(encoding="utf-8"))
+
     def test_generates_matching_bilingual_route_inventory(self):
         with tempfile.TemporaryDirectory() as folder:
             output = Path(folder)

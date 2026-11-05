@@ -88,6 +88,26 @@ include = [
   "src/harness/trajectory_replay/**/*.py",
   "tests/browser_use/**/*.py",
   "tests/trajectory_replay/**/*.py",
+  "src/harness/benchmarks/**/*.py",
+  "src/harness/lexbench/**/*.py",
+  "src/harness/reporting/**/*.py",
+  "src/harness/web_search/**/*.py",
+  "src/harness/container_isolation.py",
+  "src/harness/data_home.py",
+  "src/harness/distribution.py",
+  "src/harness/env_file.py",
+  "src/harness/fix_log.py",
+  "src/harness/numbers.py",
+  "src/harness/package_gate.py",
+  "src/harness/platform_capabilities.py",
+  "src/harness/record_io.py",
+  "src/harness/report_languages.py",
+  "src/harness/resource_accounting.py",
+  "src/harness/resource_calibration.py",
+  "src/harness/review_runner.py",
+  "src/harness/webarena_state.py",
+  "scripts/**/*.py",
+  "examples/**/*.py",
 ]
 target-version = "py311"
 
@@ -99,12 +119,35 @@ ban-relative-imports = "all"
 
 [tool.ruff.lint.per-file-ignores]
 # Retain scorer import spelling so published source hashes remain verifiable.
-"src/lexbench_webfetch/*.py" = ["TID252"]
-"src/lexbench_websearch/*.py" = ["TID252"]
+"src/lexbench_webfetch/*.py" = ["TID252", "B023", "B905"]
+"src/lexbench_websearch/*.py" = ["TID252", "B905"]
 "tests/benchmarks/webfetch/*.py" = ["TID252"]
+# Evidence binds these sources' hashes: Search collection_implementation and visual receipts,
+# the Lexbench resource orchestrator and the latency runners. Do not edit them for style.
+"src/harness/web_fetch/webmainbench_latency_correction.py" = ["B905"]
+"src/harness/web_fetch/webmainbench_latency_diagnostic.py" = ["B905"]
+"src/harness/lexbench/resource_profiles.py" = ["I001"]
+"src/harness/reporting/visual.py" = ["I001"]
+"src/harness/web_search/core.py" = ["I001"]
+"src/harness/web_search/profiles.py" = ["I001"]
+"src/harness/web_search/runner.py" = ["I001"]
+"src/harness/web_search/visual.py" = ["B023", "I001"]
+# Long lines are not rewrapped; scripts insert src/ on sys.path before importing it.
+"src/harness/benchmarks/**/*.py" = ["E501"]
+"src/harness/lexbench/**/*.py" = ["E501"]
+"src/harness/reporting/**/*.py" = ["E501"]
+"src/harness/web_search/**/*.py" = ["E501"]
+"src/harness/distribution.py" = ["E501"]
+"src/harness/env_file.py" = ["E501"]
+"src/harness/platform_capabilities.py" = ["E501"]
+"src/harness/report_languages.py" = ["E501"]
+"src/harness/resource_calibration.py" = ["E501"]
+"scripts/**/*.py" = ["E402", "E501"]
+"examples/**/*.py" = ["E501"]
 "src/harness/trajectory_replay/report.py" = ["E501"]
 "src/harness/trajectory_replay/webarena_report.py" = ["E501"]
 "src/harness/browser_use/report.py" = ["E501"]
+"src/harness/browser_use/report_check.py" = ["E501"]
 "src/harness/browser_use/report_i18n.py" = ["E501"]
 "src/harness/trajectory_replay/public_webarena/report.py" = ["E501"]
 
@@ -124,9 +167,9 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 "harness.web_search" = ["messages.json", "data/*.json"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json", "resources/fixtures/*.html"]
-"harness.browser_use" = ["report-translations.json"]
+"harness.browser_use" = ["messages.json"]
 "harness.lexbench" = ["assets/*.js", "assets/*.cjs", "template/*"]
-"harness.web_fetch" = ["report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
+"harness.web_fetch" = ["messages.json", "report-translations.json", "data/*.json", "data/latency-certifiers/*.txt", "templates/*.html", "assets/methodology/*.png", "assets/*.js", "html_to_markdown.mjs"]
 "harness.web_fetch.workers" = ["*.mts", "*.mjs", "*.c"]
 "harness.environments.webarena" = ["runtime/*.ini", "topology.json"]
 

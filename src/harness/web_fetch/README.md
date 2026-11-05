@@ -23,7 +23,7 @@ This page is the technical reference for larger experiments and historical repor
 
 Run every publishable Web Fetch provider cohort through `scripts/run_certified_benchmark.py`, which freezes executable task inputs. Existing compiled reference answers stay frozen; pre/post source checks require an explicit `source_verification.reference_mode: live_exact` task declaration. Missing newer acceptance-contract fields, source metadata and capture dates never imply a live-reference task. For a live-exact task, fail closed: verify and freeze references immediately before calls, verify the same declared scope afterward, and certify the cohort only when both checks pass. Direct `run_benchmark.py` output and incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. An explicitly requested diagnostic report uses the diagnostic build and check entries and labels every page.
 
-For reruns of unchanged compiled stable-contract datasets, invoke `scripts/run_certified_benchmark.py` normally. Freeze existing task definitions and acceptance rules; do not require historical qualification raw files or repeat admission review. Source qualification belongs to adding tasks or changing references/acceptance rules. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol. Live exact-reference cases retain pre/post reference checks. Reserve `--diagnostic` for explicitly diagnostic runs, whose outputs cannot be upgraded to certified evidence. `--retrieval-mode native` selects ordinary WebFetch completion while preserving scenario categories and every acceptance requirement; it rejects selector-guided retrieval hints instead of dropping them. Independent whole-page auditing, when requested, uses the existing browser capturer with `--observation-scope visible_page --checkpoint-dir ...`; checkpoint identities include capture inputs and observer code so observations from another protocol cannot be reused silently.
+For reruns of unchanged compiled stable-contract datasets, invoke `scripts/run_certified_benchmark.py` normally. Freeze existing task definitions and acceptance rules; do not require historical qualification raw files or repeat admission review, and a missing old archive does not turn the run into a diagnostic result. Source qualification belongs to adding tasks or changing references/acceptance rules, through the matching build and revision flow; an explicit reference-answer revision still goes through the separate reference-revision entry. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol. Live exact-reference cases retain pre/post reference checks. Reserve `--diagnostic` for explicitly diagnostic runs, whose outputs cannot be upgraded to certified evidence. `--retrieval-mode native` selects ordinary WebFetch completion while preserving scenario categories and every acceptance requirement; it rejects selector-guided retrieval hints instead of dropping them. Independent whole-page auditing, when requested, uses the existing browser capturer with `--observation-scope visible_page --checkpoint-dir ...`; checkpoint identities include capture inputs and observer code so observations from another protocol cannot be reused silently.
 
 Keep one Web Fetch report implementation: `src/harness/web_fetch/report_build.py` constructs a report and `src/harness/web_fetch/report.py` renders it. `scripts/build_report.py` has no default build; select a report instance with `--profile` or name another of its modes. A profile build reads `--evidence`, falling back to persistent measured evidence (`~/.browser-eval/evidence/current/` by default, or `WEB_FETCH_EVIDENCE_DIR`), and writes to `--output` or the profile's `report_output`. A profile whose `comparison_kind` is `wcxb_frozen_html_to_markdown` selects the independently bound WCXB build, which requires `--evidence` and writes `reports/wcxb/` by default; `--wcxb` only checks that the profile is a WCXB one. Do not create versioned report implementations, compatibility renderers or redirect builds.
 
@@ -35,6 +35,11 @@ reuse engine-level adapter contracts instead of adding per-version renderer tabl
 Keep report-specific prose and its translations in explicitly bound content;
 do not choose a historical article from provider names or task-family guesses.
 Without a content binding, render the maintained data-derived explanation.
+Report text the project writes has English as its source: `t(id, english)` in
+the renderer, with Chinese in `messages.json`. `t` declares that English for
+the post-render English pass, so write one text node per call.
+A frozen or refresh build renders saved Chinese text without running those calls,
+so keep the matching `report-translations.json` entries and regex rules.
 Prove reuse through the public build and check entries with a different external
 task/method inventory, not only by searching for old numbers in source code.
 Exercise assembly and packaging with that external profile as well. Participant
@@ -432,6 +437,20 @@ Supply an evidence directory and, for rule revisions, an explicit canonical
 input plus the required root cause and executable regression IDs. Neither
 operation calls providers. Declared evidence must remain present, unmodified
 and free of symbolic links before scores can be rewritten.
+
+An authorized error correction should complete automatically: first find the
+shared cause and add the necessary positive and negative controls, then freeze the
+complete affected call scope and rerun it through the certified entry. Interface,
+version or execution errors need new calls; scoring or presentation errors only
+recompute or rebuild. Do not pick failed tasks to retry for a higher score, do not
+repeat calls for unrelated tasks, and do not turn a rerun of an existing task set
+into a new collection of qualification evidence. Retain the old results and the
+effects of the revision.
+
+A benchmark configuration error or an adapter block before a call is an execution
+problem and must not be published as a browser capability failure; the native route
+gate rejects `configuration` results. Errors returned by an actual provider call are
+still retained under the existing rules.
 
 ### Retain or merge an existing review
 
@@ -1335,56 +1354,26 @@ they do not retroactively prove title/address provenance. Bind a separate offlin
 context audit to historical results, replay the complete affected route when a
 context difference is found, and retain the original records and exact score effects.
 These checks add no provider calls.
-按任务类型预选官方支持的正文、资源或原始文件接口。JSON 包装中的原生 Markdown
-可以解包；不能把 JSON DOM、HTML 或下载的 PDF/DOCX 另行转换成选手的正文成绩。
-Chromium 没有原生 Markdown，网页 HTML 使用固定版本的 node-html-markdown；此例外
-不授权外部文档解析器。浏览器内已经加载的 PDF 查看器可通过原生脚本接口读取文字，
-不得下载嵌入文件后交给外部解析器。图片、视频的原始文件交付只验收字节，不冒充正文提取。
 
-Lightpanda 使用 `--dump markdown --json` 的原生正文；Obscura 使用其固定官方
-`HTML_TO_MARKDOWN_JS`，脚本哈希必须与所测版本绑定；Kitesurf 使用显式指定该浏览器
-的官方 `/markdown` 或 CDP 接口。Moli 的网页正文、文档正文、结构与网页内嵌媒体
-统一使用原生 Markdown；网页媒体只核对同一次输出里的目标地址。直接媒体文件才走
-原始响应。禁止失败后切换为 HTML、JSON、网络跟踪或查看器脚本补结果。
+Native route selection, per-browser interfaces and the route gate are in the
+[live-URL guide](HEADLESS.md#native-browser-routes).
 
-`output_mode_for_case` 负责路线选择，`browser_task_interface_matrix` 使用同一选择器
-生成每类任务与每种浏览器的接口表。`require_native_task_routes` 检查实测路线与外部
-转换标记；当前报告配置必须启用该门禁，检查失败时不得汇总或发布。
-改变调用接口应冻结完整受影响范围、保留旧调用并通过认证入口补跑；只改共享评分时
-离线重算所有选手，不重复请求网站。合成正反测试必须同时覆盖正确正文缺少网址和错误正文。
+### Resource comparison scope
 
-方法名与浏览器引擎分开登记在 `configs/providers.headless.json`。同一浏览器的发布版和分支构建分别计分，
-原生路线检查、接口表和官方能力说明共用该登记的引擎；未知方法不能跳过检查。
-报告分别统计浏览器引擎和执行配置，同一引擎的多个版本不算成多种浏览器。
-资源属性中的单个 URL 保留完整地址；只有 `srcset` 按候选及描述符解析，URL 中间的逗号不能拆开。
-分支构建在调用前固定来源提交、基线提交、构建环境和二进制 SHA-256。新增配置只调用完整固定题库，
-旧配置的原始结果保持不变。不同日期的批次用于展示各自任务完成情况；代码带来的耗时变化须另按同窗配对协议测量。
+The primary statistics in `resource_cohort.py` keep the predeclared complete method
+and task matrix, including failed calls. Mean, P50 and P95 use the same scope, and the
+report also shows each method's pass count. Statistics over each method's successful
+calls are stored separately as a conditional distribution. Tasks that all methods
+passed are an additional diagnostic only and must not be used to select ranking
+samples. When there is no common success, the complete-call resource statistics must
+still be kept; a conditional metric with no successful items is unavailable, not zero.
 
-### 资源比较的统计范围
-
-`resource_cohort.py` 的主统计保留预先确定的完整方法与任务矩阵，包括失败调用。
-平均值、P50 和 P95 使用同一范围，报告同时显示各方法的通过数。各方法成功调用的统计另存为
-条件分布；所有方法共同通过的任务只作附加诊断，不能据此挑选排名样本。没有共同成功项时，
-仍须保留完整调用的资源统计；没有成功项的条件指标为不可用，不填零。
-
-改正统计范围时，用已保存、哈希校验通过的测量重新汇总，不重新调用浏览器，不覆盖旧汇总。
-主结果、原始输出和每次调用的资源计数保持不变。发布检查核对全部测量值、分母、指标方向
-及唯一最低值标记；并列项保持中性。资源消耗与任务通过率分别呈现，不合成总分。
-
-### 已编译评测集的重跑
-
-`scripts/run_certified_benchmark.py` 直接使用冻结的题目与验收规则。已有固定答案或稳定规则的题目
-不重新审核入选资格，不读取历史资格调查原文，也不因旧归档缺失而改成诊断结果。
-新增题目、修改参考或验收规则时，仍须通过相应构建与修订流程核验来源。
-固定答案不会因为有来源核验信息、旧核验日期或缺少新版验收契约而自动变成实时参考。
-只有题目明确声明 `source_verification.reference_mode: live_exact`，才执行调用前冻结和调用后核验。
-没有该声明时，执行器保持题库中的答案和评分规则不变。明确修订参考答案仍走独立的参考修订入口。
-
-已授权的错误修正应自动完成：先查明共享原因并添加必要的正反测试，再冻结受影响的完整调用范围，经认证入口补跑。
-接口、版本或执行错误需要新调用；评分或展示错误只重算或重建。不能为提高分数挑选失败题重试，
-不能让无关题目重复调用，也不能把已有题库的重跑变成重新收集资格证明。保留旧结果及修订影响。
-评测配置错误或适配器在调用前拦截属于执行问题，不能当作浏览器能力失败发布；原生路线门禁拒绝 `configuration` 结果。供应商实际调用返回的错误仍按原规则保留。
-
+To correct the statistics scope, re-aggregate from saved, hash-verified measurements.
+Do not call browsers again and do not overwrite the old aggregate. Primary results,
+raw outputs and per-call resource counts stay unchanged. Release checks verify all
+measured values, denominators, metric directions and the unique lowest-value marker;
+ties stay neutral. Resource consumption and task pass rate are presented separately
+and are not combined into a total score.
 
 ### Reviewed browser interpretation inputs
 

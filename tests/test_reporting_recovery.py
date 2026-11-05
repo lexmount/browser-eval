@@ -3,6 +3,7 @@
 import json
 import urllib.request
 import zipfile
+from types import SimpleNamespace
 
 import pytest
 
@@ -145,6 +146,7 @@ def test_retry_recovers_same_site_and_version(tmp_path, monkeypatch, track, fail
         return Response()
 
     monkeypatch.setattr(urllib.request, "urlopen", urlopen)
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *handlers: SimpleNamespace(open=urllib.request.urlopen))
     before = (files["PROFILE"].read_bytes(), files["ATTESTATION"].read_bytes())
     with pytest.raises((OSError, ValueError), match="simulated|remote version changed"):
         owner.main(create=failure != "version-response")

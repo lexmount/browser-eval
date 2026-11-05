@@ -483,7 +483,7 @@ def _compact_cached_content(cached: Path, destination: Path, *, source: Path, re
             metadata = {key:value for key,value in entry.items()
                         if key not in ('parts','inline_base64')}
             if Path(name).parent.name == 'attempts' and b'<pre data-file="contracts/' in raw:
-                def embedded_contract():
+                def embedded_contract(name=name):
                     original = (source/name).read_text(encoding="utf-8")
                     matches = re.findall(r'<pre data-kind="contract">.*?</pre>', original, re.S)
                     _require(len(matches) == 1, 'Missing inline acceptance contract: '+name)

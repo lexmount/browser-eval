@@ -9,10 +9,9 @@ import re
 import statistics
 from pathlib import Path
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.lexbench.resource_matrix import verify_calls
 from harness.record_io import file_sha256, load_jsonl
+from lexbench_webfetch.paths import contained_path
 
 
 def digest(path: Path) -> str:

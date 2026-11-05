@@ -12,8 +12,6 @@ import subprocess
 import tempfile
 from typing import Any, NoReturn
 
-from lexbench_webfetch.paths import contained_path, safe_identifier
-
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import validate_matrix
 from harness.lexbench.resource_summary import validate_summary
@@ -21,7 +19,7 @@ from harness.record_io import file_sha256, read_json
 from harness.report_languages import check_language_contract, generated_languages
 from harness.reporting.privacy import LEXBENCH_CHECK_SOURCE
 from harness.web_fetch.safety import reject_evidence_symlinks
-
+from lexbench_webfetch.paths import contained_path, safe_identifier
 
 Json = dict[str, Any]
 ModeCall = tuple[str, Json]

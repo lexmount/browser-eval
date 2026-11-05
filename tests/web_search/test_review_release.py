@@ -281,7 +281,7 @@ def test_failure_only_audit_cannot_change_quality_denominator(tmp_path):
     ((0, 0, 0, 0, 0, 0), 0),
 ])
 def test_review_percentage_requires_all_three_populations(counts, expected):
-    evidence = dict(zip(("case_reviewed", "case_total", "output_reviewed", "output_total", "candidate_reviewed", "candidate_total"), counts))
+    evidence = dict(zip(("case_reviewed", "case_total", "output_reviewed", "output_total", "candidate_reviewed", "candidate_total"), counts, strict=True))
     assert review.coverage_percent(evidence) == expected
 
 

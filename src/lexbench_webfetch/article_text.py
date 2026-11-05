@@ -151,12 +151,22 @@ def mask_markdown_inline_code(content, protected_literals=()):
     return ''.join(pieces), restore
 
 
-def article_markdown(content):
+def _literal_markdown_text(text):
+    """Escape Markdown syntax in a DOM text node; only elements create structure."""
+    # The projection is reparsed as HTML, where a backslash would not protect a
+    # tag or a character reference.
+    text = re.sub(r'([\\`*\[\]])', r'\\\1', text).replace('&', '&amp;').replace('<', '&lt;')
+    return re.sub(r'(?m)^[ \t]*(?:#+|>|~{3,})',
+                  lambda match: re.sub(r'([#>~])', r'\\\1', match[0]), text)
+
+
+def article_markdown(content, *, representation=None):
     """Project cleaned HTML while retaining headings, links and ownership stops.
 
     This is used only when no reviewed native record containers remain. It is
     not a competing parser whose more permissive count can override native DOM
     ownership. Navigation and explicit related-content landmarks are excluded.
+    Undeclared answers may mix Markdown into HTML wrappers; declared HTML cannot.
     """
     from bs4 import Comment, NavigableString, Tag
     soup = article_html(content)
@@ -167,7 +177,7 @@ def article_markdown(content):
         if isinstance(node, Comment):
             return ''
         if isinstance(node, NavigableString):
-            return str(node)
+            return _literal_markdown_text(str(node)) if representation == 'html' else str(node)
         if not isinstance(node, Tag):
             return ''
         if node.name == 'pre':

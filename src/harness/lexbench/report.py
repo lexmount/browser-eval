@@ -14,13 +14,13 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 from typing import Any
 
+from harness.data_home import data_home
 from harness.distribution import repository_root
 from harness.lexbench import charts, reproduction
 from harness.lexbench.charts import combine_comparisons, render_chart
 from harness.lexbench.resource_evidence import load_matrix
 from harness.lexbench.resource_summary import summarize as summarize_linux_profiles
 from harness.lexbench.resource_summary import validate_summary as validate_linux_summary
-from harness.data_home import data_home
 from harness.record_io import bytes_sha256, load_jsonl
 from harness.report_languages import english_notice, generated_languages, write_language_contract
 from harness.reporting.privacy import LEXBENCH

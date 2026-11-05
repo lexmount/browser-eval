@@ -76485,6 +76485,1956 @@
       "expected_task_pass": false
     },
     {
+      "id": "fixed-membership-swapped-fields-diagnosed",
+      "category": "structured-extraction",
+      "root_cause": "Fixed source membership rejected records without reporting them through the source-match diagnostics.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/quotes",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "415e5f6a0c69fcffc2c44581affa1208bfe59e60542eeb58451e629a6ea154ee",
+              "cf5ecfbca6e365342183af5b5f86ca9ce9c453854d41b59dfa75223ef23f31f5"
+            ]
+          }
+        }
+      },
+      "artifact": "“A quiet path.” by Bob Tags: nature\n“Another path.” by Alice Tags: life",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_source_observed_record_count": 2,
+        "stable_source_matched_record_count": 0,
+        "stable_source_mismatched_record_count": 2,
+        "stable_source_mismatched_records": [
+          {
+            "fields": {
+              "author": "Bob",
+              "quote": "A quiet path.",
+              "tags": "nature"
+            },
+            "record_sha256": "0d2d7665e7c6db53467428f08102a86a8f194ad451b995040a195cb4b2605ba5"
+          },
+          {
+            "fields": {
+              "author": "Alice",
+              "quote": "Another path.",
+              "tags": "life"
+            },
+            "record_sha256": "0c7c40cd7f5a0ab680fa3dc31e531bd6181b370182c95a963678839352c8cc13"
+          }
+        ]
+      }
+    },
+    {
+      "id": "fixed-membership-matching-records-diagnosed",
+      "category": "structured-extraction",
+      "root_cause": "Fixed source membership rejected records without reporting them through the source-match diagnostics.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/quotes",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "415e5f6a0c69fcffc2c44581affa1208bfe59e60542eeb58451e629a6ea154ee",
+              "cf5ecfbca6e365342183af5b5f86ca9ce9c453854d41b59dfa75223ef23f31f5"
+            ]
+          }
+        }
+      },
+      "artifact": "“A quiet path.” by Alice Tags: nature\n“Another path.” by Bob Tags: life",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_source_observed_record_count": 2,
+        "stable_source_matched_record_count": 2,
+        "stable_source_mismatched_record_count": 0,
+        "stable_source_mismatched_records": []
+      }
+    },
+    {
+      "id": "html-fallback-literal-markdown-permalink",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2>[Alice](/post/1)</h2><p>First post.</p><h2>[Bob](/post/2)</h2><p>Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-genuine-permalink-anchor",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2><a href=\"/post/1\">Alice</a></h2><p>First post.</p><h2><a href=\"/post/2\">Bob</a></h2><p>Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-fallback-genuine-anchor-literal-label-syntax",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2><a href=\"/post/1\">[Alice] *one*</a></h2><p>Post about [brackets](/post/3) and `code`.</p><h2><a href=\"/post/2\">Bob #2</a></h2><p># Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-fallback-literal-comment-heading",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<h2>Comments</h2><p>### Alice</p><p>First reply.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-literal-bold-comment-author",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<h2>Comments</h2><p>**Alice**</p><p>First reply.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-genuine-comment-heading",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<h2>Comments</h2><h3>Alice</h3><p>First reply with [brackets] and ### hashes.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "plain-document-indented-heading",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "    Usage\n\nA useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-document-indented-heading",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "    Usage\n\nA useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-document-literal-fence",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "```\nUsage\n```\nA useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-document-fenced-heading",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "```\nUsage\n```\nA useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-document-literal-hash-body",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "Usage\n# A useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "markdown-document-hash-ends-section",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "Usage\n# A useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-document-literal-link-heading",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "[Usage](/usage)\nA useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "markdown-document-link-heading",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "[Usage](/usage)\nA useful paragraph about application usage.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "plain-document-heading-without-body",
+      "category": "format-normalization",
+      "root_cause": "Document structure parsed declared plain text with Markdown code, heading and link syntax.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/document",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "usage",
+              "text": "Usage",
+              "level": 2,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "    Usage",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-product-plain-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a><p class=\"price\">$10.00</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-product-inline-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a><p class=\"price\">$<strong>10.00</strong></p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-product-inline-price-direct-child",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a>$<strong>10.00</strong></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-product-inline-price-in-anchor",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget $<strong>10.00</strong></a></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-product-scoped-plain-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a><p class=\"price\">$10.00</p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-product-scoped-inline-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a><p class=\"price\">$<strong>10.00</strong></p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "linked-product-neighbor-inline-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a></article><article class=\"product\"><a href=\"/item/2\">Other</a><p class=\"price\">$<strong>10.00</strong></p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-product-scoped-neighbor-inline-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 2,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a></article><article class=\"product\"><a href=\"/item/2\">Other</a><p class=\"price\">$<strong>10.00</strong></p></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-product-price-split-by-title-anchor",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\">$<a href=\"/item/1\">Widget</a>10.00</article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "linked-product-scoped-existing-price-keeps-priority",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ],
+          "entry_scope": {
+            "html_selector": ".product",
+            "price_selector": ".price"
+          }
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a><span class=\"price\">$<b>10</b>.00</span><span class=\"price\">$20.00</span></article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "stable_records": [
+          {
+            "fields": {
+              "url": "https://shop.example/item/1",
+              "title": "Widget",
+              "price": "$20.00"
+            },
+            "valid": true,
+            "errors": []
+          }
+        ]
+      }
+    },
+    {
+      "id": "linked-product-escaped-markup-price",
+      "category": "structured-extraction",
+      "root_cause": "Linked-product extraction joined inline price nodes with spaces or field boundaries, splitting one visible token.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://shop.example/catalog",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "linked_product",
+          "minimum_records": 1,
+          "hosts": [
+            "shop.example"
+          ],
+          "entry_path": "/item/\\d+",
+          "stable_text_anchors": [],
+          "price_patterns": [
+            "\\$\\d+\\.\\d{2}"
+          ]
+        }
+      },
+      "artifact": "<article class=\"product\"><a href=\"/item/1\">Widget</a>&lt;span&gt;$10.00&lt;/span&gt;</article>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-absent",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-borrows-later-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n## Related\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-indented-continuation",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n  Genuine description.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-before-later-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n  Genuine description.\n\n## Related\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-indented-item-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n  ## Details\n  Genuine description.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-one-space-section-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n ## Related\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-ordered-marker-section-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "1. Widget\n\n  ## Related\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-ordered-marker-item-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "1. Widget\n   ## Details\n   Genuine description.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "composite-bullet-description-borrows-later-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "- Widget\n\n## Related\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "composite-bullet-description-before-later-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "items",
+              "kind": "name_description",
+              "minimum_records": 1
+            }
+          ]
+        }
+      },
+      "artifact": "- Widget\n  Genuine description.\n\n## Related\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "definition-nested-signature-body-only",
+      "category": "structured-extraction",
+      "root_cause": "A definition body used the recursive description text, so a nested API signature supplied its parent description.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/api",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "type": "definition",
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "parent",
+              "text": "parent()",
+              "level": 1,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "<dl><dt>parent()</dt><dd><dl><dt>child()</dt><dd>Child-only description.</dd></dl></dd></dl>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "definition-nested-wrapped-signature-body-only",
+      "category": "structured-extraction",
+      "root_cause": "A definition body used the recursive description text, so a nested API signature supplied its parent description.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/api",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "type": "definition",
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "parent",
+              "text": "parent()",
+              "level": 1,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "<dl><dt>parent()</dt><dd><dl><dt>child(\n)</dt><dd>Child-only description.</dd></dl></dd></dl>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "definition-parent-prose-with-nested-signature",
+      "category": "structured-extraction",
+      "root_cause": "A definition body used the recursive description text, so a nested API signature supplied its parent description.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/api",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "type": "definition",
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "parent",
+              "text": "parent()",
+              "level": 1,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "<dl><dt>parent()</dt><dd><p>Parent prose here.</p><dl><dt>child()</dt><dd>Child-only description.</dd></dl></dd></dl>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "document_body_chars": 18
+      }
+    },
+    {
+      "id": "definition-sibling-signature-excluded",
+      "category": "structured-extraction",
+      "root_cause": "A definition body used the recursive description text, so a nested API signature supplied its parent description.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/api",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "type": "definition",
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "parent",
+              "text": "parent()",
+              "level": 1,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "<dl><dt>parent()</dt><dd></dd><dt>child()</dt><dd>Child-only description.</dd></dl>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "definition-nested-parameter-description",
+      "category": "structured-extraction",
+      "root_cause": "A definition body used the recursive description text, so a nested API signature supplied its parent description.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/api",
+        "expected_any": [],
+        "document_structure": {
+          "version": 1,
+          "type": "definition",
+          "minimum_heading_coverage": 1,
+          "minimum_body_chars": 5,
+          "headings": [
+            {
+              "id": "parent",
+              "text": "parent()",
+              "level": 1,
+              "body_required": true
+            }
+          ]
+        }
+      },
+      "artifact": "<dl><dt>parent()</dt><dd><dl><dt>name</dt><dd>Parameter description.</dd></dl></dd></dl>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-real-hash-run-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n## This is an unrelated section.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-fenced-hash-comment",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n```\n# code comment text here\n```",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-empty-section-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n##\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-setext-dash-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\nRelated\n-------\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-setext-equals-section",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\nRelated\n=======\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-lazy-line-before-rule",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\nGenuine lazy description.\n-------",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-indented-setext-item",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n  Details\n  -------\n  Genuine description.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-fallback-literal-html-permalink",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2>&lt;a href=\"/post/1\"&gt;Alice&lt;/a&gt;</h2><p>First post.</p><h2>&lt;a href=\"/post/2\"&gt;Bob&lt;/a&gt;</h2><p>Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "fixed-membership-duplicate-record-diagnosed",
+      "category": "structured-extraction",
+      "root_cause": "Fixed source membership rejected records without reporting them through the source-match diagnostics.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/quotes",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "source_membership": {
+            "kind": "fixed",
+            "fields": [
+              "author",
+              "quote",
+              "tags"
+            ],
+            "record_hashes": [
+              "415e5f6a0c69fcffc2c44581affa1208bfe59e60542eeb58451e629a6ea154ee",
+              "cf5ecfbca6e365342183af5b5f86ca9ce9c453854d41b59dfa75223ef23f31f5"
+            ]
+          }
+        }
+      },
+      "artifact": "“A quiet path.” by Alice Tags: nature\n“Another path.” by Bob Tags: life\n“A quiet path.” by Alice Tags: nature",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "stable_source_observed_record_count": 2,
+        "stable_source_matched_record_count": 2,
+        "stable_source_mismatched_record_count": 0
+      }
+    },
+    {
+      "id": "html-fallback-literal-script-post-body",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2><a href=\"/post/1\">Alice</a></h2><p>&lt;script&gt;This is visible post prose.&lt;/script&gt;</p><h2><a href=\"/post/2\">Bob</a></h2><p>Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-fallback-literal-script-comment-body",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<h2>Comments</h2><h3>Alice</h3><p>&lt;script&gt;This is visible comment prose.&lt;/script&gt;</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-setext-after-space-line",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n   \nRelated\n-------\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-setext-after-tab-line",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\t\nRelated\n=======\nUnrelated section prose.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-encoded-markdown-permalink",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2>&amp;#91;Alice&amp;#93;(/post/1)</h2><p>First post.</p><h2>&amp;#91;Bob&amp;#93;(/post/2)</h2><p>Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-ampersand-text-genuine-anchors",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/feed",
+        "expected_any": [],
+        "source_benchmark": {
+          "post_contract": {
+            "version": 2,
+            "minimum_posts": 2,
+            "hosts": [
+              "example.test"
+            ],
+            "entry_path": "/post/\\d+",
+            "html_record_selector": "article.post",
+            "html_permalink_selector": "a.permalink",
+            "html_author_selector": ".author",
+            "html_body_selector": ".body",
+            "allow_empty_outer_with_quotes": true,
+            "ignored_labels": [],
+            "unavailable_notices": [],
+            "non_author_labels": []
+          }
+        }
+      },
+      "artifact": "<h2><a href=\"/post/1\">AT&amp;T</a></h2><p>First &amp; post.</p><h2><a href=\"/post/2\">Bob &amp;amp; co</a></h2><p>Second post.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "html-fallback-encoded-comment-heading",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<h2>Comments</h2><p>&amp;#35;&amp;#35;&amp;#35; Alice</p><p>First reply.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-encoded-comment-section",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<p>&amp;#35; Comments</p><p>&amp;#35;&amp;#35; Alice</p><p>Actual body.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "html-fallback-ampersand-text-genuine-comment",
+      "category": "format-normalization",
+      "root_cause": "The HTML article fallback emitted DOM text unescaped, so literal Markdown in a text node became links and headings.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "source_benchmark": {
+          "comment_contract": {
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ],
+            "ignored_labels": [],
+            "unavailable_notices": []
+          }
+        }
+      },
+      "artifact": "<h2>Comments</h2><h3>AT&amp;T</h3><p>First reply about AT&amp;T and &amp;#35;.</p>",
+      "ok": true,
+      "metadata": {
+        "answer_format": "html"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-description-tab-marker-section-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "-\tWidget\n  ## Unrelated section\n  Unrelated descriptive text.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-description-tab-marker-item-heading",
+      "category": "structured-extraction",
+      "root_cause": "A Markdown bullet description extended across later sections until the next bullet or end of input.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "-\tWidget\n    ## Details\n    Genuine description.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-card-title-after-image-bullet",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "        1. [![Alpha](/a.jpg)](/a)\n\n### Alpha\n\n£51.77\nIn stock\n\n        2. [![Beta](/b.jpg)](/b)\n\n### Beta\n\n£12.00\nIn stock\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-card-title-after-link-bullet",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- [Alpha](/a)\n\n### Alpha\n\nAlpha is a great item.\n\n- [Beta](/b)\n\n### Beta\n\nBeta is a great item.\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-heading-cards-with-feature-bullets",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "## Alpha\nAlpha is great for teams.\n- Fast\n- Cheap\n\n## Beta\nBeta is great for solo work.\n- Slow\n- Costly\n\n## Gamma\nGamma is great for all of us.\n- Big\n- Bold\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true
+    },
+    {
+      "id": "bullet-navigation-only-sections",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "### Tools\n- Log in\n- Sign up\n\n### Views\n...",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-own-title-without-body",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Alpha\n\n### Alpha\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
+      "id": "bullet-empty-section-before-next-bullet",
+      "category": "structured-extraction",
+      "root_cause": "A heading left of a bullet's content column ended the description even when it was the card's own title, while a later section must still not supply one.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/list",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "name_description",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "- Widget\n\n## Related\n\n- Gadget\n  Gadget description text here.\n",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false
+    },
+    {
       "id": "article-primary-scope-complete-without-shell",
       "failure_mode": "false-negative",
       "category": "acceptance-contract",

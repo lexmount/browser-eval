@@ -340,7 +340,7 @@ def _verify_fixed_posts(content, contract, url, *, representation=None):
     if is_article_html(content, representation=representation):
         native = article_html(content).select(contract['html_record_selector'])
         rows = (_html_records(content, contract) if native
-                else _text_records(article_markdown(str(_post_html(content, contract))), contract, url))
+                else _text_records(article_markdown(str(_post_html(content, contract)), representation=representation), contract, url))
     else:
         rows = _text_records(content, contract, url, representation=representation)
     seen, checks = set(), []

@@ -57,7 +57,7 @@ class PublicDefinitions(unittest.TestCase):
             self.assertEqual(data, before)
             self.assertNotEqual(new['id'], data['id'])
             self.assertEqual(len(new['cases']), len(data['cases']))
-            changed += sum(a != b for a,b in zip(new['cases'],data['cases']))
+            changed += sum(a != b for a,b in zip(new['cases'],data['cases'],strict=True))
         self.assertEqual(changed, len(revision['changes']))
 
     def test_unknown_suite_is_rejected(self):

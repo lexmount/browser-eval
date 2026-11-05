@@ -315,7 +315,7 @@ def _verify_comment_coverage(content, contract, *, representation=None):
     if is_article_html(content, representation=representation):
         native = article_html(content).select(contract['record_selector'])
         rows = (_html_records(content, contract) if native
-                else _coverage_text_records(article_markdown(content), contract))
+                else _coverage_text_records(article_markdown(content, representation=representation), contract))
     else:
         rows = _coverage_text_records(content, contract, representation=representation)
     valid = valid_comment_records(rows, contract, representation='plain_text')

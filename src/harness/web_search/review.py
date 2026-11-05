@@ -17,10 +17,6 @@ from pathlib import Path
 from threading import Event
 from urllib.parse import urlsplit
 
-from lexbench_webfetch.paths import contained_path
-from lexbench_websearch.relevance import candidate_packet
-from lexbench_websearch.scoring import candidate_identity, classify
-
 from harness.record_io import bytes_sha256
 from harness.reporting.publication import atomic_write
 from harness.review_runner import ReviewerSessions
@@ -28,6 +24,9 @@ from harness.web_search.core import normalize_response
 from harness.web_search.diagnostics import error_evidence
 from harness.web_search.messages import report_text
 from harness.web_search.relevance import legacy_evidence_allowed
+from lexbench_webfetch.paths import contained_path
+from lexbench_websearch.relevance import candidate_packet
+from lexbench_websearch.scoring import candidate_identity, classify
 
 
 def encoded(value):
@@ -202,9 +201,9 @@ def make_cases(profile, rows, report):
             raise ValueError("Raw evidence changed")
         try:
             payload = json.loads(raw)
-        except ValueError:
+        except ValueError as error:
             if row["http_status"] == 200 and not row["error"]:
-                raise ValueError("Successful response is not JSON: " + row["id"])
+                raise ValueError("Successful response is not JSON: " + row["id"]) from error
             payload = None
         full = (
             normalize_response(payload, methods[row["method"]], profile["protocol"], row.get("request"))

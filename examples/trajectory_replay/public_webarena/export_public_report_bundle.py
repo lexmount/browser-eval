@@ -8,7 +8,6 @@ from pathlib import Path
 
 from harness.trajectory_replay.public_webarena.publication import export_public_report_bundle
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument("--formal-root", type=Path, required=True)

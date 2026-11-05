@@ -33,16 +33,21 @@ browser. Ordinary, dynamic, popular-site and risk-control text remain page tasks
 Image/video cases distinguish resource URLs, original file bytes and page metadata;
 a Markdown response cannot substitute for a required original file.
 
-文档正文必须由所选浏览器的原生内容接口返回。直接 PDF/DOCX 使用各自原生正文
-接口；不支持时保存真实失败，不交给外部 pypdf、DOCX XML 或 OCR 补正文。
-嵌入文档页面可通过该浏览器的 CDP 或脚本接口读取已经加载的 PDF 查看器文字，
-或页面可见文字；不得额外下载嵌入 PDF 后解析。Chromium 的例外只覆盖网页 HTML
-到 Markdown 的标准转换。
+Document text must be returned by the selected browser's native content interface.
+Direct PDF/DOCX uses that browser's native body interface; when it is unsupported,
+save the real failure and do not hand the file to external pypdf, DOCX XML or OCR to
+fill in text. An embedded-document page can read the text of an already loaded PDF
+viewer through that browser's CDP or script interface, or read the page's visible
+text; do not additionally download the embedded PDF and parse it.
 
-图片与视频原始文件保留浏览器响应或下载路线。Moli 附件事件可调用同一固定二进制
-的原始附件接口，仍受同一截止时间约束；原文件字节不会被外部转换成正文成绩。
-资源地址读取已经加载的 DOM 与同源子页面，不额外抓取模块源码挖掘链接。
-最终网址只作辅助信息；正文验收以目标内容、必需字段和拦截页规则为准。
+Image and video original files keep the browser-response or download route. A Moli
+attachment event can call the raw attachment interface of the same pinned binary,
+still under the same deadline. Original-file delivery accepts bytes only: it does not
+stand in for body extraction, and the bytes are not converted externally into a body
+score. Resource addresses read the already loaded DOM and same-origin subpages;
+do not additionally fetch module source to mine links. The final URL is auxiliary
+information only; body acceptance rests on target content, required fields and
+blocked-page rules.
 
 Local HTTP downloading and Workers AI conversion are separate methods, not
 Kitesurf results. Every Kitesurf Quick Action and CDP connection must explicitly
@@ -210,8 +215,10 @@ filenames rather than claiming the repository's default inputs.
 ### Capture, freeze and check references
 
 Use the certified wrapper below. Existing frozen task and answer bytes remain
-unchanged. Only cases declaring `reference_mode: live_exact` need the live
-reference lifecycle in [README.md](README.md).
+unchanged. Only cases declaring `source_verification.reference_mode: live_exact` need
+the live reference lifecycle in [README.md](README.md). Old source records and a
+missing newer acceptance contract are not that declaration, and an ordinary rerun must
+not refetch or update answers because of them.
 
 For those live-reference cases, acquisition follows `source_verification.observation_route` (`http`
 or `browser`). Existing frozen inputs that name independent visible/rendered
@@ -393,9 +400,15 @@ the full declared correction scope before claiming revised benchmark scores.
 
 ## Native browser routes
 
-For native-content browser comparisons, use task-appropriate official interfaces and score the returned deliverable. A final URL or HTML language tag is diagnostic unless the benchmark explicitly evaluates that metadata. Do not repair missing text using JSON DOM conversion or external PDF/DOCX parsers. The declared Chromium HTML-to-Markdown exception does not authorize document parsers. Bind native script versions, generate the interface matrix from the runner route selector, and require route validation at aggregation and publication. Keep negative controls for wrong content alongside positive controls for correct content with missing metadata.
+For native-content browser comparisons, preselect by task type the officially supported body, resource or original-file interface and score the returned deliverable. A final URL or HTML language tag is diagnostic unless the benchmark explicitly evaluates that metadata. Native Markdown inside a JSON wrapper may be unwrapped, but JSON DOM, HTML or a downloaded PDF/DOCX must not be converted separately into a method's body score, and missing text must not be repaired using JSON DOM conversion or external PDF/DOCX parsers. The declared Chromium exception, a pinned version of `node-html-markdown` for webpage HTML because Chromium has no native Markdown, covers only standard HTML-to-Markdown conversion and does not authorize document parsers.
 
-Keep browser engines distinct from execution configurations. Released and source-build variants use separate method identities in the execution registry and share the engine's native route constraints. Derive interface columns and participant counts from that registry. A strict native-mode marker selects default completion; it supplies no per-case selector or wait and must survive both dataset conversion and runner validation. Resource projection must preserve single URL values and tokenize only srcset candidates, including literal commas inside URLs. Protect these boundaries with runner, report and actual-browser controls.
+Lightpanda uses the native body from `--dump markdown --json`. Obscura uses its pinned official `HTML_TO_MARKDOWN_JS`, whose script hash must be bound to the tested version. Kitesurf uses the official `/markdown` or CDP interface with that browser explicitly selected. Moli uses native Markdown for webpage text, document text, structure and webpage-embedded media; webpage media checks only the target addresses in the same output, and only direct media files use the raw response. After a failure, do not switch to HTML, JSON, network traces or viewer scripts to fill in a result.
+
+`output_mode_for_case` owns route selection, and `browser_task_interface_matrix` uses the same selector to generate the interface table for every task type and browser. `require_native_task_routes` checks measured routes and external-conversion markers; the current report profile must enable this gate, and a failed check blocks aggregation and publication. Bind native script versions. Changing a call interface means freezing the complete affected scope, retaining the old calls and rerunning through the certified entry; changing only shared scoring recomputes every method offline without requesting sites again. Keep synthetic negative controls for wrong content alongside positive controls for correct content with missing metadata, including correct body text with no URL.
+
+Keep browser engines distinct from execution configurations. Register method names and browser engines separately in `configs/providers.headless.json`. Released and source-build variants of one browser use separate method identities in the execution registry, are scored separately and share the engine's native route constraints. Native route checks, the interface table and official capability descriptions all use that registered engine; an unknown method cannot skip the checks. Reports count browser engines and execution configurations separately, and several versions of one engine do not count as several browsers. Derive interface columns and participant counts from that registry. A strict native-mode marker selects default completion; it supplies no per-case selector or wait and must survive both dataset conversion and runner validation. Resource projection must keep a single URL in a resource attribute whole and tokenize only `srcset`, by candidate and descriptor, without splitting a literal comma inside a URL. Protect these boundaries with runner, report and actual-browser controls.
+
+A source build pins its source commit, base commit, build environment and binary SHA-256 before calls. A new configuration calls only the complete frozen task set, and earlier configurations' raw results stay unchanged. Batches from different dates show their own task completion; a timing change caused by code must be measured separately under the same-window paired protocol.
 
 ## Release checks
 
@@ -413,5 +426,3 @@ before release.
 
 The selected external report profile binds its publication target and expected
 version. Each comparison keeps its own receipt and evidence bundle.
-
-固定参考答案默认保持冻结。`source_verification.reference_mode: live_exact` 是实时参考核验的显式声明；旧来源记录和缺少新版验收契约均不构成该声明。普通重跑不得据此重新抓取或更新答案。

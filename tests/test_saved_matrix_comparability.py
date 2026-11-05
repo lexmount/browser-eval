@@ -267,7 +267,7 @@ def test_portable_final_gate_rechecks_derived_settings(tmp_path, mutation):
 def test_collection_end_includes_an_earlier_longer_call(tmp_path):
     spec = matrix(tmp_path, same_method=True)
     for source, start, elapsed in zip(spec['sources'],
-            ['2030-01-01T00:00:00+00:00', '2030-01-01T00:00:01+00:00'], [30000, 1000]):
+            ['2030-01-01T00:00:00+00:00', '2030-01-01T00:00:01+00:00'], [30000, 1000], strict=True):
         path = Path(source['results']['path'])
         record = json.loads(path.read_bytes())
         record.update(started_at=start, elapsed_ms=elapsed)

@@ -384,3 +384,30 @@ def test_parallel_offline_failure_leaves_original_results_unchanged(tmp_path):
     with pytest.raises(ValueError,match='Artifact differs|integrity|hash|SHA|sha'):
         rescore(evidence,jobs=2)
     assert (evidence/'results.jsonl').read_bytes()==before
+
+
+@pytest.mark.parametrize("policy, before", [(None, True), (1, False)])
+def test_scorer_revision_rescores_retired_forbidden_text_fields(tmp_path, policy, before):
+    evidence, _, _ = revision_fixture(tmp_path, b"[]")
+    row = json.loads((evidence / "results.jsonl").read_text(encoding="utf-8"))
+    metrics = row["metrics"]
+    current = dict(metrics)
+    for key in ("forbidden_requirement_hits", "forbidden_requirement_pass", "diagnostic_hits"):
+        metrics.pop(key, None)
+    metrics.update(forbidden_hits=["Access denied"], blocked_page=False,
+                   scoring_source_sha256="0" * 64)
+    if policy is not None:
+        metrics["acceptance_policy_version"] = policy
+    (evidence / "results.jsonl").write_text(json.dumps(row) + "\n", encoding="utf-8")
+
+    receipt = revise(
+        evidence, evidence / "dataset.json",
+        root_cause_category="answer-surface",
+        root_cause="Saved outputs carry forbidden-text fields from a retired scorer.",
+        regression_ids=["body-only-word-boundary-answer-title-supplies-required-fact"],
+    )
+
+    expected = [] if before else [{"attempt_id": row["attempt_id"], "before": False, "after": True}]
+    assert receipt["task_decision_changes"] == expected
+    rescored = json.loads((evidence / "results.jsonl").read_text(encoding="utf-8"))["metrics"]
+    assert rescored == current

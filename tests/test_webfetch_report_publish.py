@@ -5,6 +5,7 @@ import json
 import urllib.request
 import zipfile
 from dataclasses import replace
+from types import SimpleNamespace
 
 import pytest
 
@@ -317,6 +318,7 @@ def test_metadata_verification_rejects_invalid_authority(tmp_path, monkeypatch, 
         "urlopen",
         lambda *args, **kwargs: io.BytesIO(json.dumps(data).encode()),
     )
+    monkeypatch.setattr(urllib.request, "build_opener", lambda *handlers: SimpleNamespace(open=urllib.request.urlopen))
     with pytest.raises(ValueError):
         publication_verify.verify_metadata("site-one", "https://reports.example")
 
@@ -401,6 +403,7 @@ def test_report_rename_keeps_bound_target_and_receipt(tmp_path, monkeypatch, dam
         return Response(json.dumps({'slug': 'site-one', 'title': 'after'}).encode())
 
     monkeypatch.setattr(urllib.request, 'urlopen', request)
+    monkeypatch.setattr(urllib.request, 'build_opener', lambda *handlers: SimpleNamespace(open=urllib.request.urlopen))
     args = [str(path), '--title', 'after']
     if damage:
         with pytest.raises(ValueError):

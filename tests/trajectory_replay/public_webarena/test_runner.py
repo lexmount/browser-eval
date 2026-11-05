@@ -430,7 +430,14 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
     monkeypatch.setattr(
         runner, "sync_playwright", lambda: SimpleNamespace(start=lambda: playwright)
     )
-    monkeypatch.setattr(docker_runner, "start_browser_container", lambda *a, **k: MagicMock())
+    moli_version = {"output": b"moli 1.0.6\n"}
+    monkeypatch.setattr(
+        docker_runner,
+        "start_browser_container",
+        lambda *a, **k: MagicMock(
+            exec_run=lambda _command: SimpleNamespace(exit_code=0, **moli_version)
+        ),
+    )
     monkeypatch.setattr(docker_runner, "published_endpoint", lambda *a, **k: "http://test.invalid")
     monkeypatch.setattr(docker_runner, "wait_cdp", lambda *a, **k: "ws://test.invalid")
     monkeypatch.setattr(docker_runner, "DockerStatsResources", lambda _: None)
@@ -568,6 +575,31 @@ def test_run_saves_evidence_before_diagnostics_and_cleans_up(
             assert report_path.is_file()
     playwright.stop.assert_called_once()
     client.networks.create.return_value.remove.assert_called()
+    # Rerunning with the same --output must not replace the saved evidence.
+    attempts = (output / "attempts.jsonl").read_bytes()
+    with pytest.raises(ValueError, match="existing evidence is immutable"):
+        runner.run_evaluation(
+            suite_path=suite_path, output_dir=output, reports_dir=tmp_path, max_retries=0
+        )
+    assert (output / "attempts.jsonl").read_bytes() == attempts
+    # The curated replay tags a newer Moli build with the same image name.
+    moli_version["output"] = b"moli 1.1.3\n"
+    with pytest.raises(RuntimeError, match="public replay requires Moli 1.0.6"):
+        runner.run_evaluation(
+            suite_path=suite_path,
+            output_dir=tmp_path / "wrong-moli",
+            reports_dir=tmp_path,
+            max_retries=0,
+        )
+    assert not (tmp_path / "wrong-moli").exists()
+
+
+def test_public_moli_version_matches_its_image_recipe():
+    dockerfile = Path(
+        "examples/trajectory_replay/public_webarena/docker/moli.Dockerfile"
+    ).read_text(encoding="utf-8")
+
+    assert f"ARG MOLI_VERSION=v{runner.MOLI_VERSION}\n" in dockerfile
 
 
 def test_moli_image_installs_its_verified_dynamic_font_dependency():

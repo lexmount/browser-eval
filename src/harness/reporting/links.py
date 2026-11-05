@@ -75,7 +75,8 @@ class Links(HTMLParser):
             return
         if tag=='select':
             self.current_filter=(attrs_by_name.get('data-wmb-filter') or attrs_by_name.get('data-filter'))
-            if self.current_filter:self.filter_options.setdefault(self.current_filter,set())
+            if self.current_filter:
+                self.filter_options.setdefault(self.current_filter,set())
         elif tag=='input' and (attrs_by_name.get('data-wmb-filter') or attrs_by_name.get('data-filter')):
             self.text_filters.add(attrs_by_name.get('data-wmb-filter') or attrs_by_name['data-filter'])
         elif tag=='option' and self.current_filter:
@@ -87,7 +88,8 @@ class Links(HTMLParser):
                 self.ids.add(value)
 
     def handle_endtag(self,tag:str)->None:
-        if tag=='select':self.current_filter=None
+        if tag=='select':
+            self.current_filter=None
 
 
 def check(root: Path) -> None:

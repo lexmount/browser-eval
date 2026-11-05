@@ -35,6 +35,7 @@ from harness.web_fetch.reliability import require_reliable
 from harness.web_fetch.report import local_pass_rate_ranking
 from harness.web_fetch.report_build import validate_local_presentation
 from harness.web_fetch.report_explainer import check_current_browser_article
+from harness.web_fetch.report_i18n import report_text, t
 from harness.web_fetch.report_interfaces import SPECS
 from harness.web_fetch.report_methods import PROFILES
 from harness.web_fetch.report_reading import render_archived_reading
@@ -115,9 +116,9 @@ class Tables(HTMLParser):
 
 
 def require_table_index_headers(parser, *, english=False, diagnostic=False):
-    expected = 'No.' if english else '序号'
-    for header, unindexed in zip(parser.headers, parser.unindexed_headers):
-        if diagnostic and unindexed and header in {'方法', '方法 ↕', 'Method', 'Method ↕'}:
+    expected = report_text('en' if english else 'zh')('no', 'No.')
+    for header, unindexed in zip(parser.headers, parser.unindexed_headers, strict=True):
+        if diagnostic and unindexed and header in {t('method', 'Method'), t('method_4', 'Method ↕'), 'Method', 'Method ↕'}:
             continue
         if header != expected:
             raise ValueError('Unexpected table index header: ' + header)
@@ -132,7 +133,7 @@ def require_home_comparison_layout(home, track_count, *, diagnostic=False, sampl
     if any(marker not in headings for marker in markers) or not (
             headings.index(markers[1]) < headings.index(markers[0]) < headings.index(markers[2])):
         raise ValueError('Task overview and comparison must precede detailed results')
-    if '判分完整性' not in home or ('本类最高：' in home) == diagnostic:
+    if t('judgement_coverage', 'Judgement coverage') not in home or (t('best_in_family', 'Best in family:') in home) == diagnostic:
         raise ValueError('Comparison winner disclosure differs from evidence state')
 
 
@@ -690,20 +691,20 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             record = next(r for r in rs if r["attempt_id"] == p.stem)
             case = case_by_id[record["case_id"]]
             heading = (
-                "目标文件"
+                t('target_file', 'Target file')
                 if case.get("task_kind") == "file"
-                else "标准答案与验收规则"
+                else t('reference_and_acceptance_contract', 'Reference and acceptance contract')
                 if case.get("task_kind") == "structure"
-                else "验收规则（无全文参考）"
+                else t('acceptance_rules_no_full_text_reference', 'Acceptance rules (no full-text reference)')
                 if case.get("task_kind", "body") == "body" and not (case.get("ground_truth_main_content") or case.get("reference_answer"))
-                else "完整标准答案"
+                else t('complete_reference_answer', 'Complete reference answer')
             )
             actual_heading = (
                 {
-                    "目标文件": "Target file",
-                    "标准答案与验收规则": "Reference and acceptance contract",
-                    "完整标准答案": "Complete reference answer",
-                    "验收规则（无全文参考）": "Acceptance rules (no full-text reference)",
+                    t('target_file', 'Target file'): "Target file",
+                    t('reference_and_acceptance_contract', 'Reference and acceptance contract'): "Reference and acceptance contract",
+                    t('complete_reference_answer', 'Complete reference answer'): "Complete reference answer",
+                    t('acceptance_rules_no_full_text_reference', 'Acceptance rules (no full-text reference)'): "Acceptance rules (no full-text reference)",
                 }[heading]
                 if p.relative_to(root).parts[0] == "en"
                 else heading
@@ -713,7 +714,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             if (
                 not text.count(
                     "<h3>"
-                    + ("Actual output" if p.relative_to(root).parts[0] == "en" else "实际返回")
+                    + ("Actual output" if p.relative_to(root).parts[0] == "en" else t('actual_output', 'Actual output'))
                     + "</h3>"
                 )
                 == 1
@@ -753,7 +754,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             check_resource_presentation(text, resource_summary)
             if "data-resource-winner=" not in text:
                 raise ValueError((page_name, "missing resource winner summary"))
-            if not all(label in text for label in ("CPU 与计算", "内存", "网络")):
+            if not all(label in text for label in (t('cpu_and_compute', 'CPU and compute'), t('memory', 'Memory'), t('network', 'Network'))):
                 raise ValueError((page_name, "missing grouped resource tables"))
         if has_english:
             for page_name, text in [
@@ -767,8 +768,8 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 check_resource_presentation(text, resource_summary)
     methodology = (root / "methodology/index.html").read_text(encoding="utf-8")
     for phrase in [
-        "计入耗时",
-        "不计入耗时",
+        t('included_in_latency', 'Included in latency'),
+        t('excluded_from_latency', 'Excluded from latency'),
         "供应商上报的服务端耗时只作附加证据",
         "形成可送入统一评分器的最终答案",
     ]:
@@ -883,11 +884,11 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
             ):
                 labels = [h.get_text() for h in headers]
                 required = (
-                    ["Recall", "Precision", "F1"] if is_english else ["完整度", "纯净度", "F1"]
+                    ["Recall", "Precision", "F1"] if is_english else [t('recall', 'Recall'), t('precision', 'Precision'), "F1"]
                 )
                 forbidden = (
                     ["Resource hit rate", "File retrieval rate"]
-                    if is_english else ["资源命中率", "文件取得率"]
+                    if is_english else [t('resource_match_rate', 'Resource match rate'), t('file_delivery_rate', 'File delivery rate')]
                 )
                 if not all(any(label in h for h in labels) for label in required) or any(
                     label in h for label in forbidden for h in labels
@@ -895,11 +896,11 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
                     raise ValueError((path, "Body ranking metric columns", family))
             sort = int(table["data-col"])
             expected = (
-                (["Matched repositories"] if is_english else ["命中仓库数"])
+                (["Matched repositories"] if is_english else [t('matched_repositories_2', 'Matched repositories')])
                 if path.parent.name == "adoption"
                 else ["Task pass rate", "Body pass rate", "Overall task pass rate"]
                 if is_english
-                else ["任务通过率", "正文通过率", "综合任务通过率"]
+                else [t('task_pass_rate', 'Task pass rate'), t('body_text_pass_rate', 'Body-text pass rate'), t('overall_task_pass_rate', 'Overall task pass rate')]
             )
             if not any(label in headers[sort].get_text() for label in expected):
                 raise ValueError((path, sort))
@@ -918,7 +919,7 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
             ):
                 raise ValueError(path)
             expected_results = (
-                ["Pass", "Fail", "All"] if is_english else ["任务通过", "任务失败", "全部"]
+                ["Pass", "Fail", "All"] if is_english else [t('pass', 'Pass'), t('fail', 'Fail'), t('all', 'All')]
             )
             if (
                 not [x.get_text() for x in soup.select('select[data-filter="result"] option')]
@@ -930,7 +931,7 @@ def check_revision(out: Path, *, authority_root: Path, profile_path: Path | None
                 == "fail"
             ):
                 raise ValueError(path)
-            expected_failure = "Failure class" if is_english else "失败分类"
+            expected_failure = report_text('en' if is_english else 'zh')('failure_class', 'Failure class')
             if expected_failure not in [h.get_text() for h in soup.select("#filtered-table th")]:
                 raise ValueError(path)
     records = load_jsonl(out / 'results.jsonl')

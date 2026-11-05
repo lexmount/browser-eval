@@ -144,7 +144,7 @@ def test_revision_retains_first_official_scores_and_aggregate(inputs, tmp_path, 
     output = tmp_path / "revised"
     run_revision(monkeypatch, source, repo, output)
     after = diagnostics.load_jsonl(output / "results.jsonl")
-    for original, revised in zip(rows, after):
+    for original, revised in zip(rows, after, strict=True):
         assert revised["official_metrics"] == original["official_metrics"]
         assert revised["metrics"]["table_TEDS"]["score"] == 0.4
     revised_summaries = json.loads((output / "score-summaries.json").read_text(encoding="utf-8"))

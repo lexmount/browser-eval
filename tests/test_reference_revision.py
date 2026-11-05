@@ -250,3 +250,28 @@ def test_empty_correction_does_not_create_an_unbound_history_receipt(tmp_path):
         revise(evidence, canonical, **AUTHORITY)
     assert snapshot(evidence) == before
     assert not list(tmp_path.glob(".evidence-reference-history-*"))
+
+
+def test_reference_revision_follows_scorer_revision_of_retired_forbidden_text_fields(tmp_path):
+    from harness.web_fetch.scoring_revision import revise as revise_scoring
+    evidence, canonical = reference_fixture(tmp_path)
+    rows = [json.loads(line) for line in (evidence / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    for row in rows:
+        row["metrics"].pop("forbidden_requirement_hits", None)
+        row["metrics"].update(forbidden_hits=[], blocked_page=False)
+    (evidence / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8")
+    original = snapshot(evidence)
+    # A selected correction cannot leave other attempts on retired metrics.
+    with pytest.raises(ValueError, match="Historical scoring metrics"):
+        revise(evidence, canonical, case_ids={"one"}, **AUTHORITY)
+    assert snapshot(evidence) == original
+
+    scorer = revise_scoring(evidence, evidence / "dataset.json", **{
+        **AUTHORITY, "root_cause_category": "answer-surface",
+        "root_cause": "Saved outputs carry forbidden-text fields from a retired scorer.",
+        "regression_ids": ["body-only-word-boundary-answer-title-supplies-required-fact"]})
+    receipt = revise(evidence, canonical, case_ids={"one"}, **AUTHORITY)
+
+    assert scorer["task_decision_changes"] == receipt["task_decision_changes"] == []
+    scored = [json.loads(line) for line in (evidence / "results.jsonl").read_text(encoding="utf-8").splitlines()]
+    assert all("forbidden_hits" not in row["metrics"] for row in scored)

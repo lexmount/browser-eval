@@ -342,7 +342,7 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
     for suite, group in cases.items():
         for cid, case in group.items():
             route = suite+'--'+cid
-            def restore_case(value):
+            def restore_case(value, cid=cid):
                 restored = deepcopy(value)
                 restored['id'] = cid
                 restored.pop('report_family', None)
@@ -370,7 +370,7 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
         expected_attempts.add(attempt)
         prefix = f'evidence/{suite}/{provider}/{cid}/'
         public_paths = {path for path, _ in artifact_bindings(raw)}
-        def project(value, key=''):
+        def project(value, key='', public_paths=public_paths, prefix=prefix):
             if isinstance(value, dict):
                 return {k: project(v, k) for k, v in value.items()}
             if isinstance(value, list):
@@ -724,7 +724,7 @@ def _load_saved_matrix(spec_path):
                     raise ValueError('Uncommitted call log differs from execution authorization')
             if (datetime.fromisoformat(starts[0]['started_at']) != datetime.fromisoformat(replacement['started_at'])
                     or any(datetime.fromisoformat(left['started_at']) > datetime.fromisoformat(right['started_at'])
-                           for left, right in zip(starts, starts[1:]))):
+                           for left, right in zip(starts, starts[1:], strict=False))):
                 raise ValueError('Uncommitted call chronology differs from execution authorization')
             uncommitted_execution[key] = dict(physical_calls=count, events=events)
 
@@ -744,7 +744,7 @@ def _load_saved_matrix(spec_path):
         baseline_keys = [(row['suite'], row['provider'], row['case_id']) for row in baseline['rows']]
         if len(set(baseline_keys)) != len(baseline_keys) or set(baseline_keys) != expected:
             raise ValueError('Completion baseline population differs from the complete report')
-        for row, key in zip(baseline['rows'], baseline_keys):
+        for row, key in zip(baseline['rows'], baseline_keys, strict=True):
             now_called = (_called(selected[key][1]) if key in selected
                           else missing[key][0]['status'] == 'uncommitted')
             if key not in completed and not row.get('called') and now_called:
@@ -1192,7 +1192,7 @@ def _validate_call_sequence(record, case, contract, continuation=None, *, requir
             or calls[-1].get('elapsed_ms') != record['elapsed_ms']
             or passes[-1] != task_passed(record['ok'], record['metrics'], case.get('task_kind', 'body'))):
         raise ValueError('Parameter rerun final physical call differs from selected result')
-    for first, second in zip(calls, calls[1:]):
+    for first, second in zip(calls, calls[1:], strict=False):
         first_end = datetime.fromisoformat(first['started_at']) + timedelta(milliseconds=first['elapsed_ms'])
         if first.get('completed_at'):
             first_end = max(first_end, datetime.fromisoformat(first['completed_at']))
@@ -1402,7 +1402,7 @@ def _validate_completion_retention(inputs, candidates, decisions=None):
         audit = _json(audit_path)
         if audit['files'].get('matrix.json') != _sha(matrix_path):
             raise ValueError('Completion baseline matrix differs from its bound audit')
-        def evidence(relative):
+        def evidence(relative, audit_path=audit_path, audit=audit):
             return _json(sources.bind(contained_path(audit_path.parent, relative, reject_symlinks=True),
                                       audit['files'][relative]))
         for row in _json(matrix_path)['rows']:
@@ -2478,7 +2478,7 @@ def _saved_renderer_projection(output, model):
         if task_passed(raw['ok'], raw['metrics'], case.get('task_kind', 'body')) != row['passed']:
             raise ValueError('Saved verdict differs from matrix')
         prefix = str(Path(row['record_path']).parent)
-        def project(value, key=''):
+        def project(value, key='', prefix=prefix):
             if isinstance(value, dict):
                 return {k: project(v, k) for k, v in value.items()}
             if isinstance(value, list):
