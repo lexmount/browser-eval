@@ -1967,7 +1967,7 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                 matched = _anchor_matches(anchor, anchor_records, visible, schema,
                                           anchor_visible=native_labels, representation=match_representation, contract=contract)
         if (not matched and schema in {'body_text', 'page_identity'} and not native_html
-                and representation != 'plain_text' and not exclusions):
+                and anchor_text is None and representation != 'plain_text' and not exclusions):
             if escaped_prose is None:
                 escaped_prose = _escaped_prose_surface(content, schema)
             if escaped_prose:
