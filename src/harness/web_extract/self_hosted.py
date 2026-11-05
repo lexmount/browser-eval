@@ -401,8 +401,8 @@ def supervise(command):
 
     for name in (signal.SIGTERM, signal.SIGINT):
         signal.signal(name, interrupted)
-    child = subprocess.Popen(command)
     try:
+        child = subprocess.Popen(command)
         return child.wait()
     finally:
         for name in (signal.SIGTERM, signal.SIGINT):
