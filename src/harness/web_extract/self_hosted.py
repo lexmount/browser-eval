@@ -99,6 +99,8 @@ def local_runtime_identity(engine):
     }
     if engine == "scrapegraph":
         identity["native_input"] = "html"
+    if engine == "crawl4ai":
+        identity["llm_output_protocol"] = "xml_blocks"
     if engine == "stagehand":
         identity["browser_version"] = subprocess.check_output(
             [os.environ["CHROME_PATH"], "--version"],
@@ -158,7 +160,7 @@ async def crawl(value):
         extraction_type="schema",
         apply_chunking=False,
         input_format="markdown",
-        force_json_response=True,
+        force_json_response=False,
         extra_args={"temperature": 0, "max_tokens": 8192},
     )
     async with AsyncWebCrawler(crawler_strategy=AsyncHTTPCrawlerStrategy()) as crawler:

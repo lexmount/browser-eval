@@ -513,6 +513,12 @@ Cloudflare page URLs and field schemas as hosted participants. They require a
 separately configured model; identify both the library and model in comparisons.
 Do not label these configurations as model-free extraction.
 
+Crawl4AI uses the SDK's default XML-block output protocol. Its schema prompt asks
+for XML-wrapped records; forcing JSON mode can retain a `blocks`/`score` envelope
+instead of the requested fields. The runtime identity binds this protocol. Run
+`make test-extraction-sdk` to exercise the pinned SDK parser with deterministic
+model responses, without browser navigation or model API calls.
+
 The ScrapeGraphAI adapter fetches the immutable snapshot bytes and passes them to
 the native graph's HTML input. Its receipt retains the fetched HTML hash. This
 avoids the 2.3.1 URL path's incorrect HTML-as-base-URL conversion; no custom field
