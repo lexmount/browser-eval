@@ -3,7 +3,9 @@
 import json
 import os
 import re
+import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -221,3 +223,41 @@ def test_ci_actions_are_bound_to_immutable_commits():
         for step in job["steps"]:
             if "uses" in step:
                 assert re.fullmatch(r"[\w.-]+/[\w.-]+@[a-f0-9]{40}", step["uses"])
+
+
+def test_only_documentation_uses_one_test_partition():
+    workflow = ci_workflow()
+    result = subprocess.run(
+        ["node", str(ROOT / "tests/evaluate_ci_expressions.mjs")],
+        input=json.dumps({"policy": workflow["concurrency"],
+                          "partitions": workflow["jobs"]["checks"]["strategy"]["matrix"]["partition"],
+                          "contexts": [{"docs_only": value} for value in ["true", "false", "", "unknown"]]}),
+        text=True, capture_output=True, check=True,
+    )
+    assert [row["partitions"] for row in json.loads(result.stdout)] == [
+        ["harness"], ["harness", "benchmarks"], ["harness", "benchmarks"], ["harness", "benchmarks"]]
+
+
+def test_python_partitions_cover_existing_and_future_test_directories_once(tmp_path):
+    for name in ["test_shared.py", "benchmarks/test_scorer.py", "future_track/test_new.py"]:
+        path = tmp_path / "tests" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("def test_example(): pass\n", encoding="utf-8")
+    selected = []
+    for step in ci_workflow()["jobs"]["checks"]["steps"]:
+        command = step.get("run", "")
+        if not command.startswith(("make ci-tests ", "make test-python ")):
+            continue
+        assignments = dict(token.split("=", 1) for token in shlex.split(command) if "=" in token)
+        paths = shlex.split(assignments.get("TEST_PATHS", "tests"))
+        exclusions = [token for token in shlex.split(assignments.get("PYTEST_ARGS", ""))
+                      if token.startswith("--ignore=")]
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "--collect-only", "-q", *paths, *exclusions],
+            cwd=tmp_path, text=True, capture_output=True, check=True,
+        )
+        selected.append({line for line in result.stdout.splitlines() if "::test_example" in line})
+    assert len(selected) == 2
+    assert selected[0].isdisjoint(selected[1])
+    assert set.union(*selected) == {f"tests/{name}::test_example" for name in [
+        "test_shared.py", "benchmarks/test_scorer.py", "future_track/test_new.py"]}

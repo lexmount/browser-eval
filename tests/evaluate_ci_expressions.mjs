@@ -2,15 +2,21 @@
 import fs from 'node:fs';
 import {Lexer, Parser, Evaluator, data} from '@actions/expressions';
 
-const {policy, contexts} = JSON.parse(fs.readFileSync(0, 'utf8'));
+const {policy, contexts, partitions} = JSON.parse(fs.readFileSync(0, 'utf8'));
 const results = contexts.map(github => {
-  const context = JSON.parse(JSON.stringify({github}), data.reviver);
+  const context = JSON.parse(JSON.stringify({github,
+    needs: {scope: {outputs: {docs_only: github.docs_only ?? ''}}}}), data.reviver);
   const evaluate = expression => {
     const tokens = new Lexer(expression.trim()).lex().tokens;
-    const tree = new Parser(tokens, ['github'], []).parse();
+    const tree = new Parser(tokens, ['github', 'needs'], []).parse();
     return new Evaluator(tree, context).evaluate().coerceString();
   };
   const render = template => template.replace(/\$\{\{(.*?)\}\}/g, (_, expression) => evaluate(expression));
-  return {group: render(policy.group), cancel: render(policy['cancel-in-progress']) === 'true'};
+  const result = {group: render(policy.group), cancel: render(policy['cancel-in-progress']) === 'true'};
+  if (partitions) {
+    const expression = partitions.replace(/^\$\{\{\s*|\s*\}\}$/g, '');
+    result.partitions = JSON.parse(evaluate(`toJSON(${expression})`));
+  }
+  return result;
 });
 console.log(JSON.stringify(results));

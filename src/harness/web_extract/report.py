@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from harness.distribution import repository_root
 from harness.env_file import local_setting
 from harness.report_languages import resolve_report_language
+from harness.reporting.links import LinkIndex
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
@@ -2511,6 +2512,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
     manifest = read_json(output / "report-manifest.json")
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
+    link_index = LinkIndex()
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -2638,9 +2640,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             target = output / unquote(u.path) if u.path else path
             if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
                 raise ValueError("Broken local target: " + link)
-            if u.fragment and not BeautifulSoup(
-                target.read_text(encoding="utf-8"), "html.parser"
-            ).find(id=u.fragment):
+            if u.fragment and unquote(u.fragment) not in link_index.page(target).ids:
                 raise ValueError("Broken evidence anchor")
     if manifest.get("mode") != "full-cohort-progress":
         rows = [
@@ -4016,6 +4016,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     from harness.web_extract.dataset import benchmark_config
 
     output = open_report(output)
+    link_index = LinkIndex()
     manifest = read_json(output / "report-manifest.json")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -4349,9 +4350,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             target = output / unquote(parsed.path) if parsed.path else file
             if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
                 raise ValueError("Broken record evidence/navigation target: " + value)
-            if parsed.fragment and not BeautifulSoup(
-                target.read_text(encoding="utf-8"), "html.parser"
-            ).find(id=unquote(parsed.fragment)):
+            if parsed.fragment and unquote(parsed.fragment) not in link_index.page(target).ids:
                 raise ValueError("Broken evidence anchor: " + value)
     if release and manifest.get("local_example"):
         raise ValueError("Synthetic record evidence cannot be a formal release")

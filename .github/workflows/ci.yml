@@ -30,8 +30,12 @@ jobs:
         run: bash scripts/ci_scope.sh >> "$GITHUB_OUTPUT"
 
   checks:
-    name: Tests and static checks
+    name: Tests and static checks (${{ matrix.partition }})
     needs: scope
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: ${{ fromJSON(needs.scope.outputs.docs_only == 'true' && '["harness"]' || '["harness","benchmarks"]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -44,16 +48,25 @@ jobs:
           version: "0.7.8"
           enable-cache: true
       - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
-        if: needs.scope.outputs.docs_only == 'false'
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'harness'
         with:
           node-version: "22"
           cache: npm
       - run: make docs-check
         if: needs.scope.outputs.docs_only == 'true'
       - run: make setup-test
-        if: needs.scope.outputs.docs_only == 'false'
-      - run: make ci-tests PYTEST_ARGS='-n 4 --dist worksteal --durations=20'
-        if: needs.scope.outputs.docs_only == 'false'
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'harness'
+      - name: Prepare benchmark tests
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'benchmarks'
+        run: |
+          uv sync --frozen --all-extras
+          uv run --frozen --all-extras python -m harness.benchmarks.data
+      - name: Check harness and shared components
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'harness'
+        run: make ci-tests PYTEST_ARGS='--ignore=tests/benchmarks -n 4 --dist worksteal --durations=20'
+      - name: Check benchmark definitions and scorers
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'benchmarks'
+        run: make test-python TEST_PATHS=tests/benchmarks PYTEST_ARGS='-n 4 --dist worksteal --durations=20'
 
   package:
     name: Installation and packaging

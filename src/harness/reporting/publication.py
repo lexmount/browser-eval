@@ -55,8 +55,7 @@ def _file_signature(path: Path):
     """Kernel change times prevent same-size writes or restored mtimes hiding edits."""
     entries = {}
 
-    def visit(current: Path, relative: str):
-        info = current.lstat()
+    def visit(current, relative: str, info):
         if stat.S_ISLNK(info.st_mode):
             raise ValueError('Publication inputs contain a symlink')
         entries[relative] = (info.st_dev, info.st_ino, info.st_mode,
@@ -64,11 +63,11 @@ def _file_signature(path: Path):
         if stat.S_ISDIR(info.st_mode):
             with os.scandir(current) as children:
                 for child in children:
-                    visit(Path(child.path), relative + '/' + child.name)
+                    visit(child.path, relative + '/' + child.name, child.stat(follow_symlinks=False))
         elif not stat.S_ISREG(info.st_mode):
             raise ValueError('Publication inputs must be regular files or directories')
 
-    visit(path, '')
+    visit(path, '', path.lstat())
     return entries
 
 
