@@ -67,6 +67,16 @@ def installed_environment_sha256():
 
 @lru_cache(maxsize=len(ENGINES))
 def local_runtime_identity(engine):
+    base = urlsplit(os.environ["EXTRACTION_MODEL_BASE"])
+    if (
+        base.scheme not in ("http", "https")
+        or not base.netloc
+        or base.username is not None
+        or base.password is not None
+        or base.query
+        or base.fragment
+    ):
+        raise ValueError("Model base URL must not contain credentials, query or fragment")
     identity = {
         "engine": engine,
         "version": importlib.metadata.version(ENGINES[engine])
@@ -353,19 +363,70 @@ def worker(value):
     }
 
 
+def terminate_children(parent):
+    """Stop a request's tree before killing it, including adopted browser processes."""
+    import psutil
+
+    descendants = {}
+    while True:
+        found = parent.children(recursive=True)
+        previous = set(descendants)
+        for child in found:
+            descendants[child.pid] = child
+            try:
+                child.suspend()
+            except psutil.NoSuchProcess:
+                pass
+        if set(descendants) == previous:
+            break
+    for child in reversed(list(descendants.values())):
+        try:
+            child.kill()
+        except psutil.NoSuchProcess:
+            pass
+    psutil.wait_procs(list(descendants.values()), timeout=1)
+
+
+def supervise(command):
+    """Keep Linux orphans under one request, rather than the shared HTTP service."""
+    import ctypes
+
+    import psutil
+
+    if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
+        raise OSError(ctypes.get_errno(), "Cannot enable request child-process reaping")
+
+    def interrupted(signum, _frame):
+        raise SystemExit(128 + signum)
+
+    for name in (signal.SIGTERM, signal.SIGINT):
+        signal.signal(name, interrupted)
+    child = subprocess.Popen(command)
+    try:
+        return child.wait()
+    finally:
+        for name in (signal.SIGTERM, signal.SIGINT):
+            signal.signal(name, signal.SIG_IGN)
+        terminate_children(psutil.Process())
+        while True:
+            try:
+                if os.waitpid(-1, os.WNOHANG)[0] == 0:
+                    break
+            except ChildProcessError:
+                break
+
+
 def run_worker(value, *, timeout=110, command=None):
     """Contain native browser descendants, including SDK-created sessions."""
     import psutil
 
     # Fail before spawning when the host cannot enumerate this process's children.
     psutil.Process().children(recursive=True)
+    command = command or [sys.executable, "-m", "harness.web_extract.self_hosted"]
     if sys.platform == "linux":
-        import ctypes
-
-        if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
-            raise OSError(ctypes.get_errno(), "Cannot enable child-process reaping")
+        command = [sys.executable, "-m", "harness.web_extract.self_hosted", "--supervise", *command]
     process = subprocess.Popen(
-        command or [sys.executable, "-m", "harness.web_extract.self_hosted"],
+        command,
         stdin=subprocess.PIPE,
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
@@ -375,34 +436,29 @@ def run_worker(value, *, timeout=110, command=None):
     try:
         stdout, stderr = process.communicate(json.dumps(value), timeout=timeout)
     except subprocess.TimeoutExpired:
-        descendants = {}
         try:
-            parent = psutil.Process(process.pid)
-            parent.suspend()
-            for _ in range(2):
-                for child in parent.children(recursive=True):
-                    descendants[child.pid] = child
-                    try:
-                        child.suspend()
-                    except psutil.NoSuchProcess:
-                        pass
-            for child in reversed(list(descendants.values())):
-                try:
-                    child.kill()
-                except psutil.NoSuchProcess:
-                    pass
-        except psutil.NoSuchProcess:
-            pass
-        finally:
+            if sys.platform == "linux":
+                process.terminate()
+                process.communicate(timeout=3)
+            else:
+                terminate_children(psutil.Process(process.pid))
+                process.kill()
+                process.communicate(timeout=1)
+        except (ProcessLookupError, psutil.NoSuchProcess, subprocess.TimeoutExpired):
+            with contextlib.suppress(psutil.NoSuchProcess):
+                terminate_children(psutil.Process(process.pid))
             try:
                 os.killpg(process.pid, signal.SIGKILL)
             except ProcessLookupError:
                 pass
-            process.communicate()
-            for child in descendants.values():
+            try:
+                process.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                for stream in (process.stdout, process.stderr):
+                    stream.close()
                 try:
-                    os.waitpid(child.pid, 0)
-                except ChildProcessError:
+                    process.wait(timeout=1)
+                except subprocess.TimeoutExpired:
                     pass
         raise
     return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
@@ -427,7 +483,7 @@ async def read_request_body(request, *, limit=100_000):
         body.extend(chunk)
     try:
         return json.loads(body)
-    except (ValueError, UnicodeError) as exc:
+    except (ValueError, UnicodeError, RecursionError) as exc:
         raise ValueError("Request must contain valid JSON") from exc
 
 
@@ -459,7 +515,7 @@ def create_app():
             if not isinstance(value, dict):
                 raise ValueError("Request must be a JSON object")
             value["engine"] = engine
-            validate_input(value)
+            await asyncio.to_thread(validate_input, value)
         except OverflowError as exc:
             raise HTTPException(413, str(exc)) from exc
         except (KeyError, ValueError) as exc:
@@ -476,11 +532,18 @@ def create_app():
             for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
                 if os.environ.get(key):
                     error = error.replace(os.environ[key], "[REDACTED]")
-            return {"success": False, "error": error, "runtime": runtime_identity(engine)}
+            return {
+                "success": False,
+                "error": error,
+                "runtime": await asyncio.to_thread(runtime_identity, engine),
+            }
         return json.loads(completed.stdout)
 
     return app
 
 
 if __name__ == "__main__":
-    print(json.dumps(worker(json.load(sys.stdin)), default=str))
+    if sys.argv[1:2] == ["--supervise"]:
+        sys.exit(supervise(sys.argv[2:]))
+    else:
+        print(json.dumps(worker(json.load(sys.stdin)), default=str))

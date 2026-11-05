@@ -2,26 +2,40 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { lstat, readdir, readFile, readlink } from 'node:fs/promises';
+import { lstat, readdir, readFile, readlink, realpath } from 'node:fs/promises';
 import path from 'node:path';
 
 async function treeHash(root) {
   const hash = createHash('sha256');
-  async function visit(relative) {
-    const target = path.join(root, relative);
+  const seen = new Set();
+  function record(value) {
+    hash.update(JSON.stringify(value) + '\n');
+  }
+  async function visit(target, relative) {
     const info = await lstat(target);
-    hash.update(relative + '\0');
     if (info.isSymbolicLink()) {
-      hash.update('link\0' + await readlink(target) + '\0');
-    } else if (info.isDirectory()) {
-      hash.update('dir\0');
-      for (const name of (await readdir(target)).sort()) await visit(path.join(relative, name));
+      record(['link', relative, await readlink(target)]);
+      await visit(await realpath(target), relative + '/@target');
+      return;
+    }
+    const resolved = await realpath(target);
+    if (seen.has(resolved)) {
+      record(['reference', relative, resolved]);
+      return;
+    }
+    seen.add(resolved);
+    if (info.isDirectory()) {
+      record(['dir', relative]);
+      for (const name of (await readdir(target)).sort()) {
+        await visit(path.join(target, name), path.join(relative, name));
+      }
     } else if (info.isFile()) {
-      hash.update('file\0');
-      hash.update(await readFile(target));
+      record(['file', relative, createHash('sha256').update(await readFile(target)).digest('hex')]);
+    } else {
+      throw new Error('Unsupported file type in backend attestation');
     }
   }
-  await visit('');
+  await visit(root, '');
   return hash.digest('hex');
 }
 
@@ -31,6 +45,13 @@ const controls = [
 ];
 // The native child inherits this exact environment; none of its credentials are exposed.
 const childEnv = { ...process.env };
+for (const key of ['OPENAI_BASE_URL', 'OLLAMA_BASE_URL']) {
+  if (!childEnv[key]) continue;
+  const url = new URL(childEnv[key]);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.search || url.hash) {
+    throw new Error('Model base URL must not contain credentials, query or fragment');
+  }
+}
 const identity = {
   native_bundle_sha256: await treeHash(path.resolve('dist')),
   native_dependencies_sha256: await treeHash(path.resolve('node_modules')),
@@ -38,9 +59,6 @@ const identity = {
   wrapper_sha256: createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'),
   controls: Object.fromEntries(controls.map(key => [key, childEnv[key] ?? ''])),
 };
-const child = spawn(process.execPath, ['dist/src/harness.js', '--start-docker'], {
-  env: childEnv, stdio: 'inherit',
-});
 const server = createServer((request, response) => {
   if (request.method !== 'GET' || request.url !== '/identity') {
     response.writeHead(404).end();
@@ -49,9 +67,18 @@ const server = createServer((request, response) => {
   response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
   response.end(JSON.stringify(identity));
 });
-server.listen(Number(process.env.FIRECRAWL_IDENTITY_PORT ?? 3020), '0.0.0.0', () => {
-  console.log(JSON.stringify({ identity_port: server.address().port }));
+await new Promise((resolve, reject) => {
+  server.once('error', reject);
+  server.listen(Number(process.env.FIRECRAWL_IDENTITY_PORT ?? 3020), '0.0.0.0', () => {
+    server.off('error', reject);
+    resolve();
+  });
 });
+console.log(JSON.stringify({ identity_port: server.address().port }));
+const child = spawn(process.execPath, ['dist/src/harness.js', '--start-docker'], {
+  env: childEnv, stdio: 'inherit',
+});
+server.on('error', error => { console.error(error.message); child.kill('SIGTERM'); server.close(); process.exitCode = 1; });
 for (const name of ['SIGINT', 'SIGTERM']) process.on(name, () => child.kill(name));
 child.on('error', error => { console.error(error.message); server.close(); process.exitCode = 1; });
 child.on('exit', code => { server.close(); process.exitCode = code ?? 1; });

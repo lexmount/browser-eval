@@ -50,7 +50,7 @@ def test_malformed_shapes_are_client_errors_without_starting_a_worker(client, bo
     worker.assert_not_called()
 
 
-@pytest.mark.parametrize("content", [b"{", b"\xff"])
+@pytest.mark.parametrize("content", [b"{", b"\xff", b"[" * 2000 + b"0" + b"]" * 2000])
 def test_invalid_json_is_rejected_before_dispatch(client, content):
     with patch("harness.web_extract.self_hosted.run_worker") as worker:
         response = client.post("/extract/crawl4ai", content=content, headers=AUTH)
@@ -177,3 +177,195 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
     with pytest.raises(ValueError, match="backend model differs"):
         with backend("different-model"):
             pass
+
+    external = tmp_path / "external-package"
+    external.mkdir()
+    target = external / "index.js"
+    target.write_text("module.exports = 1;\n")
+    (external / "cycle").symlink_to(external, target_is_directory=True)
+    (tmp_path / "node_modules/linked").symlink_to(external, target_is_directory=True)
+    with backend("test-model") as linked:
+        pass
+    target.write_text("module.exports = 2;\n")
+    with backend("test-model") as changed_link:
+        assert (
+            linked["backend"]["native_dependencies_sha256"]
+            != changed_link["backend"]["native_dependencies_sha256"]
+        )
+
+    first = tmp_path / "node_modules/a"
+    first.write_bytes(b"xb\0file\0y")
+    with backend("test-model") as single_file:
+        pass
+    first.write_bytes(b"x")
+    (tmp_path / "node_modules/b").write_bytes(b"y")
+    with backend("test-model") as two_files:
+        assert (
+            single_file["backend"]["native_dependencies_sha256"]
+            != two_files["backend"]["native_dependencies_sha256"]
+        )
+
+
+@pytest.mark.parametrize(
+    "failure", ["occupied-port", "openai-userinfo", "openai-query", "ollama-query"]
+)
+def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path, failure):
+    import os
+    import signal
+    import socket
+
+    bundle = tmp_path / "dist/src"
+    bundle.mkdir(parents=True)
+    (tmp_path / "node_modules").mkdir()
+    marker = tmp_path / "native-started"
+    (bundle / "harness.js").write_text(
+        f"require('fs').writeFileSync({json.dumps(str(marker))}, String(process.pid));"
+        "setInterval(() => {}, 1000);"
+    )
+    env = {
+        **os.environ,
+        "OPENAI_BASE_URL": "https://model.example",
+        "OLLAMA_BASE_URL": "",
+        "FIRECRAWL_IDENTITY_PORT": "0",
+    }
+    with socket.socket() as occupied:
+        occupied.bind(("0.0.0.0", 0))
+        occupied.listen()
+        if failure == "occupied-port":
+            env["FIRECRAWL_IDENTITY_PORT"] = str(occupied.getsockname()[1])
+        elif failure == "openai-userinfo":
+            env["OPENAI_BASE_URL"] = "https://user:credential@model.example"
+        else:
+            env["OLLAMA_BASE_URL" if failure == "ollama-query" else "OPENAI_BASE_URL"] = (
+                "https://model.example?api_key=credential"
+            )
+        process = subprocess.Popen(
+            [
+                "node",
+                str(
+                    Path(__file__).resolve().parents[2]
+                    / "src/harness/web_extract/firecrawl_backend.mjs"
+                ),
+            ],
+            cwd=tmp_path,
+            env=env,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            start_new_session=True,
+        )
+        try:
+            stdout, stderr = process.communicate(timeout=5)
+            assert process.returncode != 0 and "identity_port" not in stdout
+            assert (
+                "EADDRINUSE" in stderr
+                if failure == "occupied-port"
+                else "must not contain credentials" in stderr
+            )
+            assert not marker.exists()
+        finally:
+            try:
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            process.communicate(timeout=2)
+
+
+def test_slow_identity_validation_does_not_block_other_http_requests(monkeypatch):
+    import asyncio
+    import threading
+
+    import httpx
+
+    entered, release, expired = threading.Event(), threading.Event(), threading.Event()
+    monkeypatch.setenv("EXTRACTION_API_KEY", "test-service-key")
+    monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
+    monkeypatch.setenv("FIRECRAWL_BACKEND_URL", "http://private-backend.example")
+
+    def identity(engine):
+        if engine == "firecrawl":
+            entered.set()
+            if not release.wait(timeout=3):
+                expired.set()
+        return {**IDENTITY, "engine": engine}
+
+    async def exercise():
+        transport = httpx.ASGITransport(app=create_app())
+        async with httpx.AsyncClient(transport=transport, base_url="http://test") as client:
+            slow = asyncio.create_task(
+                client.post(
+                    "/extract/firecrawl",
+                    json={**BODY, "expected_runtime": identity_value},
+                    headers=AUTH,
+                )
+            )
+            try:
+                assert await asyncio.to_thread(entered.wait, 4)
+                response = await client.post("/extract/crawl4ai", json=BODY, headers=AUTH)
+                assert response.status_code == 200 and not expired.is_set()
+            finally:
+                release.set()
+                await slow
+
+    identity_value = {**IDENTITY, "engine": "firecrawl"}
+    completed = subprocess.CompletedProcess([], 0, json.dumps({"success": True}), "")
+    with (
+        patch("harness.web_extract.self_hosted.runtime_identity", side_effect=identity),
+        patch("harness.web_extract.self_hosted.run_worker", return_value=completed),
+    ):
+        asyncio.run(exercise())
+
+
+@pytest.mark.skipif(sys.platform != "linux", reason="Linux request subreaper containment")
+def test_timeout_reaps_reparented_detached_processes_without_killing_other_requests(tmp_path):
+    import os
+
+    pid_file = tmp_path / "orphan.pid"
+    orphan = (
+        f"from pathlib import Path; import os,time; Path({str(pid_file)!r})"
+        ".write_text(str(os.getpid())); time.sleep(60)"
+    )
+    intermediate = (
+        f"import subprocess,sys; subprocess.Popen([sys.executable,'-c',{orphan!r}],"
+        "start_new_session=True)"
+    )
+    script = tmp_path / "native.py"
+    script.write_text(
+        "import subprocess,sys,time\n"
+        f"subprocess.run([sys.executable,'-c',{intermediate!r}])\ntime.sleep(60)\n"
+    )
+    invocation = (
+        "from harness.web_extract.self_hosted import run_worker; run_worker({},timeout=1,command="
+        + repr([sys.executable, str(script)])
+        + ")"
+    )
+    unrelated = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)"])
+    try:
+        result = subprocess.run(
+            [sys.executable, "-c", invocation], capture_output=True, text=True, timeout=7
+        )
+        assert "TimeoutExpired" in result.stderr
+        assert pid_file.exists() and not psutil.pid_exists(int(pid_file.read_text()))
+        assert unrelated.poll() is None
+    finally:
+        unrelated.kill()
+        unrelated.wait(timeout=2)
+        if pid_file.exists() and psutil.pid_exists(int(pid_file.read_text())):
+            os.kill(int(pid_file.read_text()), 9)
+
+
+@pytest.mark.parametrize(
+    "base",
+    [
+        "https://user:credential@model.example",
+        "https://model.example?api_key=credential",
+        "https://model.example#credential",
+    ],
+)
+def test_health_identity_rejects_credential_bearing_model_urls(monkeypatch, base):
+    from harness.web_extract.self_hosted import local_runtime_identity
+
+    local_runtime_identity.cache_clear()
+    monkeypatch.setenv("EXTRACTION_MODEL_BASE", base)
+    with pytest.raises(ValueError, match="must not contain credentials"):
+        local_runtime_identity("crawl4ai")
