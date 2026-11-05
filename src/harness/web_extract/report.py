@@ -3112,9 +3112,11 @@ def record_result_href(method, case_id):
     return record_route("c", case_id) + ".html#" + method
 
 
-def record_comparison(headers, rows, metrics):
+def record_comparison(headers, rows, metrics, *, sort_values=None):
     """Use the common table owner and raw-value extrema checks for each metric."""
-    soup = BeautifulSoup(table(headers, rows, attrs="data-sortable"), "html.parser")
+    soup = BeautifulSoup(
+        table(headers, rows, attrs="data-sortable", sort_values=sort_values), "html.parser"
+    )
     for column, (name, direction, values) in metrics.items():
         observed = []
         for row, value in zip(soup.select("tbody tr"), values, strict=True):
@@ -3449,6 +3451,10 @@ def build_record_cohort(output, content, *, home, language, profile):
             3: ("macro-f1", "max", [score(m, "page_hit_macro", "f1") for m in methods]),
             4: ("micro-f1", "max", [score(m, "value_micro", "f1") for m in methods]),
             5: ("exact-rate", "max", [score(m, "exact_field_sets", "rate") for m in methods]),
+        },
+        sort_values={
+            1: [stats[m]["executed"] for m in methods],
+            2: [stats[m]["structured"] for m in methods],
         },
     )
     operations = operating_metrics(

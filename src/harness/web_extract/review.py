@@ -756,8 +756,7 @@ def assemble(
             "main_product": opinion["main_product"],
             "source_fields": opinion["source_fields"],
             "reference_review": {
-                field: {**finding, "reason": opinion["source_fields"][field]["reason"]}
-                for field, finding in opinion["reference"].items()
+                field: copy.deepcopy(finding) for field, finding in opinion["reference"].items()
             },
         }
         for field, finding in opinion["reference"].items():

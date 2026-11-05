@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import build, cohort_metrics, operating_metrics
+from harness.web_extract.report import build, cohort_metrics, operating_metrics, record_comparison
 
 
 def generated_sorting_tables():
@@ -50,7 +50,15 @@ def generated_sorting_tables():
     }
     operating = operating_metrics(["a", "b", "c"], rows, prices, "en", {})
     quality, latency = cohort_metrics(["a", "b", "c"], rows, [], 12, "en")
+    record = record_comparison(
+        ["Method", "Executed", "Returned"],
+        [["a", "10 / 800", "10"], ["b", "2 / 800", "2"]],
+        {},
+        sort_values={1: [10, 2], 2: [10, 2]},
+    )
     return [
+        {"rows": cells(record, "table"), "column": 1},
+        {"rows": cells(record, "table"), "column": 2},
         {"rows": cells(quality, "[data-core-metrics]"), "column": 2},
         {"rows": cells(latency, "[data-latency-table]"), "column": 2},
         {"rows": cells(latency, "[data-latency-table]"), "column": 3},
@@ -87,4 +95,14 @@ def failed_unscored_record():
         "outcome": outcome,
         "scoredFields": str(result["scored_fields"]),
         "stage": result["failure_stage"],
+    }
+
+
+def generated_quality_heading():
+    truth = {"one": {"price": ["12"], "sku": [], "availability": ["InStock"]}}
+    quality, _ = cohort_metrics([], [], [], 1, "en", truth=truth)
+    heading = BeautifulSoup(quality, "html.parser").select("thead th")[5]
+    return {
+        "label": heading.find(string=True, recursive=False),
+        "note": heading.select_one("small[data-reference-population]").get_text(),
     }

@@ -319,6 +319,22 @@ def test_publication_requires_complete_same_version_online_verification(home, tm
     }
     metadata = snapshots.publication_metadata(home, value, receipt)
     assert snapshots.select(home, metadata)["fixture_base"] == item["fixture_base"]
+    assert (
+        metadata["snapshot_manifest"]["manifest_url"] == value["snapshot_manifest"]["manifest_url"]
+    )
+    value["hosting_provider"] = "cloudflare"
+    managed = snapshots.publication_metadata(home, value, receipt)
+    snapshots.save_json(tmp_path / "published-managed.json", managed)
+    plan = create_plan(
+        home,
+        ["cloudflare-json"],
+        tmp_path / "page-audit-plan.json",
+        snapshots=tmp_path / "published-managed.json",
+    )
+    assert plan["public_snapshots"]["snapshot_manifest"]["hosting_provider"] == "cloudflare"
+    wrong = {**value["snapshot_manifest"], "manifest_sha256": "wrong"}
+    with pytest.raises(ValueError, match="dataset manifest changed"):
+        snapshots.publication_metadata(home, {**value, "snapshot_manifest": wrong}, receipt)
     for row in [
         [],
         [{**receipt["pages"][0], "sha256": "incorrect"}],
@@ -940,6 +956,7 @@ def test_new_snapshot_names_and_historical_input_decoding(home, tmp_path, monkey
     raw = json.dumps(manifest).encode()
     origin = "https://snapshot.example"
     response = SimpleNamespace(
+        status_code=200,
         url=origin + "/snapshots.json",
         content=raw,
         json=lambda: manifest,
@@ -1059,3 +1076,59 @@ def test_managed_manifest_network_error_does_not_propose_redeployment(home, tmp_
             snapshots.host(home, output, provider="cloudflare", project="shared")
         deploy.assert_not_called()
     assert not output.exists()
+
+
+@pytest.mark.parametrize("status", [404, 401, 403, 500])
+def test_existing_deployment_missing_manifest_requires_approval_not_a_network_bypass(
+    home, tmp_path, monkeypatch, status
+):
+    from unittest.mock import MagicMock
+
+    import requests
+
+    item = binding(home, tmp_path)["datasets"]["example"]
+    project = MagicMock(status_code=200)
+    project.json.return_value = {
+        "success": True,
+        "result": {"canonical_deployment": {"id": "existing", "url": "https://snapshots.example"}},
+    }
+    metadata = tmp_path / "metadata.json"
+    snapshots.save_json(metadata, item)
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(metadata))
+    monkeypatch.setattr(
+        "harness.web_fetch.config.repository_env",
+        lambda: {"CLOUDFLARE_ACCOUNT_ID": "account", "CLOUDFLARE_API_TOKEN": "synthetic"},
+    )
+    monkeypatch.setattr(snapshots, "check_manifest", CHECK_MANIFEST)
+    missing = requests.Response()
+    missing.status_code = status
+    missing.url = "https://snapshots.example/snapshots.json"
+    output = tmp_path / "proposal.json"
+    with (
+        patch("requests.get", side_effect=cf_lookup(project, missing)),
+        patch("subprocess.run") as deploy,
+    ):
+        if status == 404:
+            result = snapshots.host(home, output, provider="cloudflare", project="shared")
+            assert result["state"] == "approval_required"
+        else:
+            with pytest.raises(requests.HTTPError):
+                snapshots.host(home, output, provider="cloudflare", project="shared")
+            assert not output.exists()
+        deploy.assert_not_called()
+    if status == 404:
+        with (
+            patch("requests.get", side_effect=cf_lookup(project, missing)),
+            patch(
+                "subprocess.run", side_effect=RuntimeError("Synthetic approved deployment")
+            ) as deploy,
+        ):
+            with pytest.raises(RuntimeError, match="Synthetic approved deployment"):
+                snapshots.host(
+                    home,
+                    tmp_path / "approved.json",
+                    provider="cloudflare",
+                    project="shared",
+                    approve_plan=output,
+                )
+            deploy.assert_called_once()

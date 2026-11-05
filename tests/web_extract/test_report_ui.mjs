@@ -5,7 +5,7 @@ import {fileURLToPath} from 'node:url';
 import vm from 'node:vm';
 
 const rendered = spawnSync('uv', ['run', '--frozen', '--no-sync', 'python', '-c',
-  'import json; from harness.web_extract.report_ui import JS; from tests.web_extract.sorting_fixture import generated_sorting_tables, failed_unscored_record; print(json.dumps({"js":JS,"tables":generated_sorting_tables(),"failedUnscored":failed_unscored_record()}))'],
+  'import json; from harness.web_extract.report_ui import JS; from tests.web_extract.sorting_fixture import generated_sorting_tables, failed_unscored_record, generated_quality_heading; print(json.dumps({"js":JS,"tables":generated_sorting_tables(),"failedUnscored":failed_unscored_record(),"qualityHeading":generated_quality_heading()}))'],
   {cwd: fileURLToPath(new URL('../..', import.meta.url)), encoding: 'utf8'});
 assert.equal(rendered.status, 0, rendered.stderr);
 const produced = JSON.parse(rendered.stdout);
@@ -15,6 +15,9 @@ const catalog = JSON.parse(payload);
 let focused;
 class Element {
   constructor(tag, text = '') { this.tagName = tag.toUpperCase(); this.text = text; this.children = []; this.dataset = {}; this.listeners = {}; this.attributes = {}; }
+  get nodeName() { return this.tagName; }
+  get childNodes() { return [{nodeName: '#text', textContent: this.text}, ...this.children]; }
+  querySelector(selector) { return selector === 'small[data-reference-population]' ? this.children.find(x => x.tagName === 'SMALL' && x.dataset.referencePopulation) || null : null; }
   get textContent() { return this.text + this.children.map(x => x.textContent).join(''); }
   set textContent(text) { this.text = text; this.children = []; }
   append(...children) { this.children.push(...children); }
@@ -46,6 +49,11 @@ datasetForm.querySelector = selector => selector === 'input' ? datasetQuery : da
 const datasetTable = {querySelectorAll: () => datasetRows};
 const count = new Element('output');
 const head = new Element('th', 'Seconds');
+const populationHeading = new Element('th', produced.qualityHeading.label);
+const populationNote = new Element('small', produced.qualityHeading.note);
+populationNote.dataset.referencePopulation = 'price';
+populationHeading.append(new Element('br'), populationNote);
+const populationTable = {tHead: {rows: [{cells: [populationHeading]}]}, tBodies: [{rows: []}]};
 const sorted = [9, 0.003, null, 0].map(value => {
   const cell = new Element('td', value === null ? '—Scored 0/2; excluded 2' : String(value));
   if (value === null) cell.dataset.metric = 'audited-price'; else cell.dataset.sort = String(value); return {cells: [cell]};
@@ -94,7 +102,7 @@ const context = vm.createContext({URL, URLSearchParams, Map, Error, String, Numb
     querySelectorAll(selector) {
       if (selector === 'form[data-result-controls], form[data-dataset-controls]') return [form, datasetForm];
       if (selector === 'form[data-dataset-controls]') return [datasetForm];
-      if (selector === 'table[data-sortable]') return [table, ...generatedTables];
+      if (selector === 'table[data-sortable]') return [table, populationTable, ...generatedTables];
       if (selector === 'tr[data-status]') return rows;
       return [];
     },
@@ -133,8 +141,13 @@ assert.deepEqual(tbody.rows.map(x => x.cells[0].textContent), ['0', '0.003', '9'
 head.children[0].listeners.click();
 assert.deepEqual(tbody.rows.map(x => x.cells[0].textContent), ['9', '0.003', '0', '—Scored 0/2; excluded 2']);
 assert.equal(head.getAttribute('aria-sort'), 'descending');
+assert.equal(populationHeading.children[0].tagName, 'BUTTON');
+assert.equal(populationHeading.children[0].textContent, produced.qualityHeading.label + ' ↕');
+assert.deepEqual(populationHeading.children.map(x => x.tagName), ['BUTTON', 'BR', 'SMALL']);
+assert.equal(populationHeading.children[2], populationNote);
+assert.equal(populationNote.textContent, produced.qualityHeading.note);
 for (const [index, generated] of generatedTables.entries()) {
-  const expected = [[4, 10, 12], [0, 0, 0, 0, 2, 10], [0, 0, 0, 0, 2, 12], [2.001, 10.001], [0, 2, 10], [0, 2, 12]][index];
+  const expected = [[2, 10], [2, 10], [4, 10, 12], [0, 0, 0, 0, 2, 10], [0, 0, 0, 0, 2, 12], [2.001, 10.001], [0, 2, 10], [0, 2, 12]][index];
   const button = generated.tHead.rows[0].cells[generated.column].children[0];
   button.listeners.click();
   const values = () => generated.tBodies[0].rows.map(row => Number(row.cells[generated.column].dataset.sort));

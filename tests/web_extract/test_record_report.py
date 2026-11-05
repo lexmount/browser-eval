@@ -391,6 +391,10 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
         soup = BeautifulSoup(
             (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
         )
+        for row in soup.select("[data-core-metrics] tbody tr"):
+            cells = row.select("td")
+            assert int(cells[1]["data-sort"]) == int(cells[1].get_text().split("/")[0])
+            assert int(cells[2]["data-sort"]) == int(cells[2].get_text())
         reason = soup.select_one('[data-excluded-method="firecrawl-json"]')
         assert reason is not None
         assert "User omitted the interrupted participant" in reason.get_text()

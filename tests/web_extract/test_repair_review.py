@@ -389,7 +389,10 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
                     "case_id": case["case_id"],
                     "main_product": "Synthetic",
                     "source_fields": fields,
-                    "reference": fields,
+                    "reference": {
+                        f: {**deepcopy(v), "reason": "Original annotation independently retained"}
+                        for f, v in fields.items()
+                    },
                     "outputs": [
                         {"method": o["method"], "fields": fields, "projection_issue": "None"}
                         for o in case["outputs"]
@@ -412,6 +415,12 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     )
     result = assemble(*arguments, tmp_path / "complete.json", profile=home / "profile.json")
     assert result["result_count"] == 6
+    for source_review in result["sources"].values():
+        assert source_review["source_fields"]["price"]["reason"] == "Synthetic source checked"
+        assert (
+            source_review["reference_review"]["price"]["reason"]
+            == "Original annotation independently retained"
+        )
     assert result["accepted_unreviewed_passes"] == result["unresolved"] == 0
     # Preserve adverse reviewer judgments and reject a later failed execution with
     # an identical response body but different runtime evidence.

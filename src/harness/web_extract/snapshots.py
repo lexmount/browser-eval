@@ -259,16 +259,25 @@ def publication_metadata(home, binding, verification):
         for row in verification.get("pages", [])
         if row["url"].startswith(selected["fixture_base"] + "/") and row["http_status"] == 200
     ]
-    if verification.get("mode") == "dataset_manifest":
-        manifest_url = verification["manifest_url"]
+    snapshot = verification if verification.get("mode") == "dataset_manifest" else None
+    if snapshot is None:
+        if len(actual) != len(expected) or set(actual) != expected:
+            raise ValueError("Snapshot publication requires every matching verified page")
+        snapshot = binding.get("snapshot_manifest")
+    checked = None
+    if snapshot is not None:
+        manifest_url = snapshot["manifest_url"]
         if not manifest_url.endswith("/snapshots.json"):
             raise ValueError("Snapshot manifest requires its canonical path")
         origin = manifest_url.removesuffix("/snapshots.json")
-        checked = check_manifest(home, origin, verification["huggingface"])
-        if checked != verification or checked["fixture_base"] != selected["fixture_base"]:
+        checked = check_manifest(home, origin, snapshot["huggingface"])
+        if (
+            any(checked.get(k) != v for k, v in snapshot.items() if k != "hosting_provider")
+            or checked["fixture_base"] != selected["fixture_base"]
+        ):
             raise ValueError("Snapshot publication dataset manifest changed")
-    elif len(actual) != len(expected) or set(actual) != expected:
-        raise ValueError("Snapshot publication requires every matching verified page")
+    elif binding.get("hosting_provider") == "cloudflare":
+        raise ValueError("Managed snapshot publication requires a dataset manifest")
     source = next(
         item for item in binding["datasets"].values() if item["html_inventory_sha256"] == version
     )
@@ -279,11 +288,7 @@ def publication_metadata(home, binding, verification):
         "schema": "web-extract-hf-snapshots/1",
         **source,
         **({"hosting_provider": provider} if provider is not None else {}),
-        **(
-            {"snapshot_manifest": verification}
-            if verification.get("mode") == "dataset_manifest"
-            else {}
-        ),
+        **({"snapshot_manifest": checked} if checked is not None else {}),
         "synchronization": (
             "Original files are authoritative. Deploy unchanged HTML, verify the dataset manifest, "
             "then publish this binding. Pin the HF commit and immutable deployment; "
@@ -707,6 +712,8 @@ def check_manifest(home, origin, hf_identity):
 
     url = origin.rstrip("/") + "/snapshots.json"
     response = requests.get(url, timeout=40)
+    if response.status_code == 404:
+        raise ValueError("Snapshot manifest is missing (HTTP 404)")
     response.raise_for_status()
     if response.url != url:
         raise ValueError("Snapshot manifest must use its immutable canonical URL")
