@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "94055b5bfd08a94be2417a6f4e06d8eaf7a406cd7e58a9018eab90a6a9458028"
+          "after_sha256": "990ab7aea8f4ba95d0bdcdae9b555c980dba982851dd5afa0c853ee3a7b38a7a"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "49dd123d507c052ccc0274c79f06f92aaab6f42fabf4c1e044cf4d266c15ee78"
+          "after_sha256": "8760e364d63bc1b03f3ea7e714156a2eaf8b96ca8b0b4dd7d2ce7e734b8697fe"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -3939,6 +3939,33 @@
             "definition-parent-prose-with-nested-signature",
             "definition-sibling-signature-excluded",
             "definition-nested-parameter-description"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "metrics.py"
+          ],
+          "root_cause": "Image-answer scoring read only image-typed JSON keys, so the rendered-DOM image route's declared structured_resource_urls links list never supplied candidates.",
+          "regression_ids": [
+            "structured-resource-route-image-links-answer",
+            "structured-resource-route-undeclared-links-rejected",
+            "structured-resource-route-diagnostic-json-rejected"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "stable_tasks.py"
+          ],
+          "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles.",
+          "regression_ids": [
+            "catalog-heading-price-title-cards-complete",
+            "catalog-heading-price-without-title-incomplete"
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"
