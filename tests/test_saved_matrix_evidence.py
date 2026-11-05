@@ -1858,3 +1858,14 @@ def test_saved_interface_catalog_has_frozen_page_translations():
             # Do not call the live renderer: an archived page needs catalog fallback.
             chinese = translate(MESSAGES, message_id, 'zh', **values)
             assert not re.search(r'[\u3400-\u9fff]', translate_text(chinese)), message_id
+
+
+@pytest.mark.parametrize('reverse', [False, True])
+def test_duplicate_source_case_is_rejected_in_both_orders(tmp_path, reverse):
+    spec, root, _, _ = fixture(tmp_path)
+    case = json.loads((root/'dataset.json').read_bytes())['cases'][0]
+    cases = [{**case, 'expected_any': ['different rule']}, case]
+    spec['sources'][0]['dataset'] = write(root/'source-dataset.json',
+                                         {'cases': cases[::-1] if reverse else cases})
+    with pytest.raises(ValueError, match='Duplicate case ID in saved-matrix dataset'):
+        build(tmp_path, spec)

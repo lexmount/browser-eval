@@ -108,6 +108,14 @@ def _path(base, value):
     return path.absolute()
 
 
+def _index_cases(dataset):
+    entries = dataset['cases']
+    ids = [safe_identifier(case['id']) for case in entries]
+    if len(ids) != len(set(ids)):
+        raise ValueError('Duplicate case ID in saved-matrix dataset')
+    return dict(zip(ids, entries, strict=True))
+
+
 def _case_identity(case):
     value = deepcopy(case)
     value.setdefault('task_kind', 'body')
@@ -353,8 +361,8 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
     original_records = [json.loads(line) for line in revision_file(before_results).read_bytes().splitlines() if line.strip()]
     originals = {r['attempt_id']: r for r in original_records}
     revised = {r['attempt_id']: r for r in records}
-    original_cases = {c['id']: c for c in original_dataset['cases']}
-    revised_cases = {c['id']: c for c in dataset['cases']}
+    original_cases = _index_cases(original_dataset)
+    revised_cases = _index_cases(dataset)
     expected_cases = {s+'--'+cid for s, group in cases.items() for cid in group}
     if set(original_cases) != expected_cases or set(revised_cases) != expected_cases:
         raise ValueError('Saved revision case population differs')
@@ -460,11 +468,7 @@ def _load_saved_matrix(spec_path):
         binding(spec['native_policy_registry'])
     for suite in spec['suites']:
         dataset = _json(binding(suite['dataset']))
-        entries = dataset['cases']
-        ids = [safe_identifier(x['id']) for x in entries]
-        if len(ids) != len(set(ids)):
-            raise ValueError('Duplicate case in suite')
-        cases[suite['id']] = dict(zip(ids, entries, strict=True))
+        cases[suite['id']] = _index_cases(dataset)
     routes = [suite + '--' + cid for suite in suites for cid in cases[suite]]
     if len(routes) != len(set(routes)):
         raise ValueError('Colliding suite-qualified case routes')
@@ -500,7 +504,7 @@ def _load_saved_matrix(spec_path):
         result_path = binding(source['results'])
         result_path.relative_to(root)
         source_dataset = binding(source['dataset']) if source.get('dataset') else bind(root / 'dataset.json')
-        source_cases = {x['id']: x for x in _json(source_dataset)['cases']}
+        source_cases = _index_cases(_json(source_dataset))
         ids = source['case_ids']
         if len(ids) != len(set(ids)) or not set(ids) <= set(cases[suite]):
             raise ValueError('Unknown or duplicate selected case IDs')
@@ -575,7 +579,7 @@ def _load_saved_matrix(spec_path):
             root = _path(spec_path.parent, source['root'])
             result_path = binding(source['results'])
             result_path.relative_to(root)
-            prior_cases = {x['id']: x for x in _json(binding(source['dataset']))['cases']}
+            prior_cases = _index_cases(_json(binding(source['dataset'])))
             matches = []
             for line in result_path.read_bytes().splitlines(keepends=True):
                 if not line.strip():
@@ -1272,7 +1276,7 @@ def _parameter_reruns(inputs):
             root = _path(sources.base, source['root'])
             dataset = _json(sources.binding(source['dataset']))
             path = sources.binding(source['results'])
-            cases = {case['id']: case for case in dataset['cases']}
+            cases = _index_cases(dataset)
             source_rows = [(root, json.loads(line), line, path)
                            for line in path.read_bytes().splitlines(keepends=True) if line.strip()]
         seen = set()
