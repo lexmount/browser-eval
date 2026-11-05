@@ -42,6 +42,9 @@ def check_presentation(html):
                     (unique or table.get("data-highlight-ties") == "all") and value == extreme
                 ):
                     raise ValueError('Column extremum highlight missing, incorrect, or tied')
+    for inventory in soup.select('[data-dataset-inventory]'):
+        if not soup.select_one('form[data-dataset-controls] input[type="search"]') or not inventory.has_attr('data-sortable'):
+            raise ValueError('Dataset inventory needs independent search and sorting controls')
     for detail in soup.select('[data-report-detail]'):
         if len(detail.select('[data-result-summary]')) != 1:
             raise ValueError('Result detail requires exactly one summary')
@@ -94,3 +97,51 @@ def visible_text(html: str) -> str:
     parser = _VisibleTextParser()
     parser.feed(html)
     return " ".join(parser.parts)
+
+
+def metric_guide(definitions, *, title, headings):
+    """One reusable reader guide, driven by the same metric identities as comparisons."""
+    required = ("id", "label", "meaning", "unit", "population", "direction")
+    if not definitions or len({d.get("id") for d in definitions}) != len(definitions):
+        raise ValueError("Metric definitions must be nonempty and unique")
+    rows = []
+    for definition in definitions:
+        if any(
+            not isinstance(definition.get(k), str) or not definition[k].strip() for k in required
+        ):
+            raise ValueError("Every metric needs its meaning, unit, population and direction")
+        rows.append(
+            '<tr id="metric-'
+            + esc(definition["id"])
+            + '">'
+            + "".join(
+                "<td>" + esc(definition[k]) + "</td>"
+                for k in ("label", "meaning", "unit", "population", "direction")
+            )
+            + "</tr>"
+        )
+    return (
+        "<details data-metric-guide><summary>"
+        + esc(title)
+        + '</summary><div class="table-wrap"><table><thead><tr>'
+        + "".join("<th>" + esc(h) + "</th>" for h in headings)
+        + "</tr></thead><tbody>"
+        + "".join(rows)
+        + "</tbody></table></div></details>"
+    )
+
+
+def check_metric_guide(document, definitions, *, title, headings):
+    soup = BeautifulSoup(document, "html.parser") if isinstance(document, str) else document
+    actual = soup.select("[data-metric-guide]")
+    expected = BeautifulSoup(
+        metric_guide(definitions, title=title, headings=headings), "html.parser"
+    )
+    if len(actual) != 1 or actual[0].get_text(" ", strip=True) != expected.get_text(
+        " ", strip=True
+    ):
+        raise ValueError("Metric guide is missing or differs from the metric definitions")
+    if [r.get("id") for r in actual[0].select("tbody tr")] != [
+        "metric-" + d["id"] for d in definitions
+    ]:
+        raise ValueError("Metric explanation targets differ from their definitions")

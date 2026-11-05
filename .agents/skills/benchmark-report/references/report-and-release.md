@@ -97,3 +97,27 @@ Repository adapter: `src/harness/reporting/presentation.py` provides track-indep
 Shared gate flow: `src/harness/reporting/release_check.py` owns what every release check repeats: opening a link-free report, reading pages through the presentation rules, naming language editions and binding report identity. Each track keeps its own rules and negative controls. Do not route a module into it when a visual receipt or manifest records that module's hash (`checker_sources`, `producer_sources`, `renderer_sha256`).
 
 Keep unpublished correction notes outside public release history. Schema 3 requires an explicit publication state for every release; an unmarked record fails the build. When a structured release is staged, mark it `publication_state: unpublished`; the public history selector and revision-binding gate must exclude it. Preserve its private correction receipt and measured calls.
+
+
+## Shared reader components
+
+The template resolver supplies a common presentation contract to every track.
+Use `harness.reporting.presentation.metric_guide` for metric definitions and
+`check_metric_guide` in the owning release check. A track supplies its metric
+names, meaning, units, populations and direction; it should not copy the guide
+renderer. Keep the explanation beside the main comparison, and retain negative
+controls for missing definitions, changed units or populations and wrong targets.
+The existing comparison checker owns directional highlights and unavailable values.
+
+For usage-priced services, convert the declared workload with
+`harness.reporting.pricing.usd_per_thousand`. Retain quantities, rates, assumptions
+and source dates; validate the displayed interval against that conversion.
+A formula alone does not replace a dollar figure. Label scenario estimates and
+plan quotes separately, and keep full billing terms off the compact home table.
+
+A result detail leads with the requested fields, reference and actual values,
+and the explanation of their differences. Give developer records one secondary
+entry; a successful HTTP status is not an error or a quality verdict. A dataset
+page owns task definitions, while result pages own measured outputs. Keep each
+report's examples within its own dataset; related benchmarks belong in research
+references rather than a second unannounced result cohort.

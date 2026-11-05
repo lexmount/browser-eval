@@ -2158,3 +2158,27 @@ def test_repair_and_review_selection_accept_explicit_or_bare_run_names(tmp_path,
     selected, rows = load_selection(home, {"run": str(source) if value == "absolute" else value})
     assert selected == source
     assert len(rows) == 3
+
+
+def test_adjudication_uses_the_same_dataset_root_for_different_audit_depths(tmp_path):
+    from harness.web_extract.review import manifest_root, prepare_adjudication, read_manifest
+
+    home = create(tmp_path / "example")
+    priors = [tmp_path / "initial", tmp_path / "repairs/deeper/supplemental"]
+    for prior in priors:
+        manifest = prepare(home, home / "content.json", prior)
+        for entry in manifest["packets"]:
+            packet = read_packet(Path(entry["path"]))
+            payload = review_payload(packet)
+            payload["cases"][0]["reference"]["sku"]["status"] = "ambiguous"
+            save_json(prior / "reviews" / Path(entry["path"]).name, payload)
+    rules = tmp_path / "rules.txt"
+    rules.write_text("Resolve references from source text.", encoding="utf-8")
+    output = tmp_path / "final-adjudication"
+    result = prepare_adjudication(priors[0], output, rules, additional_priors=[priors[1]])
+    assert manifest_root(output, read_manifest(output)) == home
+    assert all(
+        Path(case["source_html"]).is_file()
+        for entry in result["packets"]
+        for case in read_packet(Path(entry["path"]))["cases"]
+    )

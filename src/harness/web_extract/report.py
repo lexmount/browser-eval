@@ -265,7 +265,7 @@ def page(
         part8=message("english", other),
         part9=labels[8],
         part10=body,
-        part11=VERSION,
+        part11=("评测方法与数据版本" if language == "zh" else "Methodology and dataset versions"),
         part12=message("input_and_file_bindings", language),
     )
     # Artifact Site injects a site-root base even on nested pages. Use the same
@@ -471,9 +471,9 @@ def reference_populations(truth):
 def price_quote(value, lang):
     bounds = value.get("usd_per_1000_range")
     if bounds is None:
-        return (
-            message("usage_priced", lang) if value.get("pricing_formula") else value["usd_per_1000"]
-        )
+        if value.get("pricing_formula"):
+            raise ValueError("Usage-priced methods require a numeric workload cost conversion")
+        return value["usd_per_1000"]
     if (
         not isinstance(bounds, list)
         or len(bounds) != 2
@@ -481,8 +481,17 @@ def price_quote(value, lang):
         or bounds[0] > bounds[1]
     ):
         raise ValueError("Invalid USD per 1,000 calls range")
+    if value.get("cost_conversion"):
+        from harness.reporting.pricing import usd_per_thousand
+
+        converted = usd_per_thousand(**value["cost_conversion"])
+        if any(
+            not math.isclose(a, b, rel_tol=1e-10) for a, b in zip(bounds, converted, strict=True)
+        ):
+            raise ValueError("Displayed cost differs from its usage conversion")
     low, high = (f"{n:.3f}".rstrip("0").rstrip(".") for n in bounds)
-    return "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
+    prefix = ("约 " if lang == "zh" else "Est. ") if value.get("estimate") else ""
+    return prefix + "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
 
 
 def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=None):
@@ -831,6 +840,25 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
     )
 
 
+def displayed_values(value, language, *, reference=False):
+    if value is None or value == []:
+        return (
+            "无参考值"
+            if reference and language == "zh"
+            else "未返回值"
+            if language == "zh"
+            else "No reference value"
+            if reference
+            else "No value returned"
+        )
+    values = value if isinstance(value, list) else [value]
+    return (
+        '<ul class="field-values">'
+        + "".join("<li>" + esc(item) + "</li>" for item in values)
+        + "</ul>"
+    )
+
+
 def field_table(row, lang):
     labels = {
         "price": message("diagnostic_labels_price", "zh"),
@@ -849,8 +877,8 @@ def field_table(row, lang):
         records.append(
             [
                 labels[field] if lang == "zh" else field,
-                esc(json.dumps(value["expected"], ensure_ascii=False)),
-                esc(json.dumps(value["actual"], ensure_ascii=False)),
+                displayed_values(value["expected"], lang, reference=True),
+                displayed_values(value["actual"], lang),
                 outcomes[value["status"]] if lang == "zh" else value["status"],
                 str(value["tp"]),
                 str(value["fp"]),
@@ -1310,8 +1338,79 @@ def check_input_profile(output, manifest):
     return local
 
 
-def method_examples(output, binding):
-    """Render hash-bound native examples grouped by independently defined benchmarks."""
+def metric_definitions(language, *, records):
+    labels = message("guide_record_labels" if records else "guide_product_labels", language)
+    meanings = message("guide_record_meanings" if records else "guide_product_meanings", language)
+    result = [
+        dict(
+            id="quality-" + str(i),
+            label=label,
+            meaning=meaning,
+            unit=message("guide_rate_unit" if records and i == 2 else "guide_score_unit", language),
+            population=message("guide_quality_population", language),
+            direction=message("guide_higher", language),
+        )
+        for i, (label, meaning) in enumerate(zip(labels, meanings, strict=True))
+    ]
+    for i, (label, meaning) in enumerate(
+        zip(
+            message("guide_latency_labels", language),
+            message("guide_latency_meanings", language),
+            strict=True,
+        )
+    ):
+        result.append(
+            dict(
+                id="operations-" + str(i),
+                label=label,
+                meaning=meaning,
+                unit=message("guide_cost_unit" if i == 3 else "guide_seconds_unit", language),
+                population=message(
+                    "guide_price_population" if i == 3 else "guide_time_population", language
+                ),
+                direction=message("guide_context" if i == 3 else "guide_lower", language),
+            )
+        )
+    return result
+
+
+def report_metric_guide(language, *, records):
+    from harness.reporting.presentation import metric_guide
+
+    return metric_guide(
+        metric_definitions(language, records=records),
+        title=message("guide_title", language),
+        headings=message("guide_headings", language),
+    )
+
+
+def retry_summary(statistics_by_method, labels):
+    return (
+        "<section data-retry-summary><h2>此前重试的额外耗时</h2><p>首页耗时统计最终一次调用。此前尝试另计如下，不重复计算为新页面。</p>"
+        + table(
+            ["服务", "额外重试耗时（秒）", "缺少计时的重试次数"],
+            [
+                [esc(labels[m]), f"{v['retry_seconds']:.3f}", str(v["retry_missing_timers"])]
+                for m, v in statistics_by_method.items()
+            ],
+        )
+        + "</section>"
+    )
+
+
+def dataset_controls(language):
+    label = "搜索网页、类别或网站" if language == "zh" else "Search pages, categories or sites"
+    return (
+        '<form data-dataset-controls class="controls"><label>'
+        + label
+        + '<input type="search" aria-label="'
+        + label
+        + '"></label><output></output></form>'
+    )
+
+
+def method_examples(output, binding, language="zh"):
+    """Show the page, requested fields and returned values before developer records."""
     if not binding:
         return ""
     path = Path(binding["path"])
@@ -1323,11 +1422,9 @@ def method_examples(output, binding):
     groups = json.loads(raw)["benchmarks"]
     if not groups or len({g["id"] for g in groups}) != len(groups):
         raise ValueError("Method examples require distinct benchmarks")
-    parts = ["<section data-method-examples><h2>各数据集的方法与真实实例</h2>"]
-
-    def code(value):
-        return "<pre>" + esc(json.dumps(value, ensure_ascii=False, indent=2)) + "</pre>"
-
+    parts = [
+        "<section data-method-examples><h2>" + message("examples_reader_title", language) + "</h2>"
+    ]
     for group in groups:
         entries = group["methods"]
         if not entries or len({e["id"] for e in entries}) != len(entries):
@@ -1339,7 +1436,7 @@ def method_examples(output, binding):
             if example is None:
                 if not entry.get("unavailable_reason"):
                     raise ValueError("An unexecuted method requires its example limitation")
-                details = esc(entry["unavailable_reason"])
+                link = esc(entry["unavailable_reason"])
             else:
                 if not example.get("case_id") or not isinstance(example.get("request"), dict):
                     raise ValueError("Method example lacks a retained request or case identity")
@@ -1353,74 +1450,95 @@ def method_examples(output, binding):
                     raise ValueError(
                         "Example output path is not a native response field"
                     ) from error
-                details = '<a href="#' + identifier + '">查看输入与输出</a>'
                 request = example["request"]
-                summary = {
-                    "endpoint": request.get("endpoint"),
-                    "input": request.get("input"),
-                    "snapshot_url": request.get("fixture_url"),
-                    "html_sha256": request.get("html_sha256"),
-                    "native_options": request.get("native_options", {}),
+                source = (
+                    request.get("fixture_url")
+                    or example.get("input_preview_url")
+                    or request.get("source_url")
+                )
+                if "fields" in example:
+                    projected = normalize(
+                        entry["id"],
+                        example["response"],
+                        **({"schema": request["schema"]} if example.get("record_schema") else {}),
+                    )
+                    if projected != example["fields"]:
+                        raise ValueError("Example fields differ from the native response")
+                    values = example["fields"] or {}
+                else:
+                    values = native if isinstance(native, dict) else {"result": native}
+
+                def readable(value):
+                    if value is None:
+                        return message("example_missing", language)
+                    if isinstance(value, list):
+                        return (
+                            "、".join(readable(item) for item in value)
+                            if value
+                            else message("example_empty", language)
+                        )
+                    if isinstance(value, dict):
+                        return json.dumps(value, ensure_ascii=False)
+                    return str(value)
+
+                output_table = table(
+                    [message("field", language), message("output", language)],
+                    [
+                        [esc(entry.get("field_labels", {}).get(k, k)), esc(readable(v))]
+                        for k, v in values.items()
+                    ],
+                )
+                record = {
+                    "case_id": example["case_id"],
+                    "request": request,
+                    "http_status": example.get("http_status"),
+                    "response": example["response"],
+                    "source": example["source"],
                 }
-                summary = {key: value for key, value in summary.items() if value is not None}
                 elapsed = example.get("elapsed_seconds")
-                timing = f"{elapsed:.3f}" if isinstance(elapsed, (int, float)) else "—"
+                timing = (
+                    message("examples_timing", language, seconds=f"{elapsed:.3f}")
+                    if isinstance(elapsed, (int, float))
+                    else ""
+                )
                 cards.append(
                     '<details class="method-example" id="'
                     + identifier
                     + '" data-method-example="'
                     + esc(group["id"] + "/" + entry["id"])
                     + '"><summary>'
-                    + esc(entry["label"] + " · " + example["case_id"])
-                    + "</summary>"
-                    + '<div class="example-pair"><div><h4>真实输入记录</h4>'
-                    + code(summary)
-                    + "<p>"
+                    + esc(entry["label"])
+                    + '</summary><div class="example-pair">'
+                    + "<div><h4>"
+                    + message("examples_input", language)
+                    + '</h4><p><a href="'
+                    + esc(source or "#")
+                    + '">'
+                    + message("open_page", language)
+                    + "</a></p><p>"
                     + esc(entry["field_contract"])
-                    + "</p>"
-                    + (
-                        "<details><summary>实际字段 Schema</summary>"
-                        + code(request["schema"])
-                        + "</details>"
-                        if entry.get("custom_schema") and request.get("schema")
-                        else ""
-                    )
-                    + '<a href="'
-                    + esc(
-                        request.get("fixture_url")
-                        or example.get("input_preview_url")
-                        or request.get("source_url")
-                        or "#"
-                    )
-                    + '">查看相同输入的快照</a></div><div><h4>原生响应中的提取结果</h4>'
-                    + code(native)
-                    + "<p>HTTP "
-                    + esc(str(example.get("http_status")))
-                    + " · "
-                    + esc(timing)
-                    + " 秒</p></div></div>"
-                    + "<details><summary>完整保留请求记录与原生响应</summary>"
-                    + code(
-                        {
-                            "request": request,
-                            "response": example["response"],
-                            "source": example["source"],
-                        }
-                    )
-                    + "</details></details>"
+                    + "</p><p>"
+                    + message("examples_delivery", language)
+                    + esc(entry["input_mode"])
+                    + "</p></div>"
+                    + "<div><h4>"
+                    + message("examples_output", language)
+                    + "</h4>"
+                    + output_table
+                    + "<p>"
+                    + timing
+                    + "</p></div></div><details><summary>"
+                    + message("examples_record", language)
+                    + "</summary><pre>"
+                    + esc(json.dumps(record, ensure_ascii=False, indent=2))
+                    + "</pre></details></details>"
+                )
+                link = (
+                    '<a href="#' + identifier + '">' + message("examples_open", language) + "</a>"
                 )
             rows.append(
-                [
-                    esc(entry[k])
-                    for k in (
-                        "label",
-                        "implementation",
-                        "input_mode",
-                        "field_contract",
-                        "output_field",
-                    )
-                ]
-                + [details]
+                [esc(entry[k]) for k in ("label", "implementation", "input_mode", "field_contract")]
+                + [link]
             )
         parts.append(
             '<section id="examples-'
@@ -1430,12 +1548,36 @@ def method_examples(output, binding):
             + "</h3><p>"
             + esc(group["description"])
             + "</p>"
-            + table(["方法", "提取方式", "实际输入", "字段要求", "返回对象", "实例"], rows)
+            + table(
+                message("examples_columns", language)[:4]
+                + message("examples_columns", language)[-1:],
+                rows,
+            )
             + '<div class="method-examples">'
             + "".join(cards)
             + "</div></section>"
         )
     return "".join(parts) + "</section>"
+
+
+def check_method_examples(output, manifest):
+    if not manifest.get("method_examples"):
+        return
+    for language in manifest["languages"]:
+        expected = BeautifulSoup(
+            method_examples(output, manifest["method_examples"], language), "html.parser"
+        )
+        actual = BeautifulSoup(
+            (output / language / "protocol.html").read_text(encoding="utf-8"), "html.parser"
+        ).select_one("[data-method-examples]")
+        if actual is not None:
+            for anchor in actual.select("a"):
+                anchor.attrs.pop("target", None)
+                anchor.attrs.pop("rel", None)
+                if anchor.get("href", "").startswith(language + "/protocol.html#"):
+                    anchor["href"] = "#" + anchor["href"].split("#", 1)[1]
+        if str(actual) != str(expected.select_one("[data-method-examples]")):
+            raise ValueError("Method examples differ from their native input/output evidence")
 
 
 def build(output: Path, content: Path, *, home: Path, run=None, language=None, profile=PROFILE):
@@ -1655,6 +1797,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         directory = output / lang
         directory.mkdir()
         bodies = {p: model["pages"].get(p, {}).get("body", {}).get(lang, "") for p in PAGES}
+        bodies["protocol"] += method_examples(output, model.get("method_examples"), lang)
         titles = {
             p: model["pages"]
             .get(p, {})
@@ -1949,8 +2092,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         bodies["dataset"] += table(
             [lab[14], message("source", lang), message("snapshot", lang), lab[19]],
             dr,
+            attrs="data-dataset-inventory data-sortable",
             inventory=True,
         )
+        bodies["dataset"] = dataset_controls(lang) + bodies["dataset"]
         if distribution:
             bodies["dataset"] = (
                 '<p data-dataset-distribution><a href="'
@@ -1976,7 +2121,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             evidence = "../public-evidence/" + (r["method"] if cohort else key) + ".json"
             evidence_key = f' data-key="{cid}"' if cohort else ""
-            detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(names.get(r["method"], r["method"]))} · {esc(r["state"])} · HTTP {r.get("http_status", "—")}</p><p><code>{cid}</code></p><small>{esc(r["run_id"])}</small></div>'
+            detail = f'<article data-report-detail="{"passed" if ok else "failed"}"><div data-result-summary><h2>{status}</h2><p>{esc(names.get(r["method"], r["method"]))}</p><p><code>{cid}</code></p></div>'
             detail += (
                 f'<p class="case-links"><a href="case-{cid}.html">'
                 + (message("compare_all_methods", lang))
@@ -1984,7 +2129,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 + (message("source_and_annotations_cf191383", lang))
                 + "</a></p>"
             )
-            detail += field_table(r, lang)
+            detail += (
+                (
+                    "<details><summary>原标注下的字段判定</summary>"
+                    + field_table(r, lang)
+                    + "</details>"
+                )
+                if r.get("review")
+                else field_table(r, lang)
+            )
             if r.get("review"):
                 reviewed = {**r, "field_results": r["review"]["audited_fields"]}
                 detail += (
@@ -2020,13 +2173,13 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                         ]
                     )
                 detail += (
-                    "<section data-reviewer-findings><h2>"
+                    "<details data-reviewer-findings><summary>"
                     + message("reviewer_findings", lang)
-                    + "</h2>"
+                    + "</summary>"
                 )
                 detail += "<p>" + message("reviewer_reconciliation", lang) + "</p>"
                 detail += table(message("reviewer_findings_columns", lang), review_rows)
-                detail += "<p>" + esc(findings["reviewer_projection_issue"]) + "</p></section>"
+                detail += "<p>" + esc(findings["reviewer_projection_issue"]) + "</p></details>"
             if r.get("diagnosis"):
                 diagnosis = r["diagnosis"]
                 detail += (
@@ -2044,21 +2197,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     part1=lab[21],
                     part2=esc(error),
                 )
-            ref = {f: truth[cid].get(f, []) for f in fields}
-            detail += (
-                table(
-                    [lab[19], lab[20]],
-                    [
-                        [
-                            f"<pre>{esc(json.dumps(ref, ensure_ascii=False, indent=2))}</pre>",
-                            f"<pre>{esc(json.dumps(r.get('normalized_fields'), ensure_ascii=False, indent=2))}</pre>",
-                        ]
-                    ],
-                )
-                .replace("<pre>", "<details open><summary>JSON</summary><pre>")
-                .replace("</pre>", "</pre></details>")
-            )
-            detail += f'<p><button data-call-log-open="evidence" data-src="{evidence}"{evidence_key}>{lab[9]}</button> · <a href="{evidence}">JSON</a></p><dialog id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">{lab[21]}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
+            detail += f'<p><button data-call-log-open="evidence" data-src="{evidence}"{evidence_key}>{message("developer_record", lang)}</button></p><dialog id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">{message("developer_record", lang)}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
             (directory / url).write_text(
                 page(
                     lang,
@@ -2112,6 +2251,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )
+        bodies["index"] = report_metric_guide(lang, records=False) + bodies["index"]
         bodies["results"] += (
             result_controls(methods, rows, names, lang)
             + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
@@ -2181,6 +2321,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "planned_methods": list(cohort_plan["participants"]) if cohort else None,
             "method_labels": names,
             "prices": model.get("prices", {}),
+            "method_examples": model.get("method_examples"),
             "renderer_sha256": digest(Path(__file__).read_bytes()),
             "interaction_sha256": digest(Path(__file__).with_name("report_ui.py").read_bytes()),
             "messages_sha256": messages_sha256(),
@@ -2230,6 +2371,16 @@ def check(output: Path, *, release=False, visual_receipt=None):
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     check_input_profile(output, manifest)
+    check_method_examples(output, manifest)
+    from harness.reporting.presentation import check_metric_guide
+
+    for lang in manifest["languages"]:
+        check_metric_guide(
+            (output / lang / "index.html").read_text(encoding="utf-8"),
+            metric_definitions(lang, records=manifest.get("mode") == "field-extraction-cohort"),
+            title=message("guide_title", lang),
+            headings=message("guide_headings", lang),
+        )
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     validate_catalog()
@@ -2812,9 +2963,9 @@ def record_field_rows(row, language):
 
     return [
         [
-            esc(field),
-            esc(json.dumps(f["expected"], ensure_ascii=False)),
-            esc(json.dumps(f["actual"], ensure_ascii=False)),
+            esc(row.get("field_labels", {}).get(field, field)),
+            displayed_values(f["expected"], language, reference=True),
+            displayed_values(f["actual"], language),
             message("outcomes_" + f["status"], language),
             "—" if f["hit"] is None else t("yes") if f["hit"] else t("no"),
             "—" if f["exact"] is None else t("yes") if f["exact"] else t("no"),
@@ -3122,7 +3273,7 @@ def build_record_cohort(output, content, *, home, language, profile):
 
     metric = record_metric
 
-    def evidence_button(method, cid, dialog_id="diagnosis"):
+    def evidence_button(method, cid, dialog_id="diagnosis", *, technical=False):
         return (
             '<button data-call-log-open="'
             + esc(dialog_id)
@@ -3130,8 +3281,8 @@ def build_record_cohort(output, content, *, home, language, profile):
             + esc(method)
             + '.json" data-key="'
             + esc(cid)
-            + '">'
-            + t("open")
+            + ('" data-technical-record="true">' if technical else '">')
+            + (message("developer_record", language) if technical else t("open"))
             + "</button>"
         )
 
@@ -3194,9 +3345,16 @@ def build_record_cohort(output, content, *, home, language, profile):
             )
             + bodies["review"]
         )
-    bodies["protocol"] += method_examples(output, model.get("method_examples"))
+    bodies["protocol"] += method_examples(output, model.get("method_examples")) + retry_summary(
+        stats, labels
+    )
     bodies["index"] = (
-        "<section data-core-metrics>" + core + "</section>" + bodies["index"] + operations
+        "<section data-core-metrics>"
+        + core
+        + "</section>"
+        + report_metric_guide(language, records=True)
+        + bodies["index"]
+        + operations
     )
     domains = Counter(ref["domain"] for ref in truth.values())
     sites = Counter((ref["domain"], ref["site"]) for ref in truth.values())
@@ -3222,8 +3380,10 @@ def build_record_cohort(output, content, *, home, language, profile):
             ]
             for cid, ref in sorted(truth.items())
         ],
+        attrs="data-dataset-inventory data-sortable",
         inventory=True,
     )
+    bodies["dataset"] = dataset_controls(language) + bodies["dataset"]
     domain_scores = []
     for domain, count in sorted(domains.items()):
         domain_scores.append(
@@ -3343,7 +3503,9 @@ def build_record_cohort(output, content, *, home, language, profile):
         data_route, comparison = record_route("d", cid), record_route("c", cid)
         schema = benchmark_config(home)["adapter"].task_schema(home, ref)
         source = (
-            "<p>"
+            '<article data-source-case="'
+            + esc(cid)
+            + '"><p>'
             + esc(domain_labels.get(ref["domain"], ref["domain"]))
             + " · "
             + esc(ref["site"])
@@ -3394,7 +3556,11 @@ def build_record_cohort(output, content, *, home, language, profile):
             + esc(snapshot_base + "/" + cid)
             + '"></iframe>'
         )
-        write(data_route, cid, source)
+        write(
+            data_route,
+            domain_labels.get(ref["domain"], ref["domain"]) + "网页 · " + ref["site"],
+            source + "</article>",
+        )
         comparisons, panels = [], []
         for method in methods:
             row = data["methods"][method]["results"].get(cid)
@@ -3462,12 +3628,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + ("failed" if row["status"] != "exact" else "passed")
                 + '"><section data-result-summary><p>'
                 + esc(short)
-                + " · HTTP "
-                + esc(str(row.get("http_status")), quote=True)
                 + " · "
                 + metric(row.get("elapsed_seconds"))
-                + " s · "
-                + esc(STAGES[row["failure_stage"]][0])
+                + " 秒"
                 + "</p></section>"
             )
             body += (
@@ -3493,36 +3656,25 @@ def build_record_cohort(output, content, *, home, language, profile):
                 record_field_rows(row, language),
                 attrs="data-record-fields",
             )
-            body += (
-                '<section data-failure-diagnosis data-result-logs id="result-logs-'
-                + esc(method)
-                + '"><h2>'
-                + t("error")
-                + "</h2><details><summary>HTTP "
-                + esc(str(row.get("http_status")))
-                + '</summary><pre data-kind="error">'
-                + esc(
-                    row["native_error"]
-                    or json.dumps(
-                        row.get("response")
-                        if row["status"] == "call_error"
-                        else {
-                            field: f["status"]
-                            for field, f in row["field_results"].items()
-                            if not f["exact"]
-                        },
-                        ensure_ascii=False,
+            if row["status"] == "call_error":
+                body += (
+                    '<section data-failure-diagnosis data-result-logs id="result-logs-'
+                    + esc(method)
+                    + '"><h2>本次调用为什么失败</h2><details><summary>查看服务商错误</summary>'
+                    + '<pre data-kind="error">'
+                    + esc(
+                        row["native_error"] or json.dumps(row.get("response"), ensure_ascii=False)
                     )
+                    + "</pre></details></section>"
                 )
-                + "</pre></details></section>"
-            )
+            elif row["status"] != "exact":
+                body += (
+                    "<section data-failure-diagnosis data-result-logs><p data-log-unavailable>"
+                    + message("result_no_error", language)
+                    + "</p></section>"
+                )
             body += (
-                evidence_button(method, cid, "diagnosis-" + method)
-                + '<a href="../public-evidence/'
-                + esc(method)
-                + '.json">'
-                + t("raw")
-                + "</a>"
+                evidence_button(method, cid, "diagnosis-" + method, technical=True)
                 + dialog.replace('id="diagnosis"', 'id="diagnosis-' + esc(method) + '"').replace(
                     "diagnosis-title", "diagnosis-" + method + "-title"
                 )
@@ -3719,6 +3871,16 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     check_input_profile(output, manifest)
+    check_method_examples(output, manifest)
+    from harness.reporting.presentation import check_metric_guide
+
+    for lang in manifest["languages"]:
+        check_metric_guide(
+            (output / lang / "index.html").read_text(encoding="utf-8"),
+            metric_definitions(lang, records=manifest.get("mode") == "field-extraction-cohort"),
+            title=message("guide_title", lang),
+            headings=message("guide_headings", lang),
+        )
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Record renderer changed; rebuild required")
     actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
@@ -3730,6 +3892,15 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             raise ValueError("Record report bytes changed: " + name)
         if public_risk(path.read_bytes()):
             raise ValueError("Report artifact has a publication privacy risk: " + name)
+    expected_retries = BeautifulSoup(
+        retry_summary(read_json(output / "data/metrics.json"), manifest["method_labels"]),
+        "html.parser",
+    ).select_one("[data-retry-summary]")
+    actual_retries = BeautifulSoup(
+        (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
+    ).select_one("[data-retry-summary]")
+    if actual_retries != expected_retries:
+        raise ValueError("Retry timing summary is missing or changed")
     preview = manifest.get("preview_snapshot", {})
     if (
         not preview.get("fixture_base")
@@ -3741,21 +3912,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         )
     ):
         raise ValueError("Record preview is not bound to its dataset snapshot")
-    if manifest.get("method_examples"):
-        expected = BeautifulSoup(
-            method_examples(output, manifest["method_examples"]), "html.parser"
-        )
-        actual_examples = BeautifulSoup(
-            (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
-        ).select_one("[data-method-examples]")
-        if actual_examples is not None:
-            for anchor in actual_examples.select("a"):
-                anchor.attrs.pop("target", None)
-                anchor.attrs.pop("rel", None)
-                if anchor.get("href", "").startswith("zh/protocol.html#"):
-                    anchor["href"] = "#" + anchor["href"].split("#", 1)[1]
-        if str(actual_examples) != str(expected.select_one("[data-method-examples]")):
-            raise ValueError("Method examples differ from their native input/output evidence")
+    check_method_examples(output, manifest)
     if manifest.get("navigation") is not None:
         navigation = manifest["navigation"]
         ordered = [e for e in navigation if e.get("primary", True)] + [
@@ -4021,7 +4178,10 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     for file in sorted((output / "zh").glob("*.html")):
         soup = check_presentation(file.read_text(encoding="utf-8"))
         for frame in soup.select("iframe.frozen-preview"):
-            cid = soup.h1.get_text()
+            case = soup.select_one("[data-source-case]")
+            if case is None:
+                raise ValueError("Source page lacks its dataset case identity")
+            cid = case["data-source-case"]
             expected = preview["fixture_base"] + "/" + cid
             if (
                 frame.get("src") != expected

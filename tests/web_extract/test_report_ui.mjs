@@ -35,7 +35,14 @@ const rows = [
   {dataset: {method: 'b', status: 'fail', price: 'missing', outcome: 'wrong', stage: 'model_capacity', search: 'beta CAPACITY'}},
   {dataset: {method: 'b', status: 'pending', price: 'pending', outcome: 'pending', search: 'not executed'}},
 ];
-const form = {querySelectorAll() { return controls; }};
+const form = new Element('form');
+form.querySelectorAll = () => controls;
+const datasetQuery = new Element('input'); datasetQuery.value = '';
+const datasetCount = new Element('output');
+const datasetRows = [new Element('tr', '汽车 alpha page-1'), new Element('tr', '图书 beta page-2')];
+const datasetForm = new Element('form');
+datasetForm.querySelector = selector => selector === 'input' ? datasetQuery : datasetCount;
+const datasetTable = {querySelectorAll: () => datasetRows};
 const count = new Element('output');
 const head = new Element('th', 'Seconds');
 const sorted = [9, 0.003, null, 0].map(value => {
@@ -77,8 +84,8 @@ const context = vm.createContext({URL, URLSearchParams, Map, Error, String, Numb
     createElement: tag => new Element(tag),
     addEventListener: (name, action) => { documentListeners[name] = action; },
     getElementById: id => id === 'diagnosis' ? dialog : null,
-    querySelector(selector) { return selector === '[data-result-controls]' ? form : selector === '[data-result-count]' ? count : null; },
-    querySelectorAll(selector) { return selector === 'table[data-sortable]' ? [table, ...generatedTables] : selector === 'tr[data-status]' ? rows : []; },
+    querySelector(selector) { if (selector === '[data-dataset-inventory]') return datasetTable; return selector === '[data-result-controls]' ? form : selector === '[data-result-count]' ? count : null; },
+    querySelectorAll(selector) { if (selector === 'form[data-result-controls], form[data-dataset-controls]') return [form, datasetForm]; if (selector === 'form[data-dataset-controls]') return [datasetForm]; return selector === 'table[data-sortable]' ? [table, ...generatedTables] : selector === 'tr[data-status]' ? rows : []; },
   },
 });
 vm.runInContext(js, context);
@@ -270,3 +277,15 @@ rows.push(pendingBook, pendingCar);
 control('field').value = 'author';control('status').value = 'all';control('status').listeners.change();
 assert.equal(pendingBook.hidden, false);
 assert.equal(pendingCar.hidden, true, 'Pending pages must request the selected field');
+
+for (const filterForm of [form, datasetForm]) {
+  let prevented = false;
+  filterForm.listeners.submit({preventDefault() { prevented = true; }});
+  assert.equal(prevented, true, 'Filter forms never navigate on Enter');
+}
+datasetQuery.value = 'beta'; datasetForm.listeners.input();
+assert.deepEqual(datasetRows.map(row => row.hidden), [true, false]);
+assert.equal(datasetCount.textContent, '1 / 2');
+datasetQuery.value = '汽车'; datasetForm.listeners.input();
+assert.deepEqual(datasetRows.map(row => row.hidden), [false, true]);
+console.log('PASS: dataset page/site/category search stays separate from result filters, and Enter preserves controls');

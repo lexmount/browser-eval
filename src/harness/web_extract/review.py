@@ -190,7 +190,7 @@ def prepare(home, content, work, *, batch_size=4, prior=None):
     prior_identities = {}
     if prior is not None:
         prior_inputs, _, _ = completed(prior)
-        prior_identities = review_execution_identities(prior, prior_inputs)
+        prior_identities = review_execution_identities(prior_inputs)
         bindings[str(prior / "manifest.json")] = digest((prior / "manifest.json").read_bytes())
     for selection in model["evidence_runs"]:
         from harness.web_extract.repair import load_selection
@@ -443,6 +443,7 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4, additional_priors=
     require_external_output(Path(work))
     prior, work, rules = Path(prior).resolve(), Path(work).resolve(), Path(rules).resolve()
     bindings, cases = {}, []
+    root = manifest_root(prior, read_manifest(prior))
     schemas = set()
     for predecessor in [prior, *[Path(p).resolve() for p in additional_priors]]:
         manifest = read_manifest(predecessor)
@@ -494,7 +495,7 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4, additional_priors=
     for i in range(0, len(cases), batch_size):
         path = work / "packets" / f"{i // batch_size:03d}.json"
         value = {"cases": cases[i : i + batch_size]}
-        save_packet(path, value, manifest_root(prior, manifest))
+        save_packet(path, value, root)
         packets.append({"path": str(path), "sha256": digest(path.read_bytes())})
     records = manifest["schema"] == "record-field-evidence-audit/1"
     value = {
@@ -507,7 +508,7 @@ def prepare_adjudication(prior, work, rules, *, batch_size=4, additional_priors=
         "bindings": bindings,
         "packets": packets,
     }
-    value = save_manifest(work, value, manifest_root(prior, manifest))
+    value = save_manifest(work, value, root)
     save_json(work / "schema.json", review_schema(cases))
     return value
 
@@ -545,7 +546,7 @@ def completed(work):
     return cases, opinions, receipts
 
 
-def review_execution_identities(work, inputs):
+def review_execution_identities(inputs):
     return {
         (output["method"], cid): output["execution_identity"]
         for cid, case in inputs.items()
@@ -673,7 +674,7 @@ def assemble(
     changed_keys = {
         (o["method"], cid) for cid, case in changed_inputs.items() for o in case["outputs"]
     }
-    initial_identities = review_execution_identities(initial, original_inputs)
+    initial_identities = review_execution_identities(original_inputs)
     supplemental_keys = {
         (row["method"], row["case_id"])
         for row in rows

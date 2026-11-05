@@ -520,3 +520,39 @@ def test_record_build_resolves_the_same_run_ids_as_review_and_repair(tmp_path, s
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     check(output)
+
+
+def test_record_example_rejects_unsupported_language_without_leaving_files(tmp_path):
+    from harness.web_extract.example import create_record
+
+    for entry in (
+        lambda output: create(output, language="en", mode="field-extraction-cohort"),
+        lambda output: create_record(output, language="en"),
+    ):
+        output = tmp_path / "example"
+        with pytest.raises(ValueError, match="Chinese only"):
+            entry(output)
+        assert list(tmp_path.iterdir()) == []
+    create(tmp_path / "example", mode="field-extraction-cohort")
+
+
+@pytest.mark.parametrize("damage", ["remove", "alter"])
+def test_record_release_requires_all_retry_time_totals(tmp_path, damage):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "example", mode="field-extraction-cohort")
+    output = tmp_path / "report"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+
+    def change(markup):
+        soup = BeautifulSoup(markup, "html.parser")
+        summary = soup.select_one("[data-retry-summary]")
+        if damage == "remove":
+            summary.decompose()
+        else:
+            summary.select("tbody td")[1].string = "999"
+        return str(soup)
+
+    rebind(output, "zh/protocol.html", change)
+    with pytest.raises(ValueError, match="Retry timing"):
+        check(output)

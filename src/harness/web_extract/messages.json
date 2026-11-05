@@ -18,11 +18,11 @@
     "navigation_labels": [
       "Overview",
       "Dataset",
-      "Compatibility",
-      "Protocol",
-      "Candidates",
+      "Results",
+      "Methodology",
+      "Services",
       "Research",
-      "Accounts",
+      "Pricing and access",
       "Research and compatibility only · no current quality ranking",
       "Theme",
       "Evidence",
@@ -44,10 +44,10 @@
       "Availability F1",
       "Pending"
     ],
-    "extra_labels_review": "Annotations and review",
+    "extra_labels_review": "References and verification",
     "extra_labels_interpretation": "Interpretation",
     "frozen_product_page_extraction_machine_scoring_failed_calls_retai": "Frozen product-page extraction · machine scoring, failed calls retained",
-    "results_and_failures": "Results and failures",
+    "results_and_failures": "Results",
     "english": "English",
     "input_and_file_bindings": "Input and file bindings",
     "complete": "Complete",
@@ -319,7 +319,81 @@
     "records_reviewed_score": "Source-qualified F1",
     "records_qualified_reference": "Source-qualified reference",
     "records_review_changes": "{fields} page-fields have corrected reference text; {groups} site-field groups lack original annotations and are excluded from quality scoring for every method. Native answers and call timings are unchanged.",
-    "records_review_scope_note": "Scores use the source-qualified references. The dataset view retains original annotations and the references used for this comparison."
+    "records_review_scope_note": "Scores use the source-qualified references. The dataset view retains original annotations and the references used for this comparison.",
+    "guide_title": "How to read the metrics",
+    "guide_headings": [
+      "Metric",
+      "What it measures",
+      "Unit",
+      "Population",
+      "Direction"
+    ],
+    "guide_record_labels": [
+      "Page-hit macro F1",
+      "Value micro F1",
+      "Exact field sets"
+    ],
+    "guide_record_meanings": [
+      "For each site and field, F1 balances pages that returned a value and pages with at least one matching answer; groups have equal weight. Extra wrong values can still count as a page hit.",
+      "Pool every returned and reference value. Extra values reduce precision; missing values reduce recall. Example: one reference, two returned values, one correct gives 50% precision, 100% recall and F1 about 0.667.",
+      "Share of scored page-fields whose complete returned value set equals the reference set."
+    ],
+    "guide_product_labels": [
+      "Price F1",
+      "SKU F1",
+      "Availability F1",
+      "Out-of-stock F1"
+    ],
+    "guide_product_meanings": [
+      "Balances correctly extracted prices against incorrect and missed prices.",
+      "Balances correctly extracted SKUs against incorrect and missed SKUs.",
+      "Balances the correct stock state against incorrect and missed stock states.",
+      "Measures recognition of out-of-stock pages separately from the majority in-stock pages."
+    ],
+    "guide_quality_population": "All declared pages; call failures remain in the denominator. Fields without reference coverage are excluded.",
+    "guide_latency_labels": [
+      "Mean latency",
+      "P50 latency",
+      "P95 latency",
+      "Cost per 1,000 pages"
+    ],
+    "guide_latency_meanings": [
+      "Average final-call time, including failed calls. Prior retry time is reported separately.",
+      "Median: half of timed final calls finish within this time.",
+      "95% of timed final calls finish within this time.",
+      "Cost for 1,000 equivalent calls. Official plan prices and workload-based estimates are labeled separately."
+    ],
+    "guide_time_population": "All timed final calls; timed and missing counts are shown.",
+    "guide_price_population": "The selected API, options and stated plan or estimation assumptions.",
+    "guide_higher": "Higher is better",
+    "guide_lower": "Lower is better",
+    "guide_context": "Compare within the stated assumptions",
+    "guide_score_unit": "0–1",
+    "guide_rate_unit": "Percent",
+    "guide_seconds_unit": "Seconds",
+    "guide_cost_unit": "USD / 1,000 pages",
+    "developer_record": "Developer details: request, response and call history",
+    "open_page": "Open the tested page",
+    "examples_reader_title": "What one page requires and what each service returns",
+    "examples_input": "Page and requested fields",
+    "examples_output": "Returned fields",
+    "examples_fields": "Requested field definition (JSON Schema)",
+    "examples_columns": [
+      "Service",
+      "Approach",
+      "Page delivery",
+      "Requested fields",
+      "Response field",
+      "Example"
+    ],
+    "examples_open": "View example",
+    "examples_record": "Request and response for developers",
+    "result_service_success": "The API returned a response; field correctness is assessed above.",
+    "result_no_error": "The API did not report an error. The table above shows differences from the reference.",
+    "examples_timing": "This call took {seconds} seconds.",
+    "example_missing": "Not found",
+    "example_empty": "No values returned",
+    "examples_delivery": "Page delivery: "
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -338,13 +412,13 @@
     "field_labels_availability": "库存",
     "field_labels_OutOfStock": "缺货识别",
     "navigation_labels": [
-      "概览",
+      "总览",
       "数据集",
-      "兼容性实测",
-      "评测协议",
-      "候选选手",
-      "相关研究",
-      "账号与额度",
+      "评测结果",
+      "评测方法",
+      "服务目录",
+      "研究参考",
+      "价格与接入",
       "调研与输入兼容验证 · 尚无当前质量排名",
       "切换主题",
       "查看证据",
@@ -366,10 +440,10 @@
       "库存 F1",
       "待验证"
     ],
-    "extra_labels_review": "标注与审查",
-    "extra_labels_interpretation": "报告解读",
+    "extra_labels_review": "标注与复核",
+    "extra_labels_interpretation": "结果解读",
     "frozen_product_page_extraction_machine_scoring_failed_calls_retai": "冻结商品页字段评测 · 机器评分，调用失败保留在分母中",
-    "results_and_failures": "结果与失败",
+    "results_and_failures": "评测结果",
     "english": "中文",
     "input_and_file_bindings": "输入与文件校验",
     "complete": "已完成",
@@ -537,7 +611,7 @@
     "source_evidence_and_audited_reference": "原文证据与核查后的参考值",
     "audited_reference": "核查参考值：",
     "compare_all_methods_a24f79dd": "同题比较全部方法",
-    "complete_request_response_and_repair_history": "完整请求、响应与补跑历史",
+    "complete_request_response_and_repair_history": "开发者记录：请求、响应与调用历史",
     "loading_complete_evidence": "正在加载完整证据…",
     "load_failed_close_and_retry_or_use_the_raw_file": "读取失败，可关闭后重试；原始文件链接仍可使用：",
     "diagnostic_labels_price": "价格",
@@ -603,7 +677,7 @@
     "records_source": "冻结页面与标注",
     "records_all_methods": "同页各方法对照",
     "records_result": "结果证据",
-    "records_raw": "完整接口响应",
+    "records_raw": "下载调用记录",
     "records_open": "查看证据",
     "records_latency": "耗时与价格",
     "records_mean": "平均（秒）",
@@ -620,7 +694,7 @@
     "records_preview": "归档页面预览",
     "records_original_url": "原网站地址",
     "records_download": "原始 HTML",
-    "records_error": "原始错误与响应",
+    "records_error": "调用错误",
     "records_interpretation": "结果解读",
     "records_field_difference": "字段有差异",
     "records_call_error": "调用失败",
@@ -641,6 +715,80 @@
     "records_reviewed_score": "来源修正后 F1",
     "records_qualified_reference": "本次评分参考",
     "records_review_changes": "{fields} 个页面字段的参考文本已修正；{groups} 个站点字段组缺少原始标注，各方法均不对这些字段计分。原始返回和调用耗时保持不变。",
-    "records_review_scope_note": "评分采用来源校验后的参考答案，原标注与本次评分参考均保留在数据集页面。"
+    "records_review_scope_note": "评分采用来源校验后的参考答案，原标注与本次评分参考均保留在数据集页面。",
+    "guide_title": "指标说明：这些分数怎样理解",
+    "guide_headings": [
+      "指标",
+      "衡量什么",
+      "单位",
+      "统计范围",
+      "怎样比较"
+    ],
+    "guide_record_labels": [
+      "页面命中宏平均 F1",
+      "值级微平均 F1",
+      "字段集合完全一致率"
+    ],
+    "guide_record_meanings": [
+      "先按网站和字段计算 F1，再对各组等权平均。每页至少命中一个答案就算命中；多报其他错误值仍可能命中。",
+      "汇总所有返回值与参考值。多报会降低准确率，漏报会降低召回率，再用 F1 综合两者。 例如参考 1 个值，返回 2 个且 1 个正确：准确率 50%，召回率 100%，F1 约 0.667。",
+      "返回的整组值与参考答案完全相同的页面字段，占全部可评分页面字段的比例。"
+    ],
+    "guide_product_labels": [
+      "价格 F1",
+      "SKU F1",
+      "库存 F1",
+      "缺货 F1"
+    ],
+    "guide_product_meanings": [
+      "综合价格提取的准确率和召回率，同时计入错报和漏报。",
+      "综合商品编号提取的准确率和召回率，同时计入错报和漏报。",
+      "综合库存状态判断的准确率和召回率。",
+      "单独衡量缺货页面的识别，避免大量有货页面掩盖缺货判断问题。"
+    ],
+    "guide_quality_population": "全部计划页面，调用失败也计入；完全没有参考标注的字段不参与评分。",
+    "guide_latency_labels": [
+      "平均耗时",
+      "P50 耗时",
+      "P95 耗时",
+      "每千页费用"
+    ],
+    "guide_latency_meanings": [
+      "最终一次调用的平均耗时，包含失败；此前重试另行累计。",
+      "中位数：一半有计时的最终调用不超过这个时间。",
+      "95% 有计时的最终调用不超过这个时间。",
+      "按相同接口和条件提取 1,000 页的费用。官方套餐折算与按本轮页面估算分别注明。"
+    ],
+    "guide_time_population": "全部有计时的最终调用；表中列出有计时和缺计时数量。",
+    "guide_price_population": "本轮接口、参数，以及列明的套餐或估算假设。",
+    "guide_higher": "越高越好",
+    "guide_lower": "越低越好",
+    "guide_context": "在相同计费假设下比较",
+    "guide_score_unit": "0–1",
+    "guide_rate_unit": "百分比",
+    "guide_seconds_unit": "秒",
+    "guide_cost_unit": "美元／1,000 页",
+    "developer_record": "开发者记录：请求、响应与调用历史",
+    "open_page": "打开本次测试的网页",
+    "examples_reader_title": "用一个网页看懂各家怎样提取",
+    "examples_input": "测试网页与要找的字段",
+    "examples_output": "返回的字段",
+    "examples_fields": "给服务商的字段要求（JSON Schema）",
+    "examples_columns": [
+      "服务",
+      "实现方式",
+      "网页怎样交给服务商",
+      "要找的字段",
+      "结果所在位置",
+      "示例"
+    ],
+    "examples_open": "查看示例",
+    "examples_record": "开发者：查看请求与响应",
+    "result_service_success": "接口已返回响应；字段是否正确，以上表为准。",
+    "result_no_error": "接口没有报错；与参考答案的差异见上表。",
+    "examples_timing": "本次调用耗时 {seconds} 秒。",
+    "example_missing": "未找到",
+    "example_empty": "未返回值",
+    "examples_delivery": "网页交付方式："
   }
 }

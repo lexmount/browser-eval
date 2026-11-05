@@ -98,7 +98,12 @@ function show(dialog, button) {
   dialog.showModal();
   dialog.querySelector("[data-call-log-close]")?.focus();
 }
-function diagnosisContent(container, row, field) {
+function diagnosisContent(container, row, field, technical = false) {
+  if (technical) {
+    container.replaceChildren(node("h3", tr("complete_request_response_and_repair_history")),
+      node("pre", JSON.stringify(row, null, 2)));
+    return;
+  }
   if (row.record_schema) {
     container.replaceChildren();
     container.append(node("p", `${row.method_label} · ${row.case_id} · HTTP ${row.http_status ?? "—"}`));
@@ -253,7 +258,7 @@ document.addEventListener("click", async (event) => {
     const row = await evidence(button.dataset.src, button.dataset.key);
     if (!dialog.open || dialog.dataset.generation !== generation) return;
     if (dialog.querySelector("[data-diagnosis-body]"))
-      diagnosisContent(container, row, button.dataset.field);
+      diagnosisContent(container, row, button.dataset.field, button.dataset.technicalRecord === "true");
     else container.textContent = JSON.stringify(row, null, 2);
   } catch (error) {
     if (!dialog.open || dialog.dataset.generation !== generation) return;
@@ -349,4 +354,22 @@ const revealResultPanel = () => {
 if (typeof window !== "undefined") {
   window.addEventListener("hashchange", revealResultPanel);
   revealResultPanel();
+}
+
+// Report controls filter locally; Enter must not navigate or discard their state.
+for (const form of document.querySelectorAll("form[data-result-controls], form[data-dataset-controls]")) {
+  form.addEventListener("submit", event => event.preventDefault());
+}
+for (const form of document.querySelectorAll("form[data-dataset-controls]")) {
+  const table = document.querySelector("[data-dataset-inventory]");
+  if (!table) continue;
+  const rows = [...table.querySelectorAll("tbody tr")];
+  const filter = () => {
+    const query = form.querySelector("input").value.toLowerCase().trim();
+    for (const row of rows) row.hidden = !row.textContent.toLowerCase().includes(query);
+    const count = form.querySelector("output");
+    count.textContent = rows.filter(row => !row.hidden).length + " / " + rows.length;
+  };
+  form.addEventListener("input", filter);
+  filter();
 }
