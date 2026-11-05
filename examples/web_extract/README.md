@@ -120,9 +120,9 @@ their original URLs and input protocols. External services require no Cloudflare
 credentials. Their first binding checks every page against the frozen HTML, even
 when they expose a matching manifest; the manifest alone is a claim by that host.
 
-Use the generated binding in `plan --snapshots`. Each method then receives the
-same case URL. URL-capable interfaces require this binding; only upload-only
-interfaces may omit it. Before and after calls, managed Cloudflare snapshots use
+Use the generated binding in `plan --snapshots`. URL-capable interfaces receive
+the same case URL; upload-only interfaces receive the identical frozen HTML and
+can share the plan. A plan containing only upload-only methods can omit the binding. Before and after calls, managed Cloudflare snapshots use
 the frozen whole-dataset manifest and its hash; a changed manifest blocks certification.
 External hosts additionally have every selected page hash-checked before and after calls.
 Page-by-page verification remains an explicit byte-audit command and is not used
@@ -216,13 +216,13 @@ uv run --frozen --extra web-extract-eval python scripts/run_certified_benchmark.
   --method scrapegraph-extract --run-dir /absolute/data/swde/runs/scrapegraph
 ```
 
-Each selected method receives the domain’s array-valued field schema and the
-same public snapshot URL. Zyte Custom extracts from its fetched HTTP response;
+Every method receives the domain’s array-valued field schema. URL participants
+receive the same public snapshot URL. Zyte Custom extracts from its fetched HTTP response;
 Firecrawl Scrape JSON, ScrapeGraph Extract, Cloudflare JSON, Browserbase JSON and
 Oxylabs JSON use their bundled extraction APIs. The plan binds the versioned URL
 and rejects an override at collection. Product-specific extractors are rejected
-for SWDE. Firecrawl Parse remains available only to reproduce earlier HTML-upload
-cohorts; it cannot join a new URL-only plan.
+for SWDE. Firecrawl Parse uses HTML upload; it can share a plan with URL-based
+methods, retaining its own input route and the same frozen HTML bytes.
 
 The primary score reproduces MarkupLM’s page-hit precision, recall and F1
 arithmetic: a matching value makes a page-field hit even when other values are
@@ -319,11 +319,19 @@ consumes this approval and records the new profile path and hash together.
 Select one parent run per method. Each parent must contain one method; duplicate
 method entries are rejected before a repair plan is written.
 
-`repair-plan --content CONTENT --options OPTIONS --fixture-base URL --output PLAN`
-freezes the exact failed method/case scope. Optional `--cases CASES` selects a
-subset of current failures. Run the plan through the certified entry above with
+`repair-plan --content CONTENT --options OPTIONS --output PLAN` freezes the exact failed method/case scope. Optional `--cases CASES` selects a
+subset of current failures. The snapshot origin is inherited from the selected
+failed execution; `--fixture-base URL` is optional for older inputs without a bound
+origin. Upload-only repairs require no URL. `run --fixture-base` remains available
+for frozen historical plans that did not bind an origin; it cannot override a
+versioned snapshot. Run the plan through the certified entry above with
 the affected method and a fresh directory. Each completed call is retained on
-resume. Successful parent calls are never selected. Native request options are
+resume. Successful parent calls are never selected. New calls retain their access-stop
+reason before checkpointing. Explicit account denials pause immediately; ambiguous
+HTTP 403s pause after consecutive denials across three source sites. A successful
+call or another status resets that streak. Historical retry verification uses the
+recorded decision when present and a fixed legacy eligibility rule otherwise;
+it never applies the evolving live classifier to old calls. Native request options are
 validated before dispatch; source HTML and URL fixtures retain their hashes.
 
 A report selection's `repair` list binds each repair directory and certificate

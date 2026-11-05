@@ -193,7 +193,7 @@ def test_repository_destination_is_rejected_before_any_receipt_write(tmp_path, e
     [
         ("Invalid API key", "authentication"),
         ("Invalid token", "authentication"),
-        ("Permission denied", "permission"),
+        ("Permission denied for API key", "permission"),
     ],
 )
 def test_native_authentication_envelopes_pause_but_target_errors_do_not(message, kind):
@@ -760,7 +760,8 @@ def test_nonfinite_native_reply_is_checkpoint_safe(tmp_path, text, route):
         "missing-journal",
     ],
 )
-def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, mutation):
+@pytest.mark.parametrize("first_status", [402, 403])
+def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, mutation, first_status):
     import json
     from copy import deepcopy
 
@@ -775,7 +776,7 @@ def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, muta
     manifest["contract_sha256"] = digest((run / "contract.json").read_bytes())
     entry = manifest["calls"][-1]
     first = read_json(run / entry["path"])
-    first.update(state="response_received", http_status=402, physical_attempt=1)
+    first.update(state="response_received", http_status=first_status, physical_attempt=1)
     save_json(run / entry["path"], first)
     entry["sha256"] = digest((run / entry["path"]).read_bytes())
     final = {
@@ -797,7 +798,11 @@ def test_aggregation_reconciles_retry_history_and_final_selection(tmp_path, muta
         "".join(json.dumps(e) + "\n" for e in manifest["physical_calls"]), encoding="utf-8"
     )
     save_json(run / "manifest.json", manifest)
-    assert load_run(run)[1][-1]["physical_attempt"] == 2
+    with patch(
+        "harness.web_extract.pipeline.access_blocker",
+        side_effect=AssertionError("Do not reclassify legacy evidence"),
+    ):
+        assert load_run(run)[1][-1]["physical_attempt"] == 2
     if mutation == "missing-journal":
         journal.unlink()
     elif mutation == "exceeded-budget":
@@ -1238,3 +1243,192 @@ def test_pooled_api_connections_never_inherit_response_cookies(method, monkeypat
             assert session.cookies.get("previous_page") == "one"
             assert result["request"]["cookie_policy"] == "no_inherited_api_cookies"
     assert sent == [None, None]
+
+
+@pytest.mark.parametrize(
+    "message",
+    [
+        "API access is not enabled for this account",
+        "Your plan does not include this endpoint",
+        "Permission denied: your key cannot fetch this resource",
+    ],
+)
+def test_explicit_account_403_stops_even_when_it_mentions_fetch(message):
+    assert access_blocker({"http_status": 403, "response": {"error": message}}) == "permission"
+
+
+@pytest.mark.parametrize(
+    "message",
+    ["Forbidden", "", "Access denied", "Permission denied", "access denied by target firewall"],
+)
+def test_ambiguous_or_target_403_does_not_imply_account_denial(message):
+    assert access_blocker({"http_status": 403, "response": {"error": message}}) is None
+
+
+def denial_inputs(tmp_path, same_site=False):
+    from harness.web_extract.pipeline import digest, read_json
+
+    home = create(tmp_path / "denial-example")
+    truth_path = home / "dataset/dataset/ground-truth.json"
+    truth = read_json(truth_path)
+    first = sorted(truth)[0]
+    fourth = "4" * 64
+    truth[fourth] = dict(truth[first])
+    (home / "dataset/html" / (fourth + ".html")).write_bytes(
+        (home / "dataset/html" / (first + ".html")).read_bytes()
+    )
+    for i, cid in enumerate(sorted(truth)):
+        truth[cid]["url"] = "https://" + ("same" if same_site else str(i)) + ".example/product"
+    save_json(truth_path, truth)
+    manifest = read_json(home / "dataset/manifest.json")
+    for path in (truth_path, home / "dataset/html" / (fourth + ".html")):
+        manifest["files"][path.relative_to(home / "dataset").as_posix()] = {
+            "sha256": digest(path.read_bytes()),
+            "bytes": path.stat().st_size,
+        }
+    manifest["cases"] = 4
+    save_json(home / "dataset/manifest.json", manifest)
+    return home
+
+
+def test_three_distinct_site_403s_pause_and_resume_only_the_stopping_case(tmp_path):
+    from harness.web_extract.pipeline import read_json
+
+    home = denial_inputs(tmp_path)
+    run = home / "runs/repeated-denials"
+    with (
+        collection_context(),
+        patch(
+            "harness.web_extract.pipeline.provider_call",
+            return_value={"http_status": 403, "response": {"error": "Forbidden"}},
+        ) as call,
+    ):
+        with pytest.raises(PermissionError, match="repeated_http_403"):
+            probe(home, ["cloudflare-json"], full=True, run_dir=run)
+        assert call.call_count == 3
+    blocked = read_json(run / "access-blocked.json")
+    assert blocked["reason"] == "repeated_http_403" and blocked["remaining_logical_cases"] == 1
+    assert len(blocked["source_sites"]) == 3
+    original = {p: p.read_bytes() for p in (run / "calls").glob("*.json")}
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=run)
+        assert call.call_count == 2
+    assert all(p.read_bytes() == raw for p, raw in original.items())
+    with patch(
+        "harness.web_extract.pipeline.access_blocker",
+        side_effect=AssertionError("Current classifier must not validate history"),
+    ):
+        _, rows = load_run(run)
+    assert len(rows) == 4
+    assert sum(r.get("physical_attempt") == 2 for r in rows) == 1
+
+
+@pytest.mark.parametrize(
+    "same_site,statuses",
+    [(True, [403] * 4), (False, [403, 200, 200, 200]), (False, [403, 403, 200, 403])],
+)
+def test_single_target_and_interrupted_403_sequences_keep_running(tmp_path, same_site, statuses):
+    home = denial_inputs(tmp_path, same_site)
+    run = home / "runs/page-denials"
+    replies = [
+        {
+            "http_status": status,
+            "response": {"result": {"sku": "ok"}}
+            if status == 200
+            else {"error": "access denied by target firewall"},
+        }
+        for status in statuses
+    ]
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=replies) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=run)
+        assert call.call_count == 4
+    assert not (run / "access-blocked.json").exists()
+
+
+def test_recorded_retry_eligibility_survives_classifier_changes(tmp_path):
+    from harness.web_extract.pipeline import read_json
+
+    home = create(tmp_path / "example")
+    run = home / "runs/stamped-retry"
+    with (
+        collection_context(),
+        patch(
+            "harness.web_extract.pipeline.provider_call",
+            return_value={
+                "http_status": 403,
+                "response": {"error": "API access is not enabled for this account"},
+            },
+        ),
+    ):
+        with pytest.raises(PermissionError):
+            probe(home, ["cloudflare-json"], full=True, run_dir=run)
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.access_blocker", return_value=None),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=run)
+        assert call.call_count == 3
+    with patch(
+        "harness.web_extract.pipeline.access_blocker",
+        side_effect=AssertionError("Do not reclassify retained evidence"),
+    ):
+        _, rows = load_run(run)
+    assert rows[0]["physical_attempt"] == 2
+    assert read_json(run / "contract.json")["access_policy"]["receipt"] == "access-denial/1"
+
+
+@pytest.mark.parametrize("damage", ["missing", "unknown", "not-a-stop"])
+def test_current_retry_history_requires_its_recorded_stop_decision(tmp_path, damage):
+    import json
+
+    from harness.web_extract.pipeline import digest, read_json
+
+    home = create(tmp_path / "example")
+    run = home / "runs/recorded-stop"
+    with (
+        collection_context(),
+        patch(
+            "harness.web_extract.pipeline.provider_call",
+            return_value={"http_status": 402, "response": {}},
+        ),
+    ):
+        with pytest.raises(PermissionError):
+            probe(home, ["cloudflare-json"], full=True, run_dir=run)
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted),
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=run)
+    manifest = read_json(run / "manifest.json")
+    entry = manifest["physical_calls"][0]
+    row = read_json(run / entry["path"])
+    if damage == "missing":
+        row.pop("access_denial")
+    else:
+        row["access_denial"] = "unrecognized-policy" if damage == "unknown" else None
+    save_json(run / entry["path"], row)
+    entry["sha256"] = digest((run / entry["path"]).read_bytes())
+    save_json(run / "manifest.json", manifest)
+    (run / "calls.journal.jsonl").write_text(
+        "".join(json.dumps(item) + "\n" for item in manifest["physical_calls"]), encoding="utf-8"
+    )
+    with pytest.raises(ValueError, match="receipt is missing|Invalid retained|Retry is outside"):
+        load_run(run)
+
+
+@pytest.mark.parametrize("status", [200, 403, 429])
+@pytest.mark.parametrize("field", ["token", "API key", "account", "plan"])
+def test_extraction_failures_named_after_account_concepts_are_not_permission_denials(status, field):
+    assert (
+        access_blocker(
+            {"http_status": status, "response": {"error": "Cannot extract " + field + " field"}}
+        )
+        is None
+    )

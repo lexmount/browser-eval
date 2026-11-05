@@ -1185,8 +1185,89 @@ def serve_fixtures(home: Path, *, port=8767):
     ThreadingHTTPServer(("127.0.0.1", port), Handler).serve_forever()
 
 
+ACCESS_POLICY = {"receipt": "access-denial/1", "consecutive_403_sites": 3}
+ACCESS_REASONS = {
+    "authentication",
+    "permission",
+    "quota_or_payment",
+    "quota_or_permission",
+    "credentials_missing",
+    "input_configuration",
+    "repeated_http_403",
+}
+
+
 def access_blocker(row):
-    """Stop calls after evidenced authentication, permission or quota denial."""
+    """Pause explicit account denials; ambiguous target denials need run-level evidence."""
+    if row.get("state") == "input_blocked":
+        return "input_configuration"
+    if row.get("state") == "credentials_missing":
+        return "credentials_missing"
+    status, native = row.get("http_status"), row.get("response", {})
+    if status == 401:
+        return "authentication"
+    if status == 402:
+        return "quota_or_payment"
+    native_error = isinstance(native, dict) and (
+        native.get("success") is False or bool(native.get("error") or native.get("errors"))
+    )
+    if status not in (403, 429) and not native_error:
+        return None
+    message = (
+        str(row.get("error", ""))
+        + " "
+        + (
+            " ".join(
+                str(native.get(k, "")) for k in ("error", "errors", "message", "non_json_response")
+            )
+            if isinstance(native, dict)
+            else ""
+        )
+    )
+    if re.search(
+        r"invalid (?:api[ _-]?)?key|invalid token|authentication failed|unauthenticated",
+        message,
+        re.I,
+    ):
+        return "authentication"
+    account = re.search(
+        r"\b(?:api|account|plan|token|key|credential|subscription)\b", message, re.I
+    )
+    denied = re.search(
+        r"permission denied|access denied|not authorized|forbidden|not enabled|"
+        r"does not include|not included|not allowed|disabled|"
+        r"(?:key|token|account|credential)\s+cannot",
+        message,
+        re.I,
+    )
+    if account and denied:
+        return "permission"
+    if re.search(
+        r"quota|(?:insufficient|not enough|out of|exhausted|no remaining) credits?|"
+        r"credits? (?:exhausted|depleted|limit)|account balance|insufficient balance|"
+        r"credit balance (?:is )?too low|free plan|usage period|"
+        r"subscription (?:expired|required|limit)|payment (?:required|failed)|account.*expired",
+        message,
+        re.I,
+    ):
+        return "quota_or_permission"
+    return None
+
+
+def retained_access_reason(row, contract):
+    """Read the frozen dispatch decision, never today's classifier, for retained retries."""
+    if "access_denial" in row:
+        reason = row["access_denial"]
+        if reason is not None and (not isinstance(reason, str) or reason not in ACCESS_REASONS):
+            raise ValueError("Invalid retained access-denial reason")
+        return reason
+    if contract.get("access_policy") is not None:
+        raise ValueError("Access-denial receipt is missing from a current-policy call")
+    return legacy_access_reason(row)
+
+
+def legacy_access_reason(row):
+    """Frozen eligibility for historical calls without per-attempt stop receipts."""
     if row.get("state") == "input_blocked":
         return "input_configuration"
     if row.get("state") == "credentials_missing":
@@ -1231,19 +1312,7 @@ def access_blocker(row):
             re.I,
         ):
             return "quota_or_payment" if status == 402 else "quota_or_permission"
-    target_failure = bool(
-        re.search(
-            r"target (?:page|site|url|website)|(?:could not |failed to |error (?:while )?)"
-            r"(?:download|fetch)|(?:download|fetch|crawl)(?:ing)? (?:failed|error)",
-            message,
-            re.I,
-        )
-    )
-    if target_failure:
-        return None
-    # A bare 403 can be a target-page denial; only explicit account evidence pauses dispatch.
-
-    return None
+    return "legacy_http_403" if status == 403 else None
 
 
 def require_external_output(path):
@@ -1356,6 +1425,19 @@ def collect_calls(
                 else "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
             )
         inflight.unlink()
+    denied_sites = {}
+
+    def observe_denial(row):
+        method = row["method"]
+        if row.get("http_status") == 403 and row.get("compatibility") != "structured_output":
+            site = urlsplit(truth[row["case_id"]]["url"]).hostname
+            denied_sites.setdefault(method, set()).add(site)
+        else:
+            denied_sites.pop(method, None)
+        return len(denied_sites.get(method, ())) >= ACCESS_POLICY["consecutive_403_sites"]
+
+    for entry in physical:
+        observe_denial(read_json(run / entry["path"]))
     records = []
     # Conservatively observe the full frozen pause after a cross-process resume.
     last_call_started = time.monotonic() if prior else None
@@ -1366,7 +1448,7 @@ def collect_calls(
             if (method, case_id) in prior:
                 entry = prior[(method, case_id)]
                 prior_row = read_json(run / entry["path"])
-                if not (full and access_blocker(prior_row)):
+                if not (full and retained_access_reason(prior_row, contract)):
                     records.append(entry)
                     continue
                 if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
@@ -1474,6 +1556,12 @@ def collect_calls(
                 row["retry_execution_seconds"] = prior_row.get(
                     "elapsed_seconds", 0
                 ) + prior_row.get("retry_execution_seconds", 0)
+            repeated_denial = observe_denial(row)
+            row["access_denial"] = (
+                (access_blocker(row) or ("repeated_http_403" if repeated_denial else None))
+                if full
+                else None
+            )
             suffix = "" if number == 1 else f"-attempt{number}"
             stem = case_id if repair else f"{method}-{case_id}"
             path = run / "calls" / f"{stem}{suffix}.json"
@@ -1504,7 +1592,7 @@ def collect_calls(
                 row.get("compatibility", ""),
                 flush=True,
             )
-            blocker = access_blocker(row) if full else None
+            blocker = row["access_denial"]
             if blocker:
                 save_json(
                     run / "access-blocked.json",
@@ -1512,13 +1600,21 @@ def collect_calls(
                         "method": method,
                         "case_id": case_id,
                         "reason": blocker,
+                        **(
+                            {"source_sites": sorted(denied_sites[method])}
+                            if blocker == "repeated_http_403"
+                            else {}
+                        ),
                         "call": entry,
                         "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
                     },
                 )
-                raise PermissionError(
-                    f"{method}: {blocker}; calls retained; repair access then resume the same run"
+                action = (
+                    "inspect access-blocked.json before resuming the same run"
+                    if blocker == "repeated_http_403"
+                    else "repair access then resume the same run"
                 )
+                raise PermissionError(f"{method}: {blocker}; calls retained; {action}")
     return records, physical
 
 
@@ -1619,6 +1715,7 @@ def _probe_unlocked(
         "access_retry_limit": 1,
         "concurrency": 1,
         "api_cookie_policy": "no_inherited_api_cookies",
+        "access_policy": ACCESS_POLICY,
         "minimum_call_interval_seconds": min_call_interval,
         "post_call_cooldown_seconds": post_call_cooldown,
         "method_order": "rotate_by_case_ordinal",
@@ -1771,6 +1868,7 @@ def verify_retry_history(run, manifest, contract):
         attempt = row.get("physical_attempt", 1)
         if type(attempt) is not int or attempt != len(sequence) + 1:
             raise ValueError("Physical call attempt sequence is incomplete")
+        retained_access_reason(row, contract)
         sequence.append(row)
         latest[key] = entry
     selected = {}
@@ -1792,7 +1890,9 @@ def verify_retry_history(run, manifest, contract):
         if len(dispatched) > 1 + retries:
             raise ValueError("Physical retry budget exceeded")
         for row in sequence[:-1]:
-            if row.get("compatibility") == "structured_output" or not (access_blocker(row)):
+            if row.get("compatibility") == "structured_output" or not retained_access_reason(
+                row, contract
+            ):
                 raise ValueError("Retry is outside the declared access-repair policy")
         if len(sequence) > 1:
             elapsed = sum(row.get("elapsed_seconds") or 0 for row in sequence[:-1])

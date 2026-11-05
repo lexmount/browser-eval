@@ -195,8 +195,8 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
         )
 
 
-@pytest.mark.parametrize("method", ["extruct", "firecrawl-parse-json"])
-def test_upload_only_interfaces_cannot_enter_url_cohort(home, tmp_path, method):
+@pytest.mark.parametrize("method", ["extruct"])
+def test_retired_interface_cannot_enter_url_cohort(home, tmp_path, method):
     value = binding(home, tmp_path)
     source = tmp_path / "binding.json"
     source.write_text(json.dumps(value), encoding="utf-8")

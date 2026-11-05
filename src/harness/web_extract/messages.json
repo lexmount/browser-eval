@@ -416,7 +416,11 @@
     "failure_diagnosis_title": "Why this call failed",
     "failure_stage": "Failure stage",
     "provider_error": "View provider error",
-    "excluded_comparison": "Excluded from quality comparison"
+    "excluded_comparison": "Excluded from quality comparison",
+    "more_resources": "More resources",
+    "no_reference_value": "No reference value",
+    "no_value_returned": "No value returned",
+    "dataset_search": "Search pages, categories or sites"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -835,6 +839,10 @@
     "failure_diagnosis_title": "本次调用为什么失败",
     "failure_stage": "失败环节",
     "provider_error": "查看服务商错误",
-    "excluded_comparison": "不参与质量对比"
+    "excluded_comparison": "不参与质量对比",
+    "more_resources": "辅助资料",
+    "no_reference_value": "无参考值",
+    "no_value_returned": "未返回值",
+    "dataset_search": "搜索网页、类别或网站"
   }
 }

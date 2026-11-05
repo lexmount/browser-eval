@@ -245,7 +245,7 @@ def page(
             '<details class="nav-more"'
             + (" open" if route in {e["route"] for e in secondary} else "")
             + "><summary>"
-            + ("辅助资料" if language == "zh" else "More resources")
+            + message("more_resources", language)
             + "</summary><div>"
             + "".join(nav_link(entry) for entry in secondary)
             + "</div></details>"
@@ -846,15 +846,7 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
 
 def displayed_values(value, language, *, reference=False):
     if value is None or value == []:
-        return (
-            "无参考值"
-            if reference and language == "zh"
-            else "未返回值"
-            if language == "zh"
-            else "No reference value"
-            if reference
-            else "No value returned"
-        )
+        return message("no_reference_value" if reference else "no_value_returned", language)
     values = value if isinstance(value, list) else [value]
     return (
         '<ul class="field-values">'
@@ -1497,7 +1489,7 @@ def retry_summary(statistics_by_method, labels, language="zh"):
 
 
 def dataset_controls(language):
-    label = "搜索网页、类别或网站" if language == "zh" else "Search pages, categories or sites"
+    label = message("dataset_search", language)
     return (
         '<form data-dataset-controls class="controls"><label>'
         + label
@@ -1662,10 +1654,6 @@ def method_examples(output, binding, language="zh"):
 
 
 def check_method_examples(output, manifest):
-    methods = manifest.get("planned_methods") or manifest.get("methods", [])
-    labels = manifest.get("method_labels", {})
-    for language in manifest["languages"]:
-        check_case_comparison_controls(output, methods, labels, language)
     if not manifest.get("method_examples"):
         return
     for language in manifest["languages"]:
@@ -2502,6 +2490,10 @@ def check_reader_contract(output, manifest, *, release=False):
     check_input_profile(output, manifest)
     if release:
         validate_release_prices(manifest)
+    methods = manifest.get("planned_methods") or manifest.get("methods", [])
+    labels = manifest.get("method_labels", {})
+    for language in manifest["languages"]:
+        check_case_comparison_controls(output, methods, labels, language)
     check_method_examples(output, manifest)
     from harness.reporting.presentation import check_metric_guide
 
@@ -2523,8 +2515,6 @@ def check(output: Path, *, release=False, visual_receipt=None):
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
     check_reader_contract(output, manifest, release=release)
-    if public_risk((output / "report-manifest.json").read_bytes()):
-        raise ValueError("Report metadata has a publication privacy risk")
     if manifest["template_version"] != VERSION:
         raise ValueError("Wrong template")
     if (

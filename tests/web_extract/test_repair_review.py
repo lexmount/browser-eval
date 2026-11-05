@@ -2226,7 +2226,7 @@ def test_adjudication_uses_the_same_dataset_root_for_different_audit_depths(tmp_
 
 
 @pytest.mark.parametrize("instructions", ["Keep the parent record wording.", ""])
-def test_repair_freezes_parent_instructions_and_rejects_a_changed_plan(tmp_path, instructions):
+def test_product_repair_does_not_claim_unused_record_instructions(tmp_path, instructions):
     from harness.web_extract.repair import verify_parent
 
     home, source, _, _ = parent_inputs(tmp_path)
@@ -2243,7 +2243,8 @@ def test_repair_freezes_parent_instructions_and_rejects_a_changed_plan(tmp_path,
     profile = tmp_path / "instruction-plan.json"
     create_plan(home, tmp_path / "content.json", profile, {}, None)
     participant = read_json(profile)["participants"]["cloudflare-json"]
-    assert participant["extraction_instructions"] == instructions
+    assert "extraction_instructions" not in participant
+    assert "extraction_instruction_delivery" not in participant
     verify_parent(home, participant)
     participant["extraction_instructions"] = "Changed meaning"
     with pytest.raises(ValueError, match="instructions differ"):
@@ -2420,3 +2421,26 @@ def test_chained_repair_rejects_mixed_current_settings_before_writing(tmp_path):
     with pytest.raises(ValueError, match="different execution settings"):
         create_plan(home, content, second, {}, None)
     assert not second.exists()
+
+
+def test_repair_cli_allows_an_upload_only_plan_without_fixture_argument(tmp_path):
+    from harness.web_extract.cli import main
+
+    home, _, _, _ = parent_inputs(tmp_path)
+    options = tmp_path / "options.json"
+    save_json(options, {})
+    output = tmp_path / "cli-plan.json"
+    main(
+        [
+            "--home",
+            str(home),
+            "repair-plan",
+            "--content",
+            str(tmp_path / "content.json"),
+            "--options",
+            str(options),
+            "--output",
+            str(output),
+        ]
+    )
+    assert read_json(output)["fixture_base"] is None

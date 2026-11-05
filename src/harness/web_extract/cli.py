@@ -68,7 +68,7 @@ def main(argv=None):
     p.add_argument("--content", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--options", type=Path, required=True)
-    p.add_argument("--fixture-base", required=True)
+    p.add_argument("--fixture-base")
     p.add_argument("--cases", type=Path)
     p = sub.add_parser("score")
     p.add_argument("run", type=Path)

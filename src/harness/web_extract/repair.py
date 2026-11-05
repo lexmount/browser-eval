@@ -6,6 +6,7 @@ from pathlib import Path
 
 from harness.web_extract.dataset import task_bindings
 from harness.web_extract.pipeline import (
+    ACCESS_POLICY,
     RECORD_INSTRUCTION_DELIVERY,
     RECORD_INSTRUCTIONS,
     available_methods,
@@ -43,6 +44,8 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
         if method in seen:
             raise ValueError("Repair selections contain duplicate methods")
         seen.add(method)
+        if selected is not None and method not in selected:
+            continue
         if (
             task_bindings(home)
             and contract.get("extraction_instruction_delivery") != RECORD_INSTRUCTION_DELIVERY
@@ -52,8 +55,6 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             )
         previous = selection.get("repair", [])
         failures = [r["case_id"] for r in rows if r.get("compatibility") != "structured_output"]
-        if selected is not None and method not in selected:
-            continue
         cases = selected.get(method, []) if selected is not None else failures
         if not set(cases).issubset(failures) or len(cases) != len(set(cases)):
             raise ValueError("Repair selection includes successful or duplicate cases")
@@ -72,6 +73,8 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
                 fixture_base = inherited["fixture_base"]
             elif inherited["fixture_base"] and fixture_base != inherited["fixture_base"]:
                 raise ValueError("Cannot change the frozen dataset snapshot during repair")
+        if requires_fixture(method, native_options) and fixture_base is None:
+            raise ValueError("URL repair requires a frozen fixture origin")
         if inherited.get("snapshot_manifest"):
             bound_base = inherited["snapshot_manifest"]["fixture_base"]
             if fixture_base is not None and fixture_base != bound_base:
@@ -82,10 +85,18 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             raise ValueError("Repair parent certificate differs")
         participants[method] = {
             "method": method,
-            "extraction_instructions": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
+            **(
+                {
+                    "extraction_instructions": contract.get(
+                        "extraction_instructions", RECORD_INSTRUCTIONS
+                    )
+                }
+                if task_bindings(home)
+                else {}
+            ),
             **(
                 {"extraction_instruction_delivery": contract["extraction_instruction_delivery"]}
-                if "extraction_instruction_delivery" in contract
+                if task_bindings(home) and "extraction_instruction_delivery" in contract
                 else {}
             ),
             **(
@@ -243,7 +254,17 @@ def collect(home, profile, method, destination):
     if participant["method"] != method:
         raise ValueError("Repair participant method differs")
     validate_native_options(method, participant["native_options"])
-    verify_parent(home, participant)
+    parent, _ = verify_parent(home, participant)
+    if bindings and (
+        parent.get("extraction_instruction_delivery") != RECORD_INSTRUCTION_DELIVERY
+        or participant.get("extraction_instruction_delivery") != RECORD_INSTRUCTION_DELIVERY
+        or "extraction_instructions" not in participant
+        or participant["extraction_instructions"]
+        != parent.get("extraction_instructions", RECORD_INSTRUCTIONS)
+    ):
+        raise ValueError(
+            "New record repairs require the parent's current instruction delivery and text"
+        )
     if (
         plan["timeout_seconds"] != 120
         or plan["calls_per_case"] != 1
@@ -276,6 +297,7 @@ def collect(home, profile, method, destination):
             else {}
         ),
         "access_retry_limit": plan.get("access_retries_after_repair", 1),
+        "access_policy": ACCESS_POLICY,
         "code_sha256": code,
         "code_snapshots": False,
         **bindings,

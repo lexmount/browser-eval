@@ -2304,3 +2304,109 @@ def test_record_repair_sends_the_parents_custom_frozen_instructions(inputs, tmp_
         pipeline.read_json(output / "contract.json")["extraction_instructions"]
         == contract["extraction_instructions"]
     )
+
+
+@pytest.mark.parametrize(
+    "missing", ["extraction_instructions", "extraction_instruction_delivery", "historical_parent"]
+)
+def test_old_record_repair_plan_cannot_bypass_current_instruction_gate(
+    inputs, tmp_path, monkeypatch, missing
+):
+    from harness.web_extract import repair
+
+    home, _ = inputs
+    profile = tmp_path / "parent-plan.json"
+    plan_for_inputs(home, ["cloudflare-json"], profile)
+    parent = tmp_path / "parent"
+    monkeypatch.setattr(
+        pipeline, "provider_call", Mock(return_value={"http_status": 500, "response": {}})
+    )
+    certification.run(home, profile, "cloudflare-json", parent)
+    content = tmp_path / "selection.json"
+    pipeline.save_json(content, {"evidence_runs": [{"run": str(parent)}]})
+    target = tmp_path / "repair-plan.json"
+    plan = repair.create_plan(home, content, target, {}, None)
+    participant = plan["participants"]["cloudflare-json"]
+    if missing == "historical_parent":
+        contract = pipeline.read_json(parent / "contract.json")
+        contract.pop("extraction_instruction_delivery")
+        pipeline.save_json(parent / "contract.json", contract)
+        manifest = pipeline.read_json(parent / "manifest.json")
+        manifest["contract_sha256"] = pipeline.digest((parent / "contract.json").read_bytes())
+        pipeline.save_json(parent / "manifest.json", manifest)
+        certificate = pipeline.read_json(parent / "certificate.json")
+        certificate["manifest_sha256"] = pipeline.digest((parent / "manifest.json").read_bytes())
+        pipeline.save_json(parent / "certificate.json", certificate)
+        participant["parent_manifest_sha256"] = certificate["manifest_sha256"]
+        participant["parent_certificate_sha256"] = pipeline.digest(
+            (parent / "certificate.json").read_bytes()
+        )
+        participant.pop("extraction_instruction_delivery")
+    else:
+        participant.pop(missing)
+    pipeline.save_json(target, plan)
+    call = Mock()
+    monkeypatch.setattr(pipeline, "provider_call", call)
+    destination = tmp_path / "must-not-dispatch"
+    with pytest.raises(ValueError, match="current instruction delivery"):
+        repair.run(home, target, "cloudflare-json", destination)
+    call.assert_not_called()
+    assert not (destination / "contract.json").exists()
+
+
+def test_mixed_plan_keeps_parse_uploads_and_url_calls_on_the_same_frozen_html(
+    inputs, tmp_path, monkeypatch
+):
+    home, _ = inputs
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "synthetic")
+    profile = tmp_path / "mixed-plan.json"
+    plan = plan_for_inputs(home, ["cloudflare-json", "firecrawl-parse-json"], profile)
+    assert plan["participants"]["cloudflare-json"]["input"] == "url"
+    assert plan["participants"]["firecrawl-parse-json"]["input"] == "html"
+    dispatch = Mock(
+        return_value={
+            "http_status": 200,
+            "response": {"result": {"author": ["Ada"]}, "data": {"json": {"author": ["Ada"]}}},
+        }
+    )
+    monkeypatch.setattr(pipeline, "provider_call", dispatch)
+    for method in plan["participants"]:
+        certification.run(home, profile, method, tmp_path / method)
+    calls = dispatch.call_args_list
+    assert len(calls) == 4
+    assert calls[0].args[1] == calls[2].args[1]
+    assert calls[0].args[3].startswith("https://")
+    assert calls[2].args[3] is None
+
+
+def test_unselected_historical_parent_does_not_block_a_current_repair(
+    inputs, tmp_path, monkeypatch
+):
+    from harness.web_extract import repair
+
+    home, _ = inputs
+    monkeypatch.setenv("FIRECRAWL_API_KEY", "synthetic")
+    profile = tmp_path / "parents.json"
+    plan_for_inputs(home, ["cloudflare-json", "firecrawl-parse-json"], profile)
+    monkeypatch.setattr(
+        pipeline, "provider_call", Mock(return_value={"http_status": 500, "response": {}})
+    )
+    parents = [tmp_path / "historical-parent", tmp_path / "current-parent"]
+    for method, parent in zip(["cloudflare-json", "firecrawl-parse-json"], parents, strict=True):
+        certification.run(home, profile, method, parent)
+    historical = parents[0]
+    contract = pipeline.read_json(historical / "contract.json")
+    contract.pop("extraction_instruction_delivery")
+    pipeline.save_json(historical / "contract.json", contract)
+    manifest = pipeline.read_json(historical / "manifest.json")
+    manifest["contract_sha256"] = pipeline.digest((historical / "contract.json").read_bytes())
+    pipeline.save_json(historical / "manifest.json", manifest)
+    certificate = pipeline.read_json(historical / "certificate.json")
+    certificate["manifest_sha256"] = pipeline.digest((historical / "manifest.json").read_bytes())
+    pipeline.save_json(historical / "certificate.json", certificate)
+    content = tmp_path / "selected.json"
+    pipeline.save_json(content, {"evidence_runs": [{"run": str(p)} for p in parents]})
+    selected = {"firecrawl-parse-json": ["book-a-0001"]}
+    plan = repair.create_plan(home, content, tmp_path / "selected-plan.json", {}, None, selected)
+    assert list(plan["participants"]) == ["firecrawl-parse-json"]
+    assert plan["fixture_base"] is None

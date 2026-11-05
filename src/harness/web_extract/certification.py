@@ -95,9 +95,7 @@ def create_plan(home, methods, output, *, snapshots=None):
                 registry[method]["input"] != "url"
                 and "input_route" not in registry[method]["options"]
             ):
-                raise ValueError(
-                    "Selected interface cannot consume a public snapshot URL: " + method
-                )
+                continue
             participant["input"] = "url"
             participant["fixture_suffix"] = ""
             if registry[method]["input"] != "url":
@@ -122,8 +120,9 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
         from harness.web_extract.repair import run as repair_run
 
         return repair_run(home, profile, method, run_dir)
-    if fixture_base is not None:
-        validate_fixture_base(fixture_base)
+    selected_base = plan.get("public_snapshots", {}).get("fixture_base")
+    if fixture_base is not None or selected_base is not None:
+        validate_fixture_base(fixture_base if fixture_base is not None else selected_base)
     binding = run_dir / "certification-precall.json"
     if (
         not binding.exists()
@@ -145,8 +144,8 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
             raise ValueError("Cannot override the frozen public snapshot URL")
         fixture_base = selected["fixture_base"]
     participant = plan["participants"][method]
-    if fixture_base is not None:
-        validate_fixture_base(fixture_base)
+    if participant.get("input") == "html" and plan.get("public_snapshots"):
+        fixture_base = None
     if available_methods()[method]["input"] == "url" and (
         not fixture_base or not fixture_base.startswith("https://")
     ):
@@ -225,7 +224,7 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     for key in ("native_options", "maximum_physical_calls"):
         if key in participant:
             pacing[key] = participant[key]
-    if plan.get("public_snapshots", {}).get("snapshot_manifest"):
+    if fixture_base and plan.get("public_snapshots", {}).get("snapshot_manifest"):
         selected = plan["public_snapshots"]
         pacing["snapshot_manifest"] = {
             **selected["snapshot_manifest"],
