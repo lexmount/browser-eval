@@ -22,6 +22,22 @@ BODY = {
 AUTH = {"Authorization": "Bearer test-service-key"}
 
 
+@pytest.mark.parametrize("padding", [0, 5990, 7000])
+def test_worker_errors_redact_credentials_before_the_public_length_limit(
+    client, monkeypatch, padding
+):
+    secret = "synthetic-model-credential"
+    monkeypatch.setenv("EXTRACTION_MODEL_API_KEY", secret)
+    completed = subprocess.CompletedProcess([], 1, "", secret + "x" * padding)
+    with patch("harness.web_extract.self_hosted.run_worker", return_value=completed):
+        response = client.post("/extract/crawl4ai", json=BODY, headers=AUTH)
+    error = response.json()["error"]
+    assert response.status_code == 200 and len(error) <= 6000
+    assert secret not in error and secret[-10:] not in error
+    if padding == 0:
+        assert error == "[REDACTED]"
+
+
 @pytest.fixture
 def client(monkeypatch):
     monkeypatch.setenv("EXTRACTION_API_KEY", "test-service-key")
@@ -226,6 +242,8 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
         "ollama-query",
         "malformed-openai",
         "malformed-ollama",
+        "node-preload",
+        "node-path",
     ],
 )
 def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path, failure):
@@ -259,6 +277,12 @@ def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path,
             env["OPENAI_BASE_URL"] = "https://user:private-secret-token@host:invalid"
         elif failure == "malformed-ollama":
             env["OLLAMA_BASE_URL"] = "https://user:private-secret-token@[invalid"
+        elif failure == "node-preload":
+            preload = tmp_path / "preload.cjs"
+            preload.write_text("global.externalOverride = true;", encoding="utf-8")
+            env["NODE_OPTIONS"] = f"--require={preload}"
+        elif failure == "node-path":
+            env["NODE_PATH"] = str(tmp_path / "external_modules")
         else:
             env["OLLAMA_BASE_URL" if failure == "ollama-query" else "OPENAI_BASE_URL"] = (
                 "https://model.example?api_key=credential"
@@ -286,6 +310,8 @@ def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path,
                 if failure == "occupied-port"
                 else "credential-free HTTP(S) URL"
                 if failure.startswith("malformed-")
+                else "code-loading overrides are unsupported"
+                if failure.startswith("node-")
                 else "must not contain credentials"
             )
             assert expected in stderr and "private-secret-token" not in stderr
