@@ -100,6 +100,72 @@ def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
         build(tmp_path / "missing", home / "content.json", home=home, profile=home / "profile.json")
 
 
+@pytest.mark.parametrize(
+    "method,native",
+    [
+        ("crawl4ai-json", {"usage": {"prompt_tokens": 10, "completion_tokens": 3}}),
+        (
+            "stagehand-local-json",
+            {
+                "model_calls": [
+                    {"usage": {"prompt_tokens": 3, "completion_tokens": 1}},
+                    {
+                        "usage": {
+                            "prompt_tokens": 7,
+                            "completion_tokens": 2,
+                            "prompt_cache_hit_tokens": 4,
+                        }
+                    },
+                ],
+                "extract": {"usage": {"prompt_tokens": 999}},
+            },
+        ),
+        (
+            "scrapegraph-oss-json",
+            {
+                "execution": [
+                    {"node_name": "GenerateAnswer", "prompt_tokens": 10, "completion_tokens": 3},
+                    {
+                        "node_name": "TOTAL RESULT",
+                        "prompt_tokens": 10,
+                        "completion_tokens": 3,
+                        "total_cost_USD": 0,
+                    },
+                ]
+            },
+        ),
+    ],
+)
+@pytest.mark.parametrize("language", ["zh", "en"])
+def test_native_model_usage_counts_calls_once_and_does_not_treat_sdk_zero_as_free(
+    method, native, language
+):
+    from harness.web_extract.messages import message
+    from harness.web_extract.report import usage_table
+
+    rows = [{"method": method, "response": {"native": native}}]
+    page = BeautifulSoup(usage_table([method], rows, language), "html.parser")
+    cells = [cell.get_text() for cell in page.select("tbody td")]
+    assert cells[1:3] == ["1", "1"]
+    assert "10 " + message("usage_unit_input_tokens", language) in cells[3]
+    assert "3 " + message("usage_unit_output_tokens", language) in cells[3]
+    assert "999" not in cells[3] and "USD" not in cells[3]
+
+
+def test_internal_firecrawl_counter_and_missing_token_receipts_stay_distinct():
+    from harness.web_extract.report import usage_table
+
+    methods = ["firecrawl-oss-json", "crawl4ai-json"]
+    rows = [
+        {"method": methods[0], "response": {"native": {"data": {"metadata": {"creditsUsed": 5}}}}},
+        {"method": methods[1], "response": {"usage": {"process_cpu_seconds": 0}}},
+    ]
+    page = BeautifulSoup(usage_table(methods, rows, "en"), "html.parser")
+    cells = [[cell.get_text() for cell in row.select("td")] for row in page.select("tbody tr")]
+    assert cells[0][1:] == ["1", "1", "5 internal credits"]
+    assert cells[1][1:] == ["1", "0", "—"]
+
+
 @pytest.mark.parametrize("completed", [False, True])
 def test_current_collector_hash_only_run_builds_progress_and_certified_reports(
     tmp_path, monkeypatch, completed
