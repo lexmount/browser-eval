@@ -388,7 +388,7 @@ class ReportScenarios(unittest.TestCase):
     def test_success_failure_evidence_and_language_parity(self):
         result = check(self.output)
         self.assertEqual(result["observations"], 6)
-        self.assertEqual(result["pages_per_language"], 21)
+        self.assertEqual(result["pages_per_language"], 15)
         for lang in ("en", "zh"):
             soup = BeautifulSoup(
                 (self.output / lang / "results.html").read_text(encoding="utf-8"), "html.parser"
@@ -396,7 +396,7 @@ class ReportScenarios(unittest.TestCase):
             self.assertEqual(len(soup.select("tr[data-status]")), 6)
             control = soup.select_one('[data-result-filter="status"] option')
             self.assertEqual(control["value"], "fail")
-            detail = next((self.output / lang).glob("result-synthetic-blocked-*.html")).read_text(
+            detail = next((self.output / lang).glob("case-*.html")).read_text(
                 encoding="utf-8"
             )
             self.assertIn("Synthetic route rejects archived HTML", detail)
@@ -476,7 +476,7 @@ class ReportScenarios(unittest.TestCase):
                     self.assertTrue(hosted.startswith(root), hosted)
                     self.assertTrue(Path(urlsplit(local).path).is_file(), local)
             detail = BeautifulSoup(
-                next((self.output / lang).glob("result-*.html")).read_text(encoding="utf-8"),
+                next((self.output / lang).glob("case-*.html")).read_text(encoding="utf-8"),
                 "html.parser",
             )
             self.assertTrue(
@@ -535,14 +535,14 @@ class ReportScenarios(unittest.TestCase):
         ]:
             with self.assertRaises(ValueError):
                 check_presentation(bad)
-        detail = next((self.output / "en").glob("result-synthetic-blocked-*.html")).read_text(
+        detail = next((self.output / "en").glob("case-*.html")).read_text(
             encoding="utf-8"
         )
         for bad in [
             detail.replace("data-result-summary", "missing-summary"),
             detail.replace("data-failure-diagnosis", "missing-diagnosis"),
             detail.replace('data-kind="error"', 'data-kind="other"'),
-            detail.replace('id="evidence"', 'id="wrong"'),
+            detail.replace('id="evidence-synthetic-blocked"', 'id="wrong"'),
         ]:
             with self.assertRaises(ValueError):
                 check_presentation(bad)

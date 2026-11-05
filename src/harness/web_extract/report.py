@@ -1328,7 +1328,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
                     + "<p>"
                 )
             interpretation += (
-                f'<a href="result-{method}-{row["case_id"]}.html">'
+                f'<a href="case-{row["case_id"]}.html#{method}">'
                 + (message("representative_result_and_complete_response", lang))
                 + "</a></p>"
             )
@@ -2014,6 +2014,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "<section><h2>" + historical_title + "</h2>" + str(soup) + "</section>"
         )
         dr = []
+        case_bodies = {}
         pin = read_json(profile)["dataset"]
         for cid, gt in sorted(truth.items()):
             url = f"https://github.com/{pin['repository']}/blob/{pin['commit']}/dataset/html/{cid}.html.gz"
@@ -2126,7 +2127,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     continue
                 case_rows.append(row)
                 cells = [
-                    f'<a href="result-{method}-{cid}.html">{esc(names.get(method, method))}</a>'
+                    f'<a href="case-{cid}.html#{method}">{esc(names.get(method, method))}</a>'
                 ]
                 for field in fields:
                     result = row["field_results"][field]
@@ -2170,18 +2171,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 )
                 + "</article>"
             )
-            (directory / ("case-" + cid + ".html")).write_text(
-                page(
-                    lang,
-                    "results",
-                    (message("same_case_comparison", lang)) + cid[:12],
-                    case_body,
-                    detail=True,
-                    languages=languages,
-                    state=state,
-                ),
-                encoding="utf-8",
-            )
+            case_bodies[cid] = case_body
         bodies["dataset"] += table(
             [lab[14], message("source", lang), message("snapshot", lang), lab[19]],
             dr,
@@ -2206,7 +2196,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             key = r["method"] + "-" + cid
             ok = r.get("compatibility") == "structured_output"
             status = lab[12] if ok else lab[11]
-            url = "result-" + key + ".html"
+            url = f"case-{cid}.html#{r['method']}"
             error = (
                 ""
                 if ok
@@ -2287,23 +2277,21 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     + "</p></section>"
                 )
             if not ok:
-                detail += '<p data-failure-diagnosis>{part0}</p><details id="result-logs" open><summary>{part1}</summary><pre data-kind="error">{part2}</pre></details>'.format(
+                detail += '<p data-failure-diagnosis>{part0}</p><details data-result-logs open><summary>{part1}</summary><pre data-kind="error">{part2}</pre></details>'.format(
                     part0=message("no_scoreable_fields_returned_see_the_program_error_below", lang),
                     part1=lab[21],
                     part2=esc(error),
                 )
-            detail += f'<p><button data-call-log-open="evidence" data-src="{evidence}"{evidence_key}>{message("developer_record", lang)}</button></p><dialog id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">{message("developer_record", lang)}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
-            (directory / url).write_text(
-                page(
-                    lang,
-                    "results",
-                    names.get(r["method"], r["method"]) + " · " + cid[:10],
-                    detail,
-                    detail=True,
-                    languages=languages,
-                    state=state,
-                ),
-                encoding="utf-8",
+            dialog_id = "evidence-" + r["method"]
+            detail += f'<p><button data-call-log-open="{dialog_id}" data-src="{evidence}"{evidence_key}>{message("developer_record", lang)}</button></p><dialog id="{dialog_id}" aria-labelledby="{dialog_id}-title"><h2 id="{dialog_id}-title">{message("developer_record", lang)}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
+            case_bodies[cid] += (
+                f'<details data-result-panel id="{r["method"]}"><summary>'
+                + esc(names.get(r["method"], r["method"]))
+                + " · "
+                + status
+                + "</summary>"
+                + detail
+                + "</details>"
             )
             elapsed = f"{r['elapsed_seconds']:.2f}" if r.get("elapsed_seconds") is not None else "—"
             field_cells = ""
@@ -2330,6 +2318,19 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 f'<tr data-case="{cid}" data-status="{"pass" if ok else "fail"}" data-method="{r["method"]}" data-stage="{r["failure_stage"]}" data-outcome="{"correct" if correct and ok else "wrong"}" data-search="{esc(search, quote=True)}" {data_fields}><td>{esc(names.get(r["method"], r["method"]))}</td><td><a href="{url}"><code>{cid[:12]}</code></a></td><td>{status}</td>{field_cells}<td>{r.get("http_status") or "—"}</td><td data-sort="{r.get("elapsed_seconds", "")}">{elapsed}</td><td><button data-call-log-open="diagnosis" data-src="{evidence}"{evidence_key}>{lab[9]}</button> · <a href="{url}">'
                 + (message("full_result", lang))
                 + "</a></td></tr>"
+            )
+        for cid, case_body in case_bodies.items():
+            (directory / ("case-" + cid + ".html")).write_text(
+                page(
+                    lang,
+                    "results",
+                    message("same_case_comparison", lang) + cid[:12],
+                    case_body,
+                    detail=True,
+                    languages=languages,
+                    state=state,
+                ),
+                encoding="utf-8",
             )
         if cohort:
             observed = {(r["method"], r["case_id"]) for r in rows}
@@ -2792,12 +2793,16 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     expected_methods
                 ):
                     raise ValueError("Incomplete same-case method comparison")
+                panels = comparison.select("details[data-result-panel]")
+                if len(panels) != len(expected_methods) or {
+                    panel.get("id") for panel in panels
+                } != set(expected_methods):
+                    raise ValueError("Incomplete same-case participant details")
                 for method in expected_methods:
                     row = data[method][cid]
-                    detail = BeautifulSoup(
-                        (output / lang / f"result-{method}-{cid}.html").read_text(encoding="utf-8"),
-                        "html.parser",
-                    )
+                    detail = comparison.select_one(f'details[data-result-panel][id="{method}"]')
+                    if detail is None:
+                        raise ValueError("Missing same-case participant detail")
                     expected_fields = BeautifulSoup(
                         field_table(row, lang), "html.parser"
                     ).select_one("[data-field-diagnostics]")

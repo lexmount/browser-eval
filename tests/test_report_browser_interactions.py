@@ -318,3 +318,48 @@ def test_generated_replay_success_failure_steps_and_viewer(tmp_path, monkeypatch
                 assert 'Fixture action failed' in page.locator('main').inner_text() if method == 'moli-old' else 'Fixture snapshot' in page.locator('main').inner_text()
         finally:
             page.close()
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_web_extract_same_case_panels_keep_native_evidence_and_keyboard_return(
+    tmp_path, browser, display, language
+):
+    from harness.web_extract.example import create
+
+    output = tmp_path / 'report'
+    create(output, mode='full-cohort-progress', language='en')
+    with hosted_preview(output) as origin:
+        page = local_page(browser, origin, **display)
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        try:
+            page.goto(origin + language + '/results.html')
+            for method in ('synthetic-success', 'synthetic-blocked'):
+                if display['color_scheme'] == 'dark':
+                    if not page.locator('html').evaluate('(e)=>e.classList.contains("dark")'):
+                        page.locator('#theme').click()
+                page.locator('[data-result-filter="status"]').select_option('all')
+                page.locator(f'tr[data-method="{method}"] a[href]').first.click()
+                panel = page.locator(f'details[data-result-panel][id="{method}"]')
+                expect(panel).to_have_attribute('open', '')
+                assert page.url.endswith('#' + method)
+                assert panel.locator('[data-result-summary]').count() == 1
+                trigger = panel.locator('[data-call-log-open]')
+                trigger.click()
+                dialog = panel.locator('dialog')
+                expect(dialog).to_be_visible()
+                expect(dialog.locator('pre')).to_contain_text('case_id')
+                expect(dialog.locator('pre')).to_contain_text(method)
+                if method == 'synthetic-blocked':
+                    expect(panel.locator('[data-result-logs]')).to_contain_text(
+                        'Synthetic route rejects archived HTML'
+                    )
+                page.keyboard.press('Escape')
+                expect(dialog).not_to_be_visible()
+                assert trigger.evaluate('(e)=>e===document.activeElement')
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+                page.locator(f'nav a[href="{language}/results.html"]').click()
+                assert page.url == origin + language + '/results.html'
+            assert errors == []
+        finally:
+            page.close()

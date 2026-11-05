@@ -33,7 +33,51 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     assert check(output)["state"] == "full-cohort-progress"
     # Evidence is grouped by method, loaded on demand, rather than copied per detail.
     assert len(list((output / "public-evidence").glob("*.json"))) == 2
-    assert "data-key=" in next((output / "zh").glob("result-*.html")).read_text(encoding="utf-8")
+    assert "data-key=" in next((output / "zh").glob("case-*.html")).read_text(encoding="utf-8")
+
+
+@pytest.mark.parametrize("damage", [None, "missing", "duplicate"])
+def test_result_links_open_isolated_participant_details_on_the_same_case(tmp_path, damage):
+    from urllib.parse import urlsplit
+
+    output = tmp_path / "report"
+    create(output, mode="full-cohort-progress", language="en")
+    targets_by_language = {}
+    for language in ("zh", "en"):
+        inventory = BeautifulSoup((output / language / "results.html").read_text(), "html.parser")
+        targets = set()
+        for row in inventory.select('tr[data-status="pass"], tr[data-status="fail"]'):
+            target = urlsplit(row.select_one("a[href]")["href"])
+            targets.add(target.path)
+            page = BeautifulSoup((output / target.path).read_text(), "html.parser")
+            panel = page.select_one(f'details[data-result-panel][id="{target.fragment}"]')
+            assert panel is not None and target.fragment == row["data-method"]
+            assert len(panel.select("[data-result-summary]")) == 1
+            button = panel.select_one("[data-call-log-open]")
+            assert panel.select_one(f'dialog[id="{button["data-call-log-open"]}"]')
+            assert button["data-key"] == row["data-case"]
+            assert len(page.select("[id]")) == len({node["id"] for node in page.select("[id]")})
+        assert len(targets) <= read_json(output / "report-manifest.json")["case_count"]
+        targets_by_language[language] = targets
+    if damage:
+        import copy
+
+        path = output / sorted(targets_by_language["zh"])[0]
+        page = BeautifulSoup(path.read_text(), "html.parser")
+        panel = page.select_one("details[data-result-panel]")
+        if damage == "missing":
+            panel.decompose()
+        else:
+            panel.insert_after(copy.copy(panel))
+        path.write_text(str(page))
+        manifest = read_json(output / "report-manifest.json")
+        manifest["files"]["zh/" + path.name] = digest(path.read_bytes())
+        save_json(output / "report-manifest.json", manifest)
+        expected_error = "Broken evidence anchor" if damage == "missing" else "participant detail"
+        with pytest.raises(ValueError, match=expected_error):
+            check(output)
+    else:
+        check(output)
 
 
 def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
@@ -363,7 +407,7 @@ def test_release_rejects_missing_operating_metrics_and_broken_drilldown(tmp_path
     route, selector = {
         "cost": ("index.html", "[data-operating-metrics]"),
         "filter": ("results.html", '[data-result-filter="field"]'),
-        "field": (f"result-synthetic-success-{cid}.html", "[data-field-diagnostics]"),
+        "field": (f"case-{cid}.html", "#synthetic-success [data-field-diagnostics]"),
         "comparison": (f"case-{cid}.html", "[data-case-comparison] tbody tr"),
     }[change]
     path = output / "zh" / route
@@ -1001,7 +1045,7 @@ def test_failed_details_use_the_same_error_as_dialog_evidence(tmp_path, payload)
     output = tmp_path / "rebuilt"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="en")
     for lang in ["zh", "en"]:
-        for path in (output / lang).glob("result-synthetic-blocked-*.html"):
+        for path in (output / lang).glob("case-*.html"):
             page = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
             expected = native_error({"response": payload}) or message(
                 "no_recognizable_product_fields_returned", lang
