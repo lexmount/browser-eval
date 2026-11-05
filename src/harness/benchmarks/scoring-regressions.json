@@ -78613,6 +78613,25 @@
       "artifact": "Alpha\n#### $10\n#### Free shipping\n",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "catalog-plain-title-above-heading-price-deeper-description-complete",
+      "category": "structured-extraction",
+      "root_cause": "A plain line above a heading price was taken as that card's title, so price-first heading cards lost their real titles to the previous card's count line.",
+      "failure_mode": "false-negative",
+      "case": {
+        "url": "https://example.test/catalog",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "catalog_product",
+          "minimum_records": 1
+        }
+      },
+      "artifact": "Alpha\n\n#### $10\n\n##### Blue machine\n\n2 reviews\n",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }
