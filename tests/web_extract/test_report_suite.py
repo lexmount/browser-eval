@@ -67,3 +67,35 @@ def test_suite_rejects_language_directory_collisions_before_writing(tmp_path, re
     with pytest.raises(ValueError, match="distinct safe"):
         report_suite.build(output, content, profile=profile)
     assert not output.exists()
+
+
+def test_quality_exclusion_preserves_operational_comparison(tmp_path):
+    from pathlib import Path
+
+    from harness.web_extract import report_suite
+
+    source = create(tmp_path / "seed", mode="field-extraction-suite")
+    suite = read_json(source / "content.json")
+    entry = suite["cohorts"][0]
+    content = Path(entry["content"])
+    model = read_json(content)
+    method = next(iter(model["participants"]))
+    model["participants"][method].update(
+        include_in_comparison=False, exclusion_reason="Synthetic account quota"
+    )
+    save_json(content, model)
+    profile = Path(entry["profile"])
+    authority = read_json(profile)
+    authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    save_json(profile, authority)
+    output = tmp_path / "report"
+    report_suite.build(output, source / "content.json", profile=source / "profile.json")
+    soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    tables = soup.select('[data-cohort="first"] table')
+    quality, operation = [table.select("tbody tr") for table in tables]
+    assert len(quality) == len(operation) == 2
+    assert "Synthetic account quota" in quality[0].get_text()
+    assert [td.get_text() for td in quality[0].select("td")[2:5]] == ["—"] * 3
+    assert model["participants"][method]["label"] in operation[0].get_text()
+    assert operation[0].select('[data-metric="mean"]')
+    assert "$" in operation[0].get_text()

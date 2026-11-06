@@ -100,7 +100,13 @@ def prepare(home: Path, source: Path):
             validate_http_url(case["url"])
             from lxml import html
 
-            base = document_base_url(html.fromstring(raw), case.get("final_url", case["url"]))
+            encoding = receipt.get("encoding")
+            if encoding is not None and (not isinstance(encoding, str) or not encoding.strip()):
+                raise ValueError("Captured HTTP encoding must be a nonempty charset name")
+            base = document_base_url(
+                html.fromstring(raw, parser=html.HTMLParser(encoding=encoding)),
+                case.get("final_url", case["url"]),
+            )
             (root / "html" / (cid + ".html")).write_bytes(raw)
             truth[cid] = {
                 "url": case["url"],
@@ -184,7 +190,12 @@ def prepare(home: Path, source: Path):
             ),
         }
         save_json(root / "manifest.json", manifest)
-        save_json(home / "profile.json", profile, exclusive=True)
+        profile_path = home / "profile.json"
+        if profile_path.exists():
+            if profile_path.is_symlink() or read_json(profile_path) != profile:
+                raise ValueError("Existing profile belongs to a different cohort")
+        else:
+            save_json(profile_path, profile, exclusive=True)
         root.rename(target)
     from harness.web_extract.pipeline import validate_dataset
 
@@ -299,7 +310,12 @@ def qualify_live(home, case_ids, *, timeout=30):
             not 0 <= age <= policy["maximum_observation_age_seconds"]
             or receipt["source_url"] != reference["url"]
             or digest(raw) != receipt["input_sha256"]
-            or reference_support(reference, raw, document_base=reference.get("document_base_url"))
+            or reference_support(
+                reference,
+                raw,
+                encoding=receipt.get("encoding"),
+                document_base=reference.get("document_base_url"),
+            )
         ):
             raise LiveSourceAccessError(cid, attempts)
         return {
@@ -311,6 +327,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             ),
             "verification_mode": "independent_captured_reference",
             "reference_observed_at": receipt["observed_at"],
+            "encoding": receipt.get("encoding"),
             "observed_html_sha256": digest(raw),
             "reference_sha256": digest(json.dumps(reference["values"], sort_keys=True).encode()),
             "reference_values_verified": sum(map(len, reference["values"].values())),
@@ -356,6 +373,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             "case_id": cid,
             "url": reference["url"],
             "http_status": response.status,
+            "encoding": content_type.get_content_charset(),
             "observed_html_sha256": digest(response.body),
             "reference_sha256": digest(json.dumps(reference["values"], sort_keys=True).encode()),
             "reference_values_verified": sum(map(len, reference["values"].values())),

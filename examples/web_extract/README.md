@@ -458,6 +458,14 @@ The definition declares `input_mode: snapshot` or `input_mode: live`:
 Live cohorts reject snapshot bindings. Saved HTML is private source evidence;
 providers still visit the original site. Unavailable pages or references that no
 longer appear stop certification, while completed provider calls remain saved.
+An optional `live_reference_policy.maximum_observation_age_seconds` (at most
+86,400 seconds) permits a previously captured independent source when a fresh
+access attempt fails. Each case then freezes `qualification.source_url` and a
+timezone-aware `qualification.observed_at`. Preserve a header-only charset in
+`qualification.encoding`, such as `utf-8`; it is bound with the captured bytes
+and used when checking them. A successfully observed page with unsupported
+reference values still stops certification. Access failure alone does not
+establish that the question or answer is invalid.
 Source checks run at most four origins concurrently, with serial requests and a
 one-second pause within each origin. They do not contribute to provider latency.
 Transient network errors and HTTP 408/429/5xx responses allow up to three source
@@ -498,8 +506,10 @@ release gate requires all participants complete and a hash-bound visual receipt.
 
 An explicit report-scope omission sets `include_in_comparison: false` and supplies
 `exclusion_reason` on that participant. Its calls, progress, detail panels and
-timings remain available, while quality and speed leadership use only the declared
-comparison participants. Release checks require every compared participant to be
+timings remain available, while quality uses only the declared comparison
+participants. Timing and price tables retain every planned participant; timing
+extrema use the stated all-call population, including account rejections.
+Release checks require every compared participant to be
 complete and reject an omitted participant without a reason. Source execution
 plans and certificates are never rewritten to change this presentation scope.
 
