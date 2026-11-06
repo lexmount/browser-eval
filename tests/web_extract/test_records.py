@@ -1363,6 +1363,8 @@ def test_live_cohort_cannot_enter_archived_repair_plan_or_collection(tmp_path):
     for action in [
         lambda: repair.create_plan(home, tmp_path / "absent", tmp_path / "plan", {}, None),
         lambda: repair.collect(home, tmp_path / "absent", "browserbase-json", tmp_path / "run"),
+        lambda: repair.run(home, tmp_path / "absent", "browserbase-json", tmp_path / "run"),
+        lambda: repair.verify_repair(home, tmp_path / "absent", {}),
     ]:
         with pytest.raises(ValueError, match="resume their original certified run"):
             action()

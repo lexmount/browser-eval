@@ -221,6 +221,7 @@ def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
 
 
 def run(home, profile, method, destination):
+    require_archived(home)
     require_external_output(destination)
     require_external_output(home)
     home = Path(home).resolve()
@@ -433,6 +434,7 @@ def collect(home, profile, method, destination):
 
 
 def verify_repair(home, source, repair):
+    require_archived(home)
     """Overlay only declared failed calls; keep old calls and missing timers explicit."""
     directory = Path(repair["path"])
     certificate = read_json(directory / "certificate.json")
