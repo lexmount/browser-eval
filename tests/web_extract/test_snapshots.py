@@ -1,6 +1,7 @@
 """Frozen public inputs and native URL-only cohort behavior."""
 
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -666,7 +667,8 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     )
 
     hosted = snapshots.read_json(tmp_path / "host.json")
-    metadata = snapshots.publication_metadata(home, hosted, hosted["verification"])
+    with patch.object(snapshots, "managed_cloudflare", return_value=True):
+        metadata = snapshots.publication_metadata(home, hosted, hosted["verification"])
     snapshots.save_json(tmp_path / "published-cloudflare.json", metadata)
     plan = create_plan(
         home,
@@ -972,6 +974,15 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     monkeypatch.setattr(snapshots, "check_manifest", CHECK_MANIFEST)
     with (
         patch("requests.get", return_value=response),
+        patch(
+            "harness.web_extract.pipeline.request",
+            side_effect=lambda url, **kwargs: SimpleNamespace(
+                status=200,
+                url=url,
+                headers={},
+                body=(home / "dataset/html/case-a.html").read_bytes(),
+            ),
+        ),
         patch.object(
             snapshots, "verify", return_value={"verified_pages": 1, "pages": []}
         ) as page_check,
@@ -992,8 +1003,18 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     assert preview == hosted["snapshot_manifest"]
     assert preview["case_count"] == 1
     assert hosted["hosting_provider"] == "external"
+    verified = {
+        "pages": [
+            {
+                "case_id": "case-a",
+                "sha256": digest((home / "dataset/html/case-a.html").read_bytes()),
+                "url": base + "/case-a",
+                "http_status": 200,
+            }
+        ]
+    }
     with patch("requests.get", return_value=response) as fetch:
-        metadata = snapshots.publication_metadata(home, hosted, preview)
+        metadata = snapshots.publication_metadata(home, hosted, verified)
     assert metadata["snapshot_manifest"] == preview
     assert metadata["hosting_provider"] == "external"
     published = tmp_path / "published-metadata.json"

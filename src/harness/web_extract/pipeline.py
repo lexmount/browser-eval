@@ -1977,10 +1977,9 @@ def _probe_unlocked(
         if snapshot_manifest is not None:
             from harness.web_extract.snapshots import verify_bound_manifest
 
-            receipts = verify_bound_manifest(home, snapshot_manifest, fixture_base)
-            if snapshot_manifest.get("hosting_provider") != "cloudflare":
-                receipts += [one(case_id) for case_id in case_ids]
-            return receipts
+            return verify_bound_manifest(
+                home, snapshot_manifest, fixture_base, case_ids=case_ids, suffix=fixture_suffix
+            )
         from harness.web_extract.snapshots import verify_resources
 
         return [one(case_id) for case_id in case_ids] + verify_resources(home, fixture_base)

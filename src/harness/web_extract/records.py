@@ -442,6 +442,16 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
         chunks.append(value)
         position += len(value)
 
+    def labelled(node):
+        return (
+            node is not None
+            and node.tag == "span"
+            and any(
+                child.tag in {"strong", "label"} and child.text_content().strip().endswith(":")
+                for child in node
+            )
+        )
+
     def visible(node):
         if not isinstance(node.tag, str):
             return
@@ -452,8 +462,18 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
         for child in node:
             visible(child)
             append(child.tail or "")
-        if node.tag in {"span", "button"}:
-            regions.append((start, position))
+        if node.tag == "button":
+            regions.append((start, position, True, True))
+        elif labelled(node):
+            previous = node.getprevious()
+            regions.append(
+                (
+                    start,
+                    position,
+                    labelled(previous) and not (previous.tail or ""),
+                    labelled(node.getnext()) and not (node.tail or ""),
+                )
+            )
         if node.tag in blocks:
             append(" ")
 
@@ -496,11 +516,24 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
                 # containers and the full page support the same value.
                 occurrences = {match.span() for match in re.finditer(pattern, text)}
                 if not numeric:
-                    for start, end in regions:
-                        occurrences.update(
-                            (start + match.start(), start + match.end())
-                            for match in re.finditer(pattern, text[start:end])
-                        )
+                    for start, end, left_boundary, right_boundary in regions:
+                        for match in re.finditer(pattern, text[start:end]):
+                            left, right = start + match.start(), start + match.end()
+                            if (
+                                left
+                                and re.match(r"\w", text[left - 1])
+                                and re.match(r"\w", text[left])
+                            ):
+                                if not (match.start() == 0 and left_boundary):
+                                    continue
+                            if (
+                                right < len(text)
+                                and re.match(r"\w", text[right - 1])
+                                and re.match(r"\w", text[right])
+                            ):
+                                if not (right == end and right_boundary):
+                                    continue
+                            occurrences.add((left, right))
                 observed = len(occurrences)
                 if not key or observed < count:
                     missing.append({"field": field, "value": key})

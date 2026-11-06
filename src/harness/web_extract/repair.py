@@ -200,12 +200,8 @@ def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
     if snapshot_manifest is not None:
         from harness.web_extract.snapshots import verify_bound_manifest
 
-        receipts = verify_bound_manifest(home, snapshot_manifest, base)
-        if snapshot_manifest.get("hosting_provider") == "cloudflare":
-            return receipts
-    else:
-        receipts = []
-    return receipts + [
+        return verify_bound_manifest(home, snapshot_manifest, base, case_ids=cases, suffix=suffix)
+    return [
         {key: item[key] for key in ("case_id", "url", "sha256")}
         for cid in cases
         for item in [qualify_fixture(home, base, cid, suffix=suffix, timeout=45)]

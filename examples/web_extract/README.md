@@ -125,6 +125,9 @@ the same case URL; upload-only interfaces receive the identical frozen HTML and
 can share the plan. A plan containing only upload-only methods can omit the binding. Before and after calls, managed Cloudflare snapshots use
 the frozen whole-dataset manifest and its hash; a changed manifest blocks certification.
 External hosts additionally have every selected page hash-checked before and after calls.
+An unconfirmed Cloudflare binding follows the same byte checks. The management API
+must confirm the immutable deployment identity before a whole-manifest check can
+replace HTML and resource downloads; a provider label alone grants no exemption.
 Page-by-page verification remains an explicit byte-audit command and is not used
 to identify a managed snapshot version.
 Keep raw HTML, original benchmark names, sources and licenses; exclude reference
