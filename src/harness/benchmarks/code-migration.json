@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "f1053bb4b80873f5b5a12437fd6f8a99053a7ace8eeb309cbc572095f33132d9"
+          "after_sha256": "9e483351c89b83856e898f785278344ca0ff928ba99525255afc5c37f4ad68fa"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -104,7 +104,7 @@
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
-          "after_sha256": "8be6dea59e7dea7049d4033b722baf65b374f79ab72922314e970c4f2081cf3c"
+          "after_sha256": "9c8a72e3b86c0bac38c51e8ea18a9852715cdc6f9fbc45df026f5b6a5eba9645"
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
@@ -4194,6 +4194,17 @@
           "tests": [
             "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
           ]
+        },
+        {
+          "modules": [
+            "benchmark.py",
+            "scoring_regressions.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_annotation_evidence.py",
+            "tests/test_scoring_regressions.py"
+          ],
+          "reason": "Reuse definition resolution and the control registry within each validation; preserve cross-invocation verification and every scoring control."
         }
       ]
     },

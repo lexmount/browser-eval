@@ -2,6 +2,7 @@
 
 import importlib
 import importlib.util
+import hashlib
 import os
 import sys
 import tempfile
@@ -109,10 +110,32 @@ def historical_dataset():
 
 def pytest_addoption(parser):
     parser.addoption(
+        "--ci-shard", default=None,
+        help="Run one deterministic, disjoint Python test shard (INDEX/COUNT, starting at 1)",
+    )
+    parser.addoption(
         "--require-reference-inputs",
         action="store_true",
         help="Fail unless the complete hash-bound historical source inputs are installed",
     )
+
+
+def pytest_collection_modifyitems(config, items):
+    selected = config.getoption("--ci-shard")
+    if selected is None:
+        return
+    try:
+        index, count = map(int, selected.split("/"))
+        if not 1 <= index <= count:
+            raise ValueError
+    except ValueError:
+        raise pytest.UsageError("--ci-shard requires INDEX/COUNT with 1 <= INDEX <= COUNT") from None
+    retained, excluded = [], []
+    for item in items:
+        bucket = int.from_bytes(hashlib.sha256(item.nodeid.encode("utf-8")).digest(), "big") % count
+        (retained if bucket == index - 1 else excluded).append(item)
+    config.hook.pytest_deselected(items=excluded)
+    items[:] = retained
 
 
 def pytest_sessionstart(session):

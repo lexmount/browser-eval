@@ -16,6 +16,31 @@ from harness.web_fetch.scoring_revision import ALLOWED_FIELDS, correction_proven
 import pytest
 
 
+def test_control_execution_uses_one_registry_and_observes_next_call_changes(monkeypatch):
+    from lexbench_webfetch import scoring_regressions as controls
+
+    registry = controls.load_scoring_regressions()
+    identifiers = next(
+        [accepted['id'], rejected['id']]
+        for accepted in registry.values() if accepted['expected_task_pass']
+        for rejected in registry.values() if not rejected['expected_task_pass']
+        and not accepted.get('expected_validation_error')
+        and not rejected.get('expected_validation_error')
+    )
+    calls = []
+
+    def load():
+        calls.append(True)
+        return registry
+
+    monkeypatch.setattr(controls, 'load_scoring_regressions', load)
+    assert controls.check_scoring_regressions(identifiers) == identifiers
+    assert len(calls) == 1
+    registry.pop(identifiers[1])
+    with pytest.raises(ValueError, match='Unknown scoring regression'):
+        controls.check_scoring_regressions(identifiers)
+
+
 class ScoringRegressionTests(unittest.TestCase):
     def test_policy_supersession_preserves_inputs_and_rejects_changed_body(self):
         from lexbench_webfetch.scoring_regressions import default_registry_path
