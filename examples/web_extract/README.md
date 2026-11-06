@@ -313,8 +313,8 @@ renderer/component checks when those owners change, rather than every release.
 Use the standalone check for local validation without publishing:
 
 ```sh
-uv run --frozen python -m harness.web_extract.cli check /absolute/report \
-  --release --profile /absolute/private/profile.json \
+uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-home \
+  check /absolute/report --release --profile /absolute/private/profile.json \
   --visual-receipt /absolute/private/visual-receipt.json
 ```
 
@@ -322,7 +322,9 @@ Formal checks and packaging require the external frozen profile. They verify its
 content and original audit, reproduce the public audit view, and bind each cached
 field judgment and native response to that audit. Public manifest edits cannot
 remove the required audit or change the completion denominator. Pass the same
-`--profile` to `package`; publication selects it from the bound target.
+`--profile` to `package`; publication selects it from the bound target. Use the
+same global `--home` as the report build so original calls and repair chains resolve
+against the correct benchmark inputs.
 
 Building a local report does not upload it or change access permissions.
 The `publish` command runs the release check and packages the report itself;

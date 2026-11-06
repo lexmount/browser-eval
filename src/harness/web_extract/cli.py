@@ -248,6 +248,7 @@ def main(argv=None):
                 release=args.release,
                 visual_receipt=args.visual_receipt,
                 profile=args.profile,
+                home=args.home,
             )
         )
     elif args.command == "package":
@@ -255,13 +256,17 @@ def main(argv=None):
 
         print(
             package(
-                args.report, args.output, visual_receipt=args.visual_receipt, profile=args.profile
+                args.report,
+                args.output,
+                visual_receipt=args.visual_receipt,
+                profile=args.profile,
+                home=args.home,
             )
         )
     elif args.command == "publish":
         from harness.web_extract.publication import publish
 
-        print(publish(args.source, args.target, args.work, args.visual_receipt))
+        print(publish(args.source, args.target, args.work, args.visual_receipt, home=args.home))
     elif args.command == "review":
         from harness.web_extract.review import prepare as prepare_review
         from harness.web_extract.review import run as run_review

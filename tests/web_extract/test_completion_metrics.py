@@ -195,7 +195,7 @@ def test_incomplete_cohort_is_distinct_from_a_computed_empty_denominator():
     assert "denominator 0" not in text
 
 
-@pytest.mark.parametrize("damage", ["coverage", "judgment", "response"])
+@pytest.mark.parametrize("damage", ["coverage", "judgment"])
 def test_completion_cannot_override_authoritative_audit(tmp_path, damage):
     from harness.web_extract.pipeline import digest, save_json
     from harness.web_extract.report import (

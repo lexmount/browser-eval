@@ -401,6 +401,7 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
         release=True,
         visual_receipt=receipt,
         profile=tmp_path / "report-synthetic-inputs/profile.json",
+        home=None,
     )
     with zipfile.ZipFile(tmp_path / "public.zip") as bundle:
         assert set(bundle.namelist()) == set(manifest["files"]) | {"report-manifest.json"}

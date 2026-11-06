@@ -5,13 +5,22 @@ import json
 import pytest
 
 from harness.web_extract import publication
-from harness.web_extract.pipeline import digest, read_json, save_json
+from harness.web_extract.pipeline import digest, execution_identity, read_json, save_json
 
 
-@pytest.mark.parametrize("damage", [None, "public-envelope", "original-envelope"])
-def test_record_release_binds_ignored_native_metadata_and_accepts_privacy_projection(
-    tmp_path, damage
-):
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize(
+    "damage",
+    [
+        None,
+        "public-envelope",
+        "original-envelope",
+        "http-status",
+        "compatibility",
+        "missing-delivery",
+    ],
+)
+def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
     from harness.web_extract.cli import main
     from harness.web_extract.pipeline import normalize
     from harness.web_extract.report import publication_host_names, verify_completion_audit
@@ -20,17 +29,24 @@ def test_record_release_binds_ignored_native_metadata_and_accepts_privacy_projec
     home = tmp_path / "inputs"
     run = home / "run"
     row = {
-        "method": "firecrawl-parse-json",
+        "method": "firecrawl-json" if mode == "full-cohort-progress" else "firecrawl-parse-json",
         "case_id": "page",
         "http_status": 200,
         "compatibility": "structured_output",
         "state": "response_received",
         "response": {
-            "data": {"json": {"title": ["A"]}},
+            "data": {
+                "json": {"price": "10", "sku": "A", "availability": "InStock"}
+                if mode == "full-cohort-progress"
+                else {"title": ["A"]}
+            },
             "message": "retained metadata",
             "debug_path": "/Users/example/private/trace.json",
         },
     }
+    if damage == "missing-delivery":
+        row.pop("http_status")
+        row.pop("compatibility")
     save_json(run / "call.json", row)
     save_json(run / "contract.json", {"methods": [row["method"]], "case_ids": ["page"]})
     inventory = {
@@ -45,9 +61,10 @@ def test_record_release_binds_ignored_native_metadata_and_accepts_privacy_projec
         {
             "results": {
                 row["method"] + ":page": {
+                    "execution_sha256": execution_identity(row),
                     "native_response_sha256": digest(
                         json.dumps(row["response"], sort_keys=True, ensure_ascii=False).encode()
-                    )
+                    ),
                 }
             }
         },
@@ -93,9 +110,9 @@ def test_record_release_binds_ignored_native_metadata_and_accepts_privacy_projec
     save_json(
         report / "report-manifest.json",
         {
-            "mode": "field-extraction-cohort",
+            "mode": mode,
             "profile_sha256": digest(profile.read_bytes()),
-            "audit": {
+            ("completion_audit" if mode == "full-cohort-progress" else "audit"): {
                 "path": "public-evidence/audit.json",
                 "source_sha256": digest(audit.read_bytes()),
             },
@@ -107,6 +124,11 @@ def test_record_release_binds_ignored_native_metadata_and_accepts_privacy_projec
     before = normalize(row["method"], projected["response"], schema={})
     if damage == "public-envelope":
         projected["response"]["message"] = "substituted metadata"
+        save_json(path, {"page": projected})
+    elif damage in ("http-status", "compatibility", "missing-delivery"):
+        projected["http_status" if damage == "http-status" else "compatibility"] = (
+            500 if damage == "http-status" else "no_structured_output"
+        )
         save_json(path, {"page": projected})
     else:
         row["response"]["message"] = "substituted original"
@@ -158,7 +180,7 @@ def setup_report(tmp_path):
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
 
-    def package(report, archive, *, visual_receipt, profile):
+    def package(report, archive, *, visual_receipt, profile, home=None):
         archive.write_bytes(b"checked-package")
         return {
             "archive_sha256": digest(archive.read_bytes()),
