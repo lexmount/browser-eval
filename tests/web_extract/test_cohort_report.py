@@ -83,7 +83,7 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     assert all(
         c.get_text(strip=True) == "—"
         for c in home.select(
-            "[data-core-metrics] tbody td:nth-child(n+6):not([data-completion-metric])"
+            "[data-core-metrics] tbody td:nth-child(n+4):not([data-completion-metric])"
         )
     )
     assert check(output)["state"] == "full-cohort-progress"
@@ -1379,3 +1379,21 @@ def test_unknown_total_cost_requires_scoped_bound_evidence(tmp_path, mode, langu
                 if edition == "en"
                 else "总费用未知" in page.get_text()
             )
+
+
+def test_core_progress_uses_two_columns_without_hiding_pending_or_failed_calls():
+    rows = [
+        {'method': 'a', 'case_id': 'one', 'compatibility': 'structured_output'},
+        {'method': 'a', 'case_id': 'two', 'compatibility': 'api_error'},
+    ]
+    html, _ = cohort_metrics(['a', 'b'], rows, [], 3, 'en')
+    table_view = BeautifulSoup(html, 'html.parser').select_one('[data-core-metrics]')
+    assert [h.get_text() for h in table_view.select('th')][:3] == [
+        'Method', 'Tested / total', 'Returned objects']
+    assert len(table_view.select('th')) == 7
+    assert table_view.has_attr('data-method-column')
+    actual = table_view.select('tbody tr')
+    assert [r.select_one('[data-execution-count]').get_text() for r in actual] == ['2 / 3', '0 / 3']
+    assert [r.select('td')[2].get_text() for r in actual] == ['1', '0']
+    assert all('Incomplete' in r.select('td')[1].get_text() for r in actual)
+    assert table_view.parent.get('tabindex') == '0'
