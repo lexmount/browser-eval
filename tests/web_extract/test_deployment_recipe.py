@@ -45,7 +45,7 @@ def test_recipe_resolves_one_authenticated_frontend_and_five_private_dependencie
         if name == "native-extraction":
             continue
         assert not component.get("ports"), name
-        if name != "firecrawl-api":
+        if name not in ("firecrawl-api", "firecrawl-browser"):
             assert "@sha256:" in component["image"]
     queue = services["firecrawl-rabbitmq"]
     assert "platform" not in queue
@@ -57,6 +57,11 @@ def test_recipe_resolves_one_authenticated_frontend_and_five_private_dependencie
     recipe = (Path(build["context"]) / build["dockerfile"]).read_text(encoding="utf-8")
     assert "@sha256:" in recipe
     assert "firecrawl_backend.mjs" in recipe
+    browser = services["firecrawl-browser"]
+    assert "@sha256:" in browser["build"]["args"]["UPSTREAM_IMAGE"]
+    assert browser["environment"]["FIRECRAWL_SERVICE_KIND"] == "browser"
+    assert firecrawl["environment"]["FIRECRAWL_BROWSER_IDENTITY_URL"].endswith(":3020/identity")
+    assert firecrawl["depends_on"]["firecrawl-browser"]["condition"] == "service_healthy"
     # A remote Docker daemon does not share the checkout's host filesystem.
     assert not any(v["type"] == "bind" for s in services.values() for v in s.get("volumes", []))
     assert api["depends_on"]["firecrawl-api"]["condition"] == "service_healthy"

@@ -44,6 +44,7 @@ services:
       REDIS_URL: redis://firecrawl-redis:6379
       REDIS_RATE_LIMIT_URL: redis://firecrawl-redis:6379
       PLAYWRIGHT_MICROSERVICE_URL: http://firecrawl-browser:3000/scrape
+      FIRECRAWL_BROWSER_IDENTITY_URL: http://firecrawl-browser:3020/identity
       POSTGRES_HOST: firecrawl-postgres
       POSTGRES_PORT: "5432"
       POSTGRES_USER: postgres
@@ -66,7 +67,7 @@ services:
       firecrawl-postgres:
         condition: service_healthy
       firecrawl-browser:
-        condition: service_started
+        condition: service_healthy
     healthcheck:
       test: [CMD, node, -e, "Promise.all([3002,3020].map((p)=>fetch('http://127.0.0.1:'+p+(p===3020?'/identity':'/v0/health/readiness')).then(r=>{if(!r.ok)throw Error('not ready')}))).catch(()=>process.exit(1))"]
       interval: 10s
@@ -78,11 +79,22 @@ services:
 
   firecrawl-browser:
     platform: linux/amd64
-    image: ghcr.io/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
+    build:
+      context: ../..
+      dockerfile: deploy/web-extract/firecrawl.Dockerfile
+      args:
+        UPSTREAM_IMAGE: ghcr.io/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
     environment:
       PORT: "3000"
+      FIRECRAWL_SERVICE_KIND: browser
       MAX_CONCURRENT_PAGES: "1"
       BLOCK_MEDIA: "true"
+    healthcheck:
+      test: [CMD, node, -e, "Promise.all(['/health','http://127.0.0.1:3020/identity'].map(p=>fetch(p.startsWith('http')?p:'http://127.0.0.1:3000'+p).then(r=>{if(!r.ok)throw Error('not ready')}))).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 60s
     cpus: 1
     mem_limit: 1g
 

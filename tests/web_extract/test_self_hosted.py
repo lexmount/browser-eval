@@ -284,25 +284,29 @@ def test_firecrawl_preserves_native_rejection_and_array_values(monkeypatch, stat
         assert native == {"http_status": status, "response": payload}
 
 
-def test_health_and_worker_environment_identity_survives_different_entrypoints(tmp_path):
+def test_health_and_worker_environment_identity_survives_different_entrypoints(
+    tmp_path, monkeypatch
+):
     import subprocess
     import sys
 
-    from harness.web_extract.self_hosted import installed_environment_sha256
+    from harness.web_extract import self_hosted
 
-    result = subprocess.run(
-        [
-            sys.executable,
-            "-c",
-            "from harness.web_extract.self_hosted import installed_environment_sha256; "
-            "print(installed_environment_sha256())",
-        ],
-        cwd=tmp_path,
-        capture_output=True,
-        text=True,
-        check=True,
+    installed = tmp_path / 'installed'
+    installed.mkdir()
+    (installed / 'sdk.py').write_text('VALUE = 1\n', encoding='utf-8')
+    paths = {'purelib': str(installed), 'platlib': str(installed)}
+    monkeypatch.setattr(self_hosted.sysconfig, 'get_paths', lambda: paths)
+    expected = self_hosted.installed_environment_sha256()
+    code = (
+        'from unittest.mock import patch; '
+        'from harness.web_extract import self_hosted as s; '
+        f'p=patch.object(s.sysconfig,"get_paths",return_value={paths!r}); '
+        'p.start(); print(s.installed_environment_sha256())'
     )
-    assert result.stdout.strip() == installed_environment_sha256()
+    result = subprocess.run([sys.executable, '-c', code], cwd=tmp_path,
+                            capture_output=True, text=True, check=True)
+    assert result.stdout.strip() == expected
 
 
 @pytest.mark.parametrize("status", [200, 302, 404])
@@ -366,7 +370,7 @@ def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing
         assert modules["langchain_openai"].ChatOpenAI.call_args.kwargs["timeout"] < 110
 
 
-@pytest.mark.parametrize('name', ['sdk.py', 'native.so', 'data.json'])
+@pytest.mark.parametrize('name', ['sdk.py', 'native.so', 'data.json', '__pycache__/sdk.pyc'])
 def test_same_version_package_mutation_rejects_frozen_runtime(tmp_path, monkeypatch, name):
     import os
 
@@ -375,6 +379,7 @@ def test_same_version_package_mutation_rejects_frozen_runtime(tmp_path, monkeypa
     package = tmp_path / 'installed'
     package.mkdir()
     source = package / name
+    source.parent.mkdir(parents=True, exist_ok=True)
     source.write_bytes(b'first implementation')
     monkeypatch.setattr(self_hosted.sysconfig, 'get_paths',
                         lambda: {'purelib': str(package), 'platlib': str(package)})
@@ -396,12 +401,13 @@ def test_same_version_package_mutation_rejects_frozen_runtime(tmp_path, monkeypa
         self_hosted.local_runtime_identity.cache_clear()
 
 
-def test_request_ignores_stale_same_timestamp_bytecode(tmp_path):
+def test_startup_rebuilds_stale_same_timestamp_bytecode(tmp_path, monkeypatch):
     import json
     import os
     import py_compile
     import sys
 
+    from harness.web_extract import self_hosted
     from harness.web_extract.self_hosted import run_worker
 
     source = tmp_path / 'sdk_fixture.py'
@@ -410,6 +416,10 @@ def test_request_ignores_stale_same_timestamp_bytecode(tmp_path):
     py_compile.compile(str(source), doraise=True)
     source.write_text('VALUE="fresh"\n', encoding='utf-8')
     os.utime(source, ns=(before.st_atime_ns, before.st_mtime_ns))
+    monkeypatch.setattr(self_hosted.sysconfig, 'get_paths',
+                        lambda: {'purelib': str(tmp_path), 'platlib': str(tmp_path)})
+    store, receipt = self_hosted.prepare_environment()
+    store.cleanup()
     result = run_worker({}, command=[sys.executable, '-c',
         'import sys,json;sys.path.insert(0,' + repr(str(tmp_path)) + ');'
         'import sdk_fixture;print(json.dumps(sdk_fixture.VALUE))'])
@@ -436,3 +446,36 @@ def test_thread_control_change_rejects_frozen_runtime(monkeypatch):
                                        'schema': SCHEMA, 'expected_runtime': identity})
     finally:
         self_hosted.local_runtime_identity.cache_clear()
+
+
+def test_corrupted_file_hash_hints_are_rejected(tmp_path, monkeypatch):
+    from harness.web_extract import self_hosted
+
+    installed = tmp_path / 'installed'
+    installed.mkdir()
+    (installed / 'sdk.py').write_text('VALUE = 1\n', encoding='utf-8')
+    monkeypatch.setattr(self_hosted.sysconfig, 'get_paths',
+                        lambda: {'purelib': str(installed), 'platlib': str(installed)})
+    store, receipt = self_hosted.prepare_environment()
+    try:
+        from pathlib import Path
+
+        Path(receipt['path']).write_text('[]', encoding='utf-8')
+        with pytest.raises(ValueError, match='file-hash cache changed'):
+            self_hosted.load_environment_cache(receipt)
+    finally:
+        store.cleanup()
+
+
+def test_client_cannot_supply_a_private_environment_cache(tmp_path, monkeypatch):
+    from harness.web_extract import self_hosted
+
+    monkeypatch.setenv('SNAPSHOT_ORIGINS', 'https://snapshots.example')
+    monkeypatch.setattr(self_hosted, '_ENVIRONMENT_CACHE_RECEIPT', None)
+    result = self_hosted.run_worker({
+        'url': 'https://snapshots.example/p', 'schema': SCHEMA, 'engine': 'unknown',
+        '_environment_cache': {'path': str(tmp_path / 'must-not-be-read'), 'sha256': 'a' * 64},
+    })
+    assert result.returncode != 0
+    assert 'Unknown extraction engine' in result.stderr
+    assert 'FileNotFoundError' not in result.stderr

@@ -2,8 +2,8 @@
 
 The [Compose file](compose.yaml) defines the complete six-service stack. The API
 image builds from the root Dockerfile and locked Python environment. The Firecrawl
-backend image adds the attestation launcher to its digest-pinned upstream image;
-the other four images are pinned by digest. This runs each project's native extractor;
+API and browser images add the same attestation launcher to their digest-pinned
+upstream images; the other three images are pinned by digest. This runs each project's native extractor;
 it does not train or generate a site-specific extraction program.
 
 ## Start the services
@@ -42,8 +42,9 @@ timeouts. Four CPU cores and one thread per BLAS library avoid the earlier CPU
 quota and oversubscription bottlenecks. Stagehand exposes browser, navigation and
 extraction times in `native.timings`; model reasoning settings remain unchanged.
 Runtime identities bind installed source, native libraries and package data by
-file hash. Each request uses a private bytecode-cache location, so existing Python
-caches cannot substitute different code for those files.
+file hash. Startup rebuilds bytecode from the installed sources and binds those cache bytes
+too. Each request verifies file signatures against a private hash cache and
+rehashes changed files; fresh workers do not rewrite bytecode.
 
 ## Check every extraction route
 
@@ -171,28 +172,32 @@ part of each new cohort. Historical scores reproduce from their frozen responses
 Use the six service names, pinned images, environment values, resource limits,
 dependencies and mounts from `compose.yaml` in the selected workspace:
 
-1. Create the five image components. Keep their ports internal: Firecrawl API
-   `3002` and identity `3020`, browser `3000`, Redis `6379`, RabbitMQ `5672`, and
-   PostgreSQL `5432`. Use the component names as private hostnames.
-2. Mount `src/harness/web_extract/firecrawl_backend.mjs` as a read-only config
-   file at `/opt/browser-eval/firecrawl_backend.mjs` on `firecrawl-api`; use its
-    native launch command. Compose packages this same file in its backend image
-    so a remote Docker daemon does not need access to the checkout's host path.
-    Add persistent volumes at the three declared data paths;
-   the current Rainbond application allocates 2 GiB to each.
-3. Create `native-extraction` from this repository's root Dockerfile. Add its
+1. Create the five private dependency components from the Compose definitions.
+   Build `firecrawl-api` and `firecrawl-browser` with the same
+   `firecrawl.Dockerfile`; the browser build selects its pinned upstream image
+   through the `UPSTREAM_IMAGE` build argument and sets
+   `FIRECRAWL_SERVICE_KIND=browser` at runtime. Keep both identity ports (`3020`)
+   private, alongside API `3002`, browser `3000`, Redis `6379`, RabbitMQ `5672`
+   and PostgreSQL `5432`.
+2. For a source-package builder, package that Dockerfile as `Dockerfile` and the
+   launcher at `src/harness/web_extract/firecrawl_backend.mjs`, preserving its
+   relative path. These are the same bytes used by Compose. Set the browser's
+   build argument to the digest in Compose and retain its upstream working
+   directory. Mount the three persistent data paths from the Compose file.
+3. Create `native-extraction` from the repository's root Dockerfile. Apply its
    Compose environment, inject credentials through Rainbond, connect it to the
-   Firecrawl backend, and expose only port `8080` through the workspace ingress.
-   Replace Compose host-path syntax with the configuration-file mount above.
-4. Wait for dependencies, check authenticated runtime identities, and run all
-   four extraction diagnostics before creating a benchmark plan.
+   Firecrawl backend, and expose only `8080` through the workspace ingress.
+4. Wait for dependency identities and application health, then check all four
+   extraction routes before creating a benchmark plan. The Firecrawl identity
+   includes the actual browser bundle, dependencies, installed browser bytes
+   and public rendering controls.
 
-The delivered instance is in **Efficiency / office**, application
-**opensource-web-extract** (ID `222`). Its six components are exactly those in
-the Compose file. Use the API address recorded in the reports’ deployment
-evidence; it requires office network access and `EXTRACTION_API_KEY`. Two earlier temporary collection components are stopped
-and are not needed for the delivered stack. Live instance details belong in the
-reports' deployment evidence; they are not defaults for another installation.
+If a build is pending, read its scheduling warning before changing application
+resources. A build-node pod limit is separate from extraction CPU throttling.
+For this stateless API, a maintenance stop can free its own slot while the build
+runs; restore the API after the image is ready. Keep its data services running.
+The deployment binding owns the actual workspace, application and authenticated
+API address; these are not defaults for another installation.
 
 ## Software fees and Firecrawl's license
 

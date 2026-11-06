@@ -5,6 +5,7 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import psutil
@@ -20,6 +21,15 @@ BODY = {
     "expected_runtime": IDENTITY,
 }
 AUTH = {"Authorization": "Bearer test-service-key"}
+
+
+@pytest.fixture(autouse=True)
+def isolated_http_startup():
+    # HTTP contract tests replace the SDK initialization, which has its own
+    # real-process and native-environment checks.
+    with patch("harness.web_extract.self_hosted.prepare_environment",
+               return_value=(SimpleNamespace(cleanup=lambda: None), None)):
+        yield
 
 
 def test_liveness_does_not_disclose_runtime_without_authentication(client):
@@ -585,3 +595,72 @@ def test_interruption_during_native_launch_still_cleans_up_the_spawned_process(t
     finally:
         if pid_file.exists() and psutil.pid_exists(int(pid_file.read_text(encoding="utf-8"))):
             os.kill(int(pid_file.read_text(encoding="utf-8")), 9)
+
+
+def test_startup_does_not_become_ready_when_preparation_times_out():
+    with patch('harness.web_extract.self_hosted.prepare_environment',
+               side_effect=subprocess.TimeoutExpired('SDK preparation', 110)), \
+            pytest.raises(subprocess.TimeoutExpired), TestClient(create_app()):
+        pytest.fail('An unprepared runtime became ready')
+
+
+@pytest.mark.parametrize('changed_file', ['bundle', 'browser-binary'])
+def test_browser_dependency_mutation_rejects_the_frozen_backend(
+    tmp_path, monkeypatch, changed_file
+):
+    import os
+    import signal
+    from contextlib import contextmanager
+
+    import requests
+
+    from harness.web_extract import self_hosted
+
+    wrapper = Path(self_hosted.__file__).with_name('firecrawl_backend.mjs')
+
+    @contextmanager
+    def service(folder, extra):
+        (folder / 'dist/src').mkdir(parents=True)
+        (folder / 'node_modules').mkdir()
+        for target in (folder / 'dist/api.js', folder / 'dist/src/harness.js'):
+            target.write_text('setInterval(() => {}, 1000);\n', encoding='utf-8')
+        process = subprocess.Popen(
+            ['node', str(wrapper)], cwd=folder,
+            env={**os.environ, 'FIRECRAWL_IDENTITY_PORT': '0', **extra},
+            stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True,
+        )
+        try:
+            line = process.stdout.readline()
+            assert line, process.stderr.read()
+            yield json.loads(line)['identity_port']
+        finally:
+            os.killpg(process.pid, signal.SIGTERM)
+            process.communicate(timeout=10)
+
+    browser = tmp_path / 'browser'
+    binaries = tmp_path / 'browser-binaries'
+    binaries.mkdir()
+    binary = binaries / 'chromium'
+    binary.write_bytes(b'first browser build')
+    base = {'engine': 'firecrawl', 'model': 'fixture', 'model_base': 'https://model.example'}
+    with service(browser, {'FIRECRAWL_SERVICE_KIND': 'browser', 'PORT': '3000',
+                          'PLAYWRIGHT_BROWSERS_PATH': str(binaries)}) as browser_port:
+        browser_url = f'http://127.0.0.1:{browser_port}/identity'
+        controls = {'MODEL_NAME': 'fixture', 'OPENAI_BASE_URL': base['model_base'],
+                    'PLAYWRIGHT_MICROSERVICE_URL': 'http://127.0.0.1:3000/scrape',
+                    'FIRECRAWL_BROWSER_IDENTITY_URL': browser_url}
+        with service(tmp_path / 'backend', controls) as backend_port:
+            monkeypatch.setenv('FIRECRAWL_IDENTITY_URL',
+                               f'http://127.0.0.1:{backend_port}/identity')
+            monkeypatch.setenv('FIRECRAWL_BACKEND_URL', 'http://127.0.0.1:3002')
+            monkeypatch.setenv('SNAPSHOT_ORIGINS', 'https://snapshots.example')
+            with patch.object(self_hosted, 'local_runtime_identity', return_value=base):
+                frozen = self_hosted.runtime_identity('firecrawl')
+                assert frozen['backend']['browser']['kind'] == 'browser'
+                assert self_hosted.runtime_identity('firecrawl') == frozen
+                target = browser / 'dist/api.js' if changed_file == 'bundle' else binary
+                target.write_bytes(target.read_bytes() + b'\nchanged')
+                with pytest.raises(ValueError, match='frozen extraction configuration'):
+                    self_hosted.validate_input({**BODY, 'engine': 'firecrawl',
+                                               'expected_runtime': frozen})
+                assert requests.get(browser_url, timeout=5).status_code == 200

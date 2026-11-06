@@ -1,3 +1,6 @@
-FROM ghcr.io/firecrawl/firecrawl@sha256:4108cdc36e9ac84e59831e2b710d6f9ee489a11515099742fda31ae910ae2edb
+ARG UPSTREAM_IMAGE=ghcr.io/firecrawl/firecrawl@sha256:4108cdc36e9ac84e59831e2b710d6f9ee489a11515099742fda31ae910ae2edb
+FROM ${UPSTREAM_IMAGE}
+ARG UPSTREAM_IMAGE
+ENV FIRECRAWL_UPSTREAM_IMAGE=${UPSTREAM_IMAGE}
 COPY src/harness/web_extract/firecrawl_backend.mjs /opt/browser-eval/firecrawl_backend.mjs
 ENTRYPOINT ["node", "/opt/browser-eval/firecrawl_backend.mjs"]

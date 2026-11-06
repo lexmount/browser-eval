@@ -1251,6 +1251,7 @@ def access_blocker(row):
     method = METHODS.get(row.get("method"), {})
     if (
         method.get("deployment") == "self-hosted-open-source"
+        and isinstance(native, dict)
         and native.get("success") is False
         and isinstance(failure, dict)
         and failure.get("source") == "native-extractor-error"

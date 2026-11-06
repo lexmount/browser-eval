@@ -1603,3 +1603,28 @@ def test_page_text_cannot_masquerade_as_native_account_denial():
     assert native_failure('crawl4ai', native) is None
     assert access_blocker({'method': 'crawl4ai-json', 'http_status': 200,
                            'response': {'success': False, 'native': native}}) is None
+
+
+@pytest.mark.parametrize('payload', [None, [], 'valid non-object JSON'])
+def test_non_object_native_response_is_checkpointed_and_not_replayed(tmp_path, payload):
+    home = create(tmp_path / 'native-non-object')
+    run = home / 'runs/native-non-object'
+    method = 'crawl4ai-json'
+    options = {'endpoint': 'https://extract.example', 'runtime_identity': {
+        'engine': 'crawl4ai', 'version': 'synthetic', 'model': 'synthetic',
+        'model_base': 'https://model.example', 'implementation_sha256': 'a' * 64,
+        'environment_sha256': 'b' * 64,
+    }}
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call',
+                  return_value={'http_status': 200, 'response': payload}) as call:
+        probe(home, [method], full=True, run_dir=run, native_options=options)
+        assert call.call_count == 3
+    rows = load_run(run)[1]
+    assert len(rows) == 3
+    assert all(row['response'] == payload for row in rows)
+    assert all(row['normalized_fields'] is None for row in rows)
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call') as call:
+        probe(home, [method], full=True, run_dir=run, native_options=options)
+        call.assert_not_called()

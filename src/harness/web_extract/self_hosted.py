@@ -67,6 +67,7 @@ def validate_input(value):
 
 
 _ENVIRONMENT_FILE_HASHES = {}
+_ENVIRONMENT_CACHE_RECEIPT = None
 
 
 def installed_environment_sha256():
@@ -77,7 +78,7 @@ def installed_environment_sha256():
     result = hashlib.sha256()
     for index, root in enumerate(roots):
         for directory, directories, names in os.walk(root):
-            directories[:] = sorted(name for name in directories if name != "__pycache__")
+            directories[:] = sorted(directories)
             for name in (*directories, *sorted(names)):
                 path = Path(directory) / name
                 info = path.lstat()
@@ -135,9 +136,10 @@ def local_runtime_identity(engine):
         "implementation": "native-open-source/1",
         "json_keepalive": True,
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
-        "environment_sha256": installed_environment_sha256(),
+        "environment_sha256": (_ENVIRONMENT_CACHE_RECEIPT or {}).get("environment_sha256")
+        or installed_environment_sha256(),
         "environment_binding": "installed-files/1",
-        "bytecode_cache": "isolated-per-request",
+        "bytecode_cache": "precompiled-installed-files",
         "native_thread_limits": {
             key: os.environ.get(key) for key in (
                 "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"
@@ -180,6 +182,8 @@ def runtime_identity(engine):
         )
         response.raise_for_status()
         backend = response.json()
+        if not isinstance(backend, dict) or backend.get("schema") != "firecrawl-runtime/2":
+            raise ValueError("Incomplete Firecrawl backend attestation")
         if any(
             not isinstance(backend.get(key), str) or len(backend[key]) != 64
             for key in (
@@ -191,6 +195,12 @@ def runtime_identity(engine):
         ):
             raise ValueError("Incomplete Firecrawl backend attestation")
         controls = backend.get("controls", {})
+        if not isinstance(controls, dict):
+            raise ValueError("Incomplete Firecrawl backend controls")
+        if controls.get("PLAYWRIGHT_MICROSERVICE_URL"):
+            browser = backend.get("browser")
+            if not isinstance(browser, dict) or browser.get("schema") != "firecrawl-runtime/2":
+                raise ValueError("Incomplete Firecrawl browser attestation")
         if controls.get("MODEL_NAME") != identity["model"] or controls.get(
             "OPENAI_BASE_URL", ""
         ).rstrip("/") != identity["model_base"].rstrip("/"):
@@ -453,7 +463,38 @@ def native_failure(engine, native):
             "http_status": status, "error": " ".join(str(v) for v in errors if v is not None)}
 
 
+def prepare_environment():
+    """Compile once at startup and share only immutable file-hash hints, not SDK state."""
+    roots = sorted({sysconfig.get_paths()[key] for key in ("purelib", "platlib")})
+    compiled = run_worker({}, command=[sys.executable, "-m", "compileall", "-q", "-f",
+                                      *roots, __file__])
+    if compiled.returncode:
+        raise RuntimeError("Installed extraction bytecode preparation failed: "
+                           + compiled.stdout + compiled.stderr)
+    fingerprint = installed_environment_sha256()
+    store = tempfile.TemporaryDirectory(prefix="extract-attestation-")
+    target = Path(store.name) / "files.json"
+    raw = json.dumps([(str(path), signature, checksum)
+                      for path, (signature, checksum) in _ENVIRONMENT_FILE_HASHES.items()]).encode()
+    target.write_bytes(raw)
+    return store, {"path": str(target), "sha256": hashlib.sha256(raw).hexdigest(),
+                   "environment_sha256": fingerprint}
+
+
+def load_environment_cache(receipt):
+    global _ENVIRONMENT_FILE_HASHES
+    if receipt is None:
+        return
+    raw = Path(receipt["path"]).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != receipt["sha256"]:
+        raise ValueError("Installed extraction file-hash cache changed")
+    _ENVIRONMENT_FILE_HASHES = {
+        Path(path): (tuple(signature), checksum) for path, signature, checksum in json.loads(raw)
+    }
+
+
 def worker(value):
+    load_environment_cache(value.pop("_environment_cache", None))
     validate_input(value)
     started = time.monotonic()
     with contextlib.redirect_stdout(sys.stderr):
@@ -547,48 +588,53 @@ def run_worker(value, *, timeout=110, command=None):
 
     # Fail before spawning when the host cannot enumerate this process's children.
     psutil.Process().children(recursive=True)
+    if command is None:
+        value = {key: item for key, item in value.items() if key != "_environment_cache"}
+        if _ENVIRONMENT_CACHE_RECEIPT is not None:
+            value["_environment_cache"] = _ENVIRONMENT_CACHE_RECEIPT
     command = command or [sys.executable, "-m", "harness.web_extract.self_hosted"]
     if sys.platform == "linux":
         command = [sys.executable, "-m", "harness.web_extract.self_hosted", "--supervise", *command]
-    with tempfile.TemporaryDirectory(prefix="extract-bytecode-") as bytecode:
-        process = subprocess.Popen(
-            command,
-            stdin=subprocess.PIPE,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            text=True,
-            env={**os.environ, "PYTHONPYCACHEPREFIX": bytecode, "PYTHONDONTWRITEBYTECODE": "1"},
-            start_new_session=True,
-        )
+    process = subprocess.Popen(
+        command,
+        stdin=subprocess.PIPE,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        env={**{k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"},
+             "PYTHONDONTWRITEBYTECODE": "1"},
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(json.dumps(value), timeout=timeout)
+    except subprocess.TimeoutExpired:
         try:
-            stdout, stderr = process.communicate(json.dumps(value), timeout=timeout)
-        except subprocess.TimeoutExpired:
+            if sys.platform == "linux":
+                process.terminate()
+                process.communicate(timeout=3)
+            else:
+                terminate_children(psutil.Process(process.pid))
+                process.kill()
+                process.communicate(timeout=1)
+        except (ProcessLookupError, psutil.NoSuchProcess, subprocess.TimeoutExpired):
+            with contextlib.suppress(psutil.NoSuchProcess):
+                terminate_children(psutil.Process(process.pid))
             try:
-                if sys.platform == "linux":
-                    process.terminate()
-                    process.communicate(timeout=3)
-                else:
-                    terminate_children(psutil.Process(process.pid))
-                    process.kill()
-                    process.communicate(timeout=1)
-            except (ProcessLookupError, psutil.NoSuchProcess, subprocess.TimeoutExpired):
-                with contextlib.suppress(psutil.NoSuchProcess):
-                    terminate_children(psutil.Process(process.pid))
+                os.killpg(process.pid, signal.SIGKILL)
+            except ProcessLookupError:
+                pass
+            try:
+                process.communicate(timeout=1)
+            except subprocess.TimeoutExpired:
+                for stream in (process.stdout, process.stderr):
+                    stream.close()
                 try:
-                    os.killpg(process.pid, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-                try:
-                    process.communicate(timeout=1)
+                    process.wait(timeout=1)
                 except subprocess.TimeoutExpired:
-                    for stream in (process.stdout, process.stderr):
-                        stream.close()
-                    try:
-                        process.wait(timeout=1)
-                    except subprocess.TimeoutExpired:
-                        pass
-            raise
-        return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+                    pass
+        raise
+    return subprocess.CompletedProcess(process.args, process.returncode, stdout, stderr)
+
 
 async def read_request_body(request, *, limit=100_000):
     """Bound streamed and fixed-length requests before JSON decoding."""
@@ -616,7 +662,18 @@ async def read_request_body(request, *, limit=100_000):
 def create_app():
     from fastapi import FastAPI, Header, HTTPException, Request
 
-    app = FastAPI(title="Open-source Web Extract", docs_url=None, redoc_url=None)
+    @contextlib.asynccontextmanager
+    async def lifespan(_app):
+        global _ENVIRONMENT_CACHE_RECEIPT
+        store, receipt = await asyncio.to_thread(prepare_environment)
+        _ENVIRONMENT_CACHE_RECEIPT = receipt
+        try:
+            yield
+        finally:
+            _ENVIRONMENT_CACHE_RECEIPT = None
+            store.cleanup()
+
+    app = FastAPI(title="Open-source Web Extract", docs_url=None, redoc_url=None, lifespan=lifespan)
 
     def authenticated(authorization):
         token = os.environ.get("EXTRACTION_API_KEY", "")
