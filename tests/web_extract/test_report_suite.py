@@ -55,7 +55,7 @@ def test_suite_example_rejects_repository_output_before_creating_anything():
     assert not output.with_name(output.name + "-suite-inputs").exists()
 
 
-@pytest.mark.parametrize("reserved", ["zh", "en"])
+@pytest.mark.parametrize("reserved", ["zh", "en", "public-evidence", "assets"])
 def test_suite_rejects_language_directory_collisions_before_writing(tmp_path, reserved):
     from harness.web_extract import report_suite
 

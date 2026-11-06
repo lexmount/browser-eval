@@ -103,7 +103,8 @@ def build(output, content, *, profile, language=None):
         not names
         or len(set(names)) != len(names)
         or any(
-            name in {"zh", "en"} or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
+            name in {"zh", "en", "public-evidence", "assets"}
+            or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
             for name in names
         )
     ):
@@ -225,7 +226,8 @@ def check(output, *, release=False, visual_receipt=None):
         not names
         or len(names) != len(set(names))
         or any(
-            name in {"zh", "en"} or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
+            name in {"zh", "en", "public-evidence", "assets"}
+            or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
             for name in names
         )
     ):
