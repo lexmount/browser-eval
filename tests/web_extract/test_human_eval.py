@@ -201,3 +201,32 @@ def test_certified_cohort_keeps_original_task_and_complete_population(
     assert contract["extraction_instruction_delivery"] == "original-schema/1"
     run(home, profile, "scrapegraph-extract", tmp_path / "run")
     assert len(dispatched) == 2
+
+
+def test_source_reference_revision_preserves_original_and_rejects_unbound_edits(
+    dataset, monkeypatch,
+):
+    home, _, _ = dataset
+    monkeypatch.setattr(he, 'check_scoring_controls', lambda home: ['paired-control'])
+    original = home / 'dataset/dataset/ground-truth.json'
+    source = home / 'dataset/markdown/human-eval-000.md'
+    revision = home / 'reference-revision.json'
+    value = {'schema': 'source-json-reference-revision/1',
+             'original_reference_sha256': p.digest(original.read_bytes()),
+             'root_cause': 'The original answer omitted the source heading punctuation.',
+             'regression_ids': ['paired-control'], 'changes': [{
+                 'case_id': 'human-eval-000', 'path': '/name', 'before': 'A & B',
+                 'after': '# A & B', 'source_sha256': p.digest(source.read_bytes()),
+                 'source_quote': '# A & B', 'reason': 'Retain the exact source heading.'}]}
+    p.save_json(revision, value)
+    revised, policy = he.load_reference_revision(home, revision)
+    assert revised['human-eval-000']['response']['name'] == '# A & B'
+    assert p.read_json(original)['human-eval-000']['response']['name'] == 'A & B'
+    assert policy == {}
+    for key, bad in [('before', 'wrong predecessor'), ('source_quote', 'invented words'),
+                     ('source_sha256', '0' * 64)]:
+        candidate = json.loads(json.dumps(value))
+        candidate['changes'][0][key] = bad
+        p.save_json(revision, candidate)
+        with pytest.raises(ValueError):
+            he.load_reference_revision(home, revision)

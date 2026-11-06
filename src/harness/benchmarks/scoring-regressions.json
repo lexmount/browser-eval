@@ -84340,29 +84340,181 @@
   "web_extract_cases": [
     {
       "id": "human-eval-missing-empty-reference",
-      "reference": {}, "prediction": null,
-      "expected": {"value_score": 0, "exact_record_match": 0, "delivered": 0}
+      "reference": {},
+      "prediction": null,
+      "expected": {
+        "value_score": 0,
+        "exact_record_match": 0,
+        "delivered": 0
+      }
     },
     {
       "id": "human-eval-delivered-empty-reference",
-      "reference": {}, "prediction": {},
-      "expected": {"value_score": 1, "exact_record_match": 1, "delivered": 1}
+      "reference": {},
+      "prediction": {},
+      "expected": {
+        "value_score": 1,
+        "exact_record_match": 1,
+        "delivered": 1
+      }
     },
     {
       "id": "human-eval-correct-record-pairs",
-      "reference": {"items": [{"name": "A", "price": 1}, {"name": "B", "price": 2}]},
-      "prediction": {"items": [{"name": "B", "price": 2}, {"name": "A", "price": 1}]},
-      "expected": {"value_score": 1, "exact_record_match": 1, "delivered": 1}
+      "reference": {
+        "items": [
+          {
+            "name": "A",
+            "price": 1
+          },
+          {
+            "name": "B",
+            "price": 2
+          }
+        ]
+      },
+      "prediction": {
+        "items": [
+          {
+            "name": "B",
+            "price": 2
+          },
+          {
+            "name": "A",
+            "price": 1
+          }
+        ]
+      },
+      "expected": {
+        "value_score": 1,
+        "exact_record_match": 1,
+        "delivered": 1,
+        "item_f1": 1
+      }
     },
     {
       "id": "human-eval-swapped-record-pairs",
-      "reference": {"items": [{"name": "A", "price": 1}, {"name": "B", "price": 2}]},
-      "prediction": {"items": [{"name": "A", "price": 2}, {"name": "B", "price": 1}]},
-      "expected": {"value_score": 1, "exact_record_match": 0, "delivered": 1}
+      "reference": {
+        "items": [
+          {
+            "name": "A",
+            "price": 1
+          },
+          {
+            "name": "B",
+            "price": 2
+          }
+        ]
+      },
+      "prediction": {
+        "items": [
+          {
+            "name": "A",
+            "price": 2
+          },
+          {
+            "name": "B",
+            "price": 1
+          }
+        ]
+      },
+      "expected": {
+        "value_score": 1,
+        "exact_record_match": 0,
+        "delivered": 1,
+        "item_f1": 0
+      }
     },
     {
       "id": "human-eval-process-independent-value-score",
       "check": "case-and-field-order-invariance"
+    },
+    {
+      "id": "human-eval-item-partial-recall",
+      "reference": {
+        "items": [
+          {
+            "n": "A"
+          },
+          {
+            "n": "B"
+          },
+          {
+            "n": "C"
+          }
+        ]
+      },
+      "prediction": {
+        "items": [
+          {
+            "n": "B"
+          },
+          {
+            "n": "A"
+          }
+        ]
+      },
+      "expected": {
+        "value_score": 0,
+        "item_precision": 1,
+        "item_recall": 0.6666666666666666,
+        "item_f1": 0.8
+      }
+    },
+    {
+      "id": "human-eval-item-extra-record",
+      "reference": {
+        "items": [
+          {
+            "n": "A"
+          },
+          {
+            "n": "B"
+          }
+        ]
+      },
+      "prediction": {
+        "items": [
+          {
+            "n": "A"
+          },
+          {
+            "n": "B"
+          },
+          {
+            "n": "C"
+          }
+        ]
+      },
+      "expected": {
+        "value_score": 0,
+        "item_precision": 0.6666666666666666,
+        "item_recall": 1,
+        "item_f1": 0.8
+      }
+    },
+    {
+      "id": "human-eval-item-number-equivalence",
+      "reference": {
+        "price": 8
+      },
+      "prediction": {
+        "price": 8.0
+      },
+      "expected": {
+        "item_f1": 1
+      }
+    },
+    {
+      "id": "human-eval-item-boolean-type",
+      "reference": {
+        "in_stock": true
+      },
+      "prediction": {
+        "in_stock": 1
+      },
+      "expected": {
+        "item_f1": 0
+      }
     }
   ]
 }

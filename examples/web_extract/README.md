@@ -87,6 +87,39 @@ The data-lock key, generated formats, report labels and examples all use
 historical editions and third-party citations. Archived inputs stay readable;
 new files use the canonical format names. No legacy command alias is registered.
 
+The adapter also reports exact item precision, recall and F1. Object-array
+entries are compared as complete records, including duplicates; ordinary object
+fields retain their complete paths. This separates a missing record from a
+fully wrong array while catching swapped field associations. It remains strict
+about wording and is not a semantic accuracy score. Official metrics stay intact.
+
+Full arbitrary-schema review uses the shared `review --prepare-only`, `review` and
+`audit-assemble` commands. The `schema-json-audit/1` contract supplies the complete
+Markdown, schema, original reference and native responses, withholding machine
+scores. It requires every method, root field and nested leaf to be covered and
+checks literal source citations. Select one exact reviewer model. `review
+--backend litellm --model MODEL` uses the repository `.env` settings
+`OPENAI_BASE_URL` and `OPENAI_API_KEY`; `--credential-env-file` is an explicit
+per-invocation override. No tools or local filesystem access are given to the
+remote reviewer. Completed packets are reused and raw responses remain intact.
+
+Source-qualified reference revisions use `source-json-reference-revision/1`:
+original reference hash, root cause, executable regression IDs, and replacements
+bound to original values, JSON pointers, source hashes, literal quotes and reasons.
+Pass the authority to `score --reference-revision ... --output ...`; the original
+dataset, calls and scores remain unchanged. Record reference-scope ambiguities
+and rejected reviewer suggestions alongside accepted corrections.
+
+The `schema-extraction-cohort` report mode reads a complete certified matrix and
+full review through the existing report owner. Its content/profile, pricing,
+candidate examples and optional evidence attachments remain outside Git. Run the
+offline example before preparing a measured report:
+
+```sh
+uv run --frozen python -m harness.web_extract.example \
+  --mode schema-extraction-cohort --output /tmp/schema-example --language en
+```
+
 ## Prepare and reproduce
 
 ```sh

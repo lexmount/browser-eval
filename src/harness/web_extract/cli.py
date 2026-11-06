@@ -152,6 +152,8 @@ def main(argv=None):
     for name in ("source", "target", "work", "visual-receipt"):
         p.add_argument("--" + name, type=Path, required=True)
     p = sub.add_parser("review")
+    p.add_argument("--backend", choices=("codex", "litellm"), default="codex")
+    p.add_argument("--credential-env-file", type=Path)
     p.add_argument("--content", type=Path, required=True)
     p.add_argument("--work", type=Path, required=True)
     p.add_argument("--model", required=True)
@@ -392,7 +394,8 @@ def main(argv=None):
             parser.error(str(error))
         prepare_review(args.home, args.content, args.work, prior=args.prior)
         if not args.prepare_only:
-            print(run_review(args.work, model=args.model, workers=args.workers, limit=args.limit))
+            print(run_review(args.work, model=args.model, workers=args.workers, limit=args.limit,
+                             backend=args.backend, credential_env_file=args.credential_env_file))
     elif args.command == "adjudicate":
         from harness.web_extract.review import prepare_adjudication, validate_review_options
         from harness.web_extract.review import run as run_review

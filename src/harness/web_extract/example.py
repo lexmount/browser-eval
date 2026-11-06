@@ -8,6 +8,8 @@ from harness.web_extract.report import PAGES, build
 
 
 def create(output: Path, *, language="zh", mode="compatibility"):
+    if mode == "schema-extraction-cohort":
+        return create_schema(output, language=language)
     if mode == "field-extraction-cohort":
         return create_record(output, language=language)
     require_external_output(output)
@@ -388,13 +390,85 @@ def create_record(output: Path, *, language="zh"):
     return home
 
 
+def create_schema(output: Path, *, language="zh"):
+    """Exercise arbitrary JSON, complete review, failures and three participants offline."""
+    import json
+
+    from harness.web_extract.messages import message
+    from harness.web_extract.pipeline import execution_identity
+    from harness.web_extract.review import json_leaf_paths
+
+    require_external_output(output)
+    output = output.absolute()
+    home = output.parent / (output.name + "-synthetic-inputs")
+    home.mkdir(parents=True, exist_ok=False)
+    methods = ("scrapegraph-extract", "firecrawl-parse-json", "cloudflare-json")
+    cases, rows, scores, results = {}, [], {}, {}
+    schema = {"type": "object", "properties": {"name": {"type": "string"}}}
+    for cid in ("one", "two"):
+        source = home / "dataset/markdown" / (cid + ".md")
+        source.parent.mkdir(parents=True, exist_ok=True)
+        source.write_text("# Amber mug\nPrice: 12 EUR.\n", encoding="utf-8")
+        cases[cid] = {"schema_text": json.dumps(schema), "response": {"name": "Amber mug"}}
+    for index, method in enumerate(methods):
+        per_case = {}
+        for ordinal, cid in enumerate(cases):
+            delivered = not (index == 2 and ordinal == 1)
+            correct = index == 0 or ordinal == 0
+            value = {"name": "Amber mug" if correct else "Blue bowl"} if delivered else None
+            row = {"method": method, "case_id": cid, "elapsed_seconds": .1 * (index + 1),
+                   "http_status": 200 if delivered else 400, "normalized_fields": value,
+                   "response": {"json": value}, "request": {"schema": schema},
+                   "compatibility": "structured_output" if delivered else "no_structured_output",
+                   "error": None if delivered else "Synthetic schema rejection"}
+            rows.append(row)
+            per_case[cid] = {"delivered": delivered, "key_f1": float(delivered),
+                "value_score": float(correct and delivered),
+                "item_f1": float(correct and delivered),
+                "exact_record_match": correct and delivered}
+            results[method + ":" + cid] = {"method": method, "case_id": cid,
+                "verdict": ("correct" if correct and delivered
+                            else "partial" if delivered else "no_output"),
+                "cause": ("correct_or_equivalent" if correct and delivered
+                          else "extraction_error" if delivered else "delivery_failure"),
+                "fields": [{"field": "name", "status": "supported" if correct else "incorrect",
+                            "source_quote": "Amber mug", "reason": "Synthetic evidence",
+                            "findings": []}],
+                "summary": "Synthetic evidence",
+                "execution_identity": execution_identity(row),
+                "checked_paths": json_leaf_paths(value) if delivered else []}
+        scores[method] = {"delivery_count": sum(v["delivered"] for v in per_case.values()),
+            "per_case": per_case, "mean": {key: sum(v[key] for v in per_case.values()) / 2
+                                           for key in next(iter(per_case.values()))}}
+    data = home / "synthetic-data.json"
+    save_json(data, {"cases": cases, "rows": rows, "scores": scores,
+        "audit": {"reviewed_results": 6, "case_count": 2, "results": results,
+                  "review_kind": "Synthetic fixture only", "reviewer": {"model": "synthetic"},
+                  "cause_distribution": {}}})
+    model = {"mode": "schema-extraction-cohort", "synthetic": True,
+        "synthetic_data": {"path": str(data), "sha256": digest(data.read_bytes())},
+        "title": {lang: "Web Extract · JSON Schema · " + message("schema_synthetic", lang)
+                  for lang in ("en", "zh")},
+        "participants": {m: {"label": m} for m in methods}, "candidates": [], "audit": None,
+        "prices": {m: {"usd_per_1000": "$0 synthetic", "verified_at": "2026-01-01",
+                       "terms": {lang: message("schema_synthetic", lang) for lang in ("en", "zh")},
+                       "sources": ["https://example.org/synthetic"]} for m in methods}}
+    content, profile = home / "content.json", home / "profile.json"
+    save_json(content, model)
+    save_json(profile, {"independent_result_review_scope": "all",
+                       "research_report": {"content": {"sha256": digest(content.read_bytes())}}})
+    build(output, content, home=home, language=language, profile=profile)
+    return home
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--language", choices=["en", "zh"], default="zh")
     p.add_argument(
         "--mode",
-        choices=["compatibility", "full-cohort-progress", "field-extraction-cohort"],
+        choices=["compatibility", "full-cohort-progress", "field-extraction-cohort",
+                 "schema-extraction-cohort"],
         default="compatibility",
     )
     a = p.parse_args()
