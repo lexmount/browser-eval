@@ -335,6 +335,46 @@ def rebind(output, route, transform):
     save_json(output / "report-manifest.json", manifest)
 
 
+@pytest.mark.parametrize("change", ["substitute", "remove"])
+def test_live_report_requires_reference_bound_original_source_navigation(tmp_path, change):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    truth = read_json(output / "public-evidence/reference.json")
+    for path in (output / "zh").glob("*.html"):
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        case = soup.select_one("[data-source-case]")
+        if case is None:
+            continue
+        cid = case["data-source-case"]
+        for frame in soup.select("iframe.frozen-preview"):
+            frame.decompose()
+        link = soup.new_tag("a", href=truth[cid]["url"], target="_blank", rel="noopener noreferrer")
+        link["data-live-source"] = ""
+        link.string = "Original webpage"
+        case.append(link)
+        rebind(output, path.relative_to(output).as_posix(), lambda _, s=soup: str(s))
+    manifest = read_json(output / "report-manifest.json")
+    manifest["preview_snapshot"] = {
+        "mode": "live",
+        "case_count": len(truth),
+        "urls": {cid: item["url"] for cid, item in truth.items()},
+    }
+    save_json(output / "report-manifest.json", manifest)
+    check(output)
+    cid = next(iter(truth))
+    if change == "substitute":
+        manifest["preview_snapshot"]["urls"][cid] = "https://unrelated.example/"
+        save_json(output / "report-manifest.json", manifest)
+    else:
+        for path in (output / "zh").glob("*.html"):
+            soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+            for link in soup.select("a[data-live-source]"):
+                link.decompose()
+            rebind(output, path.relative_to(output).as_posix(), lambda _, s=soup: str(s))
+    with pytest.raises(ValueError, match="Live preview URLs|requires its original source link"):
+        check(output)
+
+
 @pytest.mark.parametrize('button_index', [0, -1])
 @pytest.mark.parametrize('source', ['public-evidence/missing.json', '../outside.json'])
 def test_inventory_evidence_targets_are_validated_after_rebinding(tmp_path, button_index, source):

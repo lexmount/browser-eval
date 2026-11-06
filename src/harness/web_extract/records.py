@@ -13,6 +13,16 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 
+class LiveSourceAccessError(ValueError):
+    """The checker could not observe the page; task validity remains unresolved."""
+
+    def __init__(self, case_id, attempts):
+        self.case_id = case_id
+        self.source_attempts = attempts
+        self.validity = "unresolved"
+        super().__init__(f"Live source unavailable: {case_id}; {attempts[-1]}")
+
+
 def prepare(home: Path, source: Path):
     from harness.web_extract.pipeline import digest, read_json, require_external_output, save_json
 
@@ -232,6 +242,7 @@ def qualify_live(home, case_ids, *, timeout=30):
     import time
     from collections import defaultdict
     from concurrent.futures import ThreadPoolExecutor
+    from email.message import Message
     from urllib.parse import urlsplit
 
     from harness.web_extract.pipeline import digest, read_json
@@ -253,7 +264,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             except OSError as error:
                 attempts.append({"error": type(error).__name__})
                 if index == 2:
-                    raise ValueError(f"Live source unavailable: {cid}; {error}") from error
+                    raise LiveSourceAccessError(cid, attempts) from error
                 delay = 2 ** (index + 1)
             else:
                 attempts.append({"http_status": response.status})
@@ -263,8 +274,15 @@ def qualify_live(home, case_ids, *, timeout=30):
                 delay = min(30, int(retry_after)) if retry_after.isdigit() else 2 ** (index + 1)
             time.sleep(delay)
         if response.status != 200:
-            raise ValueError(f"Live source unavailable: {cid}; HTTP {response.status}")
-        missing = reference_support(reference, response.body, source_url=response.url)
+            raise LiveSourceAccessError(cid, attempts)
+        content_type = Message()
+        content_type["content-type"] = getattr(response, "headers", {}).get("content-type", "")
+        missing = reference_support(
+            reference,
+            response.body,
+            source_url=response.url,
+            encoding=content_type.get_content_charset(),
+        )
         if missing:
             raise ValueError("Live reference no longer supported: " + cid + "; " + str(missing[:3]))
         return {
@@ -295,30 +313,27 @@ def qualify_live(home, case_ids, *, timeout=30):
     return sorted(rows, key=lambda row: row["case_id"])
 
 
-def reference_support(reference, raw, *, source_url=None):
+def reference_support(reference, raw, *, source_url=None, encoding=None):
     """Ground complete values, not numeric substrings of years or a page shell.
 
     Repeated source values must have enough occurrences. URL evidence comes from
     native attributes, not incidental URL strings in scripts or page text.
     """
-    import html as html_text
-    import unicodedata
     from collections import Counter
 
     from lxml import html
 
-    from harness.web_extract.swde import record_value_key
+    from harness.web_extract.swde import canonical_text, record_value_key
 
     validate_value_counts(reference)
 
     def text_key(value):
-        value = html_text.unescape(html_text.unescape(value))
-        return " ".join(unicodedata.normalize("NFKC", value).split()).casefold()
+        return canonical_text(value)
 
     from lxml.etree import ParserError
 
     try:
-        tree = html.fromstring(raw)
+        tree = html.fromstring(raw, parser=html.HTMLParser(encoding=encoding))
     except ParserError:
         return [
             {"field": field, "reason": "empty or invalid webpage"} for field in reference["values"]
@@ -339,14 +354,20 @@ def reference_support(reference, raw, *, source_url=None):
         counts = reference.get("source_value_counts", {}).get(field) or dict(Counter(values))
         if reference.get("value_kinds", {}).get(field) == "url":
             actual = Counter(record_value_key(url_context, field, u, "whitespace") for u in links)
+            required = Counter()
             for value, count in counts.items():
-                key = record_value_key(url_context, field, value, "whitespace")
+                required[record_value_key(url_context, field, value, "whitespace")] += count
+            for key, count in required.items():
                 if actual[key] < count:
-                    missing.append({"field": field, "value": value})
+                    missing.append({"field": field, "value": key})
         else:
+            required = Counter()
             for value, count in counts.items():
-                key = text_key(value)
+                required[text_key(value)] += count
+            for key, count in required.items():
                 pattern = r"(?<!\w)" + re.escape(key) + r"(?!\w)"
+                if re.fullmatch(r"[+-]?\d+(?:[.,]\d+)*", key):
+                    pattern = r"(?<![\w.,+\-])" + re.escape(key) + r"(?!\w|[.,+\-]\d)"
                 if not key or len(re.findall(pattern, text)) < count:
-                    missing.append({"field": field, "value": value})
+                    missing.append({"field": field, "value": key})
     return missing

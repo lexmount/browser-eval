@@ -36,6 +36,15 @@ A report claiming a before/after build speed difference must use a predeclared p
 
 ## References and volatile sources
 
+Select tasks by independently verified page and reference validity, never by a
+participant's accessibility or score. A checker timeout, rate limit, security
+block, or HTTP error leaves validity unresolved; it is not proof that the page
+has disappeared. Retain that candidate for independent verification rather than
+silently replacing it with an easier page. Exclude or correct a task only with
+source evidence of removal, wrong content, or erroneous/stale annotations, and
+apply that decision to every participant. A provider's failure on a valid task
+remains a measured failure.
+
 Prefer invariant contracts for changing pages: stable labels, required fields, record shape, types, count bounds, uniqueness, and independently observed explanatory text. Do not freeze ranks, prices, member counts, or current titles unless the benchmark is explicitly a time-bound snapshot.
 
 Ground truth must be independent of the provider under test. Retain source location, bytes or a durable observation, hash, capture method, and scope. Partial annotations support only the requirements they cover. They are not a full-body reference. When authoring or expanding a task, inspect its actual reference text against the reader's main content needs. A dashboard's labels do not establish its values; a feed's navigation does not establish its entries. Select applicable fact, body-region, record, pattern, resource and file checks through the shared scorer. Give the source-complete answer and a page shell or incomplete answer opposite outcomes before freezing the new version. Preserve earlier input versions.

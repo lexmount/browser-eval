@@ -5542,6 +5542,10 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
             raise ValueError("Record public evidence privacy receipt failed")
     metrics = read_json(output / "data/metrics.json")
     truth = read_json(output / "public-evidence/reference.json")
+    if preview.get("mode") == "live" and preview.get("urls") != {
+        cid: reference["url"] for cid, reference in truth.items()
+    }:
+        raise ValueError("Live preview URLs differ from the reference sources")
     profile_view = read_json(output / manifest["input_profile"]["path"])
     required_review = profile_view.get("independent_result_review_scope")
     if (
@@ -5807,6 +5811,11 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
                     raise ValueError("Record native failure error is missing or changed")
     for file in sorted((output / "zh").glob("*.html")):
         soup = check_presentation(file.read_text(encoding="utf-8"))
+        if preview.get("mode") == "live" and soup.select_one("[data-source-case]"):
+            case = soup.select_one("[data-source-case]")["data-source-case"]
+            links = soup.select("a[data-live-source]")
+            if case not in truth or len(links) != 1 or links[0].get("href") != truth[case]["url"]:
+                raise ValueError("Live dataset page requires its original source link")
         for link in soup.select("a[data-live-source]"):
             case = soup.select_one("[data-source-case]")
             if case is None or link.get("href") != preview.get("urls", {}).get(
