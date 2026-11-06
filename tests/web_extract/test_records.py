@@ -1155,3 +1155,17 @@ def test_managed_snapshot_cannot_reuse_a_different_source_license(tmp_path, monk
     manifest["files"][prefix + "/LICENSE.txt"] = "different-license"
     with pytest.raises(ValueError, match="source license"):
         snapshots.check_manifest(home, "https://immutable.example", identity)
+
+
+@pytest.mark.parametrize(
+    "markup,expected,supported",
+    [
+        ("<span>Micro<b>soft</b></span>", "Microsoft", True),
+        ("<div>Micro</div><div>soft</div>", "Microsoft", False),
+        ("<div>Micro</div><div>soft</div>", "Micro soft", True),
+        ("<p>Ada<br>Lovelace</p>", "Ada Lovelace", True),
+    ],
+)
+def test_visible_source_preserves_inline_words_and_block_boundaries(markup, expected, supported):
+    reference = {"url": "https://example.org/", "values": {"name": [expected]}}
+    assert (not records.reference_support(reference, markup.encode())) is supported

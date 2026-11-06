@@ -407,7 +407,26 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
         ]
     for node in tree.xpath("//script|//style"):
         node.drop_tree()
-    text = text_key(" ".join(tree.itertext()))
+    # Inline markup preserves word continuity; block elements separate text.
+    blocks = set(
+        (
+            "address article aside blockquote br caption dd details dialog div dl dt fieldset "
+            "figcaption figure footer form h1 h2 h3 h4 h5 h6 header hr li main nav ol p pre "
+            "section summary table tbody td tfoot th thead tr ul"
+        ).split()
+    )
+
+    def visible(node):
+        if node.tag in blocks:
+            yield " "
+        yield node.text or ""
+        for child in node:
+            yield from visible(child)
+            yield child.tail or ""
+        if node.tag in blocks:
+            yield " "
+
+    text = text_key("".join(visible(tree)))
     base = (
         document_base
         if document_base is not None

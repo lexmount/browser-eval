@@ -3870,7 +3870,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + '" data-site="'
                     + esc(ref["site"])
                     + '"'
-                    + "".join(" data-" + field + '="pending"' for field in schema["properties"])
+                    + ' data-field-outcomes="'
+                    + esc(json.dumps({field: "pending" for field in schema["properties"]}))
+                    + '"'
                     + ' data-search="'
                     + esc(cid + " " + ref["site"])
                     + '"><td>'
@@ -3995,10 +3997,14 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + '" data-site="'
                 + esc(ref["site"])
                 + '"'
-                + "".join(
-                    " data-" + field + '="' + result["status"] + '"'
-                    for field, result in row["field_results"].items()
+                + ' data-field-outcomes="'
+                + esc(
+                    json.dumps(
+                        {field: result["status"] for field, result in row["field_results"].items()},
+                        ensure_ascii=False,
+                    )
                 )
+                + '"'
             )
             inventory_rows.append(
                 "<tr"
@@ -4459,7 +4465,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             row = bucket.get(cid)
             if row is None:
                 attrs = {"status": "pending", "outcome": "pending"}
-                attrs.update({field: "pending" for field in ref["values"]})
+                field_outcomes = {field: "pending" for field in ref["values"]}
             else:
                 derived = record_result_fields(ref, row, policy=manifest.get("reference_policy"))
                 if any(
@@ -4478,8 +4484,12 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     "outcome": record_inventory_outcome(derived)[1],
                     "stage": derived["failure_stage"],
                     "scored-fields": str(derived["scored_fields"]),
-                    **{f: v["status"] for f, v in derived["field_results"].items()},
                 }
+                field_outcomes = {f: v["status"] for f, v in derived["field_results"].items()}
+            if json.loads(rendered.get("data-field-outcomes", "{}")) != field_outcomes:
+                raise ValueError(
+                    "Record inventory field filter verdict differs from native evidence"
+                )
             attrs.update(domain=ref["domain"], site=ref["site"])
             if any(rendered.get("data-" + key) != val for key, val in attrs.items()):
                 raise ValueError("Record inventory filter verdict differs from native evidence")
