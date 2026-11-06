@@ -190,7 +190,7 @@ The same preparation, certified runner and scorer support SWDE. The pinned
 [SWDE card](../../src/harness/benchmarks/cards/swde.json) selects ten pages per
 website across 80 websites and eight domains before any provider calls. This is
 an 800-page subset of the original 124,291-page collection. Its
-[public input distribution](https://huggingface.co/datasets/Lexmount/LexBench-SWDE/tree/1a53107d865085d00458301abb8077dd01a2e651)
+[public input distribution, LexBench-SWDE-800](https://huggingface.co/datasets/Lexmount/LexBench-SWDE-800/tree/1a53107d865085d00458301abb8077dd01a2e651)
 contains unchanged HTML, original paths, checksums and source/license notices;
 reference answers and provider outputs are excluded. The original project
 license is Ms-RL; captured website content retains its publishers’ rights.
@@ -224,7 +224,8 @@ and rejects an override at collection. Product-specific extractors are rejected
 for SWDE. Firecrawl Parse uses HTML upload; it can share a plan with URL-based
 methods, retaining its own input route and the same frozen HTML bytes.
 
-The primary score reproduces MarkupLM’s page-hit precision, recall and F1
+The [original SWDE paper, Section 7.1.2](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/StructedDataExtraction_SIGIR2011.pdf)
+defines page-hit precision, recall and F-score. The primary score reproduces MarkupLM’s page-hit precision, recall and F1
 arithmetic: a matching value makes a page-field hit even when other values are
 missing or extra. The subset fixes all 320 site-field groups in the macro
 population, including groups with no present values in the sample. This subset

@@ -26,7 +26,7 @@ BENCHMARKS = {
         "module": "harness.web_extract.swde",
         "snapshot_project": "browser-eval-swde800-snapshots",
         "snapshot_distribution": {
-            "repository": "Lexmount/LexBench-SWDE",
+            "repository": "Lexmount/LexBench-SWDE-800",
             "input_path": "inputs.jsonl",
             "input_format": "html-jsonl",
         },
