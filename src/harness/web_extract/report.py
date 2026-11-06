@@ -1451,10 +1451,10 @@ def check_input_profile(output, manifest):
     if type(local) is not bool or manifest.get("dataset_kind") != kind:
         raise ValueError("Report dataset kind differs from its bound input profile")
     if (
-        manifest.get("mode") == "field-extraction-cohort"
+        manifest.get("mode") in {"field-extraction-cohort", "field-extraction-suite"}
         and manifest.get("local_example") is not local
     ):
-        raise ValueError("Record example flag differs from its bound input profile")
+        raise ValueError("Report example flag differs from its bound input profile")
     return local
 
 
