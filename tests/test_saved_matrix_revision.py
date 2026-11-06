@@ -12,7 +12,7 @@ from lexbench_webfetch.scoring import score_attempt
 from tests.test_saved_matrix_evidence import fixture, write, assert_proof_mutations_rejected, assert_revision_document_mutation_rejected, assert_saved_receipt_mutation_rejected, assert_scoring_flags_rejected, assert_whitespace_record_rejected
 
 
-def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer', title=None):
+def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalled=False, completion_note=False, answer=b'answer', title=None, nested_artifacts=False):
     spec, source, row, _ = fixture(tmp_path)
     if title is not None:
         row['title'] = title
@@ -51,6 +51,25 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
             revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
     else:
         revision = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revision').parent
+    if nested_artifacts:
+        import shutil
+        from harness.web_fetch.report_saved_matrix import artifact_bindings
+        records = [json.loads(line) for line in (revision/'results.jsonl').read_text(encoding='utf-8').splitlines()]
+        for saved in records:
+            paths = {}
+            for relative, _ in artifact_bindings(saved):
+                target = 'evidence/saved-reports/previous/' + relative
+                (revision/target).parent.mkdir(parents=True, exist_ok=True)
+                shutil.copyfile(revision/relative, revision/target)
+                paths[relative] = target
+            def relocate(value):
+                if isinstance(value, dict):
+                    return {key: relocate(child) for key, child in value.items()}
+                if isinstance(value, list):
+                    return [relocate(child) for child in value]
+                return paths.get(value, value) if isinstance(value, str) else value
+            saved.update(relocate(saved))
+        (revision/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in records), encoding='utf-8')
     dataset = json.loads((revision/'dataset.json').read_text(encoding='utf-8'))
     changed = deepcopy(dataset['cases'][0])
     changed['required_facts'] = []
@@ -65,6 +84,16 @@ def revision_fixture(tmp_path, *, multiple=False, second_provider=False, uncalle
         'receipt':{'path':str(receipt),'sha256':hashlib.sha256(receipt.read_bytes()).hexdigest()}}
     write(tmp_path/'spec.json', spec)
     return spec, source, revision
+
+
+def test_revision_accepts_hash_verified_nested_artifacts(tmp_path):
+    spec, _, revision = revision_fixture(tmp_path, nested_artifacts=True)
+    output = build_saved_matrix(tmp_path/'spec.json', tmp_path/'revised').parent
+    assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['scores_changed']
+    row = json.loads((revision/'results.jsonl').read_text(encoding='utf-8'))
+    (revision/row['artifact_path']).write_bytes(b'altered response')
+    with pytest.raises(ValueError):
+        build_saved_matrix(tmp_path/'spec.json', tmp_path/'tampered')
 
 
 @pytest.mark.parametrize('separator', ['\u2028', '\u2029', '\u0085'])
@@ -444,3 +473,46 @@ def test_provider_exclusion_scopes_revision_without_changing_originals(tmp_path)
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
     for relative in ('score-revision.json', 'score-revision-history.json'):
         assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
+
+
+def test_revision_exports_verified_answer_fields_without_native_envelope(tmp_path):
+    spec, source, row, _ = fixture(tmp_path)
+    raw = b'{"content":"answer","page_information":{"published_at":"October 2024"}}'
+    path = 'private_artifacts/response.bin'
+    (source/path).parent.mkdir()
+    (source/path).write_bytes(raw)
+    digest = hashlib.sha256(raw).hexdigest()
+    row['provider_metadata'].update(
+        raw_response_path=path, raw_response_sha256=digest, raw_response_bytes=len(raw))
+    (source/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
+    spec_path = tmp_path/'spec.json'
+    write(spec_path, spec)
+    revision = build_saved_matrix(spec_path, tmp_path/'baseline').parent
+    original = json.loads((revision/'results.jsonl').read_bytes())
+    native_path = original['provider_metadata']['raw_response_path']
+    (revision/native_path).parent.mkdir(parents=True, exist_ok=True)
+    (revision/native_path).write_bytes(raw)
+    config = tmp_path/'revision.json'
+    write(config, {
+        'cases': [], 'authority': {'description': 'Restore a separately returned date'},
+        'regression_ids': ['extracted-date-field'],
+        'native_answer_corrections': [{
+            'attempt_id': original['attempt_id'],
+            'native_response': {'path': native_path, 'sha256': digest},
+            'projection': {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text',
+                           'answer_fields': {'page_information': {'pointer': ['page_information'],
+                                                                  'format': 'identity'}}},
+        }],
+    })
+    revise_local_snapshot(revision, config)
+    receipt, = (revision/'local-evidence/offline-revisions').glob('*/receipt.json')
+    spec['offline_revision'] = {'root': str(revision), 'receipt': {
+        'path': str(receipt), 'sha256': hashlib.sha256(receipt.read_bytes()).hexdigest()}}
+    write(spec_path, spec)
+    output = build_saved_matrix(spec_path, tmp_path/'revised').parent
+    assert check_saved_matrix(output, spec_path=spec_path)['valid']
+    model = json.loads((output/'matrix.json').read_bytes())
+    record = json.loads((output/model['rows'][0]['record_path']).read_bytes())
+    assert record['provider_metadata']['page_information']['published_at'] == 'October 2024'
+    assert not list(output.rglob('response.bin'))

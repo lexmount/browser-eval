@@ -793,12 +793,15 @@ def normalize_for_match(value: str, *, representation=None) -> str:
     from .reference_quality import clean_reference_text, visible_markdown_links, normalize_native_markdown_layout
     if representation is None:
         value = normalize_native_markdown_layout(value)
+    # Preserve the punctuation itself while folding layout gaps after CJK
+    # punctuation, before NFKC turns some marks into ASCII punctuation.
+    value = re.sub(r'([，。！？、；：])\s+', r'\1', value)
     normalized = unicodedata.normalize("NFKC", value).casefold()
     # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
     # They are layout artifacts, not required prose; preserve meaningful joiners.
     normalized = clean_reference_text(normalized)
     if representation == 'plain_text':
-        return re.sub(r'\s+', ' ', normalized).strip()
+        return _normalize_visible_typography(normalized, literal=True)
     # Compare visible inline Markdown text, not formatting or link destinations.
     normalized = visible_markdown_links(normalized)
     literal_pipe = '\ue000'
@@ -846,12 +849,20 @@ def normalize_for_match(value: str, *, representation=None) -> str:
             line = re.sub(r'\s*\|\s*', ' ', line)
         table_lines.append(line)
     normalized = '\n'.join(table_lines).replace(literal_pipe, '|')
+    return _normalize_visible_typography(normalized)
+
+
+def _normalize_visible_typography(normalized: str, *, literal=False) -> str:
+    """Fold display typography without interpreting Markdown or HTML syntax."""
+    normalized = normalized.replace('\u2060', '')  # Invisible word-joiner, not a word boundary.
     normalized = normalized.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"', "–": "-", "—": "-", "−": "-"}))
     # CJK text can be split at inline DOM boundaries. English word boundaries,
     # signs, digits and punctuation are deliberately retained.
     # Start only at a whitespace-run boundary: a long run not followed by CJK
     # must not be rescanned from every suffix (quadratic backtracking).
-    normalized = re.sub(r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])', '', normalized)
+    cjk_spacing = (r'(?<=[\u3400-\u9fff])\s+(?=[\u3400-\u9fff])' if literal else
+                   r'(?<=[\u3400-\u9fff])\s+|(?<!\s)\s+(?=[\u3400-\u9fff])')
+    normalized = re.sub(cjk_spacing, '', normalized)
     # Menu breadcrumbs commonly lose spaces when inline links are extracted.
     # Keep the separator itself (and all operands); do not collapse >=, signs
     # or English word boundaries. Fold layout newlines on both sides first:
@@ -1044,7 +1055,11 @@ def evaluate_content(
     allow_reference_block_exemptions: bool = False,
     raw_content: str | None = None,
     representation: str | None = None,
+    records: list[dict] | None = None,
+    page_information: dict | None = None,
 ) -> dict[str, Any]:
+    from .response_input import page_information_texts, unscoped_page_information
+    information_texts = page_information_texts(page_information)
     title_prefix = ((title.strip() + '\n') if title and title.strip() else '')
     from .reference_quality import is_html_document_or_fragment, markdown_body_content
     literal = representation == 'plain_text'
@@ -1098,6 +1113,13 @@ def evaluate_content(
                 [item for item in alternatives
                  if any(_stable_literal_match(target, item, registered_fact_words, phrase_boundaries=True,
                                               representation=visible_representation) for target in targets)])
+        if (not hits and not fact.get('match_scope') and not fact.get('visible_control')
+                and identifier not in entry_hits and unscoped_page_information(acceptance_contract)):
+            from .response_input import safe_named_links
+            extra_targets = information_texts + [label for _, label in safe_named_links(named_links or [], base_url)]
+            hits = [item for item in alternatives if any(_stable_literal_match(
+                target, item, registered_fact_words, phrase_boundaries=True,
+                representation='plain_text') for target in extra_targets)]
         fact_results.append({
             "id": identifier,
             "alternatives": alternatives,
@@ -1230,10 +1252,11 @@ def evaluate_content(
         declared_body_pass = bool(result["body_coverage_pass"])
         declared_pattern_pass = all(item["pass"] for item in result["pattern_results"])
         from .stable_tasks import evaluate_stable_task
-        # Document metadata remains diagnostic; it cannot supply rendered
-        # page anchors, records, or declared body coverage.
+        # Explicit extracted fields can supply unscoped information checks.
+        # Document metadata cannot supply records or declared body coverage.
         result.update(evaluate_stable_task(prose_content, acceptance_contract,
-                                           base_url, links=named_links,
+                                           base_url, links=named_links, returned_records=records,
+                                           page_information=page_information,
                                             anchor_text=visible_content if has_html_prose else None,
                                            allow_closed_title_cards=True,
                                            representation=representation,
@@ -1293,6 +1316,8 @@ def evaluate_content(
         structure = evaluate_document_structure(
             prose_content if is_html else visible_content,
             document_structure, html_document=is_html,
+            section_headings=(page_information or {}).get('section_headings')
+            if representation == 'plain_text' else None,
         )
         result.update(structure)
         result["content_pass"] = bool(result["content_pass"] and structure['document_structure_pass'])

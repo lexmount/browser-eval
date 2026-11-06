@@ -20,6 +20,7 @@ class LocatedItem(NamedTuple):
     title: str
     offset: int
     metadata: bool = False
+    owned_title: bool = False
 
 
 def _line_starts(content):
@@ -58,10 +59,17 @@ class Links(HTMLParser):
 
 
 _PURE_CTA = re.compile(
-    r'(?:details?|read more|view more|learn more|see (?:more|details|options)|open|visit|go|'
+    r'(?:details?|read more|view more|view all|learn more|'
+    r'see (?:more|details|options)|open|visit|go|'
     r'watch|free\s*tv|tv|buy now|add to cart|click to see price|sign in|log in|'
-    r'详情|查看|更多|评论|分享|图片|点击|了解更多|打开|访问|进入|前往|'
+    r'详情|查看|查看详情|更多|评论|分享|图片|点击|了解更多|打开|访问|进入|前往|'
     r'立即查看|立即购买|加入购物车|前往登录|登录|去看看|\d+)', re.I)
+
+_RATING_LABEL = re.compile(
+    r'[^\w]*(?:(?:rating|rated|avaliação|nota|评分)\s*[:：]?\s*)?'
+    r'\d+(?:[.,]\d+)?\s*(?:/|out of|de)\s*\d+(?:[.,]\d+)?',
+    re.I,
+)
 
 
 def _label_key(value, *, representation=None):
@@ -71,16 +79,26 @@ def _label_key(value, *, representation=None):
     return re.sub(r'\s+',' ',value).strip(' *#>`')
 
 
-def _is_named_label(title,url,parts,nonempty=False, *, representation=None):
+def _is_named_label(
+    title, url, parts, nonempty=False, *, representation=None,
+    owned_title=False, declared_title_scope=False,
+):
     """A record name must identify the entity, not repeat its route or UI action."""
     label=_label_key(title, representation=representation)
-    if nonempty:
-        if not label:
+    if not label or not any(c.isalnum() for c in label):
+        return False
+    if label.isdecimal():
+        # A bare number in a title-scoped card can be an age badge or counter.
+        # Legacy lists may carry legitimate numeric names on opaque URLs.
+        final_segment = unquote(parts.path.rstrip('/').rsplit('/', 1)[-1])
+        if not owned_title and (not nonempty
+                                or (declared_title_scope and label != final_segment)):
             return False
-        if _PURE_CTA.fullmatch(label) and not label.isdecimal():
-            return False
-    elif (len(label)<2 or not any(c.isalpha() for c in label) or _PURE_CTA.fullmatch(label)
-            or re.fullmatch(r'\(?\d+(?:[.,]\d+)?\s*[kmb]?\)?',label,re.I)):
+    elif ((_PURE_CTA.fullmatch(label)
+           and not (label == 'tv' and label in parts.path.casefold().split('/')))
+          or _RATING_LABEL.fullmatch(label)
+          or re.fullmatch(r'\(?\d+(?:[.,]\d+)?\s*[kmb]?\)?', label, re.I)
+          or (not nonempty and (len(label)<2 or not any(c.isalpha() for c in label)))):
         return False
     path=parts.path or '/'
     path_query=path + (('?' + parts.query) if parts.query else '')
@@ -360,7 +378,10 @@ def _entry_destination(url, contract, base_url, diagnostics=None):
     return destination, parts
 
 
-def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostics=None, *, representation=None):
+def _named_candidate(
+    url, title, contract, base_url, excluded_titles, diagnostics=None, *,
+    representation=None, owned_title=False,
+):
     """Normalize one output candidate; malformed output drops only that candidate."""
     target = _entry_destination(url, contract, base_url, diagnostics)
     if target is None:
@@ -377,7 +398,9 @@ def _named_candidate(url, title, contract, base_url, excluded_titles, diagnostic
         _label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
     if (not excluded_name and not _is_named_label(
             title, destination, parts,
-            contract.get('name_validation') == 'nonempty', representation=representation)
+            contract.get('name_validation') == 'nonempty',
+            representation=representation, owned_title=owned_title,
+            declared_title_scope=bool((contract.get('entry_scope') or {}).get('title_selector')))
             or any(pattern.fullmatch(title) for pattern in excluded_titles)):
         return None
     try:
@@ -605,7 +628,7 @@ def _scope_named_content(content, scope, *, contract=None, base_url='', represen
             if not scope.get('title_selector'):
                 return '\n'.join(str(node) for node in owners), owned_items, True
             for index, owner in enumerate(owners):
-                owned_items.extend(LocatedItem(url, title, index)
+                owned_items.extend(LocatedItem(url, title, index, owned_title=True)
                                    for url, title in _owned_html_name_links(owner, scope))
             return '', owned_items, True
     if scope.get('start_pattern'):
@@ -863,7 +886,7 @@ def _markdown_heading_card_items(content, contract, scope, base_url):
             if link.is_image:
                 continue
             candidate = _named_candidate(
-                link.destination, title, contract, base_url, excluded_titles,
+                link.destination, title, contract, base_url, excluded_titles, owned_title=True,
             )
             if candidate is not None:
                 heading_candidates.append(candidate)
@@ -874,7 +897,9 @@ def _markdown_heading_card_items(content, contract, scope, base_url):
                 candidate for candidate in heading_candidates
                 if candidate[0] == identity
             )
-            items.append(LocatedItem(candidate[1]['url'], candidate[1]['title'], heading.start()))
+            items.append(LocatedItem(
+                candidate[1]['url'], candidate[1]['title'], heading.start(), owned_title=True,
+            ))
             continue
         if heading_candidates:
             continue
@@ -894,7 +919,7 @@ def _markdown_heading_card_items(content, contract, scope, base_url):
                 continue
             candidate = _named_candidate(
                 link.destination, title, contract, base_url,
-                excluded_titles,
+                excluded_titles, owned_title=True,
             )
             if candidate is not None:
                 candidates.append((link, candidate))
@@ -920,7 +945,9 @@ def _markdown_heading_card_items(content, contract, scope, base_url):
             for link, owned_candidate in candidates
             if owned_candidate[0] == candidate[0]
         )
-        items.append(LocatedItem(candidate[1]['url'], candidate[1]['title'], heading.start()))
+        items.append(LocatedItem(
+                candidate[1]['url'], candidate[1]['title'], heading.start(), owned_title=True,
+            ))
     return items, owned_link_spans
 
 
@@ -1037,7 +1064,9 @@ def _markdown_named_items(content, contract, scope, excluded_spans=frozenset()):
             else:
                 non_image_label = match['label']
         title=re.sub(r'\s+',' ',visible_markdown_links(non_image_label)).strip()
-        items.append(LocatedItem(destination, title, link.start))
+        line_start = content.rfind('\n', 0, link.start) + 1
+        heading_title = bool(re.fullmatch(r' {0,3}#{1,6}[ \t]+', content[line_start:link.start]))
+        items.append(LocatedItem(destination, title, link.start, owned_title=heading_title))
     return items
 
 
@@ -1068,7 +1097,10 @@ def _image_heading_items(content, scope):
             if heading:
                 heading_title=re.sub(r'\s+',' ',visible_markdown_links(heading[1])).strip()
                 if heading_title==image_title:
-                    items.append(LocatedItem(outer.destination, heading_title, offsets[line_index] + outer.start))
+                    items.append(LocatedItem(
+                        outer.destination, heading_title, offsets[line_index] + outer.start,
+                        owned_title=True,
+                    ))
                 break
             # Only an adjacent heading belongs to this image card. Another
             # record or prose paragraph ends ownership even without a heading.
@@ -1093,29 +1125,38 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics, *, re
     excluded_titles = [re.compile(pattern, re.I)
                        for pattern in contract.get('title_exclusion_patterns', [])]
     excluded_names = {_label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
-    candidates, positions, metadata_positions = {}, {}, {}
+    candidates, positions, ranks = {}, {}, {}
+    match_first_record = contract.get('verification_scope') == 'first_three_name_detail_pairs'
     for index, item in enumerate(items):
         url, title = item[:2]
+        located = isinstance(item, LocatedItem)
+        owned = located and item.owned_title
         candidate = _named_candidate(
-            url, title, contract, base_url, excluded_titles, diagnostics, representation=representation,
+            url, title, contract, base_url, excluded_titles, diagnostics,
+            representation=representation, owned_title=owned,
         )
-        if candidate is not None:
-            identity, entry = candidate
-            identity = _record_audit_key(identity, entry['title'], excluded_names, representation=representation)
-            position = item.offset if isinstance(item, LocatedItem) else index
-            if isinstance(item, LocatedItem) and item.metadata:
-                if identity in positions:
-                    continue
-                if identity in metadata_positions and metadata_positions[identity] < position:
-                    continue
-                metadata_positions[identity] = position
-            else:
-                if identity in positions and positions[identity] < position:
-                    continue
-                positions[identity] = position
+        if candidate is None:
+            continue
+        identity, entry = candidate
+        identity = _record_audit_key(
+            identity, entry['title'], excluded_names, representation=representation,
+        )
+        position = item.offset if located else index
+        metadata = located and item.metadata
+        # A title explicitly owned by a card wins. For competing flat labels,
+        # prefer the one corroborated by the destination's descriptive slug.
+        # A route is never turned into a name on its own.
+        path_words = set(re.findall(r'[^\W_]+', unquote(urlsplit(entry['url']).path).casefold()))
+        label_words = set(re.findall(r'[^\W_]+', entry['title'].casefold()))
+        agreement = len(path_words & label_words) / max(1, len(label_words))
+        rank = ((not metadata, -position) if match_first_record
+                else (owned, not metadata, agreement, -position))
+        order = (metadata, position)
+        positions[identity] = min(positions.get(identity, order), order)
+        if identity not in ranks or rank >= ranks[identity]:
+            ranks[identity] = rank
             candidates[identity] = entry
-    return dict(sorted(candidates.items(), key=lambda item:
-                       positions.get(item[0], metadata_positions.get(item[0], len(items)))))
+    return dict(sorted(candidates.items(), key=lambda item: positions[item[0]]))
 
 
 class _HTMLRanges(HTMLParser):

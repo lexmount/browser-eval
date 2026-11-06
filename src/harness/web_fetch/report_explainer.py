@@ -1109,6 +1109,26 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
         return _render_current_browser_article(out, cases, records, content_binding)
     passes = sum(task_passed(row['ok'], row['metrics'],
                  cases[row['case_id']].get('task_kind', 'body')) for row in records)
+    context = ''
+    if dataset_path.is_file():
+        scope = json.loads(dataset_path.read_text(encoding='utf-8')).get('saved_matrix_scope', {})
+        if scope:
+            from harness.web_fetch.report import provider_label
+            rows = []
+            for name in dict.fromkeys(row['provider'] for row in records):
+                selected = [row for row in records if row['provider'] == name]
+                passed = sum(task_passed(row['ok'], row['metrics'],
+                             cases[row['case_id']].get('task_kind', 'body')) for row in selected)
+                rows.append((escape(provider_label(name)), str(len(selected)),
+                             str(passed), f'{passed/len(selected):.1%}'))
+            context = _table([('方法', 'Method'), ('保存结果', 'Saved results'),
+                              ('通过', 'Passed'), ('通过率', 'Pass rate')], rows,
+                             '本轮方法对比')
+            context += '<h2>' + bilingual_text('结果说明与限制', 'Findings and limitations') + '</h2>'
+            context += ''.join('<p>'+escape(note)+'</p>' for note in scope.get('limitations', []))
+            context += '<p><a href="../review/index.html">' + bilingual_text(
+                '查看逐题核查、实际返回对照及修订证据',
+                'View case audits, actual response comparisons and revision evidence') + '</a></p>'
     return ('<section class="wrap"><h1>'
             + bilingual_text('本报告的任务范围与验收规则', 'Task scope and acceptance rules')
             + '</h1><p>' + bilingual_text(
@@ -1118,4 +1138,4 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
             + bilingual_text('查看全部任务及验收规则', 'View all tasks and acceptance rules')
             + '</a> · <a href="../analysis/index.html">'
             + bilingual_text('查看结果、实际返回及失败证据', 'View results, actual responses and failure evidence')
-            + '</a></p></section>')
+            + '</a></p>' + context + '</section>')

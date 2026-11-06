@@ -101,6 +101,17 @@ def test_metadata_between_body_and_comment_heading_preserves_heading_stop():
     assert not result['article_comments_pass']
 
 
+def test_author_biography_before_explicit_discussion_is_not_a_comment():
+    content = ('The article ends right here.\n\n**Article author**\n'
+               'A biography, not a reader response.\n\n## Comments\n'
+               '### Alice\nOne actual reply.')
+    result = check(content)
+    assert result['article_comment_count'] == 1
+    assert not result['article_comments_pass']
+    complete = content + '\n### Bob\nSecond actual reply.'
+    assert check(complete)['article_comments_pass']
+
+
 @pytest.mark.parametrize('ending_present', [True, False])
 @pytest.mark.parametrize('footer', ['Post your reply', '## Post your reply'])
 def test_reviewed_end_marker_wins_over_overlapping_start_marker(ending_present, footer):
@@ -134,3 +145,23 @@ def test_character_sliced_ending_matches_inside_full_body_tokens(ending, full_bo
     result = check(full_body + COMMENTS, contract)
     assert result['article_comments_pass']
     assert result['article_comment_count'] == 2
+
+
+def test_rendered_comment_card_counts_message_and_not_author_profile():
+    def card(author, identity, message):
+        url = f'https://example.test/article#comment-{identity}'
+        return (
+            f'Collapse Expand\n\n[{author}](/author/{identity})\n'
+            f'Follow\nA profile biography, outside the comment.\n'
+            f"• [Nov 22 '19]({url})\nDropdown menu\n"
+            f'- [Copy link]({url})\n- Hide\n- [Report abuse](/report)\n'
+            f'{message}\nLike comment: 1 like Reply\n'
+        )
+
+    opening = 'The article ends right here.\n## Comments\n'
+    first = card('Alice', '1', 'A real reply about the article.')
+    result = check(opening + first + card('Bob', '2', 'Another real reply.'))
+    assert result['article_comment_count'] == 2
+    result = check(opening + first + card('Bob', '2', ''))
+    assert result['article_comment_count'] == 1
+    assert not result['article_comments_pass']

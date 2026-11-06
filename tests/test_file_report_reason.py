@@ -106,3 +106,25 @@ class BoundedAnchorEvidenceTests(unittest.TestCase):
         self.assertEqual(_presentation_detail_scope(records, {'fresh'},
             {'presentation_refresh': {'renderer_sha256': 'new'}}, 'new'), {'fresh'})
         self.assertEqual(_presentation_detail_scope(records, {'fresh'}, {}, 'new'), {'fresh', 'retained'})
+
+
+def test_stable_anchor_evidence_shows_returned_link_label():
+    from harness.web_fetch.report import stable_anchor_evidence
+
+    metrics = {'stable_anchor_results': [
+        {'alternatives': ['Help center'], 'matched': ['Help center'], 'pass': True}]}
+    markup = stable_anchor_evidence(metrics, 'A news feed', {
+        'links': [{'text': 'Help center', 'href': 'https://example.test/help'}]})
+    assert 'href="#returned-fields"><code>links</code>' in markup
+    assert '<p translate="no">Help center</p>' in markup
+
+
+def test_stable_evidence_shows_adjacent_markdown_lines():
+    from harness.web_fetch.report import stable_anchor_evidence
+
+    phrase = 'Illustration credit Chapter heading'
+    metrics = {'stable_task_schema': 'body_text', 'stable_anchor_results': [
+        {'alternatives': [phrase], 'matched': [phrase], 'pass': True}]}
+    page = stable_anchor_evidence(metrics, 'Illustration credit\n\n## Chapter heading')
+    assert 'Illustration credit\n## Chapter heading' in page
+    assert '未找到可供定位的连续原文' not in page

@@ -292,6 +292,10 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
         revision_file(receipt['input_results'])
         receipts.append(receipt)
         binding = receipt.get('predecessor_revision')
+    native_answer_attempts = {
+        proof['attempt_id'] for receipt in receipts
+        for proof in receipt.get('native_answer_corrections', [])
+    }
     original_dataset = _json(revision_file(before_dataset))
     original_records = [json.loads(line) for line in revision_file(before_results).read_bytes().splitlines() if line.strip()]
     originals = {r['attempt_id']: r for r in original_records}
@@ -347,6 +351,25 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
         actual = {k: v for k, v in original.items() if k not in {
             'report_invocation_status', 'report_superseded_history', 'report_retry_continuation',
             'report_parameter_rerun', 'report_completion_note'}}
+        # Composed snapshots nest the same immutable artifacts under a report
+        # prefix. Accept that relocation only after verifying every original
+        # artifact hash; all other call fields must still match exactly.
+        original_answer = actual.get('artifact_path', '')
+        answer = raw.get('artifact_path', '')
+        if answer and original_answer.endswith('/' + answer):
+            original_prefix = original_answer[:-len(answer)]
+            paths = {}
+            for relative, digest in artifact_bindings(raw):
+                sources.bind(contained_path(root, original_prefix + relative, reject_symlinks=True), digest)
+                paths[original_prefix + relative] = prefix + relative
+            def relocate(value, key=''):
+                if isinstance(value, dict):
+                    return {k: relocate(v, k) for k, v in value.items()}
+                if isinstance(value, list):
+                    return [relocate(v, key) for v in value]
+                return (paths.get(value, value)
+                        if isinstance(value, str) and (key == 'path' or key.endswith('_path')) else value)
+            actual = relocate(actual)
         if expected != actual:
             raise ValueError('Saved revision predecessor result differs: '+attempt)
         current = revised[attempt]
@@ -359,6 +382,17 @@ def _saved_revision(spec, sources, cases, selected, completed=()):
                     record[field] = deepcopy(current[field])
                 else:
                     record.pop(field, None)
+            if attempt in native_answer_attempts:
+                from harness.web_fetch.native_projection import SCORE_ANSWER_FIELDS
+
+                if current['metrics']['content_sha256'] != raw['metrics']['content_sha256']:
+                    raise ValueError('Saved revision changed the public answer bytes: ' + attempt)
+                # Retain the verified scoring inputs without exposing the native envelope.
+                current_metadata = current.get('provider_metadata', {})
+                metadata = record.setdefault('provider_metadata', {})
+                for field in sorted(SCORE_ANSWER_FIELDS | {'answer_format'}):
+                    if field in current_metadata:
+                        metadata[field] = deepcopy(current_metadata[field])
             record_updates[key] = record
     if set(originals) != expected_attempts or set(revised) != expected_attempts:
         raise ValueError('Saved revision result population differs')

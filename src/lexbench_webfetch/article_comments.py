@@ -170,6 +170,18 @@ def _coverage_text_start(lines, contract, *, representation=None):
         if offset >= 0:
             first = owners[offset + len(expected) - 1] + 1
             found_ending = True
+    if found_ending and representation != 'plain_text':
+        # An explicit discussion heading owns the following records. Author
+        # biographies and related-article cards between the prose ending and
+        # that heading must not become comments merely because they use bold
+        # names or colon labels. A reviewed closing boundary still wins.
+        for index in range(first, len(lines)):
+            label = marker_tokens(lines[index])
+            if label in end_markers:
+                break
+            heading = re.match(r'\s*(#{1,6})\s+', lines[index])
+            if heading and label in markers:
+                return index + 1, len(heading[1]), True
     for index in range(first, len(lines)):
         # A reviewed end boundary wins over a historical start label. Forms
         # below the last comment must never open a new discussion component.
@@ -311,13 +323,65 @@ def _coverage_text_records(content, contract, *, representation=None):
     return rows
 
 
+def _rendered_comment_cards(content, contract):
+    """Read comment cards from Markdown with explicit permalink and controls."""
+    if not re.search(r'(?m)^Collapse Expand[ \t]*$', content):
+        return None
+    content, fences = mask_markdown_code(content, retain=True)
+    lines = content.splitlines()
+    start, _, _ = _coverage_text_start(lines, contract)
+    if start is None:
+        return None
+    end_markers = contract.get('text_scope', {}).get('end_markers', [])
+    ends = {_section_marker_tokens(x) for x in end_markers}
+    end = next((i for i in range(start, len(lines))
+                if _section_marker_tokens(lines[i]) in ends), len(lines))
+    blocks = re.split(r'(?m)^Collapse Expand[ \t]*$', '\n'.join(lines[start:end]))[1:]
+    if not any(re.search(r'(?m)^- \[Copy link\]\(', block) for block in blocks):
+        return None
+    rows = []
+    for block in blocks:
+        lines = [line.strip() for line in block.splitlines()]
+        stamps = [(i, link) for i, line in enumerate(lines) if line.startswith('• ')
+                  for link in markdown_links(line) if not link.is_image]
+        if len(stamps) != 1:
+            continue
+        stamp, permalink = stamps[0]
+        copy = next((i for i in range(stamp + 1, len(lines))
+                     if any(link.label.casefold() == 'copy link'
+                            and link.destination == permalink.destination
+                            for link in markdown_links(lines[i]))), None)
+        if copy is None:
+            continue
+        menu_end = next((i for i in range(copy + 1, len(lines))
+                         if lines[i].startswith('- [Report abuse](')), None)
+        if menu_end is None:
+            continue
+        footer = next((i for i in range(menu_end + 1, len(lines))
+                       if lines[i].startswith('Like comment:')
+                       and lines[i].endswith('Reply')), None)
+        if footer is None:
+            continue
+        author = next((link.label for line in lines[:stamp]
+                       for link in markdown_links(line)
+                       if not link.is_image and not markdown_links(link.label)), None)
+        if author is not None:
+            body = '\n'.join(lines[menu_end + 1:footer]).strip()
+            rows.append({'author': author, 'text': article_field_text(body, lambda value: value,
+                          literal_blocks=fences), 'source_id': permalink.destination})
+    return rows
+
+
 def _verify_comment_coverage(content, contract, *, representation=None):
     if is_article_html(content, representation=representation):
         native = article_html(content).select(contract['record_selector'])
         rows = (_html_records(content, contract) if native
                 else _coverage_text_records(article_markdown(content), contract))
     else:
-        rows = _coverage_text_records(content, contract, representation=representation)
+        rows = (None if representation == 'plain_text'
+                else _rendered_comment_cards(content, contract))
+        if rows is None:
+            rows = _coverage_text_records(content, contract, representation=representation)
     valid = valid_comment_records(rows, contract, representation='plain_text')
     return {'article_comments_mode': 'fixed_coverage',
             'article_comments_pass': len(valid) >= contract['minimum_comments'],
