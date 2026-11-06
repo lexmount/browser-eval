@@ -1247,6 +1247,21 @@ def access_blocker(row):
     if row.get("state") == "credentials_missing":
         return "credentials_missing"
     status, native = row.get("http_status"), row.get("response", {})
+    failure = native.get("native_failure") if isinstance(native, dict) else None
+    method = METHODS.get(row.get("method"), {})
+    if (
+        method.get("deployment") == "self-hosted-open-source"
+        and native.get("success") is False
+        and isinstance(failure, dict)
+        and failure.get("source") == "native-extractor-error"
+        and failure.get("engine") == method.get("engine")
+    ):
+        nested = access_blocker({
+            "http_status": failure.get("http_status"),
+            "response": {"success": False, "error": failure.get("error", "")},
+        })
+        if nested:
+            return nested
     if status == 401:
         return "authentication"
     if status == 402:

@@ -364,3 +364,75 @@ def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing
         assert get.call_args.kwargs["allow_redirects"] is False
         # The model's socket timeout must expire within the worker's total deadline.
         assert modules["langchain_openai"].ChatOpenAI.call_args.kwargs["timeout"] < 110
+
+
+@pytest.mark.parametrize('name', ['sdk.py', 'native.so', 'data.json'])
+def test_same_version_package_mutation_rejects_frozen_runtime(tmp_path, monkeypatch, name):
+    import os
+
+    from harness.web_extract import self_hosted
+
+    package = tmp_path / 'installed'
+    package.mkdir()
+    source = package / name
+    source.write_bytes(b'first implementation')
+    monkeypatch.setattr(self_hosted.sysconfig, 'get_paths',
+                        lambda: {'purelib': str(package), 'platlib': str(package)})
+    monkeypatch.setattr(self_hosted.importlib.metadata, 'version', lambda _: 'same-version')
+    monkeypatch.setenv('EXTRACTION_MODEL', 'synthetic')
+    monkeypatch.setenv('EXTRACTION_MODEL_BASE', 'https://model.example')
+    monkeypatch.setenv('SNAPSHOT_ORIGINS', 'https://snapshots.example')
+    self_hosted.local_runtime_identity.cache_clear()
+    try:
+        identity = self_hosted.runtime_identity('crawl4ai')
+        before = source.stat()
+        source.write_bytes(b'other implementation')
+        os.utime(source, ns=(before.st_atime_ns, before.st_mtime_ns))
+        self_hosted.local_runtime_identity.cache_clear()
+        with pytest.raises(ValueError, match='frozen extraction configuration'):
+            self_hosted.validate_input({'engine': 'crawl4ai', 'url': 'https://snapshots.example/p',
+                                       'schema': SCHEMA, 'expected_runtime': identity})
+    finally:
+        self_hosted.local_runtime_identity.cache_clear()
+
+
+def test_request_ignores_stale_same_timestamp_bytecode(tmp_path):
+    import json
+    import os
+    import py_compile
+    import sys
+
+    from harness.web_extract.self_hosted import run_worker
+
+    source = tmp_path / 'sdk_fixture.py'
+    source.write_text('VALUE="stale"\n', encoding='utf-8')
+    before = source.stat()
+    py_compile.compile(str(source), doraise=True)
+    source.write_text('VALUE="fresh"\n', encoding='utf-8')
+    os.utime(source, ns=(before.st_atime_ns, before.st_mtime_ns))
+    result = run_worker({}, command=[sys.executable, '-c',
+        'import sys,json;sys.path.insert(0,' + repr(str(tmp_path)) + ');'
+        'import sdk_fixture;print(json.dumps(sdk_fixture.VALUE))'])
+    assert result.returncode == 0, result.stderr
+    assert json.loads(result.stdout) == 'fresh'
+
+
+def test_thread_control_change_rejects_frozen_runtime(monkeypatch):
+    from harness.web_extract import self_hosted
+
+    monkeypatch.setenv('EXTRACTION_MODEL', 'synthetic')
+    monkeypatch.setenv('EXTRACTION_MODEL_BASE', 'https://model.example')
+    monkeypatch.setenv('SNAPSHOT_ORIGINS', 'https://snapshots.example')
+    monkeypatch.setenv('OPENBLAS_NUM_THREADS', '32')
+    monkeypatch.setattr(self_hosted.importlib.metadata, 'version', lambda _: 'synthetic')
+    monkeypatch.setattr(self_hosted, 'installed_environment_sha256', lambda: 'a' * 64)
+    self_hosted.local_runtime_identity.cache_clear()
+    try:
+        identity = self_hosted.runtime_identity('crawl4ai')
+        monkeypatch.setenv('OPENBLAS_NUM_THREADS', '1')
+        self_hosted.local_runtime_identity.cache_clear()
+        with pytest.raises(ValueError, match='frozen extraction configuration'):
+            self_hosted.validate_input({'engine': 'crawl4ai', 'url': 'https://snapshots.example/p',
+                                       'schema': SCHEMA, 'expected_runtime': identity})
+    finally:
+        self_hosted.local_runtime_identity.cache_clear()

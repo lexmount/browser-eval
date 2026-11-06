@@ -36,15 +36,14 @@ for those four images. RabbitMQ uses the host architecture from its pinned
 multi-platform digest, avoiding Erlang JIT failures under amd64 emulation. Resource limits reproduce the configured Rainbond limits,
 not a measured minimum host requirement.
 
-Linux deployments preload SDK imports in a single-threaded forkserver before
-becoming ready. Each request still gets its own supervised process and browser;
-request state, connections and browser sessions are not reused. BLAS thread limits
-match that isolation boundary. Set `EXTRACTION_WORKER_MODE=process` to use fresh
-interpreters instead. Runtime identities bind the worker, preload source and
-installed environment; changing them requires a restart and a new cohort.
-Preload time belongs to service startup, while request timing remains end to end.
-Stagehand also exposes browser, navigation and extraction times in `native.timings`.
-Model reasoning settings remain unchanged.
+Each request runs in a fresh supervised process. Its browser and model client are
+closed within that request, including detached browser cleanup after crashes and
+timeouts. Four CPU cores and one thread per BLAS library avoid the earlier CPU
+quota and oversubscription bottlenecks. Stagehand exposes browser, navigation and
+extraction times in `native.timings`; model reasoning settings remain unchanged.
+Runtime identities bind installed source, native libraries and package data by
+file hash. Each request uses a private bytecode-cache location, so existing Python
+caches cannot substitute different code for those files.
 
 ## Check every extraction route
 

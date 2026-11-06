@@ -4,7 +4,7 @@ import sys
 from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -1552,3 +1552,54 @@ def test_account_keywords_do_not_change_the_scope_of_a_target_or_extraction_erro
 )
 def test_permission_denial_tied_directly_to_an_entitlement_pauses(message):
     assert access_blocker({"http_status": 403, "response": {"error": message}}) == "permission"
+
+
+@pytest.mark.parametrize('method,engine,native,reason', [
+    ('firecrawl-oss-json', 'firecrawl',
+     {'http_status': 402, 'response': {'error': 'Payment required'}}, 'quota_or_payment'),
+    ('firecrawl-oss-json', 'firecrawl',
+     {'http_status': 401, 'response': {'error': 'Invalid API key'}}, 'authentication'),
+    ('crawl4ai-json', 'crawl4ai', {'extracted_content': [
+        {'tags': ['error'], 'error': False, 'content': 'Invalid API key'}]}, 'authentication'),
+])
+def test_native_denial_stops_collection_and_retries_only_the_stopping_call(
+    tmp_path, method, engine, native, reason
+):
+    from harness.web_extract import self_hosted
+    from harness.web_extract.pipeline import read_json
+
+    home = create(tmp_path / 'native-denial')
+    run = home / 'runs/native-denial'
+    identity = {'engine': engine, 'version': 'synthetic', 'model': 'synthetic',
+                'model_base': 'https://model.example',
+                'implementation_sha256': 'a' * 64, 'environment_sha256': 'b' * 64}
+    options = {'endpoint': 'https://extract.example', 'runtime_identity': identity}
+    with patch.object(self_hosted, 'validate_input'), \
+            patch.object(self_hosted, 'runtime_identity', return_value=identity), \
+            patch.object(self_hosted, 'firecrawl_extract', return_value=(None, native)), \
+            patch.object(self_hosted, 'crawl', new=AsyncMock(
+                return_value=(None, native))):
+        response = self_hosted.worker({'engine': engine, 'expected_runtime': identity})
+    assert response['native'] == native
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call',
+                  return_value={'http_status': 200, 'response': response}) as call:
+        with pytest.raises(PermissionError):
+            probe(home, [method], full=True, run_dir=run, native_options=options)
+        assert call.call_count == 1
+    assert read_json(run / 'access-blocked.json')['reason'] == reason
+    success = {'http_status': 200, 'response': {'success': True, 'data': {'sku': 'value'}}}
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call', return_value=success) as call:
+        probe(home, [method], full=True, run_dir=run, native_options=options)
+        assert call.call_count == 3
+    assert len(read_json(run / 'manifest.json')['physical_calls']) == 4
+
+
+def test_page_text_cannot_masquerade_as_native_account_denial():
+    from harness.web_extract.self_hosted import native_failure
+
+    native = {'extracted_content': [{'price': 'Quota exceeded', 'sku': 'Invalid API key'}]}
+    assert native_failure('crawl4ai', native) is None
+    assert access_blocker({'method': 'crawl4ai-json', 'http_status': 200,
+                           'response': {'success': False, 'native': native}}) is None
