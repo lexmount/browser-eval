@@ -3517,7 +3517,7 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
                 if [r.get("data-method") for r in compact_rows] != methods:
                     raise ValueError("Missing compact interpretation comparison")
                 for method, row in zip(methods, compact_rows, strict=True):
-                    if [c.get_text(strip=True) for c in row.select("td")[2:]] != [
+                    if [c.get_text(strip=True) for c in row.select("td:not([data-completion-metric])")[2:]] != [
                         f"{scores[method][field]['f1']:.3f}"
                         for field in ("price", "sku", "availability", "OutOfStock")
                     ]:
