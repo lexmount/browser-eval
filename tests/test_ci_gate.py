@@ -3,7 +3,9 @@
 import json
 import os
 import re
+import shlex
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -221,3 +223,83 @@ def test_ci_actions_are_bound_to_immutable_commits():
         for step in job["steps"]:
             if "uses" in step:
                 assert re.fullmatch(r"[\w.-]+/[\w.-]+@[a-f0-9]{40}", step["uses"])
+
+
+def test_only_documentation_uses_one_test_partition():
+    workflow = ci_workflow()
+    result = subprocess.run(
+        ["node", str(ROOT / "tests/evaluate_ci_expressions.mjs")],
+        input=json.dumps({"policy": workflow["concurrency"],
+                          "partitions": workflow["jobs"]["checks"]["strategy"]["matrix"]["partition"],
+                          "contexts": [{"docs_only": value} for value in ["true", "false", "", "unknown"]]}),
+        text=True, capture_output=True, check=True,
+    )
+    assert [row["partitions"] for row in json.loads(result.stdout)] == [
+        ["primary"], ["primary", "secondary"], ["primary", "secondary"], ["primary", "secondary"]]
+
+
+def test_python_partitions_cover_existing_and_future_test_directories_once(tmp_path):
+    names = ["test_shared.py", "benchmarks/test_scorer.py", "future_track/test_new.py",
+             "test_browser_observation_contracts.py", "test_report_browser_interactions.py",
+             "web_search/test_visual.py"]
+    for name in names:
+        path = tmp_path / "tests" / name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("".join(f"def test_example_{i}(): pass\n" for i in range(10)), encoding="utf-8")
+    selected = []
+    commands = [step['run'] for step in ci_workflow()["jobs"]["checks"]["steps"]
+                if step.get('run', '').startswith(("make ci-tests ", "make test-python "))]
+    for command in [*commands, 'make browser-check']:
+        dry_run = subprocess.run(
+            [*shlex.split(command)[:2], "-n", *shlex.split(command)[2:]],
+            cwd=ROOT, text=True, capture_output=True, check=True,
+        )
+        python = next(line for line in dry_run.stdout.splitlines() if ' -m pytest ' in line)
+        arguments = iter(shlex.split(python)[shlex.split(python).index('pytest') + 1:])
+        options = []
+        for argument in arguments:
+            if argument in {'-n', '--dist'}:
+                next(arguments)
+            else:
+                options.append(argument)
+        result = subprocess.run(
+            [sys.executable, "-m", "pytest", "-p", "tests.conftest", "--collect-only", *options],
+            cwd=tmp_path, text=True, capture_output=True, check=True,
+            env={**os.environ, 'PYTHONPATH': str(ROOT)},
+        )
+        selected.append({line for line in result.stdout.splitlines() if "::test_example" in line})
+    assert len(selected) == 3
+    for index, population in enumerate(selected):
+        assert all(population.isdisjoint(other) for other in selected[index + 1:])
+    assert set.union(*selected) == {f"tests/{name}::test_example_{i}"
+                                   for name in names for i in range(10)}
+
+
+def test_ci_browser_exclusion_reaches_recursive_make(tmp_path):
+    makefile = tmp_path / 'Makefile'
+    targets = ['runtime-check', 'track-naming-check', 'lint-check', 'shell-check',
+               'fixture-smoke', 'test-ui', 'test-native-adapters',
+               'benchmark-contract-check', 'test-extraction-sdk']
+    makefile.write_text(
+        f'include {ROOT / "Makefile"}\n'
+        + ''.join(f'{target}:\n\t@:\n' for target in targets)
+        + 'test-python:\n\t@echo browser-selection=$(BROWSER_TESTS)\n'
+        + 'ci-tests: recursive-browser-probe\n'
+        + f'recursive-browser-probe:\n\t+$(MAKE) --no-print-directory -f {makefile} test-python\n',
+        encoding='utf-8',
+    )
+    result = subprocess.run(['make', '--no-print-directory', '-f', str(makefile), 'ci-tests'],
+                            cwd=tmp_path, capture_output=True, text=True, check=True)
+    selections = [line for line in result.stdout.splitlines() if line.startswith('browser-selection=')]
+    assert selections and set(selections) == {'browser-selection=exclude'}
+
+
+@pytest.mark.parametrize('shard', ['0/2', '3/2', '1/0', 'bad', '1/2/3'])
+def test_invalid_shard_fails_instead_of_silently_omitting_tests(tmp_path, shard):
+    (tmp_path / 'test_example.py').write_text('def test_example(): pass\n', encoding='utf-8')
+    result = subprocess.run(
+        [sys.executable, '-m', 'pytest', '-p', 'tests.conftest', '--collect-only', '--ci-shard=' + shard],
+        cwd=tmp_path, env={**os.environ, 'PYTHONPATH': str(ROOT)}, text=True, capture_output=True,
+    )
+    assert result.returncode == 4
+    assert '--ci-shard requires' in result.stderr

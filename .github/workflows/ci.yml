@@ -30,8 +30,12 @@ jobs:
         run: bash scripts/ci_scope.sh >> "$GITHUB_OUTPUT"
 
   checks:
-    name: Tests and static checks
+    name: Tests and static checks (${{ matrix.partition }})
     needs: scope
+    strategy:
+      fail-fast: false
+      matrix:
+        partition: ${{ fromJSON(needs.scope.outputs.docs_only == 'true' && '["primary"]' || '["primary","secondary"]') }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
@@ -52,8 +56,12 @@ jobs:
         if: needs.scope.outputs.docs_only == 'true'
       - run: make setup-test
         if: needs.scope.outputs.docs_only == 'false'
-      - run: make ci-tests PYTEST_ARGS='-n 4 --dist worksteal --durations=20'
-        if: needs.scope.outputs.docs_only == 'false'
+      - name: Check primary Python shard and static contracts
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'primary'
+        run: make ci-tests PYTEST_ARGS='--ci-shard=1/2 -n 4 --dist worksteal --durations=20'
+      - name: Check secondary Python shard
+        if: needs.scope.outputs.docs_only == 'false' && matrix.partition == 'secondary'
+        run: make test-python PYTEST_ARGS='--ci-shard=2/2 -n 4 --dist worksteal --durations=20' BROWSER_TESTS=exclude
 
   package:
     name: Installation and packaging
@@ -105,9 +113,7 @@ jobs:
         run: |
           uv sync --frozen --extra test --extra headless-eval --extra browser-use-eval
           uv run --frozen --no-sync python -m harness.benchmarks.data
-          uv run --frozen --no-sync playwright install chromium
-          export BROWSER_EVAL_TEST_BROWSER_BINARY="$(uv run --frozen --no-sync python -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')"
-          uv run --frozen --no-sync python -m pytest tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py -q
+          make browser-check PY='uv run --frozen --no-sync python' TEST_PY='uv run --frozen --no-sync python'
 
   test:
     name: Python 3.11

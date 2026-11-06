@@ -210,9 +210,10 @@ def review_input_files(definition, identifier):
     if (not isinstance(manifests, dict) or set(manifests) - set(definition['parents'])
             or any(not isinstance(files, dict) for files in manifests.values())):
         raise ValueError('Invalid revision review-input manifest')
+    root = definitions()
     for files in manifests.values():
         for relative, sha256 in files.items():
-            contained_path(definitions(), relative)
+            contained_path(root, relative)
             if (not isinstance(relative, str) or not relative.startswith('review-evidence/')
                     or Path(relative).as_posix() != relative
                     or not isinstance(sha256, str) or not re.fullmatch('[0-9a-f]{64}', sha256)):
