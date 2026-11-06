@@ -481,7 +481,9 @@ def test_client_cannot_supply_a_private_environment_cache(tmp_path, monkeypatch)
     assert 'FileNotFoundError' not in result.stderr
 
 
-def test_environment_identity_preserves_nested_names_across_install_locations(tmp_path, monkeypatch):
+def test_environment_identity_preserves_nested_names_across_install_locations(
+    tmp_path, monkeypatch
+):
     from harness.web_extract import self_hosted
 
     identities = []
