@@ -492,6 +492,13 @@ def cost_unavailability(value, lang):
     missing = unavailable.get("missing_cases")
     evidence = unavailable.get("evidence", {})
     reason = unavailable.get("reason", {})
+    software_fee = value.get("software_fee_usd_per_1000")
+    if software_fee is not None and (
+        type(software_fee) not in (int, float)
+        or not math.isfinite(software_fee)
+        or software_fee < 0
+    ):
+        raise ValueError("Invalid software fee")
     if (
         type(cases) is not int
         or type(missing) is not int
@@ -514,7 +521,7 @@ def price_remarks(value, lang, *, summary=False):
     text = value.get("billing_summary", {}).get(lang) if summary else None
     text = text or value["terms"][lang]
     unavailable = cost_unavailability(value, lang)
-    if unavailable:
+    if unavailable and value.get("software_fee_usd_per_1000") is None:
         text += " " + message(
             "cost_unavailable_population",
             lang,
@@ -527,6 +534,9 @@ def price_remarks(value, lang, *, summary=False):
 
 def price_quote(value, lang):
     if cost_unavailability(value, lang):
+        software_fee = value.get("software_fee_usd_per_1000")
+        if software_fee is not None:
+            return message("software_fee_plus_model", lang, fee=f"{software_fee:g}")
         return message("cost_total_unavailable", lang)
     bounds = value.get("usd_per_1000_range")
     if bounds is None:
@@ -877,11 +887,21 @@ def price_table(methods, prices, lang, labels=None):
         terms = esc(price_remarks(value, lang))
         unavailable = cost_unavailability(value, lang)
         if unavailable:
+            separate_model = value.get("software_fee_usd_per_1000") is not None
+            if separate_model:
+                terms += "<details><summary>" + message("model_billing_records", lang) + "</summary>"
+                terms += esc(message(
+                    "cost_unavailable_population", lang,
+                    missing=unavailable["missing_cases"], cases=unavailable["population_cases"],
+                    reason=unavailable["reason"][lang],
+                ))
             terms += '<br><a data-cost-evidence="true" href="'
             terms += (
                 esc(quote("../" + unavailable["evidence"]["path"], safe="/"), quote=True) + '">'
             )
             terms += message("cost_disclosure_receipt", lang) + "</a>"
+            if separate_model:
+                terms += "</details>"
         records.append(
             [
                 esc(labels.get(method, method)),

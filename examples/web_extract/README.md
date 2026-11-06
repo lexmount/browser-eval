@@ -557,6 +557,34 @@ resolve from `<home>`, and absolute paths retain their meaning.
 
 ## Self-hosted open-source extraction
 
+The complete [deployment and reproduction guide](../../deploy/web-extract/README.md)
+includes the six-service Compose stack, Rainbond mapping, four-route smoke check,
+both dataset commands, credential names and Firecrawl's commercial-use conditions.
+
+### Candidate qualification
+
+Qualification asks whether the project's native interface accepts a page plus
+field meanings/schema and returns field values without site-specific selectors.
+A built-in HTTP server is optional: this project wraps native libraries in the
+same authenticated API. Qualification is distinct from the complete quality run.
+
+| Candidate | Native extraction path | Qualification and comparison scope |
+| --- | --- | --- |
+| Crawl4AI 0.9.5 | `LLMExtractionStrategy`, native XML-block protocol | Complete Zyte 140 and SWDE 800 cohorts. |
+| ScrapeGraphAI 2.3.1 | `SmartScraperGraph` with frozen HTML and schema | Complete cohorts. HTML input avoids the verified URL preprocessing defect. |
+| Stagehand 4.4.0 (Python) | `Stagehand.extract` over the browser's accessible content | Complete cohorts. |
+| Firecrawl, digest-pinned server | `/v2/scrape` with JSON format and schema | Complete cohorts; backend and its dependencies are separately deployed. |
+| Scrapy 2.19.0 | CSS/XPath selectors in a spider | Frozen-page fetch/title selection succeeded. Semantic fields need a supplied selector set or additional extractor. Suitable for a rule/agent-generation comparison; not an independent schema-driven extractor in this cohort. |
+| Scrapling 0.5.1 | Selectors, adaptive matching, fetchers and MCP tools | Frozen-page parsing/title selection succeeded. Its MCP integration supplies tools to an external agent; the selected library does not itself define this cohort's semantic extraction policy. A fixed agent/extractor would form a new configuration. |
+| Crawlee 3.18.2 | Cheerio/Playwright handlers; optional `StagehandCrawler` | Basic fetch/title extraction succeeded. The Stagehand integration also returned schema fields after selecting its Responses protocol. It is eligible as a Crawlee + Stagehand combination, but was not run as a fifth independent extraction method: its extractor is Stagehand. Its JavaScript 3.7.3 configuration is distinct from the Python participant; their scores are not interchangeable. |
+
+The report method pages link the actual single-page qualification records,
+the failed Chat protocol attempt, the successful Responses attempt, and the
+checked upstream source commits. Scrapy/Scrapling selector results establish
+parsing capability, not cross-site semantic accuracy. Crawlee's single-page result
+establishes compatibility, not complete Zyte/SWDE coverage. Only the four complete
+certified configurations receive benchmark scores.
+
 `crawl4ai-json`, `scrapegraph-oss-json`, `stagehand-local-json` and `firecrawl-oss-json` use the native
 Crawl4AI, ScrapeGraphAI, Stagehand and Firecrawl extractors. They accept the same frozen
 Cloudflare page URLs and field schemas as hosted participants. They require a
@@ -576,77 +604,7 @@ extractor replaces the graph. The health identity declares `native_input: html`.
 All frozen HTML must be UTF-8. Dataset qualification checks every page before any
 provider call; the native HTML route also rejects invalid bytes before graph execution.
 
-The root Dockerfile builds an authenticated service using
-`deploy/web-extract/uv.lock`. Set `EXTRACTION_API_KEY`, `EXTRACTION_MODEL`,
-`EXTRACTION_MODEL_BASE`, `EXTRACTION_MODEL_API_KEY` and `SNAPSHOT_ORIGINS` on the
-service. `SNAPSHOT_ORIGINS` is a comma-separated list of the exact immutable
-snapshot origins. The container provides Chromium; `CHROME_PATH` selects its
-native executable, rather than a launcher script. The service exposes `GET /health` and `POST /extract/{engine}`
-(`crawl4ai`, `scrapegraph`, `stagehand` or `firecrawl`). Extraction requires bearer authentication.
-Unauthenticated health requests return only liveness. Runtime identities require
-the same bearer key as extraction.
-
-For an individual request, set `ENDPOINT`, `SNAPSHOT_URL` and `EXTRACTION_API_KEY`
-in your shell. This example uses the identity returned by the running service:
-
-```sh
-curl --fail --silent --show-error "$ENDPOINT/health" \
-  -H "Authorization: Bearer $EXTRACTION_API_KEY" > health.json
-jq --arg url "$SNAPSHOT_URL" '{
-  url: $url,
-  schema: {type: "object", properties: {name: {type: "string"}}, required: ["name"]},
-  expected_runtime: .engines.crawl4ai
-}' health.json > request.json
-curl --fail --silent --show-error "$ENDPOINT/extract/crawl4ai?keepalive=true" \
-  -H "Authorization: Bearer $EXTRACTION_API_KEY" --json @request.json
-```
-
-Save the health response before calls. Pass a per-method options object to
-`plan --native-options /absolute/native-options.json`:
-
-```json
-{
-  "crawl4ai-json": {
-    "endpoint": "https://your-extraction-service.example",
-    "keepalive": true,
-    "runtime_identity": {"engine": "crawl4ai", "version": "FROM_HEALTH", "model": "FROM_HEALTH", "model_base": "FROM_HEALTH", "implementation_sha256": "FROM_HEALTH", "environment_sha256": "FROM_HEALTH", "json_keepalive": true}
-  }
-}
-```
-
-Copy the complete identity object from `health.engines.crawl4ai`, including any
-additional fields, rather than using the placeholders above. Each request carries
-that identity; a changed model, dependency environment or worker implementation
-is rejected. Use the normal certified runner and scorer. Keep the API key in the
-caller's repository `.env`, never in the options file. An extraction process has a
-110-second deadline within the track's existing 120-second request budget. Timed-out
-workers and their browser descendants are terminated and reaped. ScrapeGraphAI's
-model client has a 100-second socket timeout within that total worker deadline.
-Configure the reverse proxy read timeout above the 120-second client budget
-(for example, 150 seconds). A shorter gateway timeout can cut off a healthy native
-extraction before its worker deadline; preserve that physical call when collecting
-a declared infrastructure repair. Gateway settings do not extend the worker or
-client deadline.
-
-For a proxy with a shorter idle read timeout, select `?keepalive=true` or the
-matching native option. The service sends JSON whitespace every five seconds and
-finishes with one JSON document; ordinary JSON clients can read it directly.
-`X-Accel-Buffering: no` prevents an intermediate proxy from holding those bytes.
-The elapsed time includes the complete extraction. Authentication and malformed
-input still return their normal HTTP errors before work starts. Once streaming
-headers are sent, a worker timeout returns `success: false` and `http_status: 504`
-inside the JSON result. This mode keeps the same worker deadline and never retries.
-The default request mode retains its existing HTTP status behavior.
-The frozen health identity must advertise `json_keepalive: true` before the
-collector can select this mode; an older server cannot silently ignore the option.
-
-Set `EXTRACTION_MODEL_CONTEXT_TOKENS` to the configured model's documented context
-limit. For Firecrawl, configure `FIRECRAWL_BACKEND_URL` as its private service URL
-and `FIRECRAWL_IMAGE` as its immutable image digest. Mount the packaged
-`firecrawl_backend.mjs` on the backend and start it with Node. It launches the
-unchanged native server and exposes a private `/identity` endpoint on port 3020;
-set `FIRECRAWL_IDENTITY_URL` to that endpoint. The identity binds the backend's
-actual bundle, dependencies, Node executable and model configuration. A changed
-backend is rejected even when the facade itself has not changed. The backend keeps its own
-native extraction; the authenticated facade forwards its JSON result and receipt.
-Keep the database, queue, browser and backend API internal.
+The [deployment guide](../../deploy/web-extract/README.md) owns service startup,
+credentials, runtime identity capture, API examples, timeouts and the Firecrawl
+backend topology. Its six-service Compose recipe is the deployment authority;
+this guide owns dataset qualification and certified benchmark execution.

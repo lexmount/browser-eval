@@ -11,6 +11,41 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.report import build, check, cohort_metrics
 
 
+def test_free_software_does_not_turn_metered_model_calls_into_zero_cost():
+    from harness.web_extract.report import price_quote, price_remarks, price_table
+
+    price = {
+        "software_fee_usd_per_1000": 0,
+        "usd_per_1000": "Software fee plus model usage",
+        "terms": {"en": "Model API billed by tokens."},
+        "billing_summary": {"en": "Model API billed by tokens."},
+        "verified_at": "2026-11-06",
+        "sources": ["https://example.org/pricing"],
+        "cost_unavailable": {
+            "population_cases": 140, "missing_cases": 140,
+            "reason": {"en": "Per-call model invoices are not available."},
+            "evidence": {"path": "assets/billing.json", "sha256": "a" * 64},
+        },
+    }
+    assert price_quote(price, "en") == "Software $0 + model usage"
+    assert price_remarks(price, "en", summary=True) == "Model API billed by tokens."
+    soup = BeautifulSoup(price_table(["example"], {"example": price}, "en"), "html.parser")
+    disclosure = soup.select_one("details")
+    assert "140/140" in disclosure.get_text()
+    assert disclosure.select_one("[data-cost-evidence]")["href"] == "../assets/billing.json"
+    disclosure.decompose()
+    assert "Total cost unavailable" not in soup.get_text()
+    assert "Software $0 + model usage" in soup.get_text()
+
+
+@pytest.mark.parametrize("invalid", [-1, float("nan"), float("inf"), True, "0"])
+def test_software_fee_rejects_invalid_monetary_values(invalid):
+    from harness.web_extract.report import price_quote
+
+    with pytest.raises(ValueError, match="software fee"):
+        price_quote({"software_fee_usd_per_1000": invalid, "cost_unavailable": {}}, "en")
+
+
 def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     output = tmp_path / "report"
     create(output, mode="full-cohort-progress")
