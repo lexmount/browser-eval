@@ -50,6 +50,12 @@ class RunnerConcurrencyTest(unittest.TestCase):
                                provider_config_path=Path('providers.json'), runs=1, timeout=1,
                                delay=0, provider_concurrency=1)
             retained = (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()
+            manifest = json.loads((Path(tmp) / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual(manifest['attempt_count'], 1)
+            self.assertEqual(manifest['attempt_ids'], [json.loads(retained[0])['attempt_id']])
+            self.assertEqual(manifest['execution_status'], 'interrupted')
+            self.assertTrue(manifest['completed_at'])
+            self.assertEqual({r['case_id'] for r in manifest['unexecuted'] if 'case_id' in r}, {'1', '2'})
         self.assertEqual(calls, ['0'])
         self.assertEqual(len(retained), 1)
         self.assertTrue(json.loads(retained[0])['ok'])
@@ -96,6 +102,13 @@ class RunnerConcurrencyTest(unittest.TestCase):
                                    provider_config_path=Path('providers.json'), runs=1, timeout=1,
                                    delay=0, provider_concurrency=2)
             retained = (Path(tmp) / 'results.jsonl').read_text(encoding="utf-8").splitlines()
+            manifest = json.loads((Path(tmp) / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual(manifest['attempt_count'], 2)
+            self.assertEqual(set(manifest['attempt_ids']),
+                             {json.loads(row)['attempt_id'] for row in retained})
+            self.assertEqual(manifest['execution_status'], 'interrupted')
+            self.assertTrue(manifest['completed_at'])
+            self.assertEqual({r['case_id'] for r in manifest['unexecuted'] if 'case_id' in r}, {'1', '2'})
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(retained), 2)
         self.assertTrue(all(json.loads(row)['ok'] for row in retained))

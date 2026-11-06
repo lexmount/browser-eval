@@ -1034,13 +1034,27 @@ def run_evaluation(
                         'provider': provider.name,
                         'reason': 'non_cancellable_call_still_running; admission stopped',
                     } for provider in providers if provider.name not in finished_providers)
-        except ReferenceLifecycleError as error:
-            if reference_checks is not None:
+        except BaseException as error:
+            if isinstance(error, ReferenceLifecycleError) and reference_checks is not None:
                 reference_checks.update(status=error.status, callcheck_error=str(error))
-                manifest.update(completed_at=utc_now(), attempt_count=len(records),
-                                attempt_ids=[record["attempt_id"] for record in records])
-                (output_dir / "manifest.json").write_text(
-                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            retained = {record["attempt_id"] for record in records}
+            for provider in providers:
+                for run_number in range(1, runs + 1):
+                    for case in cases:
+                        attempt_id = f"{provider.name}__{case.id}__r{run_number:03d}"
+                        if attempt_id not in retained:
+                            manifest['unexecuted'].append({
+                                'provider': provider.name, 'case_id': case.id,
+                                'run': run_number, 'attempt_id': attempt_id,
+                                'reason': 'execution interrupted before this call completed',
+                            })
+            manifest.update(
+                completed_at=utc_now(), attempt_count=len(records),
+                attempt_ids=[record["attempt_id"] for record in records],
+                execution_status="interrupted" if isinstance(error, KeyboardInterrupt) else "failed",
+            )
+            (output_dir / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             raise
 
     provider_order = {provider.name: index for index, provider in enumerate(providers)}
