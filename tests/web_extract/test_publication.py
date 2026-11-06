@@ -65,6 +65,92 @@ def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
     assert not work.exists()
 
 
+@pytest.mark.parametrize(
+    "damage", [None, "coordinated-public-audit", "original", "content", "profile"]
+)
+def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
+    tmp_path, monkeypatch, damage
+):
+    from harness.web_extract.report import publication_host_names
+    from harness.web_fetch.publication_privacy import project_evidence_view
+
+    source, target, work, visual = setup_report(tmp_path)
+    frozen = tmp_path / "frozen"
+    audit = frozen / "audit.json"
+    save_json(audit, {"result_count": 1, "excluded_fields": {}})
+    audit_hash = digest(audit.read_bytes())
+    content = frozen / "content.json"
+    save_json(content, {"audit": {"path": "audit.json", "sha256": audit_hash}})
+    profile = frozen / "profile.json"
+    save_json(
+        profile,
+        {
+            "research_report": {
+                "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
+            }
+        },
+    )
+    profile_hash = digest(profile.read_bytes())
+    path = "public-evidence/audit.json"
+    raw, receipt = project_evidence_view(
+        path,
+        audit.read_bytes(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    published = source / path
+    published.parent.mkdir()
+    published.write_bytes(raw)
+    manifest = {
+        "profile_sha256": profile_hash,
+        "completion_audit": {"path": path, "source_sha256": audit_hash, "sha256": digest(raw)},
+        "public_evidence_views": [receipt],
+        "completion_reference_exclusions": {},
+    }
+    if damage == "coordinated-public-audit":
+        save_json(published, {"result_count": 1, "excluded_fields": {"page": ["sku"]}})
+        manifest["completion_audit"]["sha256"] = digest(published.read_bytes())
+        receipt["published_sha256"] = digest(published.read_bytes())
+        manifest["completion_reference_exclusions"] = {"page": ["sku"]}
+        # Source hashes still claim the untouched, frozen original. Rebuilding
+        # the bundle and tables cannot legitimize the forged public audit.
+    elif damage:
+        changed = {"original": audit, "content": content, "profile": profile}[damage]
+        save_json(changed, {"substituted": True})
+    save_json(source / "report-manifest.json", manifest)
+    bound = read_json(target)
+    bound.update(
+        {"profile_sha256": profile_hash, "profile": {"path": str(profile), "sha256": profile_hash}}
+    )
+    save_json(target, bound)
+    calls = []
+    monkeypatch.setattr(
+        publication,
+        "package",
+        lambda *a, **k: (
+            calls.append("package")
+            or {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+        ),
+    )
+
+    def update(staged, **kwargs):
+        calls.append("network")
+        staged.guard()
+        staged.bind("ver_after")
+        return "ver_after"
+
+    monkeypatch.setattr(publication, "publish_staged_update", update)
+    if damage:
+        with pytest.raises(ValueError, match="Completion audit"):
+            publication.publish(source, target, work, visual)
+        assert calls == []
+        assert not work.exists()
+    else:
+        assert publication.publish(source, target, work, visual)["versionId"] == "ver_after"
+        assert calls == ["package", "network"]
+
+
 @pytest.mark.parametrize("approved", [False, True])
 def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch, approved):
     source, target, work, visual = setup_report(tmp_path)

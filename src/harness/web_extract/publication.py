@@ -6,7 +6,43 @@ from harness.record_io import json_bytes
 from harness.reporting.publication import PublicationClient, archive_inventory, atomic_write
 from harness.reporting.publish import StagedUpdate, publish_staged_update
 from harness.web_extract.pipeline import digest, read_json, require_external_output
-from harness.web_extract.report import check, package
+from harness.web_extract.report import check, package, publication_host_names
+from harness.web_fetch.publication_privacy import project_evidence_view
+
+
+def verify_completion_audit(source, profile):
+    """Resolve coverage from the external, profile-bound original audit."""
+    source = Path(source)
+    manifest = read_json(source / "report-manifest.json")
+    authority = manifest.get("completion_audit")
+    if not authority:
+        return
+    if not profile:
+        raise ValueError("Completion audit requires its frozen profile")
+    profile = Path(profile)
+    if profile.is_symlink() or digest(profile.read_bytes()) != manifest["profile_sha256"]:
+        raise ValueError("Completion audit frozen profile changed")
+    content_binding = read_json(profile)["research_report"]["content"]
+    content = profile.parent / content_binding["path"]
+    if content.is_symlink() or digest(content.read_bytes()) != content_binding["sha256"]:
+        raise ValueError("Completion audit frozen content changed")
+    audit_binding = read_json(content)["audit"]
+    audit = content.parent / audit_binding["path"]
+    raw = audit.read_bytes()
+    if audit.is_symlink() or digest(raw) != audit_binding["sha256"]:
+        raise ValueError("Completion audit original changed")
+    projected, _ = project_evidence_view(
+        authority["path"],
+        raw,
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    if (
+        authority["source_sha256"] != audit_binding["sha256"]
+        or (source / authority["path"]).read_bytes() != projected
+    ):
+        raise ValueError("Completion audit differs from its frozen original")
 
 
 def publish(source, target, work, visual_receipt, *, transport=None):
@@ -49,7 +85,9 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     def unchanged_profile():
         if current != previous and digest(Path(next_profile).read_bytes()) != current:
             raise ValueError("Publication successor profile changed")
+        verify_completion_audit(source, next_profile)
 
+    unchanged_profile()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     if archive.exists():
