@@ -698,7 +698,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         except BaseException:
             interruption = output / "interruption.json"
             if interruption.exists():
-                status = json.loads(interruption.read_text())
+                status = json.loads(interruption.read_text(encoding="utf-8"))
                 status.update(completed_logical_results=len(rows),
                               results_sha256=bytes_sha256((output / "results.jsonl").read_bytes()))
                 write_json(interruption, status)

@@ -72,6 +72,10 @@ is invalid. A shared mutable WebArena stack is a valid exclusive resource;
 additional concurrency requires independent containers, networks, ports and
 writable state. Different accounts alone do not establish isolation.
 
+Give each blocking stage a wall-time deadline and a process cleanup path. Browser
+operation timeouts alone cannot stop a stuck driver or teardown. Retain a stack
+dump or error receipt on expiry, stop admission, and release that stage's processes.
+
 Web Fetch provider configurations can declare `execution_resources`, a mapping
 from a shared service/account name to its `capacity` and `reason`. Variants using
 the same name share that limit; conflicting declarations stop before calls.

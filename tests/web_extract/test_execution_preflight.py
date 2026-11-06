@@ -73,7 +73,9 @@ def test_preflight_is_separate_and_full_collection_requires_its_bound_assessment
         run(home, final, "cloudflare-json", measured)
         assert call.call_count == 5
         assert read_json(measured / "certificate.json")["case_count"] == 3
-        (diagnostic / "execution-preflight.json").write_text("changed readiness evidence")
+        (diagnostic / "execution-preflight.json").write_text(
+            "changed readiness evidence", encoding="utf-8"
+        )
         with pytest.raises(ValueError, match="evidence changed"):
             run(home, final, "cloudflare-json", measured)
         assert call.call_count == 5

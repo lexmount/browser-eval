@@ -618,7 +618,9 @@ def run_evaluation(
         "schema_version": 1,
         "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
             p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
-            for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
+            for p in sorted(Path(__file__).parent.rglob('*.py')))
+            + b'\0benchmark_execution.py\0'
+            + (Path(__file__).parents[1] / 'benchmark_execution.py').read_bytes()).hexdigest(),
         "provider_config_sha256": optional_file_sha256(provider_config_path),
         "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (benchmark_input_path(dataset_path).parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
@@ -648,12 +650,12 @@ def run_evaluation(
             }
             for provider in providers
         ],
+        "execution_policy": execution_policy,
         "parameters": {
             "runs": runs,
             "timeout": timeout,
             "delay": delay,
             "provider_concurrency": workers,
-            "execution_policy": execution_policy,
             "concurrency_scope": ("serial_alternating_providers_per_case"
                                   if call_order == "case-alternating"
                                   else "providers_parallel_cases_sequential_per_provider"),
