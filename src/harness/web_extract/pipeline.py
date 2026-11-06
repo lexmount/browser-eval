@@ -1390,7 +1390,11 @@ def captured_html(home, case_id, raw):
     encoding = None
     if provenance.exists():
         encoding = read_json(provenance)[case_id].get("qualification", {}).get("encoding")
-    return raw.decode(encoding or "utf-8")
+    if encoding is None and raw.strip():
+        from lxml import html
+
+        encoding = html.fromstring(raw).getroottree().docinfo.encoding
+    return raw.decode(encoding or "utf-8", errors="replace")
 
 
 def collect_calls(
@@ -1525,6 +1529,12 @@ def collect_calls(
             if missing:
                 row.update(state="credentials_missing", missing_variables=missing)
             else:
+                html_input = (
+                    ""
+                    if registry[method]["input"] == "url"
+                    or (native_options or {}).get("input_route") == "url"
+                    else captured_html(home, case_id, raw)
+                )
                 if last_call_started is not None:
                     remaining = max(
                         min_call_interval - (time.monotonic() - last_call_started),
@@ -1552,10 +1562,7 @@ def collect_calls(
                     row.update(
                         provider_call(
                             method,
-                            ""
-                            if registry[method]["input"] == "url"
-                            or (native_options or {}).get("input_route") == "url"
-                            else captured_html(home, case_id, raw),
+                            html_input,
                             truth[case_id]["url"],
                             truth[case_id]["url"]
                             if contract.get("input_mode") == "live"

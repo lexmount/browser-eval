@@ -937,13 +937,15 @@ def check_manifest(home, origin, hf_identity):
     }
 
 
-def managed_cloudflare(binding, origin):
-    """Only an independently confirmed immutable Pages deployment permits reuse."""
+def cloudflare_identity(binding, origin):
+    """Validate retained deployment identity without requiring online credentials."""
     if binding.get("hosting_provider") != "cloudflare":
-        return False
+        return None
     parts = urlsplit(origin)
     match = re.fullmatch(r"([0-9a-f]{8})\.([a-z0-9-]+)\.pages\.dev", parts.hostname or "")
     identity = binding.get("cloudflare", {})
+    if not isinstance(identity, dict) or not identity.get("account_id"):
+        return None
     deployment = identity.get("deployment_id", "")
     if (
         not match
@@ -954,7 +956,17 @@ def managed_cloudflare(binding, origin):
         or deployment[:8] != match[1]
         or identity.get("project") != match[2]
     ):
+        return None
+    return identity
+
+
+def managed_cloudflare(binding, origin):
+    """Only an independently confirmed immutable Pages deployment permits reuse."""
+    identity = cloudflare_identity(binding, origin)
+    if identity is None:
         return False
+    parts = urlsplit(origin)
+    deployment = identity["deployment_id"]
     import requests
 
     from harness.web_fetch.config import repository_env
@@ -968,7 +980,7 @@ def managed_cloudflare(binding, origin):
     ):
         return False
     response = requests.get(
-        f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/{match[2]}/deployments/{deployment}",
+        f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/{identity['project']}/deployments/{deployment}",
         headers={"Authorization": "Bearer " + credentials["CLOUDFLARE_API_TOKEN"]},
         timeout=40,
     )
@@ -1068,6 +1080,7 @@ def validate_fixture_receipts(
         version, cases = inventory(home)
         if (
             bound is None
+            or cloudflare_identity(bound, fixture_base) is None
             or row.get("schema") != "web-extract-deployment-bytes/1"
             or row.get("case_id") != "deployment-bytes"
             or row.get("fixture_base") != fixture_base

@@ -1483,6 +1483,7 @@ def test_verified_deployment_reuses_proof_only_for_the_same_inventory_and_files(
     snapshots.deployment_proof(home, changed, base.replace("1234abcd", "abcdef12"))
     assert state["calls"] > count
     receipt = {
+        "hosting_provider": "cloudflare",
         "mode": "dataset_manifest",
         "fixture_base": base,
         "html_inventory_sha256": version,
@@ -1611,3 +1612,76 @@ def test_invalid_resource_stops_queued_snapshot_downloads(tmp_path, monkeypatch)
     with pytest.raises(ValueError, match="resource differs"):
         snapshots.verify_resources(home, "https://frozen.example", workers=1)
     assert len(called) < 21
+
+
+@pytest.mark.parametrize("encoding", ["windows-1252", "utf-8"])
+def test_meta_declared_html_reaches_the_upload_provider(tmp_path, monkeypatch, encoding):
+    source = definition(tmp_path, mode="snapshot")
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    raw = ('<html><meta charset="' + encoding + '"><h1>André</h1></html>').encode(encoding)
+    if encoding == "utf-8":
+        raw += b"<footer>Damaged unrelated text: \xff</footer>"
+    Path(item["input"]).write_bytes(raw)
+    item.update(input_sha256=pipeline.digest(raw), values={"name": ["André"]})
+    item["qualification"].update(
+        input_sha256=pipeline.digest(raw),
+        reference_sha256=pipeline.digest(
+            json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+        ),
+    )
+    assert "encoding" not in item["qualification"]
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "synthetic")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "synthetic")
+    sent = []
+
+    def provider(method, html, *args, **options):
+        sent.append(html)
+        return {"http_status": 200, "response": {"result": {"name": ["André"]}}}
+
+    monkeypatch.setattr(pipeline, "provider_call", provider)
+    run = pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
+    rows = pipeline.load_run(run)[1]
+    assert len(sent) == 1 and "André" in sent[0]
+    assert rows[0]["compatibility"] == "structured_output"
+    assert len((run / "calls.journal.jsonl").read_text(encoding="utf-8").splitlines()) == 1
+
+
+@pytest.mark.parametrize("hosting", ["external", "cloudflare"])
+@pytest.mark.parametrize(
+    "identity", [None, {}, {"project": "example", "account_id": "account", "deployment_id": "bad"}]
+)
+def test_unqualified_hosts_cannot_substitute_a_deployment_proof_for_byte_receipts(
+    tmp_path, hosting, identity
+):
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    version, cases = snapshots.inventory(home)
+    base = "https://1234abcd.example.pages.dev/frozen"
+    bound = {
+        "hosting_provider": hosting,
+        "mode": "dataset_manifest",
+        "fixture_base": base,
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+        "manifest_sha256": "a" * 64,
+    }
+    proof = {
+        "scope": "deployment",
+        "case_id": "deployment-bytes",
+        "schema": "web-extract-deployment-bytes/1",
+        "fixture_base": base,
+        "html_inventory_sha256": version,
+        "page_count": len(cases),
+        "resource_count": 1,
+        "verified_at": "2026-11-01T00:00:00+00:00",
+    }
+    if identity is not None:
+        bound["cloudflare"] = identity
+        proof["cloudflare"] = identity
+    rows = snapshots.manifest_receipt(home, bound, base) + [proof]
+    with pytest.raises(ValueError, match="deployment byte proof differs"):
+        snapshots.validate_fixture_receipts(home, rows, base, ["one"], bound=bound)
