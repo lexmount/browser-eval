@@ -278,18 +278,20 @@ def test_python_partitions_cover_existing_and_future_test_directories_once(tmp_p
 def test_ci_browser_exclusion_reaches_recursive_make(tmp_path):
     makefile = tmp_path / 'Makefile'
     targets = ['runtime-check', 'track-naming-check', 'lint-check', 'shell-check',
-               'fixture-smoke', 'test-ui', 'test-native-adapters']
+               'fixture-smoke', 'test-ui', 'test-native-adapters',
+               'benchmark-contract-check', 'test-extraction-sdk']
     makefile.write_text(
         f'include {ROOT / "Makefile"}\n'
         + ''.join(f'{target}:\n\t@:\n' for target in targets)
         + 'test-python:\n\t@echo browser-selection=$(BROWSER_TESTS)\n'
-        + f'ci-tests:\n\t+$(MAKE) --no-print-directory -f {makefile} test-python\n',
+        + 'ci-tests: recursive-browser-probe\n'
+        + f'recursive-browser-probe:\n\t+$(MAKE) --no-print-directory -f {makefile} test-python\n',
         encoding='utf-8',
     )
     result = subprocess.run(['make', '--no-print-directory', '-f', str(makefile), 'ci-tests'],
                             cwd=tmp_path, capture_output=True, text=True, check=True)
-    assert result.stdout.count('browser-selection=exclude') == 2
-    assert 'browser-selection=include' not in result.stdout
+    selections = [line for line in result.stdout.splitlines() if line.startswith('browser-selection=')]
+    assert selections and set(selections) == {'browser-selection=exclude'}
 
 
 @pytest.mark.parametrize('shard', ['0/2', '3/2', '1/0', 'bad', '1/2/3'])
