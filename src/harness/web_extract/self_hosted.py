@@ -5,14 +5,18 @@ import contextlib
 import hashlib
 import hmac
 import importlib.metadata
+import io
 import json
+import multiprocessing
 import os
 import resource
 import signal
 import subprocess
 import sys
 import sysconfig
+import tempfile
 import time
+import traceback
 from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -24,6 +28,13 @@ ENGINES = {
     "firecrawl": None,
 }
 KEEPALIVE_SECONDS = 5
+
+
+def worker_mode():
+    mode = os.environ.get("EXTRACTION_WORKER_MODE", "process")
+    if mode not in {"process", "forkserver"} or (mode == "forkserver" and sys.platform != "linux"):
+        raise ValueError("EXTRACTION_WORKER_MODE must be process, or forkserver on Linux")
+    return mode
 
 
 def validate_input(value):
@@ -67,10 +78,11 @@ def validate_input(value):
 def installed_environment_sha256():
     """Ignore the caller's working directory when fingerprinting installed packages."""
     paths = sorted({sysconfig.get_paths()[key] for key in ("purelib", "platlib")})
-    packages = sorted(
-        (str(d.metadata.get("Name", "unknown")), str(d.version))
-        for d in importlib.metadata.distributions(path=paths)
-    )
+    packages = []
+    for distribution in importlib.metadata.distributions(path=paths):
+        metadata = distribution.metadata
+        packages.append((str(metadata.get("Name", "unknown")), str(metadata["Version"])))
+    packages.sort()
     return hashlib.sha256(json.dumps(packages).encode()).hexdigest()
 
 
@@ -102,9 +114,22 @@ def local_runtime_identity(engine):
         "model_context_tokens": int(os.environ.get("EXTRACTION_MODEL_CONTEXT_TOKENS", "128000")),
         "implementation": "native-open-source/1",
         "json_keepalive": True,
+        "worker_mode": worker_mode(),
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "environment_sha256": installed_environment_sha256(),
     }
+    if identity["worker_mode"] == "forkserver":
+        preload_hash = hashlib.sha256(
+            Path(__file__).with_name("worker_preload.py").read_bytes()
+        ).hexdigest()
+        identity["preload_sha256"] = preload_hash
+        loaded = sys.modules.get("harness.web_extract.worker_preload")
+        if loaded is not None and (
+            preload_hash != loaded.PRELOAD_SHA256
+            or identity["implementation_sha256"] != loaded.WORKER_SHA256
+            or identity["environment_sha256"] != loaded.ENVIRONMENT_SHA256
+        ):
+            raise ValueError("Preloaded extraction runtime changed; restart the service")
     if engine == "scrapegraph":
         identity["native_input"] = "html"
     if engine == "crawl4ai":
@@ -252,6 +277,7 @@ def graph(value):
 
 
 async def stagehand_extract(value):
+    phase_started = time.monotonic()
     from json_schema_to_pydantic import create_model
     from openai import AsyncOpenAI
     from stagehand import (
@@ -261,6 +287,7 @@ async def stagehand_extract(value):
         local_browser,
     )
 
+    timings = {"sdk_import_seconds": time.monotonic() - phase_started}
     calls = []
     async with AsyncOpenAI(
         api_key=os.environ["EXTRACTION_MODEL_API_KEY"],
@@ -295,7 +322,7 @@ async def stagehand_extract(value):
                 response_format={"type": "json_object"},
                 temperature=0,
                 max_tokens=8192,
-            )
+                    )
             calls.append(response.model_dump(mode="json"))
             text = response.choices[0].message.content
             return LLMStructuredGenerateResult.model_validate(
@@ -315,6 +342,7 @@ async def stagehand_extract(value):
                 }
             )
 
+        phase_started = time.monotonic()
         browser = await local_browser.launch(
             headless=True,
             chromium_sandbox=False,
@@ -324,18 +352,26 @@ async def stagehand_extract(value):
                 else {}
             ),
         )
+        timings["browser_launch_seconds"] = time.monotonic() - phase_started
         try:
+            phase_started = time.monotonic()
             extractor = await Stagehand.create(browser=browser, model=generate, cache=False)
+            timings["session_setup_seconds"] = time.monotonic() - phase_started
             try:
                 page = (await browser.context.pages())[0]
+                phase_started = time.monotonic()
                 await page.goto(value["url"])
+                timings["navigation_seconds"] = time.monotonic() - phase_started
+                phase_started = time.monotonic()
                 result = await extractor.extract(
                     value.get("instruction", "Extract the fields of the main record."),
                     create_model(value["schema"]),
                 )
+                timings["extraction_seconds"] = time.monotonic() - phase_started
                 return result.data.model_dump(mode="json"), {
                     "extract": result.model_dump(mode="json"),
                     "model_calls": calls,
+                    "timings": timings,
                 }
             finally:
                 await extractor.close()
@@ -431,7 +467,7 @@ def terminate_children(parent):
     psutil.wait_procs(list(descendants.values()), timeout=1)
 
 
-def supervise(command):
+def supervise(command, *, launch=None):
     """Keep Linux orphans under one request, rather than the shared HTTP service."""
     import ctypes
 
@@ -446,7 +482,7 @@ def supervise(command):
     for name in (signal.SIGTERM, signal.SIGINT):
         signal.signal(name, interrupted)
     try:
-        child = subprocess.Popen(command)
+        child = (launch or subprocess.Popen)(command)
         return child.wait()
     finally:
         for name in (signal.SIGTERM, signal.SIGINT):
@@ -460,12 +496,91 @@ def supervise(command):
                 break
 
 
+@lru_cache(maxsize=1)
+def worker_context():
+    context = multiprocessing.get_context("forkserver")
+    context.set_forkserver_preload(["harness.web_extract.worker_preload"])
+    return context
+
+
+def forked_request(value, connection, execute):
+    """One isolated request, with imported code inherited from a quiet forkserver."""
+    from types import SimpleNamespace
+
+    # Keep the same request supervisor as fresh workers: an SDK crash must not
+    # orphan a detached browser. Fork only this verified single-threaded process.
+    with tempfile.TemporaryFile(mode="w+t", encoding="utf-8") as receipt:
+        def launch(_command):
+            if len(os.listdir("/proc/self/task")) != 1:
+                raise RuntimeError("Request supervisor must be single-threaded")
+            pid = os.fork()
+            if pid == 0:
+                errors = io.StringIO()
+                try:
+                    with contextlib.redirect_stdout(errors), contextlib.redirect_stderr(errors):
+                        output = execute(value)
+                    result = (0, json.dumps(output, default=str), errors.getvalue())
+                except BaseException:
+                    result = (1, "", errors.getvalue() + traceback.format_exc())
+                receipt.write(json.dumps(result))
+                receipt.flush()
+                os._exit(0)
+            return SimpleNamespace(wait=lambda: os.waitpid(pid, 0)[1])
+
+        supervise([], launch=launch)
+        receipt.seek(0)
+        retained = receipt.read()
+        result = json.loads(retained) if retained else (
+            1, "", "Native extraction process exited without a response"
+        )
+    try:
+        with contextlib.suppress(BrokenPipeError):
+            connection.send(result)
+    finally:
+        connection.close()
+
+
+def run_forkserver_worker(value, *, timeout=110, execute=worker):
+    import psutil
+
+    context = worker_context()
+    receive, send = context.Pipe(duplex=False)
+    process = context.Process(target=forked_request, args=(value, send, execute))
+    started = time.monotonic()
+    process.start()
+    send.close()
+    try:
+        if not receive.poll(max(0, timeout - (time.monotonic() - started))):
+            raise subprocess.TimeoutExpired("forkserver extraction", timeout)
+        try:
+            code, stdout, stderr = receive.recv()
+        except EOFError:
+            code, stdout, stderr = 1, "", "Native extraction process exited without a response"
+        return subprocess.CompletedProcess("forkserver extraction", code, stdout, stderr)
+    finally:
+        receive.close()
+        process.join(timeout=0.1)
+        if process.is_alive():
+            with contextlib.suppress(psutil.NoSuchProcess):
+                terminate_children(psutil.Process(process.pid))
+            with contextlib.suppress(ProcessLookupError):
+                process.kill()
+        process.join(timeout=3)
+        process.close()
+
+
+def preload_ready(_value):
+    return {"ready": True}
+
+
 def run_worker(value, *, timeout=110, command=None):
     """Contain native browser descendants, including SDK-created sessions."""
     import psutil
 
     # Fail before spawning when the host cannot enumerate this process's children.
     psutil.Process().children(recursive=True)
+    if command is None and worker_mode() == "forkserver":
+        return run_forkserver_worker(value, timeout=timeout)
     command = command or [sys.executable, "-m", "harness.web_extract.self_hosted"]
     if sys.platform == "linux":
         command = [sys.executable, "-m", "harness.web_extract.self_hosted", "--supervise", *command]
@@ -534,7 +649,15 @@ async def read_request_body(request, *, limit=100_000):
 def create_app():
     from fastapi import FastAPI, Header, HTTPException, Request
 
-    app = FastAPI(title="Open-source Web Extract", docs_url=None, redoc_url=None)
+    @contextlib.asynccontextmanager
+    async def lifespan(_app):
+        if worker_mode() == "forkserver":
+            outcome = await asyncio.to_thread(run_forkserver_worker, {}, execute=preload_ready)
+            if outcome.returncode:
+                raise RuntimeError("Native SDK preload failed: " + outcome.stderr)
+        yield
+
+    app = FastAPI(title="Open-source Web Extract", docs_url=None, redoc_url=None, lifespan=lifespan)
 
     def authenticated(authorization):
         token = os.environ.get("EXTRACTION_API_KEY", "")

@@ -9,6 +9,11 @@ services:
       EXTRACTION_MODEL: ${EXTRACTION_MODEL:-deepseek-flash}
       EXTRACTION_MODEL_BASE: ${EXTRACTION_MODEL_BASE:-https://api.deepseek.com}
       EXTRACTION_MODEL_CONTEXT_TOKENS: ${EXTRACTION_MODEL_CONTEXT_TOKENS:-1000000}
+      EXTRACTION_WORKER_MODE: ${EXTRACTION_WORKER_MODE:-forkserver}
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
       SNAPSHOT_ORIGINS: ${SNAPSHOT_ORIGINS:?Set the exact Cloudflare snapshot origins}
       FIRECRAWL_BACKEND_URL: http://firecrawl-api:3002
       FIRECRAWL_IDENTITY_URL: http://firecrawl-api:3020/identity
@@ -24,7 +29,7 @@ services:
       timeout: 10s
       retries: 12
       start_period: 30s
-    cpus: 1
+    cpus: 4
     mem_limit: 4g
 
   firecrawl-api:
