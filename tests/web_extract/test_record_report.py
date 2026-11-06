@@ -200,48 +200,122 @@ def rebind(output, route, transform):
     save_json(output / "report-manifest.json", manifest)
 
 
-@pytest.mark.parametrize('button_index', [0, -1])
-@pytest.mark.parametrize('source', ['public-evidence/missing.json', '../outside.json'])
+def test_nested_benchmark_keeps_navigation_evidence_and_english_notice_in_scope(tmp_path):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "source", mode="field-extraction-cohort")
+    model = read_json(home / "content.json")
+    model["site_prefix"] = "sample"
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    root = tmp_path / "suite"
+    root.mkdir()
+    (root / "index.html").write_text("<h1>All benchmarks</h1>", encoding="utf-8")
+    output = root / "sample"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    soup = BeautifulSoup((output / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
+    assert soup.select_one("[data-suite-home]")["href"] == "index.html"
+    assert soup.select_one("[data-call-log-open]")["data-src"].startswith("sample/public-evidence/")
+    rows = read_json(output / "public-evidence" / (next(iter(model["participants"])) + ".json"))
+    assert all(row["result_href"].startswith("sample/zh/") for row in rows.values())
+    notice = BeautifulSoup((output / "en/index.html").read_text(encoding="utf-8"), "html.parser")
+    assert notice.select_one("a")["href"] == "sample/zh/index.html"
+    assert notice.base["href"] == "../../"
+    (root / "style.css").write_bytes((output / "style.css").read_bytes())
+    rebind(
+        output,
+        "zh/results.html",
+        lambda s: s.replace('href="sample/style.css"', 'href="style.css"'),
+    )
+    with pytest.raises(ValueError, match="escaped its dataset"):
+        check(output)
+
+
+@pytest.mark.parametrize("change", ["substitute", "remove"])
+def test_live_report_requires_reference_bound_original_source_navigation(tmp_path, change):
+    from harness.web_extract.example import create_record
+
+    output = tmp_path / "report"
+    create_record(output, input_mode="live")
+    truth = read_json(output / "public-evidence/reference.json")
+    manifest = read_json(output / "report-manifest.json")
+    check(output)
+    cid = next(iter(truth))
+    if change == "substitute":
+        manifest["preview_snapshot"]["urls"][cid] = "https://unrelated.example/"
+        save_json(output / "report-manifest.json", manifest)
+    else:
+        for path in (output / "zh").glob("*.html"):
+            soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+            for link in soup.select("a[data-live-source]"):
+                link.decompose()
+            rebind(output, path.relative_to(output).as_posix(), lambda _, s=soup: str(s))
+    with pytest.raises(ValueError, match="Live preview URLs|requires its original source link"):
+        check(output)
+
+
+def test_snapshot_report_cannot_relabel_its_preview_as_live(tmp_path):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    manifest = read_json(output / "report-manifest.json")
+    truth = read_json(output / "public-evidence/reference.json")
+    manifest["preview_snapshot"] = {
+        "mode": "live",
+        "case_count": len(truth),
+        "urls": {cid: ref["url"] for cid, ref in truth.items()},
+    }
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="input mode"):
+        check(output)
+
+
+@pytest.mark.parametrize("button_index", [0, -1])
+@pytest.mark.parametrize("source", ["public-evidence/missing.json", "../outside.json"])
 def test_inventory_evidence_targets_are_validated_after_rebinding(tmp_path, button_index, source):
-    output = tmp_path / 'report'
-    create(output, mode='field-extraction-cohort')
-    (tmp_path / 'outside.json').write_text('{}', encoding='utf-8')
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    (tmp_path / "outside.json").write_text("{}", encoding="utf-8")
 
     def break_evidence(text):
-        soup = BeautifulSoup(text, 'html.parser')
-        buttons = soup.select('[data-call-log-open]')
+        soup = BeautifulSoup(text, "html.parser")
+        buttons = soup.select("[data-call-log-open]")
         assert len(buttons) > 1
-        buttons[button_index]['data-src'] = source
+        buttons[button_index]["data-src"] = source
         return str(soup)
 
-    rebind(output, 'zh/results.html', break_evidence)
-    with pytest.raises(ValueError, match='Broken record evidence|relative to the hosted site root'):
+    rebind(output, "zh/results.html", break_evidence)
+    with pytest.raises(ValueError, match="Broken record evidence|relative to the hosted site root"):
         check(output)
 
 
 def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path):
-    output = tmp_path / 'report'
-    create(output, mode='field-extraction-cohort')
-    method = 'scrapegraph-extract'
-    relative = 'public-evidence/' + method + '.json'
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    method = "scrapegraph-extract"
+    relative = "public-evidence/" + method + ".json"
     path = output / relative
     bucket = read_json(path)
-    bucket['one']['case_id'], bucket['two']['case_id'] = 'two', 'one'
+    bucket["one"]["case_id"], bucket["two"]["case_id"] = "two", "one"
     save_json(path, bucket)
-    manifest = read_json(output / 'report-manifest.json')
-    manifest['files'][relative] = digest(path.read_bytes())
-    for receipt in manifest['public_evidence_views']:
-        if receipt['path'] == relative:
-            receipt['published_sha256'] = digest(path.read_bytes())
-            receipt['published_bytes'] = path.stat().st_size
-    save_json(output / 'report-manifest.json', manifest)
-    for case_id, other in [('one', 'two'), ('two', 'one')]:
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"][relative] = digest(path.read_bytes())
+    for receipt in manifest["public_evidence_views"]:
+        if receipt["path"] == relative:
+            receipt["published_sha256"] = digest(path.read_bytes())
+            receipt["published_bytes"] = path.stat().st_size
+    save_json(output / "report-manifest.json", manifest)
+    for case_id, other in [("one", "two"), ("two", "one")]:
+
         def swap_target(text, other=other):
-            soup = BeautifulSoup(text, 'html.parser')
-            soup.find('details', id=method).select_one('[data-call-log-open]')['data-key'] = other
+            soup = BeautifulSoup(text, "html.parser")
+            soup.find("details", id=method).select_one("[data-call-log-open]")["data-key"] = other
             return str(soup)
-        rebind(output, 'zh/' + record_route('c', case_id) + '.html', swap_target)
-    with pytest.raises(ValueError, match='evidence.*case identit'):
+
+        rebind(output, "zh/" + record_route("c", case_id) + ".html", swap_target)
+    with pytest.raises(ValueError, match="evidence.*case identit"):
         check(output)
 
 
@@ -282,10 +356,17 @@ def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
             row = soup.select_one('tr[data-method="scrapegraph-extract"][data-status="pass"]')
             key = {
                 "filter": "data-outcome",
-                "field-filter": "data-author",
+                "field-filter": "data-field-outcomes",
                 "coverage": "data-scored-fields",
             }[damage]
-            row[key] = "0" if damage == "coverage" else "wrong"
+            if damage == "field-filter":
+                import json
+
+                outcomes = json.loads(row[key])
+                outcomes["author"] = "wrong"
+                row[key] = json.dumps(outcomes)
+            else:
+                row[key] = "0" if damage == "coverage" else "wrong"
             return str(soup)
 
         rebind(output, "zh/results.html", change)
@@ -741,3 +822,32 @@ def test_record_release_rejects_free_text_price_without_numeric_conversion(tmp_p
     monkeypatch.setattr("harness.web_extract.report.check_input_profile", lambda *args: None)
     with pytest.raises(ValueError, match="normalized price"):
         check(output, release=True)
+
+
+@pytest.mark.parametrize(
+    "field", ["Display Name", "Price", "status", "x.y", "constructor", "toString", "__proto__"]
+)
+def test_arbitrary_schema_field_names_keep_filter_identity(tmp_path, monkeypatch, field):
+    from harness.web_extract import example
+
+    save = example.save_json
+
+    def rename(value):
+        if isinstance(value, dict):
+            return {field if key == "author" else key: rename(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [rename(item) for item in value]
+        return field if value == "author" else value
+
+    def write(path, value, **kwargs):
+        return save(path, rename(value), **kwargs)
+
+    monkeypatch.setattr(example, "save_json", write)
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    check(output)
+    soup = BeautifulSoup((output / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
+    import json
+
+    outcomes = [json.loads(row["data-field-outcomes"]) for row in soup.select("tr[data-status]")]
+    assert outcomes and all(field in value for value in outcomes)

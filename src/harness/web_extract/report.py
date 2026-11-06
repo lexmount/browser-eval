@@ -191,6 +191,7 @@ def page(
     state="compatibility",
     navigation=None,
     notice=None,
+    site_prefix="",
 ):
     labels = LABELS[language]
     if state != "compatibility":
@@ -282,6 +283,33 @@ def page(
             value = element.get(attr)
             if value is not None and not urlsplit(value).scheme and not urlsplit(value).netloc:
                 element[attr] = urljoin(f"/{language}/{route}.html", value).lstrip("/")
+    return scope_record_html(str(soup), site_prefix)
+
+
+def scope_record_html(raw, prefix, *, restore=False):
+    """Keep owned links working under the hosted site's root base element."""
+    if not prefix:
+        return raw
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", prefix):
+        raise ValueError("Report prefix must be a single safe directory")
+    soup = BeautifulSoup(raw, "html.parser")
+    for node in soup.select("a[href],link[href],script[src],img[src],[data-src]"):
+        for attr in ("href", "src", "data-src"):
+            value = node.get(attr)
+            if value is None or urlsplit(value).scheme or urlsplit(value).netloc:
+                continue
+            if restore:
+                if value.startswith(prefix + "/"):
+                    node[attr] = value[len(prefix) + 1 :]
+            elif value and not value.startswith("#"):
+                node[attr] = prefix + "/" + value
+    if soup.base:
+        soup.base["href"] = "../" if restore else "../../"
+    if not restore and soup.body and not soup.select_one("[data-suite-home]"):
+        link = soup.new_tag("a", href="index.html")
+        link["data-suite-home"] = ""
+        link.string = "全部评测" if soup.html.get("lang") == "zh" else "All benchmarks"
+        (soup.select_one(".report-tools") or soup.body).append(link)
     return str(soup)
 
 
@@ -310,6 +338,8 @@ def cohort_source(source, selection, home, truth):
         or precall["method"] not in plan["participants"]
         or precall["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]
         or precall["pipeline_sha256"] != contract["pipeline_sha256"]
+        or contract["dataset_manifest_sha256"]
+        != digest((home / "dataset/manifest.json").read_bytes())
     ):
         raise ValueError("Full cohort plan, population or execution binding differs")
     verify_execution_snapshot(source, contract)
@@ -328,7 +358,10 @@ def cohort_source(source, selection, home, truth):
             raise ValueError("Certificate population or profile differs")
         saved = read_json(source / "scores.json")
         # Recompute through the original scoring boundary, without provider calls.
-        recalculated = score_run(home, source)
+        import tempfile
+
+        with tempfile.TemporaryDirectory(prefix="web-extract-score-check-") as temporary:
+            recalculated = score_run(home, source, output=Path(temporary) / "scores.json")
         if saved != recalculated:
             raise ValueError("Certified scores do not reproduce")
         physical = read_json(source / "manifest.json").get("physical_calls", [])
@@ -1418,10 +1451,10 @@ def check_input_profile(output, manifest):
     if type(local) is not bool or manifest.get("dataset_kind") != kind:
         raise ValueError("Report dataset kind differs from its bound input profile")
     if (
-        manifest.get("mode") == "field-extraction-cohort"
+        manifest.get("mode") in {"field-extraction-cohort", "field-extraction-suite"}
         and manifest.get("local_example") is not local
     ):
-        raise ValueError("Record example flag differs from its bound input profile")
+        raise ValueError("Report example flag differs from its bound input profile")
     return local
 
 
@@ -1662,7 +1695,12 @@ def check_method_examples(output, manifest):
             method_examples(output, manifest["method_examples"], language), "html.parser"
         )
         actual = BeautifulSoup(
-            (output / language / "protocol.html").read_text(encoding="utf-8"), "html.parser"
+            scope_record_html(
+                (output / language / "protocol.html").read_text(encoding="utf-8"),
+                manifest.get("site_prefix", ""),
+                restore=True,
+            ),
+            "html.parser",
         ).select_one("[data-method-examples]")
         if actual is not None:
             for anchor in actual.select("a"):
@@ -1678,6 +1716,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     from harness.web_extract.dataset import require_product_reference
 
     require_external_output(output)
+    if content.is_file() and read_json(content).get("mode") == "field-extraction-suite":
+        from harness.web_extract.report_suite import build as build_suite
+
+        return build_suite(output, content, profile=profile, language=language)
     if content.is_file() and read_json(content).get("mode") == "field-extraction-cohort":
         return build_record_cohort(output, content, home=home, language=language, profile=profile)
     require_product_reference(home)
@@ -2510,6 +2552,10 @@ def check_reader_contract(output, manifest, *, release=False):
 def check(output: Path, *, release=False, visual_receipt=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    if manifest.get("mode") == "field-extraction-suite":
+        from harness.web_extract.report_suite import check as check_suite
+
+        return check_suite(output, release=release, visual_receipt=visual_receipt)
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     link_index = LinkIndex(errors="strict")
@@ -2835,14 +2881,14 @@ def check(output: Path, *, release=False, visual_receipt=None):
     }
 
 
-def check_visual_receipt(output, manifest, visual_receipt):
+def check_visual_receipt(output, manifest, visual_receipt, *, routes=PAGES):
     """Verify the shared reader-pass receipt against this exact report tree."""
     if visual_receipt is None:
         raise ValueError("Release requires actual visual coverage")
     visual = read_json(visual_receipt)
     if visual["report_manifest_sha256"] != digest((output / "report-manifest.json").read_bytes()):
         raise ValueError("Visual receipt belongs to a different report")
-    required = {(lang, route, "desktop") for lang in manifest["languages"] for route in PAGES}
+    required = {(lang, route, "desktop") for lang in manifest["languages"] for route in routes}
     if "en" not in manifest["languages"]:
         required.add(("en", "english-notice", "desktop"))
     observed = set()
@@ -2920,36 +2966,105 @@ def record_cohort_inputs(home, model, *, profile):
         "sources": {},
         "dataset": read_json(profile if local_example else selected_profile(home)),
         "scoring_cases": truth,
-        "reference_policy": None,
+        "reference_policy": adapter.reference_policy(home)
+        if hasattr(adapter, "reference_policy")
+        else None,
         "audit": None,
     }
     native_rows = []
     seen = set()
     for selection in selections:
-        source = resolve_run_path(home, selection["run"])
-        contract, rows, receipt = cohort_source(source, selection, home, truth)
+        segments = selection.get("segments", [selection])
+        if not segments:
+            raise ValueError("Record source segments must cover the declared population")
+        rows, scopes, receipts, method = [], set(), [], None
+        for segment in segments:
+            source_home = Path(segment["home"]) if "home" in segment else home
+            if source_home != home:
+                validate_dataset(source_home)
+            source_truth = read_json(source_home / "dataset/dataset/ground-truth.json")
+            from harness.web_extract.snapshots import resource_inventory
+
+            resources = resource_inventory(home)
+            expected_resources = {
+                name: sha
+                for name, sha in resources.items()
+                if any(name.startswith("assets/" + cid + "/") for cid in source_truth)
+            }
+            if resource_inventory(source_home) != expected_resources:
+                raise ValueError("Record source segment changed captured resources")
+            source_policy = read_json(source_home / "dataset/manifest.json").get(
+                "live_reference_policy"
+            )
+            target_policy = read_json(home / "dataset/manifest.json").get("live_reference_policy")
+            if source_policy and (
+                not target_policy
+                or source_policy["maximum_observation_age_seconds"]
+                > target_policy["maximum_observation_age_seconds"]
+            ):
+                raise ValueError("Record source segment used a weaker live reference policy")
+            source_adapter = benchmark_config(source_home)["adapter"]
+            if (
+                source_adapter is not adapter
+                or scopes & set(source_truth)
+                or not set(source_truth) <= set(truth)
+            ):
+                raise ValueError("Record source segments must be disjoint parts of this dataset")
+            for cid, reference in source_truth.items():
+                if (
+                    reference != truth[cid]
+                    or adapter.task_schema(source_home, reference)
+                    != adapter.task_schema(home, truth[cid])
+                    or digest((source_home / "dataset/html" / (cid + ".html")).read_bytes())
+                    != digest((home / "dataset/html" / (cid + ".html")).read_bytes())
+                ):
+                    raise ValueError("Record source segment changed a task, schema or webpage")
+            from harness.web_extract.pipeline import input_mode, record_instructions
+
+            if input_mode(source_home) != input_mode(home) or record_instructions(
+                source_home
+            ) != record_instructions(home):
+                raise ValueError("Record source segment changed the input or instruction contract")
+            source = resolve_run_path(source_home, segment["run"])
+            contract, part_rows, receipt = cohort_source(source, segment, source_home, source_truth)
+            part_method = contract["methods"][0]
+            if method is not None and method != part_method:
+                raise ValueError("Record source segments must use the same participant")
+            method = part_method
+            scopes.update(source_truth)
+            rows.extend(part_rows)
+            receipts.append(
+                {
+                    "run_id": source.name,
+                    "contract": contract,
+                    "receipt": receipt,
+                    "plan_sha256": segment["plan_sha256"],
+                }
+            )
+        if scopes != set(truth):
+            raise ValueError("Record source segments omit part of the declared population")
         native_rows.extend(rows)
-        method = contract["methods"][0]
         if method not in methods or method in seen:
             raise ValueError("Unexpected or duplicated report participant")
         seen.add(method)
-        if contract["dataset_manifest_sha256"] != digest(
-            (home / "dataset/manifest.json").read_bytes()
+        stats = record_statistics(
+            truth,
+            rows,
+            certified=all(part["receipt"]["certified"] for part in receipts),
+            scorer=adapter.score,
+            reference_policy=result["reference_policy"],
+        )
+        if (
+            len(receipts) == 1
+            and stats["certified"]
+            and receipt["scores"][method] != stats["scores"]
         ):
-            raise ValueError("Measured source belongs to a different dataset")
-        stats = record_statistics(truth, rows, certified=receipt["certified"], scorer=adapter.score)
-        if stats["certified"] and receipt["scores"][method] != stats["scores"]:
             raise ValueError("Record report scores differ from the certified scorer")
         result["methods"][method] = {"statistics": stats, "results": {}}
-        result["sources"][method] = {
-            "run_id": source.name,
-            "contract": contract,
-            "receipt": receipt,
-            "plan_sha256": selection["plan_sha256"],
-        }
+        result["sources"][method] = receipts[0] if len(receipts) == 1 else {"segments": receipts}
         for row in rows:
             result["methods"][method]["results"][row["case_id"]] = record_result_fields(
-                truth[row["case_id"]], row
+                truth[row["case_id"]], row, policy=result["reference_policy"]
             )
     if seen != set(methods):
         raise ValueError("Report omits a planned participant")
@@ -3186,7 +3301,17 @@ def record_review_section(audit, original_reference, original_metrics, labels, l
 
 def record_preview(home, model, *, local_example):
     """Bind preview URLs to a freshly verified complete dataset snapshot."""
+    from harness.web_extract.dataset import input_mode
     from harness.web_extract.snapshots import verify_bound_manifest
+
+    if input_mode(home) == "live":
+        if model.get("snapshot_base") or model.get("preview_snapshot"):
+            raise ValueError("Live report inputs link to original URLs, not snapshots")
+        urls = {
+            cid: case["url"]
+            for cid, case in read_json(home / "dataset/dataset/ground-truth.json").items()
+        }
+        return {"mode": "live", "case_count": len(urls), "urls": urls}
 
     base = model.get("snapshot_base")
     if not base:
@@ -3205,7 +3330,14 @@ def record_preview(home, model, *, local_example):
     receipt = saved.get("snapshot_manifest", saved.get("verification", saved))
     if not isinstance(receipt, dict) or receipt.get("mode") != "dataset_manifest":
         raise ValueError("Record previews require a whole-dataset snapshot manifest")
-    verify_bound_manifest(home, receipt, base)
+    verification_context = {
+        **receipt,
+        **({"cloudflare": saved["cloudflare"]} if saved.get("cloudflare") else {}),
+        **(
+            {"hosting_provider": saved["hosting_provider"]} if saved.get("hosting_provider") else {}
+        ),
+    }
+    verify_bound_manifest(home, verification_context, base)
     return receipt
 
 
@@ -3236,6 +3368,9 @@ def build_record_cohort(output, content, *, home, language, profile):
     truth = data["cases"]
     stats = {method: data["methods"][method]["statistics"] for method in methods}
     title = model["title"]
+    site_prefix = model.get("site_prefix", "")
+    if site_prefix and site_prefix != output.name:
+        raise ValueError("Nested report prefix must match its output directory")
 
     def t(key):
         return message("records_" + key, language)
@@ -3259,8 +3394,15 @@ def build_record_cohort(output, content, *, home, language, profile):
             row["method_label"] = labels[method]
             row["record_schema"] = True
             row["field_labels"] = model.get("field_labels", {})
-            row["result_href"] = "zh/" + record_result_href(method, cid)
-            row["case_href"] = "zh/" + record_route("c", cid) + ".html"
+            row["result_href"] = (
+                (site_prefix + "/" if site_prefix else "") + "zh/" + record_result_href(method, cid)
+            )
+            row["case_href"] = (
+                (site_prefix + "/" if site_prefix else "")
+                + "zh/"
+                + record_route("c", cid)
+                + ".html"
+            )
             if isinstance(row.get("request"), dict):
                 row["request"]["endpoint"] = re.sub(
                     r"/accounts/[^/]+/", "/accounts/[REDACTED]/", row["request"].get("endpoint", "")
@@ -3360,6 +3502,7 @@ def build_record_cohort(output, content, *, home, language, profile):
                 state="field-extraction-cohort",
                 navigation=model.get("navigation"),
                 notice=t("reviewed_notice") if audit_binding else None,
+                site_prefix=site_prefix,
             ),
             encoding="utf-8",
         )
@@ -3620,7 +3763,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     preview_snapshot = record_preview(
         home, model, local_example=bound_profile.get("local_example", False)
     )
-    snapshot_base = preview_snapshot["fixture_base"]
+    snapshot_base = preview_snapshot.get("fixture_base")
     for cid, ref in sorted(truth.items()):
         data_route, comparison = record_route("d", cid), record_route("c", cid)
         schema = benchmark_config(home)["adapter"].task_schema(home, ref)
@@ -3663,21 +3806,27 @@ def build_record_cohort(output, content, *, home, language, profile):
             + value(schema)
             + "</pre></details>"
         )
-        source += (
-            '<p><a href="'
-            + esc(ref["url"])
-            + '">'
-            + t("original_url")
-            + '</a> · <a href="'
-            + esc(snapshot_base + "/" + cid)
-            + '">'
-            + t("download")
-            + '</a></p><iframe sandbox class="frozen-preview" loading="lazy" title="'
-            + t("preview")
-            + '" src="'
-            + esc(snapshot_base + "/" + cid)
-            + '"></iframe>'
-        )
+        source += '<p><a href="' + esc(ref["url"]) + '">' + t("original_url") + "</a></p>"
+        if preview_snapshot["mode"] == "live":
+            source += (
+                '<p><a data-live-source href="'
+                + esc(ref["url"])
+                + '">'
+                + t("live_page")
+                + "</a></p>"
+            )
+        else:
+            source += (
+                '<p><a href="'
+                + esc(snapshot_base + "/" + cid)
+                + '">'
+                + t("download")
+                + '</a></p><iframe sandbox class="frozen-preview" loading="lazy" title="'
+                + t("preview")
+                + '" src="'
+                + esc(snapshot_base + "/" + cid)
+                + '"></iframe>'
+            )
         write(
             data_route,
             domain_labels.get(ref["domain"], ref["domain"]) + "网页 · " + ref["site"],
@@ -3721,7 +3870,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + '" data-site="'
                     + esc(ref["site"])
                     + '"'
-                    + "".join(" data-" + field + '="pending"' for field in schema["properties"])
+                    + ' data-field-outcomes="'
+                    + esc(json.dumps({field: "pending" for field in schema["properties"]}))
+                    + '"'
                     + ' data-search="'
                     + esc(cid + " " + ref["site"])
                     + '"><td>'
@@ -3846,10 +3997,14 @@ def build_record_cohort(output, content, *, home, language, profile):
                 + '" data-site="'
                 + esc(ref["site"])
                 + '"'
-                + "".join(
-                    " data-" + field + '="' + result["status"] + '"'
-                    for field, result in row["field_results"].items()
+                + ' data-field-outcomes="'
+                + esc(
+                    json.dumps(
+                        {field: result["status"] for field, result in row["field_results"].items()},
+                        ensure_ascii=False,
+                    )
                 )
+                + '"'
             )
             inventory_rows.append(
                 "<tr"
@@ -3952,10 +4107,19 @@ def build_record_cohort(output, content, *, home, language, profile):
             bodies[route],
         )
     (output / "en/index.html").write_text(
-        message("english_not_generated_notice", "en"), encoding="utf-8"
+        scope_record_html(message("english_not_generated_notice", "en"), site_prefix),
+        encoding="utf-8",
     )
+    entry = (site_prefix + "/" if site_prefix else "") + "zh/index.html"
+    entry_base = '<base href="../">' if site_prefix else ""
     (output / "index.html").write_text(
-        '<!doctype html><html><head><meta http-equiv="refresh" content="0;url=zh/index.html"></head><body><a href="zh/index.html">'
+        "<!doctype html><html><head>"
+        + entry_base
+        + '<meta http-equiv="refresh" content="0;url='
+        + entry
+        + '"></head><body><a href="'
+        + entry
+        + '">'
         + esc(title)
         + "</a></body></html>",
         encoding="utf-8",
@@ -3970,6 +4134,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         output / "report-manifest.json",
         {
             "mode": "field-extraction-cohort",
+            **({"site_prefix": site_prefix} if site_prefix else {}),
             **report_dependencies(),
             "local_example": bound_profile.get("local_example", False),
             "dataset_kind": "local-example"
@@ -3984,6 +4149,9 @@ def build_record_cohort(output, content, *, home, language, profile):
             "content_sha256": digest(content.read_bytes()),
             "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
             "dataset_benchmark": read_json(home / "dataset/manifest.json").get("benchmark"),
+            "dataset_input_mode": read_json(home / "dataset/manifest.json").get(
+                "input_mode", "snapshot"
+            ),
             "primary_language": "zh",
             "languages": ["zh"],
             "planned_methods": methods,
@@ -4018,6 +4186,14 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     output = open_report(output)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
+    site_prefix = manifest.get("site_prefix", "")
+    if site_prefix and site_prefix != output.name:
+        raise ValueError("Nested report prefix differs from its directory")
+    site_root = output.parent if site_prefix else output
+
+    def read_html(path):
+        return scope_record_html(path.read_text(encoding="utf-8"), site_prefix, restore=True)
+
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -4038,12 +4214,28 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         "html.parser",
     ).select_one("[data-retry-summary]")
     actual_retries = BeautifulSoup(
-        (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
+        read_html(output / "zh/protocol.html"), "html.parser"
     ).select_one("[data-retry-summary]")
     if actual_retries != expected_retries:
         raise ValueError("Retry timing summary is missing or changed")
     preview = manifest.get("preview_snapshot", {})
-    if (
+    sources = read_json(output / "public-evidence/sources.json")
+    modes = {
+        part["contract"].get("input_mode", "snapshot")
+        for source in sources.values()
+        for part in source.get("segments", [source])
+    }
+    if modes != {manifest.get("dataset_input_mode")} or (
+        (preview.get("mode") == "live") != (manifest.get("dataset_input_mode") == "live")
+    ):
+        raise ValueError("Preview input mode differs from the frozen collection contract")
+    if preview.get("mode") == "live":
+        if (
+            preview.get("case_count") != manifest["case_count"]
+            or len(preview.get("urls", {})) != manifest["case_count"]
+        ):
+            raise ValueError("Live preview population differs from the declared cohort")
+    elif (
         not preview.get("fixture_base")
         or preview.get("mode")
         != ("synthetic" if manifest.get("local_example") else "dataset_manifest")
@@ -4062,7 +4254,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             ("zh/" + entry["route"] + ".html", entry["label"]) for entry in ordered
         ]
         for path in (output / "zh").glob("*.html"):
-            soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+            soup = BeautifulSoup(read_html(path), "html.parser")
             actual_navigation = [(a.get("href"), a.get_text()) for a in soup.select("nav a")]
             if actual_navigation != expected_navigation:
                 raise ValueError("Record navigation differs from its declared reader routes")
@@ -4081,6 +4273,10 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             raise ValueError("Record public evidence privacy receipt failed")
     metrics = read_json(output / "data/metrics.json")
     truth = read_json(output / "public-evidence/reference.json")
+    if preview.get("mode") == "live" and preview.get("urls") != {
+        cid: reference["url"] for cid, reference in truth.items()
+    }:
+        raise ValueError("Live preview URLs differ from the reference sources")
     profile_view = read_json(output / manifest["input_profile"]["path"])
     required_review = profile_view.get("independent_result_review_scope")
     if (
@@ -4123,9 +4319,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             )
         original = read_json(output / "public-evidence/original-reference.json")
         original_metrics = read_json(output / "data/original-metrics.json")
-        reviewed_page = BeautifulSoup(
-            (output / "zh/review.html").read_text(encoding="utf-8"), "html.parser"
-        )
+        reviewed_page = BeautifulSoup(read_html(output / "zh/review.html"), "html.parser")
         expected_review = BeautifulSoup(
             record_review_section(
                 audit,
@@ -4140,16 +4334,18 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             "[data-record-review]"
         ):
             raise ValueError("Record review summary differs from its source-bound evidence")
-    elif manifest.get("reference_policy") is not None:
-        raise ValueError("Reference scoring policy requires its completed record audit")
+    else:
+        adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
+        baseline = adapter.reference_policy() if hasattr(adapter, "reference_policy") else None
+        if manifest.get("reference_policy") != baseline:
+            raise ValueError("Reference scoring policy differs from the unaudited baseline")
     if len(truth) != manifest["case_count"] or set(metrics) != set(manifest["planned_methods"]):
         raise ValueError("Record report matrix differs from its declared population")
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
     for method in manifest["planned_methods"]:
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         if not isinstance(bucket, dict) or any(
-            not isinstance(row, dict) or cid != row.get("case_id")
-            for cid, row in bucket.items()
+            not isinstance(row, dict) or cid != row.get("case_id") for cid, row in bucket.items()
         ):
             raise ValueError("Record evidence keys differ from embedded case identities")
         rows = list(bucket.values())
@@ -4206,7 +4402,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         ),
         "html.parser",
     )
-    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    home = BeautifulSoup(read_html(output / "zh/index.html"), "html.parser")
     check_price_coverage(
         output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )
@@ -4218,9 +4414,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         ("index", "[data-core-metrics]"),
         ("interpretation", "[data-interpretation-comparison]"),
     ):
-        soup = BeautifulSoup(
-            (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
-        )
+        soup = BeautifulSoup(read_html(output / "zh" / (route + ".html")), "html.parser")
         rendered = soup.select(selector + " tbody tr")
         if len(rendered) != len(metrics):
             raise ValueError("Record core comparison participant count differs")
@@ -4255,9 +4449,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     raise ValueError("Record comparison exclusion reason is missing or changed")
             elif notes:
                 raise ValueError("Record comparison scope has an unexpected exclusion reason")
-    inventory = BeautifulSoup(
-        (output / "zh/results.html").read_text(encoding="utf-8"), "html.parser"
-    )
+    inventory = BeautifulSoup(read_html(output / "zh/results.html"), "html.parser")
     rows = inventory.select("tr[data-status]")
     if len(rows) != len(truth) * len(metrics) or len(
         inventory.select('tr[data-status="pending"]')
@@ -4273,7 +4465,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             row = bucket.get(cid)
             if row is None:
                 attrs = {"status": "pending", "outcome": "pending"}
-                attrs.update({field: "pending" for field in ref["values"]})
+                field_outcomes = {field: "pending" for field in ref["values"]}
             else:
                 derived = record_result_fields(ref, row, policy=manifest.get("reference_policy"))
                 if any(
@@ -4292,14 +4484,18 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     "outcome": record_inventory_outcome(derived)[1],
                     "stage": derived["failure_stage"],
                     "scored-fields": str(derived["scored_fields"]),
-                    **{f: v["status"] for f, v in derived["field_results"].items()},
                 }
+                field_outcomes = {f: v["status"] for f, v in derived["field_results"].items()}
+            if json.loads(rendered.get("data-field-outcomes", "{}")) != field_outcomes:
+                raise ValueError(
+                    "Record inventory field filter verdict differs from native evidence"
+                )
             attrs.update(domain=ref["domain"], site=ref["site"])
             if any(rendered.get("data-" + key) != val for key, val in attrs.items()):
                 raise ValueError("Record inventory filter verdict differs from native evidence")
         for cid, row in bucket.items():
             detail = BeautifulSoup(
-                (output / "zh" / (record_route("c", cid) + ".html")).read_text(encoding="utf-8"),
+                read_html(output / "zh" / (record_route("c", cid) + ".html")),
                 "html.parser",
             )
             detail = detail.find("details", id=method)
@@ -4329,7 +4525,20 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 ):
                     raise ValueError("Record native failure error is missing or changed")
     for file in sorted((output / "zh").glob("*.html")):
-        soup = check_presentation(file.read_text(encoding="utf-8"))
+        soup = check_presentation(read_html(file))
+        if preview.get("mode") == "live" and soup.select_one("[data-source-case]"):
+            case = soup.select_one("[data-source-case]")["data-source-case"]
+            links = soup.select("a[data-live-source]")
+            if case not in truth or len(links) != 1 or links[0].get("href") != truth[case]["url"]:
+                raise ValueError("Live dataset page requires its original source link")
+        for link in soup.select("a[data-live-source]"):
+            case = soup.select_one("[data-source-case]")
+            if case is None or link.get("href") != preview.get("urls", {}).get(
+                case["data-source-case"]
+            ):
+                raise ValueError("Live source link differs from the declared original URL")
+        if preview.get("mode") == "live" and soup.select("iframe.frozen-preview"):
+            raise ValueError("Live report must not substitute a frozen-page preview")
         for frame in soup.select("iframe.frozen-preview"):
             case = soup.select_one("[data-source-case]")
             if case is None:
@@ -4354,8 +4563,15 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 continue
             if parsed.path.startswith("/") or ".." in Path(unquote(parsed.path)).parts:
                 raise ValueError("Reference must be relative to the hosted site root: " + value)
-            target = output / unquote(parsed.path) if parsed.path else file
-            if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
+            if (
+                site_prefix
+                and parsed.path
+                and not parsed.path.startswith(site_prefix + "/")
+                and value != "index.html"
+            ):
+                raise ValueError("Nested report link escaped its dataset: " + value)
+            target = site_root / unquote(parsed.path) if parsed.path else file
+            if not target.resolve().is_relative_to(site_root.resolve()) or not target.is_file():
                 raise ValueError("Broken record evidence/navigation target: " + value)
             if parsed.fragment and unquote(parsed.fragment) not in link_index.page(target).ids:
                 raise ValueError("Broken evidence anchor: " + value)

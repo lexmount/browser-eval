@@ -232,6 +232,28 @@ def canonical_text(value):
     return " ".join(value.split())
 
 
+def record_value_key(reference, field, value, text_matching="literal"):
+    """Apply only the field's declared equivalence, shared by scores and details."""
+    if reference.get("value_kinds", {}).get(field) == "url":
+        from urllib.parse import urljoin, urlsplit
+
+        if not value.strip():
+            return ""
+        try:
+            parts = urlsplit(
+                urljoin(
+                    reference.get("document_base_url", reference["url"]),
+                    value.replace(" ", "%20"),
+                )
+            )
+        except ValueError:
+            return value
+        userinfo, separator, host = parts.netloc.rpartition("@")
+        authority = userinfo + separator + host.lower() if separator else parts.netloc.lower()
+        return parts._replace(scheme=parts.scheme.lower(), netloc=authority).geturl()
+    return canonical_text(value) if text_matching == "whitespace" else value
+
+
 def qualify_reference_text(truth, html_pages):
     """Resolve encoded labels only when exact frozen text nodes prove the result."""
     from lxml import etree
@@ -528,13 +550,14 @@ def score(truth, predictions, *, unavailable_reference_groups=(), text_matching=
                 unscored += 1
                 continue
             values = prediction.get(field, [])
-            if text_matching == "whitespace":
-                gold = [canonical_text(value) for value in gold]
-                if isinstance(values, list):
-                    values = [
-                        canonical_text(value) if isinstance(value, str) else value
-                        for value in values
-                    ]
+            gold = [record_value_key(reference, field, value, text_matching) for value in gold]
+            if isinstance(values, list):
+                values = [
+                    record_value_key(reference, field, value, text_matching)
+                    if isinstance(value, str)
+                    else value
+                    for value in values
+                ]
             # Invalid field types receive no hit but still count as an attempted prediction.
             valid = {v for v in values if isinstance(v, str)} if isinstance(values, list) else set()
             counts = groups[(reference["domain"], reference["site"], field)]

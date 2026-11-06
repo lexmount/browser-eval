@@ -314,3 +314,24 @@ def test_data_selection_exposes_only_the_current_track_name():
     retired = original.removesuffix("-public-snapshots/2")
     with pytest.raises(KeyError):
         binding(retired)
+
+
+def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(tmp_path, monkeypatch):
+    from harness.web_extract import pipeline
+
+    _, profile, _ = distribution(tmp_path, monkeypatch)
+    home = tmp_path / "home"
+    prepare(home, profile)
+    monkeypatch.setattr(pipeline, "selected_profile", lambda _: profile)
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "synthetic")
+    monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "synthetic")
+    sent = []
+
+    def provider(method, html, *args, **options):
+        sent.append(html)
+        return {"http_status": 200, "response": {"result": {"sku": "SKU-1"}}}
+
+    monkeypatch.setattr(pipeline, "provider_call", provider)
+    pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
+    assert sent == ["<p>商品 SKU-1</p>"]

@@ -8,6 +8,8 @@ from harness.web_extract.report import PAGES, build
 
 
 def create(output: Path, *, language="zh", mode="compatibility"):
+    if mode == "field-extraction-suite":
+        return create_suite(output, language=language)
     if mode == "field-extraction-cohort":
         return create_record(output, language=language)
     require_external_output(output)
@@ -235,10 +237,12 @@ def evaluate(truth, predictions, field, matcher, **options):
     return home
 
 
-def create_record(output: Path, *, language="zh"):
+def create_record(output: Path, *, language="zh", input_mode="snapshot"):
     """Exercise multi-value schemas and an interrupted matrix without provider calls."""
     if language != "zh":
         raise ValueError("The record example currently supports Chinese only")
+    if input_mode not in {"snapshot", "live"}:
+        raise ValueError("The record example requires snapshot or live input")
     import json
 
     require_external_output(output)
@@ -282,7 +286,13 @@ def create_record(output: Path, *, language="zh"):
     }
     save_json(
         root / "manifest.json",
-        {"benchmark": "swde", "commit": "synthetic-record-v1", "cases": len(truth), "files": files},
+        {
+            "benchmark": "swde",
+            "commit": "synthetic-record-v1",
+            "cases": len(truth),
+            "files": files,
+            **({"input_mode": "live"} if input_mode == "live" else {}),
+        },
     )
     profile = home / "profile.json"
     model = {
@@ -302,6 +312,8 @@ def create_record(output: Path, *, language="zh"):
             for m in ("scrapegraph-extract", "firecrawl-json")
         },
     }
+    if input_mode == "live":
+        model.pop("snapshot_base")
     plan = {
         "case_count": len(truth),
         "case_ids_sha256": digest(("\n".join(sorted(truth)) + "\n").encode()),
@@ -317,6 +329,7 @@ def create_record(output: Path, *, language="zh"):
             run / "contract.json",
             {
                 "kind": "full_archived_extraction",
+                **({"input_mode": "live"} if input_mode == "live" else {}),
                 "case_ids": list(truth),
                 "methods": [method],
                 "dataset_manifest_sha256": manifest_sha,
@@ -386,13 +399,59 @@ def create_record(output: Path, *, language="zh"):
     return home
 
 
+def create_suite(output: Path, *, language="zh"):
+    """Exercise separate cohorts and shared navigation without provider calls."""
+    require_external_output(output)
+    home = output.parent / (output.name + "-suite-inputs")
+    require_external_output(home)
+    home.mkdir(parents=True, exist_ok=False)
+    cohorts = []
+    for name in ("first", "second"):
+        source = create_record(home / (name + "-seed"), language="zh")
+        content, profile = source / "content.json", source / "profile.json"
+        model = read_json(content)
+        model["site_prefix"] = name
+        save_json(content, model)
+        authority = read_json(profile)
+        authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+        save_json(profile, authority)
+        cohorts.append(
+            {
+                "id": name,
+                "label": name,
+                "home": str(source),
+                "content": str(content),
+                "profile": str(profile),
+            }
+        )
+    content, profile = home / "content.json", home / "profile.json"
+    save_json(
+        content,
+        {"mode": "field-extraction-suite", "title": "独立评测集合成示例", "cohorts": cohorts},
+    )
+    save_json(
+        profile,
+        {
+            "local_example": True,
+            "research_report": {"content": {"sha256": digest(content.read_bytes())}},
+        },
+    )
+    build(output, content, home=home, profile=profile, language=language)
+    return home
+
+
 if __name__ == "__main__":
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--language", choices=["en", "zh"], default="zh")
     p.add_argument(
         "--mode",
-        choices=["compatibility", "full-cohort-progress", "field-extraction-cohort"],
+        choices=[
+            "compatibility",
+            "full-cohort-progress",
+            "field-extraction-cohort",
+            "field-extraction-suite",
+        ],
         default="compatibility",
     )
     a = p.parse_args()
