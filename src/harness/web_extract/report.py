@@ -518,7 +518,12 @@ def verify_completion_audit(source, profile):
     records = manifest.get("mode") == "field-extraction-cohort"
     authority = manifest.get("audit" if records else "completion_audit")
     content_binding = instance.get("research_report", {}).get("content", {})
-    if instance.get("local_example") is True and not authority:
+    if (
+        instance.get("local_example") is True
+        and not authority
+        and not content_binding.get("path")
+        and instance.get("independent_result_review_scope") != "all"
+    ):
         return
     if not content_binding.get("path"):
         raise ValueError("Completion audit requires frozen content")
@@ -548,6 +553,43 @@ def verify_completion_audit(source, profile):
         or (source / authority["path"]).read_bytes() != projected
     ):
         raise ValueError("Completion audit differs from its frozen original")
+    if records:
+        from harness.web_extract.repair import load_selection
+
+        model = read_json(content)
+        home = Path(model["dataset_manifest"]).parent.parent
+        reviewed = json.loads(raw)["results"]
+        public_rows = {}
+        seen = set()
+        for selection in model["evidence_runs"]:
+            _, originals = load_selection(home, selection)
+            for row in originals:
+                method, cid = row["method"], row["case_id"]
+                key = method + ":" + cid
+                native_hash = digest(
+                    json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+                )
+                if (
+                    key in seen
+                    or reviewed.get(key, {}).get("native_response_sha256") != native_hash
+                ):
+                    raise ValueError("Completion audit native original changed")
+                seen.add(key)
+                if method not in public_rows:
+                    public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
+                view, _ = project_evidence_view(
+                    "public-evidence/native-row.json",
+                    json.dumps(row, ensure_ascii=False).encode(),
+                    role="native_response",
+                    content_format="json",
+                    host_names=publication_host_names(),
+                )
+                if public_rows[method].get(cid, {}).get("response") != json.loads(view).get(
+                    "response"
+                ):
+                    raise ValueError("Completion audit native response projection changed")
+        if seen != set(reviewed):
+            raise ValueError("Completion audit native response coverage changed")
 
 
 def completion_bundle(methods, rows, *, records, complete_methods, excluded_fields=None):
@@ -4423,8 +4465,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
     for method in manifest["planned_methods"]:
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         if not isinstance(bucket, dict) or any(
-            not isinstance(row, dict) or cid != row.get("case_id")
-            for cid, row in bucket.items()
+            not isinstance(row, dict) or cid != row.get("case_id") for cid, row in bucket.items()
         ):
             raise ValueError("Record evidence keys differ from embedded case identities")
         rows = list(bucket.values())

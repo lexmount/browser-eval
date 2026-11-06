@@ -1,9 +1,134 @@
 """Bound-target publishing and resumable package integrity at the public boundary."""
 
+import json
+
 import pytest
 
 from harness.web_extract import publication
 from harness.web_extract.pipeline import digest, read_json, save_json
+
+
+@pytest.mark.parametrize("damage", [None, "public-envelope", "original-envelope"])
+def test_record_release_binds_ignored_native_metadata_and_accepts_privacy_projection(
+    tmp_path, damage
+):
+    from harness.web_extract.cli import main
+    from harness.web_extract.pipeline import normalize
+    from harness.web_extract.report import publication_host_names, verify_completion_audit
+    from harness.web_fetch.publication_privacy import project_evidence_view
+
+    home = tmp_path / "inputs"
+    run = home / "run"
+    row = {
+        "method": "firecrawl-parse-json",
+        "case_id": "page",
+        "http_status": 200,
+        "compatibility": "structured_output",
+        "state": "response_received",
+        "response": {
+            "data": {"json": {"title": ["A"]}},
+            "message": "retained metadata",
+            "debug_path": "/Users/example/private/trace.json",
+        },
+    }
+    save_json(run / "call.json", row)
+    save_json(run / "contract.json", {"methods": [row["method"]], "case_ids": ["page"]})
+    inventory = {
+        "contract_sha256": digest((run / "contract.json").read_bytes()),
+        "calls": [{"path": "call.json", "sha256": digest((run / "call.json").read_bytes())}],
+    }
+    save_json(run / "manifest.json", inventory)
+    save_json(home / "dataset/manifest.json", {})
+    audit = home / "audit.json"
+    save_json(
+        audit,
+        {
+            "results": {
+                row["method"] + ":page": {
+                    "native_response_sha256": digest(
+                        json.dumps(row["response"], sort_keys=True, ensure_ascii=False).encode()
+                    )
+                }
+            }
+        },
+    )
+    content = home / "content.json"
+    save_json(
+        content,
+        {
+            "audit": {"path": "audit.json", "sha256": digest(audit.read_bytes())},
+            "dataset_manifest": str(home / "dataset/manifest.json"),
+            "evidence_runs": [{"run": str(run)}],
+        },
+    )
+    profile = home / "profile.json"
+    save_json(
+        profile,
+        {
+            "research_report": {
+                "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
+            }
+        },
+    )
+    report = tmp_path / "report"
+    public, _ = project_evidence_view(
+        "public-evidence/native-row.json",
+        json.dumps(row).encode(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    projected = json.loads(public)
+    assert projected["response"] != row["response"]  # A real local-path redaction.
+    path = report / "public-evidence" / (row["method"] + ".json")
+    save_json(path, {"page": projected})
+    public_audit, _ = project_evidence_view(
+        "public-evidence/audit.json",
+        audit.read_bytes(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    (report / "public-evidence/audit.json").write_bytes(public_audit)
+    save_json(
+        report / "report-manifest.json",
+        {
+            "mode": "field-extraction-cohort",
+            "profile_sha256": digest(profile.read_bytes()),
+            "audit": {
+                "path": "public-evidence/audit.json",
+                "source_sha256": digest(audit.read_bytes()),
+            },
+        },
+    )
+    verify_completion_audit(report, profile)
+    if damage is None:
+        return
+    before = normalize(row["method"], projected["response"], schema={})
+    if damage == "public-envelope":
+        projected["response"]["message"] = "substituted metadata"
+        save_json(path, {"page": projected})
+    else:
+        row["response"]["message"] = "substituted original"
+        save_json(run / "call.json", row)
+        inventory["calls"][0]["sha256"] = digest((run / "call.json").read_bytes())
+        save_json(run / "manifest.json", inventory)
+    assert normalize(row["method"], projected["response"], schema={}) == before
+    archive = tmp_path / "forged.zip"
+    with pytest.raises(ValueError, match="Completion audit native"):
+        main(
+            [
+                "package",
+                str(report),
+                "--profile",
+                str(profile),
+                "--output",
+                str(archive),
+                "--visual-receipt",
+                str(tmp_path / "visual.json"),
+            ]
+        )
+    assert not archive.exists()
 
 
 def setup_report(tmp_path):
@@ -72,8 +197,9 @@ def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
     "damage",
     [None, "coordinated-public-audit", "missing-authority", "original", "content", "profile"],
 )
+@pytest.mark.parametrize("local_example", [False, True])
 def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
-    tmp_path, monkeypatch, damage
+    tmp_path, monkeypatch, damage, local_example
 ):
     from harness.web_extract.report import publication_host_names
     from harness.web_fetch.publication_privacy import project_evidence_view
@@ -89,9 +215,10 @@ def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
     save_json(
         profile,
         {
+            "local_example": local_example,
             "research_report": {
                 "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
-            }
+            },
         },
     )
     profile_hash = digest(profile.read_bytes())
