@@ -8,7 +8,7 @@ from unittest.mock import patch
 import pytest
 
 from harness.web_extract.example import create
-from harness.web_extract.pipeline import load_run, probe, read_json
+from harness.web_extract.pipeline import digest, load_run, probe, read_json
 from tests.web_extract.snapshot_inputs import serve_input
 from tests.web_extract.test_execution_boundaries import collection_context
 
@@ -149,6 +149,45 @@ def test_multi_method_collection_never_ignores_a_shared_account(tmp_path, assign
                         execution_policy=execution,
                     )
                 assert calls.value == 0
+
+
+def test_failure_repair_preserves_parent_concurrency_and_binds_its_scheduler(tmp_path):
+    from harness.web_extract.repair import load_selection, run
+    from tests.web_extract.test_repair_review import parent_inputs
+
+    home, source, profile, _ = parent_inputs(tmp_path, success_count=0, execution_policy=policy())
+    assert read_json(profile)["participants"]["cloudflare-json"]["execution_policy"] == policy()
+    target = home / "runs/repair"
+    with multiprocessing.Manager() as shared:
+        barrier, counter, lock = shared.Barrier(2), shared.Value("i", 0), shared.Lock()
+
+        def response(*args, **kwargs):
+            with lock:
+                counter.value += 1
+                ordinal = counter.value
+            if ordinal <= 2:
+                barrier.wait(timeout=3)
+            return {"http_status": 200, "response": {"result": {"sku": "fixed"}}}
+
+        with (
+            collection_context(),
+            patch("harness.web_extract.repair.validate_dataset"),
+            patch("harness.web_extract.pipeline.provider_call", side_effect=response),
+        ):
+            run(home, profile, "cloudflare-json", target)
+        assert counter.value == 3
+    contract = read_json(target / "contract.json")
+    assert contract["execution_policy"] == policy()
+    binding = {
+        "run": str(source),
+        "repair": [
+            {"path": str(target), "sha256": digest((target / "certificate.json").read_bytes())}
+        ],
+    }
+    load_selection(home, binding)
+    (target / "execution/benchmark_execution.py").write_bytes(b"changed scheduler")
+    with pytest.raises(ValueError, match="execution source"):
+        load_selection(home, binding)
 
 
 def test_interrupted_parallel_dispatch_preserves_other_responses_and_blocks_replay(tmp_path):
