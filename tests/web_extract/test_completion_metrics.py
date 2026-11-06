@@ -381,5 +381,9 @@ def test_result_inventory_keeps_method_names_pinned(tmp_path, mode):
     labels = json.loads((output / 'report-manifest.json').read_text())['method_labels']
     for table_view in tables:
         for row in table_view.select('tbody tr[data-method][data-case]'):
-            assert row.select('td')[0].get_text() == labels.get(row['data-method'], row['data-method'])
-            assert row.select('td')[1].get_text() == row['data-case']
+            method_label = labels.get(row['data-method'], row['data-method'])
+            assert row.select('td')[0].get_text() == method_label
+            displayed_case = (
+                row['data-case'][:12] if mode == 'full-cohort-progress' else row['data-case']
+            )
+            assert row.select('td')[1].get_text() == displayed_case
