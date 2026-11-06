@@ -4201,7 +4201,13 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         raise ValueError("Record report matrix differs from its declared population")
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
     for method in manifest["planned_methods"]:
-        rows = list(read_json(output / "public-evidence" / (method + ".json")).values())
+        bucket = read_json(output / "public-evidence" / (method + ".json"))
+        if not isinstance(bucket, dict) or any(
+            not isinstance(row, dict) or cid != row.get("case_id")
+            for cid, row in bucket.items()
+        ):
+            raise ValueError("Record evidence keys differ from embedded case identities")
+        rows = list(bucket.values())
         for row in rows:
             verify_record_projection(truth[row["case_id"]], row)
         recomputed = validated(

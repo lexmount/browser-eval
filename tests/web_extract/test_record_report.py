@@ -200,6 +200,34 @@ def rebind(output, route, transform):
     save_json(output / "report-manifest.json", manifest)
 
 
+@pytest.mark.parametrize('forced', [False, True], ids=['automatic', 'forced-full'])
+def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path, monkeypatch, forced):
+    output = tmp_path / 'report'
+    create(output, mode='field-extraction-cohort')
+    method = 'scrapegraph-extract'
+    relative = 'public-evidence/' + method + '.json'
+    path = output / relative
+    bucket = read_json(path)
+    bucket['one']['case_id'], bucket['two']['case_id'] = 'two', 'one'
+    save_json(path, bucket)
+    manifest = read_json(output / 'report-manifest.json')
+    manifest['files'][relative] = digest(path.read_bytes())
+    for receipt in manifest['public_evidence_views']:
+        if receipt['path'] == relative:
+            receipt['published_sha256'] = digest(path.read_bytes())
+            receipt['published_bytes'] = path.stat().st_size
+    save_json(output / 'report-manifest.json', manifest)
+    for case_id, other in [('one', 'two'), ('two', 'one')]:
+        def swap_target(text, other=other):
+            soup = BeautifulSoup(text, 'html.parser')
+            soup.find('details', id=method).select_one('[data-call-log-open]')['data-key'] = other
+            return str(soup)
+        rebind(output, 'zh/' + record_route('c', case_id) + '.html', swap_target)
+    monkeypatch.setenv('BROWSER_EVAL_FULL_REPORT_CHECK', '1' if forced else '0')
+    with pytest.raises(ValueError, match='evidence.*case identit'):
+        check(output)
+
+
 @pytest.mark.parametrize(
     "damage",
     [
