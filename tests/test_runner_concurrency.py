@@ -27,6 +27,39 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_shared_service_capacity_prevents_overlapping_provider_variants(self):
+        import time
+
+        lock = threading.Lock()
+        active = 0
+        maximum = 0
+
+        class Shared(Provider):
+            def fetch(self, case, timeout):
+                nonlocal active, maximum
+                with lock:
+                    active += 1
+                    maximum = max(maximum, active)
+                time.sleep(0.02)
+                with lock:
+                    active -= 1
+                return ProviderResult(ok=True, content='Expected', status_code=200)
+
+        config = {'type': 'fixture', 'execution_resources': {
+            'one-service': {'capacity': 1, 'reason': 'Shared mutable service'}}}
+        providers = [Shared('one', config), Shared('two', config)]
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as tmp:
+            rows, _ = run_evaluation(
+                output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                dataset_path=Path('dataset.json'), cases=[case], providers=providers,
+                provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                delay=0, provider_concurrency=2)
+            manifest = json.loads((Path(tmp) / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(maximum, 1)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(manifest['parameters']['execution_policy']['resources']['shared/one-service']['capacity'], 1)
+
     def test_certificate_and_transport_errors_are_classified(self):
         certificate = ssl.SSLCertVerificationError(1, "certificate verify failed")
         for error, expected in (

@@ -104,6 +104,7 @@ include = [
   "src/harness/reporting/**/*.py",
   "src/harness/web_search/**/*.py",
   "src/harness/container_isolation.py",
+  "src/harness/benchmark_execution.py",
   "src/harness/data_home.py",
   "src/harness/distribution.py",
   "src/harness/env_file.py",

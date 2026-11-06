@@ -427,7 +427,20 @@
     "usage_unit_internal_credits": "internal credits",
     "cost_total_unavailable": "Total cost unavailable",
     "cost_unavailable_population": "{missing}/{cases} tasks lack complete charges: {reason}",
-    "cost_disclosure_receipt": "Cost disclosure"
+    "cost_disclosure_receipt": "Cost disclosure",
+    "execution_settings_title": "Measured execution settings",
+    "execution_settings_note": "Concurrent collections report latency under the declared load. Isolated latency and throughput have separate execution purposes.",
+    "execution_settings_headings": [
+      "Method",
+      "Maximum in-flight calls",
+      "Execution purpose",
+      "Minimum start interval (s)",
+      "Post-call cooldown (s)"
+    ],
+    "execution_quality": "Quality collection",
+    "execution_latency": "Isolated latency",
+    "execution_throughput": "Loaded throughput",
+    "execution_undeclared": "Not separately declared"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -857,6 +870,19 @@
     "usage_unit_internal_credits": "内部积分",
     "cost_total_unavailable": "总费用未知",
     "cost_unavailable_population": "{missing}/{cases} 个任务缺少完整费用记录：{reason}",
-    "cost_disclosure_receipt": "费用缺失记录"
+    "cost_disclosure_receipt": "费用缺失记录",
+    "execution_settings_title": "实际调用配置",
+    "execution_settings_note": "表中列出各方案同时进行的调用上限和等待间隔。耗时对应这些配置下的实际负载。",
+    "execution_settings_headings": [
+      "方案",
+      "同时进行的调用上限",
+      "执行目的",
+      "最小启动间隔（秒）",
+      "调用后等待（秒）"
+    ],
+    "execution_quality": "质量评测",
+    "execution_latency": "单独运行测耗时",
+    "execution_throughput": "测批量处理速度",
+    "execution_undeclared": "原记录未说明"
   }
 }
