@@ -27,6 +27,52 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_operator_interrupt_stops_batches_after_current_calls(self):
+        import signal
+        from unittest.mock import patch
+
+        from harness import benchmark_execution
+
+        ready = threading.Barrier(3, timeout=3)
+        release = threading.Event()
+        calls = []
+        retained = []
+        original_wait = benchmark_execution.wait
+        interrupted = False
+
+        def fetch(provider, case, *args, **kwargs):
+            calls.append((provider.name, case.id))
+            ready.wait()
+            self.assertTrue(release.wait(timeout=3))
+            return ProviderResult(True, 'Expected'), None
+
+        def wait_once(futures, **kwargs):
+            nonlocal interrupted
+            if not interrupted:
+                interrupted = True
+                ready.wait()
+                try:
+                    signal.raise_signal(signal.SIGINT)
+                finally:
+                    release.set()
+            return original_wait(futures, **kwargs)
+
+        providers = [BarrierProvider(name, threading.Barrier(1)) for name in ('one', 'two')]
+        cases = [EvalCase(str(i), 'Case', 'https://example.com', 'static', ['Expected'])
+                 for i in range(3)]
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch), \
+                    patch.object(benchmark_execution, 'wait', side_effect=wait_once):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                                   dataset_path=Path('dataset.json'), cases=cases, providers=providers,
+                                   provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                                   delay=0, provider_concurrency=2)
+            retained = (Path(tmp) / 'results.jsonl').read_text().splitlines()
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(retained), 2)
+        self.assertTrue(all(json.loads(row)['ok'] for row in retained))
+
     def test_conflicting_shared_limits_are_rejected_before_clamping(self):
         from unittest.mock import patch
 

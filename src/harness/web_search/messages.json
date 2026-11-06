@@ -570,6 +570,13 @@
     "{results} results returned": "返回 {results} 条结果",
     "{screenshots} queries were transcribed from user screenshots; their original authors and posts are unconfirmed": "{screenshots} 道题照录自用户截图，原作者与原帖尚未确认",
     "{value:.1f}% ({n} queries)": "{value:.1f}% ({n}题)",
-    "★ marks a unique favorable value within its column. Populations differ across columns, so these are not an overall ranking. Charges use frozen list prices; unknown prices remain unavailable.": "★ 仅标出当前列唯一的较优数值；各列适用范围不同，不能合成总排名。费用按冻结目录价估算，未知价格保留为空。"
+    "★ marks a unique favorable value within its column. Populations differ across columns, so these are not an overall ranking. Charges use frozen list prices; unknown prices remain unavailable.": "★ 仅标出当前列唯一的较优数值；各列适用范围不同，不能合成总排名。费用按冻结目录价估算，未知价格保留为空。",
+    "Up to {concurrency} concurrent API calls": "最多同时调用 {concurrency} 个 API 请求",
+    "Collection concurrency": "采集并发设置",
+    "Maximum concurrent calls: {concurrency}.": "最多同时执行 {concurrency} 个请求。",
+    "Latency includes concurrent collection load; it is not an isolated speed comparison.": "耗时包含并发采集时的负载影响，不用于比较独占环境下的速度。",
+    "Serial collection; latency covers each saved API call.": "串行采集，耗时按每次保存的 API 调用统计。",
+    "Effective concurrent calls": "实际并发上限",
+    "Shared resource limits": "共享资源限制"
   }
 }

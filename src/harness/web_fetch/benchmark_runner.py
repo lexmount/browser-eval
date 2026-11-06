@@ -4,11 +4,12 @@ from __future__ import annotations
 import argparse
 import json
 import math
-from concurrent.futures import ThreadPoolExecutor
+import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.distribution import repository_root
+from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
 from harness.web_fetch.artifacts import materialize_bound_artifacts, materialize_task_references
 from harness.web_fetch.config import (
     DEFAULT_CALL_TIMEOUT_SECONDS,
@@ -22,7 +23,9 @@ from harness.web_fetch.network_preflight import preflight_guarded_providers
 from harness.web_fetch.providers import build_provider
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report_build import build_report
-from harness.web_fetch.runner import preflight_declared_capacity, run_evaluation
+from harness.web_fetch.runner import (
+    preflight_declared_capacity, provider_execution_policy, run_evaluation,
+)
 from harness.data_home import data_home
 
 ROOT = repository_root()
@@ -106,6 +109,7 @@ def main(argv=None):
             missing=provider.validate()
             if missing:errors.append(f'{scope}/{name}: missing {", ".join(missing)}')
     if errors:parser.error('\n'.join(errors))
+    execution_policy, resource_bindings = provider_execution_policy(selected_providers, args.workers)
     try:
         network_audit = preflight_guarded_providers(selected_providers, cases)
     except ValueError as error:
@@ -120,16 +124,19 @@ def main(argv=None):
         max_failure_retries=args.max_failure_retries,
     )
     args.output.mkdir(parents=True)
+    stopped = threading.Event()
     if network_audit is not None:
         (args.output / "network-preflight.json").write_text(json.dumps(network_audit, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
     def work(name):
         batches=[];records=[]
         for scope,path,config,selected in scopes:
+            if stopped.is_set():
+                raise KeyboardInterrupt()
             selected_ids = {case.id for case in selected}
             meta={**dataset,'cases':[c for c in dataset['cases'] if c['id'] in selected_ids]}
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
-            rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries)
+            rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries,execution_context=execution_policy,stop_requested=stopped.is_set)
             materialize_bound_artifacts(args.output, folder, rs)
             batches.append(json.loads((folder/'manifest.json').read_text(encoding='utf-8')));records.extend(rs)
         return records,batches
@@ -145,7 +152,16 @@ def main(argv=None):
         materialize_bound_artifacts(args.output, folder, records)
         parts = [(records, [json.loads((folder / 'manifest.json').read_text(encoding='utf-8'))])]
     else:
-        with ThreadPoolExecutor(max_workers=args.workers) as pool:parts=list(pool.map(work,names))
+        completed = {}
+
+        def commit(job, value, error):
+            if error is not None:
+                raise error
+            completed[job.key] = value
+
+        run_jobs([Job(name, tuple(resource_bindings[name]), name) for name in names],
+                 work, commit, ExecutionPolicy.from_dict(execution_policy), on_stop=stopped.set)
+        parts = [completed[name] for name in names]
     aggregate_completed_at=datetime.now(UTC).isoformat()
     records=[r for rs,_ in parts for r in rs];batches=[b for _,bs in parts for b in bs]
     assert len(records)==len(cases)*len(names)*args.runs
@@ -153,6 +169,7 @@ def main(argv=None):
         'started_at':aggregate_started_at,'completed_at':aggregate_completed_at,
         'providers':sorted(names),'case_ids':[case.id for case in cases],'batch_count':len(batches),
         'call_order': args.call_order,
+        'execution_policy': execution_policy,
     },'batches':batches}
     for name,value in [('dataset.json',dataset),('execution.json',execution)]:
         (args.output/name).write_text(json.dumps(value,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')

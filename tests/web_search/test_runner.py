@@ -14,6 +14,64 @@ from harness.web_search.runner import run
 
 
 class CollectionScenarios(unittest.TestCase):
+    def test_ctrl_c_drains_active_batch_calls_and_stops_later_cases(self):
+        import signal
+        import threading
+
+        from harness import benchmark_execution
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.profile(root)
+            profile = json.loads(source.read_text())
+            profile['cases'].append(dict(profile['cases'][0], id='second-case', query='Second'))
+            methods = profile['methods']
+            profile['protocol'].update(concurrency=len(methods), order='bounded provider batches',
+                                       retry=False, interval_s=0)
+            profile['execution_policy'] = {
+                'purpose': 'quality', 'max_in_flight': len(methods),
+                'resources': {m['id']: {'capacity': 1, 'reason': 'Ordered calls'} for m in methods}}
+            source.write_text(json.dumps(profile))
+            ready = threading.Barrier(len(methods) + 1, timeout=3)
+            release = threading.Event()
+            calls = []
+            original_wait = benchmark_execution.wait
+            interrupted = False
+
+            def http(url, body=None, header=None, timeout=20):
+                receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+                if body is None:
+                    return receipt, b'reference ' * 20
+                calls.append(body)
+                if len(calls) <= len(methods):
+                    ready.wait()
+                    assert release.wait(timeout=3)
+                return receipt, b'{"results":[]}'
+
+            def wait_once(futures, **kwargs):
+                nonlocal interrupted
+                if not interrupted:
+                    interrupted = True
+                    ready.wait()
+                    try:
+                        signal.raise_signal(signal.SIGINT)
+                    finally:
+                        release.set()
+                return original_wait(futures, **kwargs)
+
+            with (
+                patch('harness.web_search.runner.http_call', side_effect=http),
+                patch('harness.web_search.runner.load_runtime_env'),
+                patch.object(benchmark_execution, 'wait', side_effect=wait_once),
+                patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY='test',
+                           DEEPSEEK_API_KEY='test', BOCHA_API_KEY='test'),
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                run(source, root / 'run', certified=True)
+            self.assertEqual(len(calls), len(methods))
+            rows = (root / 'run/results.jsonl').read_text().splitlines()
+            self.assertEqual(len(rows), len(methods))
+
     def test_shared_account_variants_require_an_explicit_account_capacity(self):
         from harness.web_search.core import validate_profile
 

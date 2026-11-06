@@ -14,6 +14,45 @@ from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 
 
 class BenchmarkSelectionTests(unittest.TestCase):
+    def test_provider_batches_share_the_declared_account_limit(self):
+        import threading
+        import time
+
+        active = peak = 0
+        lock = threading.Lock()
+
+        def fetch(*args, **kwargs):
+            nonlocal active, peak
+            with lock:
+                active += 1
+                peak = max(peak, active)
+            time.sleep(.03)
+            with lock:
+                active -= 1
+            return ProviderResult(True, 'content'), None
+
+        config = self.root / 'configs/providers.example.json'
+        data = json.loads(config.read_text())
+        for provider in data['providers'].values():
+            provider['execution_resources'] = {
+                'account': {'capacity': 1, 'reason': 'One shared account'}}
+        config.write_text(json.dumps(data))
+        with patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch):
+            self.run_main([
+                '--dataset', str(self.root / 'evaluation/dataset.json'),
+                '--provider-config', str(config), '--track', 'web',
+                '--providers', 'fixture-one,fixture-two', '--workers', '2', '--measure-only',
+            ])
+        self.assertEqual(peak, 1)
+        rows = [json.loads(row) for row in (self.output / 'results.jsonl').read_text().splitlines()]
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row['ok'] for row in rows))
+        execution = json.loads((self.output / 'execution.json').read_text())
+        self.assertEqual(execution['aggregate']['execution_policy']['purpose'], 'quality')
+        for batch in execution['batches']:
+            self.assertEqual(batch['execution_context']['purpose'], 'quality')
+            self.assertEqual(batch['execution_policy']['purpose'], 'quality')
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

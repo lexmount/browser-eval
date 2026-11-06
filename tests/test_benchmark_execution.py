@@ -176,6 +176,42 @@ def test_interrupt_after_submission_retains_the_submitted_call():
     assert retained == [1]
 
 
+def test_interrupt_between_wait_and_commit_retains_every_submitted_call():
+    import signal
+
+    from harness import benchmark_execution
+
+    original_wait = benchmark_execution.wait
+    interrupted = False
+    retained = []
+
+    class InterruptingDone:
+        def __init__(self, done):
+            self.done = done
+
+        def __iter__(self):
+            signal.raise_signal(signal.SIGINT)
+            return iter(self.done)
+
+    def wait_once(futures, **kwargs):
+        nonlocal interrupted
+        done, pending = original_wait(futures, **kwargs)
+        if not interrupted:
+            interrupted = True
+            return InterruptingDone(done), pending
+        return done, pending
+
+    with patch.object(benchmark_execution, "wait", side_effect=wait_once):
+        with pytest.raises(KeyboardInterrupt):
+            run_jobs(
+                [Job(str(i), ("api-a",), i) for i in range(8)],
+                lambda value: value,
+                lambda job, value, error: retained.append(value),
+                policy(max_in_flight=2),
+            )
+    assert sorted(retained) == [0, 1]
+
+
 def test_stop_predicate_interruption_drains_another_running_call():
     release = threading.Event()
     retained = []
