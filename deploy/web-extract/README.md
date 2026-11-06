@@ -32,7 +32,8 @@ The browser, native Firecrawl API, identity endpoint, database and queues remain
 the private Compose network. Three named volumes retain database and queue data.
 The native Python image builds for the Docker host; the pinned Firecrawl images
 use amd64, matching the Rainbond deployment. ARM hosts need Docker's amd64 emulation
-for those five images. Resource limits reproduce the configured Rainbond limits,
+for those four images. RabbitMQ uses the host architecture from its pinned
+multi-platform digest, avoiding Erlang JIT failures under amd64 emulation. Resource limits reproduce the configured Rainbond limits,
 not a measured minimum host requirement.
 
 ## Check every extraction route

@@ -96,7 +96,7 @@ services:
     mem_limit: 256m
 
   firecrawl-rabbitmq:
-    platform: linux/amd64
+    hostname: firecrawl-rabbitmq
     image: docker.1ms.run/library/rabbitmq@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69
     environment:
       RABBITMQ_DEFAULT_USER: extractor
@@ -104,7 +104,7 @@ services:
     volumes:
       - rabbitmq-data:/var/lib/rabbitmq
     healthcheck:
-      test: [CMD, rabbitmq-diagnostics, -q, ping]
+      test: [CMD, rabbitmq-diagnostics, -q, check_running]
       interval: 10s
       timeout: 10s
       retries: 12
