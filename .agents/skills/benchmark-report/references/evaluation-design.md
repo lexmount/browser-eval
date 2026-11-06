@@ -45,6 +45,13 @@ source evidence of removal, wrong content, or erroneous/stale annotations, and
 apply that decision to every participant. A provider's failure on a valid task
 remains a measured failure.
 
+For a live cohort, an independently captured reference observation may remain
+authoritative during a predeclared, bounded freshness window. Freeze its original
+URL, observation time and input/reference hashes before calls. If a later source
+check is blocked, retain the task and record the failed check and the age of the
+reference observation. A successful check showing changed answers overrides this
+fallback; expired or unsupported observations cannot qualify the task.
+
 Prefer invariant contracts for changing pages: stable labels, required fields, record shape, types, count bounds, uniqueness, and independently observed explanatory text. Do not freeze ranks, prices, member counts, or current titles unless the benchmark is explicitly a time-bound snapshot.
 
 Ground truth must be independent of the provider under test. Retain source location, bytes or a durable observation, hash, capture method, and scope. Partial annotations support only the requirements they cover. They are not a full-body reference. When authoring or expanding a task, inspect its actual reference text against the reader's main content needs. A dashboard's labels do not establish its values; a feed's navigation does not establish its entries. Select applicable fact, body-region, record, pattern, resource and file checks through the shared scorer. Give the source-complete answer and a page shell or incomplete answer opposite outcomes before freezing the new version. Preserve earlier input versions.
