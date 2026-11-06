@@ -319,6 +319,18 @@ def test_publication_requires_complete_same_version_online_verification(home, tm
     }
     metadata = snapshots.publication_metadata(home, value, receipt)
     assert snapshots.select(home, metadata)["fixture_base"] == item["fixture_base"]
+    combined = {
+        **receipt,
+        "resources": [
+            {
+                "case_id": "resource:image.png",
+                "sha256": "x",
+                "url": "https://another-dataset.example/image.png",
+                "http_status": 200,
+            }
+        ],
+    }
+    assert snapshots.publication_metadata(home, value, combined) == metadata
     assert (
         metadata["snapshot_manifest"]["manifest_url"] == value["snapshot_manifest"]["manifest_url"]
     )

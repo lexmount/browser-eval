@@ -1536,7 +1536,7 @@ def collect_calls(
                     row.update(
                         provider_call(
                             method,
-                            raw.decode("utf-8"),
+                            "" if contract.get("input_mode") == "live" else raw.decode("utf-8"),
                             truth[case_id]["url"],
                             truth[case_id]["url"]
                             if contract.get("input_mode") == "live"

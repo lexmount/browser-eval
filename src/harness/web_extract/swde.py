@@ -237,6 +237,8 @@ def record_value_key(reference, field, value, text_matching="literal"):
     if reference.get("value_kinds", {}).get(field) == "url":
         from urllib.parse import urljoin, urlsplit
 
+        if not value.strip():
+            return ""
         try:
             parts = urlsplit(
                 urljoin(

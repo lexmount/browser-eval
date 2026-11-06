@@ -268,6 +268,136 @@ def test_transient_source_failure_can_recover_without_retrying_provider_calls(
     assert receipt[0]["source_attempts"] == [{"http_status": 503}, {"http_status": 200}]
 
 
+@pytest.mark.parametrize("status", [202, 403, 404, 429, 503])
+def test_source_access_failure_does_not_decide_task_validity(tmp_path, monkeypatch, status):
+    home = prepared(tmp_path)
+    original = (home / "dataset/dataset/ground-truth.json").read_bytes()
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kwargs: SimpleNamespace(status=status, body=b"", url=url),
+    )
+    with pytest.raises(records.LiveSourceAccessError) as caught:
+        records.qualify_live(home, ["one"])
+    assert caught.value.validity == "unresolved"
+    assert caught.value.case_id == "one"
+    assert caught.value.source_attempts[-1] == {"http_status": status}
+    assert (home / "dataset/dataset/ground-truth.json").read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    "value,page,supported",
+    [
+        ("42", "42.99", False),
+        ("2", "-2", False),
+        ("234", "1,234", False),
+        ("42", "42.", True),
+        ("-2", "-2", True),
+        ("42.99", "42.99", True),
+    ],
+)
+def test_numeric_references_require_complete_numbers(value, page, supported):
+    ref = {"url": "https://example.org/", "values": {"price": [value]}}
+    assert (not records.reference_support(ref, ("<p>" + page + "</p>").encode())) is supported
+
+
+@pytest.mark.parametrize("copies", [1, 2])
+@pytest.mark.parametrize("kind", ["text", "url"])
+def test_equivalent_reference_values_require_combined_source_occurrences(copies, kind):
+    ref = {"url": "https://example.org/", "values": {"item": ["Ada", " Ada "]}}
+    raw = b"<p>Ada</p>" * copies
+    if kind == "url":
+        ref.update(
+            values={"item": ["/paper.pdf", "https://example.org/paper.pdf"]},
+            value_kinds={"item": "url"},
+        )
+        raw = b'<a href="/paper.pdf">PDF</a>' * copies
+    assert (not records.reference_support(ref, raw)) is (copies == 2)
+
+
+def test_empty_url_prediction_is_not_the_page_url():
+    ref = {
+        "url": "https://example.org/",
+        "domain": "page",
+        "site": "example",
+        "values": {"link": ["https://example.org/"]},
+        "value_kinds": {"link": "url"},
+    }
+    for value in ["", " "]:
+        scored = records.score({"one": ref}, {"one": {"link": [value]}})
+        assert scored["value_micro"]["true_positive"] == 0
+        assert (
+            analysis.record_field_results(
+                ref, {"http_status": 200, "normalized_fields": {"link": [value]}}
+            )["link"]["exact"]
+            is False
+        )
+    assert records.score({"one": ref}, {"one": {"link": ["/"]}})["value_micro"]["f1"] == 1
+
+
+def test_live_url_collection_does_not_decode_unused_captured_html(tmp_path, monkeypatch):
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    raw = b'<html><meta charset="iso-8859-1"><h1>Andr\xe9</h1></html>'
+    Path(item["input"]).write_bytes(raw)
+    item.update(input_sha256=pipeline.digest(raw), values={"name": ["André"]})
+    item["qualification"].update(
+        input_sha256=pipeline.digest(raw),
+        reference_sha256=pipeline.digest(
+            json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+        ),
+    )
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "test-bb")
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(status=200, body=raw, url=url),
+    )
+    sent = []
+
+    def native(url, **kwargs):
+        sent.append(kwargs["json_body"])
+        return SimpleNamespace(
+            status=200,
+            headers={},
+            text=lambda: json.dumps({"statusCode": 200, "content": {"name": ["André"]}}),
+        )
+
+    monkeypatch.setattr(pipeline, "request", native)
+    plan = tmp_path / "plan.json"
+    certification.create_plan(home, ["browserbase-json"], plan)
+    result = certification.run(home, plan, "browserbase-json", tmp_path / "run")
+    assert sent[0]["url"] == item["url"]
+    assert result["scores"]["browserbase-json"]["value_micro"]["f1"] == 1
+
+
+def test_hf_cached_manifest_can_reference_a_content_addressed_blob(tmp_path, monkeypatch):
+    blob = tmp_path / "blob"
+    pipeline.save_json(
+        blob,
+        {
+            "files": {
+                "html/one.html": {"sha256": "a" * 64},
+                "assets/image.png": {"sha256": "b" * 64},
+            }
+        },
+    )
+    cached = tmp_path / "manifest.json"
+    cached.symlink_to(blob)
+    monkeypatch.setattr("huggingface_hub.hf_hub_download", lambda *a, **k: str(cached))
+    hf = {
+        "repository": "owner/data",
+        "input_path": "manifest.json",
+        "input_format": "html-manifest",
+    }
+    assert snapshots.hf_inventory(hf, "c" * 40) == {"one": "a" * 64}
+    assert snapshots.hf_resources(hf, "c" * 40) == {"assets/image.png": "b" * 64}
+
+
 @pytest.mark.parametrize("asset_name", ["image.bin", "frame.html"])
 def test_snapshot_resources_are_copied_and_change_the_whole_input_version(
     tmp_path, monkeypatch, asset_name
@@ -591,3 +721,67 @@ def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
         snapshots.verify_bound_manifest(
             home, {**receipt, "hosting_provider": "external"}, receipt["fixture_base"]
         )
+
+
+@pytest.mark.parametrize(
+    "value,supported", [("Ada", True), ("ada", False), ("Ａｄａ", False), ("&amp;", False)]
+)
+def test_source_text_qualification_uses_the_scoring_text_contract(value, supported):
+    reference = {
+        "url": "https://example.org/",
+        "domain": "person",
+        "site": "example",
+        "values": {"name": [value]},
+    }
+    assert (not records.reference_support(reference, b"<h1>Ada</h1>")) is supported
+    assert (
+        records.score({"one": reference}, {"one": {"name": ["Ada"]}})["value_micro"]["f1"] == 1
+    ) is supported
+
+
+def test_live_reference_check_honors_the_http_charset(tmp_path, monkeypatch):
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    raw = "<html><h1>上海</h1></html>".encode()
+    Path(item["input"]).write_bytes(raw)
+    item["values"] = {"name": ["上海"]}
+    item["input_sha256"] = pipeline.digest(raw)
+    item["qualification"] = {
+        "input_sha256": pipeline.digest(raw),
+        "reference_sha256": pipeline.digest(
+            json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+        ),
+    }
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(
+            status=200, body=raw, url=url, headers={"content-type": "text/html; charset=utf-8"}
+        ),
+    )
+    assert records.qualify_live(home, ["one"])[0]["reference_values_verified"] == 1
+
+
+def test_managed_snapshot_cannot_reuse_a_different_source_license(tmp_path, monkeypatch):
+    home = prepared(tmp_path, mode="snapshot")
+    output = tmp_path / "site"
+    manifest = snapshots.build(
+        {"sample": home}, output, huggingface={"repository": "example/sample", "revision": "1" * 40}
+    )
+    response = SimpleNamespace(
+        status_code=200,
+        url="https://immutable.example/snapshots.json",
+        content=(output / "snapshots.json").read_bytes(),
+        json=lambda: manifest,
+        raise_for_status=lambda: None,
+    )
+    monkeypatch.setattr("requests.get", lambda *a, **k: response)
+    identity = {"repository": "example/sample", "revision": "1" * 40}
+    snapshots.check_manifest(home, "https://immutable.example", identity)
+    prefix = manifest["datasets"]["sample"]["path"]
+    manifest["files"][prefix + "/LICENSE.txt"] = "different-license"
+    with pytest.raises(ValueError, match="source license"):
+        snapshots.check_manifest(home, "https://immutable.example", identity)

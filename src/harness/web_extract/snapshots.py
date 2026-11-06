@@ -339,6 +339,7 @@ def publication_metadata(home, binding, verification):
             (row["case_id"], row["sha256"], row["url"])
             for row in verification.get("resources", [])
             if row.get("http_status") == 200
+            and row["url"].startswith(selected["fixture_base"] + "/")
         }
         if actual_resources != expected_resources:
             raise ValueError("Snapshot publication requires every matching verified resource")
@@ -502,13 +503,11 @@ def hf_resources(hf, revision):
         return {}
     from huggingface_hub import hf_hub_download
 
-    manifest = read_json(
-        Path(
-            hf_hub_download(
-                hf["repository"], hf["input_path"], repo_type="dataset", revision=revision
-            )
-        )
+    source = Path(
+        hf_hub_download(hf["repository"], hf["input_path"], repo_type="dataset", revision=revision)
     )
+    # HF's revision-pinned cache uses symlinks to content-addressed blobs.
+    manifest = json.loads(source.read_bytes())
     return {
         name: item["sha256"]
         for name, item in manifest["files"].items()
@@ -849,6 +848,10 @@ def check_manifest(home, origin, hf_identity):
     )
     if declared_html != expected_html:
         raise ValueError("Snapshot file inventory differs from selected HF dataset")
+    license_name = "LICENSE.json" if (home / "dataset/LICENSE.json").is_file() else "LICENSE"
+    expected_license = bytes_sha256((home / "dataset" / license_name).read_bytes())
+    if manifest.get("files", {}).get(path + "/LICENSE.txt") != expected_license:
+        raise ValueError("Snapshot does not bind the selected source license")
     if any(
         manifest.get("files", {}).get(path + "/" + name) != value
         for name, value in resources.items()
