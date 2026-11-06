@@ -26,6 +26,9 @@ from harness.web_extract.pipeline import digest, execution_identity, read_json, 
         "single-attempt",
         "injected-usage",
         "injected-time",
+        "coerced-type",
+        "reordered-keys",
+        "retry-coerced-type",
     ],
 )
 def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
@@ -49,11 +52,12 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         "elapsed_seconds": 0.25,
         "provider_usage": {"x-browser-ms-used": "100"},
         "response": {
-            "result": {"price": "10", "sku": "A", "availability": "InStock"}
+            "result": {"price": 1, "sku": "A", "availability": "InStock"}
             if mode == "full-cohort-progress"
             else {"title": ["A"]},
             "message": "retained metadata",
             "debug_path": "/Users/example/private/trace.json",
+            "native_flag": 1,
         },
         "request": {
             "endpoint": "https://api.cloudflare.com/client/v4/accounts/private-account-id/browser-rendering/json",
@@ -73,7 +77,7 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         previous.update(
             http_status=402,
             compatibility="no_structured_output",
-            response={"error": "Insufficient credits"},
+            response={"error": "Insufficient credits", "usage": {"credits": 0}},
             elapsed_seconds=0.5,
             provider_usage={"x-browser-ms-used": "0"},
             physical_attempt=1,
@@ -171,6 +175,11 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         },
     )
     verify_completion_audit(report, profile)
+    if damage == "reordered-keys":
+        projected["response"] = dict(reversed(list(projected["response"].items())))
+        save_json(path, {"page": projected})
+        verify_completion_audit(report, profile)
+        return
     if damage == "single-attempt":
         projected["physical_attempts"] = [deepcopy(projected)]
         save_json(path, {"page": projected})
@@ -182,6 +191,12 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     if damage == "public-envelope":
         projected["response"]["message"] = "substituted metadata"
         save_json(path, {"page": projected})
+    elif damage == "coerced-type":
+        if mode == "full-cohort-progress":
+            projected["response"]["result"]["price"] = True
+        else:
+            projected["response"]["native_flag"] = True
+        save_json(path, {"page": projected})
     elif damage == "missing-delivery":
         projected.update(http_status=200, compatibility="structured_output")
         save_json(path, {"page": projected})
@@ -192,6 +207,7 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         "retry-removed",
         "retry-usage",
         "retry-time",
+        "retry-coerced-type",
         "injected-usage",
         "injected-time",
     ):
@@ -201,6 +217,8 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
             projected["physical_attempts"][0]["provider_usage"]["x-browser-ms-used"] = "90000"
         elif damage == "retry-time":
             projected["physical_attempts"][0]["elapsed_seconds"] = 50
+        elif damage == "retry-coerced-type":
+            projected["physical_attempts"][0]["response"]["usage"]["credits"] = False
         elif damage == "injected-usage":
             projected["provider_usage"] = {"x-browser-ms-used": "1"}
         else:

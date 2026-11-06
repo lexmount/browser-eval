@@ -15,6 +15,7 @@ from bs4 import BeautifulSoup
 
 from harness.distribution import repository_root
 from harness.env_file import local_setting
+from harness.record_io import canonical_json_sha256
 from harness.report_languages import resolve_report_language
 from harness.reporting.links import LinkIndex
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
@@ -544,7 +545,9 @@ def verify_execution_projection(original, published):
 
     def same_fields(expected, actual):
         fields = (set(expected) - derived - {"physical_attempts"}) | required
-        return all(actual.get(k) == expected.get(k) for k in fields)
+        return canonical_json_sha256(
+            {k: actual.get(k) for k in fields}, allow_nan=False
+        ) == canonical_json_sha256({k: expected.get(k) for k in fields}, allow_nan=False)
 
     if not same_fields(original, published):
         raise ValueError("Completion audit native execution projection changed")
@@ -570,7 +573,9 @@ def verify_execution_projection(original, published):
     def canonical(history):
         return [{k: v for k, v in row.items() if k not in derived} for row in history]
 
-    if canonical(actual) != canonical(expected):
+    if canonical_json_sha256(canonical(actual), allow_nan=False) != canonical_json_sha256(
+        canonical(expected), allow_nan=False
+    ):
         raise ValueError("Completion audit native attempt history changed")
 
 
@@ -801,7 +806,9 @@ def check_completion_metrics(output, manifest, rows):
             raise ValueError("Completion reference coverage differs from authoritative audit")
         for row in rows:
             reviewed = audit.get("results", {}).get(row["method"] + ":" + row["case_id"], {})
-            if row.get("review", {}).get("audited_fields") != reviewed.get("audited_fields"):
+            if canonical_json_sha256(
+                row.get("review", {}).get("audited_fields"), allow_nan=False
+            ) != canonical_json_sha256(reviewed.get("audited_fields"), allow_nan=False):
                 raise ValueError("Completion judgments differ from authoritative audit")
     elif not records and (manifest.get("review") or bundle["excluded_fields"]):
         raise ValueError("Completion reference coverage lacks its authoritative audit")
