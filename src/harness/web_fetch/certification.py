@@ -64,8 +64,10 @@ def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[st
         raise ValueError("Exported dataset comparison must be an object")
     if spec.get("schema_version") != 1 or spec.get("kind") != "task_population_selection":
         raise ValueError("Unsupported population selection")
-    selected = [(r["suite"], r["id"]) for r in spec["cases"]]
-    excluded = [(r["suite"], r["id"]) for r in spec["excluded"]]
+    from lexbench_webfetch.paths import safe_identifier
+
+    selected = [(r["suite"], safe_identifier(r["id"])) for r in spec["cases"]]
+    excluded = [(r["suite"], safe_identifier(r["id"])) for r in spec["excluded"]]
     if (len(set(selected)) != len(selected) or len(set(excluded)) != len(excluded)
             or set(selected) & set(excluded)
             or len(selected) != spec["task_count"]
@@ -87,7 +89,7 @@ def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[st
             or revision.get("sha256") != revision_sha
             or revision.get("parent_tasks_sha256") != suite_binding["sha256"]):
         raise ValueError("Exported suite does not match the population's rules or frozen tasks")
-    known = [case["id"] for case in dataset["cases"]]
+    known = [safe_identifier(case["id"]) for case in dataset["cases"]]
     allowed = {cid for sid, cid in selected + excluded if sid == suite}
     if len(known) != len(set(known)) or set(known) != allowed:
         raise ValueError("Exported cases do not match the population's suite")

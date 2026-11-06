@@ -138,7 +138,8 @@ class PopulationCohortTests(unittest.TestCase):
     def test_invalid_population_objects_get_cli_error_before_calls(self):
         for target, value in [('population', []), ('population', None),
                               ('revision', []), ('binding', None),
-                              ('comparison', None), ('comparison', [])]:
+                              ('comparison', None), ('comparison', []),
+                              ('case ID', 42), ('case ID', ''), ('case ID', 'a,b')]:
             with self.subTest(target=target, value=value), tempfile.TemporaryDirectory() as tmp:
                 root = Path(tmp)
                 data, spec, args = self.inputs(root)
@@ -148,6 +149,11 @@ class PopulationCohortTests(unittest.TestCase):
                     data['definition_revision'] = value
                 elif target == 'comparison':
                     data['comparison'] = value
+                elif target == 'case ID':
+                    data['cases'][0]['id'] = value
+                    spec['cases'][0]['id'] = value
+                    spec['frozen_task_bindings']['articles']['exported_cases_sha256'] = (
+                        canonical_json_sha256(data['cases']))
                 else:
                     spec['frozen_task_bindings']['articles'] = value
                 (root / 'dataset.json').write_text(json.dumps(data), encoding='utf-8')
