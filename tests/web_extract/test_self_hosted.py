@@ -479,3 +479,22 @@ def test_client_cannot_supply_a_private_environment_cache(tmp_path, monkeypatch)
     assert result.returncode != 0
     assert 'Unknown extraction engine' in result.stderr
     assert 'FileNotFoundError' not in result.stderr
+
+
+def test_environment_identity_preserves_nested_names_across_install_locations(tmp_path, monkeypatch):
+    from harness.web_extract import self_hosted
+
+    identities = []
+    for location in ('site-packages', 'site-packages-π'):
+        root = tmp_path / location
+        for name in ('pkg.a/sdk.py', 'pkg.a-extra/sdk.py',
+                     'nested/données.json', 'nested/__pycache__/sdk.pyc'):
+            target = root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(name.encode('utf-8'))
+        monkeypatch.setattr(self_hosted.sysconfig, 'get_paths',
+                            lambda root=root: {'purelib': str(root), 'platlib': str(root)})
+        identities.append(self_hosted.installed_environment_sha256())
+    assert identities[0] == identities[1]
+    (root / 'pkg.a-extra/sdk.py').write_bytes(b'changed')
+    assert self_hosted.installed_environment_sha256() != identities[1]

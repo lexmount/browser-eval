@@ -358,6 +358,7 @@ tree = [
 web-extract-eval = [
     { name = "huggingface-hub" },
     { name = "jsonschema" },
+    { name = "lxml" },
     { name = "requests" },
 ]
 webmainbench-eval = [
@@ -388,6 +389,7 @@ requires-dist = [
     { name = "json-repair", marker = "extra == 'browser-use-eval'", specifier = ">=0.54,<1" },
     { name = "jsonschema", marker = "extra == 'web-extract-eval'", specifier = ">=4.25,<5" },
     { name = "langchain-community", marker = "extra == 'oss-eval'", specifier = "==0.3.30" },
+    { name = "lxml", marker = "extra == 'web-extract-eval'", specifier = ">=5.3.0" },
     { name = "markdown", marker = "extra == 'webmainbench-eval'", specifier = ">=3.7,<4" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },

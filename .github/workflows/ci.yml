@@ -92,6 +92,11 @@ jobs:
           BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen --no-sync python -m harness.web_fetch run --providers fixture --delay 0 --output "$output"
           uv run --frozen --no-sync python -c 'import json, sys; from pathlib import Path; root = Path(sys.argv[1]); contract = json.loads((root / "report-languages.json").read_text()); assert contract["primary_language"] == "zh"; assert contract["languages"] == ["zh"]; assert (root / "en/index.html").is_file()' "$output/report"
       - run: make package-check
+      - name: Verify the documented minimal Web Extract installation
+        run: |
+          extract_env="$(mktemp -d)/venv"
+          UV_PROJECT_ENVIRONMENT="$extract_env" uv sync --frozen --extra web-extract-eval --extra test
+          UV_PROJECT_ENVIRONMENT="$extract_env" uv run --frozen --no-sync python -m pytest tests/web_extract/test_swde.py -q
 
   browser:
     name: Rendered reference and report checks

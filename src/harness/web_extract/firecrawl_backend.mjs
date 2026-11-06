@@ -3,7 +3,7 @@ import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 import {
-  lstatSync as lstat, readdirSync as readdir, readFileSync as readFile,
+  lstatSync as lstat, readdirSync as readdir,
   readlinkSync as readlink, realpathSync as realpath,
   openSync as open, closeSync as close, readSync as read,
 } from 'node:fs';
