@@ -325,3 +325,29 @@ def test_external_policy_approval_is_scoped_and_receipts_cannot_self_authorize()
     with pytest.raises(ValueError, match='duplicate'):
         with approved_native_policies({**registry, 'sources': registry['sources'] * 2}):
             pytest.fail('Duplicate approval was accepted')
+
+
+def test_extract_quote_records_preserve_ownership_and_historical_policy():
+    from harness.web_fetch.native_projection import native_answer_projection
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task
+
+    payload = {'result': {'main_text': 'Quotes', 'extra': {'quotes': [
+        {'text': 'A complete quotation', 'author': 'Alex Writer', 'tags': ['books', 'reading']},
+        {'text': 'Another complete quotation', 'tags': ['reading']},
+        {'author': 'Someone Else', 'tags': ['other']},
+    ]}}}
+    case = {'url': 'https://example.test/quotes'}
+    contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1}
+    current = native_answer_projection('lexmount', case, payload, 200)
+    previous = native_answer_projection('lexmount', case, payload, 200, policy_version=5)
+    text, fields = project_native_answer(payload, current)
+    assert text == project_native_answer(payload, previous)[0] == 'Quotes'
+    assert project_native_answer(payload, previous)[1]['records'] == []
+    assert fields['records'][0] == {
+        'quote': 'A complete quotation', 'author': 'Alex Writer', 'tags': 'books reading'}
+    accepted = evaluate_stable_task(text, contract, representation='plain_text',
+                                    returned_records=fields['records'])
+    rejected = evaluate_stable_task(text, contract, representation='plain_text',
+                                    returned_records=fields['records'][1:])
+    assert accepted['stable_structure_pass']
+    assert not rejected['stable_structure_pass']

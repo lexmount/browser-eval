@@ -56,7 +56,7 @@ def approved_native_policies(registry):
             if (not isinstance(row, dict) or set(row) != {'source_sha256', 'version', 'reason'}
                     or not isinstance(row['source_sha256'], str)
                     or not re.fullmatch('[0-9a-f]{64}', row['source_sha256'])
-                    or type(row['version']) is not int or row['version'] not in {1, 2, 3, 4, 5}
+                    or type(row['version']) is not int or row['version'] not in {1, 2, 3, 4, 5, 6}
                     or not isinstance(row['reason'], str) or not row['reason'].strip()
                     or row['source_sha256'] in sources):
                 raise ValueError('Invalid or duplicate approved native policy source')
@@ -70,7 +70,7 @@ def approved_native_policies(registry):
 
 def native_projection_policy_version(policy, provider_type):
     if policy == native_projection_policy(provider_type):
-        return 5
+        return 6
     if not isinstance(policy, dict):
         raise ValueError('Native answer selection policy must be an object')
     digest = policy.get('source_sha256')
@@ -85,7 +85,7 @@ def native_projection_policy_version(policy, provider_type):
 
 def native_projection_policy(provider_type):
     digest = hashlib.sha256(native_projection_source()).hexdigest()
-    return {'kind': 'native-answer-selection', 'version': 5,
+    return {'kind': 'native-answer-selection', 'version': 6,
             'provider_type': provider_type,
             'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
 
@@ -94,9 +94,9 @@ def _object(value):
     return value if isinstance(value, dict) else {}
 
 
-def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None, policy_version=5):
+def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None, policy_version=6):
     """Return the declaration selected by the pre-call structural policy."""
-    if type(policy_version) is not int or policy_version not in {1, 2, 3, 4, 5}:
+    if type(policy_version) is not int or policy_version not in {1, 2, 3, 4, 5, 6}:
         raise ValueError('Unknown native answer selection policy version')
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
     track, task_kind = get('track', 'web'), get('task_kind', 'body')
@@ -118,8 +118,14 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                     'images': {'pointer': ['result', 'images'], 'format': 'identity', 'default': []},
                     **({'page_structure': {'pointer': ['result', 'extra', 'dom_summary'],
                                           'format': 'identity', 'default': {}},
-                        'records': {'pointer': ['result', 'extra', 'reviews'],
-                                    'format': 'identity', 'default': []}}
+                        'records': (
+                            {'pointer': ['result', 'extra', 'quotes'], 'format': 'object_rows', 'default': [],
+                             'fields': {'quote': {'pointer': ['text'], 'default': None},
+                                        'author': {'pointer': ['author'], 'default': None},
+                                        'tags': {'pointer': ['tags'], 'format': 'joined_text_items', 'default': []}}}
+                            if policy_version >= 6 and isinstance(extra.get('quotes'), list)
+                            and not extra.get('reviews')
+                            else {'pointer': ['result', 'extra', 'reviews'], 'format': 'identity', 'default': []})}
                        if policy_version >= 4 else {}),
                     **({'page_information': {
                         'pointer': ['result'], 'format': 'object_fields', 'default': {},
@@ -386,6 +392,14 @@ def _project_field(payload, spec, *, historical_scoring_source=None):
         return [item if isinstance(item, str) else item['text']
                 for item in items if isinstance(item, str) or
                 isinstance(item, dict) and isinstance(item.get('text'), str)]
+    if kind == 'joined_text_items':
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            return None
+        return ' '.join(value)
+    if kind == 'object_rows':
+        return [{name: _project_field(row, child, historical_scoring_source=historical_scoring_source)
+                 for name, child in spec['fields'].items()} for row in value if isinstance(row, dict)
+                ] if isinstance(value, list) else []
     if kind == 'object_fields':
         return {name: _project_field(value, child, historical_scoring_source=historical_scoring_source)
                 for name, child in spec['fields'].items()}
@@ -446,7 +460,7 @@ def _require_field_spec(spec, field):
                 or any(not isinstance(key, str) and not (type(key) is int and key >= 0)
                        for key in pointer)):
             raise ValueError(field + '.pointer must be a nonempty list of names or nonnegative indexes')
-    if spec.get('format') == 'object_fields':
+    if spec.get('format') in {'object_fields', 'object_rows'}:
         if not isinstance(spec.get('fields'), dict):
             raise ValueError(field + '.fields must be an object')
         for name, child in spec['fields'].items():
@@ -688,7 +702,7 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
     if allowed is not None:
         def check_source(spec, prefix=()):
             pointer = [*prefix, *spec.get('pointer', [])]
-            if spec.get('format') == 'object_fields':
+            if spec.get('format') in {'object_fields', 'object_rows'}:
                 for child in spec['fields'].values():
                     check_source(child, pointer)
                 return
