@@ -109,7 +109,8 @@ repository, full source commit and complete HTML/file inventory hashes. Discover
 uses this manifest to identify the dataset version. On first use, it also hashes
 every served page and resource. The verified deployment ID and whole-input hash
 are cached under the configured data home; later runs reuse that proof only after
-Cloudflare confirms the same immutable deployment. The result
+Cloudflare confirms the same immutable deployment. Concurrent first users share
+one audit, and static downloads reuse network connections. The result
 records both the selected HF commit and the snapshot's source commit; an identical
 HTML inventory allows reuse across metadata-only HF revisions. Snapshots without
 this declaration require an approved new deployment. Matching inputs are
