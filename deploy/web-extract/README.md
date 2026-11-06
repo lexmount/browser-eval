@@ -2,7 +2,7 @@
 
 The [Compose file](compose.yaml) defines the complete six-service stack. The API
 image builds from the root Dockerfile and locked Python environment. The Firecrawl
-API and browser images add the same attestation launcher to their digest-pinned
+API and browser Dockerfiles add the same attestation launcher to their digest-pinned
 upstream images; the other three images are pinned by digest. This runs each project's native extractor;
 it does not train or generate a site-specific extraction program.
 
@@ -173,21 +173,17 @@ Use the six service names, pinned images, environment values, resource limits,
 dependencies and mounts from `compose.yaml` in the selected workspace:
 
 1. Create the five private dependency components from the Compose definitions.
-   Build `firecrawl-api` and `firecrawl-browser` with the same
-   `Dockerfile.firecrawl`; the browser build selects its pinned upstream image
-   through the `UPSTREAM_IMAGE` build argument and sets
-   `FIRECRAWL_SERVICE_KIND=browser` at runtime. For Git builds, select
-   `dockerfile` and `deploy/web-extract/Dockerfile.firecrawl` after source detection;
-   the root Dockerfile builds the Python API. Rainbond stores this build argument
-   as `BUILD_ARG_UPSTREAM_IMAGE` in its build-parameter dictionary. Check the
-   actual `FROM` digest in the build log before starting the service. Keep both identity ports (`3020`)
-   private, alongside API `3002`, browser `3000`, Redis `6379`, RabbitMQ `5672`
-   and PostgreSQL `5432`.
-2. For a source-package builder, package that Dockerfile as `Dockerfile` and the
-   launcher at `src/harness/web_extract/firecrawl_backend.mjs`, preserving its
-   relative path. These are the same bytes used by Compose. Set the browser's
-   build argument to the digest in Compose and retain its upstream working
-   directory. Mount the three persistent data paths from the Compose file.
+   Build `firecrawl-api` with `Dockerfile.firecrawl` and `firecrawl-browser` with
+   `Dockerfile.firecrawl-browser`. After Git source detection, select `dockerfile`
+   and the corresponding file under `deploy/web-extract/`. The root Dockerfile
+   builds the Python API. The two dependency files share the same launcher and
+   use literal pinned bases: this also works on Rainbond builders that ignore
+   Docker build arguments. Check the actual base digest and running identity.
+   Set `FIRECRAWL_SERVICE_KIND=browser` for the browser. Keep both identity ports
+   (`3020`) private, alongside API `3002`, browser `3000`, Redis `6379`, RabbitMQ
+   `5672` and PostgreSQL `5432`.
+2. Retain the upstream working directories and the three persistent data paths
+   from Compose. Inject database, queue and model credentials through Rainbond.
 3. Create `native-extraction` from the repository's root Dockerfile. Apply its
    Compose environment, inject credentials through Rainbond, connect it to the
    Firecrawl backend, and expose only `8080` through the workspace ingress.

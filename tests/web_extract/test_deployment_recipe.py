@@ -58,7 +58,12 @@ def test_recipe_resolves_one_authenticated_frontend_and_five_private_dependencie
     assert "@sha256:" in recipe
     assert "firecrawl_backend.mjs" in recipe
     browser = services["firecrawl-browser"]
-    assert "@sha256:" in browser["build"]["args"]["UPSTREAM_IMAGE"]
+    browser_build = browser["build"]
+    browser_recipe = (Path(browser_build["context"]) / browser_build["dockerfile"]).read_text()
+    assert "FROM ghcr.io/firecrawl/playwright-service@sha256:" in browser_recipe
+    assert "FROM ghcr.io/firecrawl/firecrawl@sha256:" in recipe
+    assert "firecrawl_backend.mjs" in browser_recipe
+    assert not browser_build.get("args")
     assert browser["environment"]["FIRECRAWL_SERVICE_KIND"] == "browser"
     assert firecrawl["environment"]["FIRECRAWL_BROWSER_IDENTITY_URL"].endswith(":3020/identity")
     assert firecrawl["depends_on"]["firecrawl-browser"]["condition"] == "service_healthy"
