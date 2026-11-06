@@ -20,16 +20,18 @@ def test_schema_report_has_complete_matrix_and_source_only_dataset(report):
     assert manifest['observations'] == manifest['reviewed_results'] == 6
     assert 'Relations compare model-reviewed correctness' in (
         report / 'en/results.html'
-    ).read_text()
+    ).read_text(encoding='utf-8')
     for language in ('en', 'zh'):
-        results = BeautifulSoup((report / language / 'results.html').read_text(), 'html.parser')
+        results = BeautifulSoup(
+            (report / language / 'results.html').read_text(encoding='utf-8'), 'html.parser')
         assert len(results.select('tr[data-result]')) == 6
-        detail = BeautifulSoup((report / language / 'c-two.html').read_text(), 'html.parser')
+        detail = BeautifulSoup(
+            (report / language / 'c-two.html').read_text(encoding='utf-8'), 'html.parser')
         assert len(detail.select('[data-result-panel]')) == 3
         assert detail.select_one('[data-result-logs] [data-kind="error"]').get_text() == (
             'Synthetic schema rejection'
         )
-        task = (report / language / 't-one.html').read_text()
+        task = (report / language / 't-one.html').read_text(encoding='utf-8')
         assert 'Synthetic schema rejection' not in task
         assert 'Amber mug' in task
     with pytest.raises(ValueError, match='Synthetic'):
@@ -38,7 +40,7 @@ def test_schema_report_has_complete_matrix_and_source_only_dataset(report):
 
 def mutate(report, route, transform):
     path = report / route
-    path.write_text(transform(path.read_text()))
+    path.write_text(transform(path.read_text(encoding='utf-8')), encoding='utf-8')
     manifest = read_json(report / 'report-manifest.json')
     manifest['files'][route] = digest(path.read_bytes())
     save_json(report / 'report-manifest.json', manifest)

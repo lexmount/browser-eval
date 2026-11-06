@@ -36,7 +36,8 @@ def dataset(tmp_path, monkeypatch):
         '  else: result[key]=item\n'
         ' return result\n'
         'def _compare_values(pred,gold):\n'
-        ' if isinstance(gold,list): return float(sorted(pred,key=str)==sorted(gold,key=str))\n'
+        ' if isinstance(gold,list): return float(isinstance(pred,list) and '
+        'sorted(pred,key=str)==sorted(gold,key=str))\n'
         ' if isinstance(gold,str) and gold: return len(set(str(pred).split()) & '
         'set(gold.split()))/len(set(gold.split()))\n'
         ' return float(pred==gold)\n'
@@ -46,7 +47,7 @@ def dataset(tmp_path, monkeypatch):
         ' except ValueError: return {"is_valid_json":0.,"key_f1":1.,"value_score":1.}\n'
         ' return {"is_valid_json":1.,"key_f1":float(value==gold),'
         '"value_score":float(value==gold)}\n'
-    )
+    , encoding='utf-8')
     card = tmp_path / "card.json"
     p.save_json(card, {"dataset": {"commit": "synthetic", "cases": 2, "files": {
         "source/human_eval.parquet": p.digest((source / "human_eval.parquet").read_bytes()),
@@ -66,12 +67,12 @@ def test_frozen_content_and_schema_roundtrip(dataset):
     truth = p.read_json(home / "dataset/dataset/ground-truth.json")
     for index, case in enumerate(truth.values()):
         cid = case["id"]
-        document = (home / "dataset/html" / (cid + ".html")).read_text()
+        document = (home / "dataset/html" / (cid + ".html")).read_text(encoding='utf-8')
         assert he.unwrap_markdown(document) == rows[index]["content"]
         assert "<script>" not in document
         assert he.task_schema(home, case) == json.loads(rows[index]["schema"])
         assert case["response_text"] == rows[index]["response"]
-    (home / "dataset/html/human-eval-000.html").write_text("changed")
+    (home / "dataset/html/human-eval-000.html").write_text("changed", encoding='utf-8')
     with pytest.raises(ValueError, match="Dataset bytes changed"):
         p.validate_dataset(home)
 
@@ -168,7 +169,7 @@ def test_registered_controls_execute_through_public_scoring(dataset):
 
 def test_source_changes_fail_before_materialization(dataset, tmp_path):
     _, source, _ = dataset
-    (source / "metrics.py").write_text("changed")
+    (source / "metrics.py").write_text("changed", encoding='utf-8')
     with pytest.raises(ValueError, match="Pinned human_eval source differs"):
         he.prepare(tmp_path / "other", source)
     assert not (tmp_path / "other/dataset").exists()

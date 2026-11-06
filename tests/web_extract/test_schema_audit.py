@@ -15,7 +15,7 @@ from harness.web_extract.review import (
 @pytest.fixture
 def audit(tmp_path):
     source = tmp_path / "source.md"
-    source.write_text("Alice: red mug, 12 EUR. Bob: blue mug, 15 EUR.\n")
+    source.write_text("Alice: red mug, 12 EUR. Bob: blue mug, 15 EUR.\n", encoding='utf-8')
     reference = {"items": [{"name": "Alice", "price": 12}, {"name": "Bob", "price": 15}]}
     native = {"items": [{"name": "Bob", "price": 15}, {"name": "Alice", "price": 12}]}
     item = {
@@ -78,7 +78,7 @@ def test_packet_persistence_does_not_embed_machine_scores(tmp_path, audit):
     save_packet(path, packet, tmp_path)
     restored = read_packet(path)
     assert restored == packet
-    assert "value_score" not in path.read_text()
+    assert "value_score" not in path.read_text(encoding='utf-8')
 
 
 def test_reconciliation_recovers_only_unambiguous_structure_and_literal_text(audit):
@@ -115,7 +115,8 @@ def test_runtime_error_is_evidence_only_for_an_absent_output(audit):
         validate(result, packet)
 
 
-@pytest.mark.parametrize('defect', ['absent', 'http_error', 'incorrect_field', 'error_finding'])
+@pytest.mark.parametrize('defect', [
+    'absent', 'http_error', 'incorrect_field', 'ambiguous', 'error_finding'])
 def test_correct_verdict_cannot_contradict_native_evidence(audit, defect):
     packet, result = audit
     output = result['cases'][0]['outputs'][0]
@@ -123,8 +124,8 @@ def test_correct_verdict_cannot_contradict_native_evidence(audit, defect):
         packet['cases'][0]['outputs'][0]['normalized_fields'] = None
     elif defect == 'http_error':
         packet['cases'][0]['outputs'][0]['http_status'] = 400
-    elif defect == 'incorrect_field':
-        output['fields'][0]['status'] = 'incorrect'
+    elif defect in {'incorrect_field', 'ambiguous'}:
+        output['fields'][0]['status'] = 'ambiguous' if defect == 'ambiguous' else 'incorrect'
     else:
         output['fields'][0]['findings'] = [{
             'path': '/items', 'kind': 'extraction_error',
@@ -151,7 +152,10 @@ def test_malformed_cached_model_containers_are_retryable_value_errors(audit, def
         reconcile_citations(result, packet)
 
 
-def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(tmp_path, monkeypatch, audit):
+@pytest.mark.parametrize('defect', ['outputs', 'case', 'method'])
+def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(
+    tmp_path, monkeypatch, audit, defect
+):
     from harness.web_extract import review
     from harness.web_extract.pipeline import digest, read_json
 
@@ -164,7 +168,12 @@ def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(tmp_path, mon
             'sha256': digest(path.read_bytes())}]}, tmp_path)
     save_json(work / 'schema.json', review.review_schema(packet['cases']))
     malformed = copy.deepcopy(valid)
-    malformed['cases'][0].pop('outputs')
+    if defect == 'outputs':
+        malformed['cases'][0].pop('outputs')
+    elif defect == 'case':
+        malformed['cases'][0]['case_id'] = 'unknown-case'
+    else:
+        malformed['cases'][0]['outputs'][0]['method'] = 'unknown-method'
     replies = iter([malformed, valid])
     calls = []
 
@@ -174,7 +183,8 @@ def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(tmp_path, mon
 
     monkeypatch.setattr('harness.review_runner.run_chat_reviewer', chat)
     credentials = tmp_path / 'gateway.env'
-    credentials.write_text('OPENAI_BASE_URL=https://example.org/v1\nOPENAI_API_KEY=test-only\n')
+    credentials.write_text(
+        'OPENAI_BASE_URL=https://example.org/v1\nOPENAI_API_KEY=test-only\n', encoding='utf-8')
     options = {'model': 'one-model', 'workers': 1, 'backend': 'litellm',
                'credential_env_file': credentials}
     assert len(review.run(work, **options)['needs_correction']) == 1

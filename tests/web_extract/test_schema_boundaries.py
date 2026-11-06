@@ -14,9 +14,9 @@ def evidence(tmp_path, monkeypatch):
     home, run, work = tmp_path / 'home', tmp_path / 'run', tmp_path / 'review'
     source = home / 'dataset/markdown/one.md'
     source.parent.mkdir(parents=True)
-    source.write_text('Amber mug: 12 EUR.')
+    source.write_text('Amber mug: 12 EUR.', encoding='utf-8')
     (home / 'dataset/html').mkdir()
-    (home / 'dataset/html/one.html').write_text('<pre>Amber mug: 12 EUR.</pre>')
+    (home / 'dataset/html/one.html').write_text('<pre>Amber mug: 12 EUR.</pre>', encoding='utf-8')
     schema = {'type': 'object', 'properties': {'name': {'type': 'string'}}}
     native = {'name': 'Amber mug'}
     p.save_json(home / 'dataset/manifest.json', {'benchmark': 'human-eval'})
@@ -24,7 +24,8 @@ def evidence(tmp_path, monkeypatch):
     p.save_json(home / 'dataset/dataset/ground-truth.json', {
         'one': {'response': native, 'schema_text': json.dumps(schema)},
     })
-    (home / 'dataset/evaluate.py').write_text('# A synthetic external scorer dependency.\n')
+    (home / 'dataset/evaluate.py').write_text(
+        '# A synthetic external scorer dependency.\n', encoding='utf-8')
     row = {'method': 'native', 'case_id': 'one', 'normalized_fields': native,
            'http_status': 200, 'response': {'json': native}}
     contract = {'methods': ['native'], 'case_ids': ['one'],
