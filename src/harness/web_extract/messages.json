@@ -53,17 +53,6 @@
     "complete": "Complete",
     "access_limited": "Access limited",
     "incomplete": "Incomplete",
-    "method_planned_pages_executed_structured_output_full_scope_price": [
-      "Method",
-      "Planned pages",
-      "Executed",
-      "Structured output",
-      "Full scope",
-      "Price F1",
-      "SKU F1",
-      "Stock F1",
-      "Out-of-stock F1"
-    ],
     "f1_ranges_from_0_to_1_higher_is_better_quality_is_shown_only_for": "F1 ranges from 0 to 1; higher is better. Quality is shown only for complete verified cohorts. Structured output does not establish correctness. Machine scoring; no independent human review.",
     "additional_attempts_untimed": "≥ {value0} ({value1} additional attempts untimed)",
     "method_population_timed_n_untimed_n_extra_retry_time_s_mean_s_p50": [
@@ -141,7 +130,6 @@
     "these_fields_remain_in_official_scores_audited_diagnostics_identi": "These fields remain in official scores; audited diagnostics identify source conflicts separately from extractor errors.",
     "reading_this_comparison": "Reading this comparison",
     "methods_each_executed_pages_results_structured_responses_failure": "{value0} methods each executed {value1} pages: {value2} results, {value3} structured responses. Failure repairs retain successful originals; settings and dates differ, so latency is observational. Quality, end-to-end latency and conditional quotes are separate.",
-    "compact_original_reference_comparison": "Compact original-reference comparison",
     "scoring_checks_field_matches": "Scoring checks field matches",
     "each_field_allows_multiple_accepted_reference_values_but_one_pred": "Each field allows multiple accepted reference values but one prediction. Prices use Decimal equality; wrong values add false positives and false negatives, while missing required values add false negatives. The original contract defaults to InStock without clear out-of-stock evidence. Source-qualified reference corrections are retained alongside official scores.",
     "inspect_a_source_annotation_and_correction_example": "Inspect a source, annotation and correction example",
@@ -333,9 +321,9 @@
       "Exact field sets"
     ],
     "guide_record_meanings": [
-      "For each site and field, F1 balances pages that returned a value and pages with at least one matching answer; groups have equal weight. Extra wrong values can still count as a page hit.",
-      "Pool every returned and reference value. Extra values reduce precision; missing values reduce recall. Example: one reference, two returned values, one correct gives 50% precision, 100% recall and F1 about 0.667.",
-      "Share of scored page-fields whose complete returned value set equals the reference set."
+      "Source: the SWDE page-hit protocol, using the implementation published by MarkupLM. For each site and field, F1 balances pages that returned a value and pages with at least one matching answer; groups have equal weight. Extra wrong values can still count as a page hit.",
+      "Source: supplementary value-level micro F1 used by this project. Pool every returned and reference value. Extra values reduce precision; missing values reduce recall. Example: one reference, two returned values, one correct gives 50% precision, 100% recall and F1 about 0.667.",
+      "Source: this project’s supplementary exact-field-set statistic. Share of scored page-fields whose complete returned value set equals the reference set."
     ],
     "guide_product_labels": [
       "Price F1",
@@ -344,10 +332,10 @@
       "Out-of-stock F1"
     ],
     "guide_product_meanings": [
-      "Balances correctly extracted prices against incorrect and missed prices.",
-      "Balances correctly extracted SKUs against incorrect and missed SKUs.",
-      "Balances the correct stock state against incorrect and missed stock states.",
-      "Measures recognition of out-of-stock pages separately from the majority in-stock pages."
+      "Source: field F1 from the Zyte product-extraction benchmark. Balances correctly extracted prices against incorrect and missed prices.",
+      "Source: field F1 from the Zyte product-extraction benchmark. Balances correctly extracted SKUs against incorrect and missed SKUs.",
+      "Source: field F1 from the Zyte product-extraction benchmark. Balances the correct stock state against incorrect and missed stock states.",
+      "Source: field F1 from the Zyte product-extraction benchmark. Measures recognition of out-of-stock pages separately from the majority in-stock pages."
     ],
     "guide_quality_population": "All declared pages; call failures remain in the denominator. Fields without reference coverage are excluded.",
     "guide_latency_labels": [
@@ -420,7 +408,39 @@
     "more_resources": "More resources",
     "no_reference_value": "No reference value",
     "no_value_returned": "No value returned",
-    "dataset_search": "Search pages, categories or sites"
+    "dataset_search": "Search pages, categories or sites",
+    "completion_headers": [
+      "Method",
+      "Whole-page exact accuracy",
+      "Empty-field accuracy"
+    ],
+    "completion_rate": "{correct}/{total} ({percent}%)",
+    "completion_unavailable": "Unavailable: denominator 0",
+    "completion_excluded": "{count} pages excluded for incomplete reference coverage",
+    "completion_receipt": "Counts, per-page outcomes and reproducibility receipt",
+    "completion_protocol": "These metrics are recomputed from the retained final logical responses without new provider calls. Original scores, references, timing and billing evidence remain unchanged. Missing product values follow the native empty-value convention; array-valued tasks must explicitly return an empty array. A failed call cannot receive credit for an empty reference.",
+    "completion_incomplete": "Unavailable: complete certification pending",
+    "completion_guide_link": "Metric origins, formulas and examples",
+    "guide_completion_meanings": [
+      "Source: defined by this project, not an upstream benchmark metric. Formula: successfully delivered, valid pages with every requested field correct / pages with complete reference coverage. Failed calls are incorrect. Example: 2 of 10 pages lack full references; 3 of the remaining 8 are fully correct: 3/8 = 37.5%.",
+      "Source: defined by this project, not an upstream benchmark metric. Formula: correctly empty fields / scored fields with an explicitly empty reference. Failed calls are incorrect; array tasks must explicitly return []. Example: 4 correct empty fields and 1 failed call among 5 negative fields: 4/5 = 80%."
+    ],
+    "guide_completion_populations": [
+      "The same reference-complete pages for every method, including failed calls. Use the reference version named in the column: original dataset labels or source-qualified labels.",
+      "Scored page-fields whose reference is explicitly empty, including failed calls. Each field on each page is one sample; small negative populations do not establish general capability."
+    ],
+    "compact_core_comparison": "Core metric comparison",
+    "cohort_core_headers": [
+      "Method",
+      "Tested / total",
+      "Returned objects",
+      "Price F1",
+      "SKU F1",
+      "Stock F1",
+      "Out-of-stock F1"
+    ],
+    "completion_qualified_note": "Whole-page and empty-field metrics are project-defined supplements using source-reviewed references.",
+    "completion_original_note": "Whole-page and empty-field metrics are project-defined supplements using original dataset references."
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -476,17 +496,6 @@
     "complete": "已完成",
     "access_limited": "额度／权限受限",
     "incomplete": "尚未完成",
-    "method_planned_pages_executed_structured_output_full_scope_price": [
-      "方法",
-      "计划页数",
-      "已执行",
-      "返回字段",
-      "全量状态",
-      "价格 F1",
-      "SKU F1",
-      "库存 F1",
-      "缺货 F1"
-    ],
     "f1_ranges_from_0_to_1_higher_is_better_quality_is_shown_only_for": "F1 取值 0–1，越高越好；只展示已完成全部页面并通过证据校验的方法。返回字段不代表字段正确。机器评分，尚未进行独立人工复核。",
     "additional_attempts_untimed": "≥ {value0}（另 {value1} 次缺计时）",
     "method_population_timed_n_untimed_n_extra_retry_time_s_mean_s_p50": [
@@ -564,7 +573,6 @@
     "these_fields_remain_in_official_scores_audited_diagnostics_identi": "这些字段在原始分数中仍保留；核查诊断单独标记源内冲突，不把它归为提取器错误。",
     "reading_this_comparison": "如何读这次比较",
     "methods_each_executed_pages_results_structured_responses_failure": "{value0} 个方法各执行 {value1} 页，共 {value2} 个结果；当前 {value3} 个返回结构化字段。原始失败修复后保留成功结果，不能把设置不同、日期不同的调用当作同环境因果速度实验。首页分别给出字段 F1、端到端耗时和有条件的报价。",
-    "compact_original_reference_comparison": "原标注下的紧凑比较",
     "scoring_checks_field_matches": "评分看的是字段是否匹配",
     "each_field_allows_multiple_accepted_reference_values_but_one_pred": "每个字段允许多个参考值，但每次只接受一个预测值。价格按 Decimal 比较；错误值会同时造成误报与漏报，空值遇到非空参考值则计漏报。库存没有明确缺货证据时，原规则默认有货。原标注的金额分隔符、商品 ID 和库存问题会影响分数，因此源核查与原始成绩同时保留。",
     "inspect_a_source_annotation_and_correction_example": "查看原文、原标注与修正示例",
@@ -673,9 +681,9 @@
     "audited_population": "计分 {scored}/{total}；排除 {excluded}",
     "audited_population_scope": "核查后的诊断 F1 按表内各字段的分母计算，排除源页面无法确定的字段。原始标注分数仍覆盖全部页面。",
     "download_pinned_dataset": "下载冻结 HTML、原标注与修正依据（版本 {revision}）",
-    "population_values": "评分 {total} 页；有值 {present}，无值 {missing}",
-    "population_stock": "评分 {total} 页；有货 {present}，缺货 {missing}",
-    "population_out": "评分 {total} 页；缺货 {present}，其它 {missing}",
+    "population_values": "{total} 页 · 有值 {present} / 空 {missing}",
+    "population_stock": "{total} 页 · 有货 {present} / 缺货 {missing}",
+    "population_out": "{total} 页 · 缺货 {present} / 其它 {missing}",
     "pricing_scope_note": "统一为本轮提取接口每 1,000 次调用的美元报价。区间涵盖备注中的套餐；订阅价格按额度用满折算，未含税。免费试用额度不计入单价，按用量计费的接口按本轮页面估算，计算依据见“价格与接入”。",
     "price_range_heading": "美元／1,000 次",
     "price_remarks_heading": "官方计费方式与套餐",
@@ -756,9 +764,9 @@
       "字段集合完全一致率"
     ],
     "guide_record_meanings": [
-      "先按网站和字段计算 F1，再对各组等权平均。每页至少命中一个答案就算命中；多报其他错误值仍可能命中。",
-      "汇总所有返回值与参考值。多报会降低准确率，漏报会降低召回率，再用 F1 综合两者。 例如参考 1 个值，返回 2 个且 1 个正确：准确率 50%，召回率 100%，F1 约 0.667。",
-      "返回的整组值与参考答案完全相同的页面字段，占全部可评分页面字段的比例。"
+      "来源：SWDE 页面命中统计口径，采用 MarkupLM 发布的实现。 先按网站和字段计算 F1，再对各组等权平均。每页至少命中一个答案就算命中；多报其他错误值仍可能命中。",
+      "来源：本项目补充统计，按每个字段值计算 micro F1。 汇总所有返回值与参考值。多报会降低准确率，漏报会降低召回率，再用 F1 综合两者。 例如参考 1 个值，返回 2 个且 1 个正确：准确率 50%，召回率 100%，F1 约 0.667。",
+      "来源：本项目补充统计，逐字段比较完整值集合。 返回的整组值与参考答案完全相同的页面字段，占全部可评分页面字段的比例。"
     ],
     "guide_product_labels": [
       "价格 F1",
@@ -767,10 +775,10 @@
       "缺货 F1"
     ],
     "guide_product_meanings": [
-      "综合价格提取的准确率和召回率，同时计入错报和漏报。",
-      "综合商品编号提取的准确率和召回率，同时计入错报和漏报。",
-      "综合库存状态判断的准确率和召回率。",
-      "单独衡量缺货页面的识别，避免大量有货页面掩盖缺货判断问题。"
+      "来源：Zyte 商品提取评测的字段 F1 口径。 综合价格提取的准确率和召回率，同时计入错报和漏报。",
+      "来源：Zyte 商品提取评测的字段 F1 口径。 综合商品编号提取的准确率和召回率，同时计入错报和漏报。",
+      "来源：Zyte 商品提取评测的字段 F1 口径。 综合库存状态判断的准确率和召回率。",
+      "来源：Zyte 商品提取评测的字段 F1 口径。 单独衡量缺货页面的识别，避免大量有货页面掩盖缺货判断问题。"
     ],
     "guide_quality_population": "全部计划页面，调用失败也计入；完全没有参考标注的字段不参与评分。",
     "guide_latency_labels": [
@@ -843,6 +851,38 @@
     "more_resources": "辅助资料",
     "no_reference_value": "无参考值",
     "no_value_returned": "未返回值",
-    "dataset_search": "搜索网页、类别或网站"
+    "dataset_search": "搜索网页、类别或网站",
+    "completion_headers": [
+      "方法",
+      "整页全对率",
+      "空值处理正确率"
+    ],
+    "completion_rate": "{correct}/{total}（{percent}%）",
+    "completion_unavailable": "无可评分项：分母为 0",
+    "completion_excluded": "{count} 页因参考覆盖不完整排除",
+    "completion_receipt": "计数、逐页判断及补算依据",
+    "completion_protocol": "这两项指标由保留的最终逻辑响应补算，没有新增服务调用，原分数、参考、计时和计费证据保持不变。商品接口按原空值约定判断；数组字段必须明确返回空数组。请求失败不能因参考也为空而得分。",
+    "completion_incomplete": "尚未完成完整批次认证",
+    "completion_guide_link": "指标来源、公式和例子",
+    "guide_completion_meanings": [
+      "来源：本项目补充定义，不属于数据集官方指标。公式：成功交付、格式合规且全部目标字段正确的页数 ÷ 参考完整的页面总数。请求失败算错。例：10 页中 2 页参考不完整，其余 8 页有 3 页全对，则为 3/8＝37.5%。",
+      "来源：本项目补充定义，不属于数据集官方指标。公式：正确留空的字段数 ÷ 参考明确为空的字段总数。请求失败算错；数组字段必须明确返回 []。例：5 处应为空，4 处正确留空、1 处请求失败，则为 4/5＝80%。"
+    ],
+    "guide_completion_populations": [
+      "所有方法使用同一批参考完整的页面；含失败请求。参考版本按表头标注：原参考来自数据集，校验参考经过网页证据复核。",
+      "参考明确为空且可评分的字段，一个网页中的一个字段计一个样本；含失败请求。样本少时不据此推断整体能力。"
+    ],
+    "compact_core_comparison": "核心指标对照",
+    "cohort_core_headers": [
+      "方法",
+      "已测 / 总页数",
+      "返回对象",
+      "价格 F1",
+      "SKU F1",
+      "库存 F1",
+      "缺货 F1"
+    ],
+    "completion_qualified_note": "整页和空值指标由本项目补充定义，使用按网页证据复核后的参考答案。",
+    "completion_original_note": "整页和空值指标由本项目补充定义，使用数据集原参考答案。"
   }
 }

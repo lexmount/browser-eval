@@ -6,11 +6,36 @@ from pathlib import Path
 from harness.record_io import json_bytes
 from harness.reporting.publication import PublicationClient, archive_inventory, atomic_write
 from harness.reporting.publish import StagedUpdate, publish_staged_update
-from harness.web_extract.pipeline import digest, read_json, require_external_output
-from harness.web_extract.report import check, package
+from harness.web_extract.pipeline import (
+    digest,
+    read_json,
+    require_external_output,
+    resolve_run_path,
+)
+from harness.web_extract.report import check, package, verify_completion_audit
 
 
-def publish(source, target, work, visual_receipt, *, transport=None):
+def publication_authorities(profile, home):
+    """Keep the verified private inputs under the shared upload snapshot guard."""
+    profile = Path(profile)
+    instance = read_json(profile)
+    paths = [profile]
+    if instance.get("dataset"):
+        paths.append(Path(home) / "dataset")
+    binding = instance.get("research_report", {}).get("content", {})
+    if binding.get("path"):
+        content = profile.parent / binding["path"]
+        paths.append(content)
+        model = read_json(content)
+        if model.get("audit"):
+            paths.append(content.parent / model["audit"]["path"])
+        for selection in model.get("evidence_runs", []):
+            paths.append(resolve_run_path(home, selection["run"]))
+            paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
+    return tuple(dict.fromkeys(paths))
+
+
+def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     source, target, work = Path(source), Path(target), Path(work)
     require_external_output(target)
     require_external_output(work)
@@ -51,12 +76,15 @@ def publish(source, target, work, visual_receipt, *, transport=None):
         if current != previous and digest(Path(next_profile).read_bytes()) != current:
             raise ValueError("Publication successor profile changed")
 
+    verify_completion_audit(source, next_profile, home=home)
+    authority_inputs = publication_authorities(next_profile, home)
+    unchanged_profile()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     started = time.perf_counter()
     print("Preparing Web Extract publication package...", flush=True)
     if archive.exists():
-        check(source, release=True, visual_receipt=visual_receipt)
+        check(source, release=True, visual_receipt=visual_receipt, profile=next_profile, home=home)
         proof = read_json(archive.with_suffix(".receipt.json"))
         if proof["archive_sha256"] != digest(archive.read_bytes()) or proof[
             "report_manifest_sha256"
@@ -70,18 +98,27 @@ def publish(source, target, work, visual_receipt, *, transport=None):
         if archive_inventory(archive) != expected:
             raise ValueError("Retained publication ZIP inventory differs from checked source")
     else:
-        proof = package(source, archive, visual_receipt=visual_receipt)
+        proof = package(
+            source, archive, visual_receipt=visual_receipt, profile=Path(next_profile), home=home
+        )
     print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 
     unchanged_profile()
 
+    upload_checked = False
+
     def unchanged_target():
+        nonlocal upload_checked
         unchanged_profile()
+        if not upload_checked:
+            verify_completion_audit(source, next_profile, home=home)
+            upload_checked = True
         if target.read_bytes() != original:
             raise ValueError("Web Extract publication target changed")
 
     def bind(version):
         unchanged_target()
+        verify_completion_audit(source, next_profile, home=home)
         manifest = read_json(source / "report-manifest.json")
         builder = read_json(source / "browser-eval-version.json")
         updated = {
@@ -101,6 +138,7 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     version = publish_staged_update(
         StagedUpdate(
             allow_inline=True,
+            inline_limit_bytes=bound.get("inline_limit_bytes"),
             label="Web Extract",
             prefix="web-extract",
             client=PublicationClient("Browser-Eval-Web-Extract/1.0"),
@@ -115,7 +153,7 @@ def publish(source, target, work, visual_receipt, *, transport=None):
                 source,
                 target,
                 Path(visual_receipt),
-                *((Path(next_profile),) if current != previous else ()),
+                *authority_inputs,
             ),
             work=work,
             guard=unchanged_target,

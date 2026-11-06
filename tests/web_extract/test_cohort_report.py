@@ -28,7 +28,9 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     assert all(
         c.get_text(strip=True) == "—"
-        for c in home.select("[data-core-metrics] tbody td:nth-child(n+6)")
+        for c in home.select(
+            "[data-core-metrics] tbody td:nth-child(n+4):not([data-completion-metric])"
+        )
     )
     assert check(output)["state"] == "full-cohort-progress"
     # Evidence is grouped by method, loaded on demand, rather than copied per detail.
@@ -390,14 +392,32 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
     receipt = tmp_path / "visual.json"
     receipt.write_text("{}", encoding="utf-8")
     with patch("harness.web_extract.report.check") as release_check:
-        result = package(output, tmp_path / "public.zip", visual_receipt=receipt)
-    release_check.assert_called_once_with(output, release=True, visual_receipt=receipt)
+        result = package(
+            output,
+            tmp_path / "public.zip",
+            visual_receipt=receipt,
+            profile=tmp_path / "report-synthetic-inputs/profile.json",
+            home=tmp_path / "report-synthetic-inputs",
+        )
+    release_check.assert_called_once_with(
+        output,
+        release=True,
+        visual_receipt=receipt,
+        profile=tmp_path / "report-synthetic-inputs/profile.json",
+        home=tmp_path / "report-synthetic-inputs",
+    )
     with zipfile.ZipFile(tmp_path / "public.zip") as bundle:
         assert set(bundle.namelist()) == set(manifest["files"]) | {"report-manifest.json"}
     assert result["files"] == len(manifest["files"]) + 1
     (output / "app.js").write_text("changed after validation", encoding="utf-8")
     with pytest.raises(ValueError, match="Report file changed"):
-        package(output, tmp_path / "tampered.zip", visual_receipt=receipt)
+        package(
+            output,
+            tmp_path / "tampered.zip",
+            visual_receipt=receipt,
+            profile=tmp_path / "report-synthetic-inputs/profile.json",
+            home=tmp_path / "report-synthetic-inputs",
+        )
     assert not (tmp_path / "tampered.zip").exists()
 
 
@@ -661,7 +681,13 @@ def test_package_rejects_unbound_nested_manifest(tmp_path):
     )
     save_json(tmp_path / "unused.json", {})
     with pytest.raises(ValueError, match="file inventory differs"):
-        package(output, tmp_path / "report.zip", visual_receipt=tmp_path / "unused.json")
+        package(
+            output,
+            tmp_path / "report.zip",
+            visual_receipt=tmp_path / "unused.json",
+            profile=tmp_path / "report-synthetic-inputs/profile.json",
+            home=tmp_path / "report-synthetic-inputs",
+        )
     assert not (tmp_path / "report.zip").exists()
 
 
@@ -1009,3 +1035,21 @@ def test_failed_details_use_the_same_error_as_dialog_evidence(tmp_path, payload)
             assert page.select_one('pre[data-kind="error"]').get_text() == expected
             if payload:
                 assert expected == json.dumps(payload["error"], ensure_ascii=False)
+
+
+def test_core_progress_uses_two_columns_without_hiding_pending_or_failed_calls():
+    rows = [
+        {'method': 'a', 'case_id': 'one', 'compatibility': 'structured_output'},
+        {'method': 'a', 'case_id': 'two', 'compatibility': 'api_error'},
+    ]
+    html, _ = cohort_metrics(['a', 'b'], rows, [], 3, 'en')
+    table_view = BeautifulSoup(html, 'html.parser').select_one('[data-core-metrics]')
+    assert [h.get_text() for h in table_view.select('th')][:3] == [
+        'Method', 'Tested / total', 'Returned objects']
+    assert len(table_view.select('th')) == 7
+    assert table_view.has_attr('data-method-column')
+    actual = table_view.select('tbody tr')
+    assert [r.select_one('[data-execution-count]').get_text() for r in actual] == ['2 / 3', '0 / 3']
+    assert [r.select('td')[2].get_text() for r in actual] == ['1', '0']
+    assert all('Incomplete' in r.select('td')[1].get_text() for r in actual)
+    assert table_view.parent.get('tabindex') == '0'

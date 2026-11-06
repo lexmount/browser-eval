@@ -1,15 +1,322 @@
 """Bound-target publishing and resumable package integrity at the public boundary."""
 
+import json
+from copy import deepcopy
+
 import pytest
 
+from harness.record_io import canonical_json_sha256
 from harness.web_extract import publication
-from harness.web_extract.pipeline import digest, read_json, save_json
+from harness.web_extract.pipeline import digest, execution_identity, read_json, save_json
+
+
+def dataset_pin(home):
+    root = home / "dataset"
+    save_json(root / "dataset/ground-truth.json", {"page": {"values": {"title": ["A"]}}})
+    (root / "html").mkdir(parents=True)
+    (root / "html/page.html").write_text("<p>A</p>", encoding="utf-8")
+    files = {
+        name: {"sha256": digest((root / name).read_bytes())}
+        for name in ("dataset/ground-truth.json", "html/page.html")
+    }
+    save_json(root / "manifest.json", {"commit": "native-fixture-v1", "cases": 1, "files": files})
+    return {
+        "commit": "native-fixture-v1",
+        "cases": 1,
+        "inventory_sha256": canonical_json_sha256(files),
+        "files": {k: v["sha256"] for k, v in files.items()},
+    }
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize(
+    "damage",
+    [
+        None,
+        "public-envelope",
+        "original-envelope",
+        "http-status",
+        "compatibility",
+        "missing-delivery",
+        "request-parameters",
+        "retry-removed",
+        "retry-usage",
+        "retry-time",
+        "single-attempt",
+        "injected-usage",
+        "injected-time",
+        "coerced-type",
+        "reordered-keys",
+        "retry-coerced-type",
+        "missing-home",
+        "relocated-home",
+        "wrong-home",
+    ],
+)
+def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
+    from harness.web_extract.cli import main
+    from harness.web_extract.pipeline import normalize
+    from harness.web_extract.report import (
+        publication_host_names,
+        redact_account_endpoint,
+        verify_completion_audit,
+    )
+    from harness.web_fetch.publication_privacy import project_evidence_view
+
+    home = tmp_path / "inputs"
+    run = home / "runs/run"
+    row = {
+        "method": "cloudflare-json",
+        "case_id": "page",
+        "http_status": 200,
+        "compatibility": "structured_output",
+        "state": "response_received",
+        "elapsed_seconds": 0.25,
+        "provider_usage": {"x-browser-ms-used": "100"},
+        "response": {
+            "result": {"price": 1, "sku": "A", "availability": "InStock"}
+            if mode == "full-cohort-progress"
+            else {"title": ["A"]},
+            "message": "retained metadata",
+            "debug_path": "/Users/example/private/trace.json",
+            "native_flag": 1,
+        },
+        "request": {
+            "endpoint": "https://api.cloudflare.com/client/v4/accounts/private-account-id/browser-rendering/json",
+            "parameters": {"waitUntil": "domcontentloaded", "timeout": 30000},
+        },
+    }
+    if damage == "missing-delivery":
+        row.pop("http_status")
+        row.pop("compatibility")
+    if damage == "injected-usage":
+        row.pop("provider_usage")
+    if damage == "injected-time":
+        row.pop("elapsed_seconds")
+    retry = damage is not None and damage.startswith("retry-")
+    if retry:
+        previous = deepcopy(row)
+        previous.update(
+            http_status=402,
+            compatibility="no_structured_output",
+            response={"error": "Insufficient credits", "usage": {"credits": 0}},
+            elapsed_seconds=0.5,
+            provider_usage={"x-browser-ms-used": "0"},
+            physical_attempt=1,
+        )
+        save_json(run / "first.json", previous)
+        row.update(physical_attempt=2, retry_execution_seconds=0.5)
+    save_json(run / "call.json", row)
+    save_json(
+        run / "contract.json",
+        {"methods": [row["method"]], "case_ids": ["page"], "access_retry_limit": int(retry)},
+    )
+    inventory = {
+        "contract_sha256": digest((run / "contract.json").read_bytes()),
+        "calls": [{"path": "call.json", "sha256": digest((run / "call.json").read_bytes())}],
+    }
+    if retry:
+        inventory["physical_calls"] = [
+            {"path": "first.json", "sha256": digest((run / "first.json").read_bytes())},
+            *inventory["calls"],
+        ]
+        (run / "calls.journal.jsonl").write_text(
+            "".join(json.dumps(v) + "\n" for v in inventory["physical_calls"]), encoding="utf-8"
+        )
+    save_json(run / "manifest.json", inventory)
+    pin = dataset_pin(home)
+    audit = home / "audit.json"
+    save_json(
+        audit,
+        {
+            "results": {
+                row["method"] + ":page": {
+                    "execution_sha256": execution_identity(row),
+                    "native_response_sha256": digest(
+                        json.dumps(row["response"], sort_keys=True, ensure_ascii=False).encode()
+                    ),
+                }
+            }
+        },
+    )
+    content = home / "content.json"
+    save_json(
+        content,
+        {
+            "audit": {"path": "audit.json", "sha256": digest(audit.read_bytes())},
+            "dataset_manifest": str(
+                (tmp_path / "retired-inputs" if damage == "relocated-home" else home)
+                / "dataset/manifest.json"
+            ),
+            "evidence_runs": [{"run": "run"}],
+        },
+    )
+    profile = home / "profile.json"
+    save_json(
+        profile,
+        {
+            "dataset": pin,
+            "research_report": {
+                "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
+            },
+        },
+    )
+    report = tmp_path / "report"
+    public_row = {**row, "physical_attempts": [previous, row]} if retry else row
+    public, _ = project_evidence_view(
+        "public-evidence/native-row.json",
+        json.dumps(redact_account_endpoint(public_row)).encode(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    projected = json.loads(public)
+    assert projected["response"] != row["response"]  # A real local-path redaction.
+    assert "/accounts/[REDACTED]/" in projected["request"]["endpoint"]
+    assert "/accounts/private-account-id/" in row["request"]["endpoint"]
+    if retry:
+        assert all(
+            "/accounts/[REDACTED]/" in v["request"]["endpoint"]
+            for v in projected["physical_attempts"]
+        )
+    path = report / "public-evidence" / (row["method"] + ".json")
+    save_json(path, {"page": projected})
+    public_audit, _ = project_evidence_view(
+        "public-evidence/audit.json",
+        audit.read_bytes(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    (report / "public-evidence/audit.json").write_bytes(public_audit)
+    save_json(
+        report / "report-manifest.json",
+        {
+            "mode": mode,
+            "profile_sha256": digest(profile.read_bytes()),
+            ("completion_audit" if mode == "full-cohort-progress" else "audit"): {
+                "path": "public-evidence/audit.json",
+                "source_sha256": digest(audit.read_bytes()),
+            },
+        },
+    )
+    verify_completion_audit(report, profile, home=home)
+    if damage == "relocated-home":
+        return
+    if damage == "missing-home":
+        with pytest.raises(ValueError, match="explicit benchmark home"):
+            verify_completion_audit(report, profile)
+        with pytest.raises(SystemExit) as error:
+            main(
+                [
+                    "package",
+                    str(report),
+                    "--profile",
+                    str(profile),
+                    "--output",
+                    str(tmp_path / "missing-home.zip"),
+                    "--visual-receipt",
+                    str(tmp_path / "visual.json"),
+                ]
+            )
+        assert error.value.code == 2
+        assert not (tmp_path / "missing-home.zip").exists()
+        return
+    if damage == "wrong-home":
+        wrong_home = tmp_path / "other-inputs"
+        dataset_pin(wrong_home)
+        wrong = read_json(wrong_home / "dataset/manifest.json")
+        wrong["commit"] = "another-dataset"
+        save_json(wrong_home / "dataset/manifest.json", wrong)
+        with pytest.raises(ValueError, match="benchmark home differs"):
+            verify_completion_audit(report, profile, home=wrong_home)
+        return
+    if damage == "reordered-keys":
+        projected["response"] = dict(reversed(list(projected["response"].items())))
+        save_json(path, {"page": projected})
+        verify_completion_audit(report, profile, home=home)
+        return
+    if damage == "single-attempt":
+        projected["physical_attempts"] = [deepcopy(projected)]
+        save_json(path, {"page": projected})
+        verify_completion_audit(report, profile, home=home)
+        return
+    if damage is None:
+        return
+    before = normalize(row["method"], projected["response"], schema={})
+    if damage == "public-envelope":
+        projected["response"]["message"] = "substituted metadata"
+        save_json(path, {"page": projected})
+    elif damage == "coerced-type":
+        if mode == "full-cohort-progress":
+            projected["response"]["result"]["price"] = True
+        else:
+            projected["response"]["native_flag"] = True
+        save_json(path, {"page": projected})
+    elif damage == "missing-delivery":
+        projected.update(http_status=200, compatibility="structured_output")
+        save_json(path, {"page": projected})
+    elif damage == "request-parameters":
+        projected["request"]["parameters"]["timeout"] = 60000
+        save_json(path, {"page": projected})
+    elif damage in (
+        "retry-removed",
+        "retry-usage",
+        "retry-time",
+        "retry-coerced-type",
+        "injected-usage",
+        "injected-time",
+    ):
+        if damage == "retry-removed":
+            projected.pop("physical_attempts")
+        elif damage == "retry-usage":
+            projected["physical_attempts"][0]["provider_usage"]["x-browser-ms-used"] = "90000"
+        elif damage == "retry-time":
+            projected["physical_attempts"][0]["elapsed_seconds"] = 50
+        elif damage == "retry-coerced-type":
+            projected["physical_attempts"][0]["response"]["usage"]["credits"] = False
+        elif damage == "injected-usage":
+            projected["provider_usage"] = {"x-browser-ms-used": "1"}
+        else:
+            projected["elapsed_seconds"] = 0
+        save_json(path, {"page": projected})
+    elif damage in ("http-status", "compatibility"):
+        projected["http_status" if damage == "http-status" else "compatibility"] = (
+            500 if damage == "http-status" else "no_structured_output"
+        )
+        save_json(path, {"page": projected})
+    else:
+        row["response"]["message"] = "substituted original"
+        save_json(run / "call.json", row)
+        inventory["calls"][0]["sha256"] = digest((run / "call.json").read_bytes())
+        save_json(run / "manifest.json", inventory)
+    assert normalize(row["method"], projected["response"], schema={}) == before
+    archive = tmp_path / "forged.zip"
+    with pytest.raises(ValueError, match="Completion audit native"):
+        main(
+            [
+                "--home",
+                str(home),
+                "package",
+                str(report),
+                "--profile",
+                str(profile),
+                "--output",
+                str(archive),
+                "--visual-receipt",
+                str(tmp_path / "visual.json"),
+            ]
+        )
+    assert not archive.exists()
 
 
 def setup_report(tmp_path):
     source = tmp_path / "report"
     source.mkdir()
-    save_json(source / "report-manifest.json", {"profile_sha256": "profile"})
+    profile = tmp_path / "profile.json"
+    save_json(profile, {"local_example": True})
+    profile_hash = digest(profile.read_bytes())
+    save_json(source / "report-manifest.json", {"profile_sha256": profile_hash})
     save_json(source / "browser-eval-version.json", {"revision": "a" * 40})
     target = tmp_path / "target.json"
     save_json(
@@ -20,8 +327,8 @@ def setup_report(tmp_path):
             "expected_version": "ver_before",
             "title": "Existing report",
             "visibility": "private",
-            "profile_sha256": "profile",
-            "profile": {"path": "profile.json"},
+            "profile_sha256": profile_hash,
+            "profile": {"path": str(profile)},
         },
     )
     return source, target, tmp_path / "upload", tmp_path / "visual.json"
@@ -29,8 +336,16 @@ def setup_report(tmp_path):
 
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
+    audit_calls = []
+    original_audit = publication.verify_completion_audit
 
-    def package(report, archive, *, visual_receipt):
+    def verify(*args, **kwargs):
+        audit_calls.append(1)
+        return original_audit(*args, **kwargs)
+
+    monkeypatch.setattr(publication, "verify_completion_audit", verify)
+
+    def package(report, archive, *, visual_receipt, profile, home=None):
         archive.write_bytes(b"checked-package")
         return {
             "archive_sha256": digest(archive.read_bytes()),
@@ -41,18 +356,20 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
         assert staged.slug == "existing"
         assert staged.expected_version == "ver_before"
         assert read_json(target)["expected_version"] == "ver_before"
-        staged.guard()
+        for _ in range(20):
+            staged.guard()
         staged.bind("ver_after")
         return "ver_after"
 
     monkeypatch.setattr(publication, "package", package)
     monkeypatch.setattr(publication, "publish_staged_update", update)
-    result = publication.publish(source, target, work, visual)
+    result = publication.publish(source, target, work, visual, home=tmp_path)
     bound = read_json(target)
     assert result["versionId"] == "ver_after"
+    assert len(audit_calls) == 3  # Initial, frozen upload boundary, final binding.
     assert bound["visibility"] == "private"
     assert bound["slug"] == "existing"
-    assert bound["profile"]["path"] == "profile.json"
+    assert bound["profile"]["path"] == str(tmp_path / "profile.json")
     assert bound["renderer_source_revision"] == "a" * 40
 
 
@@ -61,21 +378,135 @@ def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
     save_json(target, {"host": "https://reports.example", "slug": "existing"})
     monkeypatch.setattr(publication, "package", lambda *a, **k: pytest.fail("packaged"))
     with pytest.raises(ValueError, match="complete existing target"):
-        publication.publish(source, target, work, visual)
+        publication.publish(source, target, work, visual, home=tmp_path)
     assert not work.exists()
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [None, "coordinated-public-audit", "missing-authority", "original", "content", "profile"],
+)
+@pytest.mark.parametrize("local_example", [False, True])
+def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
+    tmp_path, monkeypatch, damage, local_example
+):
+    from harness.web_extract.report import publication_host_names
+    from harness.web_fetch.publication_privacy import project_evidence_view
+
+    source, target, work, visual = setup_report(tmp_path)
+    frozen = tmp_path / "frozen"
+    pin = dataset_pin(frozen)
+    audit = frozen / "audit.json"
+    save_json(audit, {"result_count": 1, "excluded_fields": {}})
+    audit_hash = digest(audit.read_bytes())
+    content = frozen / "content.json"
+    save_json(content, {"audit": {"path": "audit.json", "sha256": audit_hash}})
+    profile = frozen / "profile.json"
+    save_json(
+        profile,
+        {
+            "local_example": local_example,
+            "dataset": pin,
+            "research_report": {
+                "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
+            },
+        },
+    )
+    profile_hash = digest(profile.read_bytes())
+    path = "public-evidence/audit.json"
+    raw, receipt = project_evidence_view(
+        path,
+        audit.read_bytes(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    published = source / path
+    published.parent.mkdir()
+    published.write_bytes(raw)
+    manifest = {
+        "profile_sha256": profile_hash,
+        "completion_audit": {"path": path, "source_sha256": audit_hash, "sha256": digest(raw)},
+        "public_evidence_views": [receipt],
+        "completion_reference_exclusions": {},
+    }
+    if damage == "coordinated-public-audit":
+        save_json(published, {"result_count": 1, "excluded_fields": {"page": ["sku"]}})
+        manifest["completion_audit"]["sha256"] = digest(published.read_bytes())
+        receipt["published_sha256"] = digest(published.read_bytes())
+        manifest["completion_reference_exclusions"] = {"page": ["sku"]}
+        # Source hashes still claim the untouched, frozen original. Rebuilding
+        # the bundle and tables cannot legitimize the forged public audit.
+    elif damage == "missing-authority":
+        manifest.pop("completion_audit")
+    elif damage:
+        changed = {"original": audit, "content": content, "profile": profile}[damage]
+        save_json(changed, {"substituted": True})
+    save_json(source / "report-manifest.json", manifest)
+    bound = read_json(target)
+    bound.update(
+        {"profile_sha256": profile_hash, "profile": {"path": str(profile), "sha256": profile_hash}}
+    )
+    save_json(target, bound)
+    calls = []
+    monkeypatch.setattr(
+        publication,
+        "package",
+        lambda *a, **k: (
+            calls.append("package")
+            or {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+        ),
+    )
+
+    def update(staged, **kwargs):
+        calls.append("network")
+        staged.guard()
+        staged.bind("ver_after")
+        return "ver_after"
+
+    monkeypatch.setattr(publication, "publish_staged_update", update)
+    if damage:
+        from harness.web_extract.cli import main
+
+        archive = tmp_path / "forged.zip"
+        for command in ("check", "package"):
+            args = [
+                "--home",
+                str(frozen),
+                command,
+                str(source),
+                "--profile",
+                str(profile),
+                "--visual-receipt",
+                str(visual),
+            ]
+            args += ["--release"] if command == "check" else ["--output", str(archive)]
+            with pytest.raises(ValueError, match="Completion audit"):
+                main(args)
+        assert not archive.exists()
+        with pytest.raises(ValueError, match="Completion audit"):
+            publication.publish(source, target, work, visual, home=frozen)
+        assert calls == []
+        assert not work.exists()
+    else:
+        assert (
+            publication.publish(source, target, work, visual, home=frozen)["versionId"]
+            == "ver_after"
+        )
+        assert calls == ["package", "network"]
 
 
 @pytest.mark.parametrize("approved", [False, True])
 def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch, approved):
     source, target, work, visual = setup_report(tmp_path)
     next_profile = tmp_path / "next-profile.json"
-    save_json(next_profile, {"report": "next"})
+    save_json(next_profile, {"report": "next", "local_example": True})
     next_hash = digest(next_profile.read_bytes())
     save_json(source / "report-manifest.json", {"profile_sha256": next_hash})
     bound = read_json(target)
     if approved:
         bound["approved_profile_successor"] = {
-            "from_sha256": "profile",
+            "from_sha256": read_json(target)["profile_sha256"],
             "to_sha256": next_hash,
             "profile_path": str(next_profile),
         }
@@ -96,13 +527,16 @@ def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch
 
     monkeypatch.setattr(publication, "publish_staged_update", update)
     if approved:
-        assert publication.publish(source, target, work, visual)["versionId"] == "ver_after"
+        assert (
+            publication.publish(source, target, work, visual, home=tmp_path)["versionId"]
+            == "ver_after"
+        )
         assert called == ["package"]
         assert read_json(target)["profile"] == {"path": str(next_profile), "sha256": next_hash}
         assert "approved_profile_successor" not in read_json(target)
     else:
         with pytest.raises(ValueError, match="profile differs"):
-            publication.publish(source, target, work, visual)
+            publication.publish(source, target, work, visual, home=tmp_path)
         assert not called
         assert not work.exists()
 
@@ -123,7 +557,7 @@ def test_tampered_resume_package_never_dispatches(tmp_path, monkeypatch):
         publication, "publish_staged_update", lambda *a, **k: pytest.fail("dispatched")
     )
     with pytest.raises(ValueError, match="Retained publication package differs"):
-        publication.publish(source, target, work, visual)
+        publication.publish(source, target, work, visual, home=tmp_path)
 
 
 @pytest.mark.parametrize("damage", ["stale-file", "extra-file", "missing-manifest"])
@@ -164,19 +598,19 @@ def test_self_consistent_zip_hash_cannot_replace_checked_contents(tmp_path, monk
         publication, "publish_staged_update", lambda *a, **k: pytest.fail("dispatched")
     )
     with pytest.raises(ValueError, match="ZIP inventory"):
-        publication.publish(source, target, work, visual)
+        publication.publish(source, target, work, visual, home=tmp_path)
 
 
 @pytest.mark.parametrize("when", ["package", "upload", "bind"])
 def test_approved_profile_cannot_change_during_publication(tmp_path, monkeypatch, when):
     source, target, work, visual = setup_report(tmp_path)
     selected = tmp_path / "successor.json"
-    save_json(selected, {"cohort": "approved"})
+    save_json(selected, {"cohort": "approved", "local_example": True})
     expected = digest(selected.read_bytes())
     save_json(source / "report-manifest.json", {"profile_sha256": expected})
     bound = read_json(target)
     bound["approved_profile_successor"] = {
-        "from_sha256": "profile",
+        "from_sha256": read_json(target)["profile_sha256"],
         "to_sha256": expected,
         "profile_path": str(selected),
     }
@@ -202,6 +636,52 @@ def test_approved_profile_cannot_change_during_publication(tmp_path, monkeypatch
     monkeypatch.setattr(publication, "package", package)
     monkeypatch.setattr(publication, "publish_staged_update", update)
     with pytest.raises(ValueError, match="successor profile changed"):
-        publication.publish(source, target, work, visual)
+        publication.publish(source, target, work, visual, home=tmp_path)
     assert read_json(target)["expected_version"] == "ver_before"
     assert read_json(target)["approved_profile_successor"]["to_sha256"] == expected
+
+
+def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
+    """Publishing resolves a JSON path and packages it through the shared boundary."""
+    from harness.web_extract import report as report_owner
+
+    source, target, work, visual = setup_report(tmp_path)
+    manifest = read_json(source / 'report-manifest.json')
+    manifest['files'] = {
+        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
+    }
+    save_json(source / 'report-manifest.json', manifest)
+    save_json(visual, {})
+    monkeypatch.setattr(publication, 'verify_completion_audit', lambda *a, **k: None)
+    monkeypatch.setattr(report_owner, 'verify_completion_audit', lambda *a, **k: None)
+    monkeypatch.setattr(report_owner, 'check', lambda *a, **k: None)
+
+    def update(staged, *, transport):
+        assert set(publication.archive_inventory(staged.archive)) == {
+            'report-manifest.json', 'browser-eval-version.json'
+        }
+        staged.guard()
+        staged.bind('ver_packaged')
+        return 'ver_packaged'
+
+    monkeypatch.setattr(publication, 'publish_staged_update', update)
+    result = publication.publish(source, target, work, visual, home=tmp_path)
+    assert result['versionId'] == 'ver_packaged'
+
+
+def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_path):
+    from harness.web_extract.publication import publication_authorities
+
+    home = tmp_path / 'home'
+    content = tmp_path / 'content.json'
+    profile = tmp_path / 'profile.json'
+    save_json(profile, {'dataset': {'id': 'frozen'},
+                        'research_report': {'content': {'path': str(content)}}})
+    save_json(content, {'audit': {'path': 'audit.json'}, 'evidence_runs': [
+        {'run': 'first', 'repair': [{'path': str(home / 'repairs/final')}]},
+        {'run': 'runs/second'},
+    ]})
+    assert set(publication_authorities(profile, home)) == {
+        profile, content, tmp_path / 'audit.json', home / 'dataset',
+        home / 'runs/first', home / 'runs/second', home / 'repairs/final',
+    }
