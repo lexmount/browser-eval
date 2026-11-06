@@ -307,3 +307,28 @@ def test_completion_cannot_override_authoritative_audit(tmp_path, damage):
     regenerate(manifest["completion_reference_exclusions"])
     with pytest.raises(ValueError, match="authoritative audit"):
         check_completion_metrics(tmp_path, manifest, rows)
+
+
+@pytest.mark.parametrize('key,replacement', [('page_exact', 1), ('empty_fields_correct', False)])
+def test_completion_receipt_preserves_boolean_and_count_types(tmp_path, key, replacement):
+    from harness.web_extract.pipeline import save_json
+    from harness.web_extract.report import check_completion_metrics, completion_bundle
+
+    row = product({'price': '5', 'sku': 'ABC', 'availability': 'InStock'})
+    row['field_results'] = {
+        f: {'expected': [v], 'status': 'correct'}
+        for f, v in row['normalized_fields'].items()
+    }
+    methods = ['firecrawl-json']
+    bundle = completion_bundle(methods, [row], records=False, complete_methods=methods)
+    manifest = {
+        'mode': 'full-cohort-progress', 'planned_methods': methods, 'languages': [],
+        'source_runs': [{'certified': True, 'scores': {'firecrawl-json': {}}}],
+    }
+    path = tmp_path / 'data/completion-metrics.json'
+    save_json(path, bundle)
+    check_completion_metrics(tmp_path, manifest, [row])
+    bundle['methods']['firecrawl-json']['cases']['page'][key] = replacement
+    save_json(path, bundle)
+    with pytest.raises(ValueError, match='differ from retained final responses'):
+        check_completion_metrics(tmp_path, manifest, [row])
