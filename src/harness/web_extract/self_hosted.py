@@ -218,7 +218,7 @@ def graph(value):
         raise ValueError(f"Snapshot returned HTTP {response.status_code}")
     extractor = SmartScraperGraph(
         prompt=value.get("instruction", "Extract the requested fields of the main record."),
-        source=response.content.decode("utf-8", errors="replace"),
+        source=response.content.decode("utf-8"),
         schema=create_model(value["schema"]),
         config={
             "llm": {
