@@ -34,7 +34,9 @@ The native Python image builds for the Docker host; the pinned Firecrawl images
 use amd64, matching the Rainbond deployment. ARM hosts need Docker's amd64 emulation
 for those four images. RabbitMQ uses the host architecture from its pinned
 multi-platform digest, avoiding Erlang JIT failures under amd64 emulation. Resource limits reproduce the configured Rainbond limits,
-not a measured minimum host requirement.
+not a measured minimum host requirement. The browser base uses the
+[Millisecond Mirror GHCR proxy](https://1ms.run/guide/temp), retaining the exact
+upstream manifest digest; image content is verified by that digest.
 
 Each request runs in a fresh supervised process. Its browser and model client are
 closed within that request, including detached browser cleanup after crashes and
