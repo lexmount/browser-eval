@@ -98,7 +98,9 @@ def test_runner_keeps_real_observations_for_every_outcome(tmp_path, outcome):
     provider = ObservedFixture()
     records, _ = run_evaluation(output_dir=tmp_path/'evidence', dataset_meta=dataset,
         dataset_path=source, cases=[case], providers=[provider], provider_config_path=config,
-        runs=1, timeout=0.1, delay=0)
+        # Only the timeout scenario exercises a short deadline. Successful
+        # diagnostics must not depend on a shared CI host scheduling within 100ms.
+        runs=1, timeout=0.1 if outcome == 'timeout' else 2, delay=0)
     assert len(records) == 1
     record = records[0];meta = record['provider_metadata']
     raw = (tmp_path/'evidence'/meta['diagnostic_log_path']).read_bytes()

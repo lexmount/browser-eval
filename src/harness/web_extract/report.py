@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 
 from harness.distribution import repository_root
 from harness.env_file import local_setting
+from harness.record_io import canonical_json_sha256
 from harness.report_languages import resolve_report_language
 from harness.reporting.links import LinkIndex
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
@@ -308,6 +309,9 @@ def cohort_source(source, selection, home, truth):
     if (
         digest(plan_path.read_bytes()) != selection["plan_sha256"]
         or precall["profile_sha256"] != selection["plan_sha256"]
+        or precall.get("case_ids_sha256") != plan["case_ids_sha256"]
+        or contract["dataset_manifest_sha256"]
+        != digest((home / "dataset/manifest.json").read_bytes())
         or set(contract["case_ids"]) != set(truth)
         or contract["kind"] != "full_archived_extraction"
         or plan["case_count"] != len(truth)
@@ -563,6 +567,177 @@ def price_quote(value, lang):
     return prefix + "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
 
 
+def redact_account_endpoint(row):
+    """Preserve request parameters while hiding account identifiers in its URL."""
+    result = dict(row)
+    request = row.get("request")
+    if isinstance(request, dict):
+        request = dict(request)
+        endpoint = request.get("endpoint", "")
+        if isinstance(endpoint, str):
+            request["endpoint"] = re.sub(r"/accounts/[^/]+/", "/accounts/[REDACTED]/", endpoint)
+        result["request"] = request
+    if isinstance(row.get("physical_attempts"), list):
+        result["physical_attempts"] = [
+            redact_account_endpoint(v) if isinstance(v, dict) else v
+            for v in row["physical_attempts"]
+        ]
+    if isinstance(row.get("superseded_result"), dict):
+        result["superseded_result"] = redact_account_endpoint(row["superseded_result"])
+    return result
+
+
+def verify_execution_projection(original, published):
+    """Bind delivery, timing, billing and every retained physical attempt."""
+    derived = {"normalized_fields", "collected_normalized_fields", "projection_revision"}
+    required = {
+        "response",
+        "http_status",
+        "compatibility",
+        "request",
+        "state",
+        "error",
+        "elapsed_seconds",
+        "provider_usage",
+        "physical_attempt",
+        "retry_execution_seconds",
+        "retry_missing_timers",
+    }
+
+    def same_fields(expected, actual):
+        fields = (set(expected) - derived - {"physical_attempts"}) | required
+        return canonical_json_sha256(
+            {k: actual.get(k) for k in fields}, allow_nan=False
+        ) == canonical_json_sha256({k: expected.get(k) for k in fields}, allow_nan=False)
+
+    if not same_fields(original, published):
+        raise ValueError("Completion audit native execution projection changed")
+    expected = original.get("physical_attempts")
+    actual = published.get("physical_attempts")
+    if expected is None and actual is None:
+        return
+    if expected is None:
+        expected = [{k: v for k, v in original.items() if k != "physical_attempts"}]
+    if (
+        not isinstance(expected, list)
+        or not expected
+        or any(not isinstance(v, dict) for v in expected)
+    ):
+        raise ValueError("Completion audit native attempt history is invalid")
+    if actual is None:
+        if len(expected) != 1 or not same_fields(expected[0], published):
+            raise ValueError("Completion audit native attempt history is missing")
+        return
+    if not isinstance(actual, list) or any(not isinstance(v, dict) for v in actual):
+        raise ValueError("Completion audit native attempt history is invalid")
+
+    def canonical(history):
+        return [{k: v for k, v in row.items() if k not in derived} for row in history]
+
+    if canonical_json_sha256(canonical(actual), allow_nan=False) != canonical_json_sha256(
+        canonical(expected), allow_nan=False
+    ):
+        raise ValueError("Completion audit native attempt history changed")
+
+
+def verify_completion_audit(source, profile, *, home=None):
+    """Verify the externally selected profile and reproduce its original audit view."""
+    source = Path(source)
+    manifest = read_json(source / "report-manifest.json")
+    if not profile:
+        raise ValueError("Completion audit requires its frozen profile")
+    profile = Path(profile)
+    if profile.is_symlink() or digest(profile.read_bytes()) != manifest["profile_sha256"]:
+        raise ValueError("Completion audit frozen profile changed")
+    instance = read_json(profile)
+    if home is None:
+        raise ValueError("Completion audit requires an explicit benchmark home")
+    home = Path(home)
+    require_external_output(home)
+    if instance.get("dataset"):
+        try:
+            validate_dataset(home, profile)
+        except (OSError, KeyError, ValueError) as error:
+            raise ValueError(
+                "Completion audit benchmark home differs from its frozen dataset"
+            ) from error
+    elif instance.get("local_example") is not True:
+        raise ValueError("Completion audit frozen profile lacks its dataset identity")
+    records = manifest.get("mode") == "field-extraction-cohort"
+    authority = manifest.get("audit" if records else "completion_audit")
+    content_binding = instance.get("research_report", {}).get("content", {})
+    if (
+        instance.get("local_example") is True
+        and not authority
+        and not content_binding.get("path")
+        and instance.get("independent_result_review_scope") != "all"
+    ):
+        return
+    if not content_binding.get("path"):
+        raise ValueError("Completion audit requires frozen content")
+    content = profile.parent / content_binding["path"]
+    if content.is_symlink() or digest(content.read_bytes()) != content_binding["sha256"]:
+        raise ValueError("Completion audit frozen content changed")
+    audit_binding = read_json(content).get("audit")
+    if not audit_binding:
+        if authority or instance.get("independent_result_review_scope") == "all":
+            raise ValueError("Completion audit requires its frozen original")
+        return
+    if not authority or authority.get("path") != "public-evidence/audit.json":
+        raise ValueError("Completion audit public authority is missing")
+    audit = content.parent / audit_binding["path"]
+    raw = audit.read_bytes()
+    if audit.is_symlink() or digest(raw) != audit_binding["sha256"]:
+        raise ValueError("Completion audit original changed")
+    projected, _ = project_evidence_view(
+        authority["path"],
+        raw,
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    if (
+        authority["source_sha256"] != audit_binding["sha256"]
+        or (source / authority["path"]).read_bytes() != projected
+    ):
+        raise ValueError("Completion audit differs from its frozen original")
+    reviewed = json.loads(raw).get("results", {})
+    if reviewed:
+        from harness.web_extract.repair import load_selection
+
+        model = read_json(content)
+        public_rows = {}
+        seen = set()
+        for selection in model["evidence_runs"]:
+            _, originals = load_selection(home, selection)
+            for row in originals:
+                method, cid = row["method"], row["case_id"]
+                key = method + ":" + cid
+                native_hash = digest(
+                    json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+                )
+                if (
+                    key in seen
+                    or reviewed.get(key, {}).get("native_response_sha256") != native_hash
+                    or reviewed.get(key, {}).get("execution_sha256") != execution_identity(row)
+                ):
+                    raise ValueError("Completion audit native original changed")
+                seen.add(key)
+                if method not in public_rows:
+                    public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
+                view, _ = project_evidence_view(
+                    "public-evidence/native-row.json",
+                    json.dumps(redact_account_endpoint(row), ensure_ascii=False).encode(),
+                    role="native_response",
+                    content_format="json",
+                    host_names=publication_host_names(),
+                )
+                published = public_rows[method].get(cid, {})
+                verify_execution_projection(json.loads(view), published)
+        if seen != set(reviewed):
+            raise ValueError("Completion audit native response coverage changed")
+
+
 def completion_bundle(methods, rows, *, records, complete_methods, excluded_fields=None):
     """Derive additional metrics from the same public final-response evidence."""
     from harness.web_extract.analysis import completion_metrics
@@ -606,14 +781,15 @@ def completion_bundle(methods, rows, *, records, complete_methods, excluded_fiel
     }
 
 
-def completion_table(bundle, methods, labels, language):
-    """Keep counts, metric definitions and directional comparisons together."""
+def completion_columns(bundle, methods, language):
+    """Render only the supplementary columns through the shared comparison owner."""
     values = bundle["methods"]
     rows = []
+    keys = ("page_exact", "empty_fields")
     for method in methods:
         metrics = values[method]
-        cells = [esc(labels.get(method, method))]
-        for key in ("page_exact", "empty_fields"):
+        cells = []
+        for key in keys:
             metric = metrics[key] if metrics else None
             cells.append(
                 message("completion_incomplete", language)
@@ -625,41 +801,83 @@ def completion_table(bundle, methods, labels, language):
                 )
             )
         if metrics and metrics["excluded_pages"]:
-            cells[1] += (
+            cells[0] += (
                 "<br><small>"
                 + message("completion_excluded", language, count=metrics["excluded_pages"])
                 + "</small>"
             )
         rows.append(cells)
-    comparison = record_comparison(
-        message("completion_headers", language),
-        rows,
-        {
-            column: (
-                "completion-" + key,
-                "max",
-                [values[m][key]["rate"] if values[m] else None for m in methods],
-            )
-            for column, key in enumerate(("page_exact", "empty_fields"), 1)
-        },
+    reference = message(
+        "completion_qualified_short"
+        if bundle["reference_view"] == "source-qualified"
+        else "completion_original_short",
+        language,
     )
-    return (
-        "<section data-completion-metrics><h2>"
-        + message("completion_title", language)
-        + "</h2><p>"
-        + message(
-            "completion_reference_qualified"
-            if bundle["reference_view"] == "source-qualified"
-            else "completion_reference_original",
-            language,
+    headers = [
+        esc(label)
+        + "<br><small>"
+        + message("completion_source", language)
+        + " · "
+        + reference
+        + "</small>"
+        for label in message("completion_headers", language)[1:]
+    ]
+    soup = BeautifulSoup(
+        record_comparison(
+            headers,
+            rows,
+            {
+                column: (
+                    "completion-" + key,
+                    "max",
+                    [values[m][key]["rate"] if values[m] else None for m in methods],
+                )
+                for column, key in enumerate(keys)
+            },
+        ),
+        "html.parser",
+    )
+    for index, key in enumerate(keys):
+        soup.select("thead th")[index]["data-completion-metric"] = key
+        for row in soup.select("tbody tr"):
+            row.select("td")[index]["data-completion-metric"] = key
+    return soup.table
+
+
+def with_completion_columns(core, bundle, methods, language, *, before_details=False):
+    """Extend the existing participant comparison without creating another table."""
+    soup = BeautifulSoup(core, "html.parser")
+    target = soup.select_one("table")
+    columns = completion_columns(bundle, methods, language)
+    if target is None or len(target.select("tbody tr")) != len(methods):
+        raise ValueError("Completion columns require the complete core comparison")
+    header = target.select_one("thead tr")
+    before = header.select("th")[-1] if before_details else None
+    for cell in list(columns.select("thead th")):
+        before.insert_before(cell.extract()) if before is not None else header.append(
+            cell.extract()
         )
-        + "</p><p>"
-        + message("completion_scope", language)
-        + "</p>"
-        + comparison
-        + '<p><a href="../data/completion-metrics.json">'
+    for method, row, extra in zip(
+        methods, target.select("tbody tr"), columns.select("tbody tr"), strict=True
+    ):
+        row["data-method"] = method
+        before = row.select("td")[-1] if before_details else None
+        for cell in list(extra.select("td")):
+            before.insert_before(cell.extract()) if before is not None else row.append(
+                cell.extract()
+            )
+    target["data-completion-metrics"] = "true"
+    target.parent.insert_after(BeautifulSoup(completion_links(language), "html.parser"))
+    return str(soup)
+
+
+def completion_links(language):
+    return (
+        '<p data-completion-links><a href="index.html#metric-completion-page_exact">'
+        + message("completion_guide_link", language)
+        + '</a> · <a href="../data/completion-metrics.json">'
         + message("completion_receipt", language)
-        + "</a></p></section>"
+        + "</a></p>"
     )
 
 
@@ -695,6 +913,12 @@ def check_completion_metrics(output, manifest, rows):
             or audit.get("result_count") != manifest["observations"]
         ):
             raise ValueError("Completion reference coverage differs from authoritative audit")
+        for row in rows:
+            reviewed = audit.get("results", {}).get(row["method"] + ":" + row["case_id"], {})
+            if canonical_json_sha256(
+                row.get("review", {}).get("audited_fields"), allow_nan=False
+            ) != canonical_json_sha256(reviewed.get("audited_fields"), allow_nan=False):
+                raise ValueError("Completion judgments differ from authoritative audit")
     elif not records and (manifest.get("review") or bundle["excluded_fields"]):
         raise ValueError("Completion reference coverage lacks its authoritative audit")
     expected = completion_bundle(
@@ -707,17 +931,33 @@ def check_completion_metrics(output, manifest, rows):
     if bundle != expected:
         raise ValueError("Completion metrics differ from retained final responses")
     for lang in manifest["languages"]:
-        wanted = BeautifulSoup(
-            completion_table(bundle, methods, manifest["method_labels"], lang), "html.parser"
-        ).section
-        for a in wanted.select('a[href="../data/completion-metrics.json"]'):
-            a["href"] = "data/completion-metrics.json"
+        expected = completion_columns(bundle, methods, lang)
         for route in ("index", "interpretation"):
-            page_view = BeautifulSoup(
+            document = BeautifulSoup(
                 (output / lang / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
             )
-            if page_view.select_one("[data-completion-metrics]") != wanted:
-                raise ValueError("Completion metric comparison is missing or inconsistent")
+            tables = document.select("table[data-completion-metrics]")
+            if len(tables) != 1 or document.select("section[data-completion-metrics]"):
+                raise ValueError("Completion metrics must share the core comparison")
+            table_view = tables[0]
+            owner = "data-core-metrics" if route == "index" else "data-interpretation-comparison"
+            if (
+                not table_view.has_attr(owner)
+                and table_view.find_parent(attrs={owner: True}) is None
+            ):
+                raise ValueError("Completion metrics are outside the core comparison")
+            if table_view.select("th[data-completion-metric]") != expected.select("th"):
+                raise ValueError("Completion metric headers or provenance differ")
+            actual_rows = table_view.select("tbody tr")
+            if len(actual_rows) != len(methods):
+                raise ValueError("Completion comparison population differs")
+            for method, actual, wanted in zip(
+                methods, actual_rows, expected.select("tbody tr"), strict=True
+            ):
+                if actual.get("data-method") != method or actual.select(
+                    "td[data-completion-metric]"
+                ) != wanted.select("td"):
+                    raise ValueError("Completion metric comparison is missing or inconsistent")
 
 
 def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=None):
@@ -1610,19 +1850,21 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, aut
         compact = BeautifulSoup(core_html, "html.parser").select_one("table")
         for row in compact.select("tr"):
             for index, cell in enumerate(list(row.find_all(["th", "td"], recursive=False))):
-                if index not in (0, 3, 5, 6, 7, 8):
+                if index not in (0, 3, 5, 6, 7, 8) and not cell.has_attr("data-completion-metric"):
                     cell.decompose()
         compact.attrs = {
             "data-interpretation-comparison": "true",
+            "data-completion-metrics": "true",
             "data-highlight-ties": "all",
         }
         interpretation += (
             "<h2>"
-            + (message("compact_original_reference_comparison", lang))
+            + (message("compact_core_comparison", lang))
             + "</h2>"
             + '<div class="table-wrap">'
             + str(compact)
             + "</div>"
+            + completion_links(lang)
         )
     interpretation += authored_html
     interpretation += "<h2>" + (message("scoring_checks_field_matches", lang)) + "</h2><p>"
@@ -1843,6 +2085,17 @@ def metric_definitions(language, *, records):
         )
         for i, (label, meaning) in enumerate(zip(labels, meanings, strict=True))
     ]
+    for i, key in enumerate(("page_exact", "empty_fields")):
+        result.append(
+            dict(
+                id="completion-" + key,
+                label=message("completion_headers", language)[i + 1],
+                meaning=message("guide_completion_meanings", language)[i],
+                unit=message("guide_rate_unit", language),
+                population=message("guide_completion_populations", language)[i],
+                direction=message("guide_higher", language),
+            )
+        )
     for i, (label, meaning) in enumerate(
         zip(
             message("guide_latency_labels", language),
@@ -2174,11 +2427,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             r["review_execution_sha256"] = execution_identity(record)
             r["run_id"] = source.name
-            if "request" in r:
-                r["request"]["endpoint"] = re.sub(
-                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", r["request"]["endpoint"]
-                )
-            rows.append(r)
+            rows.append(redact_account_endpoint(r))
         bindings.append(
             {
                 "run_id": source.name,
@@ -2373,10 +2622,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             core, timings = cohort_metrics(
                 methods, rows, bindings, len(truth), lang, names, truth=truth
             )
+            core = with_completion_columns(core, completion, methods, lang)
             bodies["index"] = (
-                (message("original_reference_home_scope", lang) if audit else "")
-                + core
-                + completion_table(completion, methods, names, lang)
+                core
                 + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
                 + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             )
@@ -2405,8 +2653,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         for route in ("index", "interpretation"):
             bodies[route] += resources
         if cohort:
-            additional = completion_table(completion, methods, names, lang)
-            bodies["interpretation"] = additional + bodies["interpretation"]
+            if not audit:
+                interpretation_core = BeautifulSoup(core, "html.parser")
+                interpretation_core.table["data-interpretation-comparison"] = "true"
+                bodies["interpretation"] = str(interpretation_core) + bodies["interpretation"]
             bodies["protocol"] += "<p>" + message("completion_protocol", lang) + "</p>"
             bodies["protocol"] += (
                 "<h2>"
@@ -3026,11 +3276,15 @@ def check_reader_contract(output, manifest, *, release=False):
         )
 
 
-def check(output: Path, *, release=False, visual_receipt=None):
+def check(output: Path, *, release=False, visual_receipt=None, profile=None, home=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    if profile is not None:
+        verify_completion_audit(output, profile, home=home)
     if manifest.get("mode") == "field-extraction-cohort":
-        return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
+        return check_record_cohort(
+            output, release=release, visual_receipt=visual_receipt, profile=profile, home=home
+        )
     link_index = LinkIndex(errors="strict")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -3204,7 +3458,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             if [r.get("data-method") for r in summary] != methods:
                 raise ValueError("Missing or reordered planned participant")
             for method, row in zip(methods, summary, strict=True):
-                cells = row.select("td")
+                cells = row.select("td:not([data-completion-metric])")
                 expected = [
                     manifest["case_count"],
                     len(data[method]),
@@ -3351,6 +3605,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             raise ValueError("Missing English notice or stale English pages")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
+        verify_completion_audit(output, profile, home=home)
 
     return {
         "pages_per_language": len(zh),
@@ -3391,19 +3646,22 @@ def check_visual_receipt(output, manifest, visual_receipt):
         raise ValueError("Incomplete top-level reader coverage")
 
 
-def package(output, archive, *, visual_receipt):
+def package(output, archive, *, visual_receipt, profile, home=None):
     """Package only the release-checked report inventory, with no private siblings."""
     from harness.reporting.publication import package_archive
 
     require_external_output(archive)
+    verify_completion_audit(output, profile, home=home)
     manifest = read_json(output / "report-manifest.json")
     names = [*sorted(manifest["files"]), "report-manifest.json"]
     return package_archive(
         output,
         archive,
         archive.with_suffix(".receipt.json"),
-        inputs=(visual_receipt,),
-        validate=lambda: check(output, release=True, visual_receipt=visual_receipt),
+        inputs=(visual_receipt, profile),
+        validate=lambda: check(
+            output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
+        ),
         attest=lambda path: {
             "files": len(names),
             "archive_bytes": path.stat().st_size,
@@ -3787,10 +4045,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             row["field_labels"] = model.get("field_labels", {})
             row["result_href"] = "zh/" + record_result_href(method, cid)
             row["case_href"] = "zh/" + record_route("c", cid) + ".html"
-            if isinstance(row.get("request"), dict):
-                row["request"]["endpoint"] = re.sub(
-                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", row["request"].get("endpoint", "")
-                )
+            bucket[cid] = redact_account_endpoint(row)
         raw, receipt = project_evidence_view(
             "public-evidence/" + method + ".json",
             json.dumps(bucket, ensure_ascii=False).encode(),
@@ -3980,6 +4235,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             2: [stats[m]["structured"] for m in methods],
         },
     )
+    core = with_completion_columns(core, completion, methods, language, before_details=True)
     operations = operating_metrics(
         methods,
         [row for m in methods for row in data["methods"][m]["results"].values()],
@@ -4011,7 +4267,6 @@ def build_record_cohort(output, content, *, home, language, profile):
         "<section data-core-metrics>"
         + core
         + "</section>"
-        + completion_table(completion, methods, labels, language)
         + report_metric_guide(language, records=True)
         + bodies["index"]
         + operations
@@ -4443,7 +4698,6 @@ def build_record_cohort(output, content, *, home, language, profile):
         "<section data-interpretation-comparison>"
         + core
         + "</section>"
-        + completion_table(completion, methods, labels, language)
         + bodies["interpretation"]
     )
     resources = worker_resources(
@@ -4557,7 +4811,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     check_record_cohort(output)
 
 
-def check_record_cohort(output, *, release=False, visual_receipt=None):
+def check_record_cohort(output, *, release=False, visual_receipt=None, profile=None, home=None):
     """Check the public record matrix and shared presentation semantics."""
     from harness.reporting.presentation import check_presentation
     from harness.web_extract.analysis import record_statistics
@@ -4696,8 +4950,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     for method in manifest["planned_methods"]:
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         if not isinstance(bucket, dict) or any(
-            not isinstance(row, dict) or cid != row.get("case_id")
-            for cid, row in bucket.items()
+            not isinstance(row, dict) or cid != row.get("case_id") for cid, row in bucket.items()
         ):
             raise ValueError("Record evidence keys differ from embedded case identities")
         rows = list(bucket.values())
@@ -4769,13 +5022,13 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         ),
         "html.parser",
     )
-    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    home_view = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     check_price_coverage(
         output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )
-    if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
-        row.get_text(strip=True) for row in expected_operations.select("tbody tr")
-    ]:
+    if [
+        row.get_text(strip=True) for row in home_view.select("[data-operating-metrics] tbody tr")
+    ] != [row.get_text(strip=True) for row in expected_operations.select("tbody tr")]:
         raise ValueError("Record timing or pricing differs from measured evidence")
     for route, selector in (
         ("index", "[data-core-metrics]"),
@@ -4938,6 +5191,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         raise ValueError("Formal record release requires every comparison participant complete")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
+        verify_completion_audit(output, profile, home=home)
         observations = read_json(visual_receipt)["observations"]
         observed = {
             (item["route_class"], item["viewport"], item.get("theme")) for item in observations

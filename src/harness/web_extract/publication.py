@@ -7,10 +7,10 @@ from harness.record_io import json_bytes
 from harness.reporting.publication import PublicationClient, archive_inventory, atomic_write
 from harness.reporting.publish import StagedUpdate, publish_staged_update
 from harness.web_extract.pipeline import digest, read_json, require_external_output
-from harness.web_extract.report import check, package
+from harness.web_extract.report import check, package, verify_completion_audit
 
 
-def publish(source, target, work, visual_receipt, *, transport=None):
+def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     source, target, work = Path(source), Path(target), Path(work)
     require_external_output(target)
     require_external_output(work)
@@ -50,13 +50,15 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     def unchanged_profile():
         if current != previous and digest(Path(next_profile).read_bytes()) != current:
             raise ValueError("Publication successor profile changed")
+        verify_completion_audit(source, next_profile, home=home)
 
+    unchanged_profile()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     started = time.perf_counter()
     print("Preparing Web Extract publication package...", flush=True)
     if archive.exists():
-        check(source, release=True, visual_receipt=visual_receipt)
+        check(source, release=True, visual_receipt=visual_receipt, profile=next_profile, home=home)
         proof = read_json(archive.with_suffix(".receipt.json"))
         if proof["archive_sha256"] != digest(archive.read_bytes()) or proof[
             "report_manifest_sha256"
@@ -70,7 +72,9 @@ def publish(source, target, work, visual_receipt, *, transport=None):
         if archive_inventory(archive) != expected:
             raise ValueError("Retained publication ZIP inventory differs from checked source")
     else:
-        proof = package(source, archive, visual_receipt=visual_receipt)
+        proof = package(
+            source, archive, visual_receipt=visual_receipt, profile=next_profile, home=home
+        )
     print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 
     unchanged_profile()

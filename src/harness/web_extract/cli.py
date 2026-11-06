@@ -18,7 +18,7 @@ from harness.web_extract.pipeline import (
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--home", type=Path, default=data_home())
+    parser.add_argument("--home", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
@@ -119,9 +119,13 @@ def main(argv=None):
     p = sub.add_parser("check")
     p.add_argument("output", type=Path)
     p.add_argument("--release", action="store_true")
+    p.add_argument(
+        "--profile", type=Path, help="External frozen report profile; required for release"
+    )
     p.add_argument("--visual-receipt", type=Path)
     p = sub.add_parser("package")
     p.add_argument("report", type=Path)
+    p.add_argument("--profile", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--visual-receipt", type=Path, required=True)
     p = sub.add_parser("publish")
@@ -153,6 +157,11 @@ def main(argv=None):
     p.add_argument("--additional-adjudication", type=Path, action="append", default=[])
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
+    formal = args.command in ("package", "publish") or (args.command == "check" and args.release)
+    if formal and args.home is None:
+        parser.error("Formal check, package and publish require an explicit --home")
+    if args.home is None:
+        args.home = data_home()
     if args.command == "host":
         from harness.web_extract.snapshots import host
 
@@ -296,15 +305,31 @@ def main(argv=None):
     elif args.command == "check":
         from harness.web_extract.report import check
 
-        print(check(args.output, release=args.release, visual_receipt=args.visual_receipt))
+        print(
+            check(
+                args.output,
+                release=args.release,
+                visual_receipt=args.visual_receipt,
+                profile=args.profile,
+                home=args.home,
+            )
+        )
     elif args.command == "package":
         from harness.web_extract.report import package
 
-        print(package(args.report, args.output, visual_receipt=args.visual_receipt))
+        print(
+            package(
+                args.report,
+                args.output,
+                visual_receipt=args.visual_receipt,
+                profile=args.profile,
+                home=args.home,
+            )
+        )
     elif args.command == "publish":
         from harness.web_extract.publication import publish
 
-        print(publish(args.source, args.target, args.work, args.visual_receipt))
+        print(publish(args.source, args.target, args.work, args.visual_receipt, home=args.home))
     elif args.command == "review":
         from harness.web_extract.review import prepare as prepare_review
         from harness.web_extract.review import run as run_review

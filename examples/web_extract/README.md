@@ -212,7 +212,7 @@ The same preparation, certified runner and scorer support SWDE. The pinned
 [SWDE card](../../src/harness/benchmarks/cards/swde.json) selects ten pages per
 website across 80 websites and eight domains before any provider calls. This is
 an 800-page subset of the original 124,291-page collection. Its
-[public input distribution](https://huggingface.co/datasets/Lexmount/LexBench-SWDE/tree/1a53107d865085d00458301abb8077dd01a2e651)
+[public input distribution, LexBench-SWDE-800](https://huggingface.co/datasets/Lexmount/LexBench-SWDE-800/tree/1a53107d865085d00458301abb8077dd01a2e651)
 contains unchanged HTML, original paths, checksums and source/license notices;
 reference answers and provider outputs are excluded. The original project
 license is Ms-RL; captured website content retains its publishers’ rights.
@@ -255,7 +255,8 @@ and rejects an override at collection. Product-specific extractors are rejected
 for SWDE. Firecrawl Parse uses HTML upload; it can share a plan with URL-based
 methods, retaining its own input route and the same frozen HTML bytes.
 
-The primary score reproduces MarkupLM’s page-hit precision, recall and F1
+The [original SWDE paper, Section 7.1.2](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/StructedDataExtraction_SIGIR2011.pdf)
+defines page-hit precision, recall and F-score. The primary score reproduces MarkupLM’s page-hit precision, recall and F1
 arithmetic: a matching value makes a page-field hit even when other values are
 missing or extra. The subset fixes all 320 site-field groups in the macro
 population, including groups with no present values in the sample. This subset
@@ -274,6 +275,9 @@ These diagnostics do not change the upstream scores or require provider calls.
 The report includes numerator/denominator counts, per-page outcomes and the input
 binding in `data/completion-metrics.json`; its release check recomputes the metrics
 and validates the overview and interpretation tables against the same evidence.
+The core table keeps these columns beside the existing field metrics. Its metric
+guide identifies their project-defined origin and gives formulas, population rules
+and worked examples; upstream metrics retain their own source explanations.
 
 Source-qualified reference corrections use the same scoring entry point:
 
@@ -348,9 +352,19 @@ renderer/component checks when those owners change, rather than every release.
 Use the standalone check for local validation without publishing:
 
 ```sh
-uv run --frozen python -m harness.web_extract.cli check /absolute/report \
-  --release --visual-receipt /absolute/private/visual-receipt.json
+uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-home \
+  check /absolute/report --release --profile /absolute/private/profile.json \
+  --visual-receipt /absolute/private/visual-receipt.json
 ```
+
+Formal checks, packaging and publication require the external frozen profile and
+an explicit `--home`. They verify that directory against the pinned dataset, its
+content and original audit, reproduce the public audit view, and bind each cached
+field judgment and native response to that audit. Public manifest edits cannot
+remove the required audit or change the completion denominator. Pass the same
+`--profile` to `package`; publication selects it from the bound target. Use the
+same global `--home` as the report build so original calls and repair chains resolve
+against the correct benchmark inputs.
 
 Building a local report does not upload it or change access permissions.
 The `publish` command runs the release check and packages the report itself;
