@@ -9,6 +9,7 @@ from harness.web_extract.dataset import BENCHMARKS
 from harness.web_extract.pipeline import (
     data_home,
     prepare,
+    read_json,
     reproduce,
     score_run,
     serve_fixtures,
@@ -137,6 +138,7 @@ def main(argv=None):
     p = sub.add_parser("adjudicate")
     p.add_argument("--additional-prior", type=Path, action="append", default=[])
     p.add_argument("--resolved-adjudication", type=Path, action="append", default=[])
+    p.add_argument("--case-ids", type=Path, help="JSON case IDs whose prior review is complete")
     p.add_argument("--prior", type=Path, required=True)
     p.add_argument("--work", type=Path, required=True)
     p.add_argument("--rules", type=Path, required=True)
@@ -326,6 +328,7 @@ def main(argv=None):
         prepare_adjudication(
             args.prior, args.work, args.rules, additional_priors=args.additional_prior,
             resolved_adjudications=args.resolved_adjudication,
+            case_ids=read_json(args.case_ids) if args.case_ids else None,
         )
         print(run_review(args.work, model=args.model, workers=args.workers))
     elif args.command == "audit-assemble":

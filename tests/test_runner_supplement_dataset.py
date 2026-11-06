@@ -90,6 +90,7 @@ class SupplementDatasetTests(unittest.TestCase):
                                 "metrics": {"content_sha256": hashlib.sha256(
                                     self.content.encode()).hexdigest()}})
         self.write(folder / "manifest.json", {
+            "runtime_source_sha256": benchmark.runtime_source_sha256(),
             "dataset": {"source": str(kwargs["dataset_path"])},
             "providers": [{"name": name} for name in names]})
         return records, {}

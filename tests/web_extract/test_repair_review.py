@@ -1597,7 +1597,10 @@ def test_adjudication_invalid_workers_leave_no_workspace(tmp_path, workers):
     assert not work.exists()
 
 
-def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_path):
+@pytest.mark.parametrize("raw_completed", [False, True])
+def test_limited_review_resume_advances_without_repeating_completed_packets(
+    tmp_path, raw_completed
+):
     from types import SimpleNamespace
 
     from harness.web_extract.review import run as run_audit
@@ -1606,6 +1609,9 @@ def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_
     work = tmp_path / "review"
     manifest = prepare(home, home / "content.json", work, batch_size=1)
     assert len(manifest["packets"]) == 3
+    if raw_completed:
+        packet = read_packet(work / "packets/000.json")
+        save_json(work / "raw/000.json", review_payload(packet))
     dispatched = []
 
     def start(command, **kwargs):
@@ -1623,13 +1629,16 @@ def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_
             result = run_audit(work, model="synthetic", workers=1, limit=1)
             assert result["packets"] == expected
             assert result["needs_correction"] == []
-        assert dispatched == ["000.json", "001.json", "002.json"]
+        expected_calls = ["001.json", "002.json"] if raw_completed else [
+            "000.json", "001.json", "002.json"
+        ]
+        assert dispatched == expected_calls
         # Completed evidence still needs validation on a bounded resume.
         target = work / "reviews/000.json"
         save_json(target, {"cases": []})
         with pytest.raises(ValueError):
             run_audit(work, model="synthetic", workers=1, limit=1)
-        assert len(dispatched) == 3
+        assert len(dispatched) == len(expected_calls)
 
 
 @pytest.mark.parametrize("duplicate", ["same-run", "overlapping-run"])

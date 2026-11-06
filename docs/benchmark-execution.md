@@ -13,7 +13,13 @@ flowchart LR
     Plan --> Calls[Dispatch independent ready work]
     Calls --> Saved[Persist every physical call]
     Saved --> Score[Score and check complete scope]
-    Score --> Report[Build and release]
+    Score --> Review[Result review when authorized]
+    Review --> Ready[Freeze completed case groups]
+    Ready --> Adjudicate[Adjudicate new source claims]
+    Score --> Gates[Verify complete scope and release gates]
+    Review --> Gates
+    Adjudicate --> Gates
+    Gates --> Report[Build and release]
 ```
 
 List the dependent stages and identify which ones can overlap. Downloads,
@@ -21,6 +27,12 @@ installation, fixture verification, provider calls, scoring, review, rendering a
 publication have different constraints. Reuse verified immutable inputs and
 completed stage outputs. A request to collect benchmark results does not authorize
 independent result review; the review rules in `AGENTS.md` still apply.
+
+When review is authorized, source adjudication can consume completed case groups
+while result review continues. Freeze disjoint subsets, reuse source-bound prior
+decisions for identical claims, and retain the full review scope at release.
+Recover validated raw review output after a dispatcher exits before starting
+another model call for that packet.
 
 Before a large run, use a small, preselected sample to check readiness, ordinary
 call duration, CPU, memory, initialization and model/network waiting. Keep these

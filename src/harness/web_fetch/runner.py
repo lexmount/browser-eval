@@ -533,6 +533,15 @@ def provider_execution_policy(providers, provider_concurrency):
     return execution_policy, resource_bindings
 
 
+def runtime_source_sha256():
+    """Bind the shared collector/scorer source, independently of saved result files."""
+    return hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
+            p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
+            for p in sorted(Path(__file__).parent.rglob('*.py')))
+            + b'\0benchmark_execution.py\0'
+            + (Path(__file__).parents[1] / 'benchmark_execution.py').read_bytes()).hexdigest()
+
+
 def run_evaluation(
     *,
     output_dir: Path,
@@ -631,11 +640,7 @@ def run_evaluation(
 
     manifest = {
         "schema_version": 1,
-        "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
-            p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
-            for p in sorted(Path(__file__).parent.rglob('*.py')))
-            + b'\0benchmark_execution.py\0'
-            + (Path(__file__).parents[1] / 'benchmark_execution.py').read_bytes()).hexdigest(),
+        "runtime_source_sha256": runtime_source_sha256(),
         "provider_config_sha256": optional_file_sha256(provider_config_path),
         "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (benchmark_input_path(dataset_path).parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],

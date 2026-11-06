@@ -25,6 +25,7 @@ from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, provider_execution_policy, run_evaluation,
+    runtime_source_sha256,
 )
 from harness.data_home import data_home
 
@@ -123,6 +124,7 @@ def main(argv=None):
         cases=cases, runs=args.runs,
         max_failure_retries=args.max_failure_retries,
     )
+    frozen_runtime = runtime_source_sha256()
     args.output.mkdir(parents=True)
     stopped = threading.Event()
     if network_audit is not None:
@@ -167,6 +169,10 @@ def main(argv=None):
         parts = [completed[name] for name in names]
     aggregate_completed_at=datetime.now(UTC).isoformat()
     records=[r for rs,_ in parts for r in rs];batches=[b for _,bs in parts for b in bs]
+    if ({batch.get('runtime_source_sha256') for batch in batches} != {frozen_runtime}
+            or runtime_source_sha256() != frozen_runtime):
+        raise IncompleteEvaluationError(
+            'Runtime changed during collection; worker evidence retained without a mixed aggregate')
     assert len(records)==len(cases)*len(names)*args.runs
     execution={'schema_version':1,'aggregate':{
         'started_at':aggregate_started_at,'completed_at':aggregate_completed_at,

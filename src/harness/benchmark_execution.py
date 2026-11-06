@@ -263,6 +263,8 @@ def run_jobs(
         (nullcontext(_InlineExecutor()) if policy.max_in_flight == 1
          else executor_class(**options)) as executor,
     ):
+        if pending and policy.max_in_flight == 1 and initialize is not None:
+            initialize(*initargs)
         while pending or inflight:
             try:
                 if failure is None and not stop_event.is_set() and not should_stop():

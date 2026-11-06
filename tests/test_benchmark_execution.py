@@ -370,3 +370,36 @@ def test_rejected_submission_cleans_only_the_undispatched_preparation_and_drains
                      policy(max_in_flight=2), prepare=prepare)
     assert dispatched == retained == [0]
     assert cancelled == ['1'] and reserved == set()
+
+
+@pytest.mark.parametrize('fails', [False, True])
+def test_serial_initialization_precedes_preparation_and_keeps_the_calling_thread(fails):
+    events = []
+    caller = threading.get_ident()
+
+    def initialize(value):
+        events.append(('initialize', value, threading.get_ident()))
+        if fails:
+            raise ValueError('Initialization rejected')
+
+    def prepare(job):
+        events.append(('prepare', job.key, threading.get_ident()))
+        return job.payload
+
+    def execute(value):
+        events.append(('execute', value, threading.get_ident()))
+        return value
+
+    def run():
+        run_jobs([Job('one', ('api-a',), 7)], execute, lambda *args: None,
+                 policy(max_in_flight=1, serial_reason='Main-thread native deadline'),
+                 initialize=initialize, initargs=(11,), prepare=prepare)
+
+    if fails:
+        with pytest.raises(ValueError, match='Initialization rejected'):
+            run()
+        assert events == [('initialize', 11, caller)]
+    else:
+        run()
+        assert events == [('initialize', 11, caller), ('prepare', 'one', caller),
+                          ('execute', 7, caller)]

@@ -530,6 +530,9 @@ Product and record cohorts can combine disjoint participant reviews through
 pass `adjudicate --resolved-adjudication /absolute/completed-adjudication`.
 Only identical status-and-value proposals are skipped; new claims still require
 adjudication. The retained packet and review hashes protect both forms of reuse.
+`adjudicate --case-ids /absolute/ready-cases.json` freezes a subset whose review is
+complete, so source adjudication can overlap the remaining result review. Use
+disjoint subsets of the new review; final assembly still requires full coverage.
 
 
 Shared record instructions are frozen in the run contract and appended to each

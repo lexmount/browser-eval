@@ -442,14 +442,40 @@ def reference_claim(finding):
     return finding["status"], tuple(sorted(finding["values"]))
 
 
+def reference_disputed(finding, values):
+    return finding["status"] in ("incorrect", "ambiguous") or (
+        finding["status"] == "absent" and bool(values)
+    )
+
+
+def review_source_identity(case, rules):
+    """Reference decisions apply only to the same source, task schema and rules."""
+    return (
+        digest(Path(case["source_html"]).read_bytes()),
+        json.dumps(case["reference"], sort_keys=True, ensure_ascii=False),
+        json.dumps(case.get("field_schema"), sort_keys=True, ensure_ascii=False),
+        case.get("source_url"),
+        digest(Path(rules).read_bytes()),
+    )
+
+
 def prepare_adjudication(
     prior, work, rules, *, batch_size=4, additional_priors=(), resolved_adjudications=(),
+    case_ids=None,
 ):
     """Recheck disputed references against the original benchmark's exact rules."""
     validate_review_options(batch_size=batch_size)
     require_external_output(Path(work))
     prior, work, rules = Path(prior).resolve(), Path(work).resolve(), Path(rules).resolve()
     bindings, cases = {}, []
+    if case_ids is not None and (
+        not isinstance(case_ids, list) or not case_ids
+        or any(not isinstance(cid, str) or not cid for cid in case_ids)
+        or len(set(case_ids)) != len(case_ids)
+    ):
+        raise ValueError("Adjudication cases must be a nonempty list of unique case IDs")
+    selected = set(case_ids) if case_ids is not None else None
+    observed = set()
     root = manifest_root(prior, read_manifest(prior))
     schemas = set()
     resolved_claims = {}
@@ -464,10 +490,13 @@ def prepare_adjudication(
             bindings[str(packet_path)] = entry["sha256"]
             bindings[str(review_path)] = digest(review_path.read_bytes())
         for cid, case in resolved_inputs.items():
+            if "benchmark_rules" not in case:
+                continue
+            scope = cid, review_source_identity(case, case["benchmark_rules"])
             for claim in [case.get("prior_reference_findings", {}),
                           *case.get("additional_prior_reference_findings", [])]:
                 for field, finding in claim.items():
-                    resolved_claims.setdefault((cid, field), set()).add(reference_claim(finding))
+                    resolved_claims.setdefault((scope, field), set()).add(reference_claim(finding))
     for predecessor in [prior, *[Path(p).resolve() for p in additional_priors]]:
         manifest = read_manifest(predecessor)
         schemas.add(manifest["schema"])
@@ -482,17 +511,25 @@ def prepare_adjudication(
             if digest(source.read_bytes()) != entry["sha256"]:
                 raise ValueError("Prior audit packet changed")
             packet = read_packet(source)
+            observed.update(case["case_id"] for case in packet["cases"])
+            if selected is not None and not any(
+                case["case_id"] in selected for case in packet["cases"]
+            ):
+                continue
             result_path = predecessor / "reviews" / source.name
             result = validate(read_json(result_path), packet)
             bindings[str(source)] = entry["sha256"]
             bindings[str(result_path)] = digest(result_path.read_bytes())
             indexed = {r["case_id"]: r for r in packet["cases"]}
             for row in result["cases"]:
+                if selected is not None and row["case_id"] not in selected:
+                    continue
+                scope = row["case_id"], review_source_identity(indexed[row["case_id"]], rules)
                 if any(
                     (f["status"] in ("incorrect", "ambiguous")
                      or (f["status"] == "absent" and indexed[row["case_id"]]["reference"][field]))
                     and reference_claim(f) not in resolved_claims.get(
-                        (row["case_id"], field), set()
+                        (scope, field), set()
                     )
                     for field, f in row["reference"].items()
                 ):
@@ -503,6 +540,8 @@ def prepare_adjudication(
                     cases.append(case)
     if len(schemas) != 1:
         raise ValueError("Adjudication predecessors use different review schemas")
+    if selected is not None and selected - observed:
+        raise ValueError("Adjudication selection contains an unknown case")
     bindings[str(rules)] = digest(rules.read_bytes())
     unique = {}
     for case in cases:
@@ -533,6 +572,7 @@ def prepare_adjudication(
         "result_count": 0,
         "bindings": bindings,
         "packets": packets,
+        **({"selected_case_ids": sorted(selected)} if selected is not None else {}),
     }
     value = save_manifest(work, value, root)
     save_json(work / "schema.json", review_schema(cases))
@@ -691,11 +731,16 @@ def assemble(
         cases, opinions, receipts = completed(work)
         adjudication_scopes.append((work, cases, opinions))
         adjudicated_inputs.update(cases)
-        adjudicated.update(opinions)
         adjudication_receipts.extend(receipts)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     model = read_json(content)
     truth_sha = digest((home / "dataset/dataset/ground-truth.json").read_bytes())
+    rule_hashes = {
+        digest(Path(case["benchmark_rules"]).read_bytes())
+        for _, cases, _ in adjudication_scopes for case in cases.values()
+    }
+    if len(rule_hashes) > 1:
+        raise ValueError("Adjudications use different benchmark rules")
     for work, cases, _ in [*review_scopes, *adjudication_scopes]:
         if not cases:
             continue
@@ -713,6 +758,7 @@ def assemble(
                 cid not in truth
                 or digest(Path(case["source_html"]).read_bytes()) != digest(source.read_bytes())
                 or case["reference"] != {field: truth[cid].get(field, []) for field in FIELDS}
+                or case.get("source_url") != truth[cid]["url"]
             ):
                 raise ValueError("Reviewed dataset differs from the scoring dataset")
     _, rows, methods = current_audit_matrix(home, model)
@@ -743,10 +789,13 @@ def assemble(
     }
     if set(adjudicated_inputs) != disputed:
         raise ValueError("Disputed references need complete adjudication")
-    covered_claims = {}
-    for work, cases, _ in adjudication_scopes:
+    covered_claims, final_fields = {}, {}
+    adjudicated = {cid: copy.deepcopy(original_opinions[cid]) for cid in disputed}
+    explicit = {(d["case_id"], d["field"]) for d in read_json(decisions)["decisions"]} \
+        if decisions is not None else set()
+    for work, cases, final_opinions in adjudication_scopes:
         bound = read_manifest(work)["bindings"]
-        linked = set()
+        linked = {}
         for predecessor, _, opinions in review_scopes:
             for entry in read_manifest(predecessor)["packets"]:
                 packet = Path(entry["path"])
@@ -754,21 +803,44 @@ def assemble(
                 relevant = {case["case_id"] for case in read_packet(packet)["cases"]} & set(cases)
                 if not relevant:
                     continue
+                review_sha = digest(review.read_bytes())
                 if (str(packet) in bound and bound[str(packet)] != entry["sha256"]
-                        or str(review) in bound and bound[str(review)] != digest(
-                            review.read_bytes())):
+                        or str(review) in bound and bound[str(review)] != review_sha):
                     raise ValueError("Adjudication belongs to a different original audit")
-                if bound.get(str(packet)) == entry["sha256"] and bound.get(str(review)) == digest(
-                    review.read_bytes()
-                ):
-                    linked.update(relevant)
+                if (bound.get(str(packet)) == entry["sha256"]
+                        and bound.get(str(review)) == review_sha):
                     for cid in relevant:
-                        for field, finding in opinions[cid]["reference"].items():
-                            covered_claims.setdefault((cid, field), set()).add(
-                                reference_claim(finding)
-                            )
-        if set(cases) - linked:
-            raise ValueError("Adjudication belongs to a different original audit")
+                        linked.setdefault(cid, []).append(opinions[cid]["reference"])
+        for cid, case in cases.items():
+            claims = [case.get("prior_reference_findings", {}),
+                      *case.get("additional_prior_reference_findings", [])]
+            if any(set(claim) != set(FIELDS) or claim not in linked.get(cid, [])
+                   for claim in claims):
+                raise ValueError("Adjudication belongs to a different original audit")
+            targets = set()
+            for claim in claims:
+                for field, finding in claim.items():
+                    covered_claims.setdefault((cid, field), set()).add(reference_claim(finding))
+                    if reference_disputed(finding, truth[cid].get(field)):
+                        targets.add(field)
+            final = final_opinions[cid]
+            targets.update(field for field, finding in final["reference"].items()
+                           if reference_disputed(finding, truth[cid].get(field)))
+            for field in targets:
+                finding = final["reference"][field]
+                values = (final["source_fields"][field]["values"]
+                          if finding["status"] == "incorrect" else truth[cid].get(field, []))
+                decision = finding["status"] == "ambiguous", tuple(sorted(set(values)))
+                key = cid, field
+                if key in final_fields:
+                    if final_fields[key] != decision and key not in explicit:
+                        raise ValueError(
+                            "Conflicting adjudications require explicit source decisions"
+                        )
+                    continue
+                final_fields[key] = decision
+                for section in ("source_fields", "reference"):
+                    adjudicated[cid][section][field] = copy.deepcopy(final[section][field])
     for _, _, opinions in review_scopes:
         for cid, opinion in opinions.items():
             for field, finding in opinion["reference"].items():
@@ -1395,6 +1467,8 @@ Use only the exact packet named above; read it before inspecting sources. Resolv
 its relative source paths against {manifest_root(work, manifest)}. Do not search
 for similarly named packets or read prior reviews, raw review outputs, scores,
 audit summaries or reports. They are not inputs to this judgment.
+Each source_quote must be one contiguous exact source substring. Describe other
+source regions in source_locator or reason; never concatenate separate excerpts.
 """
         command = [
             "codex",

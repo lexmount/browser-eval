@@ -1850,7 +1850,8 @@ def collect_calls(
         jobs, _execute_admitted_call, commit, policy,
         prepare=prepare, should_stop=lambda: bool(blocked),
         initialize=_initialize_collection_clock,
-        initargs=(context.Lock(), context.Value("d", 0), min_call_interval),
+        initargs=(context.Lock(), context.Value("d", time.monotonic() - min_call_interval),
+                  min_call_interval),
     )
     if blocked:
         raise blocked[0]

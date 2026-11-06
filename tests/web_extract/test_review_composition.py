@@ -114,3 +114,147 @@ def test_novel_reference_claim_requires_its_own_bound_adjudication(tmp_path):
     with pytest.raises(ValueError, match='Audit source changed'):
         assemble(*args, tmp_path / 'stale.json', profile=home / 'profile.json',
                  additional_reviews=[works[1]], additional_adjudications=[work])
+
+
+def test_ready_case_adjudication_can_start_before_other_review_packets_finish(tmp_path):
+    home, _, works, _, _ = product_reviews(tmp_path)
+    method = works[0].name.removeprefix('review-')
+    prior = tmp_path / 'partial'
+    manifest = prepare(home, home / (method + '-content.json'), prior, batch_size=1)
+    complete(prior, {**manifest, 'packets': manifest['packets'][:1]},
+             claim={'status': 'ambiguous'})
+    ready = read_packet(Path(manifest['packets'][0]['path']))['cases'][0]['case_id']
+    pending = read_packet(Path(manifest['packets'][1]['path']))['cases'][0]['case_id']
+    result = prepare_adjudication(prior, tmp_path / 'ready', home / 'profile.json',
+                                  case_ids=[ready])
+    assert result['case_count'] == 1 and result['selected_case_ids'] == [ready]
+    assert len(list((prior / 'reviews').glob('*.json'))) == 1
+    with pytest.raises(FileNotFoundError):
+        prepare_adjudication(prior, tmp_path / 'pending', home / 'profile.json', case_ids=[pending])
+    with pytest.raises(ValueError, match='unknown case'):
+        prepare_adjudication(prior, tmp_path / 'unknown', home / 'profile.json',
+                             case_ids=['unknown'])
+    assert not (tmp_path / 'unknown/manifest.json').exists()
+
+
+@pytest.mark.parametrize('changed', ['source', 'reference', 'rules'])
+def test_same_claim_on_changed_evidence_is_not_reused_as_an_old_source_decision(tmp_path, changed):
+    _, _, _, old_adjudication, _ = product_reviews(tmp_path / 'old')
+    home = create(tmp_path / 'new')
+    if changed == 'source':
+        path = next((home / 'dataset/html').glob('*.html'))
+        path.write_text(path.read_text(encoding='utf-8') + '<p>New edition</p>', encoding='utf-8')
+    elif changed == 'reference':
+        path = home / 'dataset/dataset/ground-truth.json'
+        truth = read_json(path)
+        truth[next(iter(truth))]['sku'] = ['different annotation']
+        save_json(path, truth)
+    if changed in {'source', 'reference'}:
+        dataset = read_json(home / 'dataset/manifest.json')
+        for name, item in dataset['files'].items():
+            file = home / 'dataset' / name
+            item.update(sha256=digest(file.read_bytes()), bytes=file.stat().st_size)
+        save_json(home / 'dataset/manifest.json', dataset)
+        run = home / 'runs/example-v1'
+        contract = read_json(run / 'contract.json')
+        contract['dataset_manifest_sha256'] = digest((home / 'dataset/manifest.json').read_bytes())
+        save_json(run / 'contract.json', contract)
+        manifest = read_json(run / 'manifest.json')
+        manifest['contract_sha256'] = digest((run / 'contract.json').read_bytes())
+        for entry in manifest['calls']:
+            file = run / entry['path']
+            row = read_json(file)
+            row['input_sha256'] = digest(
+                (home / 'dataset/html' / (row['case_id'] + '.html')).read_bytes())
+            save_json(file, row)
+            entry['sha256'] = digest(file.read_bytes())
+        save_json(run / 'manifest.json', manifest)
+    prior = tmp_path / 'current'
+    plan = prepare(home, home / 'content.json', prior)
+    complete(prior, plan, claim={'status': 'ambiguous'})
+    rules = home / 'profile.json'
+    if changed == 'rules':
+        rules = tmp_path / 'different-rules.txt'
+        rules.write_text('Different interpretation contract', encoding='utf-8')
+    result = prepare_adjudication(prior, tmp_path / 'pending', rules,
+                                  resolved_adjudications=[old_adjudication])
+    assert result['case_count'] == (3 if changed == 'rules' else 1)
+
+
+def change_reference_claim(work, field, status, values):
+    for path in (work / 'reviews').glob('*.json'):
+        value = read_json(path)
+        for case in value['cases']:
+            case['reference'][field].update(status=status, values=values)
+        save_json(path, value)
+
+
+def change_adjudicated_value(work, field, values):
+    for path in (work / 'reviews').glob('*.json'):
+        value = read_json(path)
+        for case in value['cases']:
+            case['reference'][field].update(status='incorrect', values=values)
+            case['source_fields'][field]['values'] = values
+        save_json(path, value)
+
+
+def test_new_price_adjudication_preserves_the_previously_resolved_sku(tmp_path):
+    home, content, works, old_adjudication, empty = product_reviews(tmp_path)
+    change_adjudicated_value(old_adjudication, 'sku', ['synthetic product'])
+    change_reference_claim(works[1], 'sku', 'supported', [])
+    change_reference_claim(works[1], 'price', 'ambiguous', [])
+    new = tmp_path / 'price-adjudication'
+    complete(new, prepare_adjudication(works[1], new, home / 'profile.json'))
+    audit = assemble(home, content, works[0], empty, old_adjudication, tmp_path / 'audit.json',
+                     profile=home / 'profile.json', additional_reviews=[works[1]],
+                     additional_adjudications=[new])
+    assert all(ref['sku'] == ['synthetic product'] for ref in audit['audited_reference'].values())
+
+
+def test_conflicting_field_adjudications_require_an_explicit_source_decision(tmp_path):
+    home, content, works, old, empty = product_reviews(tmp_path)
+    change_adjudicated_value(old, 'sku', ['synthetic product'])
+    new = tmp_path / 'new-adjudication'
+    complete(new, prepare_adjudication(works[1], new, home / 'profile.json'))
+    change_adjudicated_value(new, 'sku', ['product'])
+    for first, second in [(old, new), (new, old)]:
+        with pytest.raises(ValueError, match='Conflicting adjudications'):
+            assemble(home, content, works[0], empty, first, tmp_path / 'conflict.json',
+                     profile=home / 'profile.json', additional_reviews=[works[1]],
+                     additional_adjudications=[second])
+
+    truth = read_json(home / 'dataset/dataset/ground-truth.json')
+    decisions = tmp_path / 'source-decisions.json'
+    save_json(decisions, {'decisions': [
+        {'case_id': cid, 'field': 'sku', 'accepted': ['synthetic product'],
+         'source_sha256': digest((home / 'dataset/html' / (cid + '.html')).read_bytes()),
+         'source_quote': 'synthetic product', 'source_locator': 'p',
+         'reason': 'Explicit source decision for the conflicting proposals'} for cid in truth]})
+    for index, (first, second) in enumerate([(old, new), (new, old)]):
+        value = assemble(home, content, works[0], empty, first, tmp_path / f'resolved-{index}.json',
+                         profile=home / 'profile.json', additional_reviews=[works[1]],
+                         additional_adjudications=[second], decisions=decisions)
+        assert all(ref['sku'] == ['synthetic product']
+                   for ref in value['audited_reference'].values())
+
+
+def test_packet_bindings_do_not_credit_a_reference_claim_absent_from_adjudication_inputs(tmp_path):
+    home, content, works, _, empty = product_reviews(tmp_path)
+    change_reference_claim(works[1], 'sku', 'supported', [])
+    change_reference_claim(works[1], 'price', 'ambiguous', [])
+    work = tmp_path / 'incomplete-claims'
+    prepare_adjudication(works[0], work, home / 'profile.json', additional_priors=[works[1]])
+    stored = read_json(work / 'manifest.json')
+    for entry in stored['packets']:
+        path = work / entry['path']
+        packet = read_json(path)
+        for case in packet['cases']:
+            case.pop('additional_prior_reference_findings')
+        save_json(path, packet)
+        entry['sha256'] = digest(path.read_bytes())
+    save_json(work / 'manifest.json', stored)
+    from harness.web_extract.review import read_manifest
+    complete(work, read_manifest(work))
+    with pytest.raises(ValueError, match='complete adjudication'):
+        assemble(home, content, works[0], empty, work, tmp_path / 'uncovered.json',
+                 profile=home / 'profile.json', additional_reviews=[works[1]])
