@@ -102,7 +102,10 @@ def build(output, content, *, profile, language=None):
     if (
         not names
         or len(set(names)) != len(names)
-        or any(not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names)
+        or any(
+            name in {"zh", "en"} or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
+            for name in names
+        )
     ):
         raise ValueError("Suite cohorts need distinct safe directory names")
     if output.exists() and any(output.iterdir()):
@@ -221,7 +224,10 @@ def check(output, *, release=False, visual_receipt=None):
     if (
         not names
         or len(names) != len(set(names))
-        or any(not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name) for name in names)
+        or any(
+            name in {"zh", "en"} or not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", name)
+            for name in names
+        )
     ):
         raise ValueError("Suite cohort directories changed")
     visual = read_json(visual_receipt) if release and visual_receipt else {}

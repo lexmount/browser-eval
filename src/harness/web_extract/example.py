@@ -403,7 +403,9 @@ def create_record(output: Path, *, language="zh", input_mode="snapshot"):
 
 def create_suite(output: Path, *, language="zh"):
     """Exercise separate cohorts and shared navigation without provider calls."""
+    require_external_output(output)
     home = output.parent / (output.name + "-suite-inputs")
+    require_external_output(home)
     home.mkdir(parents=True, exist_ok=False)
     cohorts = []
     for name in ("first", "second"):

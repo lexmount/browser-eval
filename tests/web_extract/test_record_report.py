@@ -407,18 +407,18 @@ def test_snapshot_report_cannot_relabel_its_preview_as_live(tmp_path):
         check(output)
 
 
-@pytest.mark.parametrize('button_index', [0, -1])
-@pytest.mark.parametrize('source', ['public-evidence/missing.json', '../outside.json'])
+@pytest.mark.parametrize("button_index", [0, -1])
+@pytest.mark.parametrize("source", ["public-evidence/missing.json", "../outside.json"])
 def test_inventory_evidence_targets_are_validated_after_rebinding(tmp_path, button_index, source):
-    output = tmp_path / 'report'
-    create(output, mode='field-extraction-cohort')
-    (tmp_path / 'outside.json').write_text('{}', encoding='utf-8')
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    (tmp_path / "outside.json").write_text("{}", encoding="utf-8")
 
     def break_evidence(text):
-        soup = BeautifulSoup(text, 'html.parser')
-        buttons = soup.select('[data-call-log-open]')
+        soup = BeautifulSoup(text, "html.parser")
+        buttons = soup.select("[data-call-log-open]")
         assert len(buttons) > 1
-        buttons[button_index]['data-src'] = source
+        buttons[button_index]["data-src"] = source
         return str(soup)
 
     rebind(output, 'zh/results.html', break_evidence)
@@ -427,25 +427,26 @@ def test_inventory_evidence_targets_are_validated_after_rebinding(tmp_path, butt
 
 
 def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path):
-    output = tmp_path / 'report'
-    create(output, mode='field-extraction-cohort')
-    method = 'scrapegraph-extract'
-    relative = 'public-evidence/' + method + '.json'
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    method = "scrapegraph-extract"
+    relative = "public-evidence/" + method + ".json"
     path = output / relative
     bucket = read_json(path)
-    bucket['one']['case_id'], bucket['two']['case_id'] = 'two', 'one'
+    bucket["one"]["case_id"], bucket["two"]["case_id"] = "two", "one"
     save_json(path, bucket)
-    manifest = read_json(output / 'report-manifest.json')
-    manifest['files'][relative] = digest(path.read_bytes())
-    for receipt in manifest['public_evidence_views']:
-        if receipt['path'] == relative:
-            receipt['published_sha256'] = digest(path.read_bytes())
-            receipt['published_bytes'] = path.stat().st_size
-    save_json(output / 'report-manifest.json', manifest)
-    for case_id, other in [('one', 'two'), ('two', 'one')]:
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"][relative] = digest(path.read_bytes())
+    for receipt in manifest["public_evidence_views"]:
+        if receipt["path"] == relative:
+            receipt["published_sha256"] = digest(path.read_bytes())
+            receipt["published_bytes"] = path.stat().st_size
+    save_json(output / "report-manifest.json", manifest)
+    for case_id, other in [("one", "two"), ("two", "one")]:
+
         def swap_target(text, other=other):
-            soup = BeautifulSoup(text, 'html.parser')
-            soup.find('details', id=method).select_one('[data-call-log-open]')['data-key'] = other
+            soup = BeautifulSoup(text, "html.parser")
+            soup.find("details", id=method).select_one("[data-call-log-open]")["data-key"] = other
             return str(soup)
         rebind(output, 'zh/' + record_route('c', case_id) + '.html', swap_target)
     with pytest.raises(ValueError, match='evidence.*case identit'):
@@ -489,10 +490,17 @@ def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
             row = soup.select_one('tr[data-method="scrapegraph-extract"][data-status="pass"]')
             key = {
                 "filter": "data-outcome",
-                "field-filter": "data-author",
+                "field-filter": "data-field-outcomes",
                 "coverage": "data-scored-fields",
             }[damage]
-            row[key] = "0" if damage == "coverage" else "wrong"
+            if damage == "field-filter":
+                import json
+
+                outcomes = json.loads(row[key])
+                outcomes["author"] = "wrong"
+                row[key] = json.dumps(outcomes)
+            else:
+                row[key] = "0" if damage == "coverage" else "wrong"
             return str(soup)
 
         rebind(output, "zh/results.html", change)
