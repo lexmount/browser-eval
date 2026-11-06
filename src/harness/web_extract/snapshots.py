@@ -763,8 +763,13 @@ def host(
                     timeout=900,
                 )
                 if result.returncode:
+                    diagnostic = (result.stderr or result.stdout or "").strip()
+                    for secret in credentials.values():
+                        if secret:
+                            diagnostic = diagnostic.replace(secret, "[REDACTED]")
                     raise RuntimeError(
-                        "Cloudflare deployment failed; existing deployments retained"
+                        "Cloudflare deployment failed; existing deployments retained: "
+                        + diagnostic[-4000:]
                     )
             response = requests.get(api + "/" + project, headers=headers, timeout=40)
             response.raise_for_status()
