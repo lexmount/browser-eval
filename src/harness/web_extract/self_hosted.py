@@ -74,6 +74,12 @@ def installed_environment_sha256():
     return hashlib.sha256(json.dumps(packages).encode()).hexdigest()
 
 
+@lru_cache(maxsize=4)
+def browser_version(executable, _executable_sha256):
+    """Reuse the version probe while the configured executable bytes are unchanged."""
+    return subprocess.check_output([executable, "--version"], text=True, timeout=5).strip()
+
+
 @lru_cache(maxsize=len(ENGINES))
 def local_runtime_identity(engine):
     base = urlsplit(os.environ["EXTRACTION_MODEL_BASE"])
@@ -104,11 +110,10 @@ def local_runtime_identity(engine):
     if engine == "crawl4ai":
         identity["llm_output_protocol"] = "xml_blocks"
     if engine == "stagehand":
-        identity["browser_version"] = subprocess.check_output(
-            [os.environ["CHROME_PATH"], "--version"],
-            text=True,
-            timeout=5,
-        ).strip()
+        executable = os.environ["CHROME_PATH"]
+        identity["browser_version"] = browser_version(
+            executable, hashlib.sha256(Path(executable).read_bytes()).hexdigest()
+        )
     return identity
 
 

@@ -193,6 +193,33 @@ def test_post_extraction_runtime_check_detects_a_changed_local_model(monkeypatch
         self_hosted.local_runtime_identity.cache_clear()
 
 
+def test_runtime_revalidation_reuses_the_unchanged_browser_version(tmp_path, monkeypatch):
+    from harness.web_extract import self_hosted
+
+    browser = tmp_path / "browser"
+    browser.write_bytes(b"synthetic browser v1")
+    monkeypatch.setenv("EXTRACTION_MODEL", "synthetic")
+    monkeypatch.setenv("EXTRACTION_MODEL_BASE", "https://model.example")
+    monkeypatch.setenv("CHROME_PATH", str(browser))
+    monkeypatch.setattr(self_hosted.importlib.metadata, "version", lambda name: "synthetic")
+    monkeypatch.setattr(self_hosted, "installed_environment_sha256", lambda: "a" * 64)
+    self_hosted.local_runtime_identity.cache_clear()
+    try:
+        with patch.object(
+            self_hosted.subprocess, "check_output", return_value="Browser 1"
+        ) as probe:
+            first = self_hosted.runtime_identity("stagehand")
+            self_hosted.local_runtime_identity.cache_clear()
+            assert self_hosted.runtime_identity("stagehand") == first
+            assert probe.call_count == 1
+            browser.write_bytes(b"synthetic browser v2")
+            self_hosted.local_runtime_identity.cache_clear()
+            self_hosted.runtime_identity("stagehand")
+            assert probe.call_count == 2
+    finally:
+        self_hosted.local_runtime_identity.cache_clear()
+
+
 @pytest.mark.parametrize(
     "status,payload",
     [

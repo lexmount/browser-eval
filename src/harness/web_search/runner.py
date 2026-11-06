@@ -576,6 +576,10 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             attempts = []
             operation_start = time.perf_counter()
             for attempt_index in range(1 + int(bool(protocol.get("retry")))):
+                if stopped.is_set():
+                    if not attempts:
+                        return
+                    break
                 with result_lock:
                     budget = budgets.get(method["id"])
                     if budget is not None:
@@ -694,7 +698,8 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         else:
             jobs = [Job(m["id"], resources[m["id"]], m["id"]) for m in profile["methods"]]
         try:
-            run_jobs(jobs, execute_batch, commit_batch, policy, should_stop=stopped.is_set)
+            run_jobs(jobs, execute_batch, commit_batch, policy, should_stop=stopped.is_set,
+                     on_stop=stopped.set)
         except BaseException:
             interruption = output / "interruption.json"
             if interruption.exists():

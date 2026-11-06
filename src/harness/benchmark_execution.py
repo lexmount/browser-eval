@@ -158,7 +158,7 @@ class Job:
 
 
 @contextmanager
-def _retain_call_ownership():
+def _retain_call_ownership(on_interrupt=None):
     """Defer Ctrl-C until a future and its durable callback have a known owner."""
     if threading.current_thread() is not threading.main_thread():
         yield
@@ -169,6 +169,8 @@ def _retain_call_ownership():
     def defer(number, frame):
         nonlocal interrupted
         interrupted = (number, frame)
+        if on_interrupt is not None:
+            on_interrupt()
 
     signal.signal(signal.SIGINT, defer)
     try:
@@ -192,6 +194,7 @@ def run_jobs(
     should_stop=lambda: False,
     initialize=None,
     initargs=(),
+    on_stop=None,
 ):
     """Dispatch a bounded set; commit every terminal call before propagating errors.
 
@@ -228,12 +231,23 @@ def run_jobs(
         # Native callers use Unix signal deadlines in each worker's main thread.
         # The parent loads credentials before creating the workers.
         options["mp_context"] = multiprocessing.get_context("fork")
-    with executor_class(**options) as executor:
+
+    def stop(error):
+        nonlocal failure
+        if failure is None:
+            failure = error
+            if on_stop is not None:
+                on_stop()
+
+    with (
+        _retain_call_ownership(lambda: stop(KeyboardInterrupt())),
+        executor_class(**options) as executor,
+    ):
         while pending or inflight:
             try:
                 if failure is None and not should_stop():
                     for job in list(pending):
-                        if len(inflight) >= policy.max_in_flight:
+                        if failure is not None or len(inflight) >= policy.max_in_flight:
                             break
                         if any(active[r] >= policy.resources[r] for r in job.resources):
                             continue
@@ -245,33 +259,33 @@ def run_jobs(
                                 active[resource] += 1
                             pending.remove(job)
             except BaseException as error:
-                failure = failure or error
+                stop(error)
             if not inflight:
                 break
             try:
                 done, _ = wait(inflight, return_when=FIRST_COMPLETED)
+                for future in done:
+                    try:
+                        with _retain_call_ownership():
+                            job = inflight[future]
+                            value = error = None
+                            try:
+                                value = future.result()
+                            except BaseException as caught:
+                                error = caught
+                            try:
+                                commit(job, value, error)
+                            finally:
+                                inflight.pop(future)
+                                for resource in job.resources:
+                                    active[resource] -= 1
+                    except BaseException as caught:
+                        stop(caught)
             except BaseException as error:
                 # An operator interruption stops admission, while dispatched calls
                 # still reach the track's durable commit boundary.
-                failure = failure or error
+                stop(error)
                 continue
-            for future in done:
-                try:
-                    with _retain_call_ownership():
-                        job = inflight[future]
-                        value = error = None
-                        try:
-                            value = future.result()
-                        except BaseException as caught:
-                            error = caught
-                        try:
-                            commit(job, value, error)
-                        finally:
-                            inflight.pop(future)
-                            for resource in job.resources:
-                                active[resource] -= 1
-                except BaseException as caught:
-                    failure = failure or caught
     if failure is not None:
         raise failure
 

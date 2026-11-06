@@ -34,6 +34,7 @@ from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
 from harness.web_search.core import (
     aggregate,
+    execution_resources,
     normalize_response,
     request_body,
     request_cost,
@@ -898,7 +899,9 @@ def _default_home_body(inputs: ReportInputs, edition: ReportEdition, headers: li
             for v in [
                 t("{cases} frozen queries", cases=len(profile['cases'])),
                 t("Same top-{cutoff} budget", cutoff=cutoff),
-                t("Serial API calls"),
+                (t("Serial API calls") if profile["protocol"]["concurrency"] == 1
+                 else t("Up to {concurrency} concurrent API calls",
+                        concurrency=profile["protocol"]["concurrency"])),
                 t("Saved responses & metrics"),
             ]
         )
@@ -1435,6 +1438,7 @@ def _write_method_pages(inputs: ReportInputs, edition: ReportEdition) -> None:
         authored_sections(authored, "method", lang, rows=selected)
         + (cohort_summary(profile, rows, zh) if authored.get("reading_model") and authored.get("presentation") != "comparison-report" else "")
         + fairness_table(profile, rows, zh)
+        + execution_settings(profile, zh)
     )
     page(
         "research.html", t("Evaluation method"), research
@@ -1739,6 +1743,11 @@ def check(output, *, return_data=False, evidence_only=False):
         actual = soup.select_one("[data-fairness]")
         if actual is None or actual.get_text() != expected.select_one("[data-fairness]").get_text():
             raise ValueError("Fairness table disagrees with physical calls")
+        expected_execution = BeautifulSoup(execution_settings(manifest["profile"], lang == "zh"),
+                                           "html.parser")
+        actual_execution = soup.select("[data-execution-settings]")
+        if len(actual_execution) != 1 or actual_execution[0].get_text() != expected_execution.get_text():
+            raise ValueError("Execution settings disagree with the frozen collection policy")
         if groups:
             if (manifest.get("authored") or {}).get("presentation") != "comparison-report":
                 summary_route = (
@@ -2282,6 +2291,30 @@ def cohort_summary(profile, rows, zh):
         )
         + "</section>"
     )
+
+
+def execution_settings(profile, zh):
+    """Disclose effective admission limits and the latency measurement scope."""
+    t = partial(report_text, zh=zh)
+    maximum = profile["protocol"]["concurrency"]
+    policy = profile.get("execution_policy")
+    bindings = execution_resources(profile) if policy else {}
+    entries = []
+    for method in profile["methods"]:
+        resources = bindings.get(method["id"], ())
+        capacity = min([maximum] + [policy["resources"][r]["capacity"] for r in resources])
+        details = "; ".join(
+            f'{r}: {policy["resources"][r]["capacity"]}'
+            + (f' ({policy["resources"][r]["reason"]})'
+               if policy["resources"][r].get("reason") else "") for r in resources)
+        entries.append(cells([esc(method["label"]), str(capacity), esc(details or "—")]))
+    scope = ("Latency includes concurrent collection load; it is not an isolated speed comparison."
+             if maximum > 1 else "Serial collection; latency covers each saved API call.")
+    return ('<section data-execution-settings><h2>' + t("Collection concurrency") + '</h2><p>'
+            + t("Maximum concurrent calls: {concurrency}.", concurrency=maximum)
+            + ' ' + t(scope) + '</p>'
+            + table([t("Method"), t("Effective concurrent calls"), t("Shared resource limits")],
+                    entries) + '</section>')
 
 
 def fairness_table(profile, rows, zh):
