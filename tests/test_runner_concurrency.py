@@ -27,6 +27,31 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_failed_cleanup_stops_queued_variants_of_the_shared_service(self):
+        from unittest.mock import patch
+
+        from harness.web_fetch.providers.base import ProcessCleanupError
+
+        config = {'type': 'fixture', 'execution_resources': {
+            'one-service': {'capacity': 1, 'reason': 'Shared mutable service'}}}
+        providers = [BarrierProvider('one', threading.Barrier(1)),
+                     BarrierProvider('two', threading.Barrier(1))]
+        for provider in providers:
+            provider.config.update(config)
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            'harness.web_fetch.runner.fetch_with_deadline',
+            side_effect=ProcessCleanupError('Worker cleanup is unresolved'),
+        ) as call:
+            with self.assertRaises(IncompleteEvaluationError):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=[case], providers=providers,
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=2)
+            self.assertEqual(call.call_count, 1)
+            rows = [json.loads(line) for line in (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+            self.assertEqual([row['provider'] for row in rows], ['one'])
+
     def test_shared_service_capacity_prevents_overlapping_provider_variants(self):
         import time
 

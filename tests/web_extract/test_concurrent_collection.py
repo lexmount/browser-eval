@@ -9,6 +9,7 @@ import pytest
 
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import load_run, probe, read_json
+from tests.web_extract.snapshot_inputs import serve_input
 from tests.web_extract.test_execution_boundaries import collection_context
 
 
@@ -85,6 +86,69 @@ def test_parallel_calls_obey_the_declared_start_interval(tmp_path):
         ordered = sorted(starts)
         assert len(ordered) == 3
         assert all(b - a >= 0.045 for a, b in zip(ordered, ordered[1:], strict=False))
+
+
+@pytest.mark.parametrize("assigned", [False, True])
+def test_multi_method_collection_never_ignores_a_shared_account(tmp_path, assigned):
+    home = create(tmp_path / "example")
+    methods = ["cloudflare-json", "firecrawl-json"]
+    execution = {
+        "purpose": "quality",
+        "max_in_flight": 2,
+        "backend": "process",
+        "resources": {method: {"capacity": 2} for method in methods},
+    }
+    execution["resources"]["shared-account"] = {"capacity": 1, "reason": "One account limit"}
+    if assigned:
+        execution["assignments"] = {method: [method, "shared-account"] for method in methods}
+    with multiprocessing.Manager() as shared:
+        active, maximum, calls, lock = (
+            shared.Value("i", 0),
+            shared.Value("i", 0),
+            shared.Value("i", 0),
+            shared.Lock(),
+        )
+
+        def response(*args, **kwargs):
+            with lock:
+                active.value += 1
+                maximum.value = max(maximum.value, active.value)
+                calls.value += 1
+            time.sleep(0.04)
+            with lock:
+                active.value -= 1
+            return {
+                "http_status": 200,
+                "response": {"result": {"sku": "value"}, "data": {"json": {"sku": "value"}}},
+            }
+
+        with (
+            collection_context(),
+            patch.dict(os.environ, {"FIRECRAWL_API_KEY": "synthetic"}),
+            patch("harness.web_extract.pipeline.qualify_fixture", side_effect=serve_input),
+            patch("harness.web_extract.pipeline.provider_call", side_effect=response),
+        ):
+            if assigned:
+                probe(
+                    home,
+                    methods,
+                    full=True,
+                    fixture_base="https://snapshots.example",
+                    run_dir=home / "runs/shared",
+                    execution_policy=execution,
+                )
+                assert calls.value == 6 and maximum.value == 1
+            else:
+                with pytest.raises(ValueError, match="assignments"):
+                    probe(
+                        home,
+                        methods,
+                        full=True,
+                        fixture_base="https://snapshots.example",
+                        run_dir=home / "runs/shared",
+                        execution_policy=execution,
+                    )
+                assert calls.value == 0
 
 
 def test_interrupted_parallel_dispatch_preserves_other_responses_and_blocks_replay(tmp_path):

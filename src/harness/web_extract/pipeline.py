@@ -476,9 +476,13 @@ def validate_native_options(method, native_options):
             )
         ):
             raise ValueError("Incomplete self-hosted runtime identity")
+        if native_options.get("keepalive") is True and identity.get("json_keepalive") is not True:
+            raise ValueError("Frozen runtime does not advertise JSON keepalive")
     if native_options.get("input_route", "html") not in ("html", "url"):
         raise ValueError("Native input route must be html or url")
-    for key in ("setJavaScriptEnabled", "discussion", "use_fixture_context", "norender"):
+    for key in (
+        "setJavaScriptEnabled", "discussion", "use_fixture_context", "norender", "keepalive"
+    ):
         if key in native_options and type(native_options[key]) is not bool:
             raise ValueError("Native extraction switches must be Boolean")
     if "rejectResourceTypes" in native_options:
@@ -823,16 +827,12 @@ def _self_hosted_request(
     if parsed.username or parsed.password or parsed.query or parsed.fragment:
         raise ValueError("Extraction endpoint must not contain credentials, query or fragment")
     identity = native_options.get("runtime_identity")
-    engine = {
-        "crawl4ai-json": "crawl4ai",
-        "scrapegraph-oss-json": "scrapegraph",
-        "stagehand-local-json": "stagehand",
-        "firecrawl-oss-json": "firecrawl",
-    }[method]
+    engine = METHODS[method]["engine"]
     if not isinstance(identity, dict) or identity.get("engine") != engine:
         raise ValueError("Self-hosted extraction requires a matching frozen runtime identity")
     return (
-        endpoint.rstrip("/") + "/extract/" + engine,
+        endpoint.rstrip("/") + "/extract/" + engine
+        + ("?keepalive=true" if native_options.get("keepalive") else ""),
         {
             "Authorization": "Bearer " + os.environ["EXTRACTION_API_KEY"],
         },
@@ -859,16 +859,17 @@ METHODS = {
             "custom_schema": True,
             "minimum_call_interval_seconds": 0,
             "post_call_cooldown_seconds": 0,
-            "options": ["endpoint", "runtime_identity"],
+            "options": ["endpoint", "runtime_identity", "keepalive"],
             "adapter": _self_hosted_request,
             "deployment": "self-hosted-open-source",
+            "engine": engine,
         }
-        for name in (
-            "crawl4ai-json",
-            "scrapegraph-oss-json",
-            "stagehand-local-json",
-            "firecrawl-oss-json",
-        )
+        for name, engine in {
+            "crawl4ai-json": "crawl4ai",
+            "scrapegraph-oss-json": "scrapegraph",
+            "stagehand-local-json": "stagehand",
+            "firecrawl-oss-json": "firecrawl",
+        }.items()
     },
     "firecrawl-parse-json": {
         "keys": ["FIRECRAWL_API_KEY"],
@@ -1148,12 +1149,7 @@ def normalize(method: str, payload: dict, *, schema=None):
     def mapping(value):
         return value if isinstance(value, dict) else {}
 
-    if method in (
-        "crawl4ai-json",
-        "scrapegraph-oss-json",
-        "stagehand-local-json",
-        "firecrawl-oss-json",
-    ):
+    if METHODS.get(method, {}).get("deployment") == "self-hosted-open-source":
         item = payload.get("data")
     elif method in ("firecrawl-json", "firecrawl-parse-json"):
         item = mapping(payload.get("data")).get("json")
@@ -1624,6 +1620,28 @@ def collect_calls(
     last_call_finished = last_call_started
     execution_policy = contract.get("execution_policy")
     policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
+    assignments = execution_policy.get("assignments") if execution_policy else None
+    if assignments is None:
+        if policy and len(methods) > 1 and set(policy.resources) != set(methods):
+            raise ValueError("Multi-method shared resources require explicit assignments")
+        assignments = {
+            method: list(policy.resources) if policy and len(methods) == 1 else [method]
+            for method in methods
+        }
+    elif (
+        not isinstance(assignments, dict)
+        or set(assignments) != set(methods)
+        or any(
+            not isinstance(resources, list)
+            or method not in resources
+            or any(not isinstance(resource, str) for resource in resources)
+            or len(resources) != len(set(resources))
+            for method, resources in assignments.items()
+        )
+        or {resource for resources in assignments.values() for resource in resources}
+        != set(policy.resources)
+    ):
+        raise ValueError("Execution assignments must bind every method and declared resource")
     concurrency = policy.max_in_flight if policy else contract.get("concurrency", 1)
     if type(concurrency) is not int or not 1 <= concurrency <= 64:
         raise ValueError("Concurrency must be an integer between 1 and 64")
@@ -1650,7 +1668,7 @@ def collect_calls(
                 if not (full and retained_access_reason(prior_row, contract)):
                     records.append(entry)
                     continue
-            resources = tuple(policy.resources) if policy and len(methods) == 1 else (method,)
+            resources = tuple(assignments[method])
             jobs.append(Job(f"{method}/{case_id}", resources, (method, case_id)))
 
     def prepare(job):

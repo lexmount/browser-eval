@@ -152,6 +152,59 @@ def test_operator_interruption_drains_results_before_propagating():
     assert sorted(retained) == [0, 1]
 
 
+def test_interrupt_after_submission_retains_the_submitted_call():
+    import signal
+
+    from harness import benchmark_execution
+
+    retained = []
+
+    class InterruptedExecutor(benchmark_execution.ThreadPoolExecutor):
+        def submit(self, *args, **kwargs):
+            future = super().submit(*args, **kwargs)
+            signal.raise_signal(signal.SIGINT)
+            return future
+
+    with patch.object(benchmark_execution, "ThreadPoolExecutor", InterruptedExecutor):
+        with pytest.raises(KeyboardInterrupt):
+            run_jobs(
+                [Job("one", ("api-a",), 1)],
+                lambda value: value,
+                lambda job, value, error: retained.append(value),
+                policy(),
+            )
+    assert retained == [1]
+
+
+def test_stop_predicate_interruption_drains_another_running_call():
+    release = threading.Event()
+    retained = []
+    checks = 0
+
+    def execute(value):
+        if value == 2:
+            assert release.wait(timeout=2)
+        return value
+
+    def stop():
+        nonlocal checks
+        checks += 1
+        if checks == 2:
+            release.set()
+            raise KeyboardInterrupt()
+        return False
+
+    with pytest.raises(KeyboardInterrupt):
+        run_jobs(
+            [Job(str(i), ("api-a",), i) for i in (1, 2, 3)],
+            execute,
+            lambda job, value, error: retained.append(value),
+            policy(max_in_flight=2),
+            should_stop=stop,
+        )
+    assert sorted(retained) == [1, 2]
+
+
 def test_serial_reason_cannot_be_a_boolean():
     with pytest.raises(ValueError, match="reason"):
         policy(max_in_flight=1, serial_reason=True)

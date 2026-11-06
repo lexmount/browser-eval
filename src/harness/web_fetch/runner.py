@@ -968,12 +968,24 @@ def run_evaluation(
                     if stopped:
                         break
             else:
+                admission_stopped = threading.Event()
+                finished_providers = set()
+
                 def commit_provider(job, value, error):
                     if error is not None:
                         raise error
+                    finished_providers.add(job.key)
+                    if value is False:
+                        admission_stopped.set()
 
                 run_jobs([Job(provider.name, tuple(resource_bindings[provider.name]), provider)
-                          for provider in providers], run_provider, commit_provider, policy)
+                          for provider in providers], run_provider, commit_provider, policy,
+                         should_stop=admission_stopped.is_set)
+                if admission_stopped.is_set():
+                    manifest['unexecuted'].extend({
+                        'provider': provider.name,
+                        'reason': 'non_cancellable_call_still_running; admission stopped',
+                    } for provider in providers if provider.name not in finished_providers)
         except ReferenceLifecycleError as error:
             if reference_checks is not None:
                 reference_checks.update(status=error.status, callcheck_error=str(error))

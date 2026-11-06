@@ -39,7 +39,7 @@ def _preflight_configuration(plan, method):
     }
 
 
-def verify_execution_assessment(plan, method):
+def verify_execution_assessment(plan, method, *, execution_sources=None):
     """Verify readiness evidence at both collection and aggregation boundaries."""
     if not plan.get("require_execution_assessment"):
         return
@@ -70,6 +70,19 @@ def verify_execution_assessment(plan, method):
     if not manifest.is_file() or digest(manifest.read_bytes()) != receipt.get("manifest_sha256"):
         raise ValueError("Execution preflight manifest changed")
     contract, rows = load_run(receipt_path.parent)
+    if execution_sources is None:
+        owner = Path(__file__)
+        execution_sources = {
+            "pipeline_sha256": digest(owner.with_name("pipeline.py").read_bytes()),
+            "execution_scheduler_sha256": digest(
+                (owner.parents[1] / "benchmark_execution.py").read_bytes()
+            ),
+        }
+    if any(
+        contract.get(key) != execution_sources.get(key)
+        for key in ("pipeline_sha256", "execution_scheduler_sha256")
+    ):
+        raise ValueError("Execution preflight implementation differs from the collection")
     if (
         contract["kind"] != "execution_preflight"
         or contract["methods"] != [method]

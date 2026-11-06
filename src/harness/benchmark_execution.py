@@ -11,7 +11,10 @@ import hashlib
 import json
 import math
 import multiprocessing
+import signal
+import threading
 from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor, wait
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -154,6 +157,31 @@ class Job:
     payload: Any
 
 
+@contextmanager
+def _retain_call_ownership():
+    """Defer Ctrl-C until a future and its durable callback have a known owner."""
+    if threading.current_thread() is not threading.main_thread():
+        yield
+        return
+    previous = signal.getsignal(signal.SIGINT)
+    interrupted = None
+
+    def defer(number, frame):
+        nonlocal interrupted
+        interrupted = (number, frame)
+
+    signal.signal(signal.SIGINT, defer)
+    try:
+        yield
+    finally:
+        signal.signal(signal.SIGINT, previous)
+        if interrupted is not None and previous != signal.SIG_IGN:
+            if callable(previous):
+                previous(*interrupted)
+            else:
+                raise KeyboardInterrupt()
+
+
 def run_jobs(
     jobs,
     execute,
@@ -202,22 +230,22 @@ def run_jobs(
         options["mp_context"] = multiprocessing.get_context("fork")
     with executor_class(**options) as executor:
         while pending or inflight:
-            if failure is None and not should_stop():
-                for job in list(pending):
-                    if len(inflight) >= policy.max_in_flight:
-                        break
-                    if any(active[r] >= policy.resources[r] for r in job.resources):
-                        continue
-                    try:
+            try:
+                if failure is None and not should_stop():
+                    for job in list(pending):
+                        if len(inflight) >= policy.max_in_flight:
+                            break
+                        if any(active[r] >= policy.resources[r] for r in job.resources):
+                            continue
                         payload = prepare(job) if prepare else job.payload
-                        future = executor.submit(execute, payload)
-                    except BaseException as error:
-                        failure = error
-                        break
-                    pending.remove(job)
-                    inflight[future] = job
-                    for resource in job.resources:
-                        active[resource] += 1
+                        with _retain_call_ownership():
+                            future = executor.submit(execute, payload)
+                            inflight[future] = job
+                            for resource in job.resources:
+                                active[resource] += 1
+                            pending.remove(job)
+            except BaseException as error:
+                failure = failure or error
             if not inflight:
                 break
             try:
@@ -228,16 +256,20 @@ def run_jobs(
                 failure = failure or error
                 continue
             for future in done:
-                job = inflight.pop(future)
-                for resource in job.resources:
-                    active[resource] -= 1
-                value = error = None
                 try:
-                    value = future.result()
-                except BaseException as caught:
-                    error = caught
-                try:
-                    commit(job, value, error)
+                    with _retain_call_ownership():
+                        job = inflight[future]
+                        value = error = None
+                        try:
+                            value = future.result()
+                        except BaseException as caught:
+                            error = caught
+                        try:
+                            commit(job, value, error)
+                        finally:
+                            inflight.pop(future)
+                            for resource in job.resources:
+                                active[resource] -= 1
                 except BaseException as caught:
                     failure = failure or caught
     if failure is not None:

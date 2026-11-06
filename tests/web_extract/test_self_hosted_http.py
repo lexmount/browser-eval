@@ -23,14 +23,17 @@ AUTH = {"Authorization": "Bearer test-service-key"}
 
 
 @pytest.mark.parametrize("padding", [0, 5990, 7000])
+@pytest.mark.parametrize("keepalive", [False, True])
 def test_worker_errors_redact_credentials_before_the_public_length_limit(
-    client, monkeypatch, padding
+    client, monkeypatch, padding, keepalive
 ):
     secret = "synthetic-model-credential"
     monkeypatch.setenv("EXTRACTION_MODEL_API_KEY", secret)
     completed = subprocess.CompletedProcess([], 1, "", secret + "x" * padding)
     with patch("harness.web_extract.self_hosted.run_worker", return_value=completed):
-        response = client.post("/extract/crawl4ai", json=BODY, headers=AUTH)
+        response = client.post(
+            "/extract/crawl4ai" + ("?keepalive=true" if keepalive else ""), json=BODY, headers=AUTH
+        )
     error = response.json()["error"]
     assert response.status_code == 200 and len(error) <= 6000
     assert secret not in error and secret[-10:] not in error
@@ -371,6 +374,79 @@ def test_slow_identity_validation_does_not_block_other_http_requests(monkeypatch
         patch("harness.web_extract.self_hosted.run_worker", return_value=completed),
     ):
         asyncio.run(exercise())
+
+
+def test_keepalive_survives_a_short_proxy_read_timeout_without_repeating_work(monkeypatch):
+    import socket
+    import threading
+
+    import requests
+    import uvicorn
+
+    monkeypatch.setenv("EXTRACTION_API_KEY", "test-service-key")
+    monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
+    monkeypatch.setattr("harness.web_extract.self_hosted.KEEPALIVE_SECONDS", 0.02, raising=False)
+    calls = []
+
+    def slow(value):
+        calls.append(value)
+        time.sleep(0.35)
+        return subprocess.CompletedProcess(
+            [], 0, json.dumps({"success": True, "data": {"name": "Ada"}}), ""
+        )
+
+    listener = socket.socket()
+    listener.bind(("127.0.0.1", 0))
+    origin = f"http://127.0.0.1:{listener.getsockname()[1]}"
+    with (
+        patch("harness.web_extract.self_hosted.runtime_identity", return_value=IDENTITY),
+        patch("harness.web_extract.self_hosted.run_worker", side_effect=slow),
+    ):
+        server = uvicorn.Server(uvicorn.Config(create_app(), log_level="error", lifespan="off"))
+        thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
+        thread.start()
+        try:
+            for _ in range(100):
+                if server.started:
+                    break
+                time.sleep(0.01)
+            assert server.started
+            with pytest.raises(requests.exceptions.ReadTimeout):
+                requests.post(
+                    origin + "/extract/crawl4ai", json=BODY, headers=AUTH, timeout=(2, 0.12)
+                )
+            response = requests.post(
+                origin + "/extract/crawl4ai?keepalive=true",
+                json=BODY,
+                headers=AUTH,
+                timeout=(2, 0.12),
+            )
+            assert response.status_code == 200
+            assert response.json() == {"success": True, "data": {"name": "Ada"}}
+            assert response.headers["X-Accel-Buffering"] == "no"
+            assert len(calls) == 2
+            rejected = requests.post(
+                origin + "/extract/crawl4ai?keepalive=true", json=[], headers=AUTH, timeout=2
+            )
+            assert rejected.status_code == 400 and len(calls) == 2
+        finally:
+            server.should_exit = True
+            thread.join(timeout=4)
+            listener.close()
+            assert not thread.is_alive()
+
+
+def test_keepalive_retains_a_worker_timeout_as_a_failed_json_result(client):
+    with patch(
+        "harness.web_extract.self_hosted.run_worker",
+        side_effect=subprocess.TimeoutExpired("synthetic-worker", 110),
+    ) as worker:
+        response = client.post("/extract/crawl4ai?keepalive=true", json=BODY, headers=AUTH)
+    payload = response.json()
+    assert payload["success"] is False
+    assert payload["http_status"] == 504
+    assert payload["error"] == "Native extraction exceeded 110 seconds"
+    worker.assert_called_once()
 
 
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux request subreaper containment")

@@ -572,7 +572,7 @@ jq --arg url "$SNAPSHOT_URL" '{
   schema: {type: "object", properties: {name: {type: "string"}}, required: ["name"]},
   expected_runtime: .engines.crawl4ai
 }' health.json > request.json
-curl --fail --silent --show-error "$ENDPOINT/extract/crawl4ai" \
+curl --fail --silent --show-error "$ENDPOINT/extract/crawl4ai?keepalive=true" \
   -H "Authorization: Bearer $EXTRACTION_API_KEY" --json @request.json
 ```
 
@@ -583,7 +583,8 @@ Save the health response before calls. Pass a per-method options object to
 {
   "crawl4ai-json": {
     "endpoint": "https://your-extraction-service.example",
-    "runtime_identity": {"engine": "crawl4ai", "version": "FROM_HEALTH", "model": "FROM_HEALTH", "model_base": "FROM_HEALTH", "implementation_sha256": "FROM_HEALTH", "environment_sha256": "FROM_HEALTH"}
+    "keepalive": true,
+    "runtime_identity": {"engine": "crawl4ai", "version": "FROM_HEALTH", "model": "FROM_HEALTH", "model_base": "FROM_HEALTH", "implementation_sha256": "FROM_HEALTH", "environment_sha256": "FROM_HEALTH", "json_keepalive": true}
   }
 }
 ```
@@ -600,6 +601,18 @@ Configure the reverse proxy read timeout above the 120-second client budget
 extraction before its worker deadline; preserve that physical call when collecting
 a declared infrastructure repair. Gateway settings do not extend the worker or
 client deadline.
+
+For a proxy with a shorter idle read timeout, select `?keepalive=true` or the
+matching native option. The service sends JSON whitespace every five seconds and
+finishes with one JSON document; ordinary JSON clients can read it directly.
+`X-Accel-Buffering: no` prevents an intermediate proxy from holding those bytes.
+The elapsed time includes the complete extraction. Authentication and malformed
+input still return their normal HTTP errors before work starts. Once streaming
+headers are sent, a worker timeout returns `success: false` and `http_status: 504`
+inside the JSON result. This mode keeps the same worker deadline and never retries.
+The default request mode retains its existing HTTP status behavior.
+The frozen health identity must advertise `json_keepalive: true` before the
+collector can select this mode; an older server cannot silently ignore the option.
 
 Set `EXTRACTION_MODEL_CONTEXT_TOKENS` to the configured model's documented context
 limit. For Firecrawl, configure `FIRECRAWL_BACKEND_URL` as its private service URL
