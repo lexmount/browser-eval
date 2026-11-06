@@ -91,11 +91,7 @@ def active_scoring_regressions(path: Path | None = None) -> dict[str, dict[str, 
 
 
 def require_scoring_regressions(identifiers: list[str] | tuple[str, ...], *,
-                                category: str | None = None) -> list[str]:
-    return _require_scoring_regressions(identifiers, category=category)
-
-
-def _require_scoring_regressions(identifiers, registry=None, category=None):
+                                category: str | None = None, registry=None) -> list[str]:
     unique = list(dict.fromkeys(identifiers))
     if not unique:
         raise ValueError("A scoring correction must cite at least one executable regression id")
@@ -200,7 +196,7 @@ def check_scoring_regressions(identifiers):
     from .scoring import score_attempt
     from .metrics import task_passed, task_measured
     registry = load_scoring_regressions()
-    rows = [registry[key] for key in _require_scoring_regressions(identifiers, registry)]
+    rows = [registry[key] for key in require_scoring_regressions(identifiers, registry=registry)]
     if {row['expected_task_pass'] for row in rows} != {False, True}:
         raise ValueError('Annotation controls require accepted and rejected scenarios')
     for row in rows:

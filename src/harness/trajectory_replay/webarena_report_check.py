@@ -18,7 +18,13 @@ from bs4 import BeautifulSoup
 from harness.record_io import read_json
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import TRAJECTORY_REPLAY
-from harness.reporting.release_check import check_report_identity, open_report, read_page
+from harness.reporting.release_check import (
+    check_report_identity,
+    open_report,
+    read_page,
+    scoped_check,
+    validation_step,
+)
 from harness.trajectory_replay.report_languages import language_roots, report_languages
 
 
@@ -186,26 +192,25 @@ def _check_legacy_retrieval_audit(root: Path, chinese_home: str, english_home: s
         raise ValueError("non-legacy report contains a legacy retrieval audit")
 
 
-def _check_english_localization(pages: list[Path]) -> None:
+@validation_step
+def _check_english_text(text, label):
     cjk = re.compile(r"[\u3400-\u9fff]")
-    localized_attribute = re.compile(
-        r'(?:aria-label|placeholder|title)=["\']([^"\']*)',
-        flags=re.I,
-    )
+    localized_attribute = re.compile(r"(?:aria-label|placeholder|title)=[\"']([^\"']*)", flags=re.I)
+    title = re.search(r"<title>(.*?)</title>", text, flags=re.I | re.S)
+    if title and cjk.search(title.group(1)):
+        raise ValueError(f"English report title is not localized: {label}")
+    if any(cjk.search(value) for value in localized_attribute.findall(text)):
+        raise ValueError(f"English report accessibility text is not localized: {label}")
+    visible = _visible_text(text).replace("中文", "")
+    match = cjk.search(visible)
+    if match:
+        excerpt = visible[max(0, match.start() - 40):match.start() + 80]
+        raise ValueError(f"English reader-facing page contains Chinese prose: {label}: {excerpt}")
+
+
+def _check_english_localization(pages: list[Path]) -> None:
     for page in pages:
-        text = page.read_text(encoding="utf-8")
-        title = re.search(r"<title>(.*?)</title>", text, flags=re.I | re.S)
-        if title and cjk.search(title.group(1)):
-            raise ValueError(f"English report title is not localized: {page}")
-        if any(cjk.search(value) for value in localized_attribute.findall(text)):
-            raise ValueError(f"English report accessibility text is not localized: {page}")
-        visible = _visible_text(text).replace("中文", "")
-        match = cjk.search(visible)
-        if match:
-            excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
-            raise ValueError(
-                f"English reader-facing page contains Chinese prose: {page}: {excerpt}"
-            )
+        _check_english_text(page.read_text(encoding="utf-8"), page.name)
 
 
 def _semantic_page_inventory(
@@ -422,6 +427,7 @@ def _check_core_comparison(
                 raise ValueError("verifiable-task highlight disagrees with unique winner or tie")
 
 
+@validation_step
 def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> None:
     if text.count('class="verdict-line ') != 1 or text.count('id="evidence"') != 1:
         raise ValueError("result detail duplicates or omits its summary/evidence section")
@@ -446,6 +452,7 @@ def _check_result_detail_semantics(text: str, evidence: dict, status: str) -> No
         raise ValueError("failure detail lacks exact error or evaluation logs")
 
 
+@validation_step
 def _check_failure_matrix(page: str, results: list[dict], participants: list[str]) -> None:
     """Recompute cells independently; also verify each count's filter target."""
 
@@ -513,6 +520,7 @@ def _check_formal_execution_scope(manifest: dict) -> None:
         raise ValueError("formal report requires a complete method-reset task cohort")
 
 
+@scoped_check('trajectory-replay')
 def check(report_dir: Path, *, profile_path: Path | None = None) -> dict[str, int]:
     root = open_report(report_dir)
     manifest = read_json(root / "report-manifest.json")

@@ -7,6 +7,16 @@ from pathlib import Path
 import pytest
 
 
+def test_anchor_index_preserves_the_callers_decoding_contract(tmp_path):
+    from harness.reporting.links import LinkIndex
+
+    target = tmp_path / 'source.html'
+    target.write_bytes(b'<p id="source">Original encoding: \xff</p>')
+    assert 'source' in LinkIndex().page(target).ids
+    with pytest.raises(UnicodeDecodeError):
+        LinkIndex(errors='strict').page(target)
+
+
 class ReportLinkCheckTest(unittest.TestCase):
     def run_check(self, root: Path) -> subprocess.CompletedProcess[str]:
         return subprocess.run(

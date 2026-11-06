@@ -36,7 +36,12 @@ from harness.report_languages import check_language_contract, generated_language
 from harness.reporting.assets import bound_json_asset
 from harness.reporting.presentation import visible_text as _visible_text
 from harness.reporting.privacy import BROWSER_USE_CHECK_SOURCE
-from harness.reporting.release_check import check_report_identity, open_report
+from harness.reporting.release_check import (
+    check_report_identity,
+    open_report,
+    scoped_check,
+    validation_step,
+)
 from harness.web_fetch.safety import reject_evidence_symlinks
 from lexbench_webfetch.paths import contained_path
 
@@ -84,21 +89,26 @@ def _check_reader_facing_ux(report_dir: Path, rendered_pages: dict[Path, str]) -
             raise ValueError(f"report home page is missing the core metrics table: {homepage}")
 
 
-def _check_english_prose(english_pages: dict[Path, str]) -> None:
-    """Reject Chinese report-authored prose outside raw-text and language-switch nodes."""
-
+@validation_step
+def _check_english_text(text):
     cjk = re.compile(r"[\u3400-\u9fff]")
+    soup = BeautifulSoup(text, "html.parser")
+    for node in soup.select('[data-raw-text], a[hreflang^="zh"]'):
+        node.decompose()
+    visible = re.sub(r"\s+", " ", _visible_text(str(soup)))
+    match = cjk.search(visible)
+    if match:
+        excerpt = visible[max(0, match.start() - 40):match.start() + 80]
+        raise ValueError("English reader-facing page contains Chinese prose: " + excerpt)
+
+
+def _check_english_prose(english_pages: dict[Path, str]) -> None:
+    """Reject Chinese prose outside raw-text and language-switch nodes."""
     for page, text in english_pages.items():
-        soup = BeautifulSoup(text, "html.parser")
-        for node in soup.select('[data-raw-text], a[hreflang^="zh"]'):
-            node.decompose()
-        visible = re.sub(r"\s+", " ", _visible_text(str(soup)))
-        match = cjk.search(visible)
-        if match:
-            excerpt = visible[max(0, match.start() - 40) : match.start() + 80]
-            raise ValueError(
-                f"English reader-facing page contains Chinese prose: {page}: {excerpt}"
-            )
+        try:
+            _check_english_text(text)
+        except ValueError as error:
+            raise ValueError(f"{error}: {page}") from error
 
 
 def _check_execution_artifacts(
@@ -331,6 +341,7 @@ def check_public_privacy(report_dir: Path) -> None:
             require_no_private_hosts(text, path)
 
 
+@validation_step
 def check_methodology_evidence(content: str, tasks: list[dict], environment: dict) -> None:
     """Require displayed deployment and evaluator facts to match the selected evidence."""
 
@@ -365,6 +376,7 @@ def check_methodology_evidence(content: str, tasks: list[dict], environment: dic
         raise ValueError("methodology is missing the evaluation-flow diagram")
 
 
+@scoped_check('browser-use')
 def check(
     report_dir: Path,
     evidence_dir: Path | list[Path],

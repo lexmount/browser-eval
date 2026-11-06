@@ -29,6 +29,7 @@ from harness.report_languages import (
 from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.presentation import check_presentation
 from harness.reporting.presentation import esc as escape_text
+from harness.reporting.release_check import scoped_check, validated, validation_step
 from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
 from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
@@ -1606,6 +1607,16 @@ def _check_english_separators(output, manifest):
             raise ValueError(f"English page renders Chinese punctuation in report-authored text: {route}")
 
 
+@validation_step
+def _check_review_detail(text, expected_text):
+    detail = BeautifulSoup(text, 'html.parser')
+    expected = BeautifulSoup(expected_text, 'html.parser')
+    actual = detail.select('[data-independent-opinion], [data-review-not-selected]')
+    if len(actual) != 1 or actual[0].get_text() != expected.get_text():
+        raise ValueError('Independent review detail differs from accepted evidence')
+
+
+@scoped_check('web-search')
 def check(output, *, return_data=False, evidence_only=False):
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
@@ -1662,7 +1673,9 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request"))
+                validated('web-search.normalized-response',
+                          [payloads[row['id']], next(m for m in manifest['profile']['methods'] if m['id'] == row['method']), manifest['profile']['protocol'], row.get('request')],
+                          lambda row=row: normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request")))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1701,11 +1714,10 @@ def check(output, *, return_data=False, evidence_only=False):
             if actual is None or actual.get_text() != expected.get_text():
                 raise ValueError("Independent review summary differs from the accepted evidence")
             for row in scoring_rows(manifest["profile"], manifest["rows"]):
-                detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(encoding="utf-8"), "html.parser")
-                expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
-                actual = detail.select("[data-independent-opinion], [data-review-not-selected]")
-                if len(actual) != 1 or actual[0].get_text() != expected.get_text():
-                    raise ValueError("Independent review detail differs from accepted evidence")
+                _check_review_detail(
+                    (output / (prefix + 'details/' + row['id'] + '.html')).read_text(encoding='utf-8'),
+                    render_detail(review_data, row['id'], lang == 'zh'),
+                )
     factual_cases = {
         case["id"]: case for case in manifest["profile"]["cases"]
         if case.get("reference_answer")
@@ -1790,7 +1802,9 @@ def check(output, *, return_data=False, evidence_only=False):
                     result["method"] for result in scoring_rows(manifest["profile"], manifest["rows"])
                 ):
                     raise ValueError("Provider filter population mismatch")
-    relevance_scores = (score_relevance(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
+    relevance_scores = (validated('web-search.relevance-scores',
+                        [manifest['profile'], scoring_rows(manifest['profile'], manifest['rows']), relevance_data['plan'], relevance_data['labels']],
+                        lambda: score_relevance(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), relevance_data["plan"], relevance_data["labels"])) if relevance_data else [])
     expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:

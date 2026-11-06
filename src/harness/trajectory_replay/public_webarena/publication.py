@@ -20,6 +20,7 @@ from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import PublicationClient, archive_inventory
 from harness.reporting.publication_target import publication_document, require_publication_version
 from harness.reporting.publish import ReceiptRelease, publish_receipt_release
+from harness.reporting.release_check import scoped_check, validation_step
 from harness.trajectory_replay.public_webarena.config import (
     map_strings,
     redact_site_passwords,
@@ -290,6 +291,22 @@ def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Pat
     return payload
 
 
+@validation_step
+def _check_page_navigation(text, index, label, filename, pages):
+    nav = re.search(r'<nav aria-label="报告分页">(.*?)</nav>', text, re.DOTALL)
+    if not nav:
+        raise ValueError(f"missing report navigation: {filename}")
+    for expected_index, (_, expected_label, expected_filename) in enumerate(pages, 1):
+        expected = f'href="{expected_filename}"'
+        label_markup = f">{expected_index}. {expected_label}</a>"
+        if expected not in nav.group(1) or label_markup not in nav.group(1):
+            raise ValueError(f"incomplete report navigation: {filename}")
+    active = re.findall(r"<a [^>]*aria-current=page[^>]*>(.*?)</a>", nav.group(1))
+    if active != [f"{index}. {label}"]:
+        raise ValueError(f"wrong active report navigation: {filename}")
+
+
+@scoped_check('public-webarena')
 def check_report_bundle(formal_root: Path) -> dict[str, int]:
     from harness.trajectory_replay.public_webarena.report import METRICS, PAGES
 
@@ -300,17 +317,7 @@ def check_report_bundle(formal_root: Path) -> dict[str, int]:
         if not path.is_file():
             raise ValueError(f"missing report page: {filename}")
         text = path.read_text(encoding="utf-8")
-        nav = re.search(r'<nav aria-label="报告分页">(.*?)</nav>', text, re.DOTALL)
-        if not nav:
-            raise ValueError(f"missing report navigation: {filename}")
-        for expected_index, (_, expected_label, expected_filename) in enumerate(PAGES, 1):
-            expected = f'href="{expected_filename}"'
-            label_markup = f">{expected_index}. {expected_label}</a>"
-            if expected not in nav.group(1) or label_markup not in nav.group(1):
-                raise ValueError(f"incomplete report navigation: {filename}")
-        active = re.findall(r"<a [^>]*aria-current=page[^>]*>(.*?)</a>", nav.group(1))
-        if active != [f"{index}. {label}"]:
-            raise ValueError(f"wrong active report navigation: {filename}")
+        _check_page_navigation(text, index, label, filename, [list(page) for page in PAGES])
         pages_checked += 1
 
     homepage = (reports / f"{REPORT_STEM}.html").read_text(encoding="utf-8")

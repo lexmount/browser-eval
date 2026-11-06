@@ -16,8 +16,9 @@ from lexbench_webfetch.stable_tasks import validate_acceptance_contract
 
 from harness.record_io import file_sha256, load_jsonl, read_json
 from harness.report_languages import check_language_contract, generated_languages, visible_numbers
-from harness.reporting.presentation import check_presentation
-from harness.reporting.release_check import language_editions, open_report, read_page
+from harness.reporting.release_check import (
+    language_editions, open_report, read_page, scoped_check, validate_presentation, validation_step,
+)
 from harness.reporting.templates import resolve_template
 from harness.web_fetch.adjudication_evidence import (
     require_adjudication_evidence,
@@ -47,6 +48,7 @@ from harness.web_fetch.wcxb_report_check import check as check_wcxb
 from harness.web_fetch.webmainbench_report_check import check_sample_report
 
 
+@validation_step
 def require_public_evidence_page(content, relative, views):
     """Require inspectable public downloads and honest original/public hashes."""
     content = re.sub(r'<(pre|script|style)\b[^>]*>.*?</\1>', '', content, flags=re.I | re.S)
@@ -314,6 +316,7 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
                 raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
 
 
+@scoped_check('webfetch')
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):
     root = open_report(root)
     repository = authority_root.resolve()
@@ -645,7 +648,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 )
     for p in root.rglob("*.html"):
         text = p.read_text(encoding="utf-8")
-        check_presentation(text)
+        validate_presentation(text)
         reader = VisibleText()
         reader.feed(text)
         visible = " ".join(reader.parts)

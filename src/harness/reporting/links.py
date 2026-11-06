@@ -95,13 +95,14 @@ class Links(HTMLParser):
 class LinkIndex:
     """Parse link targets once within a single report check, never across releases."""
 
-    def __init__(self):
+    def __init__(self, *, errors="replace"):
         self.pages: dict[Path, Links] = {}
+        self.errors = errors
 
     def page(self, path: Path) -> Links:
         if path not in self.pages:
             parsed = Links()
-            parsed.feed(path.read_text(encoding="utf-8", errors="replace"))
+            parsed.feed(path.read_text(encoding="utf-8", errors=self.errors))
             self.pages[path] = parsed
         return self.pages[path]
 
