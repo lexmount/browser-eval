@@ -583,6 +583,7 @@ def completion_table(bundle, methods, labels, language):
             )
             for column, key in enumerate(("page_exact", "empty_fields"), 1)
         },
+        highlight_ties=False,
     )
     return (
         "<section data-completion-metrics><h2>"
@@ -3301,11 +3302,13 @@ def record_result_href(method, case_id):
     return record_route("c", case_id) + ".html#" + method
 
 
-def record_comparison(headers, rows, metrics, *, sort_values=None):
+def record_comparison(headers, rows, metrics, *, sort_values=None, highlight_ties=True):
     """Use the common table owner and raw-value extrema checks for each metric."""
     soup = BeautifulSoup(
         table(headers, rows, attrs="data-sortable", sort_values=sort_values), "html.parser"
     )
+    if not highlight_ties:
+        soup.table.attrs.pop("data-highlight-ties", None)
     for column, (name, direction, values) in metrics.items():
         observed = []
         for row, value in zip(soup.select("tbody tr"), values, strict=True):
@@ -3316,8 +3319,9 @@ def record_comparison(headers, rows, metrics, *, sort_values=None):
                 observed.append((float(value), cell))
         if observed and direction != "neutral":
             extreme = (min if direction == "min" else max)(value for value, _ in observed)
+            unique = sum(value == extreme for value, _ in observed) == 1
             for value, cell in observed:
-                if value == extreme:
+                if value == extreme and (unique or highlight_ties):
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})
                     for child in list(cell.contents):
                         span.append(child.extract())
