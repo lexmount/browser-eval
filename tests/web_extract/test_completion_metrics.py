@@ -148,7 +148,9 @@ def test_metric_requires_complete_unique_population_and_preserves_inputs():
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
-@pytest.mark.parametrize("damage", ["comparison", "definition", "count", "coverage", "highlight"])
+@pytest.mark.parametrize(
+    "damage", ["comparison", "definition", "count", "coverage", "highlight", "source", "pinning"]
+)
 def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, damage):
     from bs4 import BeautifulSoup
 
@@ -174,6 +176,10 @@ def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, d
         section = soup.select_one("[data-completion-metrics]")
         if damage == "comparison":
             section.select_one("th[data-completion-metric]").decompose()
+        elif damage == "source":
+            soup.select_one("[data-completion-links]").decompose()
+        elif damage == "pinning":
+            del section["data-method-column"]
         elif damage == "definition":
             soup.select_one(
                 "#metric-completion-page_exact td:nth-child(2)"
@@ -213,7 +219,7 @@ def test_new_metrics_share_the_core_table_and_explain_their_origin(tmp_path, mod
         assert len(tables) == 1
         assert not soup.select("section[data-completion-metrics]")
         assert len(tables[0].select("th[data-completion-metric]")) == 2
-        assert "本项目补充" in tables[0].get_text()
+        assert "本项目补充" in soup.select_one("[data-completion-links]").get_text()
         assert any(
             "F1" in th.get_text() for th in tables[0].select("th:not([data-completion-metric])")
         )
@@ -332,3 +338,52 @@ def test_completion_receipt_preserves_boolean_and_count_types(tmp_path, key, rep
     save_json(path, bundle)
     with pytest.raises(ValueError, match='differ from retained final responses'):
         check_completion_metrics(tmp_path, manifest, [row])
+
+
+@pytest.mark.parametrize('mode', ['full-cohort-progress', 'field-extraction-cohort'])
+def test_core_headers_stay_short_with_shared_source_and_reference_notes(tmp_path, mode):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.example import create
+
+    output = tmp_path / 'report'
+    create(output, mode=mode)
+    for route in ['index', 'interpretation']:
+        soup = BeautifulSoup((output / 'zh' / (route + '.html')).read_text(encoding='utf-8'),
+                             'html.parser')
+        headers = soup.select('th[data-completion-metric]')
+        assert [h.get_text() for h in headers] == ['整页全对率', '空值处理正确率']
+        assert all(not h.select('small') for h in headers)
+        assert '本项目补充' in soup.select_one('[data-completion-links]').get_text()
+        assert soup.select_one('table[data-completion-metrics][data-method-column]') is not None
+    soup = BeautifulSoup((output / 'zh/index.html').read_text(encoding='utf-8'), 'html.parser')
+    assert soup.select_one('[data-metric-guide]').find_previous('table',
+        attrs={'data-completion-metrics': True}) is not None
+
+
+@pytest.mark.parametrize('mode', ['full-cohort-progress', 'field-extraction-cohort'])
+def test_result_inventory_keeps_method_names_pinned(tmp_path, mode):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.example import create
+
+    output = tmp_path / 'report'
+    create(output, mode=mode)
+    soup = BeautifulSoup((output / 'zh/results.html').read_text(encoding='utf-8'), 'html.parser')
+    tables = [t for t in soup.select('table')
+              if t.select_one('thead th') and t.select_one('thead th').get_text() == '方法']
+    assert tables
+    assert all(t.has_attr('data-method-column') for t in tables)
+    assert all(t.parent.get('tabindex') == '0' for t in tables)
+
+    import json
+
+    labels = json.loads((output / 'report-manifest.json').read_text())['method_labels']
+    for table_view in tables:
+        for row in table_view.select('tbody tr[data-method][data-case]'):
+            method_label = labels.get(row['data-method'], row['data-method'])
+            assert row.select('td')[0].get_text() == method_label
+            displayed_case = (
+                row['data-case'][:12] if mode == 'full-cohort-progress' else row['data-case']
+            )
+            assert row.select('td')[1].get_text() == displayed_case

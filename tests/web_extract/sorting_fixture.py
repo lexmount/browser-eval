@@ -59,7 +59,7 @@ def generated_sorting_tables():
     return [
         {"rows": cells(record, "table"), "column": 1},
         {"rows": cells(record, "table"), "column": 2},
-        {"rows": cells(quality, "[data-core-metrics]"), "column": 2},
+        {"rows": cells(quality, "[data-core-metrics]"), "column": 1},
         {"rows": cells(latency, "[data-latency-table]"), "column": 2},
         {"rows": cells(latency, "[data-latency-table]"), "column": 3},
         {"rows": cells(case, "[data-case-comparison]"), "column": 5},
@@ -101,7 +101,9 @@ def failed_unscored_record():
 def generated_quality_heading():
     truth = {"one": {"price": ["12"], "sku": [], "availability": ["InStock"]}}
     quality, _ = cohort_metrics([], [], [], 1, "en", truth=truth)
-    heading = BeautifulSoup(quality, "html.parser").select("thead th")[5]
+    heading = BeautifulSoup(quality, "html.parser").select_one(
+        '[data-reference-population="price"]'
+    ).parent
     return {
         "label": heading.find(string=True, recursive=False),
         "note": heading.select_one("small[data-reference-population]").get_text(),

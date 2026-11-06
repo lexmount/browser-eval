@@ -160,6 +160,7 @@ CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
 
 def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
     sort_values = sort_values or {}
+    method_table = headers[0] in ("Method", "方法")
     if any(len(values) != len(rows) for values in sort_values.values()):
         raise ValueError("Numeric sort population differs from table rows")
 
@@ -171,8 +172,9 @@ def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
     return (
         '<div class="table-wrap'
         + (" inventory" if inventory else "")
-        + '"><table '
+        + '" tabindex="0"><table '
         + attrs
+        + (' data-method-column="true"' if method_table else "")
         + ' data-highlight-ties="all"><thead><tr>'
         + "".join("<th>" + h + "</th>" for h in headers)
         + "</tr></thead><tbody>"
@@ -276,6 +278,12 @@ def page(
     # Artifact Site injects a site-root base even on nested pages. Use the same
     # root-relative references locally, where our own base supplies that root.
     soup = BeautifulSoup(html, "html.parser")
+    for rendered_table in soup.select("table:not([data-method-column])"):
+        first_heading = rendered_table.select_one("thead th")
+        if first_heading and first_heading.get_text(strip=True) in ("Method", "方法"):
+            rendered_table["data-method-column"] = "true"
+            if "table-wrap" in rendered_table.parent.get("class", []):
+                rendered_table.parent["tabindex"] = "0"
     for anchor in soup.select("a[href]"):
         parsed = urlsplit(anchor["href"])
         if parsed.scheme in {"http", "https"} or parsed.netloc:
@@ -807,21 +815,7 @@ def completion_columns(bundle, methods, language):
                 + "</small>"
             )
         rows.append(cells)
-    reference = message(
-        "completion_qualified_short"
-        if bundle["reference_view"] == "source-qualified"
-        else "completion_original_short",
-        language,
-    )
-    headers = [
-        esc(label)
-        + "<br><small>"
-        + message("completion_source", language)
-        + " · "
-        + reference
-        + "</small>"
-        for label in message("completion_headers", language)[1:]
-    ]
+    headers = [esc(label) for label in message("completion_headers", language)[1:]]
     soup = BeautifulSoup(
         record_comparison(
             headers,
@@ -867,13 +861,22 @@ def with_completion_columns(core, bundle, methods, language, *, before_details=F
                 cell.extract()
             )
     target["data-completion-metrics"] = "true"
-    target.parent.insert_after(BeautifulSoup(completion_links(language), "html.parser"))
+    target["data-method-column"] = "true"
+    target.parent.insert_after(
+        BeautifulSoup(completion_links(language, bundle["reference_view"]), "html.parser")
+    )
     return str(soup)
 
 
-def completion_links(language):
+def completion_links(language, reference_view="source-qualified"):
     return (
-        '<p data-completion-links><a href="index.html#metric-completion-page_exact">'
+        '<p class="table-note" data-completion-links>'
+        + message(
+            "completion_qualified_note"
+            if reference_view == "source-qualified"
+            else "completion_original_note", language
+        )
+        + ' <a href="index.html#metric-completion-page_exact">'
         + message("completion_guide_link", language)
         + '</a> · <a href="../data/completion-metrics.json">'
         + message("completion_receipt", language)
@@ -941,7 +944,15 @@ def check_completion_metrics(output, manifest, rows):
             tables = document.select("table[data-completion-metrics]")
             if len(tables) != 1 or document.select("section[data-completion-metrics]"):
                 raise ValueError("Completion metrics must share the core comparison")
+            note = document.select("[data-completion-links]")
+            expected_note = BeautifulSoup(
+                completion_links(lang, bundle["reference_view"]), "html.parser"
+            ).p
+            if len(note) != 1 or note[0].get_text() != expected_note.get_text():
+                raise ValueError("Completion metric source or reference explanation differs")
             table_view = tables[0]
+            if not table_view.has_attr("data-method-column"):
+                raise ValueError("Completion comparison must keep method names pinned")
             owner = "data-core-metrics" if route == "index" else "data-interpretation-comparison"
             if (
                 not table_view.has_attr(owner)
@@ -974,16 +985,14 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         complete = method in scores
         cells = [
             esc(labels.get(method, method)),
-            str(count),
-            str(len(subset)),
-            str(sum(r.get("compatibility") == "structured_output" for r in subset)),
-            (message("complete", lang))
-            if complete
-            else (
-                (message("access_limited", lang))
-                if method in blocked
-                else (message("incomplete", lang))
+            f'<span data-execution-count>{len(subset)} / {count}</span>'
+            + (
+                '<small class="scope-state">'
+                + message("access_limited" if method in blocked else "incomplete", lang)
+                + "</small>"
+                if not complete else ""
             ),
+            str(sum(r.get("compatibility") == "structured_output" for r in subset)),
         ]
         for field in fields:
             value = scores.get(method, {}).get(field, {}).get("f1")
@@ -991,15 +1000,18 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         records.append(cells)
     result = BeautifulSoup(
         table(
-            (message("method_planned_pages_executed_structured_output_full_scope_price", lang)),
+            message("cohort_core_headers", lang),
             records,
             attrs='data-core-metrics="full-cohort" data-sortable',
-            sort_values={i: [int(row[i]) for row in records] for i in (1, 2, 3)},
+            sort_values={
+                1: [sum(r["method"] == method for r in rows) for method in methods],
+                2: [int(row[2]) for row in records],
+            },
         ),
         "html.parser",
     )
     if truth is not None:
-        for field, heading in zip(fields, result.select("thead th")[5:], strict=True):
+        for field, heading in zip(fields, result.select("thead th")[3:], strict=True):
             population = reference_populations(truth)[field]
             heading.append(result.new_tag("br"))
             small = result.new_tag("small", attrs={"data-reference-population": field})
@@ -1009,7 +1021,7 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             heading.append(small)
     for method, row in zip(methods, result.select("tbody tr"), strict=True):
         row["data-method"] = method
-        for field, cell in zip(fields, row.select("td")[5:], strict=True):
+        for field, cell in zip(fields, row.select("td")[3:], strict=True):
             if method not in scores:
                 continue
             # F1 comes from integer counts; discard only floating arithmetic noise.
@@ -1852,18 +1864,20 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, aut
         compact = BeautifulSoup(core_html, "html.parser").select_one("table")
         for row in compact.select("tr"):
             for index, cell in enumerate(list(row.find_all(["th", "td"], recursive=False))):
-                if index not in (0, 3, 5, 6, 7, 8) and not cell.has_attr("data-completion-metric"):
+                if index not in (0, 2, 3, 4, 5, 6) and not cell.has_attr("data-completion-metric"):
                     cell.decompose()
         compact.attrs = {
             "data-interpretation-comparison": "true",
             "data-completion-metrics": "true",
             "data-highlight-ties": "all",
+            "data-method-column": "true",
+            "data-sortable": "",
         }
         interpretation += (
             "<h2>"
             + (message("compact_core_comparison", lang))
             + "</h2>"
-            + '<div class="table-wrap">'
+            + '<div class="table-wrap" tabindex="0">'
             + str(compact)
             + "</div>"
             + completion_links(lang)
@@ -2626,9 +2640,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             core = with_completion_columns(core, completion, methods, lang)
             bodies["index"] = (
-                core
+                model["pages"].get("index", {}).get("body", {}).get(lang, "")
+                + core
+                + report_metric_guide(lang, records=False)
                 + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
-                + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             )
             bodies["protocol"] += "<h2>" + (message("call_latency", lang)) + "</h2>" + timings
             bodies["accounts"] += (
@@ -3040,7 +3055,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )
-        bodies["index"] = report_metric_guide(lang, records=False) + bodies["index"]
+        if not cohort:
+            bodies["index"] = report_metric_guide(lang, records=False) + bodies["index"]
         bodies["results"] += (
             result_controls(methods, rows, names, lang)
             + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
@@ -3461,17 +3477,18 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
                 raise ValueError("Missing or reordered planned participant")
             for method, row in zip(methods, summary, strict=True):
                 cells = row.select("td:not([data-completion-metric])")
-                expected = [
-                    manifest["case_count"],
-                    len(data[method]),
-                    sum(
-                        r.get("compatibility") == "structured_output" for r in data[method].values()
-                    ),
-                ]
-                if [c.get_text(strip=True) for c in cells[1:4]] != [str(x) for x in expected]:
+                executed = cells[1].select_one("[data-execution-count]")
+                returned = sum(
+                    r.get("compatibility") == "structured_output" for r in data[method].values()
+                )
+                if (
+                    executed is None
+                    or executed.get_text() != f"{len(data[method])} / {manifest['case_count']}"
+                    or cells[2].get_text(strip=True) != str(returned)
+                ):
                     raise ValueError("Full cohort progress count differs")
                 for field, cell in zip(
-                    ("price", "sku", "availability", "OutOfStock"), cells[5:], strict=True
+                    ("price", "sku", "availability", "OutOfStock"), cells[3:], strict=True
                 ):
                     value = scores.get(method, {}).get(field, {}).get("f1")
                     if cell.get_text(strip=True) != ("—" if value is None else f"{value:.3f}"):
@@ -4266,11 +4283,11 @@ def build_record_cohort(output, content, *, home, language, profile):
     )
     bodies["protocol"] += "<p>" + message("completion_protocol", language) + "</p>"
     bodies["index"] = (
-        "<section data-core-metrics>"
+        bodies["index"]
+        + "<section data-core-metrics>"
         + core
         + "</section>"
         + report_metric_guide(language, records=True)
-        + bodies["index"]
         + operations
     )
     domains = Counter(ref["domain"] for ref in truth.values())
@@ -4520,9 +4537,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + ' data-search="'
                     + esc(cid + " " + ref["site"])
                     + '"><td>'
-                    + esc(cid)
-                    + "</td><td>"
                     + esc(labels[method])
+                    + "</td><td>"
+                    + esc(cid)
                     + "</td><td>"
                     + esc(domain_labels.get(ref["domain"], ref["domain"]))
                     + "</td><td>"
@@ -4650,9 +4667,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                 "<tr"
                 + attrs
                 + "><td>"
-                + esc(cid)
-                + "</td><td>"
                 + esc(labels[method])
+                + "</td><td>"
+                + esc(cid)
                 + "</td><td>"
                 + esc(domain_labels.get(ref["domain"], ref["domain"]))
                 + "</td><td>"
@@ -4689,7 +4706,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
         + "".join(
             "<th>" + t(k) + "</th>"
-            for k in ("case", "method", "domain", "outcome", "exact", "timing", "details")
+            for k in ("method", "case", "domain", "outcome", "exact", "timing", "details")
         )
         + "</tr></thead><tbody>"
         + "".join(inventory_rows)
@@ -5081,7 +5098,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
         inventory.select('tr[data-status="pending"]')
     ) != sum(x["unexecuted"] for x in metrics.values()):
         raise ValueError("Record inventory omits planned or pending results")
-    indexed = {(row.get("data-method"), row.select_one("td").get_text()): row for row in rows}
+    indexed = {(row.get("data-method"), row.select("td")[1].get_text()): row for row in rows}
     if set(indexed) != {(m, cid) for m in metrics for cid in truth}:
         raise ValueError("Record inventory method/case population changed")
     for method in manifest["planned_methods"]:
