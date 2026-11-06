@@ -966,7 +966,9 @@ def test_record_audit_supplemental_review_covers_only_changed_repair_identities(
     )
     if scope not in {"current", "covered-later-dispute", "same-proposal-new-wording"}:
         with pytest.raises(
-            ValueError, match="supplemental|current native execution|different predecessor reviews"
+            ValueError,
+            match=("supplemental|current native execution|different predecessor reviews"
+                   "|adjudication"),
         ):
             review.assemble_record(home, content, works, output, **kwargs)
     else:
@@ -2445,3 +2447,150 @@ def test_frozen_legacy_url_plan_still_uses_run_fixture_base(inputs, tmp_path, mo
         call.args[3].startswith("https://legacy.example/inputs/")
         for call in dispatch.call_args_list
     )
+
+
+@pytest.mark.parametrize('kind', ['identical', 'new-claim', 'conflict', 'different-rules'])
+def test_record_adjudication_scopes_compose_claims_without_whole_case_replacement(
+    record_audit_material, tmp_path, kind
+):
+    import shutil
+    from copy import deepcopy
+
+    from harness.web_extract import review
+
+    home, content, works, old, authority = record_audit_material
+    new = tmp_path / 'additional-source-review'
+    if kind in {'new-claim', 'identical', 'different-rules'}:
+        path = works[1] / 'reviews/000.json'
+        payload = pipeline.read_json(path)
+        for case in payload['cases']:
+            for finding in case['reference'].values():
+                if kind == 'new-claim':
+                    finding['status'] = 'ambiguous'
+        pipeline.save_json(path, payload)
+        rules = tmp_path / 'rules.txt'
+        if kind == 'different-rules':
+            rules = tmp_path / 'changed-rules.txt'
+            rules.write_text('A different field contract.', encoding='utf-8')
+        manifest = review.prepare_adjudication(works[1], new, rules)
+        prior = {c['case_id']: c for c in pipeline.read_json(old / 'reviews/000.json')['cases']}
+        for entry in manifest['packets']:
+            packet = review.read_packet(Path(entry['path']))
+            pipeline.save_json(new / 'reviews' / Path(entry['path']).name,
+                               {'cases': [deepcopy(prior[c['case_id']]) for c in packet['cases']]})
+        pipeline.save_json(new / 'reviewer.json', {'model': 'synthetic'})
+    else:
+        shutil.copytree(old, new)
+        if kind == 'conflict':
+            path = new / 'reviews/000.json'
+            payload = pipeline.read_json(path)
+            payload['cases'][0]['source_fields']['author']['values'] = ['Grace Hopper']
+            pipeline.save_json(path, payload)
+    for index, scopes in enumerate([(old, new), (new, old)]):
+        kwargs = dict(profile=swde.CARD, adjudications=scopes, reference_revision=authority)
+        if kind in {'conflict', 'different-rules'}:
+            error = ('Conflicting adjudications' if kind == 'conflict'
+                     else 'different benchmark rules')
+            with pytest.raises(ValueError, match=error):
+                review.assemble_record(home, content, works, tmp_path / f'conflict-{index}.json',
+                                       **kwargs)
+        else:
+            result = review.assemble_record(home, content, works,
+                                            tmp_path / f'composed-{index}.json', **kwargs)
+            assert result['unresolved'] == 0
+            assert result['result_count'] == 4
+
+
+def test_record_later_title_dispute_preserves_the_resolved_author(tmp_path, monkeypatch):
+    from copy import deepcopy
+
+    from harness.web_extract import review
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / 'record-example', mode='field-extraction-cohort')
+    scorer = home / 'dataset/evaluate.py'
+    scorer.write_text('# Synthetic scorer identity for the shared record adapter.\n',
+                      encoding='utf-8')
+    manifest = pipeline.read_json(home / 'dataset/manifest.json')
+    manifest['files']['evaluate.py'] = {'sha256': pipeline.digest(scorer.read_bytes()),
+                                        'bytes': scorer.stat().st_size}
+    pipeline.save_json(home / 'dataset/manifest.json', manifest)
+    monkeypatch.setitem(dataset.BENCHMARKS['swde'], 'profile', str(home / 'profile.json'))
+    model = pipeline.read_json(home / 'content.json')
+    methods = list(model['participants'])
+    truth = pipeline.read_json(home / 'dataset/dataset/ground-truth.json')
+    selections = []
+    works = []
+    for index, method in enumerate(methods):
+        run = home / 'runs' / ('complete-' + method)
+        contract = {'methods': [method], 'case_ids': list(truth)}
+        pipeline.save_json(run / 'contract.json', contract)
+        entries = []
+        for cid, case in truth.items():
+            fields = case['values']
+            response = ({'json': fields} if method == 'scrapegraph-extract'
+                        else {'data': {'json': fields}})
+            path = run / 'calls' / (cid + '.json')
+            pipeline.save_json(path, {'method': method, 'case_id': cid, 'response': response,
+                                     'normalized_fields': fields, 'http_status': 200,
+                                     'input_sha256': pipeline.digest(
+                                         (home / 'dataset/html' / (cid + '.html')).read_bytes())})
+            entries.append({'path': str(path.relative_to(run)),
+                            'sha256': pipeline.digest(path.read_bytes())})
+        pipeline.save_json(run / 'manifest.json', {
+            'contract_sha256': pipeline.digest((run / 'contract.json').read_bytes()),
+            'calls': entries})
+        selection = {'run': str(run)}
+        selections.append(selection)
+        selected = home / f'selection-{index}.json'
+        pipeline.save_json(selected, {'evidence_runs': [selection]})
+        work = tmp_path / f'field-review-{index}'
+        manifest = review.prepare(home, selected, work)
+        for entry in manifest['packets']:
+            packet = review.read_packet(Path(entry['path']))
+            opinions = []
+            for case in packet['cases']:
+                fields = {f: {'status': 'supported', 'values': v, 'source_quote': 'Example',
+                              'source_locator': 'main record', 'reason': 'Original source finding'}
+                          for f, v in case['reference'].items()}
+                reference = deepcopy(fields)
+                reference['author' if index == 0 else 'title']['status'] = 'ambiguous'
+                opinions.append({'case_id': case['case_id'], 'main_record': 'Example',
+                                 'source_fields': fields, 'reference': reference,
+                                 'outputs': [{'method': method, 'fields': deepcopy(fields),
+                                              'projection_issue': ''}]})
+            pipeline.save_json(work / 'reviews' / Path(entry['path']).name, {'cases': opinions})
+        pipeline.save_json(work / 'reviewer.json', {'model': 'synthetic'})
+        works.append(work)
+    content = home / 'complete-content.json'
+    pipeline.save_json(content, {'evidence_runs': selections})
+    profile = pipeline.read_json(home / 'profile.json')
+    profile['research_report']['content']['sha256'] = pipeline.digest(content.read_bytes())
+    pipeline.save_json(home / 'profile.json', profile)
+    rules = tmp_path / 'field-rules.txt'
+    rules.write_text('Resolve each field independently from frozen source.', encoding='utf-8')
+    scopes = []
+    for index, work in enumerate(works):
+        scope = tmp_path / f'field-adjudication-{index}'
+        manifest = review.prepare_adjudication(work, scope, rules)
+        for entry in manifest['packets']:
+            packet = review.read_packet(Path(entry['path']))
+            opinions = []
+            for case in packet['cases']:
+                fields = {f: {'status': 'supported', 'values': v, 'source_quote': 'Example',
+                              'source_locator': 'main record', 'reason': f'Source decision {index}'}
+                          for f, v in case['reference'].items()}
+                opinions.append({'case_id': case['case_id'], 'main_record': 'Example',
+                                 'source_fields': fields, 'reference': deepcopy(fields),
+                                 'outputs': []})
+            pipeline.save_json(scope / 'reviews' / Path(entry['path']).name, {'cases': opinions})
+        pipeline.save_json(scope / 'reviewer.json', {'model': 'synthetic'})
+        scopes.append(scope)
+    for index, order in enumerate([scopes, scopes[::-1]]):
+        result = review.assemble_record(
+            home, content, works, tmp_path / f'field-audit-{index}.json',
+            profile=home / 'profile.json', adjudications=order)
+        assert result['unresolved'] == 0
+        for source in result['sources'].values():
+            assert source['source_fields']['author']['reason'] == 'Source decision 0'
+            assert source['source_fields']['title']['reason'] == 'Source decision 1'

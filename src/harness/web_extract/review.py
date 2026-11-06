@@ -830,7 +830,9 @@ def assemble(
                 finding = final["reference"][field]
                 values = (final["source_fields"][field]["values"]
                           if finding["status"] == "incorrect" else truth[cid].get(field, []))
-                decision = finding["status"] == "ambiguous", tuple(sorted(set(values)))
+                decision = (finding["status"] == "ambiguous",
+                            finding["status"] == "absent" and bool(truth[cid].get(field)),
+                            tuple(sorted(set(values))))
                 key = cid, field
                 if key in final_fields:
                     if final_fields[key] != decision and key not in explicit:
@@ -1143,6 +1145,9 @@ def assemble_record(
         }
     unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
 
+    covered_claims, final_fields, rule_hashes = {}, {}, set()
+    if len({Path(work).resolve() for work in adjudications}) != len(adjudications):
+        raise ValueError("Duplicate record reference adjudication")
     for work in adjudications:
         bound = read_manifest(work)["bindings"]
         if any(name in bound and bound[name] != sha for name, sha in predecessors.items()):
@@ -1165,26 +1170,50 @@ def assemble_record(
                     for name, findings in current
                 )
                 for claim in claims
-            ) or any(
-                any(
-                    (
-                        finding["status"] in ("incorrect", "ambiguous")
-                        or (finding["status"] == "absent" and truth[cid]["values"][field])
-                    )
-                    and not any(
-                        reference_claim(claim[field]) == reference_claim(finding)
-                        for claim in claims
-                    )
-                    and (cid, field) not in source_decisions
-                    and (truth[cid]["domain"], truth[cid]["site"], field) not in unavailable
-                    for field, finding in findings.items()
-                )
-                for name, findings in current
             ):
                 raise ValueError("Record adjudication belongs to different predecessor reviews")
-            if cid in resolved or case["outputs"] or not case.get("benchmark_rules"):
-                raise ValueError("Duplicate or unbound record reference adjudication")
-            resolved[cid] = opinions[cid]
+            if case["outputs"] or not case.get("benchmark_rules"):
+                raise ValueError("Unbound record reference adjudication")
+            rule_hashes.add(digest(Path(case["benchmark_rules"]).read_bytes()))
+            targets = set()
+            for claim in claims:
+                for field, finding in claim.items():
+                    covered_claims.setdefault((cid, field), set()).add(reference_claim(finding))
+                    if reference_disputed(finding, truth[cid]["values"][field]):
+                        targets.add(field)
+            final = opinions[cid]
+            targets.update(field for field, finding in final["reference"].items()
+                           if reference_disputed(finding, truth[cid]["values"][field]))
+            resolved.setdefault(cid, copy.deepcopy(sources[cid][0]))
+            for field in targets:
+                finding = final["reference"][field]
+                values = (final["source_fields"][field]["values"]
+                          if finding["status"] == "incorrect" else truth[cid]["values"][field])
+                decision = (finding["status"] == "ambiguous",
+                            finding["status"] == "absent" and bool(truth[cid]["values"][field]),
+                            tuple(sorted(set(values))))
+                key = cid, field
+                if key in final_fields:
+                    group = truth[cid]["domain"], truth[cid]["site"], field
+                    if (final_fields[key] != decision and key not in source_decisions
+                            and group not in unavailable):
+                        raise ValueError(
+                            "Conflicting adjudications require explicit source decisions"
+                        )
+                    continue
+                final_fields[key] = decision
+                for section in ("source_fields", "reference"):
+                    resolved[cid][section][field] = copy.deepcopy(final[section][field])
+    if len(rule_hashes) > 1:
+        raise ValueError("Adjudications use different benchmark rules")
+    for cid, current in predecessor_claims.items():
+        for _, findings in current:
+            for field, finding in findings.items():
+                group = truth[cid]["domain"], truth[cid]["site"], field
+                if (cid in resolved and reference_disputed(finding, truth[cid]["values"][field])
+                        and reference_claim(finding) not in covered_claims.get((cid, field), set())
+                        and (cid, field) not in source_decisions and group not in unavailable):
+                    raise ValueError("Disputed references need complete adjudication")
     matching = adapter.canonical_text if policy["text_matching"] == "whitespace" else str
     unresolved, final_sources = [], {}
     for cid, prior in sources.items():

@@ -258,3 +258,28 @@ def test_packet_bindings_do_not_credit_a_reference_claim_absent_from_adjudicatio
     with pytest.raises(ValueError, match='complete adjudication'):
         assemble(home, content, works[0], empty, work, tmp_path / 'uncovered.json',
                  profile=home / 'profile.json', additional_reviews=[works[1]])
+
+
+def test_nonempty_reference_absence_requires_a_source_decision_in_both_orders(tmp_path):
+    home, content, works, old, empty = product_reviews(tmp_path)
+    new = tmp_path / 'absent-adjudication'
+    complete(new, prepare_adjudication(works[1], new, home / 'profile.json'))
+    change_reference_claim(new, 'sku', 'absent', [])
+    for first, second in [(old, new), (new, old)]:
+        with pytest.raises(ValueError, match='Conflicting adjudications|source-qualified'):
+            assemble(home, content, works[0], empty, first, tmp_path / 'rejected-absence.json',
+                     profile=home / 'profile.json', additional_reviews=[works[1]],
+                     additional_adjudications=[second])
+    decisions = tmp_path / 'explicit-absence-decision.json'
+    truth = read_json(home / 'dataset/dataset/ground-truth.json')
+    save_json(decisions, {'decisions': [
+        {'case_id': cid, 'field': 'sku', 'accepted': ['synthetic product'],
+         'source_sha256': digest((home / 'dataset/html' / (cid + '.html')).read_bytes()),
+         'source_quote': 'synthetic product', 'source_locator': 'p',
+         'reason': 'The source explicitly identifies the main product'} for cid in truth]})
+    for index, (first, second) in enumerate([(old, new), (new, old)]):
+        result = assemble(home, content, works[0], empty, first,
+                          tmp_path / f'explicit-absence-{index}.json',
+                          profile=home / 'profile.json', additional_reviews=[works[1]],
+                          additional_adjudications=[second], decisions=decisions)
+        assert result['unresolved'] == 0

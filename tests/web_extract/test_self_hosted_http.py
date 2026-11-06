@@ -186,7 +186,10 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
     script.write_text("setInterval(() => {}, 1000);\n", encoding="utf-8")
     (tmp_path / "node_modules").mkdir()
     (tmp_path / "node_modules/native.js").write_text("module.exports = 1;\n", encoding="utf-8")
-    wrapper = Path(__file__).resolve().parents[2] / "src/harness/web_extract/firecrawl_backend.mjs"
+    source_wrapper = (Path(__file__).resolve().parents[2]
+                      / "src/harness/web_extract/firecrawl_backend.mjs")
+    wrapper = tmp_path / "backend-wrapper.mjs"
+    wrapper.write_bytes(source_wrapper.read_bytes())
     base = {"engine": "firecrawl", "model": "test-model", "model_base": "https://model.example"}
     monkeypatch.setenv("FIRECRAWL_BACKEND_URL", "http://private-backend.example:3002")
     monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
@@ -220,6 +223,18 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
 
     with backend("test-model") as original:
         assert original["backend"]["controls"]["MODEL_NAME"] == "test-model"
+        for target, field in [
+            (script, "native_bundle_sha256"),
+            (tmp_path / "node_modules/native.js", "native_dependencies_sha256"),
+            (wrapper, "wrapper_sha256"),
+        ]:
+            before = target.read_bytes()
+            target.write_bytes(before + b"\n// changed while backend is running\n")
+            with patch("harness.web_extract.self_hosted.local_runtime_identity", return_value=base):
+                assert runtime_identity("firecrawl")["backend"][field] != original["backend"][field]
+                with pytest.raises(ValueError, match="frozen extraction configuration"):
+                    validate_input({**BODY, "engine": "firecrawl", "expected_runtime": original})
+            target.write_bytes(before)
     script.write_text("setInterval(() => {}, 2000);\n", encoding="utf-8")
     with backend("test-model") as changed:
         assert (

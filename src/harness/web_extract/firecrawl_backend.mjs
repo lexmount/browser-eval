@@ -2,32 +2,49 @@
 import { spawn } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
-import { lstat, readdir, readFile, readlink, realpath } from 'node:fs/promises';
+import {
+  lstatSync as lstat, readdirSync as readdir, readFileSync as readFile,
+  readlinkSync as readlink, realpathSync as realpath,
+} from 'node:fs';
 import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-async function treeHash(root) {
+const fileHashes = new Map();
+function fileHash(target, info) {
+  info ??= lstat(target, { bigint: true });
+  const signature = [info.dev, info.ino, info.size, info.mtimeNs, info.ctimeNs].join(':');
+  const prior = fileHashes.get(target);
+  if (prior?.signature === signature) return prior.hash;
+  const hash = createHash('sha256').update(readFile(target)).digest('hex');
+  fileHashes.set(target, { signature, hash });
+  return hash;
+}
+
+function treeHash(root) {
+  root = path.join(realpath(path.dirname(root)), path.basename(root));
   const hash = createHash('sha256');
   const seen = new Set();
   function record(value) {
     hash.update(JSON.stringify(value) + '\n');
   }
-  async function visit(target, relative) {
-    const info = await lstat(target);
+  function visit(target, relative) {
+    const info = lstat(target, { bigint: true });
     if (info.isSymbolicLink()) {
-      record(['link', relative, await readlink(target)]);
+      record(['link', relative, readlink(target)]);
       let resolved;
       try {
-        resolved = await realpath(target);
+        resolved = realpath(target);
       } catch (error) {
         if (!['ENOENT', 'ENOTDIR', 'ELOOP'].includes(error.code)) throw error;
         // Pruned optional packages may leave links that Node cannot load.
         record(['unresolved-link', relative, error.code]);
         return;
       }
-      await visit(resolved, relative + '/@target');
+      visit(resolved, relative + '/@target');
       return;
     }
-    const resolved = await realpath(target);
+    // Descendants start from a canonical directory; link targets resolve above.
+    const resolved = path.resolve(target);
     if (seen.has(resolved)) {
       record(['reference', relative, resolved]);
       return;
@@ -35,16 +52,16 @@ async function treeHash(root) {
     seen.add(resolved);
     if (info.isDirectory()) {
       record(['dir', relative]);
-      for (const name of (await readdir(target)).sort()) {
-        await visit(path.join(target, name), path.join(relative, name));
+      for (const name of readdir(target).sort()) {
+        visit(path.join(target, name), path.join(relative, name));
       }
     } else if (info.isFile()) {
-      record(['file', relative, createHash('sha256').update(await readFile(target)).digest('hex')]);
+      record(['file', relative, fileHash(target, info)]);
     } else {
       throw new Error('Unsupported file type in backend attestation');
     }
   }
-  await visit(root, '');
+  visit(root, '');
   return hash.digest('hex');
 }
 
@@ -69,20 +86,31 @@ for (const key of ['OPENAI_BASE_URL', 'OLLAMA_BASE_URL']) {
     throw new Error('Model base URL must not contain credentials, query or fragment');
   }
 }
-const identity = {
-  native_bundle_sha256: await treeHash(path.resolve('dist')),
-  native_dependencies_sha256: await treeHash(path.resolve('node_modules')),
-  node_sha256: createHash('sha256').update(await readFile(process.execPath)).digest('hex'),
-  wrapper_sha256: createHash('sha256').update(await readFile(new URL(import.meta.url))).digest('hex'),
-  controls: Object.fromEntries(controls.map(key => [key, childEnv[key] ?? ''])),
-};
-const server = createServer((request, response) => {
+async function currentIdentity() {
+  return {
+    native_bundle_sha256: await treeHash(path.resolve('dist')),
+    native_dependencies_sha256: await treeHash(path.resolve('node_modules')),
+    node_sha256: await fileHash(process.execPath),
+    wrapper_sha256: await fileHash(fileURLToPath(import.meta.url)),
+    controls: Object.fromEntries(controls.map(key => [key, childEnv[key] ?? ''])),
+  };
+}
+await currentIdentity();
+let checking;
+const server = createServer(async (request, response) => {
   if (request.method !== 'GET' || request.url !== '/identity') {
     response.writeHead(404).end();
     return;
   }
-  response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
-  response.end(JSON.stringify(identity));
+  try {
+    checking ??= currentIdentity().finally(() => { checking = undefined; });
+    const identity = await checking;
+    response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    response.end(JSON.stringify(identity));
+  } catch {
+    response.writeHead(503, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
+    response.end(JSON.stringify({ error: 'Backend identity could not be verified' }));
+  }
 });
 await new Promise((resolve, reject) => {
   server.once('error', reject);
