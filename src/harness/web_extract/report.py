@@ -879,8 +879,11 @@ def execution_settings(sources, methods, labels, language):
             policy = source.get("execution_policy", {})
             if key == "concurrency" and type(value) is int and policy:
                 groups = policy["resources"]
-                selected = list(groups) if len(source.get("methods", [])) == 1 else [participant]
-                value = min([value] + [groups[group]["capacity"] for group in selected])
+                selected = policy.get("assignments", {}).get(participant)
+                if selected is None:
+                    selected = list(groups) if len(source.get("methods", [])) == 1 else [participant]
+                value = min([value, policy["max_in_flight"]]
+                            + [groups[group]["capacity"] for group in selected])
             return f"{value:g}" if type(value) in (int, float) and math.isfinite(value) else "—"
 
         rows.append(

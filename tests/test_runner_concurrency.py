@@ -27,6 +27,25 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_conflicting_shared_limits_are_rejected_before_clamping(self):
+        from unittest.mock import patch
+
+        providers = [BarrierProvider('one', threading.Barrier(1)),
+                     BarrierProvider('two', threading.Barrier(1))]
+        for provider, capacity in zip(providers, [2, 3], strict=True):
+            provider.config['execution_resources'] = {
+                'account': {'capacity': capacity, 'reason': 'Shared account'}}
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            'harness.web_fetch.runner.fetch_with_deadline'
+        ) as call:
+            with self.assertRaisesRegex(ValueError, 'Conflicting'):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=[case], providers=providers,
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=2)
+            call.assert_not_called()
+
     def test_failed_cleanup_stops_queued_variants_of_the_shared_service(self):
         from unittest.mock import patch
 

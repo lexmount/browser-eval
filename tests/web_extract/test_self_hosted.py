@@ -51,7 +51,10 @@ def test_changed_runtime_cannot_silently_resume(monkeypatch):
             validate_input(value)
 
 
-@pytest.mark.parametrize("method", ["crawl4ai-json", "scrapegraph-oss-json"])
+@pytest.mark.parametrize(
+    "method",
+    ["crawl4ai-json", "scrapegraph-oss-json", "stagehand-local-json", "firecrawl-oss-json"],
+)
 def test_open_source_projections_keep_missing_and_multiple_field_values(method):
     schema = {
         "type": "object",
@@ -61,6 +64,14 @@ def test_open_source_projections_keep_missing_and_multiple_field_values(method):
     assert normalize(method, {"success": True, "data": data}, schema=schema) == data
     assert normalize(method, {"success": False, "data": data}, schema=schema) is None
     assert normalize(method, {"success": True, "data": []}, schema=schema) is None
+
+
+@pytest.mark.parametrize("flag", [None, 0, 1, "true"])
+def test_self_hosted_data_requires_an_explicit_successful_worker_result(flag):
+    payload = {"success": flag, "data": {"sku": "unaccepted"}}
+    assert normalize("crawl4ai-json", payload) is None
+    payload.pop("success")
+    assert normalize("crawl4ai-json", payload) is None
 
 
 def test_native_request_uses_snapshot_and_shared_schema_without_ground_truth(monkeypatch):

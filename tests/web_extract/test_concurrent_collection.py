@@ -172,6 +172,7 @@ def test_failure_repair_preserves_parent_concurrency_and_binds_its_scheduler(tmp
         with (
             collection_context(),
             patch("harness.web_extract.repair.validate_dataset"),
+            patch("harness.web_extract.repair.load_runtime_env"),
             patch("harness.web_extract.pipeline.provider_call", side_effect=response),
         ):
             run(home, profile, "cloudflare-json", target)
