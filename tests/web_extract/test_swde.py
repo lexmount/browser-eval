@@ -1959,6 +1959,7 @@ def test_historical_projection_reproduces_without_rewriting_creation_identity(
     assessment = tmp_path / "historical-assessment.json"
     saved = pipeline.score_run(home, run, reproject=True, output=assessment)
     saved["projection_revision"]["pipeline_sha256"] = "a" * 64
+    saved["projection_revision"]["regression_ids"] = ["frozen-edition-control"]
     pipeline.save_json(assessment, saved)
     frozen = assessment.read_bytes()
     actual = pipeline.score_run(home, run, reproject=True, output=assessment, verify_existing=True)

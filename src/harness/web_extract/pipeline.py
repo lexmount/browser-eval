@@ -2366,6 +2366,15 @@ def score_run(
             r"[0-9a-f]{64}", recorded_pipeline
         ):
             raise ValueError("Invalid recorded projection implementation")
+        recorded_controls = previous.get("projection_revision", {}).get("regression_ids")
+        if (
+            not isinstance(recorded_controls, list)
+            or not recorded_controls
+            or any(not isinstance(value, str) or not value for value in recorded_controls)
+            or len(set(recorded_controls)) != len(recorded_controls)
+        ):
+            raise ValueError("Invalid recorded projection regression controls")
+        result["projection_revision"]["regression_ids"] = recorded_controls
         result["projection_revision"]["pipeline_sha256"] = recorded_pipeline
     if target.exists():
         if read_json(target) != result:
