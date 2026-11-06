@@ -2308,11 +2308,11 @@ def execution_settings(profile, zh):
             + (f' ({policy["resources"][r]["reason"]})'
                if policy["resources"][r].get("reason") else "") for r in resources)
         entries.append(cells([esc(method["label"]), str(capacity), esc(details or "—")]))
-    scope = ("Latency includes concurrent collection load; it is not an isolated speed comparison."
-             if maximum > 1 else "Serial collection; latency covers each saved API call.")
+    scope = (t("Latency includes concurrent collection load; it is not an isolated speed comparison.")
+             if maximum > 1 else t("Serial collection; latency covers each saved API call."))
     return ('<section data-execution-settings><h2>' + t("Collection concurrency") + '</h2><p>'
             + t("Maximum concurrent calls: {concurrency}.", concurrency=maximum)
-            + ' ' + t(scope) + '</p>'
+            + ' ' + scope + '</p>'
             + table([t("Method"), t("Effective concurrent calls"), t("Shared resource limits")],
                     entries) + '</section>')
 
