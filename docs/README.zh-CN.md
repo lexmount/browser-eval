@@ -38,7 +38,7 @@ uv run --frozen browser-harness-eval run --delay 0
 | --- | --- | --- |
 | Web Fetch | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch)、[LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench)、[LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | [本地示例](../examples/web_fetch/README.md) · [完整指南](../src/harness/web_fetch/README.md) |
 | Web Search | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search)：场景问题，以及 [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) 检索任务 | [本地示例](../examples/web_search/README.md) · [完整指南](../src/harness/web_search/README.md) |
-| Web Extract | [Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction): 140 个归档商品页，保留上游标注和按原文修正的价格、SKU、库存标注；[SWDE-800](../examples/web_extract/README.md#swde-multi-domain-extraction)：预先固定的 80 站点、800 页输入子集 | [网页结构化字段提取](../examples/web_extract/README.md) |
+| Web Extract | [Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction): 140 个归档商品页，保留上游标注和按原文修正的价格、SKU、库存标注；[SWDE-800](https://huggingface.co/datasets/Lexmount/LexBench-SWDE-800)：预先固定的 80 站点、800 页输入子集 | [网页结构化字段提取](../examples/web_extract/README.md) |
 | Browser Trajectory Replay | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) 固定场景、[自建固定动作任务](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay)使用显式断言；[WebArena Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay)使用官方评测器 | [Headless 输入与上游运行器](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser#execute-with-the-original-runner) · [自建任务集](../examples/trajectory_replay/README.md) · [WebArena Replay](../examples/trajectory_replay/public_webarena/README.md) |
 
 可使用这些评测集，也可[接入自己的任务](benchmarks.md)。新的浏览器和工具通过已有[适配接口](provider-contract.md)接入。
@@ -250,6 +250,40 @@ make ci
 ```
 
 [代码结构](architecture.md) · [安全](../SECURITY.md) · [第三方内容](../THIRD_PARTY.md) · [Apache 2.0](../LICENSE)
+
+
+## 已保存结果的跨套别报告
+
+使用 `scripts/build_report.py --saved-matrix /absolute/input-spec.json --output /absolute/new-report --language zh` 查看不同案例集的保存结果。
+
+最终展示要求核验每个方法、每个分类的设置，包括未重测和仅补测的组。
+同一声明输入类型内的请求选项必须一致；同类任务的各方法还须具有相同的
+DNS、超时和重试预算。设置无法验证或存在适配器拒绝的记录时，阻止最终展示。
+方法页列出设置和采集日期；设置一致不代表在同一时间窗口测量。看过成绩后
+择优选取参数，以及修改任务或验收规则后的成绩，只能作为单独的审核分析，不能
+替代原始任务规则下的主要排名。不得改写保存记录来使历史批次显得可比。
+审核报告默认展示成绩；在外部输入清单设置 `ranking: "saved_task_pass_rate"`
+可开启总榜和分榜名次。每张榜要求每个方法、每道题只采用一条结果，完整覆盖同一组任务并使用同一评分版本，
+否则保留成绩并说明不计算名次的原因。同分并列（1、1、3），点击其他列排序
+不会改变名次。配置选择和保存规则的范围仍须说明，这些名次不代表获得认证。榜单耗时只取最终单次调用，重试累计成本保留在证据中。
+
+- 输入清单通过哈希绑定数据集、方法、选中的结果和有凭据的缺失项。展示时按案例集区分身份，保留原始任务和分数，不调用方法、不重新评分，也不添加认证。
+- 本模式使用现有 Web Fetch 报告生成器，包含评测集、方法页和结果与标准答案对照页，另外列出未完成项。HTML 页面与证据目录需一起保留。
+- 可选的 `report_families` 用有序的 `{id, label}` 列出所有实际任务分类。报告按任务内容分组（区分网页内嵌媒体与直接文件），原始套别、案例身份和保存的分数保持不变。
+- 分类可用 `task_family` 和 `source_suites` 保留独立冻结的任务组；每条记录必须且只能属于一组。跨组汇总没有可比意义时，设置 `combined_ranking: false`，汇总表只展示各组结果，不显示合成通过率或总名次。
+- 可选的 `offline_revision` 通过 `root` 和带路径、哈希的 `receipt` 引用现有离线修订流程生成的凭据。完整前序案例和结果必须与本矩阵一致。报告并列保留原规则、原成绩和重算成绩，明确标注离线修改；其中可选的 `review_files` 将附件名映射到 JSON 路径、哈希。组装报告不调用方法。
+- 离线修订后补齐未调用项时，将新证据加入 `sources`，移除对应 `missing` 项，并用路径和哈希绑定 `completion.baseline_matrix`、`completion.baseline_audit` 与 `completion.contract`。旧报告审计文件绑定完整范围和保留的题目、结果原文；不得改变无关调用或题目。另行核验的离线修订和整类参数选择作为明确的例外。调用前清单声明 `created_at`、`provider`、总数 `cases`，以及包含 `suite`、`case_ids` 的 `jobs`。声明的结果必须齐全、晚于清单时间，且之前确实未调用。原离线修订仍绑定原有调用，补测不能替换这些调用。
+- 多轮补测可用 `completions` 数组分别绑定，每轮范围不得重叠。同一套别的清单可声明 `providers` 和 `case_ids`，并在补测条目中指定 `suite`。可选的 `note` 展示在对应结果详情中，用来说明有证据支持的补测条件，例如历史调用采用了不同 DNS；披露差异不能豁免配置一致性检查。
+- `excluded_report_families` 将指定的完整分类移出报告记录、页面和统计，同时保留完整来源绑定与历史参数选择范围。排除项必须是不重复的已知分类，且不能排除所有分类。
+- `excluded_report_providers` 同样按完整方法排除报告展示，同时保留完整的原始评分记录。其他方法保留已选结果，排名与总数按报告范围重新统计；未知、重复或排除全部方法的设置会被拒绝。
+- 所有替换调用（包括调用后未保存结果的情况）必须在替换范围或单个位置绑定带哈希的 `execution_contract`；接纳前核验授权的原生参数和完整重试序列。 调用后未保存结果的替换还必须提供实际配置、超时、调用次数及带哈希的 `execution_log`；每条 `http_request_started` 事件须记录方法、案例、开始时间、配置摘要和超时。观测缺失或日志不一致时拒绝替换，不补造分数或耗时。
+- `adoptions` 绑定保存结果规范与 `user_selected_complete_report_groups` 授权，按明确的方法和分类整组采用，无论通过数是否提高。旧调用保留为历史证据，并核对题目及评分版本；不得与参数候选或其他采用范围重叠。共同执行约定通过 `execution_contract` 绑定；多批次通过 `execution_contracts` 中的 `suite`、`provider`、`case_ids`、`contract` 分别绑定，范围不得重叠且必须覆盖所有采用的调用。原生参数和重试时序按原始采集记录核验，后续离线评分不能改写历史重试决定。
+- 按报告分类比较参数时，将 `parameter_reruns.selection` 设为 `replace_family_if_pass_count_improves`。候选完整性和通过数均按报告的 `report_families` 划分，同一分类可包含多个执行类型；先核验整组实际请求配置一致，不合格的组不能因成绩高而入选；各类独立选择，同分保留合格的原组。历史 `replace_track_if_pass_count_improves` 约定仍保留原来的执行类型范围；改变冻结的选择规则须绑定明确的选择修订授权。
+- 整类采用还会比较每类已核验的实际请求设置、DNS、超时和重试机会，包括保留的重试调用。`30` 和 `30.0` 等数值视为相同。拒绝针对方法或案例的 `configuration_exceptions`：授权不能把不同配置声明成相同。历史差异保留在证据中，但混合配置的组不能因此进入统一配置比较，也不允许按单题成绩择优拼接。
+- 参数对照要求评分代码一致，并核验授权配置、实际原生请求和完整失败重试序列。评分版本不同，须先通过明确的离线修订统一口径。替换范围和分批补齐的重试必须满足调用前的时间约束。报告检查拒绝未登记文件和符号链接，包括证据目录内的额外文件。
+- 使用 `scripts/build_report.py --check-saved-matrix /absolute/new-report` 检查报告文件；审核报告支持这种便携检查。经过已核验的离线修订后，最终选中的结果还必须具有同一有效评分版本标识；混合版本或缺失标识只能作为诊断结果。最终报告必须添加 `--source-spec /absolute/input-spec.json` 并提供原始调用证据；只有核验原始证据的构建入口能授权最终展示，调用者编写的配置摘要不能作为授权。源路径相对于外部输入清单解析，报告审计文件只保存文件名和哈希。
+- 筛选方法时保留完整案例集，为每个跳过位置绑定凭据，并保留当前结果的实际重试证据。只选当前结果不能说明此前为何替换；修正仍需披露范围以及分数、分母和耗时的影响。运行清单、抓取内容和 HTML 留在 Git 外。
+
 
 ## 引用 Browser Eval
 

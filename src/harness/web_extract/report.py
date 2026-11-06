@@ -481,10 +481,12 @@ def cohort_source(source, selection, home, truth):
         ]:
             if digest((source / name).read_bytes()) != cert[key]:
                 raise ValueError("Certified evidence changed")
-        if (cert["profile_sha256"] != selection["plan_sha256"]
-                or cert["case_count"] != len(truth)
-                or cert.get("method") != precall["method"]
-                or cert.get("dataset_manifest_sha256") != contract["dataset_manifest_sha256"]):
+        if (
+            cert["profile_sha256"] != selection["plan_sha256"]
+            or cert["case_count"] != len(truth)
+            or cert.get("method") != precall["method"]
+            or cert.get("dataset_manifest_sha256") != contract["dataset_manifest_sha256"]
+        ):
             raise ValueError("Certificate population, profile, method or dataset differs")
         saved = read_json(source / "scores.json")
         # Recompute through the original scoring boundary, without provider calls.
@@ -4577,6 +4579,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         "<section data-core-metrics>"
         + core
         + "</section>"
+        + completion_table(completion, methods, labels, language)
         + report_metric_guide(language, records=True)
         + operations
         + bodies["index"]
