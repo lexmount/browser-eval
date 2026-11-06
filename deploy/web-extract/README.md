@@ -1,8 +1,9 @@
 # Deploy and reproduce Web Extract
 
 The [Compose file](compose.yaml) defines the complete six-service stack. The API
-image builds from the root Dockerfile and locked Python environment. The five
-Firecrawl images are pinned by digest. This runs each project's native extractor;
+image builds from the root Dockerfile and locked Python environment. The Firecrawl
+backend image adds the attestation launcher to its digest-pinned upstream image;
+the other four images are pinned by digest. This runs each project's native extractor;
 it does not train or generate a site-specific extraction program.
 
 ## Start the services
@@ -38,6 +39,8 @@ not a measured minimum host requirement.
 
 Set `ENDPOINT` to `http://127.0.0.1:8080` for Compose, or your authenticated Rainbond
 endpoint. Set `SNAPSHOT_URL` to one case URL from a verified snapshot binding.
+Export `EXTRACTION_API_KEY` in the calling shell too; Compose's `--env-file`
+does not export variables for subsequent `curl` commands.
 
 ```sh
 curl --fail --silent --show-error "$ENDPOINT/health" \
@@ -163,7 +166,9 @@ dependencies and mounts from `compose.yaml` in the selected workspace:
    PostgreSQL `5432`. Use the component names as private hostnames.
 2. Mount `src/harness/web_extract/firecrawl_backend.mjs` as a read-only config
    file at `/opt/browser-eval/firecrawl_backend.mjs` on `firecrawl-api`; use its
-   Compose entrypoint. Add persistent volumes at the three declared data paths;
+    native launch command. Compose packages this same file in its backend image
+    so a remote Docker daemon does not need access to the checkout's host path.
+    Add persistent volumes at the three declared data paths;
    the current Rainbond application allocates 2 GiB to each.
 3. Create `native-extraction` from this repository's root Dockerfile. Add its
    Compose environment, inject credentials through Rainbond, connect it to the

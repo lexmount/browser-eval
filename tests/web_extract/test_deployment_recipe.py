@@ -45,13 +45,16 @@ def test_recipe_resolves_one_authenticated_frontend_and_five_private_dependencie
         if name == "native-extraction":
             continue
         assert not component.get("ports"), name
-        assert "@sha256:" in component["image"]
+        if name != "firecrawl-api":
+            assert "@sha256:" in component["image"]
     assert len(model["volumes"]) == 3
     firecrawl = services["firecrawl-api"]
-    assert firecrawl["entrypoint"] == ["node", "/opt/browser-eval/firecrawl_backend.mjs"]
-    mount = next(v for v in firecrawl["volumes"] if v["target"].endswith("firecrawl_backend.mjs"))
-    assert mount["read_only"]
-    assert Path(mount["source"]).is_file()
+    build = firecrawl["build"]
+    recipe = (Path(build["context"]) / build["dockerfile"]).read_text(encoding="utf-8")
+    assert "@sha256:" in recipe
+    assert "firecrawl_backend.mjs" in recipe
+    # A remote Docker daemon does not share the checkout's host filesystem.
+    assert not any(v["type"] == "bind" for s in services.values() for v in s.get("volumes", []))
     assert api["depends_on"]["firecrawl-api"]["condition"] == "service_healthy"
 
 
