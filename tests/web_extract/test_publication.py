@@ -659,7 +659,6 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     }
     save_json(source / 'report-manifest.json', manifest)
     save_json(visual, {})
-    monkeypatch.setattr(publication, 'verify_completion_audit', lambda *a, **k: None)
     monkeypatch.setattr(report_owner, 'verify_completion_audit', lambda *a, **k: None)
     monkeypatch.setattr(report_owner, 'check', lambda *a, **k: None)
 
