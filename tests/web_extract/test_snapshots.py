@@ -29,6 +29,7 @@ def cf_lookup(*responses):
 
     def get(url, **kwargs):
         if url.endswith("/deployments"):
+            assert kwargs["params"]["per_page"] == 25
             response = MagicMock(status_code=200)
             response.json.return_value = {
                 "success": True,
@@ -795,7 +796,7 @@ def test_selected_hf_edition_finds_matching_historical_deployment(home, tmp_path
     ):
         result = snapshots.host(home, tmp_path / "host.json", hf_revision="v1", project="shared")
     assert result["fixture_base"].startswith("https://older.dataset.pages.dev/")
-    assert get.call_args_list[-1].kwargs["params"]["page"] == 2
+    assert get.call_args_list[-1].kwargs["params"] == {"page": 2, "per_page": 25}
     hf.dataset_info.assert_called_once_with("owner/data", revision="v1")
     full_check.assert_not_called()
     deploy.assert_not_called()
