@@ -1666,7 +1666,27 @@ def _returned_answer_fields(metadata):
  return {key:metadata[key] for key in ('links','images','videos','media','extras','page_information','page_structure','records')
          if metadata.get(key)}
 
-def stable_anchor_evidence(metrics,output,metadata=None,base_url=''):
+def _stable_passage_excerpt(text, alternatives, schema, representation):
+ from lexbench_webfetch.stable_tasks import _stable_literal_match
+ lines = [line for line in text.splitlines() if line.strip()]
+ visible_lines = lines if representation == 'plain_text' else [
+     re.sub(r'^\s*(?:#{1,6}|[-*+])[ 	]+', '', line) for line in lines]
+ normalized = [normalize_for_match(line, representation=representation) for line in visible_lines]
+ expected = [normalize_for_match(value, representation=representation) for value in alternatives]
+ for index in range(len(lines)):
+  for width in range(1, min(5, len(lines)-index)+1):
+   passage = '\n'.join(lines[index:index+width])
+   if len(passage)>1200:
+    break
+   joined = ' '.join(normalized[index:index+width])
+   if any(value and value in joined for value in expected) or any(
+       _stable_literal_match(passage, value, representation=representation,
+                                rendered=schema in {'body_text','page_identity'})
+          for value in alternatives):
+    return passage
+ return ''
+
+def stable_anchor_evidence(metrics,output,metadata=None,base_url='',contract=None):
  from lexbench_webfetch.response_input import answer_input, safe_named_links
  from lexbench_webfetch.stable_tasks import _stable_literal_match
  fields=_returned_answer_fields(metadata or {})
@@ -1676,7 +1696,7 @@ def stable_anchor_evidence(metrics,output,metadata=None,base_url=''):
   if key!='section_headings':
    candidates.extend(('page_information.'+key,text) for text in (value if isinstance(value,list) else [value])
                      if isinstance(text,str))
- cards=[];normalized_lines=None;visible_lines=None
+ cards=[];normalized_lines=None;visible_lines=None;passage_text=None;context_text=None
  anchors_required=metrics.get('stable_anchors_required',True)
  expected_label='标准答案' if anchors_required else '范围核对文字'
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
@@ -1718,9 +1738,31 @@ def stable_anchor_evidence(metrics,output,metadata=None,base_url=''):
     field,text=field_match
     actual=(f'<p><a href="#returned-fields"><code>{esc(field)}</code></a></p>'
             f'<p translate="no">{esc(text)}</p>')
+  if passed and not actual:
+   from lexbench_webfetch.reference_quality import markdown_body_content, visible_mixed_html_text
+   from lexbench_webfetch.stable_tasks import _non_record_visible
+   schema=metrics.get('stable_task_schema')
+   representation=(metadata or {}).get('answer_format')
+   if item.get('match_scope')=='non_record_lines' and contract:
+    if context_text is None:
+     context_text=_non_record_visible(output,contract,metrics.get('stable_records',[]),
+                                      base_url,representation=representation) or ''
+    text=context_text
+   elif not item.get('match_scope') and not item.get('visible_control'):
+    if passage_text is None:
+     source=output if representation in {'plain_text','html'} else markdown_body_content(output)
+     source=source if representation=='plain_text' else visible_mixed_html_text(source)
+     passage_text=_visible(source,schema,representation=representation)
+    text=passage_text
    else:
-    actual=model_text('保存的判定为命中。未找到可供定位的连续原文，请核对下方解析记录与返回字段。',
-                      'The saved check passed. This record has no locatable continuous excerpt. See the parsed records and returned fields.')
+    text=''
+   passage=_stable_passage_excerpt(text,item.get('matched',[]),schema,representation)
+   if passage:
+    actual=('<p class="source-note">'+model_text('从返回内容读取的文字','Text read from the response')
+            +f'</p><pre translate="no">{esc(passage)}</pre>')
+  if passed and not actual:
+   actual=model_text('保存的判定为命中。未找到可供定位的连续原文，请核对下方解析记录与返回字段。',
+                     'The saved check passed. This record has no locatable continuous excerpt. See the parsed records and returned fields.')
   if not actual:
    actual='<p class="empty">实际返回中未找到可供定位的连续原文。</p>'
   cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>{expected_label}</b><p>{expected}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
@@ -2708,7 +2750,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('标准答案与实际返回',evidence,'evidence')
   checks_html=''
   if 'stable_task_pass' in m:
-   checks_html+=stable_anchor_evidence(m,output,provider_meta,r.get("final_url") or c["url"])
+   checks_html+=stable_anchor_evidence(m,output,provider_meta,r.get("final_url") or c["url"],c.get("acceptance_contract"))
    checks_html+=(f'<p class="decision-lead"><b>结构结果：</b>实际解析出 {m.get("stable_unique_record_count",0)} 条完整且不重复的记录，'
                  f'要求至少 {m.get("stable_minimum_records","—")} 条；结构检查{("通过" if m.get("stable_structure_pass") else "未通过")}，'
                  f'稳定文字检查{("通过" if m.get("stable_content_pass") else "未通过")}。</p>')
