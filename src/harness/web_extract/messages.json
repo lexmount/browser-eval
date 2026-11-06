@@ -440,7 +440,18 @@
     "execution_quality": "Quality collection",
     "execution_latency": "Isolated latency",
     "execution_throughput": "Loaded throughput",
-    "execution_undeclared": "Not separately declared"
+    "execution_undeclared": "Not separately declared",
+    "worker_resources_title": "Extractor worker CPU and memory",
+    "worker_cpu_lowest": "Lowest observed worker CPU: {methods}",
+    "worker_memory_lowest": "Lowest observed peak RSS: {methods}",
+    "worker_resources_scope": "These counters cover only the API worker for the final call. Browser subprocesses, Firecrawl backends and remote models are excluded. Observed and missing counts are separate for each metric; absent receipts are never zero. Lower values describe this process only, separately from extraction quality and whole-system efficiency. Methods without worker receipts have no comparable host measurements.",
+    "worker_resources_headings": [
+      "Method",
+      "CPU observed / missing",
+      "Mean CPU (s)",
+      "Memory observed / missing",
+      "Mean peak RSS (MiB)"
+    ]
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -883,6 +894,17 @@
     "execution_quality": "质量评测",
     "execution_latency": "单独运行测耗时",
     "execution_throughput": "测批量处理速度",
-    "execution_undeclared": "原记录未说明"
+    "execution_undeclared": "原记录未说明",
+    "worker_resources_title": "提取进程的 CPU 与内存",
+    "worker_cpu_lowest": "记录到的平均进程 CPU 用时最低：{methods}",
+    "worker_memory_lowest": "记录到的平均进程内存峰值最低：{methods}",
+    "worker_resources_scope": "这里只统计每条结果最后一次调用的接口提取进程，不包括浏览器子进程、Firecrawl 后端和远程模型。CPU 与内存分别列出有记录和缺失的数量；缺失值不按零计算。低值只说明这个进程的用量较少，与提取质量和整套系统的资源消耗是不同的指标。没有进程记录的方法缺少可比的主机测量。",
+    "worker_resources_headings": [
+      "方法",
+      "CPU 有记录 / 缺失",
+      "平均 CPU 用时（秒）",
+      "内存有记录 / 缺失",
+      "平均内存峰值（MiB）"
+    ]
   }
 }

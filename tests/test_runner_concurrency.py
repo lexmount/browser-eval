@@ -27,6 +27,33 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_serial_interrupt_retains_the_current_response_without_another_call(self):
+        import signal
+        from unittest.mock import patch
+
+        calls = []
+
+        def fetch(provider, case, *args, **kwargs):
+            calls.append(case.id)
+            if len(calls) == 1:
+                signal.raise_signal(signal.SIGINT)
+            return ProviderResult(True, 'Expected'), None
+
+        cases = [EvalCase(str(i), 'Case', 'https://example.com', 'static', ['Expected'])
+                 for i in range(3)]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch):
+            with self.assertRaises(KeyboardInterrupt):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=cases,
+                               providers=[BarrierProvider('one', threading.Barrier(1))],
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=1)
+            retained = (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()
+        self.assertEqual(calls, ['0'])
+        self.assertEqual(len(retained), 1)
+        self.assertTrue(json.loads(retained[0])['ok'])
+
     def test_operator_interrupt_stops_batches_after_current_calls(self):
         import signal
         from unittest.mock import patch

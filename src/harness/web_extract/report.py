@@ -7,6 +7,7 @@ import math
 import re
 import statistics
 import struct
+from collections import Counter
 from html import escape as esc
 from pathlib import Path
 from urllib.parse import quote, unquote, urljoin, urlsplit
@@ -910,6 +911,54 @@ def execution_settings(sources, methods, labels, language):
     )
 
 
+def worker_resources(methods, rows, labels, language):
+    """Compare only native worker counters, retaining each metric's missing population."""
+    samples = {method: [[], []] for method in methods}
+    counts = Counter(row["method"] for row in rows)
+    for row in rows:
+        response = row.get("response")
+        usage = response.get("usage") if isinstance(response, dict) else None
+        if row["method"] not in samples or not isinstance(usage, dict):
+            continue
+        cpu = usage.get("process_cpu_seconds")
+        memory = usage.get("peak_rss_native_units")
+        scale = {"bytes": 1 / 1048576, "KiB": 1 / 1024}.get(usage.get("rss_unit"))
+        for index, value in enumerate((cpu, memory)):
+            if (type(value) in (int, float) and math.isfinite(value) and value >= 0
+                    and (index == 0 or scale is not None)):
+                samples[row["method"]][index].append(value if index == 0 else value * scale)
+    if not any(values for pair in samples.values() for values in pair):
+        return ""
+    means = [[statistics.mean(samples[m][i]) if samples[m][i] else None for m in methods]
+             for i in range(2)]
+    records = [[esc(labels.get(m, m)),
+                f"{len(samples[m][0])} / {counts[m] - len(samples[m][0])}",
+                record_metric(means[0][i]),
+                f"{len(samples[m][1])} / {counts[m] - len(samples[m][1])}",
+                record_metric(means[1][i])] for i, m in enumerate(methods)]
+    leaders = []
+    for metric, values in zip(("worker_cpu_lowest", "worker_memory_lowest"), means, strict=True):
+        observed = [value for value in values if value is not None]
+        names = " / ".join(labels.get(m, m) for m, value in zip(methods, values, strict=True)
+                           if observed and value == min(observed))
+        leaders.append(message(metric, language, methods=esc(names or "—")))
+    return ("<section data-worker-resources><h2>" + message("worker_resources_title", language)
+            + "</h2><p data-resource-leaders>" + "; ".join(leaders) + "</p><p>"
+            + message("worker_resources_scope", language) + "</p>"
+            + record_comparison(message("worker_resources_headings", language), records,
+                                {2: ("worker-cpu", "min", means[0]),
+                                 4: ("worker-rss", "min", means[1])}) + "</section>")
+
+
+def check_worker_resources(output, methods, rows, labels, language):
+    expected = BeautifulSoup(worker_resources(methods, rows, labels, language), "html.parser")
+    for route in ("index", "interpretation"):
+        page = BeautifulSoup((output / language / (route + ".html")).read_text(encoding="utf-8"),
+                             "html.parser")
+        if page.select("[data-worker-resources]") != expected.select("[data-worker-resources]"):
+            raise ValueError("Worker resource comparison differs from retained measurements")
+
+
 def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
     """Home-page latency and price, with the measured population kept explicit."""
     price_table(methods, prices, lang, labels)
@@ -1234,7 +1283,8 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             message(
                 "the_model_audited_frozen_sources_annotations_and_complete_native",
                 lang,
-                **dict(value0=esc(audit["reviewer"]["model"])) if zh else dict(),
+                **dict(value0=esc(" / ".join(sorted({r["model"] for r in
+                    audit.get("reviewers", [audit["reviewer"]])})))) if zh else dict(),
             )
         )
         + "</p></section>"
@@ -2130,6 +2180,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 + (message("inspect_complete_audit_and_reference_changes", lang))
                 + "</a></p>"
             )
+        resources = worker_resources(methods, rows, names, lang)
+        for route in ("index", "interpretation"):
+            bodies[route] += resources
         if cohort:
             bodies["protocol"] += (
                 "<h2>"
@@ -2898,6 +2951,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             home_view = BeautifulSoup(
                 (output / lang / "index.html").read_text(encoding="utf-8"), "html.parser"
             )
+            check_worker_resources(output, methods, rows, names, lang)
             expected = BeautifulSoup(
                 operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
                 "html.parser",
@@ -2948,6 +3002,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             )
             check_price_coverage(output, methods, manifest.get("prices", {}), lang, names)
             rows = [r for method in methods for r in data[method].values()]
+            check_worker_resources(output, methods, rows, names, lang)
             expected_home = BeautifulSoup(
                 operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
                 "html.parser",
@@ -4155,6 +4210,12 @@ def build_record_cohort(output, content, *, home, language, profile):
     bodies["interpretation"] = (
         "<section data-interpretation-comparison>" + core + "</section>" + bodies["interpretation"]
     )
+    resources = worker_resources(
+        methods, [row for m in methods for row in data["methods"][m]["results"].values()],
+        labels, language,
+    )
+    for route in ("index", "interpretation"):
+        bodies[route] += resources
     for method in methods:
         current = stats[method]
         chapter = '<section id="' + esc(method) + '"><h2>' + esc(labels[method]) + "</h2>"
@@ -4442,6 +4503,12 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     raise ValueError(
                         "Record report is missing a source, comparison or result detail"
                     )
+    check_worker_resources(
+        output, manifest["planned_methods"],
+        [row for method in manifest["planned_methods"]
+         for row in read_json(output / "public-evidence" / (method + ".json")).values()],
+        manifest["method_labels"], "zh",
+    )
     expected_operations = BeautifulSoup(
         operating_metrics(
             manifest["planned_methods"],

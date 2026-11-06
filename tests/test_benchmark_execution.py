@@ -327,3 +327,46 @@ def test_invalid_inventory_fails_before_any_dispatch(jobs):
     with pytest.raises(ValueError):
         run_jobs(jobs, called.append, lambda *args: None, policy())
     assert not called
+
+
+def test_rejected_submission_cleans_only_the_undispatched_preparation_and_drains_calls():
+    from concurrent.futures import CancelledError
+    from concurrent.futures.thread import BrokenThreadPool
+    from harness import benchmark_execution
+
+    reserved, retained, cancelled, dispatched = set(), [], [], []
+    release = threading.Event()
+
+    class RejectSecond(benchmark_execution.ThreadPoolExecutor):
+        submissions = 0
+
+        def submit(self, *args, **kwargs):
+            self.submissions += 1
+            if self.submissions == 2:
+                release.set()
+                raise BrokenThreadPool('Rejected before dispatch')
+            return super().submit(*args, **kwargs)
+
+    def prepare(job):
+        reserved.add(job.key)
+        return job.payload
+
+    def execute(value):
+        dispatched.append(value)
+        assert release.wait(3)
+        return value
+
+    def commit(job, value, error):
+        reserved.remove(job.key)
+        if isinstance(error, CancelledError):
+            cancelled.append(job.key)
+        else:
+            assert error is None
+            retained.append(value)
+
+    with patch.object(benchmark_execution, 'ThreadPoolExecutor', RejectSecond):
+        with pytest.raises(BrokenThreadPool):
+            run_jobs([Job(str(i), ('api-a',), i) for i in range(3)], execute, commit,
+                     policy(max_in_flight=2), prepare=prepare)
+    assert dispatched == retained == [0]
+    assert cancelled == ['1'] and reserved == set()

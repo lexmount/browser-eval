@@ -551,7 +551,7 @@ def run_evaluation(
     case_admission: Any | None = None,
     call_order: str = "provider",
     execution_context: dict | None = None,
-    stop_requested: Any | None = None,
+    stop_event: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     for name, value, minimum in (
@@ -721,10 +721,10 @@ def run_evaluation(
     result_lock = threading.Lock()
     with results_path.open("w", encoding="utf-8") as results_file:
         completed_by_provider = {}
-        operator_stopped = threading.Event()
+        operator_stopped = stop_event if stop_event is not None else threading.Event()
 
         def cancelled():
-            return operator_stopped.is_set() or (stop_requested is not None and stop_requested())
+            return operator_stopped.is_set()
         case_positions = {case.id: index for index, case in enumerate(cases, 1)}
 
         def run_provider(provider: Provider, selected_cases=None, selected_runs=None) -> bool:

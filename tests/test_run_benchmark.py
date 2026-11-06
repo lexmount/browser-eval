@@ -79,6 +79,55 @@ class BenchmarkSelectionTests(unittest.TestCase):
         self.assertEqual(manifest['attempt_count'], 1)
         self.assertFalse((self.output / 'execution.json').exists())
 
+    def test_quarantine_reaches_other_outer_workers_before_persistence_finishes(self):
+        import threading
+        import time
+        from types import SimpleNamespace
+        from harness.web_fetch import runner
+        from harness.web_fetch.providers.base import ProcessCleanupError
+        from harness.web_fetch.runner import IncompleteEvaluationError
+
+        held, release = threading.Event(), threading.Event()
+        owner = threading.local()
+        events, observed, calls = {}, [], []
+        actual = run_benchmark.run_evaluation
+
+        def evaluate(**kwargs):
+            events[kwargs['providers'][0].name] = kwargs.get('stop_event')
+            return actual(**kwargs)
+
+        def sleep(seconds):
+            if getattr(owner, 'name', None) == 'fixture-one':
+                held.set()
+                self.assertTrue(release.wait(3))
+
+        def fetch(provider, case, *args, **kwargs):
+            owner.name = provider.name
+            calls.append((provider.name, case.id))
+            if provider.name == 'fixture-one':
+                raise ProcessCleanupError('Worker remains alive')
+            try:
+                self.assertTrue(held.wait(3))
+                event = events[provider.name]
+                observed.append(event is not None and event.is_set())
+            finally:
+                release.set()
+            return ProviderResult(True, 'content'), None
+
+        clock = SimpleNamespace(monotonic=time.monotonic, perf_counter=time.perf_counter,
+                                sleep=sleep, time=time.time)
+        with patch.object(run_benchmark, 'run_evaluation', side_effect=evaluate), \
+                patch.object(runner, 'fetch_with_deadline', side_effect=fetch), \
+                patch.object(runner, 'time', clock):
+            with self.assertRaises((IncompleteEvaluationError, KeyboardInterrupt)):
+                self.run_main([
+                    '--dataset', str(self.root / 'evaluation/dataset.json'),
+                    '--provider-config', str(self.root / 'configs/providers.example.json'),
+                    '--providers', 'fixture-one,fixture-two', '--workers', '2', '--measure-only',
+                ])
+        self.assertEqual(observed, [True])
+        self.assertEqual(sorted(calls), [('fixture-one', 'web-a'), ('fixture-two', 'web-a')])
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

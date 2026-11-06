@@ -136,6 +136,7 @@ def main(argv=None):
     p.add_argument("--prior", type=Path, help="Completed audit whose unchanged outputs are reused")
     p = sub.add_parser("adjudicate")
     p.add_argument("--additional-prior", type=Path, action="append", default=[])
+    p.add_argument("--resolved-adjudication", type=Path, action="append", default=[])
     p.add_argument("--prior", type=Path, required=True)
     p.add_argument("--work", type=Path, required=True)
     p.add_argument("--rules", type=Path, required=True)
@@ -323,7 +324,8 @@ def main(argv=None):
         except ValueError as error:
             parser.error(str(error))
         prepare_adjudication(
-            args.prior, args.work, args.rules, additional_priors=args.additional_prior
+            args.prior, args.work, args.rules, additional_priors=args.additional_prior,
+            resolved_adjudications=args.resolved_adjudication,
         )
         print(run_review(args.work, model=args.model, workers=args.workers))
     elif args.command == "audit-assemble":

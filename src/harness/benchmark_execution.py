@@ -15,6 +15,7 @@ import signal
 import threading
 from concurrent.futures import (
     FIRST_COMPLETED,
+    BrokenExecutor,
     CancelledError,
     Future,
     ProcessPoolExecutor,
@@ -272,16 +273,27 @@ def run_jobs(
                         if any(active[r] >= policy.resources[r] for r in job.resources):
                             continue
                         payload = prepare(job) if prepare else job.payload
-                        with _retain_call_ownership():
-                            if failure is not None or stop_event.is_set() or should_stop():
-                                if prepare is not None:
-                                    commit(job, None, CancelledError("Stopped before dispatch"))
-                                break
+                        if failure is not None or stop_event.is_set() or should_stop():
+                            if prepare is not None:
+                                commit(job, None, CancelledError("Stopped before dispatch"))
+                            break
+                        try:
                             future = executor.submit(execute, payload)
-                            inflight[future] = job
-                            for resource in job.resources:
-                                active[resource] += 1
-                            pending.remove(job)
+                        except RuntimeError as error:
+                            rejected = isinstance(error, BrokenExecutor) or str(error) in {
+                                "cannot schedule new futures after shutdown",
+                                "cannot schedule new futures after interpreter shutdown",
+                            }
+                            if rejected and prepare is not None:
+                                try:
+                                    commit(job, None, CancelledError("Submission rejected"))
+                                finally:
+                                    raise error
+                            raise
+                        inflight[future] = job
+                        for resource in job.resources:
+                            active[resource] += 1
+                        pending.remove(job)
             except BaseException as error:
                 stop(error)
             if not inflight:

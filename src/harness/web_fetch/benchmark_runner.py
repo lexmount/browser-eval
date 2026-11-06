@@ -131,12 +131,12 @@ def main(argv=None):
         batches=[];records=[]
         for scope,path,config,selected in scopes:
             if stopped.is_set():
-                raise KeyboardInterrupt()
+                raise IncompleteEvaluationError('Provider admission stopped')
             selected_ids = {case.id for case in selected}
             meta={**dataset,'cases':[c for c in dataset['cases'] if c['id'] in selected_ids]}
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
-            rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries,execution_context=execution_policy,stop_requested=stopped.is_set)
+            rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries,execution_context=execution_policy,stop_event=stopped)
             if json.loads((folder/'manifest.json').read_text(encoding='utf-8')).get('quarantined_providers'):
                 stopped.set()
                 raise IncompleteEvaluationError('Unresolved worker quarantines further provider calls')

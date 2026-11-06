@@ -525,6 +525,12 @@ For repaired product calls, `adjudicate --additional-prior /absolute/supplementa
 includes new reference disputes alongside the original review. Assembly requires
 adjudication of either review's disputes and rejects unrelated predecessor reviews.
 
+Product and record cohorts can combine disjoint participant reviews through
+`audit-assemble --additional-review`. To reuse completed reference adjudications,
+pass `adjudicate --resolved-adjudication /absolute/completed-adjudication`.
+Only identical status-and-value proposals are skipped; new claims still require
+adjudication. The retained packet and review hashes protect both forms of reuse.
+
 
 Shared record instructions are frozen in the run contract and appended to each
 field's schema description, including APIs that accept only property definitions.
