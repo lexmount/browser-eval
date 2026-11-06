@@ -536,3 +536,34 @@ def test_firecrawl_identity_describes_the_actual_extraction_endpoint(
         else:
             with pytest.raises(ValueError, match='backend endpoint'):
                 self_hosted.runtime_identity('firecrawl')
+
+
+def test_host_move_rejects_the_frozen_runtime_without_exposing_boot_id(tmp_path, monkeypatch):
+    import json
+
+    from harness.web_extract import self_hosted
+
+    boot = tmp_path / 'boot-id'
+    boot.write_bytes(b'original-host-generation')
+    monkeypatch.setattr(self_hosted, 'HOST_BOOT_ID_PATH', boot)
+    monkeypatch.setattr(self_hosted, 'installed_environment_sha256', lambda: 'a' * 64)
+    monkeypatch.setattr(self_hosted.importlib.metadata, 'version', lambda _: 'same-version')
+    monkeypatch.setenv('EXTRACTION_MODEL', 'fixture')
+    monkeypatch.setenv('EXTRACTION_MODEL_BASE', 'https://model.example')
+    monkeypatch.setenv('SNAPSHOT_ORIGINS', 'https://snapshots.example')
+    self_hosted.local_runtime_identity.cache_clear()
+    try:
+        frozen = self_hosted.runtime_identity('crawl4ai')
+        value = {'engine': 'crawl4ai', 'url': 'https://snapshots.example/p',
+                 'schema': SCHEMA, 'expected_runtime': frozen}
+        self_hosted.validate_input(value)
+        assert 'original-host-generation' not in json.dumps(frozen)
+        boot.write_bytes(b'another-host-generation')
+        self_hosted.local_runtime_identity.cache_clear()
+        with pytest.raises(ValueError, match='frozen extraction configuration'):
+            self_hosted.validate_input(value)
+        boot.write_bytes(b'original-host-generation')
+        self_hosted.local_runtime_identity.cache_clear()
+        self_hosted.validate_input(value)
+    finally:
+        self_hosted.local_runtime_identity.cache_clear()

@@ -79,6 +79,11 @@ Use one admission owner for a shared resource scope; independent command launche
 must not each assume they own its full capacity.
 
 Choose capacities from the preflight, provider limits and deployment allocations.
+For controlled hosts, bind the actual host generation and CPU class alongside
+CPU and memory quotas. Keep the tested placement stable. A move to another host
+invalidates that admission assessment and needs a new bounded preflight; equal
+quotas alone do not establish equal compute performance. When a provider hides
+its execution host, retain that limit instead of inventing a host identity.
 Limit both running jobs and submitted futures. An unexplained global serial loop
 is invalid. A shared mutable WebArena stack is a valid exclusive resource;
 additional concurrency requires independent containers, networks, ports and

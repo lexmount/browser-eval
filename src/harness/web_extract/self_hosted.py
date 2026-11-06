@@ -26,6 +26,7 @@ ENGINES = {
     "firecrawl": None,
 }
 KEEPALIVE_SECONDS = 5
+HOST_BOOT_ID_PATH = Path("/proc/sys/kernel/random/boot_id")
 
 
 def validate_input(value):
@@ -114,6 +115,12 @@ def browser_version(executable, _file_identity):
     return subprocess.check_output([executable, "--version"], text=True, timeout=5).strip()
 
 
+def host_boot_sha256():
+    """Identify a controlled Linux host generation without exposing its raw boot ID."""
+    return (hashlib.sha256(HOST_BOOT_ID_PATH.read_bytes()).hexdigest()
+            if HOST_BOOT_ID_PATH.is_file() else None)
+
+
 @lru_cache(maxsize=len(ENGINES))
 def local_runtime_identity(engine):
     base = urlsplit(os.environ["EXTRACTION_MODEL_BASE"])
@@ -141,6 +148,7 @@ def local_runtime_identity(engine):
         or installed_environment_sha256(),
         "environment_binding": "installed-files/1",
         "bytecode_cache": "precompiled-installed-files",
+        "host_boot_sha256": host_boot_sha256(),
         "native_thread_limits": {
             key: os.environ.get(key) for key in (
                 "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"

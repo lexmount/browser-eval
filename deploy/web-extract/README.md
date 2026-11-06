@@ -40,7 +40,9 @@ upstream manifest digest; image content is verified by that digest.
 
 Each request runs in a fresh supervised process. Its browser and model client are
 closed within that request, including detached browser cleanup after crashes and
-timeouts. Four CPU cores and one thread per BLAS library avoid the earlier CPU
+timeouts. For latency runs, keep the API and browser on their preflight-qualified nodes or CPU classes.
+Its runtime identity hashes the Linux host boot ID, so rescheduling cannot silently
+reuse an old frozen configuration. Four CPU cores and one thread per BLAS library avoid the earlier CPU
 quota and oversubscription bottlenecks. Stagehand exposes browser, navigation and
 extraction times in `native.timings`; model reasoning settings remain unchanged.
 Runtime identities bind installed source, native libraries and package data by
