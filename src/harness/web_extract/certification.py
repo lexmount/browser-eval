@@ -111,8 +111,6 @@ def create_plan(
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
         raise ValueError("Select distinct complete extraction interfaces")
-    adapter = benchmark_config(home)["adapter"]
-    native_routes = getattr(adapter, "PARTICIPANT_OPTIONS", {})
     if benchmark_config(home)["adapter"] is None and any(
         registry[method].get("requires_custom_schema") for method in methods
     ):
@@ -158,10 +156,6 @@ def create_plan(
         ExecutionPolicy.from_dict(value)
         execution[method] = value
     validate_dataset(home)
-    if native_routes and any(m not in native_routes for m in methods):
-        raise ValueError(
-            "Selected interface does not support this benchmark's frozen input contract"
-        )
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     plan = {
         "schema": "archived-product-full-cohort/1",
@@ -202,9 +196,7 @@ def create_plan(
         for participant in plan["participants"].values():
             participant["maximum_physical_calls"] = len(truth) + 20
     if snapshots is None and any(
-        m not in native_routes
-        and (registry[m]["input"] == "url" or "input_route" in registry[m]["options"])
-        for m in methods
+        registry[m]["input"] == "url" or "input_route" in registry[m]["options"] for m in methods
     ):
         raise ValueError(
             "URL-capable interfaces require --snapshots; upload-only methods may omit it"
@@ -242,20 +234,8 @@ def create_plan(
         if participant["input"] != effective_input:
             raise ValueError("Native options conflict with the frozen participant input route")
     if adapter is not None:
-        if native_routes:
-            if snapshots is not None:
-                raise ValueError("This cohort uses uploaded frozen content, without URL hosting")
-            for method in methods:
-                plan["participants"][method]["native_options"] = native_routes[method]
-                plan["participants"][method]["input"] = native_routes[method].get(
-                    "input_route", registry[method]["input"]
-                )
-            plan["input_contract"] = adapter.INPUT_CONTRACT
         for case in truth.values():
-            schema = instruction_schema(
-                adapter.task_schema(home, case),
-                getattr(adapter, "INSTRUCTIONS", RECORD_INSTRUCTIONS),
-            )
+            schema = instruction_schema(adapter.task_schema(home, case), RECORD_INSTRUCTIONS)
             for method in methods:
                 validate_instruction_schema(method, schema)
     if require_execution_assessment:

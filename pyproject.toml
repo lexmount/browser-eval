@@ -80,10 +80,6 @@ web-extract-eval = [
   "jsonschema>=4.25,<5",
   "requests>=2.32,<3",
   "lxml>=5.3.0",
-  "pyarrow>=19,<24",
-  "sacrebleu>=2.5,<3",
-  "orjson>=3.10,<4",
-  "jsonschema-rs>=0.29,<1",
 ]
 
 [tool.pytest.ini_options]
