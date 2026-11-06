@@ -1583,3 +1583,31 @@ def test_concurrent_snapshot_users_share_one_complete_initial_byte_audit(tmp_pat
         first, second = pool.map(user, range(2))
     assert first == second
     assert len(observed) == 2  # One HTML page and one resource, not two full audits.
+
+
+def test_invalid_resource_stops_queued_snapshot_downloads(tmp_path, monkeypatch):
+    import time
+
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    path = home / "dataset/manifest.json"
+    manifest = pipeline.read_json(path)
+    for index in range(20):
+        relative = f"assets/other/{index:02}.bin"
+        asset = home / "dataset" / relative
+        asset.parent.mkdir(parents=True, exist_ok=True)
+        asset.write_bytes(b"captured-image")
+        manifest["files"][relative] = {"sha256": pipeline.digest(asset.read_bytes())}
+    pipeline.save_json(path, manifest)
+    called = []
+
+    def fetch(url, **options):
+        called.append(url)
+        if url.endswith("/image.bin"):
+            return SimpleNamespace(status=404, body=b"", url=url)
+        time.sleep(0.02)
+        return SimpleNamespace(status=200, body=b"captured-image", url=url)
+
+    monkeypatch.setattr(snapshots, "snapshot_request", fetch)
+    with pytest.raises(ValueError, match="resource differs"):
+        snapshots.verify_resources(home, "https://frozen.example", workers=1)
+    assert len(called) < 21
