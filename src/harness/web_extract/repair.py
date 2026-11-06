@@ -31,7 +31,15 @@ from harness.web_extract.pipeline import (
 from harness.web_fetch.config import load_runtime_env
 
 
+def require_archived(home):
+    if input_mode(home) == "live":
+        raise ValueError(
+            "Live URL cohorts must resume their original certified run, not an archived repair"
+        )
+
+
 def create_plan(home, content, output, options, fixture_base, selected=None):
+    require_archived(home)
     require_external_output(output)
     require_external_output(home)
     home = Path(home).resolve()
@@ -196,16 +204,20 @@ def artifact(directory, entry):
     return read_json(path)
 
 
+def fixture_identity(rows):
+    return [{k: v for k, v in row.items() if k != "qualification_fetch_attempts"} for row in rows]
+
+
 def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
     if snapshot_manifest is not None:
         from harness.web_extract.snapshots import verify_bound_manifest
 
         return verify_bound_manifest(home, snapshot_manifest, base, case_ids=cases, suffix=suffix)
+    from harness.web_extract.snapshots import verify_resources
+
     return [
-        {key: item[key] for key in ("case_id", "url", "sha256")}
-        for cid in cases
-        for item in [qualify_fixture(home, base, cid, suffix=suffix, timeout=45)]
-    ]
+        qualify_fixture(home, base, cid, suffix=suffix, timeout=45) for cid in cases
+    ] + verify_resources(home, base)
 
 
 def run(home, profile, method, destination):
@@ -251,6 +263,7 @@ def run(home, profile, method, destination):
 
 
 def collect(home, profile, method, destination):
+    require_archived(home)
     validate_dataset(home)
     plan = read_json(profile)
     if plan.get("fixture_base") is not None:
@@ -305,6 +318,7 @@ def collect(home, profile, method, destination):
         ),
         "access_retry_limit": plan.get("access_retries_after_repair", 1),
         "access_policy": ACCESS_POLICY,
+        "fixture_verification": "served-bytes/1",
         "code_sha256": code,
         "code_snapshots": False,
         **bindings,
@@ -349,7 +363,7 @@ def collect(home, profile, method, destination):
             os.close(descriptor)
     receipt = destination / "fixture-before.json"
     if receipt.exists():
-        if read_json(receipt) != before:
+        if fixture_identity(read_json(receipt)) != fixture_identity(before):
             raise ValueError("Repair fixture receipt changed before dispatch")
     else:
         save_json(receipt, before, exclusive=True)
@@ -379,7 +393,7 @@ def collect(home, profile, method, destination):
         if needs_fixture
         else []
     )
-    if before != after:
+    if fixture_identity(before) != fixture_identity(after):
         raise ValueError("Repair fixtures changed")
     validate_dataset(home)
     if plan["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
@@ -484,14 +498,20 @@ def verify_repair(home, source, repair):
             raise ValueError("Repair fixture receipt changed")
     before = read_json(directory / "fixture-before.json")
     after = read_json(directory / "fixture-after.json")
-    if before != after:
+    if fixture_identity(before) != fixture_identity(after):
         raise ValueError("Repair fixture qualification differs")
     needs_fixture = requires_fixture(participant["method"], participant["native_options"])
-    if needs_fixture and participant.get("snapshot_manifest"):
-        from harness.web_extract.snapshots import manifest_receipt
+    if needs_fixture:
+        from harness.web_extract.snapshots import validate_fixture_receipts
 
-        expected = manifest_receipt(
-            home, participant["snapshot_manifest"], participant["snapshot_manifest"]["fixture_base"]
+        validate_fixture_receipts(
+            home,
+            before,
+            contract["fixture_base"],
+            participant["case_ids"],
+            suffix=participant.get("fixture_suffix", ""),
+            bound=participant.get("snapshot_manifest"),
+            allow_legacy_manifest="fixture_verification" not in contract,
         )
         if participant["snapshot_manifest"].get("hosting_provider") == "external":
             expected += [

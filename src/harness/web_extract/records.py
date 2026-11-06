@@ -367,6 +367,9 @@ def qualify_live(home, case_ids, *, timeout=30):
             source_url=response.url,
             encoding=content_type.get_content_charset(),
         )
+        if missing and access_interstitial(response.body):
+            attempts[-1]["access_interstitial"] = True
+            return unavailable(cid, attempts)
         if missing:
             raise ValueError("Live reference no longer supported: " + cid + "; " + str(missing[:3]))
         return {
@@ -396,6 +399,32 @@ def qualify_live(home, case_ids, *, timeout=30):
     with ThreadPoolExecutor(max_workers=4) as pool:
         rows = [row for group in pool.map(origin_cases, origins.values()) for row in group]
     return sorted(rows, key=lambda row: row["case_id"])
+
+
+def access_interstitial(raw):
+    """Recognize affirmative gate markup, not articles discussing access challenges."""
+    from lxml import html
+    from lxml.etree import ParserError
+
+    try:
+        tree = html.fromstring(raw)
+    except (ParserError, ValueError):
+        return False
+    title = " ".join(tree.xpath("//title/text()")).strip().lower()
+    challenge_title = title in {
+        "just a moment...",
+        "attention required! | cloudflare",
+        "verify you are human",
+        "access denied",
+    }
+    markers = tree.xpath(
+        "//*[@id='challenge-form' or @id='cf-challenge-running'] | "
+        "//script[contains(@src, '/cdn-cgi/challenge-platform/')]"
+    )
+    login = title in {"sign in", "log in", "login", "authentication required"} and tree.xpath(
+        "//form//input[@type='password']"
+    )
+    return bool((challenge_title and markers) or login)
 
 
 def reference_support(reference, raw, *, source_url=None, encoding=None, document_base=None):
@@ -480,7 +509,10 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
             links.append(urljoin(base, value))
         except ValueError:
             continue
-    url_context = {**reference, "document_base_url": reference.get("document_base_url", base)}
+    url_context = {
+        **reference,
+        "document_base_url": reference.get("document_base_url", reference["url"]),
+    }
     missing = []
     for field, values in reference["values"].items():
         counts = reference.get("source_value_counts", {}).get(field) or dict(Counter(values))

@@ -184,17 +184,30 @@ def verify(homes, binding, *, workers=8):
     }
 
 
+def snapshot_request(url, **options):
+    """Bound retries for transient transport errors during static input verification."""
+    import time
+
+    from harness.web_fetch.providers.http_client import request
+
+    for attempt in range(3):
+        try:
+            return request(url, **options)
+        except OSError:
+            if attempt == 2:
+                raise
+            time.sleep(attempt + 1)
+
+
 def verify_resources(home, base):
     """External services must serve the declared resource bytes, not only their hashes."""
     from concurrent.futures import ThreadPoolExecutor
-
-    from harness.web_fetch.providers.http_client import request
 
     assets = resource_inventory(home)
 
     def one(name):
         url = base.rstrip("/") + "/" + quote(name, safe="/")
-        response = request(
+        response = snapshot_request(
             url,
             headers={"Accept-Encoding": "identity"},
             timeout=60,
@@ -202,8 +215,15 @@ def verify_resources(home, base):
         )
         if response.status != 200 or bytes_sha256(response.body) != assets[name]:
             raise ValueError("Remote snapshot resource differs: " + name)
-        if response.url != url:
-            raise ValueError("Use the canonical resource URL without redirects")
+        canonical = {url}
+        if url.endswith(".html"):
+            canonical.add(url[:-5])
+        if url.endswith("/index.html"):
+            canonical.add(url.removesuffix("index.html"))
+        if response.url not in canonical:
+            raise ValueError(
+                "Use the canonical resource URL without redirects: " + url + " -> " + response.url
+            )
         return {
             "case_id": "resource:" + name,
             "url": url,
@@ -332,7 +352,9 @@ def publication_metadata(home, binding, verification):
         if len(actual) != len(expected) or set(actual) != expected:
             raise ValueError("Snapshot publication requires every matching verified page")
         snapshot = binding.get("snapshot_manifest")
-    if not managed_cloudflare(binding, selected["fixture_base"]):
+    if managed_cloudflare(binding, selected["fixture_base"]):
+        deployment_proof(home, binding, selected["fixture_base"])
+    else:
         if len(actual) != len(expected) or set(actual) != expected:
             raise ValueError("Snapshot publication requires every matching verified page")
         expected_resources = {
@@ -814,6 +836,12 @@ def host(
         raise ValueError("Unknown snapshot hosting provider")
     binding["hosting_provider"] = provider
     binding["hosting_state"] = state
+    if provider == "cloudflare":
+        base = next(iter(binding["datasets"].values()))["fixture_base"]
+        if managed_cloudflare(binding, base):
+            deployment_proof(home, binding, base)
+        else:
+            raise ValueError("Cloudflare immutable deployment identity could not be verified")
     binding["verification"] = receipt
     save_json(output, binding, exclusive=not reserved)
     return {
@@ -934,6 +962,117 @@ def managed_cloudflare(binding, origin):
     return True
 
 
+def deployment_proof(home, binding, fixture_base):
+    """Audit immutable bytes once; cached proof never replaces the HF input authority."""
+    from concurrent.futures import ThreadPoolExecutor
+    from datetime import UTC, datetime
+
+    from harness.web_extract.pipeline import data_home, unsafe_parents
+
+    version, cases = inventory(home)
+    identity = binding["cloudflare"]
+    proof = {
+        "scope": "deployment",
+        "case_id": "deployment-bytes",
+        "schema": "web-extract-deployment-bytes/1",
+        "fixture_base": fixture_base,
+        "cloudflare": identity,
+        "html_inventory_sha256": version,
+        "page_count": len(cases),
+        "resource_count": len(resource_inventory(home)),
+    }
+    path = data_home() / "snapshot-verifications" / identity["deployment_id"] / (version + ".json")
+    if path.is_symlink() or unsafe_parents(path):
+        raise ValueError("Unsafe snapshot verification cache")
+    if path.exists():
+        cached = read_json(path)
+        if cached == {**proof, "verified_at": cached.get("verified_at")} and cached.get(
+            "verified_at"
+        ):
+            return cached
+        raise ValueError("Snapshot verification cache differs from the immutable deployment")
+
+    def check_page(cid):
+        url = fixture_base + "/" + cid
+        response = snapshot_request(
+            url,
+            headers={"Accept-Encoding": "identity"},
+            timeout=60,
+            max_bytes=(home / "dataset/html" / (cid + ".html")).stat().st_size,
+        )
+        if (
+            response.status != 200
+            or response.url != url
+            or bytes_sha256(response.body) != cases[cid]
+        ):
+            raise ValueError("Remote snapshot page differs: " + cid)
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        list(pool.map(check_page, cases))
+    verify_resources(home, fixture_base)
+    proof["verified_at"] = datetime.now(UTC).isoformat()
+    save_json(path, proof)
+    return proof
+
+
+def validate_fixture_receipts(
+    home, rows, fixture_base, case_ids, *, suffix="", bound=None, allow_legacy_manifest=False
+):
+    """Check retained online observations offline, including archived minimal receipts."""
+    remaining = list(rows)
+    if bound is not None:
+        expected = manifest_receipt(home, bound, fixture_base)
+        if remaining[:1] != expected:
+            raise ValueError("Repair dataset snapshot qualification differs")
+        remaining = remaining[1:]
+    if len(remaining) == 1 and remaining[0].get("scope") == "deployment":
+        row = remaining[0]
+        version, cases = inventory(home)
+        if (
+            bound is None
+            or row.get("schema") != "web-extract-deployment-bytes/1"
+            or row.get("case_id") != "deployment-bytes"
+            or row.get("fixture_base") != fixture_base
+            or row.get("cloudflare") != bound.get("cloudflare")
+            or row.get("html_inventory_sha256") != version
+            or row.get("page_count") != len(cases)
+            or row.get("resource_count") != len(resource_inventory(home))
+            or not row.get("verified_at")
+        ):
+            raise ValueError("Repair deployment byte proof differs")
+        return
+    # Historical asset-free managed receipts consisted solely of a dataset manifest.
+    if (
+        allow_legacy_manifest
+        and not remaining
+        and bound
+        and bound.get("hosting_provider") != "external"
+        and not resource_inventory(home)
+    ):
+        return
+    expected = {
+        cid: (
+            fixture_base + "/" + cid + suffix,
+            bytes_sha256((home / "dataset/html" / (cid + ".html")).read_bytes()),
+        )
+        for cid in case_ids
+    }
+    expected.update(
+        {
+            "resource:" + name: (fixture_base + "/" + quote(name, safe="/"), sha)
+            for name, sha in resource_inventory(home).items()
+        }
+    )
+    actual = {}
+    for row in remaining:
+        cid = row.get("case_id")
+        if cid in actual or row.get("http_status", 200) != 200:
+            raise ValueError("Repair fixture qualification is duplicated or failed")
+        actual[cid] = (row.get("url"), row.get("sha256"))
+    if actual != expected:
+        raise ValueError("Repair fixture qualification source changed or is incomplete")
+
+
 def verify_bound_manifest(home, bound, fixture_base, *, case_ids=None, suffix=""):
     """Recheck a frozen dataset manifest before collection or failure repair."""
     manifest_url = bound.get("manifest_url", "")
@@ -945,8 +1084,10 @@ def verify_bound_manifest(home, bound, fixture_base, *, case_ids=None, suffix=""
     actual = {k: v for k, v in receipt.items() if k not in {"hosting_provider", "cloudflare"}}
     if actual != expected or receipt["fixture_base"] != fixture_base:
         raise ValueError("Frozen dataset snapshot manifest changed")
-    rows = manifest_receipt(home, receipt, fixture_base)
-    if not managed_cloudflare(bound, origin):
+    rows = manifest_receipt(home, bound, fixture_base)
+    if managed_cloudflare(bound, origin):
+        rows.append(deployment_proof(home, bound, fixture_base))
+    else:
         from harness.web_extract.pipeline import qualify_fixture
 
         _, cases = inventory(home)

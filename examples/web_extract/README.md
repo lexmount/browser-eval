@@ -106,7 +106,10 @@ to select another HF edition; its full resolved commit is frozen in the result.
 Discovery searches historical Cloudflare deployments as well as the current one.
 Each managed snapshot has one public `snapshots.json` declaring the HF dataset
 repository, full source commit and complete HTML/file inventory hashes. Discovery
-checks this one manifest rather than downloading individual pages. The result
+uses this manifest to identify the dataset version. On first use, it also hashes
+every served page and resource. The verified deployment ID and whole-input hash
+are cached under the configured data home; later runs reuse that proof only after
+Cloudflare confirms the same immutable deployment. The result
 records both the selected HF commit and the snapshot's source commit; an identical
 HTML inventory allows reuse across metadata-only HF revisions. Snapshots without
 this declaration require an approved new deployment. Matching inputs are
@@ -126,8 +129,10 @@ can share the plan. A plan containing only upload-only methods can omit the bind
 the frozen whole-dataset manifest and its hash; a changed manifest blocks certification.
 External hosts additionally have every selected page hash-checked before and after calls.
 An unconfirmed Cloudflare binding follows the same byte checks. The management API
-must confirm the immutable deployment identity before a whole-manifest check can
-replace HTML and resource downloads; a provider label alone grants no exemption.
+must confirm the immutable deployment identity, and a complete byte-verification
+proof must bind that deployment to the selected input inventory, before a
+whole-manifest check can replace HTML and resource downloads. A new deployment
+or changed inventory requires another byte check.
 Page-by-page verification remains an explicit byte-audit command and is not used
 to identify a managed snapshot version.
 Keep raw HTML, original benchmark names, sources and licenses; exclude reference
@@ -723,6 +728,12 @@ timezone-aware `qualification.observed_at`. Preserve a header-only charset in
 and used when checking them. A successfully observed page with unsupported
 reference values still stops certification. Access failure alone does not
 establish that the question or answer is invalid.
+Live cohorts resume through their original certified run. The archived repair
+entry point rejects live inputs so a retry cannot substitute a hosted page or
+HTML upload for the original URL. Explicit HTTP-200 challenge pages count as
+access failures and follow the same bounded capture policy; a changed source
+page with missing answers still fails reference qualification.
+
 Source checks run at most four origins concurrently, with serial requests and a
 one-second pause within each origin. They do not contribute to provider latency.
 Transient network errors and HTTP 408/429/5xx responses allow up to three source

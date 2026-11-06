@@ -477,6 +477,8 @@ def test_hf_publication_atomically_updates_only_card_and_binding():
     api.create_commit.assert_not_called()
 
 
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_cloudflare_discovers_and_reuses_existing_dataset_service(home, tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
@@ -634,6 +636,8 @@ def test_changed_cloudflare_snapshot_requires_approval_and_never_writes(
         deploy.assert_not_called()
 
 
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
@@ -684,6 +688,8 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     "receipt_mode",
     ["normal", "symlink", "unwritable", "persist-error", "broken-pipe", "deploy-error"],
 )
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
     home, tmp_path, monkeypatch, capsys, receipt_mode
 ):
@@ -824,6 +830,8 @@ def test_stale_prepared_inputs_cannot_override_hf_latest(home, tmp_path, monkeyp
         cloudflare.assert_not_called()
 
 
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_selected_hf_edition_finds_matching_historical_deployment(home, tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 

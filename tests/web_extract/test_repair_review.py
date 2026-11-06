@@ -782,7 +782,7 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
     fixture = [
         {
             "case_id": cid,
-            "url": "https://frozen.example/" + cid,
+            "url": "https://frozen.example/" + cid + ".html",
             "sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
         }
     ]
@@ -2104,11 +2104,19 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
     from harness.web_extract import snapshots
 
     home, source, _, rows = parent_inputs(tmp_path)
+    if with_assets:
+        asset = home / "dataset/assets/image.png"
+        asset.parent.mkdir(parents=True)
+        asset.write_bytes(b"image")
+        manifest_path = home / "dataset/manifest.json"
+        data = read_json(manifest_path)
+        data["files"]["assets/image.png"] = {"sha256": digest(b"image")}
+        save_json(manifest_path, data)
     base = "https://frozen.example"
     with patch("harness.web_extract.snapshots.validate_dataset"):
         version, cases = snapshots.inventory(home)
     receipt = {
-        "hosting_provider": "cloudflare",
+        "hosting_provider": hosting,
         "mode": "dataset_manifest",
         "manifest_url": base + "/snapshots.json",
         "manifest_sha256": "a" * 64,

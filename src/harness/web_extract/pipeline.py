@@ -1584,6 +1584,12 @@ def collect_calls(
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     dataset_manifest = read_json(home / "dataset/manifest.json")
     frozen_inputs = dataset_manifest["files"]
+    source_mode = input_mode(home)
+    if contract.get("input_mode", "snapshot") != source_mode:
+        raise ValueError("Collection input mode differs from the frozen dataset")
+    if source_mode == "live":
+        for method in methods:
+            validate_live_route(method, native_options)
     adapter = benchmark_config(home)["adapter"]
     custom_schema = adapter is not None
     if custom_schema:
