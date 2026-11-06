@@ -91,3 +91,36 @@ def test_preflight_rejects_bad_sample_size_before_dispatch(tmp_path):
                 sample_size=True,
             )
         call.assert_not_called()
+
+
+def test_preflight_resume_retains_time_spent_before_interruption(tmp_path):
+    home = create(tmp_path / "example")
+    candidate = tmp_path / "candidate.json"
+    diagnostic, assessment = tmp_path / "sample", tmp_path / "assessment.json"
+    with (
+        patch("harness.web_extract.certification.validate_dataset"),
+        patch("harness.web_extract.snapshots.validate_dataset"),
+    ):
+        snapshot = bind_inputs(home, tmp_path / "snapshots.json")
+        create_plan(home, ["cloudflare-json"], candidate, snapshots=snapshot)
+    with (
+        collection_context(),
+        patch("harness.web_extract.certification.validate_dataset"),
+        patch("harness.web_extract.certification.time.time", return_value=100),
+        patch("harness.web_extract.certification.probe", side_effect=KeyboardInterrupt),
+        pytest.raises(KeyboardInterrupt),
+    ):
+        execution_preflight(
+            home, candidate, "cloudflare-json", diagnostic, assessment, sample_size=2
+        )
+    with (
+        collection_context(),
+        patch("harness.web_extract.certification.validate_dataset"),
+        patch("harness.web_extract.certification.time.time", return_value=200),
+        patch("harness.web_extract.pipeline.qualify_fixture", side_effect=serve_input),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted),
+    ):
+        execution_preflight(
+            home, candidate, "cloudflare-json", diagnostic, assessment, sample_size=2
+        )
+    assert read_json(diagnostic / "execution-preflight.json")["wall_seconds"] >= 100

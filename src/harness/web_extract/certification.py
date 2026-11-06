@@ -336,6 +336,9 @@ def run(
     if sample_case_ids is not None:
         precall["stage"] = "execution_preflight"
         precall["sample_case_ids"] = sample_case_ids
+        precall["started_at_unix"] = (
+            read_json(binding)["started_at_unix"] if binding.exists() else time.time()
+        )
     binding = run_dir / "certification-precall.json"
     if binding.exists():
         original = read_json(binding)
@@ -465,14 +468,16 @@ def execution_preflight(
             if group and len(selected) < sample_size:
                 selected.append(group.pop(0))
     receipt_path = run_dir / "execution-preflight.json"
-    started = time.monotonic()
     result = run(home, profile, method, run_dir, sample_case_ids=selected)
     _, rows = load_run(run_dir)
     if not receipt_path.exists():
         receipt = {
             "schema": "benchmark-execution-preflight/1",
             "completed_calls": len(rows),
-            "wall_seconds": time.monotonic() - started,
+            # Retain elapsed time across interruptions, including operator downtime.
+            # Counting only the resumed tail would underestimate the full matrix.
+            "wall_seconds": time.time()
+            - read_json(run_dir / "certification-precall.json")["started_at_unix"],
             "max_in_flight": policy["max_in_flight"],
             "case_ids": selected,
             "profile_sha256": digest(profile.read_bytes()),

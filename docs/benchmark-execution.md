@@ -42,6 +42,8 @@ The CLI verifies the file hash and summary against that receipt. A projected bud
 overrun requires a revised plan or a concrete `over_budget_reason`. Retain the
 assessment with the frozen collection contract. Its estimate describes the sampled
 configuration and does not establish a benchmark speed ranking.
+For a resumed preflight, retain elapsed time from its first start, including
+interruption downtime. Do not divide the resumed tail's duration by all saved calls.
 
 ## Resource admission
 
