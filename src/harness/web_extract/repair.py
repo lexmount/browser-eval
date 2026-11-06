@@ -506,13 +506,14 @@ def verify_repair(home, source, repair):
     if needs_fixture:
         from harness.web_extract.snapshots import validate_fixture_receipts
 
+        configuration = execution_configuration(contract, directory)
         validate_fixture_receipts(
             home,
             before,
-            contract["fixture_base"],
+            configuration["fixture_base"],
             participant["case_ids"],
-            suffix=participant.get("fixture_suffix", ""),
-            bound=participant.get("snapshot_manifest"),
+            suffix=configuration["fixture_suffix"],
+            bound=configuration["snapshot_manifest"],
             allow_legacy_manifest="fixture_verification" not in contract,
         )
         if participant["snapshot_manifest"].get("hosting_provider") == "external":
@@ -618,7 +619,9 @@ def execution_configuration(contract, directory=None):
             bases = {
                 r["url"].removesuffix("/" + r["case_id"] + suffix)
                 for r in receipts
-                if "case_id" in r
+                if "url" in r
+                and not r.get("case_id", "").startswith("resource:")
+                and r.get("scope") not in {"dataset", "deployment"}
             }
             if len(bases) != 1:
                 raise ValueError("Repair fixture origin is absent or inconsistent")
