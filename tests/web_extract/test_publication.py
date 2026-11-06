@@ -646,7 +646,8 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
         assert staged.slug == "existing"
         assert staged.expected_version == "ver_before"
         assert read_json(target)["expected_version"] == "ver_before"
-        staged.guard()
+        for _ in range(20):
+            staged.guard()
         staged.bind("ver_after")
         return "ver_after"
 
@@ -655,6 +656,7 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
     result = publication.publish(source, target, work, visual, home=tmp_path)
     bound = read_json(target)
     assert result["versionId"] == "ver_after"
+    assert len(audit_calls) == 3  # Initial, frozen upload boundary, final binding.
     assert bound["visibility"] == "private"
     assert bound["slug"] == "existing"
     assert bound["profile"]["path"] == str(tmp_path / "profile.json")

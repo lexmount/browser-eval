@@ -24,6 +24,26 @@ from harness.web_extract.report import (
 )
 
 
+def publication_authorities(profile, home):
+    """Keep the verified private inputs under the shared upload snapshot guard."""
+    profile = Path(profile)
+    instance = read_json(profile)
+    paths = [profile]
+    if instance.get("dataset"):
+        paths.append(Path(home) / "dataset")
+    binding = instance.get("research_report", {}).get("content", {})
+    if binding.get("path"):
+        content = profile.parent / binding["path"]
+        paths.append(content)
+        model = read_json(content)
+        if model.get("audit"):
+            paths.append(content.parent / model["audit"]["path"])
+        for selection in model.get("evidence_runs", []):
+            paths.append(resolve_run_path(home, selection["run"]))
+            paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
+    return tuple(dict.fromkeys(paths))
+
+
 def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     source, target, work = Path(source), Path(target), Path(work)
     require_external_output(target)
