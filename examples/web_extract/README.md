@@ -537,3 +537,29 @@ A repair inherits its parent's instructions and native options unless the plan e
 overrides the native options. The instruction-delivery format is frozen too: historical
 record runs with a different format require a new cohort instead of a mixed repair. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
 resolve from `<home>`, and absolute paths retain their meaning.
+
+## Independent benchmarks in one report
+
+Use the same renderer's `field-extraction-suite` mode to publish several cohorts
+under one entry. Each cohort keeps its own dataset, scorer, result inventory,
+timing population and denominator. The overview does not average quality scores
+across benchmarks. Run the network-free example with:
+
+```sh
+uv run --frozen python -m harness.web_extract.example --output /tmp/extract-suite --mode field-extraction-suite
+uv run --frozen python -m harness.web_extract.cli check /tmp/extract-suite
+```
+
+The suite content lists `cohorts`, each with `id`, `label`, `home`, `content` and
+`profile`. Its child content declares a matching `site_prefix`. The instance
+profile binds the suite content hash as usual. Nested pages, evidence dialogs,
+the English notice and the return link use the same hosted-root navigation.
+The release receipt binds a visual receipt for every child under `cohorts`.
+
+A participant can reuse several disjoint certified scopes through an evidence
+selection's `segments` array. Each segment identifies its original `home`,
+`run`, `plan` and `plan_sha256`. Assembly verifies each original certificate and
+requires identical task definitions, schemas, instructions and HTML for the
+selected IDs. The scopes must cover the declared dataset exactly once. This
+allows an expanded cohort to retain earlier calls without selecting the best
+answer, changing evidence or repeating completed calls.

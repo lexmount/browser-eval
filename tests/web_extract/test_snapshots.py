@@ -358,6 +358,77 @@ def test_publication_requires_complete_same_version_online_verification(home, tm
             snapshots.publication_metadata(home, value, {"pages": row})
 
 
+def test_publishing_cannot_bind_a_different_hf_resource_edition(home, monkeypatch):
+    monkeypatch.setattr(
+        snapshots,
+        "publication_metadata",
+        lambda *a: {
+            "huggingface": {
+                "repository": "owner/data",
+                "input_format": "html-manifest",
+                "input_path": "manifest.json",
+            }
+        },
+    )
+    monkeypatch.setattr(snapshots, "hf_resources", lambda *a: {"assets/one/image.bin": "changed"})
+    monkeypatch.setattr(
+        "harness.benchmarks.publication.publish_snapshot_metadata",
+        lambda *a, **kw: pytest.fail("Mismatching input edition must not be published"),
+    )
+    with pytest.raises(ValueError, match="resources differ"):
+        snapshots.publish(home, {}, {}, revision="a" * 40)
+
+
+@pytest.mark.parametrize(
+    "origin,identity,remote_url,expected",
+    [
+        (
+            "https://1234abcd.example.pages.dev",
+            "1234abcd-0000-0000-0000-000000000000",
+            "https://1234abcd.example.pages.dev",
+            True,
+        ),
+        (
+            "https://external.example",
+            "1234abcd-0000-0000-0000-000000000000",
+            "https://external.example",
+            False,
+        ),
+        (
+            "https://branch.example.pages.dev",
+            "1234abcd-0000-0000-0000-000000000000",
+            "https://branch.example.pages.dev",
+            False,
+        ),
+    ],
+)
+def test_managed_resource_reuse_requires_confirmed_immutable_cloudflare_identity(
+    monkeypatch, origin, identity, remote_url, expected
+):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "harness.web_fetch.config.repository_env",
+        lambda: {"CLOUDFLARE_ACCOUNT_ID": "account", "CLOUDFLARE_API_TOKEN": "test-cf"},
+    )
+    calls = []
+
+    def lookup(url, **kwargs):
+        calls.append(url)
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"success": True, "result": {"id": identity, "url": remote_url}},
+        )
+
+    monkeypatch.setattr("requests.get", lookup)
+    binding = {
+        "hosting_provider": "cloudflare",
+        "cloudflare": {"account_id": "account", "project": "example", "deployment_id": identity},
+    }
+    assert snapshots.managed_cloudflare(binding, origin) is expected
+    assert len(calls) == int(expected)
+
+
 def test_hf_publication_atomically_updates_only_card_and_binding():
     from unittest.mock import MagicMock
 

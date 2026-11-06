@@ -200,31 +200,48 @@ def rebind(output, route, transform):
     save_json(output / "report-manifest.json", manifest)
 
 
+def test_nested_benchmark_keeps_navigation_evidence_and_english_notice_in_scope(tmp_path):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "source", mode="field-extraction-cohort")
+    model = read_json(home / "content.json")
+    model["site_prefix"] = "sample"
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile["research_report"]["content"]["sha256"] = digest((home / "content.json").read_bytes())
+    save_json(home / "profile.json", profile)
+    root = tmp_path / "suite"
+    root.mkdir()
+    (root / "index.html").write_text("<h1>All benchmarks</h1>", encoding="utf-8")
+    output = root / "sample"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    soup = BeautifulSoup((output / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
+    assert soup.select_one("[data-suite-home]")["href"] == "index.html"
+    assert soup.select_one("[data-call-log-open]")["data-src"].startswith("sample/public-evidence/")
+    rows = read_json(output / "public-evidence" / (next(iter(model["participants"])) + ".json"))
+    assert all(row["result_href"].startswith("sample/zh/") for row in rows.values())
+    notice = BeautifulSoup((output / "en/index.html").read_text(encoding="utf-8"), "html.parser")
+    assert notice.select_one("a")["href"] == "sample/zh/index.html"
+    assert notice.base["href"] == "../../"
+    (root / "style.css").write_bytes((output / "style.css").read_bytes())
+    rebind(
+        output,
+        "zh/results.html",
+        lambda s: s.replace('href="sample/style.css"', 'href="style.css"'),
+    )
+    with pytest.raises(ValueError, match="escaped its dataset"):
+        check(output)
+
+
 @pytest.mark.parametrize("change", ["substitute", "remove"])
 def test_live_report_requires_reference_bound_original_source_navigation(tmp_path, change):
+    from harness.web_extract.example import create_record
+
     output = tmp_path / "report"
-    create(output, mode="field-extraction-cohort")
+    create_record(output, input_mode="live")
     truth = read_json(output / "public-evidence/reference.json")
-    for path in (output / "zh").glob("*.html"):
-        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
-        case = soup.select_one("[data-source-case]")
-        if case is None:
-            continue
-        cid = case["data-source-case"]
-        for frame in soup.select("iframe.frozen-preview"):
-            frame.decompose()
-        link = soup.new_tag("a", href=truth[cid]["url"], target="_blank", rel="noopener noreferrer")
-        link["data-live-source"] = ""
-        link.string = "Original webpage"
-        case.append(link)
-        rebind(output, path.relative_to(output).as_posix(), lambda _, s=soup: str(s))
     manifest = read_json(output / "report-manifest.json")
-    manifest["preview_snapshot"] = {
-        "mode": "live",
-        "case_count": len(truth),
-        "urls": {cid: item["url"] for cid, item in truth.items()},
-    }
-    save_json(output / "report-manifest.json", manifest)
     check(output)
     cid = next(iter(truth))
     if change == "substitute":
@@ -237,6 +254,21 @@ def test_live_report_requires_reference_bound_original_source_navigation(tmp_pat
                 link.decompose()
             rebind(output, path.relative_to(output).as_posix(), lambda _, s=soup: str(s))
     with pytest.raises(ValueError, match="Live preview URLs|requires its original source link"):
+        check(output)
+
+
+def test_snapshot_report_cannot_relabel_its_preview_as_live(tmp_path):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    manifest = read_json(output / "report-manifest.json")
+    truth = read_json(output / "public-evidence/reference.json")
+    manifest["preview_snapshot"] = {
+        "mode": "live",
+        "case_count": len(truth),
+        "urls": {cid: ref["url"] for cid, ref in truth.items()},
+    }
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="input mode"):
         check(output)
 
 

@@ -48,6 +48,11 @@ def prepare(home: Path, source: Path):
         raise ValueError("The cohort must contain distinct cases")
     if not definition.get("source_versions") or not definition.get("selection"):
         raise ValueError("Source versions and sampling rules must be frozen")
+    if "extraction_instructions" in definition and (
+        not isinstance(definition["extraction_instructions"], str)
+        or not definition["extraction_instructions"].strip()
+    ):
+        raise ValueError("Extraction instructions must be a nonempty string")
     target = home / "dataset"
     if target.exists():
         raise ValueError("Prepare a new cohort directory")
@@ -127,7 +132,7 @@ def prepare(home: Path, source: Path):
         save_json(root / "dataset/ground-truth.json", truth)
         save_json(root / "schemas.json", schemas)
         save_json(root / "provenance.json", provenance)
-        (root / "evaluate.py").write_bytes(scoring_sources()[0].read_bytes())
+        (root / "evaluate.py").write_bytes(exported_evaluator())
         (root / "LICENSE").write_text(definition["source_license"], encoding="utf-8")
         save_json(root / "source-versions.json", definition["source_versions"])
         files = {
@@ -169,7 +174,7 @@ def prepare(home: Path, source: Path):
             "source_versions": definition["source_versions"],
             **(
                 {"extraction_instructions": definition["extraction_instructions"]}
-                if definition.get("extraction_instructions")
+                if "extraction_instructions" in definition
                 else {}
             ),
             **(
@@ -249,6 +254,16 @@ def scoring_sources():
     return (Path(swde.__file__),)
 
 
+def exported_evaluator():
+    """Keep a standalone implementation with this adapter's declared default."""
+    return (
+        scoring_sources()[0].read_bytes()
+        + b"\n\n_record_score = score\ndef score(truth, predictions, **options):\n"
+        b'    options.setdefault("text_matching", "whitespace")\n'
+        b"    return _record_score(truth, predictions, **options)\n"
+    )
+
+
 def score(truth, predictions, **options):
     from harness.web_extract.swde import score as score_fields
 
@@ -284,13 +299,16 @@ def qualify_live(home, case_ids, *, timeout=30):
             not 0 <= age <= policy["maximum_observation_age_seconds"]
             or receipt["source_url"] != reference["url"]
             or digest(raw) != receipt["input_sha256"]
-            or reference_support(reference, raw)
+            or reference_support(reference, raw, document_base=reference.get("document_base_url"))
         ):
             raise LiveSourceAccessError(cid, attempts)
         return {
             "case_id": cid,
             "url": reference["url"],
             "source_state": "access_unavailable",
+            "http_status": next(
+                (a["http_status"] for a in reversed(attempts) if "http_status" in a), None
+            ),
             "verification_mode": "independent_captured_reference",
             "reference_observed_at": receipt["observed_at"],
             "observed_html_sha256": digest(raw),
@@ -362,7 +380,7 @@ def qualify_live(home, case_ids, *, timeout=30):
     return sorted(rows, key=lambda row: row["case_id"])
 
 
-def reference_support(reference, raw, *, source_url=None, encoding=None):
+def reference_support(reference, raw, *, source_url=None, encoding=None, document_base=None):
     """Ground complete values, not numeric substrings of years or a page shell.
 
     Repeated source values must have enough occurrences. URL evidence comes from
@@ -390,7 +408,11 @@ def reference_support(reference, raw, *, source_url=None, encoding=None):
     for node in tree.xpath("//script|//style"):
         node.drop_tree()
     text = text_key(" ".join(tree.itertext()))
-    base = document_base_url(tree, source_url or reference["url"])
+    base = (
+        document_base
+        if document_base is not None
+        else document_base_url(tree, source_url or reference["url"])
+    )
     links = []
     for value in tree.xpath("//@href|//@src|//@data-src|//@poster"):
         try:

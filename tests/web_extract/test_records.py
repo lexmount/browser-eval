@@ -102,6 +102,54 @@ def test_exported_scorer_reproduces_scores_without_delegating_to_current_runtime
     truth = pipeline.read_json(home / "dataset/dataset/ground-truth.json")
     assert evaluator.score(truth, {"one": {"name": ["Ada"]}})["value_micro"]["f1"] == 1
     assert evaluator.score(truth, {"one": {"name": ["Another person"]}})["value_micro"]["f1"] == 0
+    truth["one"]["values"]["name"] = ["Ada Lovelace"]
+    assert evaluator.score(truth, {"one": {"name": ["Ada  Lovelace"]}})["value_micro"]["f1"] == 1
+
+
+@pytest.mark.parametrize("instructions", ["", "  ", False, [], None])
+def test_explicit_invalid_instruction_cannot_fall_back_to_another_task(tmp_path, instructions):
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    data["extraction_instructions"] = instructions
+    pipeline.save_json(source, data)
+    with pytest.raises(ValueError, match="nonempty string"):
+        records.prepare(tmp_path / "home", source)
+
+
+@pytest.mark.parametrize(
+    "expected,predicted,match",
+    [
+        ("https://Alice:Secret@example.org/a", "HTTPS://Alice:Secret@EXAMPLE.ORG/a", True),
+        ("https://Alice:Secret@example.org/a", "https://alice:secret@example.org/a", False),
+        ("https://example.org/?x=1&copy=1", "https://example.org/?x=1©=1", False),
+    ],
+)
+def test_url_matching_preserves_userinfo_and_literal_query_data(expected, predicted, match):
+    reference = {
+        "url": "https://example.org/",
+        "domain": "page",
+        "site": "example",
+        "values": {"link": [expected]},
+        "value_kinds": {"link": "url"},
+    }
+    score = records.score({"one": reference}, {"one": {"link": [predicted]}})
+    assert (score["value_micro"]["f1"] == 1) is match
+    fields = analysis.record_field_results(
+        reference, {"http_status": 200, "normalized_fields": {"link": [predicted]}}
+    )
+    assert fields["link"]["exact"] is match
+
+
+def test_source_url_attribute_is_decoded_once(tmp_path):
+    reference = {
+        "url": "https://example.org/",
+        "values": {"link": ["https://example.org/?x=1&copy=1"]},
+        "value_kinds": {"link": "url"},
+    }
+    raw = b'<a href="https://example.org/?x=1&amp;copy=1">Original</a>'
+    assert records.reference_support(reference, raw) == []
+    reference["values"]["link"] = ["https://example.org/?x=1©=1"]
+    assert records.reference_support(reference, raw)
 
 
 def test_live_url_calls_never_substitute_a_hosted_copy_or_send_reference_answers(
@@ -329,6 +377,93 @@ def test_predeclared_recent_independent_observation_preserves_blocked_valid_task
             records.qualify_live(home, ["one"])
 
 
+def test_recent_capture_uses_its_redirect_and_document_base_during_a_block(tmp_path, monkeypatch):
+    from datetime import datetime
+
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    raw = b'<html><base href="images/"><a href="item">Entry</a></html>'
+    Path(item["input"]).write_bytes(raw)
+    item.update(
+        final_url="https://source.example/catalog/index.html",
+        values={"name": ["https://source.example/catalog/images/item"]},
+        value_kinds={"name": "url"},
+        input_sha256=pipeline.digest(raw),
+    )
+    item["qualification"].update(
+        input_sha256=pipeline.digest(raw),
+        source_url=item["url"],
+        observed_at=datetime.now(UTC).isoformat(),
+        reference_sha256=pipeline.digest(
+            json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+        ),
+    )
+    data["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(status=429, body=b"", url=url),
+    )
+    assert (
+        records.qualify_live(home, ["one"])[0]["verification_mode"]
+        == "independent_captured_reference"
+    )
+
+
+@pytest.mark.parametrize("status", [429, None])
+def test_interrupted_finalization_resumes_a_blocked_source_without_repeating_calls(
+    tmp_path, monkeypatch, status
+):
+    from datetime import datetime
+
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    item["qualification"].update(source_url=item["url"], observed_at=datetime.now(UTC).isoformat())
+    data["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "test-bb")
+
+    def blocked(url, **kwargs):
+        if status is None:
+            raise OSError("Temporary network failure")
+        return SimpleNamespace(status=status, body=b"", url=url)
+
+    monkeypatch.setattr("harness.web_fetch.providers.http_client.request", blocked)
+    calls = []
+
+    def native(url, **kwargs):
+        calls.append(url)
+        return SimpleNamespace(
+            status=200,
+            headers={},
+            text=lambda: json.dumps({"statusCode": 200, "content": {"name": ["Ada"]}}),
+        )
+
+    monkeypatch.setattr(pipeline, "request", native)
+    plan, run = tmp_path / "plan.json", tmp_path / "run"
+    certification.create_plan(home, ["browserbase-json"], plan)
+    certification.run(home, plan, "browserbase-json", run)
+    (run / "manifest.json").unlink()
+    (run / "certificate.json").unlink()
+    (run / "scores.json").unlink()
+    after = pipeline.read_json(run / "remote-fixture-after.json")
+    for row in after:
+        row.pop("http_status", None)
+    pipeline.save_json(run / "remote-fixture-after.json", after)
+    result = certification.run(home, plan, "browserbase-json", run)
+    assert result["cases"] == 1 and len(calls) == 1
+    assert pipeline.read_json(run / "remote-fixture-after.json") == after
+
+
 @pytest.mark.parametrize(
     "value,page,supported",
     [
@@ -442,7 +577,20 @@ def test_hf_cached_manifest_can_reference_a_content_addressed_blob(tmp_path, mon
     assert snapshots.hf_resources(hf, "c" * 40) == {"assets/image.png": "b" * 64}
 
 
-@pytest.mark.parametrize("change", [None, "overlap", "missing", "page"])
+@pytest.mark.parametrize(
+    "change",
+    [
+        None,
+        "overlap",
+        "missing",
+        "page",
+        "assets",
+        "weaker-policy",
+        "stronger-policy",
+        "checkpoint-manifest",
+        "scorer",
+    ],
+)
 def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
     tmp_path, monkeypatch, change
 ):
@@ -471,6 +619,13 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
                 json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
             ),
         )
+        if change == "weaker-policy":
+            from datetime import datetime
+
+            data["live_reference_policy"] = {"maximum_observation_age_seconds": 7200}
+            item["qualification"].update(
+                source_url=item["url"], observed_at=datetime.now(UTC).isoformat()
+            )
         pipeline.save_json(source, data)
         raw_by_url[item["url"]], values_by_url[item["url"]] = raw, item["values"]
         home = folder / "home"
@@ -507,6 +662,45 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
         )
     combined = copy.deepcopy(definitions[0])
     combined["cases"] += definitions[1]["cases"]
+    original_scores = {
+        home / "run/scores.json": (home / "run/scores.json").read_bytes() for home in sources
+    }
+    if change == "weaker-policy":
+        combined.pop("live_reference_policy")
+    elif change == "stronger-policy":
+        from datetime import datetime
+
+        combined["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+        for item in combined["cases"]:
+            item["qualification"].update(
+                source_url=item["url"], observed_at=datetime.now(UTC).isoformat()
+            )
+    elif change == "assets":
+        asset = tmp_path / "additional.bin"
+        asset.write_bytes(b"different served resources")
+        combined["cases"][0]["assets"] = [
+            {
+                "path": "assets/one/image.bin",
+                "input": str(asset),
+                "sha256": pipeline.digest(asset.read_bytes()),
+            }
+        ]
+    elif change == "checkpoint-manifest":
+        run = sources[0] / "run"
+        for file in ["contract.json", "certification-precall.json"]:
+            data = pipeline.read_json(run / file)
+            data["dataset_manifest_sha256"] = "0" * 64
+            pipeline.save_json(run / file, data)
+        (run / "certificate.json").unlink()
+    elif change == "scorer":
+        original_score = records.score
+
+        def different(*args, **kwargs):
+            value = original_score(*args, **kwargs)
+            value["value_micro"]["f1"] = 0
+            return value
+
+        monkeypatch.setattr(records, "score", different)
     if change == "page":
         item = combined["cases"][0]
         path = tmp_path / "another-revision.html"
@@ -530,7 +724,7 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             }
         ],
     }
-    if change is None:
+    if change in {None, "stronger-policy"}:
         result = report.record_cohort_inputs(home, model, profile=home / "profile.json")
         assert set(result["methods"]["browserbase-json"]["results"]) == {"one", "two"}
         assert result["methods"]["browserbase-json"]["statistics"]["certified"]
@@ -538,9 +732,12 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             result["methods"]["browserbase-json"]["statistics"]["scores"]["value_micro"]["f1"] == 1
         )
     else:
-        with pytest.raises(ValueError, match="segments|changed a task"):
+        with pytest.raises(
+            ValueError, match="segment|changed a task|Full cohort plan|scores do not reproduce"
+        ):
             report.record_cohort_inputs(home, model, profile=home / "profile.json")
     assert len(dispatched) == 2
+    assert all(path.read_bytes() == raw for path, raw in original_scores.items())
 
 
 @pytest.mark.parametrize("asset_name", ["image.bin", "frame.html"])
@@ -842,13 +1039,35 @@ def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
     version, cases = snapshots.inventory(home)
     receipt = {
         "mode": "dataset_manifest",
-        "manifest_url": "https://immutable.example/snapshots.json",
+        "manifest_url": "https://1234abcd.example.pages.dev/snapshots.json",
         "manifest_sha256": "a" * 64,
         "huggingface": {"repository": "owner/data", "revision": "b" * 40},
         "html_inventory_sha256": version,
         "case_count": len(cases),
-        "fixture_base": "https://immutable.example/frozen",
+        "fixture_base": "https://1234abcd.example.pages.dev/frozen",
     }
+    cloudflare = {
+        "project": "example",
+        "account_id": "account",
+        "deployment_id": "1234abcd-0000-0000-0000-000000000000",
+    }
+    monkeypatch.setattr(
+        "harness.web_fetch.config.repository_env",
+        lambda: {"CLOUDFLARE_ACCOUNT_ID": "account", "CLOUDFLARE_API_TOKEN": "test-cf"},
+    )
+    monkeypatch.setattr(
+        "requests.get",
+        lambda *a, **k: SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {
+                "success": True,
+                "result": {
+                    "id": cloudflare["deployment_id"],
+                    "url": "https://1234abcd.example.pages.dev",
+                },
+            },
+        ),
+    )
     monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
     monkeypatch.setattr(
         "harness.web_fetch.providers.http_client.request",
@@ -857,7 +1076,9 @@ def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
     assert (
         len(
             snapshots.verify_bound_manifest(
-                home, {**receipt, "hosting_provider": "cloudflare"}, receipt["fixture_base"]
+                home,
+                {**receipt, "hosting_provider": "cloudflare", "cloudflare": cloudflare},
+                receipt["fixture_base"],
             )
         )
         == 1
@@ -865,6 +1086,10 @@ def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
     with pytest.raises(ValueError, match="Remote snapshot resource differs"):
         snapshots.verify_bound_manifest(
             home, {**receipt, "hosting_provider": "external"}, receipt["fixture_base"]
+        )
+    with pytest.raises(ValueError, match="Remote snapshot resource differs"):
+        snapshots.verify_bound_manifest(
+            home, {**receipt, "hosting_provider": "cloudflare"}, receipt["fixture_base"]
         )
 
 
