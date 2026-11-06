@@ -188,6 +188,8 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
     import signal
     from contextlib import contextmanager
 
+    import requests
+
     from harness.web_extract.self_hosted import runtime_identity, validate_input
 
     bundle = tmp_path / "dist/src"
@@ -201,7 +203,7 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
     wrapper = tmp_path / "backend-wrapper.mjs"
     wrapper.write_bytes(source_wrapper.read_bytes())
     base = {"engine": "firecrawl", "model": "test-model", "model_base": "https://model.example"}
-    monkeypatch.setenv("FIRECRAWL_BACKEND_URL", "http://private-backend.example:3002")
+    monkeypatch.setenv("FIRECRAWL_BACKEND_URL", "http://127.0.0.1:3002")
     monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
 
     @contextmanager
@@ -231,20 +233,19 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
             os.killpg(process.pid, signal.SIGTERM)
             process.communicate(timeout=5)
 
-    with backend("test-model") as original:
-        assert original["backend"]["controls"]["MODEL_NAME"] == "test-model"
-        for target, field in [
-            (script, "native_bundle_sha256"),
-            (tmp_path / "node_modules/native.js", "native_dependencies_sha256"),
-            (wrapper, "wrapper_sha256"),
-        ]:
+    for target in (script, tmp_path / "node_modules/native.js", wrapper):
+        with backend("test-model") as original:
+            assert original["backend"]["controls"]["MODEL_NAME"] == "test-model"
             before = target.read_bytes()
             target.write_bytes(before + b"\n// changed while backend is running\n")
             with patch("harness.web_extract.self_hosted.local_runtime_identity", return_value=base):
-                assert runtime_identity("firecrawl")["backend"][field] != original["backend"][field]
-                with pytest.raises(ValueError, match="frozen extraction configuration"):
+                with pytest.raises(requests.HTTPError):
+                    runtime_identity("firecrawl")
+                with pytest.raises(requests.HTTPError):
                     validate_input({**BODY, "engine": "firecrawl", "expected_runtime": original})
             target.write_bytes(before)
+            # Restoring bytes cannot prove which code the persistent child loaded.
+            assert requests.get(os.environ["FIRECRAWL_IDENTITY_URL"], timeout=5).status_code == 503
     script.write_text("setInterval(() => {}, 2000);\n", encoding="utf-8")
     with backend("test-model") as changed:
         assert (
@@ -660,10 +661,10 @@ def test_browser_dependency_mutation_rejects_the_frozen_backend(
                 assert self_hosted.runtime_identity('firecrawl') == frozen
                 target = browser / 'dist/api.js' if changed_file == 'bundle' else binary
                 target.write_bytes(target.read_bytes() + b'\nchanged')
-                with pytest.raises(ValueError, match='frozen extraction configuration'):
+                with pytest.raises(requests.HTTPError):
                     self_hosted.validate_input({**BODY, 'engine': 'firecrawl',
                                                'expected_runtime': frozen})
-                assert requests.get(browser_url, timeout=5).status_code == 200
+                assert requests.get(browser_url, timeout=5).status_code == 503
 
 
 @pytest.mark.parametrize("keepalive", [False, True])

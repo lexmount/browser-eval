@@ -131,7 +131,8 @@ async function currentIdentity() {
   }
   return identity;
 }
-await currentIdentity();
+const startupIdentity = JSON.stringify(await currentIdentity());
+let invalidated = false;
 let checking;
 const server = createServer(async (request, response) => {
   if (request.method !== 'GET' || request.url !== '/identity') {
@@ -139,7 +140,14 @@ const server = createServer(async (request, response) => {
     return;
   }
   try {
-    checking ??= currentIdentity().finally(() => { checking = undefined; });
+    if (invalidated) throw new Error('Executable files changed; restart required');
+    checking ??= currentIdentity().then(identity => {
+      if (JSON.stringify(identity) !== startupIdentity) {
+        invalidated = true;
+        throw new Error('Executable files changed; restart required');
+      }
+      return identity;
+    }).finally(() => { checking = undefined; });
     const identity = await checking;
     response.writeHead(200, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' });
     response.end(JSON.stringify(identity));

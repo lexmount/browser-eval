@@ -500,3 +500,39 @@ def test_environment_identity_preserves_nested_names_across_install_locations(
     assert identities[0] == identities[1]
     (root / 'pkg.a-extra/sdk.py').write_bytes(b'changed')
     assert self_hosted.installed_environment_sha256() != identities[1]
+
+
+@pytest.mark.parametrize('backend_url,identity_url,kind,port,accepted', [
+    ('http://backend:3002', 'http://backend:3020/identity', 'extractor', '3002', True),
+    ('http://other:3002', 'http://backend:3020/identity', 'extractor', '3002', False),
+    ('https://backend:3002', 'http://backend:3020/identity', 'extractor', '3002', False),
+    ('http://backend:3003', 'http://backend:3020/identity', 'extractor', '3002', False),
+    ('http://backend:3002', 'http://backend:3020/identity', 'browser', '3002', False),
+    ('http://backend:3002/prefix', 'http://backend:3020/identity', 'extractor', '3002', False),
+    ('http://backend:3002', 'http://backend:3020/other', 'extractor', '3002', False),
+    ('http://user:secret@backend:3002', 'http://backend:3020/identity',
+     'extractor', '3002', False),
+])
+def test_firecrawl_identity_describes_the_actual_extraction_endpoint(
+    monkeypatch, backend_url, identity_url, kind, port, accepted
+):
+    from types import SimpleNamespace
+
+    from harness.web_extract import self_hosted
+
+    base = {'engine': 'firecrawl', 'model': 'fixture', 'model_base': 'https://model.example'}
+    backend = {'schema': 'firecrawl-runtime/2', 'kind': kind,
+               **dict.fromkeys(('native_bundle_sha256', 'native_dependencies_sha256',
+                                'node_sha256', 'wrapper_sha256'), 'a' * 64),
+               'controls': {'MODEL_NAME': base['model'], 'OPENAI_BASE_URL': base['model_base'],
+                            'PORT': port}}
+    monkeypatch.setenv('FIRECRAWL_BACKEND_URL', backend_url)
+    monkeypatch.setenv('FIRECRAWL_IDENTITY_URL', identity_url)
+    response = SimpleNamespace(json=lambda: backend, raise_for_status=lambda: None)
+    with (patch.object(self_hosted, 'local_runtime_identity', return_value=base),
+          patch('requests.get', return_value=response)):
+        if accepted:
+            assert self_hosted.runtime_identity('firecrawl')['backend'] == backend
+        else:
+            with pytest.raises(ValueError, match='backend endpoint'):
+                self_hosted.runtime_identity('firecrawl')

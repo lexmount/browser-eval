@@ -176,6 +176,16 @@ def runtime_identity(engine):
     if engine == "firecrawl":
         import requests
 
+        endpoint = urlsplit(os.environ["FIRECRAWL_BACKEND_URL"])
+        attestation = urlsplit(os.environ["FIRECRAWL_IDENTITY_URL"])
+        if (
+            any(url.scheme not in ("http", "https") or not url.hostname
+                or url.username is not None or url.password is not None or url.query or url.fragment
+                for url in (endpoint, attestation))
+            or endpoint.scheme != attestation.scheme or endpoint.hostname != attestation.hostname
+            or endpoint.path not in ("", "/") or attestation.path != "/identity"
+        ):
+            raise ValueError("Firecrawl backend endpoint and identity differ")
         response = requests.get(
             os.environ["FIRECRAWL_IDENTITY_URL"],
             timeout=5,
@@ -198,6 +208,9 @@ def runtime_identity(engine):
         controls = backend.get("controls", {})
         if not isinstance(controls, dict):
             raise ValueError("Incomplete Firecrawl backend controls")
+        port = endpoint.port or (443 if endpoint.scheme == "https" else 80)
+        if backend.get("kind") != "extractor" or str(controls.get("PORT") or "3002") != str(port):
+            raise ValueError("Firecrawl backend endpoint kind or port differs")
         if controls.get("PLAYWRIGHT_MICROSERVICE_URL"):
             browser = backend.get("browser")
             if not isinstance(browser, dict) or browser.get("schema") != "firecrawl-runtime/2":
