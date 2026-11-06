@@ -655,4 +655,5 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
         return 'ver_packaged'
 
     monkeypatch.setattr(publication, 'publish_staged_update', update)
-    assert publication.publish(source, target, work, visual, home=tmp_path)['versionId'] == 'ver_packaged'
+    result = publication.publish(source, target, work, visual, home=tmp_path)
+    assert result['versionId'] == 'ver_packaged'
