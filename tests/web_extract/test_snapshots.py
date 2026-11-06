@@ -593,7 +593,8 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
 
 
 @pytest.mark.parametrize(
-    "receipt_mode", ["normal", "symlink", "unwritable", "persist-error", "broken-pipe"]
+    "receipt_mode",
+    ["normal", "symlink", "unwritable", "persist-error", "broken-pipe", "deploy-error"],
 )
 def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
     home, tmp_path, monkeypatch, capsys, receipt_mode
@@ -664,9 +665,27 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
         monkeypatch.setattr("builtins.print", closed)
     with (
         patch("requests.get", side_effect=cf_lookup(old, new)),
-        patch("subprocess.run", return_value=MagicMock(returncode=0)) as deploy,
+        patch(
+            "subprocess.run",
+            return_value=MagicMock(
+                returncode=1 if receipt_mode == "deploy-error" else 0,
+                stderr="ENOENT: broken cache; credential account must-not-forward",
+                stdout="",
+            ),
+        ) as deploy,
         patch("requests.post") as create_project,
     ):
+        if receipt_mode == "deploy-error":
+            with pytest.raises(RuntimeError, match="ENOENT: broken cache") as caught:
+                snapshots.host(
+                    home, output, provider="cloudflare", project="shared", approve_plan=proposal
+                )
+            assert all(
+                secret not in str(caught.value)
+                for secret in ["credential", "account", "must-not-forward"]
+            )
+            assert snapshots.read_json(output)["state"] == "pending"
+            return
         if receipt_mode != "normal":
             with pytest.raises((ValueError, PermissionError, BrokenPipeError)):
                 snapshots.host(
