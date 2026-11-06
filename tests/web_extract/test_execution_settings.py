@@ -4,7 +4,22 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.web_extract.example import create
-from harness.web_extract.report import check
+from harness.web_extract.report import check, execution_settings
+
+
+def test_multi_method_report_uses_every_assigned_shared_limit():
+    methods = ["first", "second"]
+    policy = {
+        "purpose": "quality", "max_in_flight": 2,
+        "resources": {"first": {"capacity": 2}, "second": {"capacity": 2},
+                      "account": {"capacity": 1, "reason": "Shared account"}},
+        "assignments": {method: [method, "account"] for method in methods},
+    }
+    contract = {"methods": methods, "concurrency": 2, "execution_policy": policy}
+    html = execution_settings({method: contract for method in methods}, methods, {}, "en")
+    rows = BeautifulSoup(html, "html.parser").select("tbody tr")
+    assert len(rows) == 2
+    assert [row.select("td")[1].get_text(strip=True) for row in rows] == ["1", "1"]
 
 
 @pytest.mark.parametrize(

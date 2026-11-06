@@ -1150,6 +1150,8 @@ def normalize(method: str, payload: dict, *, schema=None):
         return value if isinstance(value, dict) else {}
 
     if METHODS.get(method, {}).get("deployment") == "self-hosted-open-source":
+        if payload.get("success") is not True:
+            return None
         item = payload.get("data")
     elif method in ("firecrawl-json", "firecrawl-parse-json"):
         item = mapping(payload.get("data")).get("json")

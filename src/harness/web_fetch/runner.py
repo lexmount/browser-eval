@@ -561,6 +561,7 @@ def run_evaluation(
         },
     }
     resource_bindings = {provider.name: [provider.name] for provider in providers}
+    shared_declarations = {}
     for provider in providers:
         declared = provider.config.get("execution_resources", {})
         if not isinstance(declared, dict):
@@ -570,13 +571,14 @@ def run_evaluation(
                 raise ValueError("Invalid shared provider execution resource")
             name = "shared/" + group
             declared_capacity = validate_capacity(specification.get("capacity"))
+            previous = shared_declarations.get(name)
+            if previous is not None and previous != specification:
+                raise ValueError("Conflicting capacities for one shared execution resource")
+            shared_declarations[name] = specification
             capacity = min(declared_capacity, workers)
             resource = {**specification, "capacity": capacity}
             if capacity == 1 and declared_capacity > 1 and not resource.get("reason"):
                 resource["reason"] = "The declared global measurement limit admits one active job"
-            previous = execution_policy["resources"].get(name)
-            if previous is not None and previous != resource:
-                raise ValueError("Conflicting capacities for one shared execution resource")
             execution_policy["resources"][name] = resource
             resource_bindings[provider.name].append(name)
     policy = ExecutionPolicy.from_dict(execution_policy)

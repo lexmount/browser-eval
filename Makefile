@@ -77,7 +77,7 @@ setup-test: ## Install every extra, Node packages and benchmark datasets
 	npm ci
 	$(TEST_PY) -m harness.benchmarks.data
 
-EXTRACTION_SDK_ENV ?= $(abspath deploy/web-extract/.venv)
+EXTRACTION_SDK_ENV ?= $(or $(BROWSER_EVAL_DATA_HOME),$(HOME)/.browser-eval)/environments/web-extract-sdk-$(shell git hash-object deploy/web-extract/uv.lock)
 test-extraction-sdk: ## Test native extraction protocols with the service's locked SDKs
 	BROWSER_EVAL_TEST_NATIVE_SDKS=1 LITELLM_LOCAL_MODEL_COST_MAP=True PYTHONPATH=src UV_PROJECT_ENVIRONMENT="$(EXTRACTION_SDK_ENV)" $(UV) run --frozen --project deploy/web-extract --python 3.12 python -m unittest discover -s tests/web_extract -p test_native_sdk_protocol.py
 
