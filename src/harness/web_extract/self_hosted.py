@@ -19,6 +19,8 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.record_io import optional_file_sha256
+
 ENGINES = {
     "crawl4ai": "crawl4ai",
     "scrapegraph": "scrapegraphai",
@@ -117,8 +119,7 @@ def browser_version(executable, _file_identity):
 
 def host_boot_sha256():
     """Identify a controlled Linux host generation without exposing its raw boot ID."""
-    return (hashlib.sha256(HOST_BOOT_ID_PATH.read_bytes()).hexdigest()
-            if HOST_BOOT_ID_PATH.is_file() else None)
+    return optional_file_sha256(HOST_BOOT_ID_PATH)
 
 
 @lru_cache(maxsize=len(ENGINES))
