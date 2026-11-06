@@ -1,6 +1,7 @@
 """Portable field tasks, live-source freshness and captured resource boundaries."""
 
 import json
+from datetime import UTC
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -283,6 +284,49 @@ def test_source_access_failure_does_not_decide_task_validity(tmp_path, monkeypat
     assert caught.value.case_id == "one"
     assert caught.value.source_attempts[-1] == {"http_status": status}
     assert (home / "dataset/dataset/ground-truth.json").read_bytes() == original
+
+
+@pytest.mark.parametrize(
+    "age,body,status,accepted",
+    [
+        (60, b"", 429, True),
+        (60, b"", 403, True),
+        (60, b"", 202, True),
+        (7200, b"", 429, False),
+        (-60, b"", 429, False),
+        (60, b"<p>Someone else</p>", 200, False),
+    ],
+)
+def test_predeclared_recent_independent_observation_preserves_blocked_valid_tasks(
+    tmp_path, monkeypatch, age, body, status, accepted
+):
+    from datetime import datetime, timedelta
+
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    item["qualification"].update(
+        source_url=item["url"],
+        observed_at=(datetime.now(UTC) - timedelta(seconds=age)).isoformat(),
+    )
+    data["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(status=status, body=body, url=url),
+    )
+    if accepted:
+        receipt = records.qualify_live(home, ["one"])[0]
+        assert receipt["source_state"] == "access_unavailable"
+        assert receipt["verification_mode"] == "independent_captured_reference"
+        assert receipt["observed_html_sha256"] == item["input_sha256"]
+        assert receipt["source_attempts"][-1] == {"http_status": status}
+    else:
+        with pytest.raises(ValueError):
+            records.qualify_live(home, ["one"])
 
 
 @pytest.mark.parametrize(

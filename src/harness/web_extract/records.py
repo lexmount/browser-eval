@@ -9,6 +9,7 @@ from __future__ import annotations
 import json
 import re
 import tempfile
+from datetime import UTC
 from pathlib import Path
 from urllib.parse import urljoin
 
@@ -33,6 +34,15 @@ def prepare(home: Path, source: Path):
     mode = definition.get("input_mode")
     if mode not in {"live", "snapshot"}:
         raise ValueError("Declare live URLs or immutable hosted inputs")
+    live_policy = definition.get("live_reference_policy")
+    if live_policy is not None:
+        if (
+            mode != "live"
+            or set(live_policy) != {"maximum_observation_age_seconds"}
+            or type(live_policy["maximum_observation_age_seconds"]) is not int
+            or not 0 < live_policy["maximum_observation_age_seconds"] <= 86400
+        ):
+            raise ValueError("Declare a bounded independent live reference observation window")
     cases = definition["cases"]
     if not cases or len({case["id"] for case in cases}) != len(cases):
         raise ValueError("The cohort must contain distinct cases")
@@ -72,6 +82,14 @@ def prepare(home: Path, source: Path):
                 != digest(json.dumps(references, sort_keys=True, ensure_ascii=False).encode())
             ):
                 raise ValueError("Every input needs its source qualification receipt")
+            if live_policy is not None:
+                from datetime import datetime
+
+                observed = datetime.fromisoformat(
+                    receipt.get("observed_at", "").replace("Z", "+00:00")
+                )
+                if observed.tzinfo is None or receipt.get("source_url") != case["url"]:
+                    raise ValueError("Live observation must identify its time and original URL")
             from lexbench_webfetch.paths import validate_http_url
 
             validate_http_url(case["url"])
@@ -128,6 +146,7 @@ def prepare(home: Path, source: Path):
             "cases": len(cases),
             "selection": definition["selection"],
             "files": files,
+            **({"live_reference_policy": live_policy} if live_policy is not None else {}),
         }
         profile = {
             "name": definition["name"],
@@ -249,6 +268,36 @@ def qualify_live(home, case_ids, *, timeout=30):
     from harness.web_fetch.providers.http_client import request
 
     truth = read_json(home / "dataset/dataset/ground-truth.json")
+    policy = read_json(home / "dataset/manifest.json").get("live_reference_policy")
+
+    def unavailable(cid, attempts):
+        if policy is None:
+            raise LiveSourceAccessError(cid, attempts)
+        from datetime import datetime
+
+        reference = truth[cid]
+        receipt = read_json(home / "dataset/provenance.json")[cid]["qualification"]
+        observed = datetime.fromisoformat(receipt["observed_at"].replace("Z", "+00:00"))
+        age = (datetime.now(UTC) - observed).total_seconds()
+        raw = (home / "dataset/html" / (cid + ".html")).read_bytes()
+        if (
+            not 0 <= age <= policy["maximum_observation_age_seconds"]
+            or receipt["source_url"] != reference["url"]
+            or digest(raw) != receipt["input_sha256"]
+            or reference_support(reference, raw)
+        ):
+            raise LiveSourceAccessError(cid, attempts)
+        return {
+            "case_id": cid,
+            "url": reference["url"],
+            "source_state": "access_unavailable",
+            "verification_mode": "independent_captured_reference",
+            "reference_observed_at": receipt["observed_at"],
+            "observed_html_sha256": digest(raw),
+            "reference_sha256": digest(json.dumps(reference["values"], sort_keys=True).encode()),
+            "reference_values_verified": sum(map(len, reference["values"].values())),
+            "source_attempts": attempts,
+        }
 
     def one(cid):
         reference = truth[cid]
@@ -264,7 +313,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             except OSError as error:
                 attempts.append({"error": type(error).__name__})
                 if index == 2:
-                    raise LiveSourceAccessError(cid, attempts) from error
+                    return unavailable(cid, attempts)
                 delay = 2 ** (index + 1)
             else:
                 attempts.append({"http_status": response.status})
@@ -274,7 +323,7 @@ def qualify_live(home, case_ids, *, timeout=30):
                 delay = min(30, int(retry_after)) if retry_after.isdigit() else 2 ** (index + 1)
             time.sleep(delay)
         if response.status != 200:
-            raise LiveSourceAccessError(cid, attempts)
+            return unavailable(cid, attempts)
         content_type = Message()
         content_type["content-type"] = getattr(response, "headers", {}).get("content-type", "")
         missing = reference_support(
