@@ -4341,14 +4341,15 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                 or soup.select_one('a[href="' + expected + '"]') is None
             ):
                 raise ValueError("Record preview URL differs from the verified dataset snapshot")
-        for node in soup.select("a[href],script[src],link[href],img[src]"):
-            value = node.get("href", node.get("src", ""))
-            parsed = urlsplit(value)
-            if node.name == "a" and (parsed.scheme in {"http", "https"} or parsed.netloc):
+        for node in soup.select("a[href]"):
+            parsed = urlsplit(node["href"])
+            if parsed.scheme in {"http", "https"} or parsed.netloc:
                 if node.get("target") != "_blank" or not {"noopener", "noreferrer"}.issubset(
                     node.get("rel", [])
                 ):
                     raise ValueError("External documentation must open outside the report preview")
+        for value in link_index.page(file).values:
+            parsed = urlsplit(value)
             if parsed.scheme or parsed.netloc:
                 continue
             if parsed.path.startswith("/") or ".." in Path(unquote(parsed.path)).parts:

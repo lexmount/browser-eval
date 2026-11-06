@@ -200,6 +200,25 @@ def rebind(output, route, transform):
     save_json(output / "report-manifest.json", manifest)
 
 
+@pytest.mark.parametrize('button_index', [0, -1])
+@pytest.mark.parametrize('source', ['public-evidence/missing.json', '../outside.json'])
+def test_inventory_evidence_targets_are_validated_after_rebinding(tmp_path, button_index, source):
+    output = tmp_path / 'report'
+    create(output, mode='field-extraction-cohort')
+    (tmp_path / 'outside.json').write_text('{}', encoding='utf-8')
+
+    def break_evidence(text):
+        soup = BeautifulSoup(text, 'html.parser')
+        buttons = soup.select('[data-call-log-open]')
+        assert len(buttons) > 1
+        buttons[button_index]['data-src'] = source
+        return str(soup)
+
+    rebind(output, 'zh/results.html', break_evidence)
+    with pytest.raises(ValueError, match='Broken record evidence|relative to the hosted site root'):
+        check(output)
+
+
 def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path):
     output = tmp_path / 'report'
     create(output, mode='field-extraction-cohort')
