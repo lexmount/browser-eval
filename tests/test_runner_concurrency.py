@@ -68,7 +68,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
                                    dataset_path=Path('dataset.json'), cases=cases, providers=providers,
                                    provider_config_path=Path('providers.json'), runs=1, timeout=1,
                                    delay=0, provider_concurrency=2)
-            retained = (Path(tmp) / 'results.jsonl').read_text().splitlines()
+            retained = (Path(tmp) / 'results.jsonl').read_text(encoding="utf-8").splitlines()
         self.assertEqual(len(calls), 2)
         self.assertEqual(len(retained), 2)
         self.assertTrue(all(json.loads(row)['ok'] for row in retained))

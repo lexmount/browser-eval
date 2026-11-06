@@ -32,11 +32,11 @@ class BenchmarkSelectionTests(unittest.TestCase):
             return ProviderResult(True, 'content'), None
 
         config = self.root / 'configs/providers.example.json'
-        data = json.loads(config.read_text())
+        data = json.loads(config.read_text(encoding="utf-8"))
         for provider in data['providers'].values():
             provider['execution_resources'] = {
                 'account': {'capacity': 1, 'reason': 'One shared account'}}
-        config.write_text(json.dumps(data))
+        config.write_text(json.dumps(data), encoding="utf-8")
         with patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch):
             self.run_main([
                 '--dataset', str(self.root / 'evaluation/dataset.json'),
@@ -44,10 +44,10 @@ class BenchmarkSelectionTests(unittest.TestCase):
                 '--providers', 'fixture-one,fixture-two', '--workers', '2', '--measure-only',
             ])
         self.assertEqual(peak, 1)
-        rows = [json.loads(row) for row in (self.output / 'results.jsonl').read_text().splitlines()]
+        rows = [json.loads(row) for row in (self.output / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
         self.assertEqual(len(rows), 2)
         self.assertTrue(all(row['ok'] for row in rows))
-        execution = json.loads((self.output / 'execution.json').read_text())
+        execution = json.loads((self.output / 'execution.json').read_text(encoding="utf-8"))
         self.assertEqual(execution['aggregate']['execution_policy']['purpose'], 'quality')
         for batch in execution['batches']:
             self.assertEqual(batch['execution_context']['purpose'], 'quality')

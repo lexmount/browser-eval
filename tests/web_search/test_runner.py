@@ -23,7 +23,7 @@ class CollectionScenarios(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
             source = self.profile(root)
-            profile = json.loads(source.read_text())
+            profile = json.loads(source.read_text(encoding="utf-8"))
             profile['cases'].append(dict(profile['cases'][0], id='second-case', query='Second'))
             methods = profile['methods']
             profile['protocol'].update(concurrency=len(methods), order='bounded provider batches',
@@ -31,7 +31,7 @@ class CollectionScenarios(unittest.TestCase):
             profile['execution_policy'] = {
                 'purpose': 'quality', 'max_in_flight': len(methods),
                 'resources': {m['id']: {'capacity': 1, 'reason': 'Ordered calls'} for m in methods}}
-            source.write_text(json.dumps(profile))
+            source.write_text(json.dumps(profile), encoding="utf-8")
             ready = threading.Barrier(len(methods) + 1, timeout=3)
             release = threading.Event()
             calls = []
@@ -69,7 +69,7 @@ class CollectionScenarios(unittest.TestCase):
             ):
                 run(source, root / 'run', certified=True)
             self.assertEqual(len(calls), len(methods))
-            rows = (root / 'run/results.jsonl').read_text().splitlines()
+            rows = (root / 'run/results.jsonl').read_text(encoding="utf-8").splitlines()
             self.assertEqual(len(rows), len(methods))
 
     def test_shared_account_variants_require_an_explicit_account_capacity(self):

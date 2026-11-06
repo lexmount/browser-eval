@@ -308,7 +308,7 @@ class ReportScenarios(unittest.TestCase):
     def test_concurrent_collection_discloses_shared_limits_and_loaded_latency(self):
         source = self.root / 'fixture'
         path = source / 'profile.json'
-        profile = json.loads(path.read_text())
+        profile = json.loads(path.read_text(encoding="utf-8"))
         profile['protocol'].update(concurrency=2, order='bounded calls')
         profile['execution_policy'] = {
             'purpose': 'quality', 'max_in_flight': 2,
@@ -317,26 +317,26 @@ class ReportScenarios(unittest.TestCase):
         }
         profile['execution_policy']['resources']['shared'] = {
             'capacity': 1, 'reason': 'One shared service'}
-        path.write_text(json.dumps(profile))
+        path.write_text(json.dumps(profile), encoding="utf-8")
         receipt_path = source / 'receipt.json'
-        receipt = json.loads(receipt_path.read_text())
+        receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
         receipt['profile_sha256'] = bytes_sha256(path.read_bytes())
-        receipt_path.write_text(json.dumps(receipt))
+        receipt_path.write_text(json.dumps(receipt), encoding="utf-8")
         build(self.out, source=source, language='zh', include_english=True)
         self.assertTrue(check(self.out))
         for prefix in ('', 'en/'):
             page = self.out / (prefix + 'research.html')
-            soup = BeautifulSoup(page.read_text(), 'html.parser')
+            soup = BeautifulSoup(page.read_text(encoding="utf-8"), 'html.parser')
             section = soup.select_one('[data-execution-settings]')
             self.assertEqual([row.select('td')[1].get_text() for row in section.select('tbody tr')],
                              ['1', '1'])
             section.select('tbody td')[1].string = '2'
-            original = page.read_text()
-            page.write_text(str(soup))
+            original = page.read_text(encoding="utf-8")
+            page.write_text(str(soup), encoding="utf-8")
             with self.assertRaisesRegex(ValueError, 'Execution settings'):
                 check(self.out)
-            page.write_text(original)
-        home = (self.out / 'en/index.html').read_text()
+            page.write_text(original, encoding="utf-8")
+        home = (self.out / 'en/index.html').read_text(encoding="utf-8")
         self.assertNotIn('Serial API calls', home)
         self.assertIn('concurrent API calls', home)
 

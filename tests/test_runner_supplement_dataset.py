@@ -10,6 +10,7 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 from harness.web_fetch import benchmark_runner as benchmark
+from harness.web_fetch.providers.fixture import FixtureProvider
 
 METHODS = ("fixture-alpha", "fixture-beta", "fixture-gamma")
 
@@ -59,7 +60,13 @@ class SupplementDatasetTests(unittest.TestCase):
         self.measure = stack.enter_context(patch.object(benchmark, "run_evaluation",
                                                        side_effect=self.fake_measure))
         self.provider = Mock(validate=Mock(return_value=[]))
-        stack.enter_context(patch.object(benchmark, "build_provider", return_value=self.provider))
+
+        def provider(name, config):
+            instance = FixtureProvider(name, config)
+            instance.validate = self.provider.validate
+            return instance
+
+        stack.enter_context(patch.object(benchmark, "build_provider", side_effect=provider))
         stack.enter_context(redirect_stdout(io.StringIO()))
         stack.enter_context(redirect_stderr(io.StringIO()))
 
