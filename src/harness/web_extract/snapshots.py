@@ -1011,7 +1011,7 @@ def deployment_proof(home, binding, fixture_base):
     if lock_path.is_symlink() or unsafe_parents(lock_path):
         raise ValueError("Unsafe snapshot verification lock")
     lock_path.parent.mkdir(parents=True, exist_ok=True)
-    with lock_path.open("a") as lock:
+    with lock_path.open("ab") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
         if path.exists():
             cached = read_json(path)
