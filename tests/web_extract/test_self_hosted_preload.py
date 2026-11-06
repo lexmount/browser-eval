@@ -89,6 +89,8 @@ class PreloadedWorkerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_failed_preload_import_cannot_report_ready(self):
+        from harness.web_extract import self_hosted
+
         with TemporaryDirectory() as directory:
             Path(directory, "broken_preload.py").write_text(
                 "raise ImportError('synthetic missing SDK dependency')\n", encoding="utf-8"
@@ -103,9 +105,10 @@ class PreloadedWorkerTests(unittest.TestCase):
                 "r=s.run_forkserver_worker({},execute=s.preload_ready); "
                 "assert r.returncode != 0 and 'preload did not complete' in r.stderr, r"
             )
+            source_root = str(Path(self_hosted.__file__).resolve().parents[2])
             result = subprocess.run(
                 [sys.executable, "-c", code], cwd=directory,
-                env={**os.environ, "PYTHONPATH": directory + os.pathsep + os.environ["PYTHONPATH"]},
+                env={**os.environ, "PYTHONPATH": directory + os.pathsep + source_root},
                 capture_output=True, text=True, timeout=15,
             )
             self.assertEqual(result.returncode, 0, result.stderr)
