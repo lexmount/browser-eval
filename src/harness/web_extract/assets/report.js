@@ -400,6 +400,8 @@ const revealResultPanel = () => {
   if (!id) return;
   const panel = document.getElementById(id);
   if (panel?.matches?.("details[data-result-panel], details[data-method-example]")) { panel.open = true; panel.scrollIntoView(); }
+  const guide = panel?.closest?.("details[data-metric-guide]");
+  if (guide) { guide.open = true; panel.scrollIntoView(); }
 };
 if (typeof window !== "undefined") {
   window.addEventListener("hashchange", revealResultPanel);
