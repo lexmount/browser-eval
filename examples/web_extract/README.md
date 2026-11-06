@@ -553,6 +553,7 @@ The ScrapeGraphAI adapter fetches the immutable snapshot bytes and passes them t
 the native graph's HTML input. Its receipt retains the fetched HTML hash. This
 avoids the 2.3.1 URL path's incorrect HTML-as-base-URL conversion; no custom field
 extractor replaces the graph. The health identity declares `native_input: html`.
+This route requires UTF-8 snapshots and rejects invalid bytes before graph execution.
 
 The root Dockerfile builds an authenticated service using
 `deploy/web-extract/uv.lock`. Set `EXTRACTION_API_KEY`, `EXTRACTION_MODEL`,

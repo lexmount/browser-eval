@@ -280,8 +280,9 @@ def test_health_and_worker_environment_identity_survives_different_entrypoints(t
 
 
 @pytest.mark.parametrize("status", [200, 302, 404])
+@pytest.mark.parametrize("invalid_utf8", [False, True])
 def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing(
-    monkeypatch, status
+    monkeypatch, status, invalid_utf8
 ):
     import hashlib
     import sys
@@ -291,6 +292,8 @@ def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing
     from harness.web_extract.self_hosted import graph
 
     source = '<html><a href="/item">Café</a><p>Price: 12</p></html>'.encode()
+    if invalid_utf8:
+        source += b"\xff"
     modules = {
         name: ModuleType(name)
         for name in (
@@ -320,6 +323,10 @@ def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing
     ) as get:
         if status != 200:
             with pytest.raises(ValueError, match=f"Snapshot returned HTTP {status}"):
+                graph(request)
+            constructor.assert_not_called()
+        elif invalid_utf8:
+            with pytest.raises(UnicodeDecodeError):
                 graph(request)
             constructor.assert_not_called()
         else:
