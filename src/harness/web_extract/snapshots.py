@@ -757,6 +757,7 @@ def host(
                             for key in ("CLOUDFLARE_ACCOUNT_ID", "CLOUDFLARE_API_TOKEN")
                         },
                         "WRANGLER_SEND_METRICS": "false",
+                        "npm_config_registry": "https://registry.npmjs.org",
                     },
                     capture_output=True,
                     text=True,
