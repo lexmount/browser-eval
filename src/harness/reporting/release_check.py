@@ -149,7 +149,7 @@ def validated(name, inputs, validate):
         if not _json_value(inputs) or not hasattr(validate, '__code__'):
             raise TypeError('Undeclared input or validator type')
         code = hashlib.sha256(marshal.dumps(validate.__code__)).hexdigest()
-        key = canonical_json_sha256([name, code, inputs], allow_nan=False)
+        key = canonical_json_sha256([name, code, inputs], allow_nan=False, sort_keys=False)
     except (ValueError, TypeError):
         session.executed += 1
         return validate()

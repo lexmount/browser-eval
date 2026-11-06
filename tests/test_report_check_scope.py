@@ -241,6 +241,49 @@ def test_validation_cannot_certify_inputs_that_change_during_the_check(report, c
     assert not list((root.parent / 'cache').glob('*.json'))
 
 
+def test_order_sensitive_results_do_not_share_an_input_receipt(report):
+    root, _ = report
+
+    @shared.validation_step
+    def fields(value):
+        return list(value)
+
+    @shared.scoped_check('ordered-result')
+    def check(root, value):
+        return fields(value)
+
+    assert check(root, {'price': 1, 'stock': 2}) == ['price', 'stock']
+    assert check(root, {'stock': 2, 'price': 1}) == ['stock', 'price']
+
+
+@pytest.mark.parametrize('forced', [False, True], ids=['automatic', 'forced-full'])
+def test_native_field_order_is_rechecked_after_a_previous_pass(report, monkeypatch, forced):
+    from harness.web_extract.report import _check_record_detail, record_field_rows
+
+    root, _ = report
+    row = {'case_id': 'one', 'status': 'exact', 'field_results': {
+        field: {'expected': [field], 'actual': [field], 'status': 'correct',
+                'hit': True, 'exact': True}
+        for field in ['price', 'stock']
+    }}
+    cells = record_field_rows(row, 'zh')
+    text = ('<details id="method"><table data-record-fields><tbody>'
+            + ''.join('<tr>' + ''.join('<td>' + cell + '</td>' for cell in values) + '</tr>'
+                      for values in cells)
+            + '</tbody></table><button data-call-log-open data-key="one" '
+            'data-src="public-evidence/method.json"></button></details>')
+
+    @shared.scoped_check('ordered-native-fields')
+    def check(root, result):
+        _check_record_detail(text, result, 'method')
+
+    check(root, row)
+    reordered = {**row, 'field_results': dict(reversed(list(row['field_results'].items())))}
+    monkeypatch.setenv('BROWSER_EVAL_FULL_REPORT_CHECK', '1' if forced else '0')
+    with pytest.raises(ValueError, match='displayed fields differ'):
+        check(root, reordered)
+
+
 @pytest.mark.parametrize('track', [
     'web-extract-products', 'web-extract-records', 'web-search',
     'webfetch-diagnostic', 'trajectory-replay',
