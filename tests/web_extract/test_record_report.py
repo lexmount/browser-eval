@@ -576,7 +576,7 @@ def test_record_inventory_sorts_exact_counts_and_missing_timers_numerically(tmp_
     build(out, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     soup = BeautifulSoup((out / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
     rows = soup.select('tr[data-method="scrapegraph-extract"]')
-    values = {row.select("td")[0].get_text(): row.select("td")[5].get("data-sort") for row in rows}
+    values = {row["data-case"]: row.select("td")[5].get("data-sort") for row in rows}
     assert values == {"one": "10.0", "two": "2.0", "three": ""}
     assert all(row.select("td")[4].get("data-sort").isdigit() for row in rows)
 
