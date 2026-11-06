@@ -53,6 +53,32 @@ class BenchmarkSelectionTests(unittest.TestCase):
             self.assertEqual(batch['execution_context']['purpose'], 'quality')
             self.assertEqual(batch['execution_policy']['purpose'], 'quality')
 
+    def test_final_call_quarantine_stops_other_scopes_and_shared_variants(self):
+        from harness.web_fetch.providers.base import ProcessCleanupError
+        from harness.web_fetch.runner import IncompleteEvaluationError
+
+        config = self.root / 'configs/providers.example.json'
+        data = json.loads(config.read_text(encoding='utf-8'))
+        for provider in data['providers'].values():
+            provider['execution_resources'] = {
+                'account': {'capacity': 1, 'reason': 'Shared unresolved worker'}}
+        config.write_text(json.dumps(data), encoding='utf-8')
+        with patch('harness.web_fetch.runner.fetch_with_deadline',
+                   side_effect=ProcessCleanupError('Worker remains alive')) as call:
+            with self.assertRaises(IncompleteEvaluationError):
+                self.run_main([
+                    '--dataset', str(self.root / 'evaluation/dataset.json'),
+                    '--provider-config', str(config), '--providers', 'fixture-one,fixture-two',
+                    '--workers', '2', '--measure-only',
+                ])
+        self.assertEqual(call.call_count, 1)
+        manifests = list(self.output.glob('workers/*/*/manifest.json'))
+        self.assertEqual(len(manifests), 1)
+        manifest = json.loads(manifests[0].read_text(encoding='utf-8'))
+        self.assertEqual(len(manifest['quarantined_providers']), 1)
+        self.assertEqual(manifest['attempt_count'], 1)
+        self.assertFalse((self.output / 'execution.json').exists())
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

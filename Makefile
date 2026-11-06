@@ -19,7 +19,6 @@ require_profile = @test -n "$($(or $(1),PROFILE))" || (echo '$(or $(1),PROFILE)=
 
 .PHONY: setup \
   setup-test \
-  benchmark-contract-check \
   help \
   format \
   clean \
@@ -82,7 +81,7 @@ setup-test: ## Install every extra, Node packages and benchmark datasets
 	npm ci
 	$(TEST_PY) -m harness.benchmarks.data
 
-EXTRACTION_SDK_ENV ?= $(or $(BROWSER_EVAL_DATA_HOME),$(HOME)/.browser-eval)/environments/web-extract-sdk-$(shell git hash-object deploy/web-extract/uv.lock)
+EXTRACTION_SDK_ENV ?= $(or $(BROWSER_EVAL_DATA_HOME),$(HOME)/.browser-eval)/environments/web-extract-sdk
 test-extraction-sdk: ## Test native extraction protocols with the service's locked SDKs
 	BROWSER_EVAL_TEST_NATIVE_SDKS=1 LITELLM_LOCAL_MODEL_COST_MAP=True PYTHONPATH=src UV_PROJECT_ENVIRONMENT="$(EXTRACTION_SDK_ENV)" $(UV) run --frozen --project deploy/web-extract --python 3.12 python -m unittest discover -s tests/web_extract -p test_native_sdk_protocol.py
 
@@ -144,10 +143,7 @@ fixture-smoke: runtime-check ## Run the offline fixture CLI
 
 test: test-python test-ui test-native-adapters ## Run Python, UI and native adapter tests
 
-benchmark-contract-check: runtime-check ## Check global execution and report contracts before the full suite
-	$(TEST_PY) -m pytest tests/test_report_templates.py tests/test_runner_supplement_dataset.py tests/test_explicit_utf8_io.py tests/test_golden_reports.py -q -n 4 --dist worksteal
-
-ci-tests: track-naming-check lint-check shell-check fixture-smoke benchmark-contract-check ## Run static checks and independent test suites
+ci-tests: track-naming-check lint-check shell-check fixture-smoke ## Run static checks and independent test suites
 	$(MAKE) -j2 test test-extraction-sdk
 
 ci: ci-tests package-check browser-check ## Run every CI job: tests, packaging and browser checks

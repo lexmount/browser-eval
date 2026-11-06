@@ -553,21 +553,25 @@ The ScrapeGraphAI adapter fetches the immutable snapshot bytes and passes them t
 the native graph's HTML input. Its receipt retains the fetched HTML hash. This
 avoids the 2.3.1 URL path's incorrect HTML-as-base-URL conversion; no custom field
 extractor replaces the graph. The health identity declares `native_input: html`.
-This route requires UTF-8 snapshots and rejects invalid bytes before graph execution.
+All frozen HTML must be UTF-8. Dataset qualification checks every page before any
+provider call; the native HTML route also rejects invalid bytes before graph execution.
 
 The root Dockerfile builds an authenticated service using
 `deploy/web-extract/uv.lock`. Set `EXTRACTION_API_KEY`, `EXTRACTION_MODEL`,
 `EXTRACTION_MODEL_BASE`, `EXTRACTION_MODEL_API_KEY` and `SNAPSHOT_ORIGINS` on the
 service. `SNAPSHOT_ORIGINS` is a comma-separated list of the exact immutable
 snapshot origins. The container provides Chromium; `CHROME_PATH` selects its
-executable. The service exposes `GET /health` and `POST /extract/{engine}`
+native executable, rather than a launcher script. The service exposes `GET /health` and `POST /extract/{engine}`
 (`crawl4ai`, `scrapegraph`, `stagehand` or `firecrawl`). Extraction requires bearer authentication.
+Unauthenticated health requests return only liveness. Runtime identities require
+the same bearer key as extraction.
 
 For an individual request, set `ENDPOINT`, `SNAPSHOT_URL` and `EXTRACTION_API_KEY`
 in your shell. This example uses the identity returned by the running service:
 
 ```sh
-curl --fail --silent --show-error "$ENDPOINT/health" > health.json
+curl --fail --silent --show-error "$ENDPOINT/health" \
+  -H "Authorization: Bearer $EXTRACTION_API_KEY" > health.json
 jq --arg url "$SNAPSHOT_URL" '{
   url: $url,
   schema: {type: "object", properties: {name: {type: "string"}}, required: ["name"]},
@@ -596,7 +600,8 @@ that identity; a changed model, dependency environment or worker implementation
 is rejected. Use the normal certified runner and scorer. Keep the API key in the
 caller's repository `.env`, never in the options file. An extraction process has a
 110-second deadline within the track's existing 120-second request budget. Timed-out
-workers and their browser descendants are terminated and reaped.
+workers and their browser descendants are terminated and reaped. ScrapeGraphAI's
+model client has a 100-second socket timeout within that total worker deadline.
 Configure the reverse proxy read timeout above the 120-second client budget
 (for example, 150 seconds). A shorter gateway timeout can cut off a healthy native
 extraction before its worker deadline; preserve that physical call when collecting

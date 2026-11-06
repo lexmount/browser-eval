@@ -220,6 +220,32 @@ def test_runtime_revalidation_reuses_the_unchanged_browser_version(tmp_path, mon
         self_hosted.local_runtime_identity.cache_clear()
 
 
+def test_browser_launcher_cannot_hide_an_underlying_binary_change(tmp_path, monkeypatch):
+    from harness.web_extract import self_hosted
+
+    browser = tmp_path / "native-browser"
+    browser.write_bytes(b"native browser version one")
+    launcher = tmp_path / "chromium"
+    launcher.write_text(f'#!/bin/sh\nexec "{browser}" "$@"\n', encoding="utf-8")
+    monkeypatch.setenv("CHROME_PATH", str(launcher))
+    monkeypatch.setenv("EXTRACTION_MODEL", "synthetic")
+    monkeypatch.setenv("EXTRACTION_MODEL_BASE", "https://model.example")
+    monkeypatch.setattr(self_hosted.importlib.metadata, "version", lambda name: "synthetic")
+    monkeypatch.setattr(self_hosted, "installed_environment_sha256", lambda: "a" * 64)
+    try:
+        for content in (b"native browser version one", b"native browser version two"):
+            browser.write_bytes(content)
+            self_hosted.local_runtime_identity.cache_clear()
+            with pytest.raises(ValueError, match="native browser"):
+                self_hosted.runtime_identity("stagehand")
+        monkeypatch.setenv("CHROME_PATH", str(browser))
+        self_hosted.local_runtime_identity.cache_clear()
+        with patch.object(self_hosted.subprocess, "check_output", return_value="Browser 2"):
+            assert self_hosted.runtime_identity("stagehand")["browser_version"] == "Browser 2"
+    finally:
+        self_hosted.local_runtime_identity.cache_clear()
+
+
 @pytest.mark.parametrize(
     "status,payload",
     [
@@ -336,3 +362,5 @@ def test_graph_extracts_unchanged_snapshot_html_without_native_url_preprocessing
             assert native["input_html_sha256"] == hashlib.sha256(source).hexdigest()
         assert get.call_args.args[0] == request["url"]
         assert get.call_args.kwargs["allow_redirects"] is False
+        # The model's socket timeout must expire within the worker's total deadline.
+        assert modules["langchain_openai"].ChatOpenAI.call_args.kwargs["timeout"] < 110

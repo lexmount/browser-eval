@@ -2,7 +2,9 @@
 
 import multiprocessing
 import os
+import threading
 import time
+from concurrent.futures import ThreadPoolExecutor
 from unittest.mock import patch
 
 import pytest
@@ -11,6 +13,19 @@ from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, load_run, probe, read_json
 from tests.web_extract.snapshot_inputs import serve_input
 from tests.web_extract.test_execution_boundaries import collection_context
+
+
+@pytest.fixture
+def threaded_calls(monkeypatch):
+    """Unit stubs stay in-process; the HTTPS collection scenario tests fresh workers."""
+    from harness.web_extract import pipeline
+
+    def executor(**options):
+        options.pop("mp_context", None)
+        return ThreadPoolExecutor(**options)
+
+    monkeypatch.setattr("harness.benchmark_execution.ProcessPoolExecutor", executor)
+    monkeypatch.setattr(pipeline, "_COLLECTION_CLOCK", None)
 
 
 def policy():
@@ -22,7 +37,7 @@ def policy():
     }
 
 
-def test_parallel_calls_overlap_and_completed_results_are_never_replayed(tmp_path):
+def test_parallel_calls_overlap_and_completed_results_are_never_replayed(tmp_path, threaded_calls):
     home = create(tmp_path / "example")
     target = home / "runs/concurrent"
     with multiprocessing.Manager() as shared:
@@ -33,7 +48,7 @@ def test_parallel_calls_overlap_and_completed_results_are_never_replayed(tmp_pat
             with lock:
                 count.value += 1
                 ordinal = count.value
-            observed.append((os.getpid(), time.monotonic()))
+            observed.append((threading.get_ident(), time.monotonic()))
             if ordinal <= 2:
                 barrier.wait(timeout=3)
             return {"http_status": 200, "response": {"result": {"sku": "ordinary value"}}}
@@ -61,7 +76,7 @@ def test_parallel_calls_overlap_and_completed_results_are_never_replayed(tmp_pat
             load_run(target)
 
 
-def test_parallel_calls_obey_the_declared_start_interval(tmp_path):
+def test_parallel_calls_obey_the_declared_start_interval(tmp_path, threaded_calls):
     home = create(tmp_path / "example")
     with multiprocessing.Manager() as shared:
         starts = shared.list()
@@ -89,7 +104,7 @@ def test_parallel_calls_obey_the_declared_start_interval(tmp_path):
 
 
 @pytest.mark.parametrize("assigned", [False, True])
-def test_multi_method_collection_never_ignores_a_shared_account(tmp_path, assigned):
+def test_multi_method_collection_never_ignores_a_shared_account(tmp_path, assigned, threaded_calls):
     home = create(tmp_path / "example")
     methods = ["cloudflare-json", "firecrawl-json"]
     execution = {
@@ -151,7 +166,9 @@ def test_multi_method_collection_never_ignores_a_shared_account(tmp_path, assign
                 assert calls.value == 0
 
 
-def test_failure_repair_preserves_parent_concurrency_and_binds_its_scheduler(tmp_path):
+def test_failure_repair_preserves_parent_concurrency_and_binds_its_scheduler(
+    tmp_path, threaded_calls
+):
     from harness.web_extract.repair import load_selection, run
     from tests.web_extract.test_repair_review import parent_inputs
 
@@ -191,7 +208,9 @@ def test_failure_repair_preserves_parent_concurrency_and_binds_its_scheduler(tmp
         load_selection(home, binding)
 
 
-def test_interrupted_parallel_dispatch_preserves_other_responses_and_blocks_replay(tmp_path):
+def test_interrupted_parallel_dispatch_preserves_other_responses_and_blocks_replay(
+    tmp_path, threaded_calls
+):
     home = create(tmp_path / "example")
     target = home / "runs/interrupted"
     with multiprocessing.Manager() as shared:

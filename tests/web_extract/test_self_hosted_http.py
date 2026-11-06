@@ -22,6 +22,38 @@ BODY = {
 AUTH = {"Authorization": "Bearer test-service-key"}
 
 
+def test_liveness_does_not_disclose_runtime_without_authentication(client):
+    with patch("harness.web_extract.self_hosted.runtime_identity") as identity:
+        for headers in ({}, {"Authorization": "Bearer wrong-key"}):
+            response = client.get("/health", headers=headers)
+            assert response.status_code == 200 and response.json() == {"status": "ok"}
+        identity.assert_not_called()
+    response = client.get("/health", headers=AUTH)
+    assert response.json()["engines"]["crawl4ai"] == IDENTITY
+
+
+@pytest.mark.parametrize("worker_error", ["timeout", "exit"])
+def test_keepalive_failure_survives_post_call_attestation_outage(client, worker_error):
+    import requests
+
+    process = subprocess.CompletedProcess([], 1, "", "original worker failure")
+    outcome = subprocess.TimeoutExpired("worker", 110) if worker_error == "timeout" else process
+    with (
+        patch("harness.web_extract.self_hosted.runtime_identity",
+              side_effect=[IDENTITY, requests.exceptions.ConnectionError("identity unavailable")]),
+        patch("harness.web_extract.self_hosted.run_worker", side_effect=[outcome]),
+    ):
+        response = client.post("/extract/crawl4ai?keepalive=true", json=BODY, headers=AUTH)
+    payload = response.json()
+    assert payload["success"] is False and payload["data"] is None
+    assert payload["runtime"] is None
+    assert payload["runtime_attestation_error"] == "ConnectionError"
+    if worker_error == "timeout":
+        assert payload["http_status"] == 504
+    else:
+        assert payload["error"] == "original worker failure"
+
+
 @pytest.mark.parametrize("padding", [0, 5990, 7000])
 @pytest.mark.parametrize("keepalive", [False, True])
 def test_worker_errors_redact_credentials_before_the_public_length_limit(

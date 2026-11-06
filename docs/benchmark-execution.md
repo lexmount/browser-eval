@@ -87,8 +87,8 @@ shared resources stop collection before dispatch. A single-method policy binds a
 its declared resources. Preflight and collection must bind the same collector and
 scheduler hashes; later aggregation checks those frozen hashes against each other.
 
-Web Search profiles can select `bounded provider batches` to overlap providers,
-or `bounded calls` for independent queries. Bind the same `execution_policy` used
+Web Search profiles select `bounded calls` for concurrent independent queries.
+Bind the same `execution_policy` used
 by the scheduler. A method lane may admit several calls when `interval_s` is zero;
 post-call pacing requires an exclusive lane. Variants using the same `key_env`
 must declare a shared `account/<KEY_ENV>` resource. Explicit `assignments` can add
@@ -148,10 +148,3 @@ a blanket serial loop, duplicate dispatch or unsafe environment sharing. Existin
 evidence, scores and release gates must continue to verify after an execution
 change. Validate the deployed configuration on a bounded sample before the next
 full cohort.
-
-Run `make benchmark-contract-check` after changing an executor, track adapter or
-report renderer. This bounded parallel gate checks track registration, dataset
-entry points, explicit UTF-8 I/O, ASCII-locale builds and every report's synthetic
-snapshot. CI runs it before the full test suite and native SDK environment checks.
-Then run the affected track's behavioral tests; these global checks do not replace
-call, interruption or evidence-integrity scenarios.

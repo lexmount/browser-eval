@@ -732,7 +732,12 @@ def run_evaluation(
             for run_number in (range(1, runs + 1) if selected_runs is None else selected_runs):
                 for case in (cases if selected_cases is None else selected_cases):
                     if cancelled():
-                        raise KeyboardInterrupt()
+                        with result_lock:
+                            manifest['unexecuted'].append({
+                                'provider': provider.name, 'from_case_id': case.id,
+                                'reason': 'admission_stopped; remaining provider cases not executed',
+                            })
+                        return False
                     case_index = case_positions[case.id]
                     throttle_wait_ms = 0.0
                     if previous_request_completed is not None and provider.min_interval_seconds:
@@ -768,7 +773,12 @@ def run_evaluation(
                                     time.sleep(remaining)
                             if cancelled():
                                 if not physical_attempts:
-                                    raise KeyboardInterrupt()
+                                    with result_lock:
+                                        manifest['unexecuted'].append({
+                                            'provider': provider.name, 'from_case_id': case.id,
+                                            'reason': 'admission_stopped; call not dispatched',
+                                        })
+                                    return False
                                 break
                             physical_started = utc_now()
                             physical_begin = time.perf_counter()
@@ -899,6 +909,8 @@ def run_evaluation(
                             stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
                                                 or worker_unresolved(
                                                     pending, timed_out=result.error_type == 'timeout'))
+                            if stopped_provider:
+                                operator_stopped.set()
                             if (physical_passed or stopped_provider or cancelled()
                                     or physical_attempt > max_failure_retries):
                                 break
@@ -963,6 +975,11 @@ def run_evaluation(
                         if case_admission is not None:
                             case_admission.release(admission_token, pending=pending, record=record)
                     if stopped_provider:
+                        with result_lock:
+                            manifest.setdefault('quarantined_providers', []).append({
+                                'provider': provider.name, 'after_attempt_id': attempt_id,
+                                'reason': 'non_cancellable_call_still_running',
+                            })
                         remaining_attempts = ((runs - run_number) * len(cases)
                                               + len(cases) - case_index)
                         if remaining_attempts:
@@ -995,7 +1012,6 @@ def run_evaluation(
                     if stopped:
                         break
             else:
-                admission_stopped = threading.Event()
                 finished_providers = set()
 
                 def commit_provider(job, value, error):
@@ -1003,12 +1019,12 @@ def run_evaluation(
                         raise error
                     finished_providers.add(job.key)
                     if value is False:
-                        admission_stopped.set()
+                        operator_stopped.set()
 
                 run_jobs([Job(provider.name, tuple(resource_bindings[provider.name]), provider)
                           for provider in providers], run_provider, commit_provider, policy,
-                         should_stop=admission_stopped.is_set, on_stop=operator_stopped.set)
-                if admission_stopped.is_set():
+                         stop_event=operator_stopped)
+                if operator_stopped.is_set():
                     manifest['unexecuted'].extend({
                         'provider': provider.name,
                         'reason': 'non_cancellable_call_still_running; admission stopped',
