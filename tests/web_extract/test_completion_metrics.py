@@ -43,6 +43,30 @@ def test_discarded_or_invalid_price_is_not_a_correct_empty_value(bad):
     assert result["empty_fields"]["correct"] == 2
 
 
+@pytest.mark.parametrize("stock,expected", [(None, 1), ([], 0), ({}, 0), (False, 0), (12, 0)])
+def test_native_scrapfly_stock_types_are_not_hidden_by_legacy_projection(stock, expected):
+    from harness.web_extract.pipeline import normalize
+
+    payload = {"data": {"offers": [{"availability": stock}], "identifiers": {}}}
+    row = {
+        "case_id": "page",
+        "method": "scrapfly-product",
+        "http_status": 200,
+        "compatibility": "structured_output",
+        "response": payload,
+        "normalized_fields": normalize("scrapfly-product", payload),
+    }
+    fields = {
+        "page": {f: {"expected": [], "status": "correct"} for f in ("price", "sku", "availability")}
+    }
+    assert (
+        normalize("scrapfly-product", payload, preserve_native_types=True)["availability"] == stock
+    )
+    result = completion_metrics([row], fields, records=False)
+    assert result["page_exact"]["correct"] == expected
+    assert result["empty_fields"]["correct"] == 2 + expected
+
+
 @pytest.mark.parametrize("actual,expected", [([], 1), (["extra"], 0), (None, 0), (False, 0)])
 def test_empty_list_requires_a_valid_delivered_array(actual, expected):
     ref = {"values": {"authors": []}}
@@ -145,7 +169,7 @@ def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, d
         save_json(path, data)
     else:
         path = output / "zh/index.html"
-        soup = BeautifulSoup(path.read_text(), "html.parser")
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
         section = soup.select_one("[data-completion-metrics]")
         if damage == "comparison":
             section.decompose()
@@ -153,9 +177,75 @@ def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, d
             section.select_one("p").string = "Failures and missing references receive full credit."
         else:
             section.select_one("tbody td:nth-child(2)")["class"] = "comparison-winner"
-        path.write_text(str(soup))
+        path.write_text(str(soup), encoding="utf-8")
     # Exercise semantic verification, rather than merely failing the file hash.
     manifest["files"][path.relative_to(output).as_posix()] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
     with pytest.raises(ValueError, match="Completion"):
         check(output)
+
+
+def test_incomplete_cohort_is_distinct_from_a_computed_empty_denominator():
+    from harness.web_extract.report import completion_table
+
+    bundle = {"reference_view": "original", "methods": {"pending": None}}
+    text = completion_table(bundle, ["pending"], {}, "en")
+    assert "complete certification pending" in text
+    assert "denominator 0" not in text
+
+
+def test_changing_both_coverage_metadata_copies_cannot_override_audit(tmp_path):
+    from harness.web_extract.pipeline import digest, save_json
+    from harness.web_extract.report import (
+        check_completion_metrics,
+        completion_bundle,
+        completion_table,
+    )
+
+    row = product({"price": "5", "sku": "wrong", "availability": "InStock"})
+    row["field_results"] = {
+        f: {"expected": ["reference"], "status": "wrong"} for f in ("price", "sku", "availability")
+    }
+    rows = [row]
+    audit_path = tmp_path / "public-evidence/audit.json"
+    save_json(audit_path, {"result_count": 1, "excluded_fields": {}})
+    sha = digest(audit_path.read_bytes())
+    manifest = {
+        "mode": "full-cohort-progress",
+        "languages": ["zh"],
+        "observations": 1,
+        "planned_methods": ["firecrawl-json"],
+        "method_labels": {},
+        "source_runs": [{"certified": True, "scores": {"firecrawl-json": {}}}],
+        "completion_reference_exclusions": {},
+        "completion_audit": {
+            "path": "public-evidence/audit.json",
+            "sha256": sha,
+            "source_sha256": sha,
+        },
+        "public_evidence_views": [{"path": "public-evidence/audit.json", "original_sha256": sha}],
+    }
+
+    def regenerate(exclusions):
+        bundle = completion_bundle(
+            ["firecrawl-json"],
+            rows,
+            records=False,
+            complete_methods=["firecrawl-json"],
+            excluded_fields=exclusions,
+        )
+        save_json(tmp_path / "data/completion-metrics.json", bundle)
+        for route in ("index", "interpretation"):
+            path = tmp_path / "zh" / (route + ".html")
+            path.parent.mkdir(exist_ok=True)
+            html = completion_table(bundle, ["firecrawl-json"], {}, "zh").replace(
+                'href="../data/', 'href="data/'
+            )
+            path.write_text(html, encoding="utf-8")
+
+    regenerate({})
+    check_completion_metrics(tmp_path, manifest, rows)
+    manifest["completion_reference_exclusions"] = {"page": ["sku"]}
+    regenerate(manifest["completion_reference_exclusions"])
+    with pytest.raises(ValueError, match="authoritative audit"):
+        check_completion_metrics(tmp_path, manifest, rows)

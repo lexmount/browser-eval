@@ -434,7 +434,8 @@
     "completion_receipt": "Counts, per-page outcomes and reproducibility receipt",
     "completion_protocol": "These metrics are recomputed from the retained final logical responses without new provider calls. Original scores, references, timing and billing evidence remain unchanged. Missing product values follow the native empty-value convention; array-valued tasks must explicitly return an empty array. A failed call cannot receive credit for an empty reference.",
     "completion_reference_qualified": "Reference: source-qualified field judgments. Original-reference scores remain separately available.",
-    "completion_reference_original": "Reference: original field judgments."
+    "completion_reference_original": "Reference: original field judgments.",
+    "completion_incomplete": "Unavailable: complete certification pending"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -871,6 +872,7 @@
     "completion_receipt": "计数、逐页判断及补算依据",
     "completion_protocol": "这两项指标由保留的最终逻辑响应补算，没有新增服务调用，原分数、参考、计时和计费证据保持不变。商品接口按原空值约定判断；数组字段必须明确返回空数组。请求失败不能因参考也为空而得分。",
     "completion_reference_qualified": "参考口径：按网页证据修订后的逐字段判断；原参考成绩另行保留。",
-    "completion_reference_original": "参考口径：原参考的逐字段判断。"
+    "completion_reference_original": "参考口径：原参考的逐字段判断。",
+    "completion_incomplete": "尚未完成完整批次认证"
   }
 }

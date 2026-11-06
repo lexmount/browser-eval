@@ -557,8 +557,10 @@ def completion_table(bundle, methods, labels, language):
         for key in ("page_exact", "empty_fields"):
             metric = metrics[key] if metrics else None
             cells.append(
-                message("completion_unavailable", language)
-                if not metric or metric["rate"] is None
+                message("completion_incomplete", language)
+                if metrics is None
+                else message("completion_unavailable", language)
+                if metric["rate"] is None
                 else message(
                     "completion_rate", language, **metric, percent=f"{metric['rate'] * 100:.2f}"
                 )
@@ -620,6 +622,22 @@ def check_completion_metrics(output, manifest, rows):
         raise ValueError("Completion metrics use a different certified population")
     if bundle["excluded_fields"] != manifest.get("completion_reference_exclusions", {}):
         raise ValueError("Completion metrics use different reference coverage")
+    authority = manifest.get("completion_audit")
+    if not records and authority:
+        raw = (output / authority["path"]).read_bytes()
+        receipt = next(
+            (v for v in manifest["public_evidence_views"] if v["path"] == authority["path"]), {}
+        )
+        audit = json.loads(raw)
+        if (
+            digest(raw) != authority["sha256"]
+            or receipt.get("original_sha256") != authority["source_sha256"]
+            or bundle["excluded_fields"] != audit.get("excluded_fields", {})
+            or audit.get("result_count") != manifest["observations"]
+        ):
+            raise ValueError("Completion reference coverage differs from authoritative audit")
+    elif not records and (manifest.get("review") or bundle["excluded_fields"]):
+        raise ValueError("Completion reference coverage lacks its authoritative audit")
     expected = completion_bundle(
         methods,
         rows,
@@ -637,7 +655,7 @@ def check_completion_metrics(output, manifest, rows):
             a["href"] = "data/completion-metrics.json"
         for route in ("index", "interpretation"):
             page_view = BeautifulSoup(
-                (output / lang / (route + ".html")).read_text(), "html.parser"
+                (output / lang / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
             )
             if page_view.select_one("[data-completion-metrics]") != wanted:
                 raise ValueError("Completion metric comparison is missing or inconsistent")
@@ -2033,7 +2051,24 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         public_rows.extend(after)
     rows = public_rows
     completion = None
+    completion_audit = None
     if cohort:
+        if audit:
+            source = content.parent / model["audit"]["path"]
+            raw, receipt = project_evidence_view(
+                "public-evidence/audit.json",
+                source.read_bytes(),
+                role="native_response",
+                content_format="json",
+                host_names=publication_host_names(),
+            )
+            (output / "public-evidence/audit.json").write_bytes(raw)
+            public_receipts.append(receipt)
+            completion_audit = {
+                "path": "public-evidence/audit.json",
+                "sha256": digest(raw),
+                "source_sha256": model["audit"]["sha256"],
+            }
         completion = completion_bundle(
             list(cohort_plan["participants"]),
             rows,
@@ -2595,6 +2630,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "required_review_scope": read_json(profile).get("independent_result_review_scope"),
             "audited_scores": audit.get("audited_scores") if audit else None,
             "completion_reference_exclusions": audit.get("excluded_fields", {}) if audit else {},
+            "completion_audit": completion_audit,
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
             "input_profile": input_profile,
@@ -3283,8 +3319,8 @@ def record_comparison(headers, rows, metrics, *, sort_values=None):
             for value, cell in observed:
                 if value == extreme:
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})
-                    span.string = cell.get_text()
-                    cell.clear()
+                    for child in list(cell.contents):
+                        span.append(child.extract())
                     cell.append(span)
     return str(soup)
 

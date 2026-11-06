@@ -342,7 +342,12 @@ def completion_metrics(rows, fields_by_case, *, records):
         prediction = row.get("normalized_fields")
         if not records and "response" in row:
             # Inspect native types before product projection drops malformed values.
-            prediction = normalize(row["method"], row["response"], schema={"type": "object"})
+            prediction = normalize(
+                row["method"],
+                row["response"],
+                schema={"type": "object"},
+                preserve_native_types=True,
+            )
         delivered = (
             row.get("http_status") == 200
             and row.get("compatibility") == "structured_output"
