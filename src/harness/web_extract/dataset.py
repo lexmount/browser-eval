@@ -11,11 +11,6 @@ from harness.benchmarks.data import binding, canonical_source_name, definition_p
 from harness.record_io import bytes_sha256, read_json
 
 BENCHMARKS = {
-    "human-eval": {
-        "profile": "scrapegraph-human-eval.json",
-        "module": "harness.web_extract.human_eval",
-        "review_contract": "schema-json-audit/1",
-    },
     "zyte": {
         "profile": "zyte-product-extraction.json",
         "module": None,
@@ -49,7 +44,6 @@ def benchmark_config(home=None, *, name=None):
     return {
         "profile": Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"],
         "adapter": importlib.import_module(item["module"]) if item["module"] else None,
-        "review_contract": item.get("review_contract"),
         "snapshot_project": item.get("snapshot_project"),
         "snapshot_distribution": item.get("snapshot_distribution"),
     }

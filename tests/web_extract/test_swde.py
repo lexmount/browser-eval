@@ -2441,3 +2441,41 @@ def test_frozen_legacy_url_plan_still_uses_run_fixture_base(inputs, tmp_path, mo
         call.args[3].startswith("https://legacy.example/inputs/")
         for call in dispatch.call_args_list
     )
+
+
+@pytest.mark.parametrize('defect', [
+    None, 'method', 'dataset', 'precall_population', 'report_dataset'])
+def test_certified_report_rejects_misidentified_receipts(source_revision_run, tmp_path, defect):
+    """A valid call matrix must not make a receipt for another cohort acceptable."""
+    from harness.web_extract.report import cohort_source
+
+    home, run, _, calls = source_revision_run
+    plan = tmp_path / 'original-plan.json'
+    truth = pipeline.read_json(home / 'dataset/dataset/ground-truth.json')
+    if defect in {'method', 'dataset'}:
+        path = run / 'certificate.json'
+        receipt = pipeline.read_json(path)
+        receipt['method' if defect == 'method' else 'dataset_manifest_sha256'] = 'other-cohort'
+        pipeline.save_json(path, receipt)
+    elif defect == 'precall_population':
+        path = run / 'certification-precall.json'
+        receipt = pipeline.read_json(path)
+        receipt['case_ids_sha256'] = 'other-population'
+        pipeline.save_json(path, receipt)
+        certificate = pipeline.read_json(run / 'certificate.json')
+        certificate['precall_sha256'] = pipeline.digest(path.read_bytes())
+        pipeline.save_json(run / 'certificate.json', certificate)
+    elif defect == 'report_dataset':
+        path = home / 'dataset/manifest.json'
+        manifest = pipeline.read_json(path)
+        manifest['different_snapshot'] = True
+        pipeline.save_json(path, manifest)
+    selection = {'plan': str(plan), 'plan_sha256': pipeline.digest(plan.read_bytes())}
+    if defect is None:
+        _, rows, evidence = cohort_source(run, selection, home, truth)
+        assert len(rows) == len(truth) == 2
+        assert evidence['certified'] is True
+    else:
+        with pytest.raises(ValueError, match='Certificate|population'):
+            cohort_source(run, selection, home, truth)
+    assert len(calls) == 2

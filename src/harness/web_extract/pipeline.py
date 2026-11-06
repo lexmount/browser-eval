@@ -457,11 +457,8 @@ def validate_native_options(method, native_options):
     native_options = native_options or {}
     if set(native_options) - set(METHODS[method]["options"]):
         raise ValueError("Unsupported native extraction option")
-    route = native_options.get("input_route", "html")
-    if route not in ("html", "url", "markdown") or (
-        route == "markdown" and method != "scrapegraph-extract"
-    ):
-        raise ValueError("Unsupported native input route")
+    if native_options.get("input_route", "html") not in ("html", "url"):
+        raise ValueError("Native input route must be html or url")
     for key in ("setJavaScriptEnabled", "discussion", "use_fixture_context", "norender"):
         if key in native_options and type(native_options[key]) is not bool:
             raise ValueError("Native extraction switches must be Boolean")
@@ -698,11 +695,6 @@ def _scrapegraph_request(
         ),
         "schema": schema or SCHEMA,
     }
-    if native_options.get("input_route") == "markdown":
-        from harness.web_extract.human_eval import unwrap_markdown
-
-        del body["html"]
-        body["markdown"] = unwrap_markdown(html)
     if native_options.get("input_route") == "url":
         if not fixture_url:
             raise ValueError("ScrapeGraph URL extraction requires a frozen fixture")
@@ -1037,12 +1029,9 @@ def provider_call(
         },
         "request": {
             "endpoint": url,
-            "input": native_options.get("input_route", available_methods()[method]["input"]),
-            **(
-                {"markdown_sha256": digest(body["markdown"].encode())}
-                if isinstance(body, dict) and "markdown" in body
-                else {}
-            ),
+            "input": "url"
+            if native_options.get("input_route") == "url"
+            else available_methods()[method]["input"],
             "html_sha256": digest(html.encode()),
             "schema": schema or SCHEMA,
             "instructions": {"text": prompt, "location": "schema.properties.*.description"}
@@ -1752,11 +1741,8 @@ def _probe_unlocked(
         from harness.web_extract.dataset import task_bindings
 
         requested.update(task_bindings(home))
-        adapter = benchmark_config(home)["adapter"]
-        requested["extraction_instructions"] = getattr(adapter, "INSTRUCTIONS", RECORD_INSTRUCTIONS)
-        requested["extraction_instruction_delivery"] = getattr(
-            adapter, "INSTRUCTION_DELIVERY", RECORD_INSTRUCTION_DELIVERY
-        )
+        requested["extraction_instructions"] = RECORD_INSTRUCTIONS
+        requested["extraction_instruction_delivery"] = RECORD_INSTRUCTION_DELIVERY
     if benchmark_config(home)["adapter"] is not None or maximum_physical_calls is not None:
         matrix_size = len(case_ids) * len(methods)
         maximum = matrix_size + 20 if maximum_physical_calls is None else maximum_physical_calls
@@ -2059,7 +2045,7 @@ def score_run(
             }
             for r in rows
         ]
-    if reference_policy is not None and "unavailable_reference_groups" in reference_policy:
+    if reference_policy is not None:
         selected_groups = {
             (case["domain"], case["site"], field)
             for case in truth.values()
@@ -2081,13 +2067,6 @@ def score_run(
         "call_manifest_sha256": digest((run / "manifest.json").read_bytes()),
         "scorer_sha256": digest((home / "dataset/evaluate.py").read_bytes()),
     }
-    if output is not None and adapter is not None and getattr(adapter, "SCORING_REVISION", None):
-        result["scoring_revision"] = {
-            **adapter.SCORING_REVISION,
-            "regression_ids": adapter.check_scoring_controls(home),
-            "original_scores_sha256": digest((run / "scores.json").read_bytes()),
-            "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
-        }
     if reproject:
         result["projection_revision"] = {
             "schema": "native-field-projection/1",
@@ -2123,55 +2102,40 @@ def score_run(
             original_rows,
             contract["methods"],
         )
-        reproduced = (
-            all(original.get(key) == result[key] for key in (
-                "kind", "cases", "call_manifest_sha256", "scorer_sha256"
-            )) and adapter.verify_predecessor_scores(
-                original.get("scores"), expected, contract["case_ids"]
-            )
-            if hasattr(adapter, "verify_predecessor_scores")
-            else original.get("scores") == expected
-        )
-        if not reproduced:
+        if original.get("scores") != expected:
             raise ValueError("Original scores do not reproduce before reference correction")
         authority = read_json(reference_revision)
-        if hasattr(adapter, "reference_revision_receipt"):
-            result["reference_revision"] = adapter.reference_revision_receipt(
-                home, reference_revision
-            )
-        else:
-            result["reference_revision"] = {
-                "schema": "source-qualified-record-scoring/1",
-                "authority_sha256": digest(Path(reference_revision).read_bytes()),
-                "original_reference_sha256": digest(
-                    (home / "dataset/dataset/ground-truth.json").read_bytes()
-                ),
-                "original_scores_sha256": digest((run / "scores.json").read_bytes()),
-                "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
-                "regression_ids": adapter.check_reference_controls(),
-                "root_causes": [
-                    reason
-                    for observed, reason in (
-                        (True, "Whitespace refinement preserves source characters, units and case"),
-                        (
-                            authority.get("dom_text_changes"),
-                            "Encoded original labels differ from their exact frozen DOM text nodes",
-                        ),
-                        (
-                            authority.get("partial_label_decisions"),
-                            "Truncated original labels require full source elements "
-                            "and field context",
-                        ),
-                        (
-                            authority.get("unavailable_reference_groups"),
-                            "Entire original site-field annotations are absent, not quality zero",
-                        ),
-                    )
-                    if observed
-                ],
-                "policy": reference_policy,
-                "provider_calls_added": 0,
-            }
+        result["reference_revision"] = {
+            "schema": "source-qualified-record-scoring/1",
+            "authority_sha256": digest(Path(reference_revision).read_bytes()),
+            "original_reference_sha256": digest(
+                (home / "dataset/dataset/ground-truth.json").read_bytes()
+            ),
+            "original_scores_sha256": digest((run / "scores.json").read_bytes()),
+            "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
+            "regression_ids": adapter.check_reference_controls(),
+            "root_causes": [
+                reason
+                for observed, reason in (
+                    (True, "Whitespace refinement preserves source characters, units and case"),
+                    (
+                        authority.get("dom_text_changes"),
+                        "Encoded original labels differ from their exact frozen DOM text nodes",
+                    ),
+                    (
+                        authority.get("partial_label_decisions"),
+                        "Truncated original labels require full source elements and field context",
+                    ),
+                    (
+                        authority.get("unavailable_reference_groups"),
+                        "Entire original site-field annotations are absent, not quality zero",
+                    ),
+                )
+                if observed
+            ],
+            "policy": reference_policy,
+            "provider_calls_added": 0,
+        }
     target = Path(output) if output else run / "scores.json"
     if (reproject or reference_revision is not None) and target.resolve() == (
         run / "scores.json"
@@ -2202,23 +2166,19 @@ def score_rows(home, truth, rows, methods, *, reference_policy=None):
     from decimal import InvalidOperation
 
     if benchmark_config(home)["adapter"] is not None:
-        adapter = benchmark_config(home)["adapter"]
-        score = adapter.score
+        score = benchmark_config(home)["adapter"].score
 
         return {
             method: score(
                 truth,
                 {
-                    r["case_id"]: (
-                        r.get("normalized_fields") if r.get("http_status") == 200 else None
-                    ) if getattr(adapter, "MISSING_OUTPUT_NONE", False) else (
-                        (r.get("normalized_fields") or {}) if r.get("http_status") == 200 else {}
-                    )
+                    r["case_id"]: (r.get("normalized_fields") or {})
+                    if r.get("http_status") == 200
+                    else {}
                     for r in rows
                     if r["method"] == method
                 },
                 **(reference_policy or {}),
-                **({"home": home} if getattr(adapter, "SCORE_REQUIRES_HOME", False) else {}),
             )
             for method in methods
         }
