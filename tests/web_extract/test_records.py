@@ -1685,3 +1685,46 @@ def test_unqualified_hosts_cannot_substitute_a_deployment_proof_for_byte_receipt
     rows = snapshots.manifest_receipt(home, bound, base) + [proof]
     with pytest.raises(ValueError, match="deployment byte proof differs"):
         snapshots.validate_fixture_receipts(home, rows, base, ["one"], bound=bound)
+
+
+def test_managed_proof_cannot_qualify_a_different_url_suffix(tmp_path, monkeypatch):
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    version, cases = snapshots.inventory(home)
+    base = "https://1234abcd.example.pages.dev/frozen"
+    identity = {
+        "project": "example",
+        "account_id": "account",
+        "deployment_id": "1234abcd-0000-0000-0000-000000000000",
+    }
+    receipt = {
+        "mode": "dataset_manifest",
+        "manifest_url": "https://1234abcd.example.pages.dev/snapshots.json",
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "manifest_sha256": "a" * 64,
+        "fixture_base": base,
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+    }
+    bound = {**receipt, "hosting_provider": "cloudflare", "cloudflare": identity}
+    monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
+    monkeypatch.setattr(snapshots, "managed_cloudflare", lambda *a: True)
+    monkeypatch.setattr(
+        snapshots, "deployment_proof", lambda *a: pytest.fail("wrong URL route was audited")
+    )
+    with pytest.raises(ValueError, match="empty fixture suffix"):
+        snapshots.verify_bound_manifest(home, bound, base, suffix=".html")
+    proof = {
+        "scope": "deployment",
+        "case_id": "deployment-bytes",
+        "schema": "web-extract-deployment-bytes/1",
+        "fixture_base": base,
+        "cloudflare": identity,
+        "html_inventory_sha256": version,
+        "page_count": len(cases),
+        "resource_count": 1,
+        "verified_at": "2026-11-01T00:00:00+00:00",
+    }
+    rows = snapshots.manifest_receipt(home, bound, base) + [proof]
+    snapshots.validate_fixture_receipts(home, rows, base, ["one"], bound=bound)
+    with pytest.raises(ValueError, match="deployment byte proof differs"):
+        snapshots.validate_fixture_receipts(home, rows, base, ["one"], suffix=".html", bound=bound)

@@ -776,8 +776,13 @@ def test_sibling_repair_cannot_supersede_current_success(tmp_path):
 
 
 @pytest.mark.parametrize("method", ["firecrawl-json", "browserbase-json"])
-def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
+@pytest.mark.parametrize("trailing_slash", [False, True])
+def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method, trailing_slash):
     home, source, profile, rows = parent_inputs(tmp_path, method=method)
+    if trailing_slash:
+        plan = read_json(profile)
+        plan["fixture_base"] += "/"
+        save_json(profile, plan)
     cid = rows[-1]["case_id"]
     fixture = [
         {
@@ -799,21 +804,25 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
         run(home, profile, method, target)
         assert qualify.call_count == 2
         assert call.call_args.args[3] == "https://frozen.example/" + cid + ".html"
-        archived = read_json(target / "contract.json")
-        archived.pop("fixture_base")
-        archived.pop("fixture_verification", None)
-        save_json(target / "contract.json", archived)
-        manifest = read_json(target / "manifest.json")
-        manifest["contract_sha256"] = digest((target / "contract.json").read_bytes())
-        save_json(target / "manifest.json", manifest)
-        certificate = read_json(target / "certificate.json")
-        certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
-        save_json(target / "certificate.json", certificate)
+        if not trailing_slash:
+            archived = read_json(target / "contract.json")
+            archived.pop("fixture_base")
+            archived.pop("fixture_verification", None)
+            save_json(target / "contract.json", archived)
+            manifest = read_json(target / "manifest.json")
+            manifest["contract_sha256"] = digest((target / "contract.json").read_bytes())
+            save_json(target / "manifest.json", manifest)
+            certificate = read_json(target / "certificate.json")
+            certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
+            save_json(target / "certificate.json", certificate)
         revision = {
             "path": str(target),
             "sha256": digest((target / "certificate.json").read_bytes()),
         }
         compose(home, source, rows, revision)
+        if trailing_slash:
+            run(home, profile, method, target)
+            assert call.call_count == 1
 
 
 def test_repair_retains_preexisting_access_retry_time(tmp_path):
