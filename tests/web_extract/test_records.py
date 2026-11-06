@@ -1728,3 +1728,90 @@ def test_managed_proof_cannot_qualify_a_different_url_suffix(tmp_path, monkeypat
     snapshots.validate_fixture_receipts(home, rows, base, ["one"], bound=bound)
     with pytest.raises(ValueError, match="deployment byte proof differs"):
         snapshots.validate_fixture_receipts(home, rows, base, ["one"], suffix=".html", bound=bound)
+
+
+@pytest.mark.parametrize("confirmation", [401, 403, "timeout", "mismatch"])
+def test_unavailable_cloudflare_confirmation_uses_bytes_but_mismatch_stops(
+    tmp_path, monkeypatch, confirmation
+):
+    import requests
+
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    version, cases = snapshots.inventory(home)
+    origin = "https://1234abcd.example.pages.dev"
+    base = origin + "/frozen"
+    identity = {
+        "project": "example",
+        "account_id": "account",
+        "deployment_id": "1234abcd-0000-0000-0000-000000000000",
+    }
+    receipt = {
+        "mode": "dataset_manifest",
+        "manifest_url": origin + "/snapshots.json",
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "manifest_sha256": "a" * 64,
+        "fixture_base": base,
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+    }
+    bound = {**receipt, "hosting_provider": "cloudflare", "cloudflare": identity}
+    monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
+    monkeypatch.setattr(
+        "harness.web_fetch.config.repository_env",
+        lambda: {
+            "CLOUDFLARE_ACCOUNT_ID": "account",
+            "CLOUDFLARE_API_TOKEN": "expired-or-unavailable",
+        },
+    )
+
+    def confirm(*args, **options):
+        if confirmation == "timeout":
+            raise requests.Timeout("Control API unavailable")
+        response = requests.Response()
+        response.url = args[0]
+        response.status_code = confirmation if isinstance(confirmation, int) else 200
+        response._content = json.dumps(
+            {"success": True, "result": {"id": "different-deployment", "url": origin}}
+        ).encode()
+        return response
+
+    monkeypatch.setattr("requests.get", confirm)
+    observed = []
+
+    def page(url, **options):
+        observed.append("page")
+        return SimpleNamespace(
+            status=200, body=(home / "dataset/html/one.html").read_bytes(), headers={}, url=url
+        )
+
+    def resource(url, **options):
+        observed.append("resource")
+        return SimpleNamespace(status=200, body=b"captured-image", url=url)
+
+    monkeypatch.setattr(pipeline, "request", page)
+    monkeypatch.setattr(snapshots, "snapshot_request", resource)
+    if confirmation == "mismatch":
+        with pytest.raises(ValueError, match="identity differs"):
+            snapshots.verify_bound_manifest(home, bound, base)
+        assert observed == []
+        return
+    rows = snapshots.verify_bound_manifest(home, bound, base)
+    assert observed == ["page", "resource"]
+    snapshots.validate_fixture_receipts(home, rows, base, ["one"], bound=bound)
+    binding = {
+        "hosting_provider": "cloudflare",
+        "cloudflare": identity,
+        "snapshot_manifest": receipt,
+        "datasets": {
+            "sample": {
+                "fixture_base": base,
+                "immutable_origin": origin,
+                "html_inventory_sha256": version,
+                "cases": cases,
+            }
+        },
+    }
+    published = snapshots.publication_metadata(
+        home, binding, {"pages": rows[1:2], "resources": rows[2:]}
+    )
+    assert published["snapshot_manifest"] == receipt

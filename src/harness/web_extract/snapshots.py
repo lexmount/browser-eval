@@ -980,17 +980,23 @@ def managed_cloudflare(binding, origin):
         or identity.get("account_id") != account
     ):
         return False
-    response = requests.get(
-        f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/{identity['project']}/deployments/{deployment}",
-        headers={"Authorization": "Bearer " + credentials["CLOUDFLARE_API_TOKEN"]},
-        timeout=40,
-    )
-    response.raise_for_status()
-    data = response.json()
+    try:
+        response = requests.get(
+            f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/{identity['project']}/deployments/{deployment}",
+            headers={"Authorization": "Bearer " + credentials["CLOUDFLARE_API_TOKEN"]},
+            timeout=40,
+        )
+        response.raise_for_status()
+        data = response.json()
+    except (requests.RequestException, ValueError):
+        return False
+    if not isinstance(data, dict) or not data.get("success"):
+        return False
+    result = data.get("result")
     if (
-        not data.get("success")
-        or data.get("result", {}).get("id") != deployment
-        or data["result"].get("url") != f"https://{parts.hostname}"
+        not isinstance(result, dict)
+        or result.get("id") != deployment
+        or result.get("url") != f"https://{parts.hostname}"
     ):
         raise ValueError("Cloudflare deployment identity differs from the immutable origin")
     return True
