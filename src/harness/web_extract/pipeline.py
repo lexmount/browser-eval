@@ -1384,6 +1384,15 @@ def probe(home: Path, methods: list[str], **options):
         return _probe_unlocked(home, methods, run_dir=run, **options)
 
 
+def captured_html(home, case_id, raw):
+    """Decode an HTML upload with the charset frozen during source qualification."""
+    provenance = home / "dataset/provenance.json"
+    encoding = None
+    if provenance.exists():
+        encoding = read_json(provenance)[case_id].get("qualification", {}).get("encoding")
+    return raw.decode(encoding or "utf-8")
+
+
 def collect_calls(
     home,
     methods,
@@ -1407,6 +1416,12 @@ def collect_calls(
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     dataset_manifest = read_json(home / "dataset/manifest.json")
     frozen_inputs = dataset_manifest["files"]
+    source_mode = input_mode(home)
+    if contract.get("input_mode", "snapshot") != source_mode:
+        raise ValueError("Collection input mode differs from the frozen dataset")
+    if source_mode == "live":
+        for method in methods:
+            validate_live_route(method, native_options)
     adapter = benchmark_config(home)["adapter"]
     custom_schema = adapter is not None
     if custom_schema:
@@ -1537,7 +1552,10 @@ def collect_calls(
                     row.update(
                         provider_call(
                             method,
-                            "" if contract.get("input_mode") == "live" else raw.decode("utf-8"),
+                            ""
+                            if registry[method]["input"] == "url"
+                            or (native_options or {}).get("input_route") == "url"
+                            else captured_html(home, case_id, raw),
                             truth[case_id]["url"],
                             truth[case_id]["url"]
                             if contract.get("input_mode") == "live"

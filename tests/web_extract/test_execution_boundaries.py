@@ -1067,6 +1067,9 @@ def test_new_versioned_cohort_checks_dataset_manifest_without_page_fetches(tmp_p
         collection_context(),
         patch("harness.web_extract.snapshots.check_manifest", return_value=receipt) as manifest,
         patch("harness.web_extract.snapshots.managed_cloudflare", return_value=True),
+        patch(
+            "harness.web_extract.snapshots.deployment_proof", return_value={"scope": "deployment"}
+        ),
         patch("harness.web_extract.pipeline.qualify_fixture") as page,
         patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
     ):

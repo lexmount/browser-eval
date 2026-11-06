@@ -514,8 +514,9 @@ def test_empty_url_prediction_is_not_the_page_url():
     assert records.score({"one": ref}, {"one": {"link": ["/"]}})["value_micro"]["f1"] == 1
 
 
-def test_live_url_collection_does_not_decode_unused_captured_html(tmp_path, monkeypatch):
-    source = definition(tmp_path)
+@pytest.mark.parametrize("mode", ["live", "snapshot"])
+def test_url_collection_does_not_decode_unused_captured_html(tmp_path, monkeypatch, mode):
+    source = definition(tmp_path, mode=mode)
     data = pipeline.read_json(source)
     item = data["cases"][0]
     raw = b'<html><meta charset="iso-8859-1"><h1>Andr\xe9</h1></html>'
@@ -548,9 +549,29 @@ def test_live_url_collection_does_not_decode_unused_captured_html(tmp_path, monk
 
     monkeypatch.setattr(pipeline, "request", native)
     plan = tmp_path / "plan.json"
-    certification.create_plan(home, ["browserbase-json"], plan)
+    base = "https://snapshot.example" if mode == "snapshot" else None
+    binding = None
+    if base:
+        version, files = snapshots.inventory(home)
+        binding = tmp_path / "snapshots.json"
+        pipeline.save_json(
+            binding,
+            {
+                "hosting_provider": "external",
+                "datasets": {
+                    "sample": {
+                        "fixture_base": base,
+                        "immutable_origin": base,
+                        "html_inventory_sha256": version,
+                        "cases": files,
+                    }
+                },
+            },
+        )
+    certification.create_plan(home, ["browserbase-json"], plan, snapshots=binding)
+    monkeypatch.setattr(pipeline, "qualify_fixture", lambda *a, **k: {})
     result = certification.run(home, plan, "browserbase-json", tmp_path / "run")
-    assert sent[0]["url"] == item["url"]
+    assert sent[0]["url"] == (base + "/one" if base else item["url"])
     assert result["scores"]["browserbase-json"]["value_micro"]["f1"] == 1
 
 
@@ -1032,7 +1053,7 @@ def test_external_snapshot_checks_resource_bytes_before_and_after_api_calls(
         assert (run / "manifest.json").is_file()
 
 
-def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
+def test_managed_manifest_requires_byte_proof_and_external_manifest_checks_resources(
     tmp_path, monkeypatch
 ):
     home = prepared(tmp_path, mode="snapshot", assets=True)
@@ -1080,16 +1101,13 @@ def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
         "harness.web_fetch.providers.http_client.request",
         lambda url, **kwargs: SimpleNamespace(status=404, body=b"", url=url),
     )
-    assert (
-        len(
-            snapshots.verify_bound_manifest(
-                home,
-                {**receipt, "hosting_provider": "cloudflare", "cloudflare": cloudflare},
-                receipt["fixture_base"],
-            )
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
+    with pytest.raises(ValueError, match="Remote snapshot page differs"):
+        snapshots.verify_bound_manifest(
+            home,
+            {**receipt, "hosting_provider": "cloudflare", "cloudflare": cloudflare},
+            receipt["fixture_base"],
         )
-        == 1
-    )
     with pytest.raises(ValueError, match="Remote snapshot resource differs"):
         snapshots.verify_bound_manifest(
             home, {**receipt, "hosting_provider": "external"}, receipt["fixture_base"]
@@ -1320,3 +1338,153 @@ def test_header_only_charset_is_preserved_for_live_and_captured_sources(
 def test_inline_spans_do_not_invent_word_boundaries(markup, value, supported):
     reference = {"url": "https://example.org/", "values": {"name": [value]}}
     assert (not records.reference_support(reference, markup.encode())) is supported
+
+
+@pytest.mark.parametrize("mode", ["live", "snapshot"])
+def test_shared_dispatch_rejects_a_conflicting_dataset_mode_before_calls(
+    tmp_path, monkeypatch, mode
+):
+    home = prepared(tmp_path, mode=mode)
+    monkeypatch.setattr(pipeline, "provider_call", lambda *a, **k: pytest.fail("dispatched"))
+    with pytest.raises(ValueError, match="input mode differs"):
+        pipeline.collect_calls(
+            home,
+            ["browserbase-json"],
+            ["one"],
+            tmp_path / "run",
+            {"input_mode": "snapshot" if mode == "live" else "live"},
+        )
+
+
+def test_live_cohort_cannot_enter_archived_repair_plan_or_collection(tmp_path):
+    from harness.web_extract import repair
+
+    home = prepared(tmp_path)
+    for action in [
+        lambda: repair.create_plan(home, tmp_path / "absent", tmp_path / "plan", {}, None),
+        lambda: repair.collect(home, tmp_path / "absent", "browserbase-json", tmp_path / "run"),
+    ]:
+        with pytest.raises(ValueError, match="resume their original certified run"):
+            action()
+
+
+@pytest.mark.parametrize(
+    "current_base", ["https://other.example/page", "https://source.example/media/"]
+)
+def test_current_redirect_or_base_cannot_rebase_frozen_url_answers(current_base):
+    ref = {
+        "url": "https://source.example/page",
+        "values": {"profile": ["profile"]},
+        "value_kinds": {"profile": "url"},
+    }
+    assert records.reference_support(ref, b'<a href="profile">Person</a>', source_url=current_base)
+    assert not records.reference_support(
+        ref, b'<a href="https://source.example/profile">Person</a>', source_url=current_base
+    )
+
+
+@pytest.mark.parametrize("policy", [True, False])
+@pytest.mark.parametrize("challenge", [True, False])
+def test_http_200_access_gate_is_distinct_from_genuine_reference_drift(
+    tmp_path, monkeypatch, policy, challenge
+):
+    from datetime import datetime
+
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    if policy:
+        data["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+        data["cases"][0]["qualification"].update(
+            source_url=data["cases"][0]["url"], observed_at=datetime.now(UTC).isoformat()
+        )
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    body = (
+        b'<title>Just a moment...</title><form id="challenge-form"></form>'
+        if challenge
+        else b"<title>Profile</title><h1>Grace</h1><p>CAPTCHA explained</p>"
+    )
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(status=200, body=body, url=url, headers={}),
+    )
+    if challenge and policy:
+        row = records.qualify_live(home, ["one"])[0]
+        assert row["source_state"] == "access_unavailable"
+        assert row["source_attempts"][0]["access_interstitial"]
+    else:
+        with pytest.raises(
+            records.LiveSourceAccessError if challenge else ValueError,
+            match="unavailable" if challenge else "no longer supported",
+        ):
+            records.qualify_live(home, ["one"])
+
+
+def test_html_upload_uses_the_frozen_capture_charset(tmp_path):
+    home = prepared(tmp_path, mode="snapshot")
+    path = home / "dataset/provenance.json"
+    provenance = pipeline.read_json(path)
+    provenance["one"]["qualification"]["encoding"] = "windows-1252"
+    pipeline.save_json(path, provenance)
+    assert pipeline.captured_html(home, "one", b"Andr\xe9") == "André"
+
+
+@pytest.mark.parametrize("asset_name", ["image.bin", "page.html", "index.html"])
+def test_verified_deployment_reuses_proof_only_for_the_same_inventory_and_files(
+    tmp_path, monkeypatch, asset_name
+):
+    home = prepared(tmp_path, mode="snapshot", assets=True, asset_name=asset_name)
+    version, cases = snapshots.inventory(home)
+    base = "https://1234abcd.example.pages.dev/frozen"
+    cloudflare = {
+        "project": "example",
+        "account_id": "account",
+        "deployment_id": "1234abcd-0000-0000-0000-000000000000",
+    }
+    binding = {"hosting_provider": "cloudflare", "cloudflare": cloudflare}
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
+    raw = (home / "dataset/html/one.html").read_bytes()
+    state = {"bad": True, "calls": 0}
+
+    def fetch(url, **kw):
+        state["calls"] += 1
+        body = raw if url.endswith("/one") else b"wrong" if state["bad"] else b"captured-image"
+        return SimpleNamespace(status=200, body=body, url=url.removesuffix(".html"))
+
+    monkeypatch.setattr("harness.web_fetch.providers.http_client.request", fetch)
+    with pytest.raises(ValueError, match="resource differs"):
+        snapshots.deployment_proof(home, binding, base)
+    assert not list((tmp_path / "cache").rglob("*.json"))
+    state["bad"] = False
+    first = snapshots.deployment_proof(home, binding, base)
+    count = state["calls"]
+    assert snapshots.deployment_proof(home, binding, base) == first
+    assert state["calls"] == count
+    assert first["html_inventory_sha256"] == version
+    assert first["page_count"] == 1 and first["resource_count"] == 1
+    # A different immutable deployment cannot inherit this proof.
+    changed = {
+        **binding,
+        "cloudflare": {**cloudflare, "deployment_id": "abcdef12-0000-0000-0000-000000000000"},
+    }
+    snapshots.deployment_proof(home, changed, base.replace("1234abcd", "abcdef12"))
+    assert state["calls"] > count
+    receipt = {
+        "mode": "dataset_manifest",
+        "fixture_base": base,
+        "html_inventory_sha256": version,
+        "case_count": 1,
+        "manifest_sha256": "a" * 64,
+        "cloudflare": cloudflare,
+    }
+    rows = snapshots.manifest_receipt(home, receipt, base) + [first]
+    snapshots.validate_fixture_receipts(home, rows, base, ["one"], bound=receipt)
+    for field, value in [
+        ("resource_count", 0),
+        ("html_inventory_sha256", "b" * 64),
+        ("fixture_base", "https://wrong.example"),
+    ]:
+        wrong = [rows[0], {**first, field: value}]
+        with pytest.raises(ValueError, match="byte proof differs"):
+            snapshots.validate_fixture_receipts(home, wrong, base, ["one"], bound=receipt)

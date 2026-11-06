@@ -780,7 +780,7 @@ def test_repair_url_route_is_qualified_and_snapshot_bound(tmp_path, method):
     fixture = [
         {
             "case_id": cid,
-            "url": "https://frozen.example/" + cid,
+            "url": "https://frozen.example/" + cid + ".html",
             "sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
         }
     ]
@@ -2086,15 +2086,27 @@ def test_product_review_rejects_whitespace_evidence(tmp_path, key):
 
 
 @pytest.mark.parametrize("legacy", [False, True])
-def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path, legacy):
+@pytest.mark.parametrize("hosting", ["external", "cloudflare"])
+@pytest.mark.parametrize("with_assets", [False, True])
+def test_snapshot_repair_collects_verifies_composes_and_resumes(
+    tmp_path, legacy, hosting, with_assets
+):
     from harness.web_extract import snapshots
 
     home, source, _, rows = parent_inputs(tmp_path)
+    if with_assets:
+        asset = home / "dataset/assets/image.png"
+        asset.parent.mkdir(parents=True)
+        asset.write_bytes(b"image")
+        manifest_path = home / "dataset/manifest.json"
+        data = read_json(manifest_path)
+        data["files"]["assets/image.png"] = {"sha256": digest(b"image")}
+        save_json(manifest_path, data)
     base = "https://frozen.example"
     with patch("harness.web_extract.snapshots.validate_dataset"):
         version, cases = snapshots.inventory(home)
     receipt = {
-        "hosting_provider": "cloudflare",
+        "hosting_provider": hosting,
         "mode": "dataset_manifest",
         "manifest_url": base + "/snapshots.json",
         "manifest_sha256": "a" * 64,
@@ -2128,7 +2140,23 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         patch("harness.web_extract.repair.load_runtime_env"),
         patch("harness.web_extract.snapshots.validate_dataset"),
         patch("harness.web_extract.snapshots.check_manifest", return_value=receipt),
-        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=True),
+        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=False),
+        patch(
+            "harness.web_extract.pipeline.qualify_fixture",
+            side_effect=lambda h, base, cid, **kw: {
+                "case_id": cid,
+                "url": base + "/" + cid,
+                "sha256": digest((h / "dataset/html" / (cid + ".html")).read_bytes()),
+                "http_status": 200,
+                "qualification_fetch_attempts": 1,
+            },
+        ),
+        patch(
+            "harness.web_fetch.providers.http_client.request",
+            side_effect=lambda url, **kw: __import__("types").SimpleNamespace(
+                status=200, body=b"image", url=url
+            ),
+        ),
         patch("harness.web_extract.pipeline.provider_call", return_value=response) as provider,
     ):
         run(home, plan, "cloudflare-json", target)
@@ -2156,7 +2184,9 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         composed = compose(home, source, deepcopy(rows), revision)
         assert provider.call_count == 1
     assert composed[-1]["normalized_fields"]["sku"] == "recovered"
-    assert read_json(target / "fixture-before.json")[0]["case_id"] == "dataset-snapshot"
+    fixture_rows = read_json(target / "fixture-before.json")
+    assert fixture_rows[0]["case_id"] == "dataset-snapshot"
+    assert any(row["case_id"] == "resource:assets/image.png" for row in fixture_rows) is with_assets
 
 
 @pytest.mark.parametrize(

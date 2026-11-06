@@ -2374,7 +2374,9 @@ def test_mixed_plan_keeps_parse_uploads_and_url_calls_on_the_same_frozen_html(
         certification.run(home, profile, method, tmp_path / method)
     calls = dispatch.call_args_list
     assert len(calls) == 4
-    assert calls[0].args[1] == calls[2].args[1]
+    assert calls[0].args[1] == ""  # URL routes never decode or upload unused HTML.
+    case_id = calls[0].args[3].rsplit("/", 1)[-1]
+    assert calls[2].args[1].encode() == (home / "dataset/html" / (case_id + ".html")).read_bytes()
     assert calls[0].args[3].startswith("https://")
     assert calls[2].args[3] is None
 
