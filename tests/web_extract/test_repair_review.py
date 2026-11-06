@@ -2152,7 +2152,7 @@ def test_snapshot_repair_collects_verifies_composes_and_resumes(
             },
         ),
         patch(
-            "harness.web_fetch.providers.http_client.request",
+            "harness.web_extract.snapshots.snapshot_request",
             side_effect=lambda url, **kw: __import__("types").SimpleNamespace(
                 status=200, body=b"image", url=url
             ),

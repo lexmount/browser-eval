@@ -5,6 +5,7 @@ import json
 import re
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
+from threading import local
 from urllib.parse import quote, urlsplit
 
 from harness.benchmarks.data import canonical_source_name
@@ -18,6 +19,8 @@ from harness.web_extract.pipeline import (
     validate_dataset,
     validate_fixture_base,
 )
+
+_SNAPSHOT_HTTP = local()
 
 
 def inventory(home):
@@ -184,22 +187,40 @@ def verify(homes, binding, *, workers=8):
     }
 
 
-def snapshot_request(url, **options):
-    """Bound retries for transient transport errors during static input verification."""
+def snapshot_request(url, *, headers, timeout, max_bytes):
+    """Reuse static-host connections and bound transient transport retries and bytes."""
     import time
 
-    from harness.web_fetch.providers.http_client import request
+    import requests
 
+    from harness.web_fetch.providers.http_client import HttpResponse
+
+    if not hasattr(_SNAPSHOT_HTTP, "session"):
+        _SNAPSHOT_HTTP.session = requests.Session()
     for attempt in range(3):
         try:
-            return request(url, **options)
-        except OSError:
+            with _SNAPSHOT_HTTP.session.get(
+                url, headers=headers, timeout=timeout, stream=True
+            ) as response:
+                chunks, size = [], 0
+                for chunk in response.iter_content(64 * 1024):
+                    size += len(chunk)
+                    if size > max_bytes:
+                        raise ValueError("Snapshot response exceeds its frozen byte size")
+                    chunks.append(chunk)
+                return HttpResponse(
+                    response.status_code,
+                    response.url,
+                    {k.lower(): v for k, v in response.headers.items()},
+                    b"".join(chunks),
+                )
+        except (OSError, requests.RequestException):
             if attempt == 2:
                 raise
             time.sleep(attempt + 1)
 
 
-def verify_resources(home, base):
+def verify_resources(home, base, *, workers=8):
     """External services must serve the declared resource bytes, not only their hashes."""
     from concurrent.futures import ThreadPoolExecutor
 
@@ -231,7 +252,7 @@ def verify_resources(home, base):
             "http_status": 200,
         }
 
-    with ThreadPoolExecutor(max_workers=8) as pool:
+    with ThreadPoolExecutor(max_workers=workers) as pool:
         return list(pool.map(one, assets))
 
 
@@ -984,39 +1005,52 @@ def deployment_proof(home, binding, fixture_base):
     path = data_home() / "snapshot-verifications" / identity["deployment_id"] / (version + ".json")
     if path.is_symlink() or unsafe_parents(path):
         raise ValueError("Unsafe snapshot verification cache")
-    if path.exists():
-        cached = read_json(path)
-        if cached == {**proof, "verified_at": cached.get("verified_at")} and cached.get(
-            "verified_at"
-        ):
+    import fcntl
+
+    lock_path = path.with_suffix(".lock")
+    if lock_path.is_symlink() or unsafe_parents(lock_path):
+        raise ValueError("Unsafe snapshot verification lock")
+    lock_path.parent.mkdir(parents=True, exist_ok=True)
+    with lock_path.open("a") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        if path.exists():
+            cached = read_json(path)
+            if cached == {**proof, "verified_at": cached.get("verified_at")} and cached.get(
+                "verified_at"
+            ):
+                return cached
+            raise ValueError("Snapshot verification cache differs from the immutable deployment")
+
+        def check_page(cid):
+            url = fixture_base + "/" + cid
+            response = snapshot_request(
+                url,
+                headers={"Accept-Encoding": "identity"},
+                timeout=60,
+                max_bytes=(home / "dataset/html" / (cid + ".html")).stat().st_size,
+            )
+            if (
+                response.status != 200
+                or response.url != url
+                or bytes_sha256(response.body) != cases[cid]
+            ):
+                raise ValueError("Remote snapshot page differs: " + cid)
+
+        with ThreadPoolExecutor(max_workers=8) as pool:
+            list(pool.map(check_page, cases))
+        verify_resources(home, fixture_base, workers=32)
+        proof["verified_at"] = datetime.now(UTC).isoformat()
+        try:
+            save_json(path, proof, exclusive=True)
+        except FileExistsError:
+            # Concurrent first users must return the same committed proof.
+            cached = read_json(path)
+            if cached != {**proof, "verified_at": cached.get("verified_at")} or not cached.get(
+                "verified_at"
+            ):
+                raise ValueError("Concurrent snapshot verification proof differs") from None
             return cached
-        raise ValueError("Snapshot verification cache differs from the immutable deployment")
-
-    def check_page(cid):
-        url = fixture_base + "/" + cid
-        response = snapshot_request(
-            url,
-            headers={"Accept-Encoding": "identity"},
-            timeout=60,
-            max_bytes=(home / "dataset/html" / (cid + ".html")).stat().st_size,
-        )
-        if (
-            response.status != 200
-            or response.url != url
-            or bytes_sha256(response.body) != cases[cid]
-        ):
-            raise ValueError("Remote snapshot page differs: " + cid)
-
-    with ThreadPoolExecutor(max_workers=8) as pool:
-        list(pool.map(check_page, cases))
-    verify_resources(home, fixture_base)
-    proof["verified_at"] = datetime.now(UTC).isoformat()
-    try:
-        save_json(path, proof, exclusive=True)
-    except FileExistsError:
-        # Concurrent first users must return the same committed proof.
-        return deployment_proof(home, binding, fixture_base)
-    return proof
+        return proof
 
 
 def validate_fixture_receipts(

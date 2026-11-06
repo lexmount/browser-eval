@@ -1023,7 +1023,7 @@ def test_external_snapshot_checks_resource_bytes_before_and_after_api_calls(
 
     monkeypatch.setattr(pipeline, "request", fetch)
     monkeypatch.setattr(
-        "harness.web_fetch.providers.http_client.request",
+        "harness.web_extract.snapshots.snapshot_request",
         lambda url, **kwargs: SimpleNamespace(
             status=200,
             body=b"changed" if changed and state["called"] else b"captured-image",
@@ -1098,7 +1098,7 @@ def test_managed_manifest_requires_byte_proof_and_external_manifest_checks_resou
         ),
     )
     monkeypatch.setattr(
-        "harness.web_fetch.providers.http_client.request",
+        "harness.web_extract.snapshots.snapshot_request",
         lambda url, **kwargs: SimpleNamespace(status=404, body=b"", url=url),
     )
     monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
@@ -1454,7 +1454,7 @@ def test_verified_deployment_reuses_proof_only_for_the_same_inventory_and_files(
         body = raw if url.endswith("/one") else b"wrong" if state["bad"] else b"captured-image"
         return SimpleNamespace(status=200, body=body, url=url.removesuffix(".html"))
 
-    monkeypatch.setattr("harness.web_fetch.providers.http_client.request", fetch)
+    monkeypatch.setattr("harness.web_extract.snapshots.snapshot_request", fetch)
     with pytest.raises(ValueError, match="resource differs"):
         snapshots.deployment_proof(home, binding, base)
     assert not list((tmp_path / "cache").rglob("*.json"))
@@ -1500,3 +1500,86 @@ def test_verified_deployment_reuses_proof_only_for_the_same_inventory_and_files(
         wrong = [rows[0], {**first, field: value}]
         with pytest.raises(ValueError, match="byte proof differs"):
             snapshots.validate_fixture_receipts(home, wrong, base, ["one"], bound=receipt)
+
+
+def test_static_snapshot_requests_reuse_connections_and_enforce_byte_limits(monkeypatch):
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    clients = []
+
+    class Handler(BaseHTTPRequestHandler):
+        protocol_version = "HTTP/1.1"
+
+        def do_GET(self):
+            clients.append(self.client_address)
+            body = b"page" if self.path == "/page" else b"too-large"
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(body)))
+            self.end_headers()
+            self.wfile.write(body)
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    worker = threading.Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    state = SimpleNamespace()
+    monkeypatch.setattr(snapshots, "_SNAPSHOT_HTTP", state)
+    base = f"http://127.0.0.1:{server.server_port}"
+    try:
+        for _ in range(2):
+            assert (
+                snapshots.snapshot_request(base + "/page", headers={}, timeout=2, max_bytes=4).body
+                == b"page"
+            )
+        assert clients[0] == clients[1]
+        with pytest.raises(ValueError, match="exceeds its frozen byte size"):
+            snapshots.snapshot_request(base + "/large", headers={}, timeout=2, max_bytes=4)
+    finally:
+        if hasattr(state, "session"):
+            state.session.close()
+        server.shutdown()
+        worker.join(timeout=3)
+        server.server_close()
+
+
+def test_concurrent_snapshot_users_share_one_complete_initial_byte_audit(tmp_path, monkeypatch):
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
+    base = "https://1234abcd.example.pages.dev/frozen"
+    binding = {
+        "cloudflare": {
+            "project": "example",
+            "account_id": "account",
+            "deployment_id": "1234abcd-0000-0000-0000-000000000000",
+        }
+    }
+    observed = []
+    start = threading.Barrier(2)
+
+    def fetch(url, **options):
+        observed.append(url)
+        time.sleep(0.02)
+        body = (
+            (home / "dataset/html/one.html").read_bytes()
+            if url.endswith("/one")
+            else b"captured-image"
+        )
+        return SimpleNamespace(status=200, body=body, url=url)
+
+    monkeypatch.setattr(snapshots, "snapshot_request", fetch)
+
+    def user(_):
+        start.wait(timeout=3)
+        return snapshots.deployment_proof(home, binding, base)
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        first, second = pool.map(user, range(2))
+    assert first == second
+    assert len(observed) == 2  # One HTML page and one resource, not two full audits.
