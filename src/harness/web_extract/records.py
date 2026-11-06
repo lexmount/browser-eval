@@ -416,22 +416,31 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
         ).split()
     )
 
-    def visible(node):
-        if node.tag in blocks:
-            yield " "
-        yield node.text or ""
-        for child in node:
-            yield from visible(child)
-            yield child.tail or ""
-        if node.tag in blocks:
-            yield " "
+    chunks, regions = [], []
+    position = 0
 
-    text = text_key("".join(visible(tree)))
-    # Adjacent controls/field containers can be visually separated by CSS rather
-    # than whitespace (for example a developer name beside a platform label).
-    # Keep their complete text as additional contexts without counting ancestors
-    # twice. Numeric values still require the complete surrounding number.
-    contexts = [text_key("".join(visible(node))) for node in tree.xpath("//span|//button")]
+    def append(value):
+        nonlocal position
+        chunks.append(value)
+        position += len(value)
+
+    def visible(node):
+        if not isinstance(node.tag, str):
+            return
+        if node.tag in blocks:
+            append(" ")
+        start = position
+        append(node.text or "")
+        for child in node:
+            visible(child)
+            append(child.tail or "")
+        if node.tag in {"span", "button"}:
+            regions.append((start, position))
+        if node.tag in blocks:
+            append(" ")
+
+    visible(tree)
+    text = "".join(chunks)
     base = (
         document_base
         if document_base is not None
@@ -460,15 +469,21 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
             for value, count in counts.items():
                 required[text_key(value)] += count
             for key, count in required.items():
-                pattern = r"(?<!\w)" + re.escape(key) + r"(?!\w)"
-                if re.fullmatch(r"[+-]?\d+(?:[.,]\d+)*", key):
-                    pattern = r"(?<![\w.,+\-])" + re.escape(key) + r"(?!\w|[.,+\-]\d)"
-                    observed = len(re.findall(pattern, text))
-                else:
-                    observed = max(
-                        (len(re.findall(pattern, context)) for context in [text, *contexts]),
-                        default=0,
-                    )
+                literal = r"\s+".join(re.escape(word) for word in key.split())
+                pattern = r"(?<!\w)" + literal + r"(?!\w)"
+                numeric = re.fullmatch(r"[+-]?\d+(?:[.,]\d+)*", key)
+                if numeric:
+                    pattern = r"(?<![\w.,+\-])" + literal + r"(?!\w|[.,+\-]\d)"
+                # Source offsets identify an occurrence once even when nested
+                # containers and the full page support the same value.
+                occurrences = {match.span() for match in re.finditer(pattern, text)}
+                if not numeric:
+                    for start, end in regions:
+                        occurrences.update(
+                            (start + match.start(), start + match.end())
+                            for match in re.finditer(pattern, text[start:end])
+                        )
+                observed = len(occurrences)
                 if not key or observed < count:
                     missing.append({"field": field, "value": key})
     return missing

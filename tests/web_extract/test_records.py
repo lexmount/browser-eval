@@ -1187,3 +1187,31 @@ def test_visible_source_preserves_inline_words_and_block_boundaries(markup, expe
 def test_source_field_containers_do_not_merge_adjacent_labels(markup, value, supported):
     reference = {"url": "https://example.org/", "values": {"name": [value]}}
     assert (not records.reference_support(reference, markup.encode())) is supported
+
+
+@pytest.mark.parametrize(
+    "markup,values,supported",
+    [
+        ("<div><!-- Acme --></div>", ["Acme"], False),
+        ("<div><!-- hidden -->Acme</div>", ["Acme"], True),
+        ("<span>Micro<!-- hidden -->soft</span>", ["Microsoft"], True),
+        (
+            "<div><span>Acme</span><span>Platform</span><span>Acme</span><span>Platform</span></div>",
+            ["Acme", "Acme"],
+            True,
+        ),
+        ("<div><span><span>Acme</span></span><span>Platform</span></div>", ["Acme", "Acme"], False),
+        ("<div><span>Acme</span> <span>Acme</span></div>", ["Acme", "Acme", "Acme"], False),
+    ],
+)
+@pytest.mark.parametrize("override", [False, True])
+def test_visible_source_counts_distinct_occurrences_without_comments(
+    markup, values, supported, override
+):
+    reference = {"url": "https://example.org/", "values": {"name": values}}
+    if override:
+        from collections import Counter
+
+        reference["values"]["name"] = list(dict.fromkeys(values))
+        reference["source_value_counts"] = {"name": dict(Counter(values))}
+    assert (not records.reference_support(reference, markup.encode())) is supported
