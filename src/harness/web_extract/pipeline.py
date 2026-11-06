@@ -2123,20 +2123,13 @@ def score_run(
             original_rows,
             contract["methods"],
         )
-        def preserves_saved(saved, current):
-            if isinstance(saved, dict):
-                return isinstance(current, dict) and all(
-                    key in current and preserves_saved(value, current[key])
-                    for key, value in saved.items()
-                )
-            if type(saved) is float and type(current) in (int, float):
-                return math.isclose(saved, current, rel_tol=0, abs_tol=1e-14)
-            return saved == current
-
         reproduced = (
-            all(preserves_saved(original["scores"][m][section], expected[m][section])
-                for m in contract["methods"] for section in ("per_case", "mean"))
-            if hasattr(adapter, "reference_revision_receipt")
+            all(original.get(key) == result[key] for key in (
+                "kind", "cases", "call_manifest_sha256", "scorer_sha256"
+            )) and adapter.verify_predecessor_scores(
+                original.get("scores"), expected, contract["case_ids"]
+            )
+            if hasattr(adapter, "verify_predecessor_scores")
             else original.get("scores") == expected
         )
         if not reproduced:

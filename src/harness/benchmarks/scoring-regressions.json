@@ -80338,6 +80338,60 @@
       "expected": {
         "item_f1": 0
       }
+    },
+    {
+      "id": "human-eval-nested-number-equivalence",
+      "reference": {
+        "items": [
+          {
+            "values": [
+              1000000000000000000,
+              11
+            ]
+          }
+        ]
+      },
+      "prediction": {
+        "items": [
+          {
+            "values": [
+              11,
+              1e+18
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "item_f1": 1
+      }
+    },
+    {
+      "id": "human-eval-nested-array-multiplicity",
+      "reference": {
+        "items": [
+          {
+            "values": [
+              1,
+              1,
+              2
+            ]
+          }
+        ]
+      },
+      "prediction": {
+        "items": [
+          {
+            "values": [
+              1,
+              2,
+              2
+            ]
+          }
+        ]
+      },
+      "expected": {
+        "item_f1": 0
+      }
     }
   ]
 }

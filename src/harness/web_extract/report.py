@@ -3122,13 +3122,11 @@ def record_result_href(method, case_id):
     return record_route("c", case_id) + ".html#" + method
 
 
-def record_comparison(headers, rows, metrics, *, sort_values=None, highlight_ties=True):
+def record_comparison(headers, rows, metrics, *, sort_values=None):
     """Use the common table owner and raw-value extrema checks for each metric."""
     soup = BeautifulSoup(
         table(headers, rows, attrs="data-sortable", sort_values=sort_values), "html.parser"
     )
-    if not highlight_ties:
-        soup.table.attrs.pop("data-highlight-ties", None)
     for column, (name, direction, values) in metrics.items():
         observed = []
         for row, value in zip(soup.select("tbody tr"), values, strict=True):
@@ -3140,7 +3138,7 @@ def record_comparison(headers, rows, metrics, *, sort_values=None, highlight_tie
         if observed and direction != "neutral":
             extreme = (min if direction == "min" else max)(value for value, _ in observed)
             for value, cell in observed:
-                if value == extreme and (highlight_ties or sum(v == extreme for v, _ in observed) == 1):
+                if value == extreme:
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})
                     span.string = cell.get_text()
                     cell.clear()
@@ -4424,7 +4422,11 @@ def schema_metric_definitions(language, count):
 
 def schema_report_inputs(home, model):
     """Read complete arbitrary-schema evidence without converting it to product fields."""
-    from harness.web_extract.review import json_leaf_paths
+    from harness.web_extract.review import (
+        require_schema_dataset,
+        schema_audit_case,
+        validate_schema_audit,
+    )
 
     if model.get("synthetic"):
         binding = model["synthetic_data"]
@@ -4447,6 +4449,7 @@ def schema_report_inputs(home, model):
     for selection in model["evidence_runs"]:
         run = Path(selection["path"])
         contract, selected = load_run(run)
+        require_schema_dataset(home, contract)
         if len(contract["methods"]) != 1:
             raise ValueError("Schema report needs one source run per method")
         method = contract["methods"][0]
@@ -4457,11 +4460,29 @@ def schema_report_inputs(home, model):
         if digest(score_path.read_bytes()) != selection["scores"]["sha256"]:
             raise ValueError("Schema report selected score changed")
         scored = read_json(score_path)
+        if "reference_revision" in scored or "projection_revision" in scored:
+            raise ValueError("Official schema columns require original-reference native scores")
+        if scored["scorer_sha256"] != digest((home / "dataset/evaluate.py").read_bytes()):
+            raise ValueError("Schema scores use a different official scorer")
         if scored["call_manifest_sha256"] != certificate["manifest_sha256"]:
             raise ValueError("Schema score belongs to another call matrix")
         if method in scores:
             raise ValueError("Schema report duplicates a method")
-        scores[method] = scored["scores"][method]
+        if scored["scores"][method] != score_rows(home, truth, selected, [method])[method]:
+            raise ValueError("Schema scores do not reproduce from the original reference")
+        scores[method] = {
+            **scored["scores"][method],
+            "provenance": {
+                "reference": "original",
+                "original_reference_sha256": digest(
+                    (home / "dataset/dataset/ground-truth.json").read_bytes()
+                ),
+                "score_file_sha256": selection["scores"]["sha256"],
+                "call_manifest_sha256": scored["call_manifest_sha256"],
+                "scorer_sha256": scored["scorer_sha256"],
+                "scoring_revision": scored.get("scoring_revision"),
+            },
+        }
         rows.extend(selected)
     expected = {(method, cid) for method in methods for cid in truth}
     observed = {(row["method"], row["case_id"]) for row in rows}
@@ -4469,16 +4490,21 @@ def schema_report_inputs(home, model):
         raise ValueError("Schema report requires the complete declared result matrix")
     if set(audit["results"]) != {m + ":" + cid for m, cid in expected}:
         raise ValueError("Schema report audit omits or adds results")
+    if set(audit["reference_reviews"]) != set(truth):
+        raise ValueError("Schema report reference audit is incomplete")
+    by_case = {cid: [] for cid in truth}
     for row in rows:
         opinion = audit["results"][row["method"] + ":" + row["case_id"]]
         if opinion["execution_identity"] != execution_identity(row):
             raise ValueError("Schema report review does not match the current native response")
-        actual = row.get("normalized_fields")
-        paths = json_leaf_paths(actual) if isinstance(actual, dict) else []
-        if sorted(opinion["checked_paths"]) != sorted(paths):
-            raise ValueError("Schema report review skipped nested values")
-    if set(audit["reference_reviews"]) != set(truth):
-        raise ValueError("Schema report reference audit is incomplete")
+        by_case[row["case_id"]].append(row)
+    packet = {"cases": [schema_audit_case(home, cid, definition, by_case[cid])
+                        for cid, definition in truth.items()]}
+    fields = ("method", "verdict", "checked_paths", "fields", "summary")
+    opinions = {"cases": [{"case_id": cid, "reference": audit["reference_reviews"][cid],
+        "outputs": [{key: audit["results"][m + ":" + cid][key] for key in fields} for m in methods]}
+        for cid in truth]}
+    validate_schema_audit(opinions, packet)
     return truth, rows, scores, audit
 
 
@@ -4605,7 +4631,7 @@ def build_schema_cohort(output, content, *, home, language, profile):
                 metrics[i][2].append(value)
         core = record_comparison([t(k) for k in (
             "method", "delivery", "key_f1", "value_score", "item_f1", "exact_match", "reviewed_correct"
-        )], quality, metrics, highlight_ties=False)
+        )], quality, metrics)
         core += '<p data-schema-population>' + t("all_tasks", count=len(truth)) + "</p>"
         core += "<p>" + t("whole_result_note") + "</p>"
         core += "<p>" + t("review_kind") + "</p>"
@@ -4624,6 +4650,7 @@ def build_schema_cohort(output, content, *, home, language, profile):
             for i, key in enumerate(("mean", "p50", "p95"), 2)}
         for method in methods:
             values = sorted(r["elapsed_seconds"] for r in rows if r["method"] == method
+                            and r.get("http_status") == 200
                             and isinstance(r.get("normalized_fields"), dict))
             statistics_values = ([statistics.mean(values), statistics.median(values),
                                   latency_p95(values, "linear")] if values else [None] * 3)
@@ -4635,7 +4662,6 @@ def build_schema_cohort(output, content, *, home, language, profile):
         bodies["protocol"] += "<h2>" + t("conditional_latency") + "</h2><p>"
         bodies["protocol"] += t("conditional_latency_scope") + "</p>" + record_comparison(
             t("conditional_latency_headers"), successful_timing, conditional_metrics,
-            highlight_ties=False,
         )
         inventory = []
         for row in rows:

@@ -37,6 +37,8 @@ def dataset(tmp_path, monkeypatch):
         ' return result\n'
         'def _compare_values(pred,gold):\n'
         ' if isinstance(gold,list): return float(sorted(pred,key=str)==sorted(gold,key=str))\n'
+        ' if isinstance(gold,str) and gold: return len(set(str(pred).split()) & '
+        'set(gold.split()))/len(set(gold.split()))\n'
         ' return float(pred==gold)\n'
         'def magic_metric_failed(): return {"key_f1":0.,"value_score":0.}\n'
         'def run_all(pred,schema,gold):\n'
@@ -230,3 +232,79 @@ def test_source_reference_revision_preserves_original_and_rejects_unbound_edits(
         p.save_json(revision, candidate)
         with pytest.raises(ValueError):
             he.load_reference_revision(home, revision)
+
+
+@pytest.mark.parametrize('defect', [
+    'missing_case', 'empty_cases', 'empty_mean', 'missing_leaf_metric',
+    'missing_mean_metric', 'population', 'delivery', 'extra_case',
+])
+def test_predecessor_scores_reject_incomplete_or_changed_evidence(dataset, defect):
+    import copy
+
+    home, _, _ = dataset
+    truth = p.read_json(home / 'dataset/dataset/ground-truth.json')
+    rows = [{'method': 'cloudflare-json', 'case_id': cid, 'http_status': 200,
+             'normalized_fields': case['response']} for cid, case in truth.items()]
+    current = p.score_rows(home, truth, rows, ['cloudflare-json'])
+    saved = copy.deepcopy(current)
+    for group in saved.values():
+        for scores in [group['mean'], *group['per_case'].values()]:
+            for key in ('item_precision', 'item_recall', 'item_f1'):
+                scores.pop(key)
+    assert he.verify_predecessor_scores(saved, current, list(truth))
+    group = saved['cloudflare-json']
+    if defect == 'missing_case':
+        group['per_case'].pop(next(iter(truth)))
+    elif defect == 'empty_cases':
+        group['per_case'] = {}
+    elif defect == 'empty_mean':
+        group['mean'] = {}
+    elif defect == 'missing_leaf_metric':
+        group['per_case'][next(iter(truth))].pop('value_score')
+    elif defect == 'missing_mean_metric':
+        group['mean'].pop('value_score')
+    elif defect == 'population':
+        group['population'] += 1
+    elif defect == 'delivery':
+        group['delivery_count'] -= 1
+    else:
+        group['per_case']['not-declared'] = copy.deepcopy(next(iter(group['per_case'].values())))
+    assert not he.verify_predecessor_scores(saved, current, list(truth))
+
+
+def test_nested_array_numeric_serializers_preserve_order_and_multiplicity():
+    gold = {'items': [{'values': [100000000000000000000, 11]}]}
+    assert he.item_scores(gold, {'items': [{'values': [11, 1e20]}]})['item_f1'] == 1
+    assert he.item_scores({'items': [{'values': [1, 1, 2]}]},
+                          {'items': [{'values': [1, 2, 2]}]})['item_f1'] == 0
+
+
+def test_reference_rescoring_rejects_a_corrupt_predecessor_envelope(dataset, monkeypatch, tmp_path):
+    home, _, _ = dataset
+    truth = p.read_json(home / 'dataset/dataset/ground-truth.json')
+    rows = [{'method': 'cloudflare-json', 'case_id': cid, 'http_status': 200,
+             'normalized_fields': case['response']} for cid, case in truth.items()]
+    contract = {'kind': 'full_archived_extraction', 'case_ids': list(truth),
+                'methods': ['cloudflare-json'],
+                'dataset_manifest_sha256': p.digest((home / 'dataset/manifest.json').read_bytes())}
+    run = tmp_path / 'run'
+    p.save_json(run / 'manifest.json', {'synthetic_calls': list(truth)})
+    monkeypatch.setattr(p, 'load_run', lambda path: (contract, rows))
+    p.score_run(home, run)
+    original = home / 'dataset/dataset/ground-truth.json'
+    source = home / 'dataset/markdown/human-eval-000.md'
+    authority = tmp_path / 'revision.json'
+    p.save_json(authority, {'schema': 'source-json-reference-revision/1',
+        'original_reference_sha256': p.digest(original.read_bytes()),
+        'root_cause': 'Keep literal heading punctuation.',
+        'regression_ids': he.check_scoring_controls(home), 'changes': [{
+            'case_id': 'human-eval-000', 'path': '/name', 'before': 'A & B', 'after': '# A & B',
+            'source_sha256': p.digest(source.read_bytes()), 'source_quote': '# A & B',
+            'reason': 'The literal source heading includes the marker.'}]})
+    p.score_run(home, run, reference_revision=authority, output=run / 'revised.json')
+    predecessor = p.read_json(run / 'scores.json')
+    predecessor['cases'] = 0
+    p.save_json(run / 'scores.json', predecessor)
+    with pytest.raises(ValueError, match='Original scores do not reproduce'):
+        p.score_run(home, run, reference_revision=authority, output=run / 'invalid.json')
+    assert not (run / 'invalid.json').exists()

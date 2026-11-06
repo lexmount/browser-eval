@@ -5,7 +5,10 @@ from __future__ import annotations
 import html
 import json
 import math
+import os
 import runpy
+import subprocess
+import sys
 import tempfile
 from collections import Counter
 from decimal import Decimal
@@ -17,13 +20,14 @@ INSTRUCTION_DELIVERY = "original-schema/1"
 SCORE_REQUIRES_HOME = True
 MISSING_OUTPUT_NONE = True
 SCORING_REVISION = {
-    "id": "human-eval-record-items/2",
+    "id": "human-eval-record-items/3",
     "root_cause": (
         "The upstream value_score sums scores over a hash-randomized key set. "
         "Use the same upstream leaf comparisons with math.fsum in sorted key order; "
         "aggregate cases with math.fsum too. The official wildcard scorer loses record "
         "associations and scores complete array fields all-or-nothing. Add a separate "
-        "duplicate-preserving exact item F1; keep every official metric unchanged."
+        "duplicate-preserving exact item F1, including numeric-equivalent nested array "
+        "multisets; keep every official metric unchanged."
     ),
     "regression_ids": [
         "human-eval-missing-empty-reference", "human-eval-delivered-empty-reference",
@@ -31,6 +35,7 @@ SCORING_REVISION = {
         "human-eval-process-independent-value-score",
         "human-eval-item-partial-recall", "human-eval-item-extra-record",
         "human-eval-item-number-equivalence", "human-eval-item-boolean-type",
+        "human-eval-nested-number-equivalence", "human-eval-nested-array-multiplicity",
     ],
     "provider_calls_added": 0,
 }
@@ -166,7 +171,7 @@ def item_identity(value):
     if isinstance(value, dict):
         return ("object", tuple(sorted((k, item_identity(v)) for k, v in value.items())))
     if isinstance(value, list):
-        return ("array", tuple(sorted((item_identity(v) for v in value), key=repr)))
+        return ("array", frozenset(Counter(item_identity(v) for v in value).items()))
     return (type(value).__name__, value)
 
 
@@ -266,6 +271,7 @@ def check_scoring_controls(home):
             second = evaluate(dict(reversed(list(references.items()))), predictions)
             if first != second:
                 raise ValueError("Value scores depend on input order")
+            check_hash_seed_scores(home)
         else:
             result = evaluate({"case": control["reference"]}, {"case": control["prediction"]})
             actual = result["per_case"]["case"]
@@ -275,6 +281,73 @@ def check_scoring_controls(home):
     if identifiers != SCORING_REVISION["regression_ids"]:
         raise ValueError("Scoring revision omits a registered regression control")
     return identifiers
+
+
+def check_hash_seed_scores(home):
+    """Fractional leaf comparisons must survive reordered keys and process hash seeds."""
+    words = "alpha beta gamma delta epsilon zeta eta theta iota kappa".split()
+    gold = {f"field-{i}": " ".join(words) for i in range(151)}
+    predicted = {key: " ".join(words[:4 + i % 7]) for i, key in enumerate(gold)}
+    evaluator = runpy.run_path(str(home / "dataset/evaluate.py"))
+    leaves = [evaluator["_compare_values"](predicted[k], gold[k]) for k in sorted(gold)]
+    if not any(0 < score < 1 for score in leaves):
+        raise ValueError("Hash-seed control requires fractional leaf comparisons")
+    expected = (math.fsum(leaves) / len(leaves)).hex()
+    program = """
+import json, sys
+from pathlib import Path
+from harness.web_extract import human_eval, dataset, pipeline
+human_eval.CARD = Path(sys.argv[2])
+dataset.BENCHMARKS['human-eval']['profile'] = str(human_eval.CARD)
+gold, prediction = json.load(sys.stdin)
+truth = {'control': {'response': gold, 'schema_text': '{"type":"object"}'}}
+rows = [{'method': 'cloudflare-json', 'case_id': 'control', 'http_status': 200,
+         'normalized_fields': prediction}]
+result = pipeline.score_rows(Path(sys.argv[1]), truth, rows, ['cloudflare-json'])
+print(result['cloudflare-json']['per_case']['control']['value_score'].hex())
+"""
+    for index, seed in enumerate((1, 2, 7, 19)):
+        ordered = dict(reversed(list(gold.items()))) if index % 2 else gold
+        result = subprocess.run(
+            [sys.executable, "-c", program, str(home), str(CARD)],
+            input=json.dumps([ordered, predicted]), text=True, capture_output=True, check=True,
+            env={**os.environ, "PYTHONHASHSEED": str(seed)}, timeout=60,
+        )
+        if result.stdout.strip() != expected:
+            raise ValueError("Value scores depend on field order or process hash seed")
+
+
+def verify_predecessor_scores(saved, current, case_ids):
+    """Only explicitly additive diagnostics may be absent from an original score."""
+    additive = {"item_precision", "item_recall", "item_f1"}
+    if not isinstance(saved, dict) or set(saved) != set(current):
+        return False
+
+    def metrics(original, expected):
+        if (not isinstance(original, dict)
+                or not set(expected) - additive <= set(original) <= set(expected)):
+            return False
+        return all(
+            type(original[key]) is bool and original[key] == value
+            if type(value) is bool else type(original[key]) in (int, float)
+            and math.isclose(original[key], value, rel_tol=0, abs_tol=1e-14)
+            for key, value in expected.items() if key in original
+        )
+
+    for method, expected in current.items():
+        original = saved[method]
+        if (not isinstance(original, dict)
+                or type(original.get("population")) is not int
+                or original["population"] != len(case_ids)
+                or type(original.get("delivery_count")) is not int
+                or original["delivery_count"] != expected["delivery_count"]
+                or not isinstance(original.get("per_case"), dict)
+                or set(original["per_case"]) != set(case_ids)
+                or not metrics(original.get("mean"), expected["mean"])
+                or any(not metrics(original["per_case"][cid], expected["per_case"][cid])
+                       for cid in case_ids)):
+            return False
+    return True
 
 
 def load_reference_revision(home, path):
