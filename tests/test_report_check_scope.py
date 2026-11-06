@@ -104,9 +104,9 @@ def test_changed_reference_and_output_repeat_only_the_affected_units(report):
     root, _ = report
     owner(root)
     data = root / 'results.json'
-    data.write_text(data.read_text().replace('price', 'updated-price'), encoding='utf-8')
+    data.write_text(data.read_text(encoding='utf-8').replace('price', 'updated-price'), encoding='utf-8')
     page = root / 'index.html'
-    page.write_text(page.read_text().replace('price', 'updated-price'), encoding='utf-8')
+    page.write_text(page.read_text(encoding='utf-8').replace('price', 'updated-price'), encoding='utf-8')
     rebind(root)
     owner(root)
     assert CALLS == {'score': 3, 'page': 3, 'mandatory': 2}
@@ -135,7 +135,7 @@ def test_a_previous_pass_does_not_hide_new_publication_errors(report, damage):
     if damage == 'value':
         text = text.replace('data-value="price"', 'data-value="wrong"')
     elif damage == 'privacy':
-        text += '/Users/private-owner/internal-file'
+        text += '/Users/private/internal-file'
     elif damage == 'link':
         text += '<a href="detail.html#missing">Evidence</a>'
     else:

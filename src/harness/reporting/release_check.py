@@ -12,7 +12,8 @@ from pathlib import Path
 
 from bs4 import BeautifulSoup
 
-from harness.record_io import file_sha256
+from harness.data_home import data_home
+from harness.record_io import canonical_json_sha256, file_sha256
 from harness.report_languages import generated_languages
 from harness.reporting.presentation import check_presentation
 from harness.reporting.templates import check_template_identity
@@ -20,11 +21,6 @@ from harness.reporting.versions import check_build_version
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 _ACTIVE_CHECK = ContextVar('report_validation', default=None)
-
-
-def _digest(value):
-    return hashlib.sha256(json.dumps(value, sort_keys=True, allow_nan=False,
-                                    separators=(',', ':')).encode('utf-8')).hexdigest()
 
 
 def _json_value(value):
@@ -45,7 +41,7 @@ def _inventory(root):
 
 @lru_cache(maxsize=4)
 def _implementation_bytes(signatures):
-    return _digest({name: file_sha256(Path(name)) for name, _ in signatures})
+    return canonical_json_sha256({name: file_sha256(Path(name)) for name, _ in signatures}, allow_nan=False)
 
 
 def _implementation():
@@ -61,7 +57,7 @@ def _implementation():
         signatures.append((str(path), (info.st_dev, info.st_ino, info.st_size,
                                        info.st_mtime_ns, info.st_ctime_ns)))
     if os.name == 'nt':
-        return _digest({name: file_sha256(Path(name)) for name, _ in signatures})
+        return canonical_json_sha256({name: file_sha256(Path(name)) for name, _ in signatures}, allow_nan=False)
     return _implementation_bytes(tuple(signatures))
 
 
@@ -70,10 +66,9 @@ class _CheckSession:
         self.root = root
         self.before = _inventory(root)
         self.identity = {'schema': 1, 'runtime': sys.version, 'implementation': _implementation()}
-        home = Path(os.environ.get('BROWSER_EVAL_DATA_HOME', Path.home() / '.browser-eval'))
-        cache = Path(os.environ.get('BROWSER_EVAL_REPORT_CHECK_CACHE', home / 'report-checks'))
+        cache = Path(os.environ.get('BROWSER_EVAL_REPORT_CHECK_CACHE', data_home() / 'report-checks'))
         self.disabled = cache.resolve().is_relative_to(root.resolve())
-        self.path = cache / (_digest([track, str(root.parent.resolve())]) + '.json')
+        self.path = cache / (canonical_json_sha256([track, str(root.parent.resolve())], allow_nan=False) + '.json')
         self.entries, self.used = {}, {}
         self.executed = self.reused = 0
         self.loaded = False
@@ -86,7 +81,7 @@ class _CheckSession:
                     and isinstance(saved['entries'], dict)
                     and all(isinstance(k, str) and isinstance(v, str)
                             for k, v in saved['entries'].items())
-                    and saved['sha256'] == _digest(saved['entries'])):
+                    and saved['sha256'] == canonical_json_sha256(saved['entries'], allow_nan=False)):
                 self.entries = saved['entries']
                 self.loaded = True
         except (OSError, ValueError, KeyError, TypeError):
@@ -104,7 +99,7 @@ class _CheckSession:
             self.path.parent.mkdir(parents=True, exist_ok=True)
             reject_evidence_symlinks(self.path.parent)
             atomic_write(self.path, json.dumps({'identity': self.identity, 'entries': self.used,
-                                                'sha256': _digest(self.used)}).encode('utf-8'))
+                                                'sha256': canonical_json_sha256(self.used, allow_nan=False)}).encode('utf-8'))
             self.path.chmod(0o600)
         except (OSError, ValueError):
             # A read-only machine runs the same checks without persisting reuse.
@@ -154,7 +149,7 @@ def validated(name, inputs, validate):
         if not _json_value(inputs) or not hasattr(validate, '__code__'):
             raise TypeError('Undeclared input or validator type')
         code = hashlib.sha256(marshal.dumps(validate.__code__)).hexdigest()
-        key = _digest([name, code, inputs])
+        key = canonical_json_sha256([name, code, inputs], allow_nan=False)
     except (ValueError, TypeError):
         session.executed += 1
         return validate()
