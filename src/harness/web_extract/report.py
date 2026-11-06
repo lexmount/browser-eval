@@ -2920,7 +2920,9 @@ def record_cohort_inputs(home, model, *, profile):
         "sources": {},
         "dataset": read_json(profile if local_example else selected_profile(home)),
         "scoring_cases": truth,
-        "reference_policy": None,
+        "reference_policy": adapter.reference_policy(home)
+        if hasattr(adapter, "reference_policy")
+        else None,
         "audit": None,
     }
     native_rows = []
@@ -2937,7 +2939,13 @@ def record_cohort_inputs(home, model, *, profile):
             (home / "dataset/manifest.json").read_bytes()
         ):
             raise ValueError("Measured source belongs to a different dataset")
-        stats = record_statistics(truth, rows, certified=receipt["certified"], scorer=adapter.score)
+        stats = record_statistics(
+            truth,
+            rows,
+            certified=receipt["certified"],
+            scorer=adapter.score,
+            reference_policy=result["reference_policy"],
+        )
         if stats["certified"] and receipt["scores"][method] != stats["scores"]:
             raise ValueError("Record report scores differ from the certified scorer")
         result["methods"][method] = {"statistics": stats, "results": {}}
@@ -2949,7 +2957,7 @@ def record_cohort_inputs(home, model, *, profile):
         }
         for row in rows:
             result["methods"][method]["results"][row["case_id"]] = record_result_fields(
-                truth[row["case_id"]], row
+                truth[row["case_id"]], row, policy=result["reference_policy"]
             )
     if seen != set(methods):
         raise ValueError("Report omits a planned participant")
@@ -3186,7 +3194,17 @@ def record_review_section(audit, original_reference, original_metrics, labels, l
 
 def record_preview(home, model, *, local_example):
     """Bind preview URLs to a freshly verified complete dataset snapshot."""
+    from harness.web_extract.dataset import input_mode
     from harness.web_extract.snapshots import verify_bound_manifest
+
+    if input_mode(home) == "live":
+        if model.get("snapshot_base") or model.get("preview_snapshot"):
+            raise ValueError("Live report inputs link to original URLs, not snapshots")
+        urls = {
+            cid: case["url"]
+            for cid, case in read_json(home / "dataset/dataset/ground-truth.json").items()
+        }
+        return {"mode": "live", "case_count": len(urls), "urls": urls}
 
     base = model.get("snapshot_base")
     if not base:
@@ -3620,7 +3638,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     preview_snapshot = record_preview(
         home, model, local_example=bound_profile.get("local_example", False)
     )
-    snapshot_base = preview_snapshot["fixture_base"]
+    snapshot_base = preview_snapshot.get("fixture_base")
     for cid, ref in sorted(truth.items()):
         data_route, comparison = record_route("d", cid), record_route("c", cid)
         schema = benchmark_config(home)["adapter"].task_schema(home, ref)
@@ -3663,21 +3681,27 @@ def build_record_cohort(output, content, *, home, language, profile):
             + value(schema)
             + "</pre></details>"
         )
-        source += (
-            '<p><a href="'
-            + esc(ref["url"])
-            + '">'
-            + t("original_url")
-            + '</a> · <a href="'
-            + esc(snapshot_base + "/" + cid)
-            + '">'
-            + t("download")
-            + '</a></p><iframe sandbox class="frozen-preview" loading="lazy" title="'
-            + t("preview")
-            + '" src="'
-            + esc(snapshot_base + "/" + cid)
-            + '"></iframe>'
-        )
+        source += '<p><a href="' + esc(ref["url"]) + '">' + t("original_url") + "</a></p>"
+        if preview_snapshot["mode"] == "live":
+            source += (
+                '<p><a data-live-source href="'
+                + esc(ref["url"])
+                + '">'
+                + t("live_page")
+                + "</a></p>"
+            )
+        else:
+            source += (
+                '<p><a href="'
+                + esc(snapshot_base + "/" + cid)
+                + '">'
+                + t("download")
+                + '</a></p><iframe sandbox class="frozen-preview" loading="lazy" title="'
+                + t("preview")
+                + '" src="'
+                + esc(snapshot_base + "/" + cid)
+                + '"></iframe>'
+            )
         write(
             data_route,
             domain_labels.get(ref["domain"], ref["domain"]) + "网页 · " + ref["site"],
@@ -4043,7 +4067,13 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     if actual_retries != expected_retries:
         raise ValueError("Retry timing summary is missing or changed")
     preview = manifest.get("preview_snapshot", {})
-    if (
+    if preview.get("mode") == "live":
+        if (
+            preview.get("case_count") != manifest["case_count"]
+            or len(preview.get("urls", {})) != manifest["case_count"]
+        ):
+            raise ValueError("Live preview population differs from the declared cohort")
+    elif (
         not preview.get("fixture_base")
         or preview.get("mode")
         != ("synthetic" if manifest.get("local_example") else "dataset_manifest")
@@ -4148,8 +4178,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     for method in manifest["planned_methods"]:
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         if not isinstance(bucket, dict) or any(
-            not isinstance(row, dict) or cid != row.get("case_id")
-            for cid, row in bucket.items()
+            not isinstance(row, dict) or cid != row.get("case_id") for cid, row in bucket.items()
         ):
             raise ValueError("Record evidence keys differ from embedded case identities")
         rows = list(bucket.values())
@@ -4330,6 +4359,14 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     raise ValueError("Record native failure error is missing or changed")
     for file in sorted((output / "zh").glob("*.html")):
         soup = check_presentation(file.read_text(encoding="utf-8"))
+        for link in soup.select("a[data-live-source]"):
+            case = soup.select_one("[data-source-case]")
+            if case is None or link.get("href") != preview.get("urls", {}).get(
+                case["data-source-case"]
+            ):
+                raise ValueError("Live source link differs from the declared original URL")
+        if preview.get("mode") == "live" and soup.select("iframe.frozen-preview"):
+            raise ValueError("Live report must not substitute a frozen-page preview")
         for frame in soup.select("iframe.frozen-preview"):
             case = soup.select_one("[data-source-case]")
             if case is None:

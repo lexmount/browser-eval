@@ -14,7 +14,7 @@ shared cache, works offline after download, and preserves existing hash-bound in
 
 ## Scope and naming
 
-Web Extract measures structured field extraction from archived HTML: the caller
+Web Extract measures structured field extraction from archived pages or live URLs: the caller
 requests fields such as price, stock or author, and the service returns field values.
 Web scraping is the broader term for collecting website data; extraction is the
 part measured here. [Zyte calls it automatic extraction](https://docs.zyte.com/zyte-api/usage/extract/index.html).
@@ -76,7 +76,8 @@ Browser infrastructure requiring a separately connected model is outside this
 comparison. Browserbase JSON uses only the Browserbase API key. The separately
 registered Stagehand route uses its native Model Gateway and needs a project ID;
 it does not read an OpenAI key. Bright Data's site-specific extractor remains discoverable as a candidate, but
-is rejected by the full archived-page plan because it cannot parse arbitrary HTML.
+is outside arbitrary-schema cohorts because it requires a supported site-specific
+extractor. Browser infrastructure alone does not supply the requested field values.
 
 New cohorts give every native API the same public URL for each frozen page.
 Each dataset has its own hosting service. Browser Eval can find and reuse a
@@ -427,6 +428,50 @@ Verified 2026-11-04 against [Pages pricing](https://developers.cloudflare.com/pa
 and [versioned preview URLs](https://developers.cloudflare.com/pages/configuration/preview-deployments/#preview-aliases).
 
 ## Multi-value field reports
+
+### Source-qualified external cohorts
+
+Use the `records` adapter for another benchmark with explicit field schemas and
+source-validated references. Its definition stays outside Git and binds the source
+versions, sampling rules, page hashes, schemas and reference hashes. References are
+used for local scoring and never sent to an extraction API.
+
+A definition may set `extraction_instructions` to declare its task scope. This
+text is frozen in the dataset profile, plan and request contract. List-query
+benchmarks should request all matching records; the default single-record
+instructions remain available for detail-page benchmarks. Field descriptions
+carry the original question when an API accepts a schema without a separate query.
+
+```sh
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli \
+  --home /absolute/data/cohort prepare --benchmark records \
+  --source /absolute/data/cohort-definition.json
+```
+
+The definition declares `input_mode: snapshot` or `input_mode: live`:
+
+| Mode | URL sent to the native API | Source validation |
+| --- | --- | --- |
+| `snapshot` | The immutable hosted page URL selected by `host` | HF revision and the complete HTML/resource inventory before and after collection |
+| `live` | The original website URL in the task | Original reference values checked on the source before and after collection |
+
+Live cohorts reject snapshot bindings. Saved HTML is private source evidence;
+providers still visit the original site. Unavailable pages or references that no
+longer appear stop certification, while completed provider calls remain saved.
+Source checks run at most four origins concurrently, with serial requests and a
+one-second pause within each origin. They do not contribute to provider latency.
+
+Snapshots can include captured styles, images and other resources. Their hashes
+are part of the whole-snapshot version; changing an asset changes that version
+even when the main HTML is unchanged. Scripts and external resources remain
+blocked by response headers.
+
+The shared scorer reports page-hit macro F1, value-level micro F1 and exact-field
+set rate. Text matching preserves content and units while normalizing whitespace.
+Explicitly typed URL fields resolve relative links against the source URL, using
+the same matching rule in aggregate scores and result details. A cohort using
+these rules must disclose them as an adaptation unless they reproduce the
+upstream evaluator.
 
 The same report owner supports registered record schemas through
 `mode: field-extraction-cohort`. The instance content binds every planned

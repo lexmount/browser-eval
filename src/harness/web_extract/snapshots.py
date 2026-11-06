@@ -36,8 +36,26 @@ def inventory(home):
         files[case] = entry["sha256"]
     if len(files) != manifest["cases"]:
         raise ValueError("Snapshot population differs")
-    version = bytes_sha256(json.dumps(files, sort_keys=True, separators=(",", ":")).encode())
+    assets = resource_inventory(home)
+    content = {"html": files, "assets": assets} if assets else files
+    version = bytes_sha256(json.dumps(content, sort_keys=True, separators=(",", ":")).encode())
     return version, files
+
+
+def resource_inventory(home):
+    """Bind captured page resources to the same immutable version as their HTML."""
+    manifest = read_json(home / "dataset/manifest.json")
+    resources = {}
+    for name, entry in manifest["files"].items():
+        if name.startswith("assets/"):
+            relative = Path(name)
+            path = home / "dataset" / relative
+            if relative.is_absolute() or ".." in relative.parts or path.is_symlink():
+                raise ValueError("Unsafe snapshot resource")
+            if bytes_sha256(path.read_bytes()) != entry["sha256"]:
+                raise ValueError("Snapshot resource differs from the frozen input")
+            resources[name] = entry["sha256"]
+    return resources
 
 
 def build(homes, output, *, huggingface):
@@ -79,6 +97,11 @@ def build(homes, output, *, huggingface):
             (folder / f"{case}.html").write_bytes(
                 (home / "dataset/html" / f"{case}.html").read_bytes()
             )
+        assets = resource_inventory(home)
+        for relative in assets:
+            path = folder / relative
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes((home / "dataset" / relative).read_bytes())
         (folder / "LICENSE.txt").write_bytes(license_path.read_bytes())
         notice = {
             "name": profile["name"],
@@ -95,13 +118,20 @@ def build(homes, output, *, huggingface):
             "path": prefix,
             "html_inventory_sha256": version,
             "cases": files,
+            **({"resources": assets} if assets else {}),
             "source": notice,
         }
+    has_assets = any(item.get("resources") for item in registry["datasets"].values())
     (output / "_headers").write_text(
         "/*\n  X-Robots-Tag: noindex, nofollow\n"
         "  Cache-Control: public, max-age=31536000, immutable, no-transform\n"
-        "  Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; "
-        "img-src data:; base-uri 'none'; form-action 'none'\n",
+        + (
+            "  Content-Security-Policy: default-src 'none'; style-src 'self' 'unsafe-inline'; "
+            "img-src 'self' data:; font-src 'self' data:; base-uri 'none'; form-action 'none'\n"
+            if has_assets
+            else "  Content-Security-Policy: default-src 'none'; style-src 'unsafe-inline'; "
+            "img-src data:; base-uri 'none'; form-action 'none'\n"
+        ),
         encoding="utf-8",
     )
     # Cloudflare Pages otherwise serves its root document as a missing-path fallback.
@@ -418,6 +448,26 @@ def hf_inventory(hf, revision):
     return originals
 
 
+def hf_resources(hf, revision):
+    """Captured resources are versioned inputs, not unbound deployment decorations."""
+    if hf["input_format"] != "html-manifest":
+        return {}
+    from huggingface_hub import hf_hub_download
+
+    manifest = read_json(
+        Path(
+            hf_hub_download(
+                hf["repository"], hf["input_path"], repo_type="dataset", revision=revision
+            )
+        )
+    )
+    return {
+        name: item["sha256"]
+        for name, item in manifest["files"].items()
+        if name.startswith("assets/")
+    }
+
+
 def host(
     home,
     output,
@@ -453,6 +503,8 @@ def host(
             "Prepared dataset differs from HF latest; "
             "prepare that HF edition before evaluating or deploying"
         )
+    if hf_resources(hf, revision) != resource_inventory(home):
+        raise ValueError("Prepared page resources differ from the selected HF edition")
     metadata = None
     try:
         metadata = json.loads(
@@ -732,6 +784,9 @@ def check_manifest(home, origin, hf_identity):
     item = next(iter(datasets.values()))
     if item.get("html_inventory_sha256") != version or item.get("cases") != cases:
         raise ValueError("Snapshot inventory differs from selected HF dataset")
+    resources = resource_inventory(home)
+    if item.get("resources", {}) != resources:
+        raise ValueError("Snapshot resource inventory differs from selected HF dataset")
     path = item.get("path", "")
     if not re.fullmatch(r"[a-z0-9-]+/" + version, path):
         raise ValueError("Snapshot path does not identify the declared input version")
@@ -741,8 +796,16 @@ def check_manifest(home, origin, hf_identity):
         for name, value in manifest.get("files", {}).items()
         if name.endswith(".html") and name not in {"index.html", "404.html"}
     }
+    expected_html.update(
+        {path + "/" + name: value for name, value in resources.items() if name.endswith(".html")}
+    )
     if declared_html != expected_html:
         raise ValueError("Snapshot file inventory differs from selected HF dataset")
+    if any(
+        manifest.get("files", {}).get(path + "/" + name) != value
+        for name, value in resources.items()
+    ):
+        raise ValueError("Snapshot resource file binding differs")
     return {
         "mode": "dataset_manifest",
         "manifest_url": url,
