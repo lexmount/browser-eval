@@ -407,8 +407,8 @@ def collect(home, profile, method, destination):
 
 
 def verify_repair(home, source, repair):
-    require_archived(home)
     """Overlay only declared failed calls; keep old calls and missing timers explicit."""
+    require_archived(home)
     directory = Path(repair["path"])
     certificate = read_json(directory / "certificate.json")
     if digest((directory / "certificate.json").read_bytes()) != repair["sha256"]:
