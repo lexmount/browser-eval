@@ -5,8 +5,7 @@ PYTEST_ARGS ?=
 TEST_PATHS ?= tests
 BROWSER_TESTS ?= include
 export BROWSER_TESTS
-export BROWSER_EVAL_FULL_REPORT_CHECK
-%-release-check: override BROWSER_EVAL_FULL_REPORT_CHECK = 1
+ci-tests: override BROWSER_TESTS = exclude
 BROWSER_TEST_PATHS := tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 WEBMAINBENCH_PROFILE ?= $(PROFILE)
@@ -139,7 +138,6 @@ fixture-smoke: runtime-check ## Run the offline fixture CLI
 
 test: test-python test-ui test-native-adapters ## Run Python, UI and native adapter tests
 
-ci-tests: override BROWSER_TESTS = exclude
 ci-tests: track-naming-check lint-check shell-check test fixture-smoke ## Run the CI test and static check job
 
 ci: ci-tests package-check browser-check ## Run every CI job: tests, packaging and browser checks

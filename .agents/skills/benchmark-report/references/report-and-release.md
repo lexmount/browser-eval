@@ -58,14 +58,6 @@ Classify the change before running gates:
 
 Do not run a broad test suite merely because a report is being published. The release command must state which mode ran and name the manual full-audit command when it was skipped.
 
-Routine builds and checks use the shared
-[automatic check scope](../../../../docs/report-hosting.md#automatic-check-scope).
-Only successful pure void validations may be reused; scoring and calculated
-outputs always execute. Formal release checks, packaging and publishing run all
-checks afresh and never read or write routine receipts. Keep integrity, privacy,
-bindings, links and visual gates with their owners. Protect both routine reuse
-and the fresh release boundary with behavior tests.
-
 Common publication gates:
 
 1. rebuild from the current profile and frozen evidence when distributable bytes changed;

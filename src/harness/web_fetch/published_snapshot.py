@@ -12,7 +12,7 @@ from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
 
 from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, read_json
 from harness.report_languages import generated_languages
-from harness.reporting.release_check import checked_page, open_report, read_page, scoped_check
+from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.templates import resolve_template
 from harness.reporting.visual import browser_executable, local_report_server, settle_theme
 from harness.web_fetch.report import generate
@@ -243,7 +243,6 @@ def build_snapshot_audit(source, output, *, profile):
     return output / 'index.html'
 
 
-@scoped_check('webfetch-snapshot')
 def check_snapshot_audit(root):
     """Deterministic checks for matrix values, disclosure and reviewed evidence."""
     root = open_report(root)

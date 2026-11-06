@@ -22,9 +22,7 @@ from harness.report_languages import (
     localized_report_routes,
 )
 from harness.reporting.assets import load_bound_content
-from harness.reporting.release_check import (
-    checked_page, language_editions, open_report, read_page, scoped_check, validation_step,
-)
+from harness.reporting.release_check import checked_page, language_editions, open_report, read_page
 from harness.web_fetch.report import ERROR_PAGE, EXTRA, JS, STYLE
 from harness.web_fetch.report_changes import webmainbench_history
 from harness.web_fetch.safety import reject_evidence_symlinks
@@ -98,7 +96,6 @@ def check_diagnosis_inventory(analysis: BeautifulSoup) -> None:
             raise ValueError('Diagnostic result row cannot open its in-page diagnosis')
 
 
-@validation_step
 def check_interaction_script(script: str) -> None:
     required = ("dialog.addEventListener('close',()=>diagnosisFocus?.focus())",)
     if any(fragment not in script for fragment in required):
@@ -184,7 +181,6 @@ def check_latency_diagnostic(section, evidence: dict, *, formal_round=None) -> N
         raise ValueError('Latency diagnostic failure specimen is missing')
 
 
-@scoped_check('webmainbench')
 def check(root: Path, *, authority_root: Path | None = None) -> None:
     root = open_report(root)
     repo = authority_directory(authority_root, "evaluation/webmainbench-full/current-report.json")
@@ -515,7 +511,6 @@ def check_teds_warnings(root: Path, impossible_teds: int) -> None:
             raise ValueError(prefix + 'Known impossible TEDS distances require a visible validity warning')
 
 
-@scoped_check('webmainbench')
 def check_sample_report(root: Path, dataset: dict | None = None,
                         records: list[dict] | None = None, *,
                         authority_root: Path | None = None, profile_path: Path | None = None) -> None:

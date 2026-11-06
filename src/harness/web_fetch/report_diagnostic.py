@@ -13,7 +13,7 @@ from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
 
 from harness.record_io import json_bytes, load_jsonl, read_json
-from harness.reporting.release_check import checked_page, open_report, read_page, scoped_check
+from harness.reporting.release_check import checked_page, open_report, read_page
 from harness.reporting.versions import check_build_version
 from harness.web_fetch.artifacts import (
     verify_record_private_artifacts,
@@ -437,7 +437,6 @@ def load_diagnostic(source):
     return model, files
 
 
-@scoped_check('webfetch-diagnostic')
 def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
 

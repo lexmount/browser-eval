@@ -27,13 +27,8 @@ from harness.report_languages import (
     write_language_contract,
 )
 from harness.reporting.mermaid import mermaid_script_attributes
+from harness.reporting.presentation import check_presentation
 from harness.reporting.presentation import esc as escape_text
-from harness.reporting.release_check import (
-    checked_page,
-    full_validation,
-    scoped_check,
-    validation_step,
-)
 from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
 from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
@@ -1611,16 +1606,6 @@ def _check_english_separators(output, manifest):
             raise ValueError(f"English page renders Chinese punctuation in report-authored text: {route}")
 
 
-@validation_step
-def _check_review_detail(text, expected_text):
-    detail = BeautifulSoup(text, 'html.parser')
-    expected = BeautifulSoup(expected_text, 'html.parser')
-    actual = detail.select('[data-independent-opinion], [data-review-not-selected]')
-    if len(actual) != 1 or actual[0].get_text() != expected.get_text():
-        raise ValueError('Independent review detail differs from accepted evidence')
-
-
-@scoped_check('web-search')
 def check(output, *, return_data=False, evidence_only=False):
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
@@ -1716,10 +1701,11 @@ def check(output, *, return_data=False, evidence_only=False):
             if actual is None or actual.get_text() != expected.get_text():
                 raise ValueError("Independent review summary differs from the accepted evidence")
             for row in scoring_rows(manifest["profile"], manifest["rows"]):
-                _check_review_detail(
-                    (output / (prefix + 'details/' + row['id'] + '.html')).read_text(encoding='utf-8'),
-                    render_detail(review_data, row['id'], lang == 'zh'),
-                )
+                detail = BeautifulSoup((output / (prefix + "details/" + row["id"] + ".html")).read_text(encoding="utf-8"), "html.parser")
+                expected = BeautifulSoup(render_detail(review_data, row["id"], lang == "zh"), "html.parser")
+                actual = detail.select("[data-independent-opinion], [data-review-not-selected]")
+                if len(actual) != 1 or actual[0].get_text() != expected.get_text():
+                    raise ValueError("Independent review detail differs from accepted evidence")
     factual_cases = {
         case["id"]: case for case in manifest["profile"]["cases"]
         if case.get("reference_answer")
@@ -1871,7 +1857,8 @@ def check(output, *, return_data=False, evidence_only=False):
         return True
     for route in manifest["routes"]:
         path = output / route
-        soup = checked_page(path)
+        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        check_presentation(soup)
         authored = manifest.get("authored") or {}
         if authored.get("reading_model") and "details/" not in route:
             lang = soup.html["lang"]
@@ -2165,7 +2152,6 @@ def main(argv=None):
     )
 
 
-@full_validation()
 def release_check(output, visual_receipt, *, publication_plan=None):
     """Combine deterministic evidence checks with the separate operated-browser gate."""
     check(output)

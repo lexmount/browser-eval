@@ -52,7 +52,6 @@ from harness.reporting.publication_target import (
     require_publication_site,
     require_publication_version,
 )
-from harness.reporting.release_check import full_validation
 from harness.web_fetch.safety import reject_evidence_symlinks
 
 STAGED_UPLOAD_THRESHOLD = 23 * 1024 * 1024
@@ -289,7 +288,6 @@ def _receipt_identity(path):
     return path.read_bytes() if path.exists() else None
 
 
-@full_validation()
 def publish_receipt_release(config: ReceiptRelease, *, transport=None):
     """Upload or finish a receipt; remote byte verification is a separate command."""
     protected = {config.profile.resolve(), config.archive.resolve(),
@@ -581,7 +579,6 @@ def staged_release_upload(
     return upload_large_archive(staged_request, archive, slug, expected_version, title=title)
 
 
-@full_validation()
 def publish_bound_release(track: BoundTrack, *, create: bool) -> None:
     track.recover_binding()
     with snapshot_publication(track.archive, inputs=track.inputs) as release:
@@ -741,7 +738,6 @@ class StagedUpdate:
     allow_inline: bool = False
 
 
-@full_validation()
 def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
     """Resume the same staged update and verify every deployed byte before binding it."""
     label, slug = update.label, update.slug

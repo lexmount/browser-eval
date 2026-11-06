@@ -28,14 +28,13 @@ def bytes_sha256(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
-def canonical_json_sha256(value, *, ensure_ascii=False, allow_nan=True, sort_keys=True):
-    """Hash compact JSON, sorted by default, including legacy NaN bytes.
+def canonical_json_sha256(value, *, ensure_ascii=False, allow_nan=True):
+    """Hash the shared compact sorted JSON protocol, including legacy NaN bytes.
 
     The defaults are the current protocol. A caller whose digests are already
     bound names its frozen ``ensure_ascii`` or strict ``allow_nan`` choice.
-    Order-sensitive consumers use ``sort_keys=False`` to preserve object order.
     """
-    raw = json.dumps(value, ensure_ascii=ensure_ascii, sort_keys=sort_keys,
+    raw = json.dumps(value, ensure_ascii=ensure_ascii, sort_keys=True,
                      separators=(',', ':'), allow_nan=allow_nan).encode('utf-8')
     return bytes_sha256(raw)
 

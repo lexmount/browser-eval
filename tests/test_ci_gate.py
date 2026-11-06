@@ -292,17 +292,6 @@ def test_ci_browser_exclusion_reaches_recursive_make(tmp_path):
     assert 'browser-selection=include' not in result.stdout
 
 
-def test_new_release_targets_inherit_fresh_validation_automatically(tmp_path):
-    makefile = tmp_path / 'Makefile'
-    makefile.write_text(f'include {ROOT / "Makefile"}\n'
-                        'future-release-check: nested-validation\n'
-                        'nested-validation:\n\t@echo full-validation=$$BROWSER_EVAL_FULL_REPORT_CHECK\n',
-                        encoding='utf-8')
-    result = subprocess.run(['make', '--no-print-directory', '-f', str(makefile), 'future-release-check'],
-                            cwd=tmp_path, capture_output=True, text=True, check=True)
-    assert result.stdout.strip() == 'full-validation=1'
-
-
 @pytest.mark.parametrize('shard', ['0/2', '3/2', '1/0', 'bad', '1/2/3'])
 def test_invalid_shard_fails_instead_of_silently_omitting_tests(tmp_path, shard):
     (tmp_path / 'test_example.py').write_text('def test_example(): pass\n', encoding='utf-8')

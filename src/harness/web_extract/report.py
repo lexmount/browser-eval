@@ -17,13 +17,7 @@ from harness.distribution import repository_root
 from harness.env_file import local_setting
 from harness.report_languages import resolve_report_language
 from harness.reporting.links import LinkIndex
-from harness.reporting.release_check import (
-    check_report_identity,
-    checked_page,
-    open_report,
-    scoped_check,
-    validation_step,
-)
+from harness.reporting.release_check import check_report_identity, checked_page, open_report
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
 from harness.web_extract.analysis import (
@@ -2513,7 +2507,6 @@ def check_reader_contract(output, manifest, *, release=False):
         )
 
 
-@scoped_check('web-extract')
 def check(output: Path, *, release=False, visual_receipt=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
@@ -3015,7 +3008,6 @@ def record_cohort_inputs(home, model, *, profile):
     return result
 
 
-@validation_step
 def verify_record_projection(reference, row):
     """The published native payload must support every scored record value."""
     schema = {"type": "object", "properties": {field: {} for field in reference["values"]}}
@@ -4017,51 +4009,9 @@ def build_record_cohort(output, content, *, home, language, profile):
     check_record_cohort(output)
 
 
-@validation_step
-def _check_record_detail(text, row, method):
-    detail = BeautifulSoup(text, 'html.parser').find('details', id=method)
-    if detail is None:
-        raise ValueError('Record case page omits a participant detail')
-    expected_cells = [[BeautifulSoup(cell, 'html.parser').get_text(strip=True) for cell in cells]
-                      for cells in record_field_rows(row, 'zh')]
-    displayed = [[cell.get_text(strip=True) for cell in tr.select('td')]
-                 for tr in detail.select('[data-record-fields] tbody tr')]
-    if displayed != expected_cells:
-        raise ValueError('Record displayed fields differ from native evidence')
-    button = detail.select_one('[data-call-log-open]')
-    if (button is None or button.get('data-key') != row['case_id']
-            or button.get('data-src') != 'public-evidence/' + method + '.json'):
-        raise ValueError('Record detail evidence points to a different result')
-    if row['status'] == 'call_error':
-        error = detail.select_one('[data-result-logs] pre[data-kind="error"]')
-        if error is None or (row['native_error'] and error.get_text() != row['native_error']):
-            raise ValueError('Record native failure error is missing or changed')
-
-
-@validation_step
-def _check_record_markup(text, fixture_base):
-    from harness.reporting.presentation import check_presentation
-
-    soup = check_presentation(text)
-    for frame in soup.select('iframe.frozen-preview'):
-        case = soup.select_one('[data-source-case]')
-        if case is None:
-            raise ValueError('Source page lacks its dataset case identity')
-        expected = fixture_base + '/' + case['data-source-case']
-        if frame.get('src') != expected or soup.select_one('a[href="' + expected + '"]') is None:
-            raise ValueError('Record preview URL differs from the verified dataset snapshot')
-    for node in soup.select('a[href]'):
-        parsed = urlsplit(node['href'])
-        if (parsed.scheme in {'http', 'https'} or parsed.netloc) and (
-            node.get('target') != '_blank'
-            or not {'noopener', 'noreferrer'}.issubset(node.get('rel', []))
-        ):
-            raise ValueError('External documentation must open outside the report preview')
-
-
-@scoped_check('web-extract')
 def check_record_cohort(output, *, release=False, visual_receipt=None):
     """Check the public record matrix and shared presentation semantics."""
+    from harness.reporting.presentation import check_presentation
     from harness.web_extract.analysis import record_statistics
     from harness.web_extract.dataset import benchmark_config
 
@@ -4206,14 +4156,18 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         for row in rows:
             verify_record_projection(truth[row["case_id"]], row)
         recomputed = record_statistics(
-            truth, rows, certified=method in manifest['complete_methods'],
-            scorer=adapter.score, reference_policy=manifest.get('reference_policy'))
+            truth,
+            rows,
+            certified=method in manifest["complete_methods"],
+            scorer=adapter.score,
+            reference_policy=manifest.get("reference_policy"),
+        )
         if recomputed != metrics[method]:
             raise ValueError("Record report metrics do not reproduce: " + method)
         if audit is not None:
-            original_stats = record_statistics(original, rows, certified=True, scorer=adapter.score)
-            if (audit['audited_scores'].get(method) != recomputed['scores']
-                    or original_stats != original_metrics.get(method)):
+            if audit["audited_scores"].get(method) != recomputed["scores"] or record_statistics(
+                original, rows, certified=True, scorer=adapter.score
+            ) != original_metrics.get(method):
                 raise ValueError("Original or reviewed record scores do not reproduce")
             for row in rows:
                 key = method + ":" + row["case_id"]
@@ -4344,14 +4298,57 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             if any(rendered.get("data-" + key) != val for key, val in attrs.items()):
                 raise ValueError("Record inventory filter verdict differs from native evidence")
         for cid, row in bucket.items():
-            _check_record_detail(
+            detail = BeautifulSoup(
                 (output / "zh" / (record_route("c", cid) + ".html")).read_text(encoding="utf-8"),
-                row, method,
+                "html.parser",
             )
+            detail = detail.find("details", id=method)
+            if detail is None:
+                raise ValueError("Record case page omits a participant detail")
+            expected_cells = [
+                [BeautifulSoup(cell, "html.parser").get_text(strip=True) for cell in cells]
+                for cells in record_field_rows(row, "zh")
+            ]
+            displayed = [
+                [cell.get_text(strip=True) for cell in tr.select("td")]
+                for tr in detail.select("[data-record-fields] tbody tr")
+            ]
+            if displayed != expected_cells:
+                raise ValueError("Record displayed fields differ from native evidence")
+            button = detail.select_one("[data-call-log-open]")
+            if (
+                button is None
+                or button.get("data-key") != cid
+                or button.get("data-src") != "public-evidence/" + method + ".json"
+            ):
+                raise ValueError("Record detail evidence points to a different result")
+            if row["status"] == "call_error":
+                error = detail.select_one('[data-result-logs] pre[data-kind="error"]')
+                if error is None or (
+                    row["native_error"] and error.get_text() != row["native_error"]
+                ):
+                    raise ValueError("Record native failure error is missing or changed")
     for file in sorted((output / "zh").glob("*.html")):
-        _check_record_markup(file.read_text(encoding="utf-8"), preview["fixture_base"])
-        for value in link_index.page(file).values:
+        soup = check_presentation(file.read_text(encoding="utf-8"))
+        for frame in soup.select("iframe.frozen-preview"):
+            case = soup.select_one("[data-source-case]")
+            if case is None:
+                raise ValueError("Source page lacks its dataset case identity")
+            cid = case["data-source-case"]
+            expected = preview["fixture_base"] + "/" + cid
+            if (
+                frame.get("src") != expected
+                or soup.select_one('a[href="' + expected + '"]') is None
+            ):
+                raise ValueError("Record preview URL differs from the verified dataset snapshot")
+        for node in soup.select("a[href],script[src],link[href],img[src]"):
+            value = node.get("href", node.get("src", ""))
             parsed = urlsplit(value)
+            if node.name == "a" and (parsed.scheme in {"http", "https"} or parsed.netloc):
+                if node.get("target") != "_blank" or not {"noopener", "noreferrer"}.issubset(
+                    node.get("rel", [])
+                ):
+                    raise ValueError("External documentation must open outside the report preview")
             if parsed.scheme or parsed.netloc:
                 continue
             if parsed.path.startswith("/") or ".." in Path(unquote(parsed.path)).parts:

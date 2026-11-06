@@ -12,41 +12,6 @@ uv run --frozen python -m harness.web_fetch report /absolute/run
 
 The generated pages are saved in `<run>/report/`. Other tracks have their own [report builders](../README.md#evaluation-tracks). Keep the run's saved results and evidence locally so you can inspect and rebuild the report.
 
-## Automatic check scope
-
-Routine build and check commands reuse successful, unchanged validations through
-`harness.reporting.release_check`. Arguments are bound from each validator's
-signature, including dictionary order; callers do not maintain a separate input
-list. One source/dependency fingerprint invalidates the baseline when code changes.
-Changed arguments rerun the affected validation. Missing or corrupt receipts cause
-a fresh check. Scoring, normalization and calculated outputs always execute;
-receipts contain only hashes of successful void checks.
-
-Formal release checks, packaging and publishing always run fresh checks. They
-neither read nor update routine receipts, including when called from an incremental
-build. The shared publication and package boundaries enforce this with
-`full_validation`; explicit release/complete-cohort checks do the same.
-Make targets ending in `-release-check` inherit full validation automatically.
-
-File integrity, privacy, evidence/profile bindings, local links and publication
-destination/version checks still run through their existing owners. Browser and
-visual checks keep their existing scope. Reuse does not authorize publication,
-start an independent result review or call providers.
-
-The command reports the mode and checked/reused unit counts on standard error.
-To force every validation unit to run, prefix the normal command with
-`BROWSER_EVAL_FULL_REPORT_CHECK=1`. Receipts are private local data under
-`$BROWSER_EVAL_DATA_HOME/report-checks` (default `~/.browser-eval/report-checks`).
-Receipts never belong in a report package; a read-only data home keeps checks
-working without reuse. Only a successful routine check writes a receipt.
-
-New tracks use `scoped_check` on their maintained checker and `validation_step`
-for expensive, pure void validators whose arguments declare every dependency.
-File reads, browser operations and mutable global state stay outside those units.
-Closures, unsupported arguments and functions returning values execute normally.
-Keep negative controls
-for changed displayed results, evidence, links and privacy after a prior pass.
-
 ## Report instances
 
 Keep report profiles, evidence, authored content and publication receipts outside

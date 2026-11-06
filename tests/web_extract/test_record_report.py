@@ -200,8 +200,7 @@ def rebind(output, route, transform):
     save_json(output / "report-manifest.json", manifest)
 
 
-@pytest.mark.parametrize('forced', [False, True], ids=['automatic', 'forced-full'])
-def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path, monkeypatch, forced):
+def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path):
     output = tmp_path / 'report'
     create(output, mode='field-extraction-cohort')
     method = 'scrapegraph-extract'
@@ -223,7 +222,6 @@ def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path, monkeypatch,
             soup.find('details', id=method).select_one('[data-call-log-open]')['data-key'] = other
             return str(soup)
         rebind(output, 'zh/' + record_route('c', case_id) + '.html', swap_target)
-    monkeypatch.setenv('BROWSER_EVAL_FULL_REPORT_CHECK', '1' if forced else '0')
     with pytest.raises(ValueError, match='evidence.*case identit'):
         check(output)
 

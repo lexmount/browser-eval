@@ -27,9 +27,7 @@ from harness.report_languages import (
 )
 from harness.reporting.assets import authored_main
 from harness.reporting.presentation import check_presentation
-from harness.reporting.release_check import (
-    language_editions, open_report, read_page, scoped_check, validate_presentation, validation_step,
-)
+from harness.reporting.release_check import language_editions, open_report, read_page
 from harness.reporting.visual import local_report_server
 from harness.web_fetch.safety import reject_evidence_symlinks
 from harness.data_home import data_home
@@ -40,7 +38,6 @@ from harness.web_fetch.wcxb_scoring import paired_latency_methods
 ROOT = repository_root()
 
 
-@validation_step
 def require_comparison_highlights(html):
     """Validate actual highlights and exercise applicable corruptions on copies."""
     source = str(html)
@@ -315,7 +312,6 @@ def check_bound_interpretation(root: Path, binding: dict) -> None:
             raise ValueError('WCXB interpretation differs from bound content: ' + language)
 
 
-@scoped_check('wcxb')
 def check(root: Path, *, authority_root: Path | None = None, profile_path: Path | None = None) -> None:
     root = open_report(root)
     repository = (authority_root or ROOT).resolve()
@@ -452,7 +448,7 @@ def check(root: Path, *, authority_root: Path | None = None, profile_path: Path 
                 guide = BeautifulSoup(html, 'html.parser')
                 require_guide_interpretation(guide, summary, providers, lang, expected_html=guide_sources[lang])
             if route in ('index.html', 'datasets/index.html'):
-                validate_presentation(html)
+                check_presentation(html)
                 if route == 'index.html':
                     require_home_interpretation(html, summary, paired_latency, lang, paired_methods, scores=scores, comparison=comparison)
 

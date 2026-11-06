@@ -425,14 +425,6 @@ def test_canonical_options_produce_the_frozen_bytes(options, raw):
     assert canonical_json_sha256(VALUE, **options) == hashlib.sha256(raw.encode()).hexdigest()
 
 
-def test_order_sensitive_json_hashing_preserves_nested_object_order():
-    first = {'fields': {'price': 1, 'stock': 2}}
-    reordered = {'fields': {'stock': 2, 'price': 1}}
-    assert canonical_json_sha256(first) == canonical_json_sha256(reordered)
-    assert canonical_json_sha256(first, sort_keys=False) != canonical_json_sha256(reordered, sort_keys=False)
-    assert canonical_json_sha256(first, sort_keys=False) == bytes_sha256(b'{"fields":{"price":1,"stock":2}}')
-
-
 def test_each_migrated_option_set_equals_its_original_serialization():
     originals = [
         (dict(ensure_ascii=True), json.dumps(VALUE, sort_keys=True, separators=(',', ':'))),
