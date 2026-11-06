@@ -93,7 +93,8 @@
         "research-and-compatibility",
         "full-cohort-progress",
         "synthetic",
-        "field-extraction-cohort"
+        "field-extraction-cohort",
+        "field-extraction-suite"
       ],
       "release_check": "uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-home check /absolute/report --release --visual-receipt /absolute/visual-receipt.json --profile /absolute/report-profile.json",
       "package": "uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-home package /absolute/report --output /absolute/report.zip --visual-receipt /absolute/visual-receipt.json --profile /absolute/report-profile.json",

@@ -2122,7 +2122,14 @@ def _probe_unlocked(
 
         def identity(items):
             return [
-                (r["case_id"], r.get("reference_sha256", r.get("sha256")), r["http_status"])
+                (
+                    r["case_id"],
+                    r.get("reference_sha256", r.get("sha256")),
+                    None if r.get("source_state") == "access_unavailable" else r.get("http_status"),
+                    r.get("source_state"),
+                    r.get("verification_mode"),
+                    r.get("reference_observed_at"),
+                )
                 for r in items
             ]
 

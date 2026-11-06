@@ -249,10 +249,12 @@ def select(home, binding):
             else {}
         ),
         **({"huggingface": binding["huggingface"]} if "huggingface" in binding else {}),
+        **({"cloudflare": binding["cloudflare"]} if "cloudflare" in binding else {}),
         **(
             {
                 "snapshot_manifest": {
                     **binding["snapshot_manifest"],
+                    **({"cloudflare": binding["cloudflare"]} if "cloudflare" in binding else {}),
                     **(
                         {"hosting_provider": binding["hosting_provider"]}
                         if binding.get("hosting_provider") in {"external", "cloudflare"}
@@ -330,7 +332,7 @@ def publication_metadata(home, binding, verification):
         if len(actual) != len(expected) or set(actual) != expected:
             raise ValueError("Snapshot publication requires every matching verified page")
         snapshot = binding.get("snapshot_manifest")
-    if binding.get("hosting_provider") != "cloudflare":
+    if not managed_cloudflare(binding, selected["fixture_base"]):
         expected_resources = {
             ("resource:" + name, value, selected["fixture_base"] + "/" + quote(name, safe="/"))
             for name, value in resource_inventory(home).items()
@@ -351,7 +353,11 @@ def publication_metadata(home, binding, verification):
         origin = manifest_url.removesuffix("/snapshots.json")
         checked = check_manifest(home, origin, snapshot["huggingface"])
         if (
-            any(checked.get(k) != v for k, v in snapshot.items() if k != "hosting_provider")
+            any(
+                checked.get(k) != v
+                for k, v in snapshot.items()
+                if k not in {"hosting_provider", "cloudflare"}
+            )
             or checked["fixture_base"] != selected["fixture_base"]
         ):
             raise ValueError("Snapshot publication dataset manifest changed")
@@ -367,6 +373,7 @@ def publication_metadata(home, binding, verification):
         "schema": "web-extract-hf-snapshots/1",
         **source,
         **({"hosting_provider": provider} if provider is not None else {}),
+        **({"cloudflare": binding["cloudflare"]} if "cloudflare" in binding else {}),
         **({"snapshot_manifest": checked} if checked is not None else {}),
         "synchronization": (
             "Original files are authoritative. Deploy unchanged HTML, verify the dataset manifest, "
@@ -399,6 +406,8 @@ def publish(home, binding, verification, *, revision):
     metadata = publication_metadata(home, binding, verification)
     hf = metadata.get("huggingface") or benchmark_config(home)["snapshot_distribution"]
     originals = hf_inventory(hf, revision)
+    if hf_resources(hf, revision) != resource_inventory(home):
+        raise ValueError("Prepared page resources differ from the selected HF edition")
     if originals != metadata["cases"]:
         raise ValueError("HF originals differ from the verified public snapshots")
     metadata["huggingface_source_revision"] = revision
@@ -877,6 +886,52 @@ def check_manifest(home, origin, hf_identity):
     }
 
 
+def managed_cloudflare(binding, origin):
+    """Only an independently confirmed immutable Pages deployment permits reuse."""
+    if binding.get("hosting_provider") != "cloudflare":
+        return False
+    parts = urlsplit(origin)
+    match = re.fullmatch(r"([0-9a-f]{8})\.([a-z0-9-]+)\.pages\.dev", parts.hostname or "")
+    identity = binding.get("cloudflare", {})
+    deployment = identity.get("deployment_id", "")
+    if (
+        not match
+        or parts.scheme != "https"
+        or parts.port
+        or parts.username
+        or not re.fullmatch(r"[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}", deployment)
+        or deployment[:8] != match[1]
+        or identity.get("project") != match[2]
+    ):
+        return False
+    import requests
+
+    from harness.web_fetch.config import repository_env
+
+    credentials = repository_env()
+    account = credentials.get("CLOUDFLARE_ACCOUNT_ID")
+    if (
+        not account
+        or not credentials.get("CLOUDFLARE_API_TOKEN")
+        or identity.get("account_id") != account
+    ):
+        return False
+    response = requests.get(
+        f"https://api.cloudflare.com/client/v4/accounts/{account}/pages/projects/{match[2]}/deployments/{deployment}",
+        headers={"Authorization": "Bearer " + credentials["CLOUDFLARE_API_TOKEN"]},
+        timeout=40,
+    )
+    response.raise_for_status()
+    data = response.json()
+    if (
+        not data.get("success")
+        or data.get("result", {}).get("id") != deployment
+        or data["result"].get("url") != f"https://{parts.hostname}"
+    ):
+        raise ValueError("Cloudflare deployment identity differs from the immutable origin")
+    return True
+
+
 def verify_bound_manifest(home, bound, fixture_base):
     """Recheck a frozen dataset manifest before collection or failure repair."""
     manifest_url = bound.get("manifest_url", "")
@@ -884,12 +939,12 @@ def verify_bound_manifest(home, bound, fixture_base):
         raise ValueError("Frozen dataset snapshot manifest URL changed")
     origin = manifest_url.removesuffix("/snapshots.json")
     receipt = check_manifest(home, origin, bound["huggingface"])
-    expected = {k: v for k, v in bound.items() if k != "hosting_provider"}
-    actual = {k: v for k, v in receipt.items() if k != "hosting_provider"}
+    expected = {k: v for k, v in bound.items() if k not in {"hosting_provider", "cloudflare"}}
+    actual = {k: v for k, v in receipt.items() if k not in {"hosting_provider", "cloudflare"}}
     if actual != expected or receipt["fixture_base"] != fixture_base:
         raise ValueError("Frozen dataset snapshot manifest changed")
     rows = manifest_receipt(home, receipt, fixture_base)
-    if bound.get("hosting_provider") != "cloudflare":
+    if not managed_cloudflare(bound, origin):
         rows += verify_resources(home, fixture_base)
     return rows
 

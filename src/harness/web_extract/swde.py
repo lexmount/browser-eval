@@ -243,12 +243,14 @@ def record_value_key(reference, field, value, text_matching="literal"):
             parts = urlsplit(
                 urljoin(
                     reference.get("document_base_url", reference["url"]),
-                    html.unescape(value).replace(" ", "%20"),
+                    value.replace(" ", "%20"),
                 )
             )
         except ValueError:
             return value
-        return parts._replace(scheme=parts.scheme.lower(), netloc=parts.netloc.lower()).geturl()
+        userinfo, separator, host = parts.netloc.rpartition("@")
+        authority = userinfo + separator + host.lower() if separator else parts.netloc.lower()
+        return parts._replace(scheme=parts.scheme.lower(), netloc=authority).geturl()
     return canonical_text(value) if text_matching == "whitespace" else value
 
 

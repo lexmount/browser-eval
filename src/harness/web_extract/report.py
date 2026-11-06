@@ -303,6 +303,33 @@ def page(
             value = element.get(attr)
             if value is not None and not urlsplit(value).scheme and not urlsplit(value).netloc:
                 element[attr] = urljoin(f"/{language}/{route}.html", value).lstrip("/")
+    return scope_record_html(str(soup), site_prefix)
+
+
+def scope_record_html(raw, prefix, *, restore=False):
+    """Keep owned links working under the hosted site's root base element."""
+    if not prefix:
+        return raw
+    if not re.fullmatch(r"[a-z0-9]+(?:-[a-z0-9]+)*", prefix):
+        raise ValueError("Report prefix must be a single safe directory")
+    soup = BeautifulSoup(raw, "html.parser")
+    for node in soup.select("a[href],link[href],script[src],img[src],[data-src]"):
+        for attr in ("href", "src", "data-src"):
+            value = node.get(attr)
+            if value is None or urlsplit(value).scheme or urlsplit(value).netloc:
+                continue
+            if restore:
+                if value.startswith(prefix + "/"):
+                    node[attr] = value[len(prefix) + 1 :]
+            elif value and not value.startswith("#"):
+                node[attr] = prefix + "/" + value
+    if soup.base:
+        soup.base["href"] = "../" if restore else "../../"
+    if not restore and soup.body and not soup.select_one("[data-suite-home]"):
+        link = soup.new_tag("a", href="index.html")
+        link["data-suite-home"] = ""
+        link.string = "全部评测" if soup.html.get("lang") == "zh" else "All benchmarks"
+        (soup.select_one(".report-tools") or soup.body).append(link)
     return str(soup)
 
 
@@ -509,6 +536,8 @@ def cohort_source(source, selection, home, truth):
         or precall["method"] not in plan["participants"]
         or precall["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]
         or precall["pipeline_sha256"] != contract["pipeline_sha256"]
+        or contract["dataset_manifest_sha256"]
+        != digest((home / "dataset/manifest.json").read_bytes())
     ):
         raise ValueError("Full cohort plan, population or execution binding differs")
     verify_execution_snapshot(source, contract)
@@ -532,7 +561,10 @@ def cohort_source(source, selection, home, truth):
             raise ValueError("Certificate population, profile, method or dataset differs")
         saved = read_json(source / "scores.json")
         # Recompute through the original scoring boundary, without provider calls.
-        recalculated = score_run(home, source)
+        import tempfile
+
+        with tempfile.TemporaryDirectory(prefix="web-extract-score-check-") as temporary:
+            recalculated = score_run(home, source, output=Path(temporary) / "scores.json")
         if saved != recalculated:
             raise ValueError("Certified scores do not reproduce")
         physical = read_json(source / "manifest.json").get("physical_calls", [])
@@ -2810,7 +2842,12 @@ def check_method_examples(output, manifest):
             method_examples(output, manifest["method_examples"], language), "html.parser"
         )
         actual = BeautifulSoup(
-            (output / language / "protocol.html").read_text(encoding="utf-8"), "html.parser"
+            scope_record_html(
+                (output / language / "protocol.html").read_text(encoding="utf-8"),
+                manifest.get("site_prefix", ""),
+                restore=True,
+            ),
+            "html.parser",
         ).select_one("[data-method-examples]")
         if actual is not None:
             for anchor in actual.select("a"):
@@ -2826,6 +2863,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     from harness.web_extract.dataset import require_product_reference
 
     require_external_output(output)
+    if content.is_file() and read_json(content).get("mode") == "field-extraction-suite":
+        from harness.web_extract.report_suite import build as build_suite
+
+        return build_suite(output, content, profile=profile, language=language)
     if content.is_file() and read_json(content).get("mode") == "field-extraction-cohort":
         return build_record_cohort(output, content, home=home, language=language, profile=profile)
     require_product_reference(home)
@@ -3843,6 +3884,10 @@ def _check_rendered_report(output: Path, *, release=False, visual_receipt=None):
     """Internal build self-check of rendered evidence and reader-facing semantics."""
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    if manifest.get("mode") == "field-extraction-suite":
+        from harness.web_extract.report_suite import check as check_suite
+
+        return check_suite(output, release=release, visual_receipt=visual_receipt)
     if manifest.get("mode") == "field-extraction-cohort":
         return _check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     link_index = LinkIndex(errors="strict")
@@ -4179,14 +4224,14 @@ def _check_rendered_report(output: Path, *, release=False, visual_receipt=None):
     }
 
 
-def check_visual_receipt(output, manifest, visual_receipt):
+def check_visual_receipt(output, manifest, visual_receipt, *, routes=PAGES):
     """Verify the shared reader-pass receipt against this exact report tree."""
     if visual_receipt is None:
         raise ValueError("Release requires actual visual coverage")
     visual = read_json(visual_receipt)
     if visual["report_manifest_sha256"] != digest((output / "report-manifest.json").read_bytes()):
         raise ValueError("Visual receipt belongs to a different report")
-    required = {(lang, route, "desktop") for lang in manifest["languages"] for route in PAGES}
+    required = {(lang, route, "desktop") for lang in manifest["languages"] for route in routes}
     if "en" not in manifest["languages"]:
         required.add(("en", "english-notice", "desktop"))
     observed = set()
@@ -4340,6 +4385,26 @@ def record_cohort_inputs(home, model, *, profile):
             if source_home != home:
                 validate_dataset(source_home)
             source_truth = read_json(source_home / "dataset/dataset/ground-truth.json")
+            from harness.web_extract.snapshots import resource_inventory
+
+            resources = resource_inventory(home)
+            expected_resources = {
+                name: sha
+                for name, sha in resources.items()
+                if any(name.startswith("assets/" + cid + "/") for cid in source_truth)
+            }
+            if resource_inventory(source_home) != expected_resources:
+                raise ValueError("Record source segment changed captured resources")
+            source_policy = read_json(source_home / "dataset/manifest.json").get(
+                "live_reference_policy"
+            )
+            target_policy = read_json(home / "dataset/manifest.json").get("live_reference_policy")
+            if source_policy and (
+                not target_policy
+                or source_policy["maximum_observation_age_seconds"]
+                > target_policy["maximum_observation_age_seconds"]
+            ):
+                raise ValueError("Record source segment used a weaker live reference policy")
             source_adapter = benchmark_config(source_home)["adapter"]
             if (
                 source_adapter is not adapter
@@ -4667,6 +4732,7 @@ def record_preview(home, model, *, local_example):
         raise ValueError("Record previews require a whole-dataset snapshot manifest")
     verification_context = {
         **receipt,
+        **({"cloudflare": saved["cloudflare"]} if saved.get("cloudflare") else {}),
         **(
             {"hosting_provider": saved["hosting_provider"]} if saved.get("hosting_provider") else {}
         ),
@@ -4702,6 +4768,9 @@ def build_record_cohort(output, content, *, home, language, profile):
     truth = data["cases"]
     stats = {method: data["methods"][method]["statistics"] for method in methods}
     title = model["title"]
+    site_prefix = model.get("site_prefix", "")
+    if site_prefix and site_prefix != output.name:
+        raise ValueError("Nested report prefix must match its output directory")
 
     def t(key):
         return message("records_" + key, language)
@@ -5451,10 +5520,19 @@ def build_record_cohort(output, content, *, home, language, profile):
             bodies[route],
         )
     (output / "en/index.html").write_text(
-        message("english_not_generated_notice", "en"), encoding="utf-8"
+        scope_record_html(message("english_not_generated_notice", "en"), site_prefix),
+        encoding="utf-8",
     )
+    entry = (site_prefix + "/" if site_prefix else "") + "zh/index.html"
+    entry_base = '<base href="../">' if site_prefix else ""
     (output / "index.html").write_text(
-        '<!doctype html><html><head><meta http-equiv="refresh" content="0;url=zh/index.html"></head><body><a href="zh/index.html">'
+        "<!doctype html><html><head>"
+        + entry_base
+        + '<meta http-equiv="refresh" content="0;url='
+        + entry
+        + '"></head><body><a href="'
+        + entry
+        + '">'
         + esc(title)
         + "</a></body></html>",
         encoding="utf-8",
@@ -5485,6 +5563,9 @@ def build_record_cohort(output, content, *, home, language, profile):
             "content_sha256": digest(content.read_bytes()),
             "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
             "dataset_benchmark": read_json(home / "dataset/manifest.json").get("benchmark"),
+            "dataset_input_mode": read_json(home / "dataset/manifest.json").get(
+                "input_mode", "snapshot"
+            ),
             "primary_language": "zh",
             "languages": ["zh"],
             "planned_methods": methods,
@@ -5519,6 +5600,14 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
     output = open_report(output)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
+    site_prefix = manifest.get("site_prefix", "")
+    if site_prefix and site_prefix != output.name:
+        raise ValueError("Nested report prefix differs from its directory")
+    site_root = output.parent if site_prefix else output
+
+    def read_html(path):
+        return scope_record_html(path.read_text(encoding="utf-8"), site_prefix, restore=True)
+
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -5539,11 +5628,21 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
         "html.parser",
     ).select_one("[data-retry-summary]")
     actual_retries = BeautifulSoup(
-        (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
+        read_html(output / "zh/protocol.html"), "html.parser"
     ).select_one("[data-retry-summary]")
     if actual_retries != expected_retries:
         raise ValueError("Retry timing summary is missing or changed")
     preview = manifest.get("preview_snapshot", {})
+    sources = read_json(output / "public-evidence/sources.json")
+    modes = {
+        part["contract"].get("input_mode", "snapshot")
+        for source in sources.values()
+        for part in source.get("segments", [source])
+    }
+    if modes != {manifest.get("dataset_input_mode")} or (
+        (preview.get("mode") == "live") != (manifest.get("dataset_input_mode") == "live")
+    ):
+        raise ValueError("Preview input mode differs from the frozen collection contract")
     if preview.get("mode") == "live":
         if (
             preview.get("case_count") != manifest["case_count"]
@@ -5569,7 +5668,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
             ("zh/" + entry["route"] + ".html", entry["label"]) for entry in ordered
         ]
         for path in (output / "zh").glob("*.html"):
-            soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+            soup = BeautifulSoup(read_html(path), "html.parser")
             actual_navigation = [(a.get("href"), a.get_text()) for a in soup.select("nav a")]
             if actual_navigation != expected_navigation:
                 raise ValueError("Record navigation differs from its declared reader routes")
@@ -5634,9 +5733,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
             )
         original = read_json(output / "public-evidence/original-reference.json")
         original_metrics = read_json(output / "data/original-metrics.json")
-        reviewed_page = BeautifulSoup(
-            (output / "zh/review.html").read_text(encoding="utf-8"), "html.parser"
-        )
+        reviewed_page = BeautifulSoup(read_html(output / "zh/review.html"), "html.parser")
         expected_review = BeautifulSoup(
             record_review_section(
                 audit,
@@ -5745,9 +5842,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
         ("index", "[data-core-metrics]"),
         ("interpretation", "[data-interpretation-comparison]"),
     ):
-        soup = BeautifulSoup(
-            (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
-        )
+        soup = BeautifulSoup(read_html(output / "zh" / (route + ".html")), "html.parser")
         rendered = soup.select(selector + " tbody tr")
         if len(rendered) != len(metrics):
             raise ValueError("Record core comparison participant count differs")
@@ -5782,9 +5877,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
                     raise ValueError("Record comparison exclusion reason is missing or changed")
             elif notes:
                 raise ValueError("Record comparison scope has an unexpected exclusion reason")
-    inventory = BeautifulSoup(
-        (output / "zh/results.html").read_text(encoding="utf-8"), "html.parser"
-    )
+    inventory = BeautifulSoup(read_html(output / "zh/results.html"), "html.parser")
     rows = inventory.select("tr[data-status]")
     if len(rows) != len(truth) * len(metrics) or len(
         inventory.select('tr[data-status="pending"]')
@@ -5826,7 +5919,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
                 raise ValueError("Record inventory filter verdict differs from native evidence")
         for cid, row in bucket.items():
             detail = BeautifulSoup(
-                (output / "zh" / (record_route("c", cid) + ".html")).read_text(encoding="utf-8"),
+                read_html(output / "zh" / (record_route("c", cid) + ".html")),
                 "html.parser",
             )
             detail = detail.find("details", id=method)
@@ -5856,7 +5949,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
                 ):
                     raise ValueError("Record native failure error is missing or changed")
     for file in sorted((output / "zh").glob("*.html")):
-        soup = check_presentation(file.read_text(encoding="utf-8"))
+        soup = check_presentation(read_html(file))
         if preview.get("mode") == "live" and soup.select_one("[data-source-case]"):
             case = soup.select_one("[data-source-case]")["data-source-case"]
             links = soup.select("a[data-live-source]")
@@ -5894,8 +5987,15 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
                 continue
             if parsed.path.startswith("/") or ".." in Path(unquote(parsed.path)).parts:
                 raise ValueError("Reference must be relative to the hosted site root: " + value)
-            target = output / unquote(parsed.path) if parsed.path else file
-            if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
+            if (
+                site_prefix
+                and parsed.path
+                and not parsed.path.startswith(site_prefix + "/")
+                and value != "index.html"
+            ):
+                raise ValueError("Nested report link escaped its dataset: " + value)
+            target = site_root / unquote(parsed.path) if parsed.path else file
+            if not target.resolve().is_relative_to(site_root.resolve()) or not target.is_file():
                 raise ValueError("Broken record evidence/navigation target: " + value)
             if parsed.fragment and unquote(parsed.fragment) not in link_index.page(target).ids:
                 raise ValueError("Broken evidence anchor: " + value)
