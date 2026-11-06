@@ -19,6 +19,7 @@ require_profile = @test -n "$($(or $(1),PROFILE))" || (echo '$(or $(1),PROFILE)=
 
 .PHONY: setup \
   setup-test \
+  benchmark-contract-check \
   help \
   format \
   clean \
@@ -143,7 +144,10 @@ fixture-smoke: runtime-check ## Run the offline fixture CLI
 
 test: test-python test-ui test-native-adapters ## Run Python, UI and native adapter tests
 
-ci-tests: track-naming-check lint-check shell-check fixture-smoke ## Run static checks and independent test suites
+benchmark-contract-check: runtime-check ## Check global execution and report contracts before the full suite
+	$(TEST_PY) -m pytest tests/test_report_templates.py tests/test_runner_supplement_dataset.py tests/test_explicit_utf8_io.py tests/test_golden_reports.py -q -n 4 --dist worksteal
+
+ci-tests: track-naming-check lint-check shell-check fixture-smoke benchmark-contract-check ## Run static checks and independent test suites
 	$(MAKE) -j2 test test-extraction-sdk
 
 ci: ci-tests package-check browser-check ## Run every CI job: tests, packaging and browser checks
