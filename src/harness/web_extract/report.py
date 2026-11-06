@@ -301,7 +301,7 @@ def cohort_source(source, selection, home, truth):
     plan = read_json(plan_path)
     from harness.web_extract.certification import verify_execution_assessment
 
-    verify_execution_assessment(plan, read_json(source / "contract.json")["methods"][0])
+    verify_execution_assessment(plan, contract["methods"][0], execution_sources=contract)
     precall = read_json(source / "certification-precall.json")
     if (
         digest(plan_path.read_bytes()) != selection["plan_sha256"]

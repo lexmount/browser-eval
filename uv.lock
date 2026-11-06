@@ -349,6 +349,7 @@ test = [
     { name = "pytest" },
     { name = "pytest-xdist" },
     { name = "ruff" },
+    { name = "uvicorn" },
 ]
 tree = [
     { name = "apted" },
@@ -418,6 +419,7 @@ requires-dist = [
     { name = "soupsieve", specifier = "==2.9.2" },
     { name = "soupsieve", marker = "extra == 'reference-audit'", specifier = "==2.9.2" },
     { name = "tiktoken", marker = "extra == 'browser-use-eval'", specifier = ">=0.7,<1" },
+    { name = "uvicorn", marker = "extra == 'test'", specifier = "==0.54.0" },
     { name = "webarena-verified", marker = "extra == 'browser-use-eval'", git = "https://github.com/lexmount/webarena-verified.git?rev=da7b992eb10de78000f11a7f34fd4590c171fbd6" },
 ]
 provides-extras = ["dataset-publish", "tree", "headless-eval", "reference-audit", "webmainbench-eval", "browser-use-eval", "test", "oss-eval", "web-extract-eval"]
@@ -4701,6 +4703,19 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/87/09/ab493c7598311f9bab4dc762d3483cb35cd78588c4d848c36fcda671f4f9/uuid_utils-0.17.1-pp311-pypy311_pp73-manylinux_2_17_x86_64.manylinux2014_x86_64.whl", hash = "sha256:6ed203ff60932fe5b3a38453945bee4aa8dfb387789fd420698f607786ba42b8", size = 328684, upload-time = "2026-09-08T11:29:31.752Z" },
     { url = "https://files.pythonhosted.org/packages/4f/1d/8f2816d50d7a69416270a88f41f6820cde300719bac814989bb13e4c5ae6/uuid_utils-0.17.1-pp311-pypy311_pp73-manylinux_2_5_i686.manylinux1_i686.whl", hash = "sha256:92e8df2bc6a33229c105ea90839d98576fcecc5cc86fdb1dd772ab10367b744b", size = 354290, upload-time = "2026-09-08T11:29:33.067Z" },
     { url = "https://files.pythonhosted.org/packages/18/e4/2bdff71a73c3d5dde6777815c910be7417fbc54f36206d0f7a1fb2f54522/uuid_utils-0.17.1-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:6cca251f83d3ec2988fb7355b52c4b4fd2d96159f6f040e68f51af15fab49540", size = 180288, upload-time = "2026-09-08T11:29:34.24Z" },
+]
+
+[[package]]
+name = "uvicorn"
+version = "0.54.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "click" },
+    { name = "h11" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/da/34/30e9280707135d2cfc589dfff3cb796bd07a3aeb1a3e415ba09dd89d7bb4/uvicorn-0.54.0.tar.gz", hash = "sha256:a2e33cbfaa0306f8e6b0c13e0cb89d7d7a2da3e62b90c66e18c33d9807b28620", size = 112283, upload-time = "2026-09-25T06:52:37.601Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/38/0c/b54a4fdd7f90a3af8b02ebc9ce6712c2c208b7926a2f7bad95c33ebbe943/uvicorn-0.54.0-py3-none-any.whl", hash = "sha256:505bdb0f318731d45f1f712071fc781a8981f6847a31c902c9f5e652d4f67faf", size = 87427, upload-time = "2026-09-25T06:52:35.829Z" },
 ]
 
 [[package]]

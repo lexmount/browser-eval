@@ -81,6 +81,12 @@ from a shared service/account name to its `capacity` and `reason`. Variants usin
 the same name share that limit; conflicting declarations stop before calls.
 Provider cases retain their ordered lifecycle and reference checks.
 
+Web Extract policies spanning several methods must provide `assignments`, mapping
+each method to its method lane and every shared resource it consumes. Unassigned
+shared resources stop collection before dispatch. A single-method policy binds all
+its declared resources. Preflight and collection must bind the same collector and
+scheduler hashes; later aggregation checks those frozen hashes against each other.
+
 Web Search profiles can select `bounded provider batches` to overlap providers,
 or `bounded calls` for independent queries. Bind the same `execution_policy` used
 by the scheduler. A method lane may admit several calls when `interval_s` is zero;

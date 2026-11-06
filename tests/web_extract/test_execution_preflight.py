@@ -126,3 +126,57 @@ def test_preflight_resume_retains_time_spent_before_interruption(tmp_path):
             home, candidate, "cloudflare-json", diagnostic, assessment, sample_size=2
         )
     assert read_json(diagnostic / "execution-preflight.json")["wall_seconds"] >= 100
+
+
+@pytest.mark.parametrize("changed", ["pipeline.py", "benchmark_execution.py"])
+def test_preflight_cannot_authorize_a_changed_collector_but_frozen_evidence_stays_readable(
+    tmp_path, monkeypatch, changed
+):
+    from pathlib import Path
+
+    from harness.web_extract import certification
+
+    home = create(tmp_path / "example")
+    candidate, final = tmp_path / "candidate.json", tmp_path / "final.json"
+    assessment, diagnostic = tmp_path / "assessment.json", tmp_path / "sample"
+    with (
+        collection_context(),
+        patch.object(certification, "validate_dataset"),
+        patch("harness.web_extract.pipeline.qualify_fixture", side_effect=serve_input),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
+    ):
+        snapshot = bind_inputs(home, tmp_path / "snapshots.json")
+        create_plan(home, ["cloudflare-json"], candidate, snapshots=snapshot)
+        execution_preflight(
+            home, candidate, "cloudflare-json", diagnostic, assessment, sample_size=2
+        )
+        create_plan(
+            home,
+            ["cloudflare-json"],
+            final,
+            snapshots=snapshot,
+            require_execution_assessment=True,
+            execution_assessments=[assessment],
+        )
+        contract, _ = load_run(diagnostic)
+        owner = Path(certification.__file__)
+        replacement = tmp_path / "replacement/web_extract"
+        replacement.mkdir(parents=True)
+        for name, source, destination in (
+            ("pipeline.py", owner.with_name("pipeline.py"), replacement / "pipeline.py"),
+            (
+                "benchmark_execution.py",
+                owner.parents[1] / "benchmark_execution.py",
+                replacement.parent / "benchmark_execution.py",
+            ),
+        ):
+            destination.write_bytes(
+                b"changed implementation" if name == changed else source.read_bytes()
+            )
+        monkeypatch.setattr(certification, "__file__", str(replacement / "certification.py"))
+        with pytest.raises(ValueError, match="implementation"):
+            run(home, final, "cloudflare-json", tmp_path / "measured")
+        assert call.call_count == 2
+        certification.verify_execution_assessment(
+            read_json(final), "cloudflare-json", execution_sources=contract
+        )

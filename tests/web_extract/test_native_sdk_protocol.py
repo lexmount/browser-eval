@@ -94,6 +94,10 @@ class NativeExtractionProtocolTests(unittest.TestCase):
 
     def test_output_limit_keeps_native_error_and_token_receipt(self):
         data, native = self.extract([], empty=True)
-        self.assertIn(data, (None, {}))
+        self.assertIsNone(data)
         self.assertIn("finish_reason: length", native["extracted_content"][0]["content"])
         self.assertEqual(native["usage"]["completion_tokens"], 8192)
+
+    def test_error_named_metadata_does_not_discard_a_real_record(self):
+        data, _ = self.extract([{"capacity": "25 seats", "tags": ["error"], "content": "record"}])
+        self.assertEqual(data, {"capacity": "25 seats"})

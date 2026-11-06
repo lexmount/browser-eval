@@ -103,6 +103,85 @@ def test_run_requires_a_frozen_model_and_implementation(options):
         validate_native_options("crawl4ai-json", options)
 
 
+@pytest.mark.parametrize("advertised", [True, False])
+def test_new_self_hosted_registry_entry_selects_routing_and_projection(monkeypatch, advertised):
+    from harness.web_extract.pipeline import METHODS
+
+    method = "synthetic-self-hosted"
+    monkeypatch.setitem(METHODS, method, {**METHODS["crawl4ai-json"], "engine": "synthetic"})
+    monkeypatch.setenv("EXTRACTION_API_KEY", "synthetic-secret")
+    schema = {"type": "object", "properties": {"name": {"type": "string"}}}
+    options = {
+        "endpoint": "https://extract.example",
+        "runtime_identity": {**RUNTIME, "engine": "synthetic", "json_keepalive": advertised},
+        "keepalive": True,
+    }
+    response = type(
+        "Response",
+        (),
+        {
+            "status": 200,
+            "headers": {},
+            "text": lambda self: '\n{"success":true,"data":{"name":"Ada"}}',
+        },
+    )()
+    with patch("harness.web_extract.pipeline.request", return_value=response) as request:
+        if not advertised:
+            with pytest.raises(ValueError, match="keepalive"):
+                provider_call(
+                    method,
+                    "<h1>Ada</h1>",
+                    "https://original.example/",
+                    "https://snapshots.example/frozen",
+                    native_options=options,
+                    schema=schema,
+                )
+            request.assert_not_called()
+            return
+        result = provider_call(
+            method,
+            "<h1>Ada</h1>",
+            "https://original.example/",
+            "https://snapshots.example/frozen",
+            native_options=options,
+            schema=schema,
+        )
+    assert request.call_args.args == ("https://extract.example/extract/synthetic?keepalive=true",)
+    assert normalize(method, result["response"], schema=schema) == {"name": "Ada"}
+
+
+def test_post_extraction_runtime_check_detects_a_changed_local_model(monkeypatch):
+    from harness.web_extract import self_hosted
+
+    monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
+    monkeypatch.setenv("EXTRACTION_MODEL", "before")
+    monkeypatch.setenv("EXTRACTION_MODEL_BASE", "https://model.example")
+    monkeypatch.setattr(self_hosted.importlib.metadata, "version", lambda name: "synthetic")
+    monkeypatch.setattr(self_hosted, "installed_environment_sha256", lambda: "a" * 64)
+    self_hosted.local_runtime_identity.cache_clear()
+
+    async def changed(value):
+        monkeypatch.setenv("EXTRACTION_MODEL", "after")
+        return {"name": "Ada"}, {}
+
+    try:
+        expected = self_hosted.runtime_identity("crawl4ai")
+        with patch.object(self_hosted, "crawl", side_effect=changed):
+            result = self_hosted.worker(
+                {
+                    "url": "https://snapshots.example/frozen",
+                    "schema": SCHEMA,
+                    "engine": "crawl4ai",
+                    "expected_runtime": expected,
+                }
+            )
+        assert result["success"] is False
+        assert result["error"] == "Runtime changed during extraction"
+        assert result["runtime"]["model"] == "after"
+    finally:
+        self_hosted.local_runtime_identity.cache_clear()
+
+
 @pytest.mark.parametrize(
     "status,payload",
     [

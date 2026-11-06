@@ -23,6 +23,7 @@ ENGINES = {
     "stagehand": "stagehand",
     "firecrawl": None,
 }
+KEEPALIVE_SECONDS = 5
 
 
 def validate_input(value):
@@ -94,6 +95,7 @@ def local_runtime_identity(engine):
         "model_base": os.environ["EXTRACTION_MODEL_BASE"],
         "model_context_tokens": int(os.environ.get("EXTRACTION_MODEL_CONTEXT_TOKENS", "128000")),
         "implementation": "native-open-source/1",
+        "json_keepalive": True,
         "implementation_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         "environment_sha256": installed_environment_sha256(),
     }
@@ -177,6 +179,10 @@ async def crawl(value):
     # The task asks for one record. Never choose the best of multiple candidates.
     item = native[0] if isinstance(native, list) and len(native) == 1 else native
     if not isinstance(item, dict) or item.get("error"):
+        return None, {"extracted_content": native, "usage": vars(strategy.total_usage)}
+    # Crawl4AI 0.9.5 overwrites its own error flag with False. Its tagged error
+    # envelope still identifies the failure; retain records with real fields.
+    if item.get("tags") == ["error"] and set(item) <= {"index", "error", "tags", "content"}:
         return None, {"extracted_content": native, "usage": vars(strategy.total_usage)}
     data = {k: v for k, v in item.items() if k in value["schema"]["properties"]}
     return data, {"extracted_content": native, "usage": vars(strategy.total_usage)}
@@ -369,6 +375,9 @@ def worker(value):
             data, native = asyncio.run(
                 crawl(value) if value["engine"] == "crawl4ai" else stagehand_extract(value)
             )
+    # This process serves one extraction. Recheck files, packages and settings
+    # rather than returning the identity cached during input validation.
+    local_runtime_identity.cache_clear()
     observed_runtime = runtime_identity(value["engine"])
     runtime_matches = observed_runtime == value["expected_runtime"]
     return {
@@ -529,7 +538,12 @@ def create_app():
         }
 
     @app.post("/extract/{engine}")
-    async def extract(engine: str, request: Request, authorization: str = Header(default="")):
+    async def extract(
+        engine: str,
+        request: Request,
+        authorization: str = Header(default=""),
+        keepalive: bool = False,
+    ):
         token = os.environ.get("EXTRACTION_API_KEY", "")
         if not token or not hmac.compare_digest(
             authorization.encode("utf-8"), ("Bearer " + token).encode("utf-8")
@@ -545,25 +559,62 @@ def create_app():
             raise HTTPException(413, str(exc)) from exc
         except (KeyError, ValueError) as exc:
             raise HTTPException(400, str(exc)) from exc
-        try:
-            completed = await asyncio.to_thread(
-                run_worker,
-                value,
-            )
-        except subprocess.TimeoutExpired as exc:
-            raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
-        if completed.returncode:
-            error = completed.stderr
-            for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
-                if os.environ.get(key):
-                    error = error.replace(os.environ[key], "[REDACTED]")
-            error = error[-6000:]
-            return {
-                "success": False,
-                "error": error,
-                "runtime": await asyncio.to_thread(runtime_identity, engine),
-            }
-        return json.loads(completed.stdout)
+
+        async def result():
+            try:
+                completed = await asyncio.to_thread(run_worker, value)
+            except subprocess.TimeoutExpired as exc:
+                raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
+            if completed.returncode:
+                error = completed.stderr
+                for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
+                    if os.environ.get(key):
+                        error = error.replace(os.environ[key], "[REDACTED]")
+                return {
+                    "success": False,
+                    "error": error[-6000:],
+                    "runtime": await asyncio.to_thread(runtime_identity, engine),
+                }
+            return json.loads(completed.stdout)
+
+        if not keepalive:
+            return await result()
+
+        from fastapi.responses import StreamingResponse
+
+        async def stream():
+            task = asyncio.create_task(result())
+            try:
+                # JSON permits leading whitespace. The complete response remains
+                # one JSON document, while intermediate proxies keep receiving bytes.
+                yield b"\n"
+                while not task.done():
+                    done, _ = await asyncio.wait({task}, timeout=KEEPALIVE_SECONDS)
+                    if not done:
+                        yield b"\n"
+                try:
+                    payload = task.result()
+                except HTTPException as exc:
+                    # Headers have already been sent; retain the native failure
+                    # status inside the opt-in streaming result.
+                    payload = {
+                        "success": False,
+                        "data": None,
+                        "error": exc.detail,
+                        "http_status": exc.status_code,
+                        "runtime": await asyncio.to_thread(runtime_identity, engine),
+                    }
+                yield json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
+            finally:
+                # A disconnected caller does not remove the worker's 110-second
+                # deadline or process cleanup. Consume any eventual exception.
+                task.add_done_callback(lambda done: None if done.cancelled() else done.exception())
+
+        return StreamingResponse(
+            stream(),
+            media_type="application/json",
+            headers={"X-Accel-Buffering": "no", "Cache-Control": "no-store"},
+        )
 
     return app
 
