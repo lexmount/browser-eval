@@ -78,7 +78,7 @@ def test_definition_binds_both_page_bytes_and_reference_before_preparation(tmp_p
         records.prepare(tmp_path / "home", source)
     value["cases"][0]["values"]["name"] = ["Ada"]
     pipeline.save_json(source, value)
-    Path(value["cases"][0]["input"]).write_text("changed webpage")
+    Path(value["cases"][0]["input"]).write_text("changed webpage", encoding="utf-8")
     with pytest.raises(ValueError, match="Source HTML"):
         records.prepare(tmp_path / "other", source)
 
@@ -282,7 +282,7 @@ def test_snapshot_resources_are_copied_and_change_the_whole_input_version(
     relative = "assets/one/" + asset_name
     assert (output / entry["path"] / relative).read_bytes() == b"captured-image"
     assert entry["resources"] == snapshots.resource_inventory(home)
-    assert "style-src 'self'" in (output / "_headers").read_text()
+    assert "style-src 'self'" in (output / "_headers").read_text(encoding="utf-8")
     response = SimpleNamespace(
         status_code=200,
         url="https://immutable.example/snapshots.json",
