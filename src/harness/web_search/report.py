@@ -332,7 +332,7 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
             profile["cases"] = []
             profile["factual_quality_exclusions"] = []
             profile["reference_adjudications"] = []
-        elif current["methods"] != profile["methods"] or _execution_contract(current["protocol"]) != _execution_contract(profile["protocol"]):
+        elif current["methods"] != profile["methods"] or _execution_contract(current["protocol"]) != _execution_contract(profile["protocol"]) or current.get("execution_policy") != profile.get("execution_policy"):
             raise ValueError("Cohort participants or execution protocols differ")
         case_ids = {c["id"] for c in current["cases"]}
         evidence = {r["evidence"]["path"] for r in calls}

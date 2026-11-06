@@ -150,9 +150,18 @@ navigation stages for other hosting workflows.
 
 ```sh
 uv run --frozen python -m harness.web_extract.cli plan \
-  --methods cloudflare-json firecrawl-json scrapegraph-extract scrapfly-product \
-  oxylabs-json zyte-product diffbot-product browserbase-json \
+  --methods firecrawl-json \
+  --concurrency 4 --execution-purpose quality \
   --snapshots /absolute/data/snapshots.json \
+  --output /absolute/data/candidate.json
+uv run --frozen python -m harness.web_extract.cli preflight \
+  --profile /absolute/data/candidate.json --method firecrawl-json \
+  --run-dir /absolute/data/preflight/firecrawl \
+  --assessment-output /absolute/data/firecrawl-execution.json
+uv run --frozen python -m harness.web_extract.cli plan \
+  --methods firecrawl-json --concurrency 4 --execution-purpose quality \
+  --snapshots /absolute/data/snapshots.json \
+  --execution-assessment /absolute/data/firecrawl-execution.json \
   --output /absolute/data/full-cohort.json
 uv run --frozen python scripts/run_certified_benchmark.py --track web-extract \
   --profile /absolute/data/full-cohort.json --method firecrawl-json \
@@ -164,9 +173,21 @@ The recommended comparison includes complete native APIs only. Upstream extruct
 code and earlier baseline predictions remain in the original distribution for
 reproduction; the baseline is excluded from new comparisons.
 
+The candidate plan fixes the sample's configuration. `preflight` selects frozen
+cases across domains, uses the same caller and scheduler as the full run, and
+keeps its calls outside the measured cohort. New CLI plans require the bound
+assessment before certified collection. A multi-method plan accepts repeated
+`--execution-assessment` paths; each participant needs its own matching sample.
+Reuse an assessment only when its input, route, runtime and execution policy match.
+
 Run each participant once across the complete 140-case population. The plan binds
-cases, input hashes, pacing and retry policy before calls. Calls within a provider
-are serial; Diffbot additionally waits after each response. A quota or permission
+cases, input hashes, pacing, concurrency and retry policy before calls. New CLI
+plans default to four in-flight calls per provider. A provider-mandated post-call
+cooldown selects one in-flight call and records the reason. Choose capacities
+from a measured preflight using the shared [execution contract](../../docs/benchmark-execution.md).
+For isolated timing, select `--execution-purpose latency --concurrency 1` and give
+`--serial-reason`. Quality-run timings describe the declared concurrent load.
+A quota or permission
 denial pauses collection. After access is repaired, repeat the same certified
 command and directory: completed cases are retained, the blocked case may be retried
 once, and both physical responses remain inspectable. The final response is scored;
@@ -208,9 +229,18 @@ Use a separate data directory for this benchmark:
 uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
   prepare --benchmark swde --source /absolute/downloads/swde-source.tar.gz
 uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
-  plan --methods zyte-custom firecrawl-json scrapegraph-extract \
-  cloudflare-json browserbase-json oxylabs-json \
+  plan --methods scrapegraph-extract \
+  --concurrency 4 --execution-purpose quality \
   --snapshots /absolute/data/snapshots.json \
+  --output /absolute/data/swde/candidate.json
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
+  preflight --profile /absolute/data/swde/candidate.json --method scrapegraph-extract \
+  --run-dir /absolute/data/swde/preflight/scrapegraph \
+  --assessment-output /absolute/data/swde/scrapegraph-execution.json
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
+  plan --methods scrapegraph-extract --concurrency 4 --execution-purpose quality \
+  --snapshots /absolute/data/snapshots.json \
+  --execution-assessment /absolute/data/swde/scrapegraph-execution.json \
   --output /absolute/data/swde/precall.json
 uv run --frozen --extra web-extract-eval python scripts/run_certified_benchmark.py --track web-extract \
   --home /absolute/data/swde --profile /absolute/data/swde/precall.json \

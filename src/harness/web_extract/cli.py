@@ -57,12 +57,37 @@ def main(argv=None):
     p = sub.add_parser("plan")
     p.add_argument("--methods", nargs="+", required=True)
     p.add_argument("--native-options", type=Path, help="Per-method frozen native options JSON")
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=4,
+        help="Maximum in-flight calls per method; freeze before collection",
+    )
+    p.add_argument(
+        "--execution-purpose", choices=("quality", "latency", "throughput"), default="quality"
+    )
+    p.add_argument("--serial-reason", default="", help="Required when selecting one in-flight call")
+    p.add_argument(
+        "--execution-assessment",
+        type=Path,
+        action="append",
+        dest="execution_assessments",
+        default=[],
+        help="Bound execution preflight assessment",
+    )
     p.add_argument("--output", type=Path, required=True)
     p.add_argument(
         "--snapshots",
         type=Path,
         help="Verified public snapshot registry; required for URL-based methods",
     )
+    p = sub.add_parser("preflight")
+    p.add_argument("--profile", type=Path, required=True)
+    p.add_argument("--method", required=True)
+    p.add_argument("--run-dir", type=Path, required=True)
+    p.add_argument("--assessment-output", type=Path, required=True)
+    p.add_argument("--sample-size", type=int, default=8)
+    p.add_argument("--wall-time-budget-seconds", type=float, default=7200)
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8767)
     p = sub.add_parser("repair-plan")
@@ -205,9 +230,28 @@ def main(argv=None):
                 args.methods,
                 args.output,
                 snapshots=args.snapshots,
+                concurrency=args.concurrency,
+                execution_purpose=args.execution_purpose,
+                serial_reason=args.serial_reason,
+                require_execution_assessment=True,
+                execution_assessments=args.execution_assessments,
                 native_options=json.loads(args.native_options.read_text(encoding="utf-8"))
                 if args.native_options
                 else None,
+            )
+        )
+    elif args.command == "preflight":
+        from harness.web_extract.certification import execution_preflight
+
+        print(
+            execution_preflight(
+                args.home,
+                args.profile,
+                args.method,
+                args.run_dir,
+                args.assessment_output,
+                sample_size=args.sample_size,
+                wall_time_budget_seconds=args.wall_time_budget_seconds,
             )
         )
     elif args.command == "serve":

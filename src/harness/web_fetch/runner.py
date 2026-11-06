@@ -13,7 +13,6 @@ import threading
 import time
 import traceback
 import urllib.error
-from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +25,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.response_input import apply_request_status
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
+from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs, validate_capacity
 from harness.record_io import load_jsonl, optional_file_sha256
 from harness.reporting.privacy import WEB_FETCH_DIAGNOSTIC
 from harness.reporting.versions import software_identity
@@ -548,6 +548,38 @@ def run_evaluation(
         raise ValueError('Provider names must be unique within an execution')
     if len({case.id for case in cases}) != len(cases):
         raise ValueError('Task IDs must be unique within an execution')
+    workers = min(provider_concurrency, len(providers))
+    execution_policy = {
+        "purpose": "quality" if workers > 1 else "latency",
+        "max_in_flight": workers,
+        "serial_reason": "One provider or an explicitly serial measurement plan",
+        "resources": {
+            provider.name: {
+                "capacity": 1,
+                "reason": "Preserve each provider's ordered lifecycle and pacing",
+            } for provider in providers
+        },
+    }
+    resource_bindings = {provider.name: [provider.name] for provider in providers}
+    for provider in providers:
+        declared = provider.config.get("execution_resources", {})
+        if not isinstance(declared, dict):
+            raise ValueError("Provider execution_resources must be a resource mapping")
+        for group, specification in declared.items():
+            if not isinstance(group, str) or not group.strip() or not isinstance(specification, dict):
+                raise ValueError("Invalid shared provider execution resource")
+            name = "shared/" + group
+            declared_capacity = validate_capacity(specification.get("capacity"))
+            capacity = min(declared_capacity, workers)
+            resource = {**specification, "capacity": capacity}
+            if capacity == 1 and declared_capacity > 1 and not resource.get("reason"):
+                resource["reason"] = "The declared global measurement limit admits one active job"
+            previous = execution_policy["resources"].get(name)
+            if previous is not None and previous != resource:
+                raise ValueError("Conflicting capacities for one shared execution resource")
+            execution_policy["resources"][name] = resource
+            resource_bindings[provider.name].append(name)
+    policy = ExecutionPolicy.from_dict(execution_policy)
     native_routes = (NativeRouteLedger(cases, providers, timeout_seconds=timeout)
                      if any(p.config.get('uniform_native_parameters') for p in providers) else None)
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
@@ -620,7 +652,8 @@ def run_evaluation(
             "runs": runs,
             "timeout": timeout,
             "delay": delay,
-            "provider_concurrency": min(provider_concurrency, max(1, len(providers))),
+            "provider_concurrency": workers,
+            "execution_policy": execution_policy,
             "concurrency_scope": ("serial_alternating_providers_per_case"
                                   if call_order == "case-alternating"
                                   else "providers_parallel_cases_sequential_per_provider"),
@@ -911,7 +944,6 @@ def run_evaluation(
                         return False
             return True
 
-        workers = min(provider_concurrency, max(1, len(providers)))
         try:
             if call_order == "case-alternating":
                 stopped = False
@@ -934,8 +966,12 @@ def run_evaluation(
                     if stopped:
                         break
             else:
-                with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
-                    list(executor.map(run_provider, providers))
+                def commit_provider(job, value, error):
+                    if error is not None:
+                        raise error
+
+                run_jobs([Job(provider.name, tuple(resource_bindings[provider.name]), provider)
+                          for provider in providers], run_provider, commit_provider, policy)
         except ReferenceLifecycleError as error:
             if reference_checks is not None:
                 reference_checks.update(status=error.status, callcheck_error=str(error))

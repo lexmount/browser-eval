@@ -10,6 +10,7 @@ import gzip
 import io
 import json
 import math
+import multiprocessing
 import os
 import re
 import runpy
@@ -22,6 +23,7 @@ from functools import wraps
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit
 
+from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
 from harness.data_home import data_home as shared_data_home
 from harness.distribution import repository_root
 from harness.record_io import bytes_sha256 as digest
@@ -35,6 +37,7 @@ ROOT = repository_root()
 PROFILE = Path(__file__).resolve().parents[1] / "benchmarks/cards/zyte-product-extraction.json"
 FIELDS = ("price", "sku", "availability", "InStock", "OutOfStock")
 _RAW_SESSIONS = {}
+_COLLECTION_CLOCK = None
 
 
 def execution_identity(row):
@@ -1436,6 +1439,7 @@ def probe(home: Path, methods: list[str], **options):
         "execution.lock",
         "calls",
         "execution/pipeline.py",
+        "execution/benchmark_execution.py",
         "calls.journal.jsonl",
         "contract.json",
         "inflight.json",
@@ -1447,6 +1451,84 @@ def probe(home: Path, methods: list[str], **options):
     with (run / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return _probe_unlocked(home, methods, run_dir=run, **options)
+
+
+def _initialize_collection_clock(lock, clock, interval):
+    global _COLLECTION_CLOCK
+    _COLLECTION_CLOCK = lock, clock, interval
+
+
+def _execute_collection_call(payload):
+    (
+        method,
+        raw,
+        source_url,
+        public_url,
+        schema_options,
+        home,
+        native_options,
+        repair,
+        custom_schema,
+        row,
+    ) = payload
+    if custom_schema:
+        from jsonschema import Draft202012Validator
+    if _COLLECTION_CLOCK is not None:
+        lock, clock, interval = _COLLECTION_CLOCK
+        with lock:
+            remaining = interval - (time.monotonic() - clock.value)
+            if remaining > 0:
+                time.sleep(remaining)
+            clock.value = time.monotonic()
+    try:
+        last_call_started = time.monotonic()
+        row["started_at"] = datetime.now(UTC).isoformat()
+        row.update(
+            provider_call(
+                method,
+                raw.decode("utf-8"),
+                source_url,
+                public_url,
+                **schema_options,
+                **(
+                    {"home": home, "native_options": native_options, "timeout": 120}
+                    if repair or native_options
+                    else ({"home": home} if method == "extruct" else {})
+                ),
+            )
+        )
+        if "elapsed_seconds" not in row:
+            row["elapsed_seconds"] = time.monotonic() - last_call_started
+        normalized = normalize(
+            method,
+            row.get("response", {}),
+            **({"schema": schema_options["schema"]} if custom_schema else {}),
+        )
+        row["normalized_fields"] = normalized
+        if custom_schema:
+            errors = list(Draft202012Validator(schema_options["schema"]).iter_errors(normalized))
+            row["schema_valid"] = not errors
+            row["schema_errors"] = [e.message for e in errors]
+        row["compatibility"] = (
+            "structured_output"
+            if normalized is not None and row.get("http_status") == 200
+            else "no_structured_output"
+        )
+    except Exception as error:
+        row.update(
+            state="call_error",
+            error=redact(str(error)),
+            elapsed_seconds=time.monotonic() - last_call_started,
+            normalized_fields=None,
+            compatibility="no_structured_output",
+        )
+    row["finished_at"] = datetime.now(UTC).isoformat()
+    return row
+
+
+def _execute_admitted_call(value):
+    admitted, payload = value
+    return _execute_collection_call(payload) if admitted else payload
 
 
 def collect_calls(
@@ -1508,18 +1590,20 @@ def collect_calls(
         raise ValueError("Uncheckpointed call exists; preserve and reconcile it before resuming")
     inflight = run / "inflight.json"
     if inflight.exists():
-        pending = read_json(inflight)
-        completed = prior.get((pending["method"], pending["case_id"]))
-        if (
-            completed is None
-            or read_json(run / completed["path"]).get("physical_attempt")
-            != pending["physical_attempt"]
-        ):
-            raise ValueError(
-                "Ambiguous repair dispatch requires reconciliation"
-                if repair
-                else "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
-            )
+        inventory = read_json(inflight)
+        reservations = inventory.get("attempts", [inventory])
+        for pending in reservations:
+            completed = prior.get((pending["method"], pending["case_id"]))
+            if (
+                completed is None
+                or read_json(run / completed["path"]).get("physical_attempt")
+                != pending["physical_attempt"]
+            ):
+                raise ValueError(
+                    "Ambiguous repair dispatch requires reconciliation"
+                    if repair
+                    else "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
+                )
         inflight.unlink()
     denied_sites = {}
 
@@ -1538,6 +1622,25 @@ def collect_calls(
     # Conservatively observe the full frozen pause after a cross-process resume.
     last_call_started = time.monotonic() if prior else None
     last_call_finished = last_call_started
+    execution_policy = contract.get("execution_policy")
+    policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
+    concurrency = policy.max_in_flight if policy else contract.get("concurrency", 1)
+    if type(concurrency) is not int or not 1 <= concurrency <= 64:
+        raise ValueError("Concurrency must be an integer between 1 and 64")
+    if concurrency > 1 and post_call_cooldown:
+        raise ValueError("Post-call cooldown requires serial execution")
+    pending_calls = {}
+    blocked = []
+
+    def save_pending():
+        if pending_calls:
+            values = list(pending_calls.values())
+            value = values[0] if concurrency == 1 else {"attempts": values}
+            save_json(inflight, value, exclusive=not inflight.exists())
+        elif inflight.exists():
+            inflight.unlink()
+
+    jobs = []
     for ordinal, case_id in enumerate(case_ids):
         offset = ordinal % len(methods)
         for method in methods[offset:] + methods[:offset]:
@@ -1547,170 +1650,200 @@ def collect_calls(
                 if not (full and retained_access_reason(prior_row, contract)):
                     records.append(entry)
                     continue
-                if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
-                    raise PermissionError("Access remains blocked; declared retry budget exhausted")
-            if len(physical) >= contract.get("maximum_physical_calls", float("inf")):
-                raise PermissionError("Frozen physical call budget exhausted before dispatch")
-            missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
-            raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
-            if digest(raw) != frozen_inputs["html/" + case_id + ".html"]["sha256"]:
-                raise ValueError("Frozen extraction HTML changed before dispatch")
-            schema_options = {}
-            if custom_schema:
-                schema_options = {
-                    "schema": adapter.task_schema(home, truth[case_id]),
-                    "prompt": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
-                }
-            row = {
-                "method": method,
-                "case_id": case_id,
-                "input_sha256": digest(raw),
-                "kind": "failure_repair"
-                if repair
-                else ("structured_extraction_attempt" if full else "compatibility_probe"),
-                "started_at": datetime.now(UTC).isoformat(),
+            resources = tuple(policy.resources) if policy and len(methods) == 1 else (method,)
+            jobs.append(Job(f"{method}/{case_id}", resources, (method, case_id)))
+
+    def prepare(job):
+        nonlocal last_call_started
+        method, case_id = job.payload
+        if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
+            raise PermissionError("Access remains blocked; declared retry budget exhausted")
+        if len(physical) + len(pending_calls) >= contract.get(
+            "maximum_physical_calls", float("inf")
+        ):
+            raise PermissionError("Frozen physical call budget exhausted before dispatch")
+        missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
+        raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
+        if digest(raw) != frozen_inputs["html/" + case_id + ".html"]["sha256"]:
+            raise ValueError("Frozen extraction HTML changed before dispatch")
+        schema_options = {}
+        if custom_schema:
+            schema_options = {
+                "schema": adapter.task_schema(home, truth[case_id]),
+                "prompt": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
             }
-            if missing and full:
-                raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
-            if missing:
-                row.update(state="credentials_missing", missing_variables=missing)
-            else:
-                if last_call_started is not None:
+        row = {
+            "method": method,
+            "case_id": case_id,
+            "input_sha256": digest(raw),
+            "kind": "failure_repair"
+            if repair
+            else ("structured_extraction_attempt" if full else "compatibility_probe"),
+            "started_at": datetime.now(UTC).isoformat(),
+        }
+        if missing and full:
+            raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
+        if missing:
+            row.update(state="credentials_missing", missing_variables=missing)
+        else:
+            if last_call_started is not None:
+                remaining = max(
+                    min_call_interval - (time.monotonic() - last_call_started),
+                    (post_call_cooldown - (time.monotonic() - last_call_finished))
+                    if last_call_finished is not None
+                    else 0,
+                )
+                while remaining > 0:
+                    time.sleep(min(remaining, 30))
                     remaining = max(
                         min_call_interval - (time.monotonic() - last_call_started),
-                        post_call_cooldown - (time.monotonic() - last_call_finished),
+                        (post_call_cooldown - (time.monotonic() - last_call_finished))
+                        if last_call_finished is not None
+                        else 0,
                     )
-                    while remaining > 0:
-                        time.sleep(min(remaining, 30))
-                        remaining = max(
-                            min_call_interval - (time.monotonic() - last_call_started),
-                            post_call_cooldown - (time.monotonic() - last_call_finished),
-                        )
-                save_json(
-                    inflight,
-                    {
-                        "method": method,
-                        "case_id": case_id,
-                        "physical_attempt": attempts.get((method, case_id), 0) + 1,
-                        "input_sha256": digest(raw),
-                        "state": "dispatch_pending",
-                    },
-                    exclusive=True,
-                )
-                try:
-                    last_call_started = time.monotonic()
-                    row.update(
-                        provider_call(
-                            method,
-                            raw.decode("utf-8"),
-                            truth[case_id]["url"],
-                            fixture_url(fixture_base, case_id, fixture_suffix)
-                            if fixture_base
-                            else None,
-                            **schema_options,
-                            **(
-                                {"home": home, "native_options": native_options, "timeout": 120}
-                                if repair or native_options
-                                else ({"home": home} if method == "extruct" else {})
-                            ),
-                        )
-                    )
-                    if "elapsed_seconds" not in row:
-                        row["elapsed_seconds"] = time.monotonic() - last_call_started
-                    normalized = normalize(
-                        method,
-                        row.get("response", {}),
-                        **({"schema": schema_options["schema"]} if custom_schema else {}),
-                    )
-                    row["normalized_fields"] = normalized
-                    if custom_schema:
-                        errors = list(
-                            Draft202012Validator(schema_options["schema"]).iter_errors(normalized)
-                        )
-                        row["schema_valid"] = not errors
-                        row["schema_errors"] = [e.message for e in errors]
-                    row["compatibility"] = (
-                        "structured_output"
-                        if normalized is not None and row.get("http_status") == 200
-                        else "no_structured_output"
-                    )
-                except Exception as error:
-                    row.update(
-                        state="call_error",
-                        error=redact(str(error)),
-                        elapsed_seconds=time.monotonic() - last_call_started,
-                        normalized_fields=None,
-                        compatibility="no_structured_output",
-                    )
-                last_call_finished = time.monotonic()
-            row["finished_at"] = datetime.now(UTC).isoformat()
-            row.setdefault("state", "response_received")
-            number = attempts.get((method, case_id), 0) + 1
-            row["physical_attempt"] = number
-            if number > 1:
-                prior_row = read_json(run / prior[(method, case_id)]["path"])
-                row["retry_execution_seconds"] = prior_row.get(
-                    "elapsed_seconds", 0
-                ) + prior_row.get("retry_execution_seconds", 0)
-            repeated_denial = observe_denial(row)
-            row["access_denial"] = (
-                (access_blocker(row) or ("repeated_http_403" if repeated_denial else None))
-                if full
-                else None
-            )
-            suffix = "" if number == 1 else f"-attempt{number}"
-            stem = case_id if repair else f"{method}-{case_id}"
-            path = run / "calls" / f"{stem}{suffix}.json"
-            if repair and number > 1:
-                history = [
-                    read_json(run / e["path"])
-                    for e in physical
-                    if (read_json(run / e["path"])["method"], read_json(run / e["path"])["case_id"])
-                    == (method, case_id)
-                ]
-                row["physical_attempts"] = history + [dict(row)]
-                row["retry_missing_timers"] = sum(r.get("elapsed_seconds") is None for r in history)
-            save_json(path, redact(row), exclusive=True)
-            entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
-            with journal.open("a", encoding="utf-8") as checkpoint:
-                checkpoint.write(json.dumps(entry) + "\n")
-                checkpoint.flush()
-                os.fsync(checkpoint.fileno())
-            if inflight.exists():
-                inflight.unlink()
-            records.append(entry)
-            physical.append(entry)
-            print(
+            pending_calls[(method, case_id)] = {
+                "method": method,
+                "case_id": case_id,
+                "physical_attempt": attempts.get((method, case_id), 0) + 1,
+                "input_sha256": digest(raw),
+                "state": "dispatch_pending",
+            }
+            save_pending()
+        last_call_started = time.monotonic()
+        if missing:
+            return (None, row)
+        public_url = fixture_url(fixture_base, case_id, fixture_suffix) if fixture_base else None
+        return (
+            True,
+            (
                 method,
-                case_id[:10],
-                row["state"],
-                row.get("http_status", ""),
-                row.get("compatibility", ""),
-                flush=True,
+                raw,
+                truth[case_id]["url"],
+                public_url,
+                schema_options,
+                home,
+                native_options,
+                repair,
+                custom_schema,
+                row,
+            ),
+        )
+
+    def commit(job, row, error):
+        nonlocal last_call_finished
+        if error is not None:
+            raise error
+        method, case_id = job.payload
+        last_call_finished = time.monotonic()
+        row.setdefault("finished_at", datetime.now(UTC).isoformat())
+        row.setdefault("state", "response_received")
+        number = attempts.get((method, case_id), 0) + 1
+        row["physical_attempt"] = number
+        if number > 1:
+            prior_row = read_json(run / prior[(method, case_id)]["path"])
+            row["retry_execution_seconds"] = prior_row.get("elapsed_seconds", 0) + prior_row.get(
+                "retry_execution_seconds", 0
             )
-            blocker = row["access_denial"]
-            if blocker:
-                save_json(
-                    run / "access-blocked.json",
-                    {
-                        "method": method,
-                        "case_id": case_id,
-                        "reason": blocker,
-                        **(
-                            {"source_sites": sorted(denied_sites[method])}
-                            if blocker == "repeated_http_403"
-                            else {}
-                        ),
-                        "call": entry,
-                        "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
-                    },
-                )
-                action = (
-                    "inspect access-blocked.json before resuming the same run"
-                    if blocker == "repeated_http_403"
-                    else "repair access then resume the same run"
-                )
-                raise PermissionError(f"{method}: {blocker}; calls retained; {action}")
+        repeated_denial = observe_denial(row)
+        row["access_denial"] = (
+            (access_blocker(row) or ("repeated_http_403" if repeated_denial else None))
+            if full
+            else None
+        )
+        suffix = "" if number == 1 else f"-attempt{number}"
+        stem = case_id if repair else f"{method}-{case_id}"
+        path = run / "calls" / f"{stem}{suffix}.json"
+        if repair and number > 1:
+            history = [
+                read_json(run / e["path"])
+                for e in physical
+                if (read_json(run / e["path"])["method"], read_json(run / e["path"])["case_id"])
+                == (method, case_id)
+            ]
+            row["physical_attempts"] = history + [dict(row)]
+            row["retry_missing_timers"] = sum(r.get("elapsed_seconds") is None for r in history)
+        save_json(path, redact(row), exclusive=True)
+        entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
+        with journal.open("a", encoding="utf-8") as checkpoint:
+            checkpoint.write(json.dumps(entry) + "\n")
+            checkpoint.flush()
+            os.fsync(checkpoint.fileno())
+        pending_calls.pop((method, case_id), None)
+        save_pending()
+        records.append(entry)
+        physical.append(entry)
+        print(
+            method,
+            case_id[:10],
+            row["state"],
+            row.get("http_status", ""),
+            row.get("compatibility", ""),
+            flush=True,
+        )
+        blocker = row["access_denial"]
+        if blocker:
+            save_json(
+                run / "access-blocked.json",
+                {
+                    "method": method,
+                    "case_id": case_id,
+                    "reason": blocker,
+                    **(
+                        {"source_sites": sorted(denied_sites[method])}
+                        if blocker == "repeated_http_403"
+                        else {}
+                    ),
+                    "call": entry,
+                    "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
+                },
+            )
+            action = (
+                "inspect access-blocked.json before resuming the same run"
+                if blocker == "repeated_http_403"
+                else "repair access then resume the same run"
+            )
+            blocked.append(PermissionError(f"{method}: {blocker}; calls retained; {action}"))
+
+    if concurrency == 1:
+        for job in jobs:
+            if blocked:
+                break
+            commit(job, _execute_admitted_call(prepare(job)), None)
+    else:
+        policy = policy or ExecutionPolicy.from_dict(
+            {
+                "purpose": "quality",
+                "max_in_flight": concurrency,
+                "resources": {m: {"capacity": concurrency} for m in methods},
+                "backend": "process",
+            }
+        )
+        context = multiprocessing.get_context("fork")
+        run_jobs(
+            jobs,
+            _execute_admitted_call,
+            commit,
+            policy,
+            prepare=prepare,
+            should_stop=lambda: bool(blocked),
+            initialize=_initialize_collection_clock,
+            initargs=(context.Lock(), context.Value("d", 0), min_call_interval),
+        )
+    if blocked:
+        raise blocked[0]
+    positions = {
+        (m, cid): i
+        for i, (cid, m) in enumerate(
+            (cid, m)
+            for i, cid in enumerate(case_ids)
+            for m in methods[i % len(methods) :] + methods[: i % len(methods)]
+        )
+    }
+    records.sort(
+        key=lambda entry: positions[
+            (read_json(run / entry["path"])["method"], read_json(run / entry["path"])["case_id"])
+        ]
+    )
     return records, physical
 
 
@@ -1728,7 +1861,14 @@ def _probe_unlocked(
     native_options=None,
     maximum_physical_calls=None,
     snapshot_manifest=None,
+    execution_policy=None,
+    sample_case_ids=None,
 ):
+    policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
+    if policy and policy.max_in_flight > 1 and policy.backend != "process":
+        raise ValueError("Native signal deadlines require the process execution backend")
+    if policy and policy.max_in_flight > 1 and post_call_cooldown:
+        raise ValueError("Post-call cooldown requires serial execution")
     if not isinstance(min_call_interval, (int, float)) or not 0 <= min_call_interval <= 3600:
         raise ValueError("Minimum call interval must be between 0 and 3600 seconds")
     if not isinstance(post_call_cooldown, (int, float)) or not 0 <= post_call_cooldown <= 3600:
@@ -1775,6 +1915,15 @@ def _probe_unlocked(
             )
         )
     )
+    if sample_case_ids is not None:
+        if (
+            not isinstance(sample_case_ids, list)
+            or not sample_case_ids
+            or len(set(sample_case_ids)) != len(sample_case_ids)
+            or any(case_id not in truth for case_id in sample_case_ids)
+        ):
+            raise ValueError("Execution preflight requires distinct frozen sample cases")
+        case_ids = sample_case_ids
 
     def verify_remote():
         def one(case_id):
@@ -1797,7 +1946,9 @@ def _probe_unlocked(
     remote_before = verify_remote()
     requested = {
         "schema_version": 1,
-        "kind": "full_archived_extraction"
+        "kind": "execution_preflight"
+        if sample_case_ids is not None
+        else "full_archived_extraction"
         if full
         else ("input_size_boundary_only" if largest else "input_compatibility_only"),
         "case_ids": case_ids,
@@ -1808,8 +1959,8 @@ def _probe_unlocked(
             "Retain every call; after repairing access, retry blocked cases once "
             "and select the final response"
         ),
-        "access_retry_limit": 1,
-        "concurrency": 1,
+        "access_retry_limit": 0 if sample_case_ids is not None else 1,
+        "concurrency": policy.max_in_flight if policy else 1,
         "api_cookie_policy": "no_inherited_api_cookies",
         "access_policy": ACCESS_POLICY,
         "minimum_call_interval_seconds": min_call_interval,
@@ -1827,6 +1978,8 @@ def _probe_unlocked(
         else SCHEMA,
         "remote_fixture_before": remote_before,
     }
+    if execution_policy is not None:
+        requested["execution_policy"] = execution_policy
     if benchmark_config(home)["adapter"] is not None:
         from harness.web_extract.dataset import task_bindings
 
@@ -1843,6 +1996,9 @@ def _probe_unlocked(
         requested["snapshot_manifest"] = snapshot_manifest
     if native_options is not None:
         requested["native_options"] = native_options
+    scheduler_source = Path(__file__).parents[1] / "benchmark_execution.py"
+    requested["execution_scheduler_sha256"] = digest(scheduler_source.read_bytes())
+    requested["execution_scheduler_snapshot"] = "execution/benchmark_execution.py"
     if continuing:
         contract = read_json(run / "contract.json")
         if contract.get("snapshot_manifest") != requested.get("snapshot_manifest"):
@@ -1863,6 +2019,7 @@ def _probe_unlocked(
             "kind",
             "case_ids",
             "methods",
+            "concurrency",
             "minimum_call_interval_seconds",
             "post_call_cooldown_seconds",
             "fixture_base",
@@ -1873,12 +2030,29 @@ def _probe_unlocked(
         ):
             if contract[field] != requested[field]:
                 raise ValueError("Resume contract changed: " + field)
+        if contract.get("execution_policy") != requested.get("execution_policy"):
+            raise ValueError("Resume execution policy changed")
+        if contract.get("execution_scheduler_sha256") != requested["execution_scheduler_sha256"]:
+            raise ValueError("Resume execution scheduler changed; use the original source")
         verify_execution_snapshot(run, contract)
         if (run / "manifest.json").exists():
             load_run(run)
             return run
     else:
         contract = requested
+        for source, relative in ((scheduler_source, contract["execution_scheduler_snapshot"]),):
+            target = run / relative
+            require_external_output(target)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            raw = source.read_bytes()
+            if target.exists():
+                if target.read_bytes() != raw:
+                    raise ValueError("Frozen execution source changed before initialization")
+            else:
+                with target.open("xb") as output:
+                    output.write(raw)
+                    output.flush()
+                    os.fsync(output.fileno())
         save_json(run / "contract.json", contract, exclusive=True)
     records, physical = collect_calls(
         home,
@@ -1926,8 +2100,15 @@ def _probe_unlocked(
 
 
 def verify_execution_snapshot(run, contract):
-    relative = contract.get("pipeline_snapshot")
-    if relative:
+    for field, identity in (
+        ("pipeline_snapshot", "pipeline_sha256"),
+        ("execution_scheduler_snapshot", "execution_scheduler_sha256"),
+    ):
+        relative = contract.get(field)
+        if not relative:
+            if identity == "execution_scheduler_sha256" and contract.get(identity):
+                raise ValueError("Frozen execution scheduler snapshot is missing")
+            continue
         path = Path(relative)
         snapshot = run / path
         if (
@@ -1935,7 +2116,8 @@ def verify_execution_snapshot(run, contract):
             or ".." in path.parts
             or snapshot.is_symlink()
             or not snapshot.is_file()
-            or digest(snapshot.read_bytes()) != contract["pipeline_sha256"]
+            or unsafe_parents(snapshot)
+            or digest(snapshot.read_bytes()) != contract[identity]
         ):
             raise ValueError("Frozen execution source changed")
 

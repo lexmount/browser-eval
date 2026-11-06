@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import urlsplit, urlunsplit
 
+from harness.benchmark_execution import ExecutionPolicy, exclusive_policy
 from harness.environments.browser import configured_browser_images
 from harness.environments.webarena.runtime import SITE_PORTS
 from harness.record_io import canonical_json_sha256, file_sha256, read_json
@@ -271,8 +272,18 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
     execution = profile.get("execution") or {}
     if execution.get("environment_pool_count") != 1:
         raise ValueError("the fixed-port WebArena stack supports exactly one environment pool")
-    if execution.get("method_parallelism") != 1 or execution.get("task_parallelism") != 1:
+    if (type(execution.get("method_parallelism")) is not int
+        or type(execution.get("task_parallelism")) is not int
+        or execution["method_parallelism"] != 1 or execution["task_parallelism"] != 1):
         raise ValueError("one environment pool requires serial methods and serial tasks")
+    execution_policy = execution.get("resource_policy") or exclusive_policy(
+        "webarena-environment-pool",
+        "Fixed site ports and shared writable state require one complete "
+        "reset/replay/evaluation lifecycle",
+    )
+    policy = ExecutionPolicy.from_dict(execution_policy)
+    if policy.max_in_flight != 1 or any(value != 1 for value in policy.resources.values()):
+        raise ValueError("Shared WebArena environment requires an exclusive execution policy")
     if execution.get("teardown_between_methods") is not True:
         raise ValueError("formal replay requires method teardown")
     if "retry_failed_task" in execution and type(execution["retry_failed_task"]) is not bool:
@@ -341,6 +352,7 @@ def load_replay_plan(profile_path: str | Path, seed_manifest_path: str | Path) -
                 )
     return {
         "profile": profile,
+        "execution_policy": execution_policy,
         "retrieval_task_ids": sorted(retrieval_candidates),
         "retrieval_contracts": retrieval_contracts,
         "retrieval_protocols": {

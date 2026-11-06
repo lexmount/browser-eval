@@ -116,6 +116,8 @@ def test_plan_binds_all_tasks_and_serial_methods(tmp_path: Path) -> None:
     profile, seeds = _profile(tmp_path)
 
     plan = load_replay_plan(profile, seeds)
+    assert plan['execution_policy']['max_in_flight'] == 1
+    assert plan['execution_policy']['serial_reason']
 
     assert plan["task_ids"] == [1, 2]
     assert plan["engines"] == ["chromium", "moli"]

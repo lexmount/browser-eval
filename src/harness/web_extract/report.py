@@ -299,6 +299,9 @@ def cohort_source(source, selection, home, truth):
     contract = read_json(source / "contract.json")
     plan_path = Path(selection["plan"])
     plan = read_json(plan_path)
+    from harness.web_extract.certification import verify_execution_assessment
+
+    verify_execution_assessment(plan, read_json(source / "contract.json")["methods"][0])
     precall = read_json(source / "certification-precall.json")
     if (
         digest(plan_path.read_bytes()) != selection["plan_sha256"]
@@ -711,7 +714,9 @@ def price_table(methods, prices, lang, labels=None):
         unavailable = cost_unavailability(value, lang)
         if unavailable:
             terms += '<br><a data-cost-evidence="true" href="'
-            terms += esc(quote("../" + unavailable["evidence"]["path"], safe="/"), quote=True) + '">'
+            terms += (
+                esc(quote("../" + unavailable["evidence"]["path"], safe="/"), quote=True) + '">'
+            )
             terms += message("cost_disclosure_receipt", lang) + "</a>"
         records.append(
             [
@@ -856,6 +861,48 @@ def usage_table(methods, rows, lang, labels=None):
         message("method_physical_attempts_usage_receipts_reported_usage", lang),
         records,
         attrs='data-usage-table="true"',
+    )
+
+
+def execution_settings(sources, methods, labels, language):
+    """Expose the collected load without treating concurrency as a ranking."""
+    rows = []
+    for method in methods:
+        contract = sources.get(method, {})
+        purpose = contract.get("execution_policy", {}).get("purpose", "undeclared")
+        if purpose not in {"quality", "latency", "throughput", "undeclared"}:
+            raise ValueError("Unknown execution purpose in measured evidence")
+
+        def number(key, source=contract, participant=method):
+            value = source.get(key)
+            policy = source.get("execution_policy", {})
+            if key == "concurrency" and type(value) is int and policy:
+                groups = policy["resources"]
+                selected = list(groups) if len(source.get("methods", [])) == 1 else [participant]
+                value = min([value] + [groups[group]["capacity"] for group in selected])
+            return f"{value:g}" if type(value) in (int, float) and math.isfinite(value) else "—"
+
+        rows.append(
+            [
+                '<span data-execution-method="'
+                + esc(method)
+                + '">'
+                + esc(labels.get(method, method))
+                + "</span>",
+                number("concurrency"),
+                message("execution_" + purpose, language),
+                number("minimum_call_interval_seconds"),
+                number("post_call_cooldown_seconds"),
+            ]
+        )
+    return (
+        "<section data-execution-settings><h2>"
+        + message("execution_settings_title", language)
+        + "</h2><p>"
+        + message("execution_settings_note", language)
+        + "</p>"
+        + table(message("execution_settings_headings", language), rows)
+        + "</section>"
     )
 
 
@@ -2000,6 +2047,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         directory.mkdir()
         bodies = {p: model["pages"].get(p, {}).get("body", {}).get(lang, "") for p in PAGES}
         bodies["protocol"] += method_examples(output, model.get("method_examples"), lang)
+        configurations = {
+            method: binding["contract"]
+            for binding in bindings
+            for method in binding["contract"]["methods"]
+        }
         titles = {
             p: model["pages"]
             .get(p, {})
@@ -2011,6 +2063,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         methods = (
             list(cohort_plan["participants"]) if cohort else sorted({r["method"] for r in rows})
         )
+        bodies["protocol"] += execution_settings(configurations, methods, names, lang)
         summary = []
         for method in methods:
             subset = [r for r in rows if r["method"] == method]
@@ -2235,9 +2288,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 if row is None:
                     continue
                 case_rows.append(row)
-                cells = [
-                    f'<a href="case-{cid}.html#{method}">{esc(names.get(method, method))}</a>'
-                ]
+                cells = [f'<a href="case-{cid}.html#{method}">{esc(names.get(method, method))}</a>']
                 for field in fields:
                     result = row["field_results"][field]
                     cells.append(
@@ -2664,6 +2715,26 @@ def check_reader_contract(output, manifest, *, release=False):
     labels = manifest.get("method_labels", {})
     for language in manifest["languages"]:
         check_case_comparison_controls(output, methods, labels, language)
+        if manifest.get("mode") == "field-extraction-cohort":
+            sources = read_json(output / "public-evidence/sources.json")
+            configurations = {m: value["contract"] for m, value in sources.items()}
+        else:
+            configurations = {
+                m: value["contract"]
+                for value in manifest["source_runs"]
+                for m in value["contract"]["methods"]
+            }
+        actual = BeautifulSoup(
+            (output / language / "protocol.html").read_text(encoding="utf-8"), "html.parser"
+        )
+        expected = BeautifulSoup(
+            execution_settings(configurations, methods, labels, language), "html.parser"
+        )
+        sections = actual.select("[data-execution-settings]")
+        if len(sections) != 1 or [
+            row.get_text(" ", strip=True) for row in sections[0].select("tr")
+        ] != [row.get_text(" ", strip=True) for row in expected.select("tr")]:
+            raise ValueError("Report execution settings differ from measured contracts")
     check_method_examples(output, manifest)
     from harness.reporting.presentation import check_metric_guide
 
@@ -3643,6 +3714,9 @@ def build_record_cohort(output, content, *, home, language, profile):
         )
     bodies["protocol"] += method_examples(output, model.get("method_examples")) + retry_summary(
         stats, labels
+    )
+    bodies["protocol"] += execution_settings(
+        {m: value["contract"] for m, value in data["sources"].items()}, methods, labels, language
     )
     bodies["index"] = (
         "<section data-core-metrics>"

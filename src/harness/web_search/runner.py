@@ -1,4 +1,4 @@
-"""Serial matched-query collection with frozen inputs and append-only calls."""
+"""Matched-query collection with frozen inputs and bounded provider execution."""
 
 from harness.distribution import source_path
 
@@ -9,15 +9,18 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
+from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
 from harness.record_io import bytes_sha256, read_completed_records
 from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.web_search.adapters import adapter_for
 from harness.web_search.core import (
+    execution_resources,
     normalize_response,
     request_body,
     request_cost,
@@ -313,7 +316,7 @@ def reference_available(profile, url, receipt, raw):
 def collection_implementation():
     """Freeze collection/scoring dependencies, excluding report presentation code."""
     names = (
-        "harness/web_search/runner.py", "harness/web_search/core.py",
+        "harness/web_search/runner.py", "harness/web_search/core.py", "harness/benchmark_execution.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_fetch/config.py", "harness/env_file.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
         "harness/benchmarks/data.py", "harness/distribution.py",
@@ -457,7 +460,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
 def execution_schedule(profile):
     """Finish each provider's scope; reproduce explicit historical rotation only."""
     methods, cases, protocol = profile["methods"], profile["cases"], profile["protocol"]
-    if protocol.get("order", "complete provider batches") == "complete provider batches":
+    if protocol.get("order", "complete provider batches") in {"complete provider batches", "bounded provider batches"}:
         for method in methods:
             for round_id in range(protocol["rounds"]):
                 for case in cases:
@@ -535,7 +538,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 diagnostic=diagnostic,
                 resume_unit=(
                     "logical" if profile["protocol"].get("order", "complete provider batches")
-                    == "complete provider batches" else "case"
+                    in {"complete provider batches", "bounded provider batches", "bounded calls"} else "case"
                 ),
                 timer=(
                     "Client process wall time including curl startup, network, "
@@ -554,108 +557,154 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
     protocol = profile["protocol"]
     existing_ids = {r["id"] for r in rows}
     spent_calls = physical_call_counts(profile, output)
-    for round_id, case, method in execution_schedule(profile):
-        identity = f"{case['id']}-{method['id']}-r{round_id}"
-        if identity in existing_ids:
-            continue
-        payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
-        key = os.environ[method["key_env"]]
-        header = adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix + key
-        attempts = []
-        operation_start = time.perf_counter()
-        for attempt_index in range(1 + int(bool(protocol.get("retry")))):
-            budget = budgets.get(method["id"])
-            if budget is not None:
-                spent = spent_calls[method["id"]]
-                if spent >= budget:
-                    raise ValueError("Physical call budget exhausted for " + method["id"])
-            relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
-            reserve_attempt(output, relative, payload)
-            spent_calls[method["id"]] += 1
-            receipt, raw = http_call(
-                method["endpoint"], payload, header, protocol["client_timeout_s"]
+    stopped = threading.Event()
+    result_lock = threading.Lock()
+
+    def run_batch(selected_method, selected_task=None):
+        schedule = [selected_task] if selected_task is not None else execution_schedule(profile)
+        for round_id, case, method in schedule:
+            if stopped.is_set():
+                return
+            if selected_method is not None and method["id"] != selected_method:
+                continue
+            identity = f"{case['id']}-{method['id']}-r{round_id}"
+            if identity in existing_ids:
+                continue
+            payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
+            key = os.environ[method["key_env"]]
+            header = adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix + key
+            attempts = []
+            operation_start = time.perf_counter()
+            for attempt_index in range(1 + int(bool(protocol.get("retry")))):
+                with result_lock:
+                    budget = budgets.get(method["id"])
+                    if budget is not None:
+                        spent = spent_calls[method["id"]]
+                        if spent >= budget:
+                            raise ValueError("Physical call budget exhausted for " + method["id"])
+                    relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
+                    reserve_attempt(output, relative, payload)
+                    spent_calls[method["id"]] += 1
+                receipt, raw = http_call(
+                    method["endpoint"], payload, header, protocol["client_timeout_s"]
+                )
+                # Provider error text must never echo a credential into evidence.
+                if key.encode() in raw:
+                    raw = raw.replace(key.encode(), b"[REDACTED]")
+                receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
+                (output / "calls").mkdir(exist_ok=True)
+                (output / relative).write_bytes(raw)
+                results = []
+                decoded = {}
+                error = receipt["transport_error"]
+                try:
+                    decoded = json.loads(raw)
+                    if receipt["http_status"] == 200 and not receipt["transport_exit"]:
+                        results = normalize_response(decoded, method, protocol, payload)
+                    else:
+                        error = error or json.dumps(
+                            decoded.get("error", decoded), ensure_ascii=False
+                        )
+                except (ValueError, AttributeError, TypeError) as exc:
+                    error = error or str(exc)
+                cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
+                attempts.append({
+                    "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
+                    "http_status": receipt["http_status"],
+                    "transport_exit": receipt["transport_exit"],
+                    "elapsed_ms": receipt["elapsed_ms"],
+                    "cost": cost,
+                })
+                if (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
+                    break
+            total_elapsed_ms = max(
+                (time.perf_counter() - operation_start) * 1000,
+                sum(a["elapsed_ms"] for a in attempts),
             )
-            # Provider error text must never echo a credential into evidence.
-            if key.encode() in raw:
-                raw = raw.replace(key.encode(), b"[REDACTED]")
-            receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
-            (output / "calls").mkdir(exist_ok=True)
-            (output / relative).write_bytes(raw)
-            results = []
-            decoded = {}
-            error = receipt["transport_error"]
-            try:
-                decoded = json.loads(raw)
-                if receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                    results = normalize_response(decoded, method, protocol, payload)
-                else:
-                    error = error or json.dumps(
-                        decoded.get("error", decoded), ensure_ascii=False
-                    )
-            except (ValueError, AttributeError, TypeError) as exc:
-                error = error or str(exc)
-            cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
-            attempts.append({
-                "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
-                "http_status": receipt["http_status"],
-                "transport_exit": receipt["transport_exit"],
-                "elapsed_ms": receipt["elapsed_ms"],
-                "cost": cost,
-            })
-            if not error and receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                break
-        total_elapsed_ms = max(
-            (time.perf_counter() - operation_start) * 1000,
-            sum(a["elapsed_ms"] for a in attempts),
-        )
-        total_cost = (
-            sum(a["cost"] for a in attempts)
-            if all(a["cost"] is not None for a in attempts)
-            else None
-        )
-        receipt["final_call_elapsed_ms"] = receipt["elapsed_ms"]
-        receipt["elapsed_ms"] = total_elapsed_ms
-        row = dict(
-            id=identity,
-            case_id=case["id"],
-            method=method["id"],
-            round=round_id,
-            timestamp=datetime.now(UTC).isoformat(),
-            request=payload,
-            **receipt,
-            error=error,
-            results=results,
-            cost=total_cost,
-            currency=method["currency"],
-            evidence={"path": relative, "sha256": bytes_sha256(raw)},
-            attempts=attempts,
-            metrics=evaluate(case, results),
-            server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
-            usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
-            cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
-        )
-        rows.append(row)
-        with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-        print(
-            f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
-            f"{receipt['elapsed_ms']:.0f} ms",
-            flush=True,
-        )
-        if receipt["http_status"] in {401, 402}:
-            write_json(output / "interruption.json", {
-                "reason": "provider_account",
-                "result_id": identity,
-                "http_status": receipt["http_status"],
-                "completed_logical_results": len(rows),
-                "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
-                "stopped_at": datetime.now(UTC).isoformat(),
-            })
-            raise ValueError(
-                f"Provider account error HTTP {receipt['http_status']} at {identity}; "
-                "collection stopped with evidence preserved, not certified"
+            total_cost = (
+                sum(a["cost"] for a in attempts)
+                if all(a["cost"] is not None for a in attempts)
+                else None
             )
-        time.sleep(protocol["interval_s"])
+            receipt["final_call_elapsed_ms"] = receipt["elapsed_ms"]
+            receipt["elapsed_ms"] = total_elapsed_ms
+            row = dict(
+                id=identity,
+                case_id=case["id"],
+                method=method["id"],
+                round=round_id,
+                timestamp=datetime.now(UTC).isoformat(),
+                request=payload,
+                **receipt,
+                error=error,
+                results=results,
+                cost=total_cost,
+                currency=method["currency"],
+                evidence={"path": relative, "sha256": bytes_sha256(raw)},
+                attempts=attempts,
+                metrics=evaluate(case, results),
+                server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
+                usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
+                cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
+            )
+            with result_lock:
+                rows.append(row)
+                with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+            print(
+                f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
+                f"{receipt['elapsed_ms']:.0f} ms",
+                flush=True,
+            )
+            if receipt["http_status"] in {401, 402}:
+                stopped.set()
+                write_json(output / "interruption.json", {
+                    "reason": "provider_account",
+                    "result_id": identity,
+                    "http_status": receipt["http_status"],
+                    "completed_logical_results": len(rows),
+                    "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
+                    "stopped_at": datetime.now(UTC).isoformat(),
+                })
+                raise ValueError(
+                    f"Provider account error HTTP {receipt['http_status']} at {identity}; "
+                    "collection stopped with evidence preserved, not certified"
+                )
+            time.sleep(protocol["interval_s"])
+
+    def execute_batch(method_id):
+        try:
+            return run_batch(None, method_id) if isinstance(method_id, tuple) else run_batch(method_id)
+        except BaseException:
+            stopped.set()
+            raise
+
+    if profile.get("execution_policy"):
+        policy = ExecutionPolicy.from_dict(profile["execution_policy"])
+        resources = execution_resources(profile)
+
+        def commit_batch(job, value, error):
+            if error is not None:
+                raise error
+
+        if protocol.get("order") == "bounded calls":
+            jobs = [Job(f"{case['id']}-{method['id']}-r{round_id}", resources[method["id"]],
+                        (round_id, case, method)) for round_id, case, method in execution_schedule(profile)
+                    if f"{case['id']}-{method['id']}-r{round_id}" not in existing_ids]
+        else:
+            jobs = [Job(m["id"], resources[m["id"]], m["id"]) for m in profile["methods"]]
+        try:
+            run_jobs(jobs, execute_batch, commit_batch, policy, should_stop=stopped.is_set)
+        except BaseException:
+            interruption = output / "interruption.json"
+            if interruption.exists():
+                status = json.loads(interruption.read_text())
+                status.update(completed_logical_results=len(rows),
+                              results_sha256=bytes_sha256((output / "results.jsonl").read_bytes()))
+                write_json(interruption, status)
+            raise
+    else:
+        run_batch(None)
     after = capture_references(profile, output, "after")
     changed = reference_changes(profile, before, after)
     write_json(
