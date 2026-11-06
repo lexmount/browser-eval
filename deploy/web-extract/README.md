@@ -174,7 +174,7 @@ dependencies and mounts from `compose.yaml` in the selected workspace:
 
 1. Create the five private dependency components from the Compose definitions.
    Build `firecrawl-api` and `firecrawl-browser` with the same
-   `firecrawl.Dockerfile`; the browser build selects its pinned upstream image
+   `Dockerfile.firecrawl`; the browser build selects its pinned upstream image
    through the `UPSTREAM_IMAGE` build argument and sets
    `FIRECRAWL_SERVICE_KIND=browser` at runtime. Keep both identity ports (`3020`)
    private, alongside API `3002`, browser `3000`, Redis `6379`, RabbitMQ `5672`
