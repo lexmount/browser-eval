@@ -212,22 +212,13 @@ def test_help_documents_every_target_and_is_the_default():
 
 def test_make_ci_runs_each_ci_job():
     workflow = yaml.safe_load((ROOT / ".github/workflows/ci.yml").read_text(encoding="utf-8"))
-    ci = make("-n", "ci", "PYTEST_ARGS=-q").stdout
+    ci = make("-n", "--debug=b", "ci", "PYTEST_ARGS=-q").stdout
+    executed = set(re.findall(r"Must remake target [`']([a-z][a-z0-9-]*)'\.", ci))
     for job in ("checks", "package"):
         for step in workflow["jobs"][job]["steps"]:
             for target in re.findall(r"^make ([a-z-]+)", step.get("run", ""), re.M):
                 if target not in {"docs-check", "setup", "setup-test"}:
-                    prerequisites = {'ci'}
-                    pending = ['ci']
-                    while pending:
-                        current = pending.pop()
-                        rule = re.search(r'^' + re.escape(current) + r': ([^=\n]*?) ##', MAKEFILE, re.M)
-                        if rule:
-                            for dependency in rule[1].split():
-                                if dependency not in prerequisites:
-                                    prerequisites.add(dependency)
-                                    pending.append(dependency)
-                    assert f"{target}:" in MAKEFILE and target in prerequisites
+                    assert f"{target}:" in MAKEFILE and target in executed
     browser = workflow["jobs"]["browser"]["steps"][-1]["run"]
     assert re.search(r'^\s*make browser-check\b', browser, re.M)
     browser_recipe = make('-n', 'browser-check').stdout
