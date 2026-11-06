@@ -33,6 +33,11 @@ def isolated_request(value):
     return {"name": value["name"], "seen": SEEN, "pid": os.getpid()}
 
 
+def partial_result_sender(value, result_path, execute):
+    Path(result_path).write_text("[", encoding="utf-8")
+    time.sleep(60)
+
+
 @unittest.skipUnless(sys.platform == "linux", "Production forkserver is Linux-only")
 class PreloadedWorkerTests(unittest.TestCase):
     @classmethod
@@ -71,6 +76,39 @@ class PreloadedWorkerTests(unittest.TestCase):
                     setattr(loaded, field, before)
             finally:
                 self_hosted.local_runtime_identity.cache_clear()
+
+    def test_partial_result_delivery_keeps_the_request_deadline(self):
+        from harness.web_extract import self_hosted
+
+        started = time.monotonic()
+        with patch.object(self_hosted, "forked_request", partial_result_sender):
+            with self.assertRaises(subprocess.TimeoutExpired):
+                run_forkserver_worker({}, timeout=1, execute=isolated_request)
+        self.assertLess(time.monotonic() - started, 5)
+        result = run_forkserver_worker({"name": "after delivery timeout"}, execute=isolated_request)
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_failed_preload_import_cannot_report_ready(self):
+        with TemporaryDirectory() as directory:
+            Path(directory, "broken_preload.py").write_text(
+                "raise ImportError('synthetic missing SDK dependency')\n", encoding="utf-8"
+            )
+            code = (
+                "import multiprocessing; "
+                "from unittest.mock import patch; "
+                "from harness.web_extract import self_hosted as s; "
+                "c=multiprocessing.get_context('forkserver'); "
+                "c.set_forkserver_preload(['broken_preload']); "
+                "p=patch.object(s,'worker_context',return_value=c); p.start(); "
+                "r=s.run_forkserver_worker({},execute=s.preload_ready); "
+                "assert r.returncode != 0 and 'preload did not complete' in r.stderr, r"
+            )
+            result = subprocess.run(
+                [sys.executable, "-c", code], cwd=directory,
+                env={**os.environ, "PYTHONPATH": directory + os.pathsep + os.environ["PYTHONPATH"]},
+                capture_output=True, text=True, timeout=15,
+            )
+            self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_completed_requests_share_no_mutable_state(self):
         import json

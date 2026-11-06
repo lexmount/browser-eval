@@ -8,8 +8,8 @@ import pytest
 from harness.web_extract.analysis import completion_metrics, record_field_results
 
 
-@pytest.mark.parametrize("values,winners", [([1, 1], 0), ([0, 0], 0), ([0.4, 0.7], 1)])
-def test_completion_highlights_only_a_unique_extreme(values, winners):
+@pytest.mark.parametrize("values,winners", [([1, 1], 2), ([0, 0], 2), ([0.4, 0.7], 1)])
+def test_completion_highlights_every_best_value_under_the_track_contract(values, winners):
     from bs4 import BeautifulSoup
 
     from harness.reporting.presentation import check_presentation

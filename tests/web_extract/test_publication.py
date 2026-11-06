@@ -671,4 +671,46 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
         return 'ver_packaged'
 
     monkeypatch.setattr(publication, 'publish_staged_update', update)
-    assert publication.publish(source, target, work, visual, home=tmp_path)['versionId'] == 'ver_packaged'
+    result = publication.publish(source, target, work, visual, home=tmp_path)
+    assert result['versionId'] == 'ver_packaged'
+
+
+def test_standalone_package_preserves_previous_release_when_audit_changes_during_zip(
+    tmp_path, monkeypatch
+):
+    import zipfile
+
+    from harness.web_extract import report as owner
+
+    source, _, _, visual = setup_report(tmp_path)
+    audit, content = tmp_path / 'audit.json', tmp_path / 'content.json'
+    save_json(audit, {'result_count': 1})
+    save_json(content, {'audit': {'path': str(audit), 'sha256': digest(audit.read_bytes())}})
+    profile = tmp_path / 'profile.json'
+    save_json(profile, {'local_example': True, 'research_report': {'content': {
+        'path': str(content), 'sha256': digest(content.read_bytes())
+    }}})
+    manifest = read_json(source / 'report-manifest.json')
+    manifest.update(profile_sha256=digest(profile.read_bytes()), files={
+        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
+    })
+    save_json(source / 'report-manifest.json', manifest)
+    save_json(visual, {})
+    archive = tmp_path / 'report.zip'
+    receipt = archive.with_suffix('.receipt.json')
+    archive.write_bytes(b'previous release')
+    receipt.write_bytes(b'previous proof')
+    monkeypatch.setattr(owner, 'verify_completion_audit', lambda *a, **k: None)
+    monkeypatch.setattr(owner, 'check', lambda *a, **k: None)
+    original = zipfile.ZipFile.write
+
+    def change_after_validation(*args, **kwargs):
+        result = original(*args, **kwargs)
+        save_json(audit, {'result_count': 2})
+        return result
+
+    monkeypatch.setattr(zipfile.ZipFile, 'write', change_after_validation)
+    with pytest.raises(ValueError, match='inputs changed during packaging'):
+        owner.package(source, archive, visual_receipt=visual, profile=profile, home=tmp_path)
+    assert archive.read_bytes() == b'previous release'
+    assert receipt.read_bytes() == b'previous proof'

@@ -3757,7 +3757,7 @@ def package(output, archive, *, visual_receipt, profile, home=None):
             output,
             archive,
             archive.with_suffix(".receipt.json"),
-            inputs=(visual_receipt, profile),
+            inputs=(visual_receipt, *completion_authorities(profile, home)),
             validate=lambda: check(
                 output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
             ),
@@ -3995,15 +3995,11 @@ def record_comparison(headers, rows, metrics, *, sort_values=None):
         for row, value in zip(soup.select("tbody tr"), values, strict=True):
             cell = row.select("td")[column]
             cell.attrs.update({"data-metric": name, "data-metric-direction": direction})
-            if name.startswith("completion-"):
-                cell["data-highlight-ties"] = "none"
             if value is not None:
                 cell["data-sort"] = str(value)
                 observed.append((float(value), cell))
         if observed and direction != "neutral":
             extreme = (min if direction == "min" else max)(value for value, _ in observed)
-            if name.startswith("completion-") and sum(v == extreme for v, _ in observed) != 1:
-                continue
             for value, cell in observed:
                 if value == extreme:
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})

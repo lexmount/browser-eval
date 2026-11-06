@@ -9,6 +9,7 @@ import io
 import json
 import multiprocessing
 import os
+import re
 import resource
 import signal
 import subprocess
@@ -503,7 +504,7 @@ def worker_context():
     return context
 
 
-def forked_request(value, connection, execute):
+def forked_request(value, result_path, execute):
     """One isolated request, with imported code inherited from a quiet forkserver."""
     from types import SimpleNamespace
 
@@ -533,43 +534,48 @@ def forked_request(value, connection, execute):
         result = json.loads(retained) if retained else (
             1, "", "Native extraction process exited without a response"
         )
-    try:
-        with contextlib.suppress(BrokenPipeError):
-            connection.send(result)
-    finally:
-        connection.close()
+    Path(result_path).write_text(json.dumps(result), encoding="utf-8")
 
 
 def run_forkserver_worker(value, *, timeout=110, execute=worker):
     import psutil
 
     context = worker_context()
-    receive, send = context.Pipe(duplex=False)
-    process = context.Process(target=forked_request, args=(value, send, execute))
-    started = time.monotonic()
-    process.start()
-    send.close()
-    try:
-        if not receive.poll(max(0, timeout - (time.monotonic() - started))):
-            raise subprocess.TimeoutExpired("forkserver extraction", timeout)
+    with tempfile.TemporaryDirectory(prefix="extract-result-") as directory:
+        result_path = Path(directory) / "result.json"
+        process = context.Process(target=forked_request, args=(value, str(result_path), execute))
+        started = time.monotonic()
+        process.start()
         try:
-            code, stdout, stderr = receive.recv()
-        except EOFError:
-            code, stdout, stderr = 1, "", "Native extraction process exited without a response"
-        return subprocess.CompletedProcess("forkserver extraction", code, stdout, stderr)
-    finally:
-        receive.close()
-        process.join(timeout=0.1)
-        if process.is_alive():
-            with contextlib.suppress(psutil.NoSuchProcess):
-                terminate_children(psutil.Process(process.pid))
-            with contextlib.suppress(ProcessLookupError):
-                process.kill()
-        process.join(timeout=3)
-        process.close()
+            # Waiting for process exit covers the complete result write. A pipe
+            # becoming readable proves only its header arrived, not its payload.
+            process.join(timeout=max(0, timeout - (time.monotonic() - started)))
+            if process.is_alive():
+                raise subprocess.TimeoutExpired("forkserver extraction", timeout)
+            if result_path.is_file():
+                code, stdout, stderr = json.loads(result_path.read_text(encoding="utf-8"))
+            else:
+                code, stdout, stderr = 1, "", "Native extraction process exited without a response"
+            if time.monotonic() - started > timeout:
+                raise subprocess.TimeoutExpired("forkserver extraction", timeout)
+            return subprocess.CompletedProcess("forkserver extraction", code, stdout, stderr)
+        finally:
+            if process.is_alive():
+                with contextlib.suppress(psutil.NoSuchProcess):
+                    terminate_children(psutil.Process(process.pid))
+                with contextlib.suppress(ProcessLookupError):
+                    process.kill()
+            process.join(timeout=3)
+            process.close()
 
 
 def preload_ready(_value):
+    loaded = sys.modules.get("harness.web_extract.worker_preload")
+    if loaded is None or any(
+        not re.fullmatch(r"[0-9a-f]{64}", str(getattr(loaded, name, "")))
+        for name in ("PRELOAD_SHA256", "WORKER_SHA256", "ENVIRONMENT_SHA256")
+    ):
+        raise RuntimeError("Native SDK preload did not complete")
     return {"ready": True}
 
 
