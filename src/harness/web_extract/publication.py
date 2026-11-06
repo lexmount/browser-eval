@@ -94,7 +94,7 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
                 raise ValueError("Retained publication ZIP inventory differs from checked source")
         else:
             proof = package(
-                source, archive, visual_receipt=visual_receipt, profile=next_profile, home=home
+                source, archive, visual_receipt=visual_receipt, profile=Path(next_profile), home=home
             )
         print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 

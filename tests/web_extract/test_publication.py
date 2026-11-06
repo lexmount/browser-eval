@@ -646,3 +646,30 @@ def test_approved_profile_cannot_change_during_publication(tmp_path, monkeypatch
         publication.publish(source, target, work, visual, home=tmp_path)
     assert read_json(target)["expected_version"] == "ver_before"
     assert read_json(target)["approved_profile_successor"]["to_sha256"] == expected
+
+
+def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
+    """Publishing resolves a JSON path and packages it through the shared boundary."""
+    from harness.web_extract import report as report_owner
+
+    source, target, work, visual = setup_report(tmp_path)
+    manifest = read_json(source / 'report-manifest.json')
+    manifest['files'] = {
+        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
+    }
+    save_json(source / 'report-manifest.json', manifest)
+    save_json(visual, {})
+    monkeypatch.setattr(publication, 'verify_completion_audit', lambda *a, **k: None)
+    monkeypatch.setattr(report_owner, 'verify_completion_audit', lambda *a, **k: None)
+    monkeypatch.setattr(report_owner, 'check', lambda *a, **k: None)
+
+    def update(staged, *, transport):
+        assert set(publication.archive_inventory(staged.archive)) == {
+            'report-manifest.json', 'browser-eval-version.json'
+        }
+        staged.guard()
+        staged.bind('ver_packaged')
+        return 'ver_packaged'
+
+    monkeypatch.setattr(publication, 'publish_staged_update', update)
+    assert publication.publish(source, target, work, visual, home=tmp_path)['versionId'] == 'ver_packaged'
