@@ -5,7 +5,7 @@ Evaluate complete extraction APIs on the 140 archived product pages in
 Frozen inputs are distributed through
 [Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction).
 The shared [data lock](../../src/harness/benchmarks/data-lock.json) selects its full
-commit and archive/file hashes. The upstream commit, original scorer and extruct baseline are pinned in
+commit and archive/file hashes. The upstream commit and original scorer are pinned in
 [`zyte-product-extraction.json`](../../src/harness/benchmarks/cards/zyte-product-extraction.json).
 The dataset contains all original compressed HTML and labels, separate source-qualified
 annotations and their correction ledger, and the unchanged upstream evaluator.
@@ -70,7 +70,6 @@ Historical predictions are separate from new measurements.
 | `zyte-product` | Product extraction, `userHtml` | Uploaded HTML with original URL as context |
 | `diffbot-product` | Product API POST | Raw uploaded HTML with original URL as context |
 | `browserbase-json` | Native JSON extraction | Frozen HTTPS URL and JSON Schema; built-in extraction |
-| `extruct` | Upstream local baseline | Archived HTML |
 
 The hosted API cohort uses each provider's built-in extraction. Browserbase JSON
 uses only the Browserbase API key. The separately registered hosted Stagehand route
@@ -169,9 +168,7 @@ uv run --frozen python scripts/run_certified_benchmark.py --track web-extract \
 uv run --frozen python -m harness.web_extract.cli score /absolute/data/runs/firecrawl
 ```
 
-The recommended comparison includes complete native APIs only. Upstream extruct
-code and earlier baseline predictions remain in the original distribution for
-reproduction; the baseline is excluded from new comparisons.
+The comparison includes complete native extraction APIs.
 
 The candidate plan fixes the sample's configuration. `preflight` selects frozen
 cases across domains, uses the same caller and scheduler as the full run, and

@@ -110,7 +110,7 @@ def create_plan(
     require_external_output(output)
     registry = available_methods()
     if not methods or len(set(methods)) != len(methods) or any(m not in registry for m in methods):
-        raise ValueError("Select distinct complete extraction interfaces or the extruct baseline")
+        raise ValueError("Select distinct complete extraction interfaces")
     if benchmark_config(home)["adapter"] is None and any(
         registry[method].get("requires_custom_schema") for method in methods
     ):

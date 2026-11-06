@@ -4,9 +4,10 @@ import json
 from decimal import InvalidOperation
 from functools import lru_cache
 
-from harness.web_extract.pipeline import PROFILE, digest, official_scorer
+from harness.web_extract.pipeline import PROFILE, SCHEMA, digest, official_scorer
 
-FIELDS = ("price", "sku", "availability")
+FIELDS = tuple(SCHEMA["properties"])
+
 REFERENCE_CONTROLS = (
     ("locale-thousands-price", "price", ["24990"], "24990", "24.99"),
     ("current-price-excludes-list-price", "price", ["99", "990"], "990.00", "1390"),
@@ -369,13 +370,14 @@ def completion_metrics(rows, fields_by_case, *, records):
                 return True
             if isinstance(value, (bool, dict, list)):
                 return False
-            if field == "price":
+            definition = SCHEMA["properties"].get(field, {})
+            if "number" in definition.get("type", []):
                 try:
                     return Decimal(str(value)).is_finite()
                 except (InvalidOperation, ValueError):
                     return False
-            if field == "availability":
-                return value in ("InStock", "OutOfStock")
+            if "enum" in definition:
+                return value in definition["enum"]
             return isinstance(value, (str, int, float))
 
         correct = {

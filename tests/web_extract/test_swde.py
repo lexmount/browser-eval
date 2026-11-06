@@ -1212,7 +1212,7 @@ def test_changed_reference_stops_before_any_provider_call(inputs, tmp_path, monk
 
 
 @pytest.mark.parametrize(
-    "method", ["zyte-product", "diffbot-product", "scrapfly-product", "extruct"]
+    "method", ["zyte-product", "diffbot-product", "scrapfly-product"]
 )
 def test_product_only_interfaces_cannot_claim_swde_schema_support(inputs, tmp_path, method):
     home, _ = inputs
@@ -1518,7 +1518,7 @@ def test_schema_only_interfaces_are_rejected_before_any_dispatch(tmp_path, monke
 
 
 @pytest.mark.parametrize(
-    "method", ["extruct", "zyte-product", "diffbot-product", "scrapfly-product"]
+    "method", ["zyte-product", "diffbot-product", "scrapfly-product"]
 )
 def test_product_only_probe_rejects_record_schema_before_dispatch(
     inputs, tmp_path, monkeypatch, method

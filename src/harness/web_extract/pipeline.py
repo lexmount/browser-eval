@@ -13,7 +13,6 @@ import math
 import multiprocessing
 import os
 import re
-import runpy
 import signal
 import tempfile
 import time
@@ -370,27 +369,6 @@ def available_methods():
     return METHODS
 
 
-def baseline_extractor(home: Path):
-    """Execute the hash-pinned upstream baseline, without its CLI entry point."""
-    pin = read_json(PROFILE)["baseline_extractor"]
-    source = home / pin["path"]
-    bundled = home / "dataset" / pin["path"]
-    if not source.exists() and bundled.exists():
-        source = bundled
-    if not source.exists():
-        require_external_output(source)
-        response = request(pin["url"], timeout=60)
-        if response.status != 200 or digest(response.body) != pin["sha256"]:
-            raise ValueError("Baseline source does not match the pinned upstream extractor")
-        source.parent.mkdir(parents=True, exist_ok=True)
-        source.write_bytes(response.body)
-    if (
-        source.is_symlink()
-        or unsafe_parents(source)
-        or digest(source.read_bytes()) != pin["sha256"]
-    ):
-        raise ValueError("Pinned baseline source changed")
-    return runpy.run_path(str(source), run_name="pinned_extruct_baseline")["extract"]
 
 
 def redact(value):
@@ -509,22 +487,6 @@ def validate_native_options(method, native_options):
     return native_options
 
 
-def _extruct_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
-    extract = baseline_extractor(home or data_home())
-    started = time.monotonic()
-    result = extract(html)
-    return {
-        "state": "response_received",
-        "http_status": 200,
-        "elapsed_seconds": time.monotonic() - started,
-        "response": {"result": result},
-        "request": {
-            "input": "html",
-            "endpoint": "local:extruct",
-            "html_sha256": digest(html.encode()),
-            "source_url": source_url,
-        },
-    }
 
 
 def _cloudflare_request(
@@ -981,17 +943,6 @@ METHODS = {
         },
         "adapter": _url_json_request,
     },
-    "extruct": {
-        "retired": True,
-        **{
-            "keys": [],
-            "input": "html",
-            "minimum_call_interval_seconds": 0,
-            "post_call_cooldown_seconds": 0,
-            "options": [],
-        },
-        "adapter": _extruct_request,
-    },
     "browserbase-json": {
         "custom_schema": True,
         **{
@@ -1145,20 +1096,6 @@ def normalize(method: str, payload: dict, *, schema=None, preserve_native_types=
     """Map exposed fields only. Never infer answers from labels or source URLs."""
     if not isinstance(payload, dict) or payload.get("success") is False:
         return None
-    if method == "extruct":
-        item = payload.get("result")
-        if not isinstance(item, dict):
-            return None
-        result = {
-            f: item[f] if preserve_native_types else str(item[f])
-            for f in FIELDS
-            if item.get(f) is not None
-        }
-        stock = [s for s in ("InStock", "OutOfStock") if item.get(s) == s]
-        if not result.get("availability") and len(stock) == 1:
-            result["availability"] = stock[0]
-        return result
-
     def mapping(value):
         return value if isinstance(value, dict) else {}
 
@@ -1506,7 +1443,7 @@ def _execute_collection_call(payload):
                 **(
                     {"home": home, "native_options": native_options, "timeout": 120}
                     if repair or native_options
-                    else ({"home": home} if method == "extruct" else {})
+                    else {}
                 ),
             )
         )
@@ -2000,9 +1937,6 @@ def _probe_unlocked(
         "fixture_suffix": fixture_suffix,
         "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
         "pipeline_sha256": digest(Path(__file__).read_bytes()),
-        "baseline_extractor": read_json(PROFILE).get("baseline_extractor")
-        if "extruct" in methods
-        else None,
         "schema": read_json(home / "dataset/schemas.json")
         if benchmark_config(home)["adapter"] is not None
         else SCHEMA,
@@ -2056,7 +1990,6 @@ def _probe_unlocked(
             "fixture_suffix",
             "dataset_manifest_sha256",
             "pipeline_sha256",
-            "baseline_extractor",
         ):
             if contract[field] != requested[field]:
                 raise ValueError("Resume contract changed: " + field)
@@ -2098,11 +2031,6 @@ def _probe_unlocked(
         native_options=native_options,
     )
     validate_dataset(home)
-    if (
-        "extruct" in methods
-        and read_json(PROFILE).get("baseline_extractor") != contract["baseline_extractor"]
-    ):
-        raise ValueError("Baseline extractor binding changed during execution")
     receipt = verify_remote()
     after = run / "remote-fixture-after.json"
     if after.exists():
@@ -2253,9 +2181,6 @@ PROJECTION_REGRESSIONS = (
     "scrapfly-available-is-in-stock",
     "scrapfly-sold-out-is-out-of-stock",
     "scrapfly-unknown-stock-stays-unknown",
-    "extruct-canonical-stock-indicator",
-    "extruct-conflicting-indicators-stay-unknown",
-    "extruct-explicit-stock-takes-precedence",
 )
 
 
@@ -2270,16 +2195,6 @@ def check_projection_controls():
             raise ValueError("Native stock projection regression failed")
         if native == "preorder" and any(f in actual for f in ("InStock", "OutOfStock")):
             raise ValueError("Unknown availability was promoted to known stock")
-    for native, expected in (
-        ({"InStock": "InStock"}, "InStock"),
-        ({"OutOfStock": "OutOfStock"}, "OutOfStock"),
-        ({"InStock": "InStock", "OutOfStock": "OutOfStock"}, None),
-        ({"availability": "OutOfStock", "InStock": "InStock"}, "OutOfStock"),
-        ({"InStock": True}, None),
-        ({}, None),
-    ):
-        if normalize("extruct", {"result": native}).get("availability") != expected:
-            raise ValueError("Native baseline stock indicator regression failed")
 
 
 RECORD_PROJECTION_REGRESSIONS = (
@@ -2377,9 +2292,6 @@ def score_run(
                     "Record reprojection used product-only normalization; preserve the case's "
                     "native fields and invalid value types under its own task schema"
                     if adapter
-                    else "The upstream baseline emits a canonical stock indicator but can omit "
-                    "availability; project only an unambiguous indicator"
-                    if method == "extruct"
                     else "Native sold_out stock label was not mapped to OutOfStock"
                 )
                 for method in contract["methods"]

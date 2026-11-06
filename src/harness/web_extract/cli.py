@@ -157,6 +157,8 @@ def main(argv=None):
     p.add_argument("--additional-adjudication", type=Path, action="append", default=[])
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
+    if args.command == "check" and args.release and args.profile is None:
+        parser.error("check --release requires --profile")
     formal = args.command in ("package", "publish") or (args.command == "check" and args.release)
     if formal and args.home is None:
         parser.error("Formal check, package and publish require an explicit --home")

@@ -8,6 +8,43 @@ import pytest
 from harness.web_extract.analysis import completion_metrics, record_field_results
 
 
+@pytest.mark.parametrize("values,winners", [([1, 1], 0), ([0, 0], 0), ([0.4, 0.7], 1)])
+def test_completion_highlights_only_a_unique_extreme(values, winners):
+    from bs4 import BeautifulSoup
+
+    from harness.reporting.presentation import check_presentation
+    from harness.web_extract.report import record_comparison
+
+    html = record_comparison(
+        ["Method", "Accuracy"], [["A", str(values[0])], ["B", str(values[1])]],
+        {1: ("completion-page_exact", "max", values)},
+    )
+    soup = BeautifulSoup(html, "html.parser")
+    assert len(soup.select(".comparison-winner")) == winners
+    check_presentation(soup)
+    if winners:
+        soup.select_one(".comparison-winner").unwrap()
+    else:
+        cell = soup.select_one('td[data-metric="completion-page_exact"]')
+        span = soup.new_tag("span", attrs={"class": "comparison-winner"})
+        span.string = cell.get_text()
+        cell.clear()
+        cell.append(span)
+    with pytest.raises(ValueError, match="extremum"):
+        check_presentation(soup)
+
+
+def test_release_cli_rejects_missing_profile_before_reading_report():
+    from unittest.mock import patch
+
+    from harness.web_extract.cli import main
+
+    with patch("harness.web_extract.report.check") as verify, pytest.raises(SystemExit) as stopped:
+        main(["check", "/absent-report", "--release"])
+    assert stopped.value.code == 2
+    verify.assert_not_called()
+
+
 def product(actual, *, status=200):
     from harness.web_extract.pipeline import normalize
 

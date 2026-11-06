@@ -8,6 +8,8 @@ import re
 import statistics
 import struct
 from collections import Counter
+from contextlib import contextmanager
+from contextvars import ContextVar
 from html import escape as esc
 from pathlib import Path
 from urllib.parse import quote, unquote, urljoin, urlsplit
@@ -19,6 +21,7 @@ from harness.env_file import local_setting
 from harness.record_io import canonical_json_sha256
 from harness.report_languages import resolve_report_language
 from harness.reporting.links import LinkIndex
+from harness.reporting.publication import PublicationSnapshot
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
@@ -32,6 +35,7 @@ from harness.web_extract.messages import message, messages_sha256, validate_cata
 from harness.web_extract.pipeline import (
     FIELDS,
     PROFILE,
+    SCHEMA,
     available_methods,
     digest,
     execution_identity,
@@ -640,8 +644,74 @@ def verify_execution_projection(original, published):
         raise ValueError("Completion audit native attempt history changed")
 
 
+def completion_authorities(profile, home):
+    """Watch original evidence while the shared package validator verifies it once."""
+    if not profile or home is None:
+        raise ValueError("Publication requires its frozen profile and benchmark home")
+    profile, home = Path(profile), Path(home)
+    instance = read_json(profile)
+    paths = [profile]
+    if instance.get("dataset"):
+        paths.append(home / "dataset")
+    binding = instance.get("research_report", {}).get("content", {})
+    if not binding.get("path"):
+        return paths
+    content = profile.parent / binding["path"]
+    paths.append(content)
+    model = read_json(content)
+    if model.get("audit"):
+        paths.append(content.parent / model["audit"]["path"])
+
+    def bound_paths(value):
+        if isinstance(value, dict):
+            if isinstance(value.get("path"), str):
+                paths.append(content.parent / value["path"])
+            for nested in value.values():
+                bound_paths(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                bound_paths(nested)
+
+    for selection in model.get("evidence_runs", []):
+        paths.append(resolve_run_path(home, selection["run"]))
+        bound_paths(selection)
+    return tuple(dict.fromkeys(paths))
+
+
+_COMPLETION_AUDIT_SCOPE = ContextVar("web_extract_completion_audit", default=None)
+
+
+@contextmanager
+def completion_audit_scope(source, profile, home, guard=None):
+    """Reuse a complete audit only while every original and public input is frozen."""
+    if profile is None or home is None:
+        verify_completion_audit(source, profile, home=home)
+    key = tuple(Path(p).resolve() for p in (source, profile, home))
+    cached = _COMPLETION_AUDIT_SCOPE.get()
+    if cached and cached[0] == key:
+        cached[1].check()
+        yield
+        return
+    if guard is None:
+        guard = PublicationSnapshot.for_inputs((source, *completion_authorities(profile, home)))
+    guard.check()
+    verify_completion_audit(source, profile, home=home)
+    guard.check()
+    token = _COMPLETION_AUDIT_SCOPE.set((key, guard))
+    try:
+        yield
+    finally:
+        _COMPLETION_AUDIT_SCOPE.reset(token)
+
+
 def verify_completion_audit(source, profile, *, home=None):
     """Verify the externally selected profile and reproduce its original audit view."""
+    cached = _COMPLETION_AUDIT_SCOPE.get()
+    if cached and profile is not None and home is not None:
+        key = tuple(Path(p).resolve() for p in (source, profile, home))
+        if key == cached[0]:
+            cached[1].check()
+            return
     source = Path(source)
     manifest = read_json(source / "report-manifest.json")
     if not profile:
@@ -751,7 +821,7 @@ def completion_bundle(methods, rows, *, records, complete_methods, excluded_fiel
             fields = row["field_results"]
             if not records:
                 fields = row.get("review", {}).get("audited_fields", fields)
-                fields = {f: fields[f] for f in ("price", "sku", "availability")}
+                fields = {f: fields[f] for f in SCHEMA["properties"]}
             judgments[row["case_id"]] = {
                 f: {**v, "status": "unavailable"}
                 if f in excluded_fields.get(row["case_id"], [])
@@ -2377,6 +2447,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     history = read_json(home / "historical-reproduction.json")
     if history["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
         raise ValueError("Reproduction belongs to different inputs")
+    instance = read_json(profile)
+    historical_methods = instance.get(
+        "historical_f1",
+        history["scores"] if instance.get("local_example") else read_json(PROFILE)["historical_f1"],
+    )
+    history = {
+        **history,
+        "scores": {m: scores for m, scores in history["scores"].items() if m in historical_methods},
+    }
     selections = (
         model.get("evidence_runs", []) if run is None else [{"run": str(run), "methods": None}]
     )
@@ -3281,12 +3360,12 @@ def check_reader_contract(output, manifest, *, release=False):
 def check(output: Path, *, release=False, visual_receipt=None, profile=None, home=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
-    if profile is not None:
-        verify_completion_audit(output, profile, home=home)
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(
             output, release=release, visual_receipt=visual_receipt, profile=profile, home=home
         )
+    if profile is not None:
+        verify_completion_audit(output, profile, home=home)
     link_index = LinkIndex(errors="strict")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -3607,7 +3686,8 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
             raise ValueError("Missing English notice or stale English pages")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
-        verify_completion_audit(output, profile, home=home)
+        if profile is None:
+            verify_completion_audit(output, profile, home=home)
 
     return {
         "pages_per_language": len(zh),
@@ -3653,25 +3733,25 @@ def package(output, archive, *, visual_receipt, profile, home=None):
     from harness.reporting.publication import package_archive
 
     require_external_output(archive)
-    verify_completion_audit(output, profile, home=home)
-    manifest = read_json(output / "report-manifest.json")
-    names = [*sorted(manifest["files"]), "report-manifest.json"]
-    return package_archive(
-        output,
-        archive,
-        archive.with_suffix(".receipt.json"),
-        inputs=(visual_receipt, profile),
-        validate=lambda: check(
-            output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
-        ),
-        attest=lambda path: {
-            "files": len(names),
-            "archive_bytes": path.stat().st_size,
-            "expanded_bytes": sum((output / name).stat().st_size for name in names),
-            "archive_sha256": digest(path.read_bytes()),
-            "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
-        },
-    )
+    with completion_audit_scope(output, profile, home):
+        manifest = read_json(output / "report-manifest.json")
+        names = [*sorted(manifest["files"]), "report-manifest.json"]
+        return package_archive(
+            output,
+            archive,
+            archive.with_suffix(".receipt.json"),
+            inputs=(visual_receipt, profile),
+            validate=lambda: check(
+                output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
+            ),
+            attest=lambda path: {
+                "files": len(names),
+                "archive_bytes": path.stat().st_size,
+                "expanded_bytes": sum((output / name).stat().st_size for name in names),
+                "archive_sha256": digest(path.read_bytes()),
+                "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
+            },
+        )
 
 
 def record_cohort_inputs(home, model, *, profile):
@@ -3898,11 +3978,15 @@ def record_comparison(headers, rows, metrics, *, sort_values=None):
         for row, value in zip(soup.select("tbody tr"), values, strict=True):
             cell = row.select("td")[column]
             cell.attrs.update({"data-metric": name, "data-metric-direction": direction})
+            if name.startswith("completion-"):
+                cell["data-highlight-ties"] = "none"
             if value is not None:
                 cell["data-sort"] = str(value)
                 observed.append((float(value), cell))
         if observed and direction != "neutral":
             extreme = (min if direction == "min" else max)(value for value, _ in observed)
+            if name.startswith("completion-") and sum(v == extreme for v, _ in observed) != 1:
+                continue
             for value, cell in observed:
                 if value == extreme:
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})
@@ -4822,6 +4906,8 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
     output = open_report(output)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
+    if profile is not None:
+        verify_completion_audit(output, profile, home=home)
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -5193,7 +5279,8 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
         raise ValueError("Formal record release requires every comparison participant complete")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
-        verify_completion_audit(output, profile, home=home)
+        if profile is None:
+            verify_completion_audit(output, profile, home=home)
         observations = read_json(visual_receipt)["observations"]
         observed = {
             (item["route_class"], item["viewport"], item.get("theme")) for item in observations

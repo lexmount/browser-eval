@@ -11,6 +11,25 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.report import build, check, cohort_metrics
 
 
+def test_historical_comparison_uses_only_profile_selected_methods(tmp_path):
+    from copy import deepcopy
+
+    home = create(tmp_path / "example")
+    path = home / "historical-reproduction.json"
+    history = read_json(path)
+    profile = read_json(home / "profile.json")
+    profile["historical_f1"] = {method: {} for method in history["scores"]}
+    save_json(home / "profile.json", profile)
+    history["scores"]["retired-local"] = deepcopy(next(iter(history["scores"].values())))
+    for values in history["scores"]["retired-local"].values():
+        values["f1"] = 1.0
+    save_json(path, history)
+    output = tmp_path / "selected"
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    assert "retired-local" not in soup.select_one("[data-history-table]").get_text()
+
+
 def test_free_software_does_not_turn_metered_model_calls_into_zero_cost():
     from harness.web_extract.report import price_quote, price_remarks, price_table
 
@@ -1161,10 +1180,10 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
     from harness.web_extract.report import audit_explanation
 
     fields = ("price", "sku", "availability", "OutOfStock")
-    scores = {"extruct": {f: {"f1": 0, "cases": 1} for f in fields}}
+    scores = {"firecrawl-json": {f: {"f1": 0, "cases": 1} for f in fields}}
     rows = [
         {
-            "method": "extruct",
+            "method": "firecrawl-json",
             "case_id": "one",
             "compatibility": "no_structured_output",
             "native_error": "EXACT TRANSPORT ERROR",
@@ -1181,7 +1200,7 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
         "audited_scores": scores,
         "excluded_fields": {"one": ["price"]},
     }
-    review, interpretation = audit_explanation(audit, rows, ["extruct"], {}, lang)
+    review, interpretation = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang)
     assert "EXACT TRANSPORT ERROR" in interpretation
     assert "Fields were returned" not in interpretation
     assert "these_differences_concern" not in interpretation
@@ -1191,7 +1210,7 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
         compatibility="structured_output", native_error="", diagnosis={"cause": "STALE TLS FAILURE"}
     )
     rows[0]["field_results"]["price"].update(expected=["12"], actual="13", status="wrong")
-    _, current = audit_explanation(audit, rows, ["extruct"], {}, lang)
+    _, current = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang)
     assert "STALE TLS FAILURE" not in current
     specimen = BeautifulSoup(current, "html.parser").select_one("[data-interpretation-example]")
     assert specimen is not None

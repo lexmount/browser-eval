@@ -1042,7 +1042,7 @@ def test_invalid_partial_history_stops_before_any_resumed_provider_call(tmp_path
 
 
 @pytest.mark.parametrize(
-    "entry", ["prepare", "reproduce", "report", "example", "baseline", "score", "materialize"]
+    "entry", ["prepare", "reproduce", "report", "example", "score", "materialize"]
 )
 def test_generated_outputs_are_rejected_inside_source_before_any_write(tmp_path, entry):
     from harness.web_extract import example, pipeline, report
@@ -1063,8 +1063,6 @@ def test_generated_outputs_are_rejected_inside_source_before_any_write(tmp_path,
             report.build(output, tmp_path / "absent.json", home=tmp_path)
         elif entry == "example":
             example.create(output)
-        elif entry == "baseline":
-            pipeline.baseline_extractor(output)
         elif entry == "materialize":
             from harness.web_extract.dataset import materialize
 

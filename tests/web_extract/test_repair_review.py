@@ -363,14 +363,6 @@ def test_field_diagnostics_preserve_missing_false_positive_and_decimal_equivalen
     assert result["price"]["status"] == "unexpected"
 
 
-def test_baseline_stock_indicator_projection_preserves_unknown_and_explicit_values():
-    from harness.web_extract.pipeline import check_projection_controls, normalize
-
-    check_projection_controls()
-    assert normalize("extruct", {"result": {"InStock": "InStock"}})["availability"] == "InStock"
-    ambiguous = {"InStock": "InStock", "OutOfStock": "OutOfStock"}
-    assert "availability" not in normalize("extruct", {"result": ambiguous})
-    assert "availability" not in normalize("extruct", {"result": {"InStock": True}})
 
 
 def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_path):
@@ -988,18 +980,6 @@ def test_repair_does_not_dispatch_a_page_changed_before_its_turn(tmp_path):
     assert not (target / "certificate.json").exists()
 
 
-def test_local_baseline_repair_uses_selected_dataset_home(tmp_path):
-    home, _, profile, _ = parent_inputs(tmp_path, method="extruct")
-    with (
-        patch("harness.web_extract.repair.validate_dataset"),
-        patch("harness.web_extract.repair.load_runtime_env"),
-        patch(
-            "harness.web_extract.pipeline.provider_call",
-            return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
-        ) as call,
-    ):
-        run(home, profile, "extruct", tmp_path / "local-repair")
-    assert call.call_args.kwargs["home"] == home
 
 
 @pytest.mark.parametrize(

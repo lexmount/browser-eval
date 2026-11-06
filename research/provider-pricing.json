@@ -77,12 +77,6 @@
       "billing_unit": "custom-domain non-JS scrape plus AI parsing", "rates_per_1000": {"welcome_and_starter": 4, "basic": 3.9, "flexible": 3.8, "enterprise_from": 3.75},
       "commitment": "USD 5 welcome credit; Starter USD 30/month, Basic USD 100/month, Flexible USD 500/month, Enterprise from USD 2,500/month. AI parsing costs USD 3/1,000 parsed pages, added to custom-domain non-JS scraping at USD 1/0.90/0.80/0.75 per 1,000 results. The advertised USD 0.50 scrape starting price is not this generic JSON configuration.",
       "sources": ["https://oxylabs.io/pricing", "https://developers.oxylabs.io/products/web-api/scrape/ai-parsing"]
-    },
-    {
-      "id": "extruct", "verified_at": "2026-11-03", "currency": "USD",
-      "billing_unit": "local extraction", "rates_per_1000": {"external_api_fee": 0},
-      "commitment": "No vendor API fee. Local CPU, hosting, maintenance and HTML acquisition are excluded; this does not mean zero total cost.",
-      "sources": ["https://github.com/scrapinghub/extruct"]
     }
   ],
   "search_products": [

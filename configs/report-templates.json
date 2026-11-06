@@ -91,7 +91,7 @@
         "synthetic",
         "field-extraction-cohort"
       ],
-      "release_check": "uv run --frozen python -m harness.web_extract.cli check /absolute/report --release --visual-receipt /absolute/visual-receipt.json",
+      "release_check": "uv run --frozen python -m harness.web_extract.cli --home /absolute/data check /absolute/report --release --profile /absolute/report-profile.json --visual-receipt /absolute/visual-receipt.json",
       "package": "uv run --frozen python -m harness.web_extract.cli package /absolute/report --output /absolute/report.zip --visual-receipt /absolute/visual-receipt.json",
       "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json",
       "cohort_example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-cohort-example --mode full-cohort-progress",

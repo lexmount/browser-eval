@@ -177,7 +177,7 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
     source = tmp_path / "binding.json"
     source.write_text(json.dumps(value), encoding="utf-8")
     methods = [
-        name for name in METHODS if name not in {"extruct", "firecrawl-parse-json", "zyte-custom"}
+        name for name in METHODS if name not in {"firecrawl-parse-json", "zyte-custom"}
     ]
     options = {
         method: {
@@ -218,17 +218,6 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
         )
 
 
-@pytest.mark.parametrize("method", ["extruct"])
-def test_retired_interface_cannot_enter_url_cohort(home, tmp_path, method):
-    value = binding(home, tmp_path)
-    source = tmp_path / "binding.json"
-    source.write_text(json.dumps(value), encoding="utf-8")
-    with patch(
-        "harness.web_extract.certification.benchmark_config", return_value={"adapter": object()}
-    ):
-        with pytest.raises(ValueError):
-            create_plan(home, [method], tmp_path / "plan.json", snapshots=source)
-    assert not (tmp_path / "plan.json").exists()
 
 
 @pytest.mark.parametrize(

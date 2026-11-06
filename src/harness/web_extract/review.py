@@ -978,9 +978,7 @@ def assemble(
             "projection_changed": item["normalized_fields"] != current["normalized_fields"],
             "projection_adjudication": {
                 language: message(
-                    "baseline_stock_projection"
-                    if method == "extruct"
-                    else "native_product_fields_projection",
+                    "native_product_fields_projection",
                     language,
                 )
                 for language in ("zh", "en")

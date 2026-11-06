@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+from pathlib import Path
 
 import pytest
 
@@ -335,9 +336,24 @@ def setup_report(tmp_path):
 
 
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
+    from harness.web_extract import pipeline
+    from harness.web_extract import report as renderer
+
     source, target, work, visual = setup_report(tmp_path)
+    original_read = pipeline.read_json
+    profile_reads = []
+
+    def counted_read(path):
+        if Path(path) == tmp_path / "profile.json":
+            profile_reads.append(path)
+        return original_read(path)
+
+    monkeypatch.setattr(renderer, "read_json", counted_read)
 
     def package(report, archive, *, visual_receipt, profile, home=None):
+        # Packaging and final guards share the already verified frozen inputs.
+        for _ in range(3):
+            renderer.verify_completion_audit(report, profile, home=home)
         archive.write_bytes(b"checked-package")
         return {
             "archive_sha256": digest(archive.read_bytes()),
@@ -361,6 +377,7 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
     assert bound["slug"] == "existing"
     assert bound["profile"]["path"] == str(tmp_path / "profile.json")
     assert bound["renderer_source_revision"] == "a" * 40
+    assert len(profile_reads) == 2  # authority discovery and one complete audit
 
 
 def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
