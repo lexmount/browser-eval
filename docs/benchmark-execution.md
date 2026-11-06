@@ -148,3 +148,10 @@ a blanket serial loop, duplicate dispatch or unsafe environment sharing. Existin
 evidence, scores and release gates must continue to verify after an execution
 change. Validate the deployed configuration on a bounded sample before the next
 full cohort.
+
+Run `make benchmark-contract-check` after changing an executor, track adapter or
+report renderer. This bounded parallel gate checks track registration, dataset
+entry points, explicit UTF-8 I/O, ASCII-locale builds and every report's synthetic
+snapshot. CI runs it before the full test suite and native SDK environment checks.
+Then run the affected track's behavioral tests; these global checks do not replace
+call, interruption or evidence-integrity scenarios.
