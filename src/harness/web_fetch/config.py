@@ -36,8 +36,8 @@ def nonnegative_int(value: str) -> int:
 
 def add_failure_retry_argument(parser) -> None:
     parser.add_argument(
-        '--max-failure-retries', type=nonnegative_int, default=DEFAULT_FAILURE_RETRIES,
-        help=f'Retry a failed task up to N times (default: {DEFAULT_FAILURE_RETRIES}; 0 disables retries); use the final call',
+        '--max-failure-retries', type=nonnegative_int, choices=(0, 1), default=DEFAULT_FAILURE_RETRIES,
+        help=f'Retry a failed task once at most (default: {DEFAULT_FAILURE_RETRIES}; 0 disables retries); use the final call',
     )
 
 

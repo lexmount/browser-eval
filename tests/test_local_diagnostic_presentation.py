@@ -9,7 +9,7 @@ from harness.web_fetch.report import generate, local_audit_banner, overall_ranki
 from tests.test_report_body_scope import case, record
 
 
-def test_diagnostic_tables_sort_saved_pass_rates_without_assigning_ranks():
+def test_diagnostic_tables_do_not_rank_without_explicit_selection():
     c = case('body', kind='body', track='web')
     high = record(c)
     high['provider'] = 'z-high'
@@ -21,6 +21,8 @@ def test_diagnostic_tables_sort_saved_pass_rates_without_assigning_ranks():
         table = soup.select_one('table.ranking')
         assert table.get('data-col') == '2'
         assert table.get('data-dir') == 'desc'
+        assert table.get('data-row-index') == 'false'
+        assert not table.select('.comparison-winner')
         assert table.select_one('th').get_text(strip=True).startswith('方法')
         rows = table.select('tbody tr')
         assert ['z-high', 'a-low'] == [row.select_one('td a')['href'].split('/')[-1].removesuffix('.html') for row in rows]
@@ -35,7 +37,7 @@ def test_diagnostic_tables_sort_saved_pass_rates_without_assigning_ranks():
 def test_uncertified_status_cannot_be_suppressed(tmp_path):
     dataset = {'comparison': {'kind': 'uniform_native_local_measurement',
                              'publication_state': 'local_audit_only_not_for_release'}}
-    assert '不可用于排名' in local_audit_banner(dataset)
+    assert '本地未认证诊断结果' in local_audit_banner(dataset)
     with pytest.raises(ValueError, match='cannot be hidden'):
         generate(tmp_path / 'report', dataset, [], [], show_local_status_banners=False)
     assert not (tmp_path / 'report').exists()
@@ -66,7 +68,7 @@ def test_table_header_gate_accepts_explicit_unranked_methods_only_locally():
 
 def test_home_gate_requires_diagnostic_summary_and_rejects_winner_claims():
     from harness.web_fetch.report_check import require_home_comparison_layout
-    home = ('<h2>任务判定汇总（非排名）</h2><h2>7 类任务概览</h2>'
+    home = ('<h2>任务通过情况</h2><h2>7 类任务概览</h2>'
             '<h2>按任务类别查看诊断结果</h2><p>判分完整性</p>')
     require_home_comparison_layout(home, 7, diagnostic=True)
     with pytest.raises(ValueError, match='winner disclosure'):
@@ -75,7 +77,7 @@ def test_home_gate_requires_diagnostic_summary_and_rejects_winner_claims():
         require_home_comparison_layout(home, 7, diagnostic=False)
 
 
-def test_release_check_rejects_hidden_status_or_ranked_diagnostic(tmp_path):
+def test_release_check_requires_visible_status_and_rank_scope(tmp_path):
     from harness.web_fetch.report_check import check_local_diagnostic_presentation
     page = tmp_path / 'index.html'
     prefix = '<meta name="browser-eval-report" content="1">'
@@ -84,10 +86,16 @@ def test_release_check_rejects_hidden_status_or_ranked_diagnostic(tmp_path):
         check_local_diagnostic_presentation(tmp_path)
     banner = '<div data-evidence-state="local_measurement">Uncertified</div>'
     page.write_text(prefix + banner + '<table id="ranking-overall"><th>Rank</th></table>', encoding='utf-8')
-    with pytest.raises(ValueError, match='assigns ranks'):
+    with pytest.raises(ValueError, match='ranking scope missing|Unrequested diagnostic ranking'):
         check_local_diagnostic_presentation(tmp_path)
     page.write_text(prefix + banner + '<table id="ranking-overall" data-col="0" data-dir="desc"><th>Method</th></table>', encoding='utf-8')
     check_local_diagnostic_presentation(tmp_path)
+    scope = '<p data-ranking-scope="saved-task-pass-rate">Ranks on saved results only.</p>'
+    page.write_text(prefix + banner + scope + '<table id="ranking-overall"><th>Rank</th></table>', encoding='utf-8')
+    check_local_diagnostic_presentation(tmp_path, ranked=True)
+    page.write_text(prefix + banner + scope.replace('<p ', '<p hidden ') + '<table id="ranking-overall"><th>Rank</th></table>', encoding='utf-8')
+    with pytest.raises(ValueError, match='ranking scope missing|Unrequested diagnostic ranking'):
+        check_local_diagnostic_presentation(tmp_path)
 
 
 def test_frozen_download_summary_uses_current_scores_and_exclusions(tmp_path):
@@ -143,7 +151,7 @@ def test_explicit_sample_ranking_reuses_existing_ranked_table_and_keeps_scope(tm
     page = tmp_path/'index.html'
     page.write_text('<meta name="browser-eval-report" content="1">'+banner+markup, encoding='utf-8')
     check_local_diagnostic_presentation(tmp_path, ranked=True)
-    with pytest.raises(ValueError, match='assigns ranks'):
+    with pytest.raises(ValueError, match='Unrequested diagnostic ranking'):
         check_local_diagnostic_presentation(tmp_path)
     page.write_text('<meta name="browser-eval-report" content="1"><div data-evidence-state="local_measurement">Uncertified</div>'+markup, encoding='utf-8')
     with pytest.raises(ValueError, match='scope missing'):
@@ -280,3 +288,31 @@ def test_public_method_option_projection_keeps_private_config_identity(tmp_path,
         with pytest.raises(ValueError): load_frozen_method_options(tmp_path, rows)
     else:
         assert load_frozen_method_options(tmp_path, rows)['providers'] == config['providers']
+
+
+@pytest.mark.parametrize('route', ['index.html', 'providers/method.html', 'attempts/call.html', 'en/providers/method.html'])
+def test_ordinary_report_cannot_remove_marker_and_disclosure(tmp_path, route):
+    from harness.web_fetch.report_check import check_local_diagnostic_presentation
+    page = tmp_path/route
+    page.parent.mkdir(parents=True, exist_ok=True)
+    banner = local_audit_banner({'comparison': {'kind': 'uniform_native_local_measurement',
+        'publication_state': 'local_audit_only_not_for_release'}})
+    page.write_text('<meta name="browser-eval-report" content="1">'+banner, encoding='utf-8')
+    check_local_diagnostic_presentation(tmp_path, ranked=False)
+    page.write_text('<p>Results without disclosure</p>', encoding='utf-8')
+    with pytest.raises(ValueError, match='disclosure missing'):
+        check_local_diagnostic_presentation(tmp_path, ranked=False)
+
+
+def test_ordinary_report_preserves_evidence_and_exact_language_notice(tmp_path):
+    from harness.report_languages import english_notice
+    from harness.web_fetch.report_check import check_local_diagnostic_presentation
+    (tmp_path/'evidence').mkdir()
+    (tmp_path/'evidence/source.html').write_text('<html>Original source</html>', encoding='utf-8')
+    (tmp_path/'en').mkdir()
+    notice = tmp_path/'en/index.html'
+    notice.write_text(english_notice(), encoding='utf-8')
+    check_local_diagnostic_presentation(tmp_path, ranked=True)
+    notice.write_text('<p>Results</p>', encoding='utf-8')
+    with pytest.raises(ValueError, match='disclosure missing'):
+        check_local_diagnostic_presentation(tmp_path, ranked=True)

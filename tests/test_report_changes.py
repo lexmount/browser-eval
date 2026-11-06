@@ -270,7 +270,7 @@ class ReportChangesTests(unittest.TestCase):
     def test_overview_names_all_highest_scoring_methods(self):
         cases={'a':{'id':'a','track':'web','task_kind':'body'}}
         records=[
-            {'case_id':'a','provider':name,'ok':True,'metrics':{'content_pass':True}}
+            {'case_id':'a','provider':name,'ok':True,'metrics':{'content_pass':True,'scoring_source_sha256':'a'*64}}
             for name in ['first','second']
         ]
         page=overview_card(records,cases,'web','网站正文',['first','second'])

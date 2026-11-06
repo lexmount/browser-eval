@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "6f1f0641ea0b1173baf9a33c5bfc27361d3c323eb7b7f9f6e1d641cbceb9e46f"
+          "after_sha256": "fbcd7a39e0f5c64ab92b4f97f50f30a563d18136da8f11d160a7ae90f4c0ddee"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "f7398c3feb508d0bbcd685e4595e2613bfa5801d34819c439b4676a55e174b80"
+          "after_sha256": "9e483351c89b83856e898f785278344ca0ff928ba99525255afc5c37f4ad68fa"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -40,7 +40,7 @@
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
-          "after_sha256": "d5fed872c6b3cb7a72fcb5d64cf2725c34063331a896f56a7b85f0580986280d"
+          "after_sha256": "f67e2110e524496b0661d40947212a0b6bc8f065494d3ed2c7b6c62ae44a1d1b"
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
@@ -84,7 +84,7 @@
         },
         "reference_quality.py": {
           "before_sha256": "b381c5c8d303df9259fa2a7ddddd808de7a0974a36a895211a6aeae371b3a34c",
-          "after_sha256": "342ff87d2ebc8c566e6cea8471018088d9b94acec6150af7e528073530255aa3"
+          "after_sha256": "7beb324f47bbbcfeb2b870810d7ea87ad4fc3cfd2fe498242dd7f6270e0b76dd"
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
@@ -117,6 +117,10 @@
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
           "after_sha256": "bfc9dd4c3405958ed113865269ec0e9a25d44e61405d552a8c09982ba42ff46d"
+        },
+        "annotation_revisions.py": {
+          "before_sha256": "98792092a82af477cf2b975c62e37378e75c083bf8370d75d65e08fd25f3d843",
+          "after_sha256": "79d49de1020c6465438be004a92c3dbefb45de552f3d37eb35cab53460ebaf0e"
         }
       },
       "corrections": [
@@ -3946,6 +3950,102 @@
         },
         {
           "modules": [
+            "article_comments.py"
+          ],
+          "root_cause": "Serialized timestamp footers and colon prose were treated as comment authors. Filter timestamp metadata before author recognition and retain established standalone and explicit speech-attribution ownership.",
+          "regression_ids": [
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-False",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-True",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-False",
+            "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-True",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-False-False",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-False-True",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-True-False",
+            "comment-timestamp-owner-markdown-2024-09-12 15:42-True-True",
+            "comment-timestamp-owner-markdown-15:42-False-False",
+            "comment-timestamp-owner-markdown-15:42-False-True",
+            "comment-timestamp-owner-markdown-15:42-True-False",
+            "comment-timestamp-owner-markdown-15:42-True-True",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-False",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-True",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-False",
+            "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-True",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-False",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-True",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-False",
+            "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-True",
+            "comment-timestamp-owner-plain_text-15:42-False-False",
+            "comment-timestamp-owner-plain_text-15:42-False-True",
+            "comment-timestamp-owner-plain_text-15:42-True-False",
+            "comment-timestamp-owner-plain_text-15:42-True-True",
+            "comment-standalone-author-prose-colon-False",
+            "comment-explicit-speech-author-False",
+            "comment-standalone-author-prose-colon-True",
+            "comment-explicit-speech-author-True"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_comment_timestamp_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "article_comments.py"
+          ],
+          "root_cause": "Speech attribution incorrectly suppressed subsequent structural heading, link and bold author boundaries. Restrict speech filtering to ambiguous colon-form prose.",
+          "regression_ids": [
+            "comment-speech-then-structural-heading",
+            "comment-speech-then-structural-link",
+            "comment-speech-then-structural-bold"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_comment_timestamp_ownership.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "regression_ids": [
+            "mixed-comparison-visible-prose",
+            "mixed-comparison-hidden-prose"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
+          ],
+          "regression_ids": [
+            "mixed-malformed-hidden-prose",
+            "mixed-malformed-script-prose",
+            "mixed-malformed-visible-prose",
+            "mixed-unquoted-apostrophe-script",
+            "mixed-unquoted-apostrophe-hidden",
+            "mixed-unquoted-apostrophe-visible"
+          ],
+          "root_cause": "CommonMark tag rejection exposed browser-tolerated hidden and raw-text content; retain tolerant HTML tags while escaping comparisons without their own closing bracket."
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
+          ],
+          "root_cause": "The mixed-HTML fallback rejected less-than characters in browser-tolerated unquoted attribute values, exposing hidden and raw-text content. Preserve those tag openers before applying the shared visibility rules.",
+          "regression_ids": [
+            "mixed-unquoted-less-than-script",
+            "mixed-unquoted-less-than-hidden",
+            "mixed-unquoted-less-than-visible"
+          ]
+        },
+        {
+          "modules": [
             "metrics.py"
           ],
           "root_cause": "Image-answer scoring read only image-typed JSON keys, so the rendered-DOM image route's declared structured_resource_urls links list never supplied candidates.",
@@ -4065,6 +4165,34 @@
           ],
           "tests": [
             "tests/benchmarks/test_current_scoring_controls.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+          "regression_ids": [
+            "mixed-attribute-name-less-than-script",
+            "mixed-attribute-name-less-than-hidden",
+            "mixed-attribute-name-less-than-visible"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
+          ]
+        },
+        {
+          "modules": [
+            "reference_quality.py"
+          ],
+          "root_cause": "A leading less-than character in a tolerated attribute name can look like a separate tag. Preserve the outer element when its close or visibility context disambiguates the opener.",
+          "regression_ids": [
+            "mixed-attribute-name-leading-less-than-script",
+            "mixed-attribute-name-leading-less-than-hidden",
+            "mixed-attribute-name-leading-less-than-visible"
+          ],
+          "tests": [
+            "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
           ]
         },
         {

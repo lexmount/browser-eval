@@ -21,6 +21,22 @@ This page is the technical reference for larger experiments and historical repor
 
 ## Certified cohorts and report builds
 
+For an explicit dataset population, export each suite with the declared annotation
+revision first, then replace manual `--case-ids` with
+`--population /path/to/definitions/populations/<revision>.json --population-suite articles`
+(or the corresponding suite). The selection must bind `revision_sha256` and the
+suite's frozen task hash to the exported dataset. Each suite's
+`frozen_task_bindings` must also declare `exported_cases_sha256`, the canonical JSON
+SHA-256 of the reviewed export's complete `cases` array (using
+`harness.record_io.canonical_json_sha256`). Prepare this binding alongside the
+reviewed population; the runner must not infer it from the input being checked.
+Populations without this content binding are rejected before calls. Missing, duplicate, unexpected,
+or mismatched cases fail before provider calls. Repeat for every declared suite;
+a single-suite run does not certify the complete cross-suite population.
+The output retains `task-population.json`; `execution.json` and the dataset's
+comparison metadata record its hash, rule revision, input dataset hash, suite and
+actual selected IDs. Existing explicit `--case-ids` runs retain their behavior.
+
 Run every publishable Web Fetch provider cohort through `scripts/run_certified_benchmark.py`, which freezes executable task inputs. Existing compiled reference answers stay frozen; pre/post source checks require an explicit `source_verification.reference_mode: live_exact` task declaration. Missing newer acceptance-contract fields, source metadata and capture dates never imply a live-reference task. For a live-exact task, fail closed: verify and freeze references immediately before calls, verify the same declared scope afterward, and certify the cohort only when both checks pass. Direct `run_benchmark.py` output and incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. An explicitly requested diagnostic report uses the diagnostic build and check entries and labels every page.
 
 For reruns of unchanged compiled stable-contract datasets, invoke `scripts/run_certified_benchmark.py` normally. Freeze existing task definitions and acceptance rules; do not require historical qualification raw files or repeat admission review, and a missing old archive does not turn the run into a diagnostic result. Source qualification belongs to adding tasks or changing references/acceptance rules, through the matching build and revision flow; an explicit reference-answer revision still goes through the separate reference-revision entry. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol. Live exact-reference cases retain pre/post reference checks. Reserve `--diagnostic` for explicitly diagnostic runs, whose outputs cannot be upgraded to certified evidence. `--retrieval-mode native` selects ordinary WebFetch completion while preserving scenario categories and every acceptance requirement; it rejects selector-guided retrieval hints instead of dropping them. Independent whole-page auditing, when requested, uses the existing browser capturer with `--observation-scope visible_page --checkpoint-dir ...`; checkpoint identities include capture inputs and observer code so observations from another protocol cannot be reused silently.
@@ -261,6 +277,12 @@ Text acceptance reads the visible prose of raw HTML embedded in Markdown. HTML
 attributes, scripts and explicitly hidden elements cannot supply body coverage
 or required facts. Literal HTML in code examples remains answer text. This
 projection runs inside the shared scorer and leaves provider artifacts unchanged.
+Unescaped angle-bracket text that matches an HTML tag is treated as markup,
+including `List<String>` and `x<y then z>w`. Technical notation must use code
+spans, fenced code or escaped brackets to be unambiguously literal. The parser
+does not guess from tag names whether prose was intended; custom hidden elements
+must remain hidden. A comparison opener without a closing bracket before the next
+tag is retained as text.
 `required_patterns` defaults to `match_scope: "text"`; a rule that checks serialized
 output structure, such as an HTML table tag, must declare `match_scope: "output"`.
 Unknown scopes are rejected. Use paired controls in `src/harness/benchmarks/scoring-regressions.json`
@@ -991,6 +1013,25 @@ be registered task families and values must be supported native wait modes.
 The policy is declared before calls and applies to every task in that family;
 case IDs, hostname rules, answer-dependent delays, and extraction scripts are
 not accepted by this setting. Call metadata records the selected family policy.
+
+For a complete-category comparison, Moli also accepts `native_output: "auto"`
+or `"html"`. Automatic output omits `--dump` and uses the declared wait policy,
+including for direct files. HTML passes `--dump html` and the declared wait
+policy for text and resource tasks; file tasks retain raw delivery without
+those flags. Automatic output does not promise document text extraction.
+Its saved `ordinary_html` interface identifier is a historical request-route
+name, not evidence of the returned format. Automatic calls record
+`requested_output: auto`; text output is `unknown` until decoded, then
+`utf8_text`, without guessing HTML versus Markdown. Raw-file delivery remains
+`original_bytes`. `output_format_source` records the basis for that label.
+Omitting this setting preserves the original native routing policy.
+
+Cloudflare accepts a nonempty `scrape_selectors` list to use the same `/scrape`
+request for every task in a cohort. For example, a media cohort can request
+`body`, `img`, `picture source`, `video`, `video source`, `audio`,
+`audio source`, `iframe`, and `a[href]` together. Freeze these options before
+calls and compare complete categories; never choose settings from task answers
+or replace only improved cases. Retain unsuccessful candidates as evidence.
 
 ### Fixed native calls
 

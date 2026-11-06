@@ -61,10 +61,26 @@ is distinct from target-site status. `log_level: debug` saves redacted caller
 requests, response headers/body and errors; it cannot expose undisclosed service
 internals. Only Bright Data receives the native debug option.
 
-`dns_mode: system` uses the local resolver for API hosts; target-site DNS belongs
-to the service. No automatic DNS fallback is added. All five services retain their
-native internal timeout defaults within the caller's deadline. Historical runs
-keep their recorded configuration.
+Historical native selectors require independent caller approval. A saved-matrix
+specification can select `native_policy_registry: {"path": "...", "sha256": "..."}`.
+The external JSON has `schema_version: 1` and a `sources` list; each entry contains
+`source_sha256`, a supported `version` (1, 2 or 3), and a nonempty review `reason`.
+Keep this report-specific registry beside evidence, not in source code. The builder
+verifies its binding and copies it into the portable report; source-aware checking
+also requires it to match the caller's original approval. A saved receipt cannot
+authorize its own implementation. Unknown sources fail closed, retained source
+bytes are hash-checked, and saved code is never executed. Lower-level evidence
+tools must enter `approved_native_policies(registry)` only after independently
+verifying the selected registry binding; approval ends when that context exits.
+
+All hosted API adapters honor `dns_mode` at the shared HTTP boundary:
+`system` uses the local resolver and `public_doh` uses the declared DoH resolver
+for API hosts, including redirects. DoH failure does not fall back to system DNS
+or add a retry. Results and diagnostic logs retain the selected mode and observed
+resolutions. This controls the caller-to-API connection; target-site DNS belongs
+to the service. Moli keeps its separately declared native-process DNS mode.
+Services retain their native internal timeout defaults within the caller's
+deadline. Historical runs keep their recorded configuration and evidence.
 
 API references: [Bright Data](https://docs.brightdata.com/api-reference/rest-api/unlocker/unlock-website),
 [fetch-use](https://browser-use.com/posts/fetch-use),

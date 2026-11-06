@@ -11,6 +11,8 @@ dependencies = [
   "soupsieve==2.9.2",
   "fastcdc==1.7.0",
   "python-dotenv==1.1.1",
+  "idna==3.19",
+  "markdown-it-py==4.2.0",
 ]
 
 [project.scripts]

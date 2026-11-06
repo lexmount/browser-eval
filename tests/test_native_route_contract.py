@@ -7,6 +7,36 @@ from harness.web_fetch.native_routes import INPUT_MEDIA_KINDS, declared_input_me
 from harness.web_fetch.providers.moli import _route_for_case
 
 
+@pytest.mark.parametrize('fields', [{}, {'task_kind': 'resource', 'track': 'image'},
+                                  {'task_kind': 'file', 'track': 'document'},
+                                  {'track': 'dynamic'},
+                                  {'track': 'document', 'source_benchmark': {'input_media_kind': 'direct_pdf'}}])
+def test_saved_moli_replay_preserves_evalcase_route_defaults(tmp_path, fields):
+    import json
+    from unittest.mock import patch
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_projection import native_answer_projection
+    from harness.web_fetch.native_routes import _expected_native_declaration
+
+    case = {'id': 'case', 'name': 'Case', 'url': 'https://example.test/',
+            'category': 'test', 'expected_any': [], **fields}
+    (tmp_path/'dataset.json').write_text(json.dumps({'cases': [case]}), encoding='utf-8')
+    record = {'case_id': 'case', 'url': case['url'], 'provider_type': 'moli_webfetch',
+              'provider_metadata': {'native_route_receipt': {}}}
+    expected = native_answer_projection('moli_webfetch', EvalCase(**case), {}, None)
+    original = json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8'))
+    with patch('harness.web_fetch.native_routes.native_answer_projection', wraps=native_answer_projection) as project:
+        assert _expected_native_declaration(tmp_path, record, b'answer', None) == expected
+        replay_case = project.call_args.args[1]
+        assert replay_case['task_kind'] == fields.get('task_kind', 'body')
+        assert replay_case['track'] == fields.get('track', 'web')
+        assert _expected_native_declaration(tmp_path, record, b'answer', {'case': case}) == expected
+    assert json.loads((tmp_path/'dataset.json').read_text(encoding='utf-8')) == original
+    assert case == original['cases'][0]
+    with pytest.raises(ValueError, match='frozen request identity'):
+        _expected_native_declaration(tmp_path, {**record, 'url': 'https://forged.test/'}, b'answer', None)
+
+
 @pytest.mark.parametrize('media', sorted(INPUT_MEDIA_KINDS))
 def test_dataset_and_worker_use_the_same_explicit_input_type(media):
     assert declared_input_media_kind({'source_benchmark': {'input_media_kind': media}}) == media
@@ -683,7 +713,7 @@ def test_saved_schema_one_keeps_original_answer_scope(tmp_path):
         verify_saved_native_answer(tmp_path, record)
 
 
-@pytest.mark.parametrize('retries', [0, 1, 3])
+@pytest.mark.parametrize('retries', [0, 1])
 def test_native_http_retries_keep_each_physical_route_receipt(tmp_path, retries):
     import json
     from copy import deepcopy
@@ -1056,3 +1086,105 @@ def test_parsed_request_signature_detaches_mutable_parameter_inputs():
     assert parsed.parameters == {'argv': ['native']}
     with pytest.raises(FrozenInstanceError):
         parsed.interface = 'changed'
+
+
+@pytest.mark.parametrize('method', ['tavily_extract', 'firecrawl', 'cloudflare_markdown'])
+def test_explicit_native_dynamic_body_rules_are_admitted_without_rule_conversion(tmp_path, method):
+    from copy import deepcopy
+    import json
+    from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.native_routes import NativeRouteLedger
+    from harness.web_fetch.providers.base import build_provider
+    from harness.web_fetch.retrieval_hints import plan_for_case
+    case = {'id': 'dynamic-body', 'name': 'Dynamic body', 'category': 'dynamic',
+            'track': 'dynamic', 'url': 'https://example.test/body', 'expected_any': [],
+            'source_benchmark': {'input_media_kind': 'html_page'},
+            'retrieval_hints': {'version': 3, 'mode': 'native'},
+            'body_requirements': {'version': 3, 'minimum_coverage': 0.8,
+                'minimum_floor': 0.8, 'minimum_region_passes': 1,
+                'regions': [{'id': 'body', 'text': 'Expected body content'}]}}
+    original = deepcopy(case)
+    path = tmp_path/'dataset.json'
+    path.write_text(json.dumps({'tool': 'web_fetch', 'cases': [case]}), encoding='utf-8')
+    _, cases = load_dataset(path)
+    provider = build_provider('method', {'type': method, 'api_key': 'fixture',
+        'account_id': 'fixture', 'uniform_native_parameters': True})
+    ledger = NativeRouteLedger(cases, [provider], timeout_seconds=30)
+    assert len(ledger.document['cells']) == 1
+    assert plan_for_case(cases[0]) is None
+    assert case == original
+    assert cases[0].body_requirements == original['body_requirements']
+    assert cases[0].acceptance_contract == {}
+    assert not ledger.calls
+
+
+@pytest.mark.parametrize('hints', [None, {}, {'version': 3, 'mode': 'native', 'contract': 'custom-page'},
+                                 {'version': 3, 'mode': 'other'},
+                                 {'version': 1, 'wait_until': 'networkidle'}])
+def test_dynamic_default_admission_does_not_accept_absent_or_custom_retrieval(hints):
+    from lexbench_webfetch.models import EvalCase
+    from harness.web_fetch.native_routes import NativeRouteLedger
+    from harness.web_fetch.providers.base import build_provider
+    case = EvalCase('dynamic-body', 'Dynamic body', 'https://example.test/', 'dynamic', [],
+                    track='dynamic', retrieval_hints=hints,
+                    source_benchmark={'input_media_kind': 'html_page'})
+    provider = build_provider('method', {'type': 'tavily_extract', 'api_key': 'fixture',
+                                        'uniform_native_parameters': True})
+    with pytest.raises(ValueError, match='default retrieval declaration'):
+        NativeRouteLedger([case], [provider], timeout_seconds=30)
+
+
+def test_explicit_native_declaration_does_not_bypass_invalid_acceptance_contract():
+    from harness.web_fetch.retrieval_hints import native_default_case
+    with pytest.raises(ValueError):
+        native_default_case({'track': 'dynamic', 'retrieval_hints': {'version': 3, 'mode': 'native'},
+                             'acceptance_contract': {'version': 1, 'schema': 'unknown'}})
+
+@pytest.mark.parametrize('defect', [None, 'dns', 'timeout', 'config', 'option',
+                                  'missing_dns', 'deadline_without_dns', 'missing_bindings',
+                                  'missing_authorization', 'missing_native'])
+def test_parameter_report_requires_authorized_native_execution(tmp_path, defect):
+    import json
+    import hashlib
+    from datetime import datetime, timezone
+    from dataclasses import asdict
+    from unittest.mock import patch
+    from harness.web_fetch.providers.http_client import HttpResponse
+    from harness.web_fetch.report_saved_matrix import _parameter_execution, _SourceBindings
+    provider, cases, ledger, manifest, _ = _route_http_fixture(tmp_path)
+    case = cases[0]
+    started = datetime.now(timezone.utc).isoformat()
+    with patch('harness.web_fetch.providers.tavily.request', return_value=HttpResponse(
+            200, case.url, {}, json.dumps({'results': [{'url': case.url, 'raw_content': 'answer'}]}).encode())):
+        result = provider.fetch(case, 45, native_route_ledger=ledger)
+    config = {'providers': {provider.name: dict(provider.config)}}
+    if defect == 'option':
+        config['providers'][provider.name]['include_images'] = True
+    config_path = tmp_path/'providers.json'
+    config_path.write_text(json.dumps(config), encoding='utf-8')
+    digest = hashlib.sha256(config_path.read_bytes()).hexdigest()
+    manifest.update(provider_config_source=str(config_path), provider_config_sha256=digest,
+                    parameters={'timeout': 45, 'max_failure_retries': 0})
+    (tmp_path/'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
+    contract = {'provider_config_sha256': digest, 'timeout_seconds': 45, 'max_failure_retries': 0}
+    record = {'provider': provider.name, 'case_id': case.id, 'url': case.url,
+              'started_at': started, 'ok': result.ok,
+              'provider_metadata': {'dns_mode': 'system', 'native_route_receipt': ledger.receipt(provider, case)}}
+    if defect == 'dns': record['provider_metadata']['dns_mode'] = 'public_doh'
+    if defect in {'missing_dns', 'deadline_without_dns'}:
+        record['provider_metadata'].pop('dns_mode')
+    if defect == 'deadline_without_dns':
+        record.update(ok=False, error_type='timeout')
+        record['provider_metadata']['caller_deadline_exceeded'] = True
+        record['provider_metadata']['native_route_receipt']['failure_stage'] = 'after_transport'
+    if defect == 'timeout': contract['timeout_seconds'] = 30
+    if defect == 'config': contract['provider_config_sha256'] = '0'*64
+    if defect in {'missing_bindings', 'missing_authorization'}:
+        contract.pop('provider_config_sha256')
+    if defect in {'missing_bindings', 'missing_native'}:
+        record['provider_metadata']['native_route_receipt'] = {'transport_state': 'started'}
+    if defect and defect not in {'missing_dns', 'deadline_without_dns'}:
+        with pytest.raises(ValueError, match='Parameter rerun'):
+            _parameter_execution(tmp_path, record, asdict(case), contract, _SourceBindings(tmp_path))
+    else:
+        _parameter_execution(tmp_path, record, asdict(case), contract, _SourceBindings(tmp_path))

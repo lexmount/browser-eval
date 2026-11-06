@@ -95,7 +95,7 @@ def test_bound_report_translations_are_external_and_tamper_evident(tmp_path):
 
 def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_path):
     from pathlib import PurePosixPath
-    from harness.web_fetch.report_i18n import localize_html, t, write_english_report
+    from harness.web_fetch.report_i18n import localize_html, write_english_report
     languages = {}
     for language in ('zh', 'en'):
         path = tmp_path / (language + '.txt')
@@ -106,7 +106,10 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     (tmp_path / 'archived-reading.json').write_text(json.dumps({'languages': languages,
         'translations': {'path': translation.name, 'sha256': hashlib.sha256(translation.read_bytes()).hexdigest()}}), encoding='utf-8')
     (tmp_path / 'guide').mkdir()
-    banner = '<div data-evidence-state="local_measurement">' + t('local_uncertified_diagnostic_snapshot_not_for_ranking', 'Local uncertified diagnostic snapshot · not for ranking') + '</div>'
+    from harness.web_fetch.report import local_audit_banner
+    banner = local_audit_banner({'comparison': {
+        'kind': 'uniform_native_local_measurement',
+        'publication_state': 'local_audit_only_not_for_release'}})
     article = render_archived_reading(tmp_path)
     (tmp_path / 'guide/index.html').write_text('<html lang="zh-CN"><main>'+banner+article+'</main></html>', encoding='utf-8')
     root = '<html lang="zh-CN"><main><p>核验记录</p></main></html>'
@@ -116,6 +119,8 @@ def test_article_translation_cannot_override_other_routes_or_remove_status(tmp_p
     guide = (tmp_path / 'en/guide/index.html').read_text(encoding='utf-8')
     assert 'data-evidence-state="local_measurement"' in guide
     assert 'Archive-only label' in guide
+    assert 'Local uncertified diagnostic results' in guide
+    assert 'data-ranking-scope="saved-task-pass-rate"' not in guide
 
 
 def test_model_translation_is_scoped_and_escaped():

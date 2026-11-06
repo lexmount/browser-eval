@@ -45,14 +45,15 @@ class FirecrawlProvider(Provider):
         return endpoint, arguments
 
     def validate(self) -> list[str]:
+        errors = super().validate()
         if "only_main_content" in self.config and not isinstance(self.config["only_main_content"], bool):
-            return ["only_main_content must be boolean"]
+            errors.append("only_main_content must be boolean")
         # Hosted Scrape requires Bearer auth. A separately configured local or
         # self-hosted endpoint may intentionally run without an API key.
         host = urlsplit(str(self.config.get("base_url", "https://api.firecrawl.dev"))).hostname
         if host == "api.firecrawl.dev" and not str(self.config.get("api_key") or "").strip():
-            return ["api_key"]
-        return []
+            errors.append("api_key")
+        return errors
 
     def capacity_credits_for_cases(
         self,
@@ -389,6 +390,7 @@ class FirecrawlProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "route": route,
                 "wait": wait_metadata,
                 "requested_formats": request_body["formats"],

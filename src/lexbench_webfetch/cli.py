@@ -29,7 +29,7 @@ def main() -> None:
         command.add_argument("--source", type=Path, required=True)
         if name == "export":
             command.add_argument("--output", type=Path, required=True)
-            command.add_argument("--revision", help="Apply a registered score-only annotation version")
+            command.add_argument("--revision", help="Apply a registered annotation or explicitly declared task-scope revision")
             command.add_argument("--review-source", type=Path,
                                  help="Optional evidence directory; verify and include declared review sources")
     inspect = sub.add_parser("inspect-revision", help="Show reviewed field differences, sources and acceptance controls")
