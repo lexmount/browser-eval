@@ -184,6 +184,38 @@ def test_metric_requires_complete_unique_population_and_preserves_inputs():
             completion_metrics(rows, fields, records=False)
 
 
+@pytest.mark.parametrize(
+    "rates,winners", [([0.5, 0.5, 0.3], []), ([0.5, 0.7, 0.3], [1]), ([None, None, None], [])]
+)
+def test_completion_comparison_marks_only_a_unique_leader(rates, winners):
+    from bs4 import BeautifulSoup
+
+    from harness.reporting.presentation import check_presentation
+    from harness.web_extract.report import completion_table
+
+    methods = ["first", "second", "third"]
+    bundle = {"reference_view": "original", "methods": {}}
+    for method, rate in zip(methods, rates, strict=True):
+        metric = {
+            "correct": int(10 * rate) if rate is not None else 0,
+            "total": 10 if rate is not None else 0,
+            "rate": rate,
+        }
+        bundle["methods"][method] = {
+            "page_exact": metric,
+            "empty_fields": metric,
+            "excluded_pages": 0,
+        }
+    soup = BeautifulSoup(completion_table(bundle, methods, {}, "en"), "html.parser")
+    for column in (1, 2):
+        assert [
+            i
+            for i, row in enumerate(soup.select("tbody tr"))
+            if row.select("td")[column].select_one(".comparison-winner")
+        ] == winners
+    check_presentation(soup)
+
+
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
 @pytest.mark.parametrize(
     "damage", ["comparison", "definition", "count", "coverage", "highlight", "source", "pinning"]
