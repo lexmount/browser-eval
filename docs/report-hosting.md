@@ -14,16 +14,19 @@ The generated pages are saved in `<run>/report/`. Other tracks have their own [r
 
 ## Automatic check scope
 
-Report checks reuse successful, unchanged validation work through
-`harness.reporting.release_check`. The normal build, check and release commands
-select the scope automatically; there is no author-supplied “presentation-only”
-override. A first check establishes a baseline. Later checks reuse pure calculations
-and page checks only when their complete arguments, checker implementation and
-locked dependencies match that baseline. Changed pages are checked again.
-Changed evidence or contracts rerun the units that use them. Changes to code or
-locked dependencies invalidate the baseline. Corrupt or missing receipts cause a
-fresh check. Rebinding a profile after a prose edit does not repeat unrelated
-scoring calculations.
+Routine build and check commands reuse successful, unchanged validations through
+`harness.reporting.release_check`. Arguments are bound from each validator's
+signature, including dictionary order; callers do not maintain a separate input
+list. One source/dependency fingerprint invalidates the baseline when code changes.
+Changed arguments rerun the affected validation. Missing or corrupt receipts cause
+a fresh check. Scoring, normalization and calculated outputs always execute;
+receipts contain only hashes of successful void checks.
+
+Formal release checks, packaging and publishing always run fresh checks. They
+neither read nor update routine receipts, including when called from an incremental
+build. The shared publication and package boundaries enforce this with
+`full_validation`; explicit release/complete-cohort checks do the same.
+Make targets ending in `-release-check` inherit full validation automatically.
 
 File integrity, privacy, evidence/profile bindings, local links and publication
 destination/version checks still run through their existing owners. Browser and
@@ -34,14 +37,14 @@ The command reports the mode and checked/reused unit counts on standard error.
 To force every validation unit to run, prefix the normal command with
 `BROWSER_EVAL_FULL_REPORT_CHECK=1`. Receipts are private local data under
 `$BROWSER_EVAL_DATA_HOME/report-checks` (default `~/.browser-eval/report-checks`).
-Set `BROWSER_EVAL_REPORT_CHECK_CACHE` to choose another cache directory. Receipts
-never belong in a report package; a read-only cache keeps checks working without
-reuse. Only a successful complete check writes a receipt.
+Receipts never belong in a report package; a read-only data home keeps checks
+working without reuse. Only a successful routine check writes a receipt.
 
 New tracks use `scoped_check` on their maintained checker and `validation_step`
-for expensive, pure validators whose arguments declare every dependency. File
-reads, browser operations and mutable global state stay outside those units.
-Unsupported argument or result types execute normally. Keep negative controls
+for expensive, pure void validators whose arguments declare every dependency.
+File reads, browser operations and mutable global state stay outside those units.
+Closures, unsupported arguments and functions returning values execute normally.
+Keep negative controls
 for changed displayed results, evidence, links and privacy after a prior pass.
 
 ## Report instances

@@ -275,6 +275,34 @@ def test_python_partitions_cover_existing_and_future_test_directories_once(tmp_p
                                    for name in names for i in range(10)}
 
 
+def test_ci_browser_exclusion_reaches_recursive_make(tmp_path):
+    makefile = tmp_path / 'Makefile'
+    targets = ['runtime-check', 'track-naming-check', 'lint-check', 'shell-check',
+               'fixture-smoke', 'test-ui', 'test-native-adapters']
+    makefile.write_text(
+        f'include {ROOT / "Makefile"}\n'
+        + ''.join(f'{target}:\n\t@:\n' for target in targets)
+        + 'test-python:\n\t@echo browser-selection=$(BROWSER_TESTS)\n'
+        + f'ci-tests:\n\t+$(MAKE) --no-print-directory -f {makefile} test-python\n',
+        encoding='utf-8',
+    )
+    result = subprocess.run(['make', '--no-print-directory', '-f', str(makefile), 'ci-tests'],
+                            cwd=tmp_path, capture_output=True, text=True, check=True)
+    assert result.stdout.count('browser-selection=exclude') == 2
+    assert 'browser-selection=include' not in result.stdout
+
+
+def test_new_release_targets_inherit_fresh_validation_automatically(tmp_path):
+    makefile = tmp_path / 'Makefile'
+    makefile.write_text(f'include {ROOT / "Makefile"}\n'
+                        'future-release-check: nested-validation\n'
+                        'nested-validation:\n\t@echo full-validation=$$BROWSER_EVAL_FULL_REPORT_CHECK\n',
+                        encoding='utf-8')
+    result = subprocess.run(['make', '--no-print-directory', '-f', str(makefile), 'future-release-check'],
+                            cwd=tmp_path, capture_output=True, text=True, check=True)
+    assert result.stdout.strip() == 'full-validation=1'
+
+
 @pytest.mark.parametrize('shard', ['0/2', '3/2', '1/0', 'bad', '1/2/3'])
 def test_invalid_shard_fails_instead_of_silently_omitting_tests(tmp_path, shard):
     (tmp_path / 'test_example.py').write_text('def test_example(): pass\n', encoding='utf-8')

@@ -17,8 +17,6 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import quote, urlencode
 
-from lexbench_webfetch.paths import contained_path
-
 from harness.record_io import file_sha256, load_jsonl
 from harness.reporting.links import validate_virtual_links
 from harness.reporting.packs import (
@@ -30,12 +28,13 @@ from harness.reporting.packs import (
     write_packs,
 )
 from harness.reporting.publication import archive_inventory
+from harness.reporting.publication_target import validate_service_base
+from harness.reporting.release_check import full_validation
 from harness.web_fetch.publication_privacy import (
     project_file,
     project_redundant_result_streams,
     publication_file_risk,
 )
-from harness.reporting.publication_target import validate_service_base
 from harness.web_fetch.published_snapshot import check_snapshot_audit
 from harness.web_fetch.reference_lifecycle import require_certifiable_evidence
 from harness.web_fetch.report_build import validate_local_presentation
@@ -43,6 +42,7 @@ from harness.web_fetch.report_explainer import current_browser_article_model
 from harness.web_fetch.report_version import check_release
 from harness.web_fetch.result_review import require_result_review
 from harness.web_fetch.safety import evidence_tree_identity, unlinked_path
+from lexbench_webfetch.paths import contained_path
 
 
 def _require(condition, detail):
@@ -50,6 +50,7 @@ def _require(condition, detail):
         raise ValueError(str(detail))
 
 
+@full_validation()
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text(encoding="utf-8")) if dataset_path.exists() else {}

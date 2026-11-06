@@ -20,7 +20,7 @@ from harness.reporting.privacy import PRIVATE_IPV4, PUBLIC_WEBARENA
 from harness.reporting.publication import PublicationClient, archive_inventory
 from harness.reporting.publication_target import publication_document, require_publication_version
 from harness.reporting.publish import ReceiptRelease, publish_receipt_release
-from harness.reporting.release_check import scoped_check, validation_step
+from harness.reporting.release_check import full_validation, scoped_check, validation_step
 from harness.trajectory_replay.public_webarena.config import (
     map_strings,
     redact_site_passwords,
@@ -213,6 +213,7 @@ def _contains_site_password(text: str, passwords: tuple[str, ...]) -> bool:
     )
 
 
+@full_validation()
 def build(formal_root: Path, archive: Path, attestation: Path, *, authority: Path) -> dict:
     # Rendering tolerates an unset password; a package cannot be checked for one it cannot name.
     passwords = known_site_secrets()

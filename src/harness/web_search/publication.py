@@ -12,6 +12,7 @@ from harness.data_home import data_home
 from harness.record_io import bytes_sha256
 from harness.reporting.publication import PublicationClient
 from harness.reporting.publish import ReceiptRelease, publish_receipt_release
+from harness.reporting.release_check import full_validation
 from harness.web_fetch.config import ROOT
 from harness.web_search import delivery as report_delivery
 from harness.web_search import profiles
@@ -27,6 +28,7 @@ from harness.web_search.profiles import (
 from lexbench_webfetch.paths import contained_path
 
 
+@full_validation()
 def prepare(report, visual, content, sources, work, *, profile):
     search_report.check(report)
     report_visual.verify(report, visual)

@@ -10,6 +10,7 @@ from pathlib import Path
 
 from harness.record_io import file_sha256
 from harness.reporting.publication import package_archive
+from harness.reporting.release_check import full_validation
 from harness.trajectory_replay.report_compaction import (
     check_compact_navigation,
     compact_report,
@@ -30,6 +31,7 @@ MAX_FILES = 2_000
 MAX_ARCHIVE_BYTES = 300_000_000
 
 
+@full_validation()
 def validate_release(
     report: Path, visual_receipt: Path, *, profile_path: Path | None = None
 ) -> dict[str, int]:

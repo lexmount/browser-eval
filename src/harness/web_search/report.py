@@ -27,9 +27,13 @@ from harness.report_languages import (
     write_language_contract,
 )
 from harness.reporting.mermaid import mermaid_script_attributes
-from harness.reporting.presentation import check_presentation
 from harness.reporting.presentation import esc as escape_text
-from harness.reporting.release_check import scoped_check, validated, validation_step
+from harness.reporting.release_check import (
+    checked_page,
+    full_validation,
+    scoped_check,
+    validation_step,
+)
 from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
 from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
@@ -1673,9 +1677,7 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                validated('web-search.normalized-response',
-                          [payloads[row['id']], next(m for m in manifest['profile']['methods'] if m['id'] == row['method']), manifest['profile']['protocol'], row.get('request')],
-                          lambda row=row: normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request")))
+                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request"))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1802,9 +1804,7 @@ def check(output, *, return_data=False, evidence_only=False):
                     result["method"] for result in scoring_rows(manifest["profile"], manifest["rows"])
                 ):
                     raise ValueError("Provider filter population mismatch")
-    relevance_scores = (validated('web-search.relevance-scores',
-                        [manifest['profile'], scoring_rows(manifest['profile'], manifest['rows']), relevance_data['plan'], relevance_data['labels']],
-                        lambda: score_relevance(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), relevance_data["plan"], relevance_data["labels"])) if relevance_data else [])
+    relevance_scores = (score_relevance(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), relevance_data["plan"], relevance_data["labels"]) if relevance_data else [])
     expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:
@@ -1871,8 +1871,7 @@ def check(output, *, return_data=False, evidence_only=False):
         return True
     for route in manifest["routes"]:
         path = output / route
-        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
-        check_presentation(soup)
+        soup = checked_page(path)
         authored = manifest.get("authored") or {}
         if authored.get("reading_model") and "details/" not in route:
             lang = soup.html["lang"]
@@ -2166,6 +2165,7 @@ def main(argv=None):
     )
 
 
+@full_validation()
 def release_check(output, visual_receipt, *, publication_plan=None):
     """Combine deterministic evidence checks with the separate operated-browser gate."""
     check(output)

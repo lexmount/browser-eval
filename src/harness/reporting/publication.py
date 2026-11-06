@@ -22,6 +22,7 @@ from urllib.error import HTTPError
 
 from harness.benchmarks.data import _TokenRedirects
 from harness.record_io import file_sha256, json_bytes
+from harness.reporting.release_check import full_validation
 from harness.web_fetch.artifact_auth import load_token
 from harness.web_fetch.safety import evidence_tree_identity, reject_evidence_symlinks
 from lexbench_webfetch.paths import contained_path
@@ -113,6 +114,7 @@ def _destination(path: Path) -> None:
         raise ValueError('publication destination must be a regular file')
 
 
+@full_validation()
 def package_archive(
     report: Path,
     output: Path,

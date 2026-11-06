@@ -18,7 +18,6 @@ def score(reference, output):
     CALLS['score'] += 1
     if reference != output:
         raise ValueError('incorrect extraction')
-    return {'accepted': True}
 
 
 @shared.validation_step
@@ -40,7 +39,7 @@ def owner(root):
     check_links(root)
     data = json.loads((root / 'results.json').read_text(encoding='utf-8'))
     for name, row in data.items():
-        assert score(row['expected'], row['actual']) == {'accepted': True}
+        score(row['expected'], row['actual'])
         page_values((root / name).read_text(encoding='utf-8'), row['expected'])
 
 
@@ -53,7 +52,7 @@ def rebind(root, **metadata):
 
 @pytest.fixture
 def report(tmp_path, monkeypatch):
-    monkeypatch.setenv('BROWSER_EVAL_REPORT_CHECK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path))
     monkeypatch.delenv('BROWSER_EVAL_FULL_REPORT_CHECK', raising=False)
     implementation = ['original-code']
     monkeypatch.setattr(shared, '_implementation', lambda: implementation[0])
@@ -96,6 +95,19 @@ def test_implementation_changes_invalidate_every_unit(report):
     root, implementation = report
     owner(root)
     implementation[0] = 'changed-checker'
+    owner(root)
+    assert CALLS == {'score': 4, 'page': 4, 'mandatory': 2}
+
+
+def test_python_optimization_changes_invalidate_routine_passes(report, monkeypatch):
+    from types import SimpleNamespace
+
+    root, _ = report
+    owner(root)
+    runtime = shared.sys
+    monkeypatch.setattr(shared, 'sys', SimpleNamespace(
+        version=runtime.version, stderr=runtime.stderr,
+        flags=SimpleNamespace(optimize=runtime.flags.optimize + 1)))
     owner(root)
     assert CALLS == {'score': 4, 'page': 4, 'mandatory': 2}
 
@@ -168,10 +180,73 @@ def test_full_audit_bypasses_reuse_without_changing_the_result(report, monkeypat
     assert CALLS == {'score': 4, 'page': 4, 'mandatory': 2}
 
 
+@pytest.mark.parametrize('release_flag', ['release', 'require_complete'])
+def test_formal_checks_never_reuse_or_update_routine_receipts(report, release_flag):
+    root, _ = report
+
+    @shared.scoped_check('release-contract')
+    def gate(root, *, release=False, require_complete=False):
+        owner(root)
+
+    gate(root)
+    cache = root.parent / 'report-checks'
+    before = {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('*.json')}
+    gate(root, **{release_flag: True})
+    gate(root, **{release_flag: True})
+    assert CALLS == {'score': 6, 'page': 6, 'mandatory': 3}
+    assert before == {p.name: (p.read_bytes(), p.stat().st_mtime_ns) for p in cache.glob('*.json')}
+
+
+def test_release_context_ignores_saved_checks_and_leaves_no_new_receipt(report):
+    root, _ = report
+
+    @shared.full_validation()
+    def release():
+        owner(root)
+
+    release()
+    release()
+    assert CALLS == {'score': 4, 'page': 4, 'mandatory': 2}
+    assert not (root.parent / 'report-checks').exists()
+
+
+def test_package_boundary_runs_fresh_checks_after_a_routine_pass(report):
+    from harness.reporting.publication import package_archive
+
+    root, _ = report
+    owner(root)
+    cache = root.parent / 'report-checks'
+    before = {p.name: p.read_bytes() for p in cache.glob('*.json')}
+    package_archive(root, root.parent / 'release.zip', root.parent / 'release.json',
+                    inputs=[], validate=lambda: owner(root), attest=lambda archive: {})
+    assert CALLS['score'] > 2
+    assert CALLS['score'] == CALLS['mandatory'] * 2
+    assert before == {p.name: p.read_bytes() for p in cache.glob('*.json')}
+
+
+def test_closure_inputs_are_never_reused(report):
+    root, _ = report
+    expected = ['price']
+
+    @shared.validation_step
+    def validate(value):
+        if value != expected[0]:
+            raise ValueError('changed captured value')
+
+    @shared.scoped_check('captured-values')
+    def check(root):
+        validate('price')
+
+    check(root)
+    expected[0] = 'stock'
+    with pytest.raises(ValueError, match='changed captured'):
+        check(root)
+
+
 def test_damaged_receipt_falls_back_to_a_full_check(report):
     root, _ = report
     owner(root)
-    receipt = next((root.parent / 'cache').glob('*.json'))
+    receipt = next((root.parent / 'report-checks').glob('*.json'))
     receipt.write_text('{truncated', encoding='utf-8')
     owner(root)
     assert CALLS['score'] == 4
@@ -185,7 +260,7 @@ def test_failed_checks_cannot_install_a_pass_receipt(report):
     rebind(root)
     with pytest.raises(ValueError, match='incorrect displayed'):
         owner(root)
-    assert not list((root.parent / 'cache').glob('*.json'))
+    assert not list((root.parent / 'report-checks').glob('*.json'))
 
 
 def test_mutable_or_unknown_types_keep_the_original_execution(report):
@@ -238,7 +313,7 @@ def test_validation_cannot_certify_inputs_that_change_during_the_check(report, c
 
     with pytest.raises(ValueError, match='changed during validation'):
         check(root)
-    assert not list((root.parent / 'cache').glob('*.json'))
+    assert not list((root.parent / 'report-checks').glob('*.json'))
 
 
 def test_order_sensitive_results_do_not_share_an_input_receipt(report):
@@ -292,7 +367,7 @@ def test_maintained_track_checks_reuse_successful_units(tmp_path, monkeypatch, c
     """Exercise real build/check commands, without private evidence or provider calls."""
     import re
 
-    monkeypatch.setenv('BROWSER_EVAL_REPORT_CHECK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path))
     monkeypatch.delenv('BROWSER_EVAL_FULL_REPORT_CHECK', raising=False)
     if track.startswith('web-extract-'):
         from harness.web_extract.example import create
@@ -337,7 +412,7 @@ def test_prose_rebuild_reuses_measurement_checks_after_profile_rebinding(tmp_pat
     from harness.web_extract.pipeline import digest, read_json, save_json
     from harness.web_extract.report import build
 
-    monkeypatch.setenv('BROWSER_EVAL_REPORT_CHECK_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path))
     monkeypatch.delenv('BROWSER_EVAL_FULL_REPORT_CHECK', raising=False)
     initial = tmp_path / 'initial'
     home = create(initial, mode='field-extraction-cohort')

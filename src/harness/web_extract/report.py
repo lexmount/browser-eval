@@ -22,7 +22,6 @@ from harness.reporting.release_check import (
     checked_page,
     open_report,
     scoped_check,
-    validated,
     validation_step,
 )
 from harness.reporting.templates import template_identity
@@ -3026,11 +3025,6 @@ def verify_record_projection(reference, row):
 
 
 def record_result_fields(reference, row, *, policy=None):
-    return {**row, **record_result_diagnosis(reference, row, policy=policy)}
-
-
-@validation_step
-def record_result_diagnosis(reference, row, *, policy=None):
     from harness.web_extract.analysis import record_field_results
 
     policy = policy or {"unavailable_reference_groups": [], "text_matching": "literal"}
@@ -3047,6 +3041,7 @@ def record_result_diagnosis(reference, row, *, policy=None):
     )
     active = [value for value in fields.values() if value["status"] != "unavailable"]
     return {
+        **row,
         "field_results": fields,
         "failure_stage": failure_stage(row),
         "native_error": native_error(row),
@@ -4210,21 +4205,13 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         rows = list(bucket.values())
         for row in rows:
             verify_record_projection(truth[row["case_id"]], row)
-        recomputed = validated(
-            'web-extract.record-statistics',
-            [truth, rows, method in manifest['complete_methods'],
-             manifest.get('reference_policy'), manifest['dataset_benchmark']],
-            lambda rows=rows, method=method: record_statistics(truth, rows, certified=method in manifest['complete_methods'],
-                                      scorer=adapter.score, reference_policy=manifest.get('reference_policy')),
-        )
+        recomputed = record_statistics(
+            truth, rows, certified=method in manifest['complete_methods'],
+            scorer=adapter.score, reference_policy=manifest.get('reference_policy'))
         if recomputed != metrics[method]:
             raise ValueError("Record report metrics do not reproduce: " + method)
         if audit is not None:
-            original_stats = validated(
-                'web-extract.original-record-statistics',
-                [original, rows, manifest['dataset_benchmark']],
-                lambda rows=rows: record_statistics(original, rows, certified=True, scorer=adapter.score),
-            )
+            original_stats = record_statistics(original, rows, certified=True, scorer=adapter.score)
             if (audit['audited_scores'].get(method) != recomputed['scores']
                     or original_stats != original_metrics.get(method)):
                 raise ValueError("Original or reviewed record scores do not reproduce")

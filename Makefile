@@ -4,6 +4,9 @@ TEST_PY := $(UV) run --frozen --all-extras python
 PYTEST_ARGS ?=
 TEST_PATHS ?= tests
 BROWSER_TESTS ?= include
+export BROWSER_TESTS
+export BROWSER_EVAL_FULL_REPORT_CHECK
+%-release-check: override BROWSER_EVAL_FULL_REPORT_CHECK = 1
 BROWSER_TEST_PATHS := tests/test_browser_observation_contracts.py tests/test_report_browser_interactions.py tests/web_search/test_visual.py
 WEBMAINBENCH_SAMPLE ?= evaluation/public-webmainbench-200.json
 WEBMAINBENCH_PROFILE ?= $(PROFILE)

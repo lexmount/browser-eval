@@ -58,17 +58,13 @@ Classify the change before running gates:
 
 Do not run a broad test suite merely because a report is being published. The release command must state which mode ran and name the manual full-audit command when it was skipped.
 
-The maintained checker selects reusable work from actual inputs through
-`harness.reporting.release_check`; an author-provided change label cannot skip
-validation. A successful baseline permits reuse of pure validation units only
-when their explicit inputs and implementation match. Measurement changes rerun
-the affected units; a changed page reruns that page's unit. Code or dependency
-changes invalidate the baseline. Integrity,
-privacy, evidence bindings and link checks remain with their existing owners on
-every invocation. Browser and visual gates retain their scope. See
-[automatic check scope](../../../../docs/report-hosting.md#automatic-check-scope)
-for receipt storage and the forced-full audit command. Cover both warm-cache
-reuse and rejected changes in behavior tests when extending this mechanism.
+Routine builds and checks use the shared
+[automatic check scope](../../../../docs/report-hosting.md#automatic-check-scope).
+Only successful pure void validations may be reused; scoring and calculated
+outputs always execute. Formal release checks, packaging and publishing run all
+checks afresh and never read or write routine receipts. Keep integrity, privacy,
+bindings, links and visual gates with their owners. Protect both routine reuse
+and the fresh release boundary with behavior tests.
 
 Common publication gates:
 
