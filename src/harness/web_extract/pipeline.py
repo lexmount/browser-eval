@@ -1242,7 +1242,8 @@ def access_blocker(row):
         + " "
         + (
             " ".join(
-                str(native.get(k, "")) for k in ("error", "errors", "message", "non_json_response")
+                str(native.get(k, ""))
+                for k in ("error", "errors", "message", "title", "detail", "non_json_response")
             )
             if isinstance(native, dict)
             else ""

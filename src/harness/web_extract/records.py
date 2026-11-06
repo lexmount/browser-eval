@@ -425,7 +425,8 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
         ]
     for node in tree.xpath("//script|//style"):
         node.drop_tree()
-    # Inline markup preserves word continuity; block elements separate text.
+    # Ordinary inline markup preserves words. Blocks, controls and neighboring
+    # labelled fields delimit values; comments do not contribute text.
     blocks = set(
         (
             "address article aside blockquote br caption dd details dialog div dl dt fieldset "
@@ -433,14 +434,6 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
             "section summary table tbody td tfoot th thead tr ul"
         ).split()
     )
-
-    chunks, regions = [], []
-    position = 0
-
-    def append(value):
-        nonlocal position
-        chunks.append(value)
-        position += len(value)
 
     def labelled(node):
         return (
@@ -455,30 +448,27 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
     def visible(node):
         if not isinstance(node.tag, str):
             return
-        if node.tag in blocks:
-            append(" ")
-        start = position
-        append(node.text or "")
+        previous = node.getprevious()
+        before = (
+            node.tag in blocks
+            or node.tag == "button"
+            or (labelled(node) and labelled(previous) and not (previous.tail or ""))
+        )
+        after = (
+            node.tag in blocks
+            or node.tag == "button"
+            or (labelled(node) and labelled(node.getnext()) and not (node.tail or ""))
+        )
+        if before:
+            yield " "
+        yield node.text or ""
         for child in node:
-            visible(child)
-            append(child.tail or "")
-        if node.tag == "button":
-            regions.append((start, position, True, True))
-        elif labelled(node):
-            previous = node.getprevious()
-            regions.append(
-                (
-                    start,
-                    position,
-                    labelled(previous) and not (previous.tail or ""),
-                    labelled(node.getnext()) and not (node.tail or ""),
-                )
-            )
-        if node.tag in blocks:
-            append(" ")
+            yield from visible(child)
+            yield child.tail or ""
+        if after:
+            yield " "
 
-    visible(tree)
-    text = "".join(chunks)
+    text = text_key("".join(visible(tree)))
     base = (
         document_base
         if document_base is not None
@@ -507,34 +497,10 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
             for value, count in counts.items():
                 required[text_key(value)] += count
             for key, count in required.items():
-                literal = r"\s+".join(re.escape(word) for word in key.split())
-                pattern = r"(?<!\w)" + literal + r"(?!\w)"
-                numeric = re.fullmatch(r"[+-]?\d+(?:[.,]\d+)*", key)
-                if numeric:
-                    pattern = r"(?<![\w.,+\-])" + literal + r"(?!\w|[.,+\-]\d)"
-                # Source offsets identify an occurrence once even when nested
-                # containers and the full page support the same value.
-                occurrences = {match.span() for match in re.finditer(pattern, text)}
-                if not numeric:
-                    for start, end, left_boundary, right_boundary in regions:
-                        for match in re.finditer(pattern, text[start:end]):
-                            left, right = start + match.start(), start + match.end()
-                            if (
-                                left
-                                and re.match(r"\w", text[left - 1])
-                                and re.match(r"\w", text[left])
-                            ):
-                                if not (match.start() == 0 and left_boundary):
-                                    continue
-                            if (
-                                right < len(text)
-                                and re.match(r"\w", text[right - 1])
-                                and re.match(r"\w", text[right])
-                            ):
-                                if not (right == end and right_boundary):
-                                    continue
-                            occurrences.add((left, right))
-                observed = len(occurrences)
+                pattern = r"(?<!\w)" + re.escape(key) + r"(?!\w)"
+                if re.fullmatch(r"[+-]?\d+(?:[.,]\d+)*", key):
+                    pattern = r"(?<![\w.,+\-])" + re.escape(key) + r"(?!\w|[.,+\-]\d)"
+                observed = len(re.findall(pattern, text))
                 if not key or observed < count:
                     missing.append({"field": field, "value": key})
     return missing
