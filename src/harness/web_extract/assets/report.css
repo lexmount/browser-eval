@@ -45,7 +45,8 @@ a,code{overflow-wrap:anywhere}
 .example-pair>div{min-width:0}
 .controls select{max-width:100%}.controls label{max-width:100%;min-width:0;flex-wrap:wrap}
 
-/* Keep participant identity visible while readers compare distant columns. */
+/* Keep the metric headers and participant identity visible in long comparisons. */
+.table-wrap:not(.inventory):has(>table[data-method-column]){max-height:min(70vh,720px)}
 [data-method-column] th:first-child,[data-method-column] td:first-child{position:sticky;left:0;background:var(--panel);z-index:2;min-width:170px;max-width:210px;white-space:normal;box-shadow:1px 0 var(--line)}
 [data-method-column] th:first-child{z-index:3}
 [data-method-column] td:not(:first-child){font-variant-numeric:tabular-nums}
