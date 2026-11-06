@@ -1896,13 +1896,27 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             raise ValueError('returned records must be a list')
         names = SCHEMA_FIELDS[schema]
         known = {source_record_hash(row['fields'], names, schema) for row in records}
+        # An explicit quote row can also be rendered in prose with comma
+        # separators between tags. Keep its native field boundaries and
+        # replace only an equivalent text-derived row.
+        def quote_identity(fields):
+            return (_record_field_key(fields['quote']), _record_field_key(fields['author']),
+                    tuple(re.findall(r'[^,\s]+', _record_field_key(fields['tags']))))
+
+        text_quotes = ({quote_identity(row['fields']): i for i, row in enumerate(records) if row['valid']}
+                       if schema == 'quote' else {})
         for fields in returned_records:
             if not isinstance(fields, dict) or not all(isinstance(fields.get(key), str) for key in names):
                 continue
             selected = {key: fields[key] for key in names}
             identity = source_record_hash(selected, names, schema)
             if identity not in known:
-                records.append(_record(selected, schema))
+                record = _record(selected, schema)
+                equivalent = text_quotes.pop(quote_identity(selected), None) if record['valid'] and text_quotes else None
+                if equivalent is None:
+                    records.append(record)
+                else:
+                    records[equivalent] = record
                 known.add(identity)
     anchor_records = records
     if exclusions and (SCHEMA_FIELDS[schema] or schema == 'table_row') and schema not in {'named_link', 'linked_product'}:

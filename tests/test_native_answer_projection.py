@@ -351,3 +351,18 @@ def test_extract_quote_records_preserve_ownership_and_historical_policy():
                                     returned_records=fields['records'][1:])
     assert accepted['stable_structure_pass']
     assert not rejected['stable_structure_pass']
+
+
+@pytest.mark.parametrize('author,passes', [('Alex Writer', True), ('Another Writer', False)])
+def test_native_quote_merges_only_the_equivalent_text_record(author, passes):
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task, source_record_hash
+
+    names = ['author', 'quote', 'tags']
+    native = {'quote': 'A complete quotation', 'author': 'Alex Writer', 'tags': 'books reading'}
+    contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1,
+                'source_membership': {'kind': 'fixed', 'fields': names,
+                                      'record_hashes': [source_record_hash(native, names, 'quote')]}}
+    rendered = f'“A complete quotation” by {author} Tags: books, reading'
+    result = evaluate_stable_task(rendered, contract, representation='plain_text', returned_records=[native])
+    assert result['stable_task_pass'] is passes
+    assert ('source_record_mismatch' in result['stable_task_errors']) is not passes
