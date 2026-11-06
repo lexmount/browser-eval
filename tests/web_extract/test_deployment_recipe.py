@@ -47,6 +47,10 @@ def test_recipe_resolves_one_authenticated_frontend_and_five_private_dependencie
         assert not component.get("ports"), name
         if name != "firecrawl-api":
             assert "@sha256:" in component["image"]
+    queue = services["firecrawl-rabbitmq"]
+    assert "platform" not in queue
+    assert queue["hostname"] == "firecrawl-rabbitmq"
+    assert queue["healthcheck"]["test"][-1] == "check_running"
     assert len(model["volumes"]) == 3
     firecrawl = services["firecrawl-api"]
     build = firecrawl["build"]

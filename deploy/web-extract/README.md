@@ -32,7 +32,8 @@ The browser, native Firecrawl API, identity endpoint, database and queues remain
 the private Compose network. Three named volumes retain database and queue data.
 The native Python image builds for the Docker host; the pinned Firecrawl images
 use amd64, matching the Rainbond deployment. ARM hosts need Docker's amd64 emulation
-for those five images. Resource limits reproduce the configured Rainbond limits,
+for those four images. RabbitMQ uses the host architecture from its pinned
+multi-platform digest, avoiding Erlang JIT failures under amd64 emulation. Resource limits reproduce the configured Rainbond limits,
 not a measured minimum host requirement.
 
 ## Check every extraction route
@@ -179,9 +180,8 @@ dependencies and mounts from `compose.yaml` in the selected workspace:
 
 The delivered instance is in **Efficiency / office**, application
 **opensource-web-extract** (ID `222`). Its six components are exactly those in
-the Compose file. The API entry is
-`https://gra2e292-8080-ye7izl3p.dev.lexmount.net`; it requires office network access
-and `EXTRACTION_API_KEY`. Two earlier temporary collection components are stopped
+the Compose file. Use the API address recorded in the reports’ deployment
+evidence; it requires office network access and `EXTRACTION_API_KEY`. Two earlier temporary collection components are stopped
 and are not needed for the delivered stack. Live instance details belong in the
 reports' deployment evidence; they are not defaults for another installation.
 
