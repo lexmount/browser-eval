@@ -14,6 +14,218 @@ from harness.web_search.runner import run
 
 
 class CollectionScenarios(unittest.TestCase):
+    def test_ctrl_c_drains_active_calls_and_stops_later_cases(self):
+        import signal
+        import threading
+
+        from harness import benchmark_execution
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.profile(root)
+            profile = json.loads(source.read_text(encoding="utf-8"))
+            profile['cases'].append(dict(profile['cases'][0], id='second-case', query='Second'))
+            methods = profile['methods']
+            profile['protocol'].update(concurrency=len(methods), order='bounded calls',
+                                       retry=False, interval_s=0)
+            profile['execution_policy'] = {
+                'purpose': 'quality', 'max_in_flight': len(methods),
+                'resources': {m['id']: {'capacity': 1, 'reason': 'Ordered calls'} for m in methods}}
+            source.write_text(json.dumps(profile), encoding="utf-8")
+            ready = threading.Barrier(len(methods) + 1, timeout=3)
+            release = threading.Event()
+            calls = []
+            original_wait = benchmark_execution.wait
+            interrupted = False
+
+            def http(url, body=None, header=None, timeout=20):
+                receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+                if body is None:
+                    return receipt, b'reference ' * 20
+                calls.append(body)
+                if len(calls) <= len(methods):
+                    ready.wait()
+                    assert release.wait(timeout=3)
+                return receipt, b'{"results":[]}'
+
+            def wait_once(futures, **kwargs):
+                nonlocal interrupted
+                if not interrupted:
+                    interrupted = True
+                    ready.wait()
+                    try:
+                        signal.raise_signal(signal.SIGINT)
+                    finally:
+                        release.set()
+                return original_wait(futures, **kwargs)
+
+            with (
+                patch('harness.web_search.runner.http_call', side_effect=http),
+                patch('harness.web_search.runner.load_runtime_env'),
+                patch.object(benchmark_execution, 'wait', side_effect=wait_once),
+                patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY='test',
+                           DEEPSEEK_API_KEY='test', BOCHA_API_KEY='test'),
+                self.assertRaises(KeyboardInterrupt),
+            ):
+                run(source, root / 'run', certified=True)
+            self.assertEqual(len(calls), len(methods))
+            rows = (root / 'run/results.jsonl').read_text(encoding="utf-8").splitlines()
+            self.assertEqual(len(rows), len(methods))
+
+    def test_stop_while_waiting_for_reservation_does_not_send_another_request(self):
+        import threading
+        from types import SimpleNamespace
+        from harness.web_search import runner
+
+        blocked, release = threading.Event(), threading.Event()
+        calls = []
+        owner = None
+        real_lock = threading.Lock()
+
+        class AdmissionLock:
+            def __enter__(self):
+                nonlocal owner
+                current = threading.get_ident()
+                if owner is None:
+                    owner = current
+                elif current != owner and not release.is_set():
+                    blocked.set()
+                    assert release.wait(3)
+                real_lock.acquire()
+
+            def __exit__(self, *args):
+                real_lock.release()
+
+        class StopEvent(threading.Event):
+            def set(self):
+                super().set()
+                release.set()
+
+        def http(url, body=None, header=None, timeout=20):
+            receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+            if body is None:
+                return receipt, b'reference ' * 20
+            calls.append(body)
+            assert blocked.wait(3)
+            return dict(receipt, http_status=401), b'{"error":"invalid account"}'
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.profile(root)
+            profile = json.loads(source.read_text(encoding='utf-8'))
+            profile['methods'] = profile['methods'][:2]
+            profile['protocol'].update(concurrency=2, order='bounded calls', retry=False)
+            profile['execution_policy'] = {
+                'purpose': 'quality', 'max_in_flight': 2,
+                'resources': {m['id']: {'capacity': 1, 'reason': 'One call per provider'}
+                              for m in profile['methods']}}
+            source.write_text(json.dumps(profile), encoding='utf-8')
+            with patch.object(runner, 'threading', SimpleNamespace(Event=StopEvent, Lock=AdmissionLock)), \
+                    patch.object(runner, 'http_call', side_effect=http), \
+                    patch.object(runner, 'load_runtime_env'), \
+                    patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY='test', DEEPSEEK_API_KEY='test'):
+                with self.assertRaisesRegex(ValueError, 'account error'):
+                    run(source, root / 'run', certified=True)
+            rows = (root / 'run/results.jsonl').read_text(encoding='utf-8').splitlines()
+            self.assertEqual(len(calls), 1)
+            self.assertEqual(len(rows), 1)
+            self.assertEqual(len(list((root / 'run/calls').glob('*.json'))), 1)
+
+    def test_shared_account_variants_require_an_explicit_account_capacity(self):
+        from harness.web_search.core import validate_profile
+
+        profile = execution_profile()
+        profile['protocol'].update(concurrency=2, order='bounded calls', interval_s=0)
+        profile['methods'][1]['key_env'] = profile['methods'][0]['key_env']
+        profile['execution_policy'] = {
+            'purpose': 'quality', 'max_in_flight': 2,
+            'resources': {m['id']: {'capacity': 1, 'reason': 'Ordered provider calls'}
+                          for m in profile['methods']},
+        }
+        with self.assertRaisesRegex(ValueError, 'shared account'):
+            validate_profile(profile)
+        account = 'account/' + profile['methods'][0]['key_env']
+        profile['execution_policy']['resources'][account] = {
+            'capacity': 1, 'reason': 'Both variants consume the same account quota'}
+        validate_profile(profile)
+
+    def test_independent_queries_of_one_stateless_provider_can_overlap(self):
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.profile(root)
+            profile = json.loads(source.read_text(encoding='utf-8'))
+            profile['methods'] = profile['methods'][:1]
+            profile['cases'].append(dict(profile['cases'][0], id='second-case', query='Second query'))
+            method = profile['methods'][0]['id']
+            profile['protocol'].update(concurrency=2, order='bounded calls', retry=False)
+            profile['execution_policy'] = {
+                'purpose': 'quality', 'max_in_flight': 2,
+                'resources': {method: {'capacity': 2}},
+            }
+            source.write_text(json.dumps(profile), encoding='utf-8')
+            barrier = threading.Barrier(2, timeout=3)
+            calls = []
+
+            def http(url, body=None, header=None, timeout=20):
+                receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+                if body is None:
+                    return receipt, b'reference ' * 20
+                calls.append(body)
+                barrier.wait()
+                return receipt, b'{"results":[]}'
+
+            with patch('harness.web_search.runner.http_call', side_effect=http), \
+                 patch('harness.web_search.runner.load_runtime_env'), \
+                 patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY='test'):
+                run(source, root / 'run', certified=True)
+            _, rows, receipt = load_run(root / 'run')
+            self.assertEqual(len(rows), 2)
+            self.assertEqual(len(calls), 2)
+            self.assertTrue(receipt['certified'])
+
+    def test_bounded_calls_overlap_with_complete_checkpointed_results(self):
+        import threading
+
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            source = self.profile(root)
+            profile = json.loads(source.read_text(encoding='utf-8'))
+            methods = profile['methods']
+            profile['protocol'].update(concurrency=len(methods), order='bounded calls', retry=False)
+            profile['execution_policy'] = {
+                'purpose': 'quality', 'max_in_flight': len(methods),
+                'resources': {m['id']: {'capacity': 1, 'reason': 'Per-account pacing'} for m in methods},
+            }
+            source.write_text(json.dumps(profile), encoding='utf-8')
+            barrier = threading.Barrier(len(methods), timeout=3)
+            calls = []
+            lock = threading.Lock()
+
+            def http(url, body=None, header=None, timeout=20):
+                receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+                if body is None:
+                    return receipt, b'reference ' * 20
+                with lock:
+                    calls.append(url)
+                barrier.wait()
+                return receipt, b'{"results":[]}'
+
+            with patch('harness.web_search.runner.http_call', side_effect=http), \
+                 patch('harness.web_search.runner.load_runtime_env'), \
+                 patch.dict(os.environ, LEXMOUNT_SEARCH_API_KEY='test', DEEPSEEK_API_KEY='test', BOCHA_API_KEY='test'):
+                run(source, root / 'run', certified=True)
+                _, rows, receipt = load_run(root / 'run')
+                self.assertEqual(len(rows), len(methods))
+                self.assertEqual(len(calls), len(methods))
+                self.assertTrue(receipt['certified'])
+                saved = (root / 'run/results.jsonl').read_bytes()
+                with self.assertRaisesRegex(ValueError, 'completed collection'):
+                    run(source, root / 'run', certified=True, resume=True)
+                self.assertEqual((root / 'run/results.jsonl').read_bytes(), saved)
+                self.assertEqual(len(calls), len(methods))
+
     def test_provider_batches_finish_all_cases_and_rounds_without_repeating_saved_calls(self):
         for explicit in (False, True):
             with self.subTest(explicit_order=explicit), tempfile.TemporaryDirectory() as tmp:

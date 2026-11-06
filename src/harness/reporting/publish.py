@@ -736,10 +736,16 @@ class StagedUpdate:
     guard: Callable
     bind: Callable  # (version) inside the frozen release
     allow_inline: bool = False
+    inline_limit_bytes: int | None = None
 
 
 def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
     """Resume the same staged update and verify every deployed byte before binding it."""
+    inline_limit = update.inline_limit_bytes
+    if inline_limit is not None and (type(inline_limit) is not int or inline_limit <= 0):
+        raise ValueError('Inline upload limit must be a positive byte count')
+    if inline_limit is None:
+        inline_limit = STAGED_UPLOAD_THRESHOLD
     label, slug = update.label, update.slug
     identity = {'base_url': update.base, 'slug': slug, 'archive_sha256': update.archive_sha256}
     # The release identifies the operation; its mutable live version is a guard.
@@ -766,7 +772,7 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
         if 'transport' not in operation:
             # Existing journals may already own staged bytes. Never switch them.
             operation['transport'] = ('inline' if update.allow_inline and not resumed and
-                                      release.archive.stat().st_size <= STAGED_UPLOAD_THRESHOLD
+                                      release.archive.stat().st_size <= inline_limit
                                       else 'staged')
             save()
         if operation['transport'] not in {'inline', 'staged'}:

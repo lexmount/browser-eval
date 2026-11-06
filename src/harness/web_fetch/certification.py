@@ -159,7 +159,8 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--work-root", type=Path, required=True)
     parser.add_argument("--providers", required=True, help="Comma-separated names or configured with --provider-config")
     parser.add_argument("--case-ids", required=True)
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=None,
+                        help="Bounded independent provider concurrency; paired latency needs 1")
     parser.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
                         help="Per-call deadline passed to the shared runner")
     add_failure_retry_argument(parser)
@@ -189,6 +190,8 @@ def main(argv: list[str] | None = None) -> None:
         ),
     )
     args = parser.parse_args(argv)
+    if args.workers is None:
+        args.workers = 1 if args.call_order == "case-alternating" else 4
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be positive and finite")
     if args.provider_config and not args.provider_config.is_file():

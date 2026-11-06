@@ -4,7 +4,7 @@ import sys
 from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
-from unittest.mock import patch
+from unittest.mock import AsyncMock, patch
 
 import pytest
 
@@ -26,6 +26,98 @@ def collection_context():
         )
     )
     return stack
+
+
+@pytest.mark.parametrize("concurrency", [1, 2])
+def test_interrupt_after_reservation_never_dispatches_or_leaves_pending_state(
+    tmp_path, concurrency
+):
+    import signal
+    from concurrent.futures import ThreadPoolExecutor
+
+    from harness.web_extract import pipeline
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / "example")
+    target = home / "runs/cancelled-preparation"
+    original = pipeline.save_json
+
+    def save(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path.name == "inflight.json":
+            signal.raise_signal(signal.SIGINT)
+        return result
+
+    def executor(**options):
+        options.pop("mp_context", None)
+        return ThreadPoolExecutor(**options)
+
+    policy = {"purpose": "quality", "max_in_flight": concurrency,
+              "serial_reason": "Declared single-call control",
+              "resources": {"cloudflare-json": {"capacity": concurrency,
+                                               "reason": "Declared provider lane"}},
+              "backend": "process"}
+    with (
+        collection_context(),
+        patch.object(pipeline, "save_json", side_effect=save),
+        patch("harness.benchmark_execution.ProcessPoolExecutor", side_effect=executor),
+        patch.object(pipeline, "provider_call") as call,
+        pytest.raises(KeyboardInterrupt),
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target, execution_policy=policy)
+    call.assert_not_called()
+    assert not (target / "inflight.json").exists()
+    assert not (target / "calls.journal.jsonl").exists()
+
+
+def test_serial_interrupt_after_response_retains_exactly_one_call_and_resumes(tmp_path):
+    import signal
+
+    from harness.web_extract import pipeline
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / "example")
+    target = home / "runs/serial-interrupt"
+
+    def response(*args, **kwargs):
+        signal.raise_signal(signal.SIGINT)
+        return {"http_status": 200, "response": {"result": {"sku": "retained"}}}
+
+    with (
+        collection_context(),
+        patch.object(pipeline, "provider_call", side_effect=response) as call,
+    ):
+        with pytest.raises(KeyboardInterrupt):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 1
+    journal = (target / "calls.journal.jsonl").read_text(encoding="utf-8")
+    assert len(journal.splitlines()) == 1
+    assert not (target / "inflight.json").exists()
+    with (
+        collection_context(),
+        patch.object(pipeline, "provider_call", side_effect=accepted) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 2
+    assert (target / "calls.journal.jsonl").read_text(encoding="utf-8").startswith(journal)
+
+
+def test_source_qualification_rejects_invalid_utf8_before_collection(tmp_path):
+    from harness.web_extract import pipeline
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / "example")
+    manifest = pipeline.read_json(home / "dataset/manifest.json")
+    name = next(name for name in manifest["files"] if name.startswith("html/"))
+    source = home / "dataset" / name
+    source.write_bytes(source.read_bytes() + b"\xff")
+    manifest["files"][name].update(sha256=pipeline.digest(source.read_bytes()),
+                                  bytes=source.stat().st_size)
+    pipeline.save_json(home / "dataset/manifest.json", manifest)
+    with patch.object(pipeline, "provider_call") as call:
+        with pytest.raises(ValueError, match="UTF-8"):
+            pipeline.validate_dataset(home, home / "profile.json")
+    call.assert_not_called()
 
 
 def accepted(*args, **kwargs):
@@ -950,7 +1042,7 @@ def test_invalid_partial_history_stops_before_any_resumed_provider_call(tmp_path
 
 
 @pytest.mark.parametrize(
-    "entry", ["prepare", "reproduce", "report", "example", "baseline", "score", "materialize"]
+    "entry", ["prepare", "reproduce", "report", "example", "score", "materialize"]
 )
 def test_generated_outputs_are_rejected_inside_source_before_any_write(tmp_path, entry):
     from harness.web_extract import example, pipeline, report
@@ -971,8 +1063,6 @@ def test_generated_outputs_are_rejected_inside_source_before_any_write(tmp_path,
             report.build(output, tmp_path / "absent.json", home=tmp_path)
         elif entry == "example":
             example.create(output)
-        elif entry == "baseline":
-            pipeline.baseline_extractor(output)
         elif entry == "materialize":
             from harness.web_extract.dataset import materialize
 
@@ -1462,3 +1552,79 @@ def test_account_keywords_do_not_change_the_scope_of_a_target_or_extraction_erro
 )
 def test_permission_denial_tied_directly_to_an_entitlement_pauses(message):
     assert access_blocker({"http_status": 403, "response": {"error": message}}) == "permission"
+
+
+@pytest.mark.parametrize('method,engine,native,reason', [
+    ('firecrawl-oss-json', 'firecrawl',
+     {'http_status': 402, 'response': {'error': 'Payment required'}}, 'quota_or_payment'),
+    ('firecrawl-oss-json', 'firecrawl',
+     {'http_status': 401, 'response': {'error': 'Invalid API key'}}, 'authentication'),
+    ('crawl4ai-json', 'crawl4ai', {'extracted_content': [
+        {'tags': ['error'], 'error': False, 'content': 'Invalid API key'}]}, 'authentication'),
+])
+def test_native_denial_stops_collection_and_retries_only_the_stopping_call(
+    tmp_path, method, engine, native, reason
+):
+    from harness.web_extract import self_hosted
+    from harness.web_extract.pipeline import read_json
+
+    home = create(tmp_path / 'native-denial')
+    run = home / 'runs/native-denial'
+    identity = {'engine': engine, 'version': 'synthetic', 'model': 'synthetic',
+                'model_base': 'https://model.example',
+                'implementation_sha256': 'a' * 64, 'environment_sha256': 'b' * 64}
+    options = {'endpoint': 'https://extract.example', 'runtime_identity': identity}
+    with patch.object(self_hosted, 'validate_input'), \
+            patch.object(self_hosted, 'runtime_identity', return_value=identity), \
+            patch.object(self_hosted, 'firecrawl_extract', return_value=(None, native)), \
+            patch.object(self_hosted, 'crawl', new=AsyncMock(
+                return_value=(None, native))):
+        response = self_hosted.worker({'engine': engine, 'expected_runtime': identity})
+    assert response['native'] == native
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call',
+                  return_value={'http_status': 200, 'response': response}) as call:
+        with pytest.raises(PermissionError):
+            probe(home, [method], full=True, run_dir=run, native_options=options)
+        assert call.call_count == 1
+    assert read_json(run / 'access-blocked.json')['reason'] == reason
+    success = {'http_status': 200, 'response': {'success': True, 'data': {'sku': 'value'}}}
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call', return_value=success) as call:
+        probe(home, [method], full=True, run_dir=run, native_options=options)
+        assert call.call_count == 3
+    assert len(read_json(run / 'manifest.json')['physical_calls']) == 4
+
+
+def test_page_text_cannot_masquerade_as_native_account_denial():
+    from harness.web_extract.self_hosted import native_failure
+
+    native = {'extracted_content': [{'price': 'Quota exceeded', 'sku': 'Invalid API key'}]}
+    assert native_failure('crawl4ai', native) is None
+    assert access_blocker({'method': 'crawl4ai-json', 'http_status': 200,
+                           'response': {'success': False, 'native': native}}) is None
+
+
+@pytest.mark.parametrize('payload', [None, [], 'valid non-object JSON'])
+def test_non_object_native_response_is_checkpointed_and_not_replayed(tmp_path, payload):
+    home = create(tmp_path / 'native-non-object')
+    run = home / 'runs/native-non-object'
+    method = 'crawl4ai-json'
+    options = {'endpoint': 'https://extract.example', 'runtime_identity': {
+        'engine': 'crawl4ai', 'version': 'synthetic', 'model': 'synthetic',
+        'model_base': 'https://model.example', 'implementation_sha256': 'a' * 64,
+        'environment_sha256': 'b' * 64,
+    }}
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call',
+                  return_value={'http_status': 200, 'response': payload}) as call:
+        probe(home, [method], full=True, run_dir=run, native_options=options)
+        assert call.call_count == 3
+    rows = load_run(run)[1]
+    assert len(rows) == 3
+    assert all(row['response'] == payload for row in rows)
+    assert all(row['normalized_fields'] is None for row in rows)
+    with collection_context(), patch.dict('os.environ', {'EXTRACTION_API_KEY': 'synthetic'}), \
+            patch('harness.web_extract.pipeline.provider_call') as call:
+        probe(home, [method], full=True, run_dir=run, native_options=options)
+        call.assert_not_called()

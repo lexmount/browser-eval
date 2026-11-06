@@ -318,3 +318,90 @@ def test_generated_replay_success_failure_steps_and_viewer(tmp_path, monkeypatch
                 assert 'Fixture action failed' in page.locator('main').inner_text() if method == 'moli-old' else 'Fixture snapshot' in page.locator('main').inner_text()
         finally:
             page.close()
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_web_extract_same_case_panels_keep_native_evidence_and_keyboard_return(
+    tmp_path, browser, display, language
+):
+    from harness.web_extract.example import create
+    from harness.web_extract.pipeline import digest, read_json, save_json
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / 'fixture', mode='full-cohort-progress', language='en')
+    model = read_json(home / 'content.json')
+    method = 'synthetic-success'
+    evidence = home / 'cost-disclosure.json'
+    save_json(evidence, {
+        'schema': 'web-extract-cost-disclosure/1', 'method': method, 'case_count': 3,
+        'total_charge_receipts': 0, 'source_plan_sha256': model['cohort_plan']['sha256'],
+    })
+    model['prices'][method]['cost_unavailable'] = {
+        'population_cases': 3, 'missing_cases': 3,
+        'reason': {'en': 'Synthetic missing total bill.', 'zh': '合成的完整账单缺失场景。'},
+        'evidence': {'path': 'assets/cost-disclosure.json', 'sha256': digest(evidence.read_bytes())},
+    }
+    model.setdefault('assets', []).append({
+        'source': str(evidence), 'path': 'assets/cost-disclosure.json',
+        'sha256': digest(evidence.read_bytes()),
+    })
+    save_json(home / 'content.json', model)
+    profile = read_json(home / 'profile.json')
+    profile.setdefault('research_report', {}).setdefault('content', {})['sha256'] = digest(
+        (home / 'content.json').read_bytes()
+    )
+    save_json(home / 'profile.json', profile)
+    output = tmp_path / 'report'
+    build(output, home / 'content.json', home=home, profile=home / 'profile.json', language='en')
+    with hosted_preview(output) as origin:
+        page = local_page(browser, origin, **display)
+        errors = []
+        page.on('pageerror', lambda error: errors.append(str(error)))
+        try:
+            page.goto(origin + language + '/results.html')
+            for method in ('synthetic-success', 'synthetic-blocked'):
+                if display['color_scheme'] == 'dark':
+                    if not page.locator('html').evaluate('(e)=>e.classList.contains("dark")'):
+                        page.locator('#theme').click()
+                page.locator('[data-result-filter="status"]').select_option('all')
+                row = page.locator(f'tr[data-method="{method}"]').first
+                row.locator('[data-call-log-open]').first.click()
+                diagnosis = page.locator('dialog:visible')
+                expect(diagnosis).to_be_visible()
+                link = diagnosis.locator('.case-links a').first
+                assert link.get_attribute('href').endswith('#' + method)
+                link.click()
+                panel = page.locator(f'details[data-result-panel][id="{method}"]')
+                expect(panel).to_have_attribute('open', '')
+                assert page.url.endswith('#' + method)
+                assert panel.locator('[data-result-summary]').count() == 1
+                trigger = panel.locator('[data-call-log-open]')
+                trigger.click()
+                dialog = panel.locator('dialog')
+                expect(dialog).to_be_visible()
+                expect(dialog.locator('pre')).to_contain_text('case_id')
+                expect(dialog.locator('pre')).to_contain_text(method)
+                if method == 'synthetic-blocked':
+                    expect(panel.locator('[data-result-logs]')).to_contain_text(
+                        'Synthetic route rejects archived HTML'
+                    )
+                page.keyboard.press('Escape')
+                expect(dialog).not_to_be_visible()
+                assert trigger.evaluate('(e)=>e===document.activeElement')
+                assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+                page.locator(f'nav a[href="{language}/results.html"]').click()
+                assert page.url == origin + language + '/results.html'
+            account_link = page.locator(f'nav a[href="{language}/accounts.html"]')
+            if not account_link.is_visible():
+                page.locator('nav details > summary').click()
+            account_link.click()
+            assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2')
+            with page.expect_response(lambda r: r.url.endswith('/assets/cost-disclosure.json')) as receipt:
+                page.locator('[data-cost-evidence]').click()
+            assert receipt.value.json()['method'] == 'synthetic-success'
+            assert page.url == origin + 'assets/cost-disclosure.json'
+            page.go_back()
+            expect(page.locator('[data-price-table]')).to_be_visible()
+            assert errors == []
+        finally:
+            page.close()

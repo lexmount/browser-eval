@@ -42,6 +42,11 @@ Ground truth must be independent of the provider under test. Retain source locat
 
 ## Machine-readable current profile
 
+The [shared execution contract](../../../../docs/benchmark-execution.md) owns
+resource admission, parallelism, preflight estimates, startup cost and resumable
+execution for every track. Freeze those decisions before the full matrix. Keep
+quality collection, isolated latency and loaded throughput explicitly scoped.
+
 Keep one current profile that a fresh session can validate before running, scoring, rebuilding, or publishing. Include exact case IDs or their canonical digest, the ordered method/version set, run count, timeout, concurrency policy, output contract, reference state, review requirement, and release target. Fail closed on drift instead of reconstructing intent from old reports.
 
 The [live-URL guide](../../../../src/harness/web_fetch/HEADLESS.md#native-browser-routes) owns native browser route rules.

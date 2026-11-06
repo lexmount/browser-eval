@@ -9,6 +9,7 @@ from harness.web_extract.dataset import BENCHMARKS
 from harness.web_extract.pipeline import (
     data_home,
     prepare,
+    read_json,
     reproduce,
     score_run,
     serve_fixtures,
@@ -17,7 +18,7 @@ from harness.web_extract.pipeline import (
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--home", type=Path, default=data_home())
+    parser.add_argument("--home", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
@@ -56,12 +57,38 @@ def main(argv=None):
     p.add_argument("--output", type=Path, required=True)
     p = sub.add_parser("plan")
     p.add_argument("--methods", nargs="+", required=True)
+    p.add_argument("--native-options", type=Path, help="Per-method frozen native options JSON")
+    p.add_argument(
+        "--concurrency",
+        type=int,
+        default=4,
+        help="Maximum in-flight calls per method; freeze before collection",
+    )
+    p.add_argument(
+        "--execution-purpose", choices=("quality", "latency", "throughput"), default="quality"
+    )
+    p.add_argument("--serial-reason", default="", help="Required when selecting one in-flight call")
+    p.add_argument(
+        "--execution-assessment",
+        type=Path,
+        action="append",
+        dest="execution_assessments",
+        default=[],
+        help="Bound execution preflight assessment",
+    )
     p.add_argument("--output", type=Path, required=True)
     p.add_argument(
         "--snapshots",
         type=Path,
         help="Verified public snapshot registry; required for URL-based methods",
     )
+    p = sub.add_parser("preflight")
+    p.add_argument("--profile", type=Path, required=True)
+    p.add_argument("--method", required=True)
+    p.add_argument("--run-dir", type=Path, required=True)
+    p.add_argument("--assessment-output", type=Path, required=True)
+    p.add_argument("--sample-size", type=int, default=8)
+    p.add_argument("--wall-time-budget-seconds", type=float, default=7200)
     p = sub.add_parser("serve")
     p.add_argument("--port", type=int, default=8767)
     p = sub.add_parser("repair-plan")
@@ -92,9 +119,13 @@ def main(argv=None):
     p = sub.add_parser("check")
     p.add_argument("output", type=Path)
     p.add_argument("--release", action="store_true")
+    p.add_argument(
+        "--profile", type=Path, help="External frozen report profile; required for release"
+    )
     p.add_argument("--visual-receipt", type=Path)
     p = sub.add_parser("package")
     p.add_argument("report", type=Path)
+    p.add_argument("--profile", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--visual-receipt", type=Path, required=True)
     p = sub.add_parser("publish")
@@ -110,6 +141,8 @@ def main(argv=None):
     p.add_argument("--prior", type=Path, help="Completed audit whose unchanged outputs are reused")
     p = sub.add_parser("adjudicate")
     p.add_argument("--additional-prior", type=Path, action="append", default=[])
+    p.add_argument("--resolved-adjudication", type=Path, action="append", default=[])
+    p.add_argument("--case-ids", type=Path, help="JSON case IDs whose prior review is complete")
     p.add_argument("--prior", type=Path, required=True)
     p.add_argument("--work", type=Path, required=True)
     p.add_argument("--rules", type=Path, required=True)
@@ -124,6 +157,13 @@ def main(argv=None):
     p.add_argument("--additional-adjudication", type=Path, action="append", default=[])
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
+    if args.command == "check" and args.release and args.profile is None:
+        parser.error("check --release requires --profile")
+    formal = args.command in ("package", "publish") or (args.command == "check" and args.release)
+    if formal and args.home is None:
+        parser.error("Formal check, package and publish require an explicit --home")
+    if args.home is None:
+        args.home = data_home()
     if args.command == "host":
         from harness.web_extract.snapshots import host
 
@@ -198,7 +238,36 @@ def main(argv=None):
     elif args.command == "plan":
         from harness.web_extract.certification import create_plan
 
-        print(create_plan(args.home, args.methods, args.output, snapshots=args.snapshots))
+        print(
+            create_plan(
+                args.home,
+                args.methods,
+                args.output,
+                snapshots=args.snapshots,
+                concurrency=args.concurrency,
+                execution_purpose=args.execution_purpose,
+                serial_reason=args.serial_reason,
+                require_execution_assessment=True,
+                execution_assessments=args.execution_assessments,
+                native_options=json.loads(args.native_options.read_text(encoding="utf-8"))
+                if args.native_options
+                else None,
+            )
+        )
+    elif args.command == "preflight":
+        from harness.web_extract.certification import execution_preflight
+
+        print(
+            execution_preflight(
+                args.home,
+                args.profile,
+                args.method,
+                args.run_dir,
+                args.assessment_output,
+                sample_size=args.sample_size,
+                wall_time_budget_seconds=args.wall_time_budget_seconds,
+            )
+        )
     elif args.command == "serve":
         serve_fixtures(args.home, port=args.port)
     elif args.command == "repair-plan":
@@ -238,15 +307,31 @@ def main(argv=None):
     elif args.command == "check":
         from harness.web_extract.report import check
 
-        print(check(args.output, release=args.release, visual_receipt=args.visual_receipt))
+        print(
+            check(
+                args.output,
+                release=args.release,
+                visual_receipt=args.visual_receipt,
+                profile=args.profile,
+                home=args.home,
+            )
+        )
     elif args.command == "package":
         from harness.web_extract.report import package
 
-        print(package(args.report, args.output, visual_receipt=args.visual_receipt))
+        print(
+            package(
+                args.report,
+                args.output,
+                visual_receipt=args.visual_receipt,
+                profile=args.profile,
+                home=args.home,
+            )
+        )
     elif args.command == "publish":
         from harness.web_extract.publication import publish
 
-        print(publish(args.source, args.target, args.work, args.visual_receipt))
+        print(publish(args.source, args.target, args.work, args.visual_receipt, home=args.home))
     elif args.command == "review":
         from harness.web_extract.review import prepare as prepare_review
         from harness.web_extract.review import run as run_review
@@ -268,7 +353,9 @@ def main(argv=None):
         except ValueError as error:
             parser.error(str(error))
         prepare_adjudication(
-            args.prior, args.work, args.rules, additional_priors=args.additional_prior
+            args.prior, args.work, args.rules, additional_priors=args.additional_prior,
+            resolved_adjudications=args.resolved_adjudication,
+            case_ids=read_json(args.case_ids) if args.case_ids else None,
         )
         print(run_review(args.work, model=args.model, workers=args.workers))
     elif args.command == "audit-assemble":

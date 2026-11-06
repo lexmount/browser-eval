@@ -13,7 +13,6 @@ import threading
 import time
 import traceback
 import urllib.error
-from concurrent.futures import ThreadPoolExecutor
 from copy import deepcopy
 from datetime import datetime, timezone
 from pathlib import Path
@@ -26,6 +25,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.response_input import apply_request_status
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
+from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs, validate_capacity
 from harness.record_io import load_jsonl, optional_file_sha256
 from harness.reporting.privacy import WEB_FETCH_DIAGNOSTIC
 from harness.reporting.versions import software_identity
@@ -493,6 +493,55 @@ def persist_result_artifacts(
     return artifact
 
 
+def provider_execution_policy(providers, provider_concurrency):
+    """Resolve one shared admission policy for direct and certified inventories."""
+    workers = min(provider_concurrency, len({provider.name for provider in providers}))
+    execution_policy = {
+        "purpose": "quality" if workers > 1 else "latency",
+        "max_in_flight": workers,
+        "serial_reason": "One provider or an explicitly serial measurement plan",
+        "resources": {
+            provider.name: {
+                "capacity": 1,
+                "reason": "Preserve each provider's ordered lifecycle and pacing",
+            } for provider in providers
+        },
+    }
+    resource_bindings = {provider.name: [provider.name] for provider in providers}
+    shared_declarations = {}
+    for provider in providers:
+        declared = provider.config.get("execution_resources", {})
+        if not isinstance(declared, dict):
+            raise ValueError("Provider execution_resources must be a resource mapping")
+        for group, specification in declared.items():
+            if not isinstance(group, str) or not group.strip() or not isinstance(specification, dict):
+                raise ValueError("Invalid shared provider execution resource")
+            name = "shared/" + group
+            declared_capacity = validate_capacity(specification.get("capacity"))
+            previous = shared_declarations.get(name)
+            if previous is not None and previous != specification:
+                raise ValueError("Conflicting capacities for one shared execution resource")
+            shared_declarations[name] = specification
+            capacity = min(declared_capacity, workers)
+            resource = {**specification, "capacity": capacity}
+            if capacity == 1 and declared_capacity > 1 and not resource.get("reason"):
+                resource["reason"] = "The declared global measurement limit admits one active job"
+            execution_policy["resources"][name] = resource
+            if name not in resource_bindings[provider.name]:
+                resource_bindings[provider.name].append(name)
+    ExecutionPolicy.from_dict(execution_policy)
+    return execution_policy, resource_bindings
+
+
+def runtime_source_sha256():
+    """Bind the shared collector/scorer source, independently of saved result files."""
+    return hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
+            p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
+            for p in sorted(Path(__file__).parent.rglob('*.py')))
+            + b'\0benchmark_execution.py\0'
+            + (Path(__file__).parents[1] / 'benchmark_execution.py').read_bytes()).hexdigest()
+
+
 def run_evaluation(
     *,
     output_dir: Path,
@@ -510,6 +559,8 @@ def run_evaluation(
     reference_policy: str = "fresh",
     case_admission: Any | None = None,
     call_order: str = "provider",
+    execution_context: dict | None = None,
+    stop_event: Any | None = None,
 ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
     output_dir = output_dir.resolve()
     for name, value, minimum in (
@@ -548,6 +599,11 @@ def run_evaluation(
         raise ValueError('Provider names must be unique within an execution')
     if len({case.id for case in cases}) != len(cases):
         raise ValueError('Task IDs must be unique within an execution')
+    workers = min(provider_concurrency, len(providers))
+    execution_policy, resource_bindings = provider_execution_policy(providers, workers)
+    if execution_context is not None:
+        execution_policy["purpose"] = ExecutionPolicy.from_dict(execution_context).purpose
+    policy = ExecutionPolicy.from_dict(execution_policy)
     native_routes = (NativeRouteLedger(cases, providers, timeout_seconds=timeout)
                      if any(p.config.get('uniform_native_parameters') for p in providers) else None)
     for filename in ['artifacts', PUBLIC_CALL_LOG_ROOT, 'manifest.json', 'dataset.json',
@@ -584,9 +640,7 @@ def run_evaluation(
 
     manifest = {
         "schema_version": 1,
-        "runtime_source_sha256": hashlib.sha256(SCORING_SOURCE_SHA256.encode()+b'\0'+b'\0'.join(
-            p.relative_to(Path(__file__).parent).as_posix().encode()+b'\0'+p.read_bytes()
-            for p in sorted(Path(__file__).parent.rglob('*.py')))).hexdigest(),
+        "runtime_source_sha256": runtime_source_sha256(),
         "provider_config_sha256": optional_file_sha256(provider_config_path),
         "dataset_sha256": hashlib.sha256(read_dataset_bytes(dataset_path)).hexdigest() if dataset_path.is_file() or (benchmark_input_path(dataset_path).parent / 'source-inputs.json').is_file() else None,
         "network_preflight": ({"dns_mode": network_audit["dns_mode"],
@@ -616,11 +670,13 @@ def run_evaluation(
             }
             for provider in providers
         ],
+        "execution_policy": execution_policy,
+        **({"execution_context": execution_context} if execution_context else {}),
         "parameters": {
             "runs": runs,
             "timeout": timeout,
             "delay": delay,
-            "provider_concurrency": min(provider_concurrency, max(1, len(providers))),
+            "provider_concurrency": workers,
             "concurrency_scope": ("serial_alternating_providers_per_case"
                                   if call_order == "case-alternating"
                                   else "providers_parallel_cases_sequential_per_provider"),
@@ -670,12 +726,23 @@ def run_evaluation(
     result_lock = threading.Lock()
     with results_path.open("w", encoding="utf-8") as results_file:
         completed_by_provider = {}
+        operator_stopped = stop_event if stop_event is not None else threading.Event()
+
+        def cancelled():
+            return operator_stopped.is_set()
         case_positions = {case.id: index for index, case in enumerate(cases, 1)}
 
         def run_provider(provider: Provider, selected_cases=None, selected_runs=None) -> bool:
             previous_request_completed = completed_by_provider.get(provider.name)
             for run_number in (range(1, runs + 1) if selected_runs is None else selected_runs):
                 for case in (cases if selected_cases is None else selected_cases):
+                    if cancelled():
+                        with result_lock:
+                            manifest['unexecuted'].append({
+                                'provider': provider.name, 'from_case_id': case.id,
+                                'reason': 'admission_stopped; remaining provider cases not executed',
+                            })
+                        return False
                     case_index = case_positions[case.id]
                     throttle_wait_ms = 0.0
                     if previous_request_completed is not None and provider.min_interval_seconds:
@@ -709,6 +776,15 @@ def run_evaluation(
                                 if remaining > 0:
                                     retry_throttle_wait_ms = round(remaining * 1000, 2)
                                     time.sleep(remaining)
+                            if cancelled():
+                                if not physical_attempts:
+                                    with result_lock:
+                                        manifest['unexecuted'].append({
+                                            'provider': provider.name, 'from_case_id': case.id,
+                                            'reason': 'admission_stopped; call not dispatched',
+                                        })
+                                    return False
+                                break
                             physical_started = utc_now()
                             physical_begin = time.perf_counter()
                             pending = None
@@ -838,7 +914,10 @@ def run_evaluation(
                             stopped_provider = (isinstance(caught_exception, ProcessCleanupError)
                                                 or worker_unresolved(
                                                     pending, timed_out=result.error_type == 'timeout'))
-                            if physical_passed or stopped_provider or physical_attempt > max_failure_retries:
+                            if stopped_provider:
+                                operator_stopped.set()
+                            if (physical_passed or stopped_provider or cancelled()
+                                    or physical_attempt > max_failure_retries):
                                 break
                         result.metadata['call_sequence_elapsed_ms'] = round((time.monotonic() - sequence_begin) * 1000, 2)
                         elapsed_ms = physical_attempts[-1]['elapsed_ms']
@@ -901,6 +980,11 @@ def run_evaluation(
                         if case_admission is not None:
                             case_admission.release(admission_token, pending=pending, record=record)
                     if stopped_provider:
+                        with result_lock:
+                            manifest.setdefault('quarantined_providers', []).append({
+                                'provider': provider.name, 'after_attempt_id': attempt_id,
+                                'reason': 'non_cancellable_call_still_running',
+                            })
                         remaining_attempts = ((runs - run_number) * len(cases)
                                               + len(cases) - case_index)
                         if remaining_attempts:
@@ -911,7 +995,6 @@ def run_evaluation(
                         return False
             return True
 
-        workers = min(provider_concurrency, max(1, len(providers)))
         try:
             if call_order == "case-alternating":
                 stopped = False
@@ -934,15 +1017,44 @@ def run_evaluation(
                     if stopped:
                         break
             else:
-                with ThreadPoolExecutor(max_workers=workers, thread_name_prefix="webfetch-provider") as executor:
-                    list(executor.map(run_provider, providers))
-        except ReferenceLifecycleError as error:
-            if reference_checks is not None:
+                finished_providers = set()
+
+                def commit_provider(job, value, error):
+                    if error is not None:
+                        raise error
+                    finished_providers.add(job.key)
+                    if value is False:
+                        operator_stopped.set()
+
+                run_jobs([Job(provider.name, tuple(resource_bindings[provider.name]), provider)
+                          for provider in providers], run_provider, commit_provider, policy,
+                         stop_event=operator_stopped)
+                if operator_stopped.is_set():
+                    manifest['unexecuted'].extend({
+                        'provider': provider.name,
+                        'reason': 'non_cancellable_call_still_running; admission stopped',
+                    } for provider in providers if provider.name not in finished_providers)
+        except BaseException as error:
+            if isinstance(error, ReferenceLifecycleError) and reference_checks is not None:
                 reference_checks.update(status=error.status, callcheck_error=str(error))
-                manifest.update(completed_at=utc_now(), attempt_count=len(records),
-                                attempt_ids=[record["attempt_id"] for record in records])
-                (output_dir / "manifest.json").write_text(
-                    json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+            retained = {record["attempt_id"] for record in records}
+            for provider in providers:
+                for run_number in range(1, runs + 1):
+                    for case in cases:
+                        attempt_id = f"{provider.name}__{case.id}__r{run_number:03d}"
+                        if attempt_id not in retained:
+                            manifest['unexecuted'].append({
+                                'provider': provider.name, 'case_id': case.id,
+                                'run': run_number, 'attempt_id': attempt_id,
+                                'reason': 'execution interrupted before this call completed',
+                            })
+            manifest.update(
+                completed_at=utc_now(), attempt_count=len(records),
+                attempt_ids=[record["attempt_id"] for record in records],
+                execution_status="interrupted" if isinstance(error, KeyboardInterrupt) else "failed",
+            )
+            (output_dir / "manifest.json").write_text(
+                json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
             raise
 
     provider_order = {provider.name: index for index, provider in enumerate(providers)}

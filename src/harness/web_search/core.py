@@ -104,7 +104,32 @@ def aggregate(rows):
     return output
 
 
-def validate_profile(profile):
+def execution_resources(profile):
+    """Bind provider lanes and credentials shared by multiple method variants."""
+    methods = profile["methods"]
+    policy = profile["execution_policy"]
+    supplied = policy.get("assignments", {})
+    if not isinstance(supplied, dict) or (supplied and set(supplied) != {m["id"] for m in methods}):
+        raise ValueError("Execution resource assignments must cover every search method")
+    accounts = {}
+    for method in methods:
+        accounts.setdefault(method["key_env"], []).append(method["id"])
+    bindings = {}
+    for method in methods:
+        required = {method["id"]}
+        if len(accounts[method["key_env"]]) > 1:
+            required.add("account/" + method["key_env"])
+        resources = supplied.get(method["id"], sorted(required))
+        if (not isinstance(resources, list) or not resources or not all(isinstance(r, str) for r in resources) or len(set(resources)) != len(resources)
+            or not required.issubset(resources) or any(r not in policy["resources"] for r in resources)):
+            raise ValueError("Declare every provider and shared account execution resource")
+        bindings[method["id"]] = tuple(resources)
+    if {r for group in bindings.values() for r in group} != set(policy["resources"]):
+        raise ValueError("Execution policy contains unused search resources")
+    return bindings
+
+
+def validate_profile(profile, *, execution_methods=None):
     if profile.get("schema") != "web-search/1":
         raise ValueError("Unsupported search profile")
     cases = profile["cases"]
@@ -116,11 +141,29 @@ def validate_profile(profile):
         ids = [x["id"] for x in items]
         if len(ids) != len(set(ids)) or any(not re.fullmatch("[a-z0-9-]+", v) for v in ids):
             raise ValueError("Duplicate or unsafe IDs")
-    if type(protocol["top_k"]) is not int or protocol["top_k"] not in (5, 10) or protocol["rounds"] < 1 or protocol["concurrency"] != 1:
-        raise ValueError("This protocol requires a supported cutoff (5 or 10) and serial calls")
+    if type(protocol["top_k"]) is not int or protocol["top_k"] not in (5, 10) or protocol["rounds"] < 1:
+        raise ValueError("This protocol requires a supported cutoff (5 or 10)")
+    concurrency = protocol["concurrency"]
+    if type(concurrency) is not int or not 1 <= concurrency <= 64:
+        raise ValueError("Search concurrency must be an integer between 1 and 64")
+    execution = profile.get("execution_policy")
+    if concurrency != 1 or execution is not None:
+        from harness.benchmark_execution import ExecutionPolicy
+
+        policy = ExecutionPolicy.from_dict(execution)
+        if policy.max_in_flight != concurrency or policy.backend != "thread":
+            raise ValueError("Search execution policy differs from declared concurrency/backend")
+        if not {m["id"] for m in methods}.issubset(policy.resources):
+            raise ValueError("Search execution requires a resource lane per method")
+        execution_resources({**profile, "methods": execution_methods or methods})
+        order = protocol.get("order")
+        if order != "bounded calls":
+            raise ValueError("Concurrent search requires an explicit bounded execution order")
+        if protocol.get("interval_s", 0) and any(policy.resources[m["id"]] != 1 for m in methods):
+            raise ValueError("Post-call intervals require one in-flight call per search method")
     if protocol["score_round"] not in range(protocol["rounds"]):
         raise ValueError("Invalid score round")
-    if protocol.get("order", "complete provider batches") not in {"complete provider batches", "rotate methods by case", "rotate methods by case and round"}:
+    if protocol.get("order", "complete provider batches") not in {"complete provider batches", "bounded calls", "rotate methods by case", "rotate methods by case and round"}:
         raise ValueError("Unsupported execution order")
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
     for method in methods:

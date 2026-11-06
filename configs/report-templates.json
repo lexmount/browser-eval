@@ -30,7 +30,9 @@
       "snapshot_audit_example_check": "uv run --frozen python -m pytest tests/test_published_snapshot_report.py tests/test_published_snapshot_rescoring.py",
       "snapshot_audit_release_check": "uv run --frozen python scripts/check_report.py /absolute/new-report --profile /absolute/profile.json --visual-receipt /absolute/private/visual.json",
       "snapshot_audit_package": "uv run --frozen python -m harness.web_fetch site-package /absolute/new-report /absolute/package.zip --snapshot-audit",
-      "snapshot_audit_publish": "uv run --frozen python -m harness.web_fetch site-publish --create --profile /absolute/publication-target.json --source /absolute/new-report --archive /absolute/package.zip --receipt /absolute/receipt.json --operation-journal /absolute/pending.json --snapshot-audit --visibility private"
+      "snapshot_audit_publish": "uv run --frozen python -m harness.web_fetch site-publish --create --profile /absolute/publication-target.json --source /absolute/new-report --archive /absolute/package.zip --receipt /absolute/receipt.json --operation-journal /absolute/pending.json --snapshot-audit --visibility private",
+      "execution_owner": "src/harness/web_fetch/runner.py",
+      "execution_tests": "tests/test_runner_concurrency.py"
     },
     "trajectory-replay": {
       "renderer": "src/harness/trajectory_replay/webarena_report.py",
@@ -40,7 +42,9 @@
       "tests": "tests/trajectory_replay/test_webarena_report.py",
       "example_env": "TRAJECTORY_REPLAY_REPORT_EXAMPLE_URL",
       "example_version": "ver_c0f0693e9c08401bb4d2b88393234e55",
-      "package": "uv run --frozen python -m harness.trajectory_replay package --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/results.json --review /absolute/review.json --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json"
+      "package": "uv run --frozen python -m harness.trajectory_replay package --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/results.json --review /absolute/review.json --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json",
+      "execution_owner": "src/harness/trajectory_replay/webarena_plan.py",
+      "execution_tests": "tests/trajectory_replay"
     },
     "browser-use": {
       "renderer": "src/harness/browser_use/report.py",
@@ -50,7 +54,9 @@
       "tests": "tests/browser_use/test_report.py",
       "package": "uv run --frozen python -m harness.browser_use package --report /absolute/new-report --profile /absolute/instance-profile.json --evidence /absolute/evidence --output /absolute/package.zip --attestation /absolute/attestation.json --visual-receipt /absolute/visual.json",
       "example_env": "BROWSER_USE_REPORT_EXAMPLE_URL",
-      "example_version": "ver_ce4dd70fde2e444ab18d24bba3ee0e93"
+      "example_version": "ver_ce4dd70fde2e444ab18d24bba3ee0e93",
+      "execution_owner": "src/harness/browser_use/runner.py",
+      "execution_tests": "tests/browser_use"
     },
     "web-search": {
       "renderer": "src/harness/web_search/report.py",
@@ -66,7 +72,9 @@
         "synthetic",
         "combined-cohorts"
       ],
-      "release_check": "uv run --frozen python -m harness.web_search report --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json"
+      "release_check": "uv run --frozen python -m harness.web_search report --output /absolute/report --release-check /absolute/visual-receipt.json --publication-plan /absolute/release/publication-plan.json",
+      "execution_owner": "src/harness/web_search/runner.py",
+      "execution_tests": "tests/web_search/test_runner.py"
     },
     "web-extract": {
       "renderer": "src/harness/web_extract/report.py",
@@ -83,12 +91,14 @@
         "synthetic",
         "field-extraction-cohort"
       ],
-      "release_check": "uv run --frozen python -m harness.web_extract.cli check /absolute/report --release --visual-receipt /absolute/visual-receipt.json",
+      "release_check": "uv run --frozen python -m harness.web_extract.cli --home /absolute/data check /absolute/report --release --profile /absolute/report-profile.json --visual-receipt /absolute/visual-receipt.json",
       "package": "uv run --frozen python -m harness.web_extract.cli package /absolute/report --output /absolute/report.zip --visual-receipt /absolute/visual-receipt.json",
       "benchmark": "src/harness/benchmarks/cards/zyte-product-extraction.json",
       "cohort_example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-cohort-example --mode full-cohort-progress",
       "publish": "uv run --frozen python -m harness.web_extract.cli publish --source /absolute/report --target /absolute/publication-target.json --work /absolute/new-publication --visual-receipt /absolute/visual-receipt.json",
-      "record_example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-record-example --mode field-extraction-cohort"
+      "record_example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-record-example --mode field-extraction-cohort",
+      "execution_owner": "src/harness/web_extract/pipeline.py",
+      "execution_tests": "tests/web_extract/test_concurrent_collection.py"
     }
   }
 }

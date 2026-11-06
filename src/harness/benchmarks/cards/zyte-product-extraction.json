@@ -25,20 +25,6 @@
       "price": 0.824,
       "sku": 0.765,
       "availability": 0.943
-    },
-    "extruct": {
-      "price": 0.685,
-      "sku": 0.537,
-      "availability": 0.626
-    }
-  },
-  "baseline_extractor": {
-    "url": "https://raw.githubusercontent.com/scrapinghub/product-extraction-benchmark/cba97d7a8d42aeefd4021bc15d482f297faceaa3/extractors/run_extruct.py",
-    "path": "extractors/run_extruct.py",
-    "sha256": "409abc3a2e5c26c09324ed988aeb363544f68032ce6548ec880b21cf919d0aeb",
-    "dependencies": {
-      "extruct": "0.18.0",
-      "price-parser": "0.5.0"
     }
   },
   "name": "Zyte product extraction benchmark",
@@ -51,10 +37,6 @@
     "Zyte": {
       "path": "dataset/output/Zyte.json",
       "sha256": "ba4cf1fee25dca6cbe8362907f662dc37e790509f40133a873397853c7c0cede"
-    },
-    "extruct": {
-      "path": "dataset/output/extruct.json",
-      "sha256": "177e2b459dec1ea2405686ef7b5e7b31f8b7930402a6c652826fc1c329074bc0"
     }
   }
 }

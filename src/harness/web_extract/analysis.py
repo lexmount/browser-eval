@@ -4,9 +4,10 @@ import json
 from decimal import InvalidOperation
 from functools import lru_cache
 
-from harness.web_extract.pipeline import PROFILE, digest, official_scorer
+from harness.web_extract.pipeline import PROFILE, SCHEMA, digest, official_scorer
 
-FIELDS = ("price", "sku", "availability")
+FIELDS = tuple(SCHEMA["properties"])
+
 REFERENCE_CONTROLS = (
     ("locale-thousands-price", "price", ["24990"], "24990", "24.99"),
     ("current-price-excludes-list-price", "price", ["99", "990"], "990.00", "1390"),
@@ -263,7 +264,6 @@ def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
     field_counts, failures = Counter(), Counter()
     policy = reference_policy or {"text_matching": "literal", "unavailable_reference_groups": []}
     unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
-    exact_pages = 0
     retry_seconds, retry_missing, physical_calls = 0.0, 0, 0
     for row in rows:
         reference = truth[row["case_id"]]
@@ -278,8 +278,6 @@ def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
             ],
         )
         field_counts.update(value["status"] for value in fields.values())
-        active = [value for value in fields.values() if value["status"] != "unavailable"]
-        exact_pages += bool(active) and all(value["exact"] for value in active)
         if row.get("compatibility") != "structured_output":
             failures[failure_stage(row)] += 1
         attempts = row.get("physical_attempts", [row])
@@ -317,10 +315,103 @@ def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
         "latency": latency,
         "field_outcomes": dict(field_counts),
         "failure_stages": dict(failures),
-        "exact_pages": exact_pages,
         "physical_calls": physical_calls,
         "retry_seconds": retry_seconds,
         "retry_missing_timers": retry_missing,
+    }
+
+
+def completion_metrics(rows, fields_by_case, *, records):
+    """Add delivery-aware diagnostics without changing upstream field judgments.
+
+    Whole-page accuracy excludes a page if any requested field lacks reference
+    coverage. Empty-field accuracy retains every covered negative field, including
+    failed calls in its denominator. Missing values are valid for native product
+    APIs; array-schema tasks require an explicitly delivered empty array.
+    """
+    from decimal import Decimal, InvalidOperation
+
+    from harness.web_extract.pipeline import normalize
+
+    by_case = {row["case_id"]: row for row in rows}
+    if len(by_case) != len(rows) or set(by_case) != set(fields_by_case):
+        raise ValueError("Completion metrics require the complete unique case population")
+    page_correct = page_total = empty_correct = empty_total = 0
+    cases = {}
+    for cid, fields in fields_by_case.items():
+        row = by_case[cid]
+        prediction = row.get("normalized_fields")
+        if not records and "response" in row:
+            # Inspect native types before product projection drops malformed values.
+            prediction = normalize(
+                row["method"],
+                row["response"],
+                schema={"type": "object"},
+                preserve_native_types=True,
+            )
+        delivered = (
+            row.get("http_status") == 200
+            and row.get("compatibility") == "structured_output"
+            and isinstance(prediction, dict)
+        )
+        prediction = prediction if isinstance(prediction, dict) else {}
+        covered = {f: value for f, value in fields.items() if value["status"] != "unavailable"}
+        eligible = bool(fields) and len(covered) == len(fields)
+
+        def valid(field, current=prediction):
+            value = current.get(field)
+            if records:
+                return (
+                    field in current
+                    and isinstance(value, list)
+                    and all(isinstance(item, str) for item in value)
+                )
+            if value is None:
+                return True
+            if isinstance(value, (bool, dict, list)):
+                return False
+            definition = SCHEMA["properties"].get(field, {})
+            if "number" in definition.get("type", []):
+                try:
+                    return Decimal(str(value)).is_finite()
+                except (InvalidOperation, ValueError):
+                    return False
+            if "enum" in definition:
+                return value in definition["enum"]
+            return isinstance(value, (str, int, float))
+
+        correct = {
+            f: delivered
+            and valid(f)
+            and (value["exact"] if records else value["status"] == "correct")
+            for f, value in covered.items()
+        }
+        full = (
+            eligible and all(correct.values()) and (not records or set(prediction) == set(fields))
+        )
+        negatives = [f for f, value in covered.items() if not value["expected"]]
+        negative_correct = sum(bool(correct[f]) for f in negatives)
+        page_total += eligible
+        page_correct += full
+        empty_total += len(negatives)
+        empty_correct += negative_correct
+        cases[cid] = {
+            "eligible": eligible,
+            "delivered": delivered,
+            "page_exact": bool(full) if eligible else None,
+            "empty_fields": len(negatives),
+            "empty_fields_correct": negative_correct,
+        }
+
+    def rate(correct, total):
+        return {"correct": correct, "total": total, "rate": correct / total if total else None}
+
+    return {
+        "page_exact": rate(page_correct, page_total),
+        "empty_fields": rate(empty_correct, empty_total),
+        "planned_pages": len(fields_by_case),
+        "excluded_pages": len(fields_by_case) - page_total,
+        "cases": cases,
     }
 
 

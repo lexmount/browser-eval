@@ -71,6 +71,7 @@ require_profile = @test -n "$($(or $(1),PROFILE))" || (echo '$(or $(1),PROFILE)=
   webmainbench-review \
   webmainbench-assemble \
   test-native-adapters \
+  test-extraction-sdk \
   pin-dataset
 setup: ## Install the locked base environment
 	$(UV) sync --frozen
@@ -79,6 +80,10 @@ setup-test: ## Install every extra, Node packages and benchmark datasets
 	$(UV) sync --frozen --all-extras
 	npm ci
 	$(TEST_PY) -m harness.benchmarks.data
+
+EXTRACTION_SDK_ENV ?= $(or $(BROWSER_EVAL_DATA_HOME),$(HOME)/.browser-eval)/environments/web-extract-sdk
+test-extraction-sdk: ## Test native extraction protocols with the service's locked SDKs
+	BROWSER_EVAL_TEST_NATIVE_SDKS=1 LITELLM_LOCAL_MODEL_COST_MAP=True PYTHONPATH=src UV_PROJECT_ENVIRONMENT="$(EXTRACTION_SDK_ENV)" $(UV) run --frozen --project deploy/web-extract --python 3.12 python -m unittest discover -s tests/web_extract -p test_native_sdk_protocol.py
 
 help: ## List documented targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z][a-z0-9-]*:.*## / {printf "  %-36s %s\n", $$1, $$2}' $(firstword $(MAKEFILE_LIST))
@@ -138,7 +143,8 @@ fixture-smoke: runtime-check ## Run the offline fixture CLI
 
 test: test-python test-ui test-native-adapters ## Run Python, UI and native adapter tests
 
-ci-tests: track-naming-check lint-check shell-check test fixture-smoke ## Run the CI test and static check job
+ci-tests: track-naming-check lint-check shell-check fixture-smoke ## Run static checks and independent test suites
+	$(MAKE) -j2 test test-extraction-sdk
 
 ci: ci-tests package-check browser-check ## Run every CI job: tests, packaging and browser checks
 
@@ -151,7 +157,7 @@ browser-check: runtime-check ## Run the CI rendered reference and report checks
 	BROWSER_EVAL_TEST_BROWSER_BINARY="$$($(TEST_PY) -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')" \
 	  $(TEST_PY) -m pytest $(BROWSER_TEST_PATHS) -q
 
-package-check: runtime-check ## Verify the sdist and wheel outside the checkout
+package-check: runtime-check ## Verify sdist and wheel installation
 	$(PY) scripts/check_package.py --uv "$(UV)"
 
 report: runtime-check ## Build the Web Fetch report: PROFILE, EVIDENCE

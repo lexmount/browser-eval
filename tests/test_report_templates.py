@@ -39,11 +39,38 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_new_track_requires_an_execution_owner_and_behavior_checks(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root = Path(temp)
+            (root / 'configs').mkdir()
+            for name in ('renderer.py', 'execute.py', 'test_execution.py'):
+                (root / name).write_text('# synthetic owner', encoding='utf-8')
+            row = {'renderer': 'renderer.py', 'entrypoint': 'renderer.py',
+                   'tests': 'test_execution.py', 'example': 'synthetic example'}
+            path = root / 'configs/report-templates.json'
+            def save():
+                path.write_text(json.dumps({'schema_version': 1, 'tracks': {'future': row}}), encoding='utf-8')
+            save()
+            with self.assertRaisesRegex(ValueError, 'execution_owner'):
+                resolve_template('future', root=root)
+            row['execution_owner'] = 'execute.py'
+            save()
+            with self.assertRaisesRegex(ValueError, 'execution_tests'):
+                resolve_template('future', root=root)
+            row['execution_tests'] = 'test_execution.py'
+            save()
+            template = discover_template('future', root=root)
+            self.assertEqual(template['execution_contract']['spec'], 'docs/benchmark-execution.md')
+            row['execution_contract'] = {}
+            save()
+            with self.assertRaisesRegex(ValueError, 'cannot replace'):
+                resolve_template('future', root=root)
+
     def test_future_tracks_inherit_cost_latency_and_resource_decisions(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);(root/'configs').mkdir()
             for name in ('renderer.py','entry.py','test.py'):(root/name).write_text('# synthetic owner', encoding="utf-8")
-            registry={'schema_version':1,'tracks':{'future-type':{'renderer':'renderer.py','entrypoint':'entry.py','tests':'test.py','example':'synthetic example'}}}
+            registry={'schema_version':1,'tracks':{'future-type':{'renderer':'renderer.py','entrypoint':'entry.py','tests':'test.py','execution_owner':'entry.py','execution_tests':'test.py','example':'synthetic example'}}}
             path=root/'configs/report-templates.json';path.write_text(json.dumps(registry), encoding="utf-8")
             contract=discover_template('future-type',root=root)['metric_contract']
             self.assertEqual(set(contract['required']),{'latency','cost'})
@@ -65,7 +92,7 @@ class ReportTemplateTests(unittest.TestCase):
                 (root/'configs/report-templates.json').write_text(json.dumps({
                     'schema_version': 1, 'tracks': {track: {
                         'renderer': 'renderer.py', 'entrypoint': 'build.py',
-                        'tests': 'test.py', 'profile': 'default-profile.json',
+                        'tests': 'test.py', 'execution_owner': 'build.py', 'execution_tests': 'test.py', 'profile': 'default-profile.json',
                         'example': 'https://example.test/s/demo?version=frozen'}}}), encoding='utf-8')
                 self.assertEqual(resolve_template(track, root=root)['track'], track)
 
@@ -428,6 +455,7 @@ class ReportTemplateTests(unittest.TestCase):
             os.environ.pop('DEMO_EXAMPLE_URL',None)
             (root/'configs/report-templates.json').write_text(json.dumps({'schema_version':1,'tracks':{'demo':{
                 'renderer':'renderer.py','entrypoint':'renderer.py','tests':'renderer.py',
+                'execution_owner':'renderer.py','execution_tests':'renderer.py',
                 'example_env':'DEMO_EXAMPLE_URL','example_version':'ver_1'}}}), encoding='utf-8')
             self.assertIsNone(discover_template('demo',root=root)['example'])
             (root/'.env').write_text('DEMO_EXAMPLE_URL=https://example.test/s/demo?version=ver_1\n', encoding='utf-8')
@@ -448,7 +476,7 @@ class ReportTemplateTests(unittest.TestCase):
             root=Path(temp);(root/'configs').mkdir()
             registry=json.loads((ROOT/'configs/report-templates.json').read_text(encoding='utf-8'))
             row=registry['tracks']['webfetch']
-            for key in ('renderer','entrypoint','tests'):
+            for key in ('renderer','entrypoint','tests','execution_owner','execution_tests'):
                 path=root/row[key];path.parent.mkdir(parents=True,exist_ok=True);path.write_text('', encoding='utf-8')
             (root/'configs/report-templates.json').write_text(json.dumps(registry), encoding='utf-8')
             self.assertEqual(resolve_template('webfetch',root=root)['renderer'],row['renderer'])

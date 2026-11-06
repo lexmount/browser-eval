@@ -132,6 +132,8 @@ def test_every_template_inherits_the_same_reader_requirements():
 
 @pytest.mark.parametrize("records", [False, True])
 def test_reader_examples_verify_fields_against_the_correct_native_contract(tmp_path, records):
+    import json
+
     from harness.web_extract.pipeline import SCHEMA, digest, normalize, save_json
     from harness.web_extract.report import method_examples
 
@@ -177,6 +179,14 @@ def test_reader_examples_verify_fields_against_the_correct_native_contract(tmp_p
     binding = {"path": path.name, "sha256": digest(path.read_bytes())}
     assert "12" in method_examples(tmp_path, binding, "en")
     entry = value["benchmarks"][0]["methods"][0]
+    entry["example"]["request"]["fixture_url"] = "https://expired.example/frozen/one"
+    entry["example"]["input_preview_url"] = "https://snapshots.example/frozen/one"
+    save_json(path, value)
+    binding["sha256"] = digest(path.read_bytes())
+    reader = BeautifulSoup(method_examples(tmp_path, binding, "en"), "html.parser")
+    assert reader.select_one(".example-pair a")["href"] == "https://snapshots.example/frozen/one"
+    retained = json.loads(reader.select_one(".method-example pre").get_text())
+    assert retained["request"]["fixture_url"] == "https://expired.example/frozen/one"
     entry["requested_fields"] = list(schema["properties"])
     del response["result"]["price"]
     entry["example"]["fields"] = normalize(
