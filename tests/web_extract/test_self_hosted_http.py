@@ -667,12 +667,13 @@ def test_browser_dependency_mutation_rejects_the_frozen_backend(
 
 
 @pytest.mark.parametrize("keepalive", [False, True])
-@pytest.mark.parametrize("failure", ["launch", "invalid-json", "unexpected"])
+@pytest.mark.parametrize("failure", ["launch", "invalid-json", "non-finite-json", "unexpected"])
 def test_worker_boundary_failures_have_a_sanitized_server_status(client, keepalive, failure):
     secret = "private-process-diagnostic"
     outcome = {
         "launch": OSError(secret),
         "invalid-json": subprocess.CompletedProcess([], 0, secret, ""),
+        "non-finite-json": subprocess.CompletedProcess([], 0, '{"data": NaN}', ""),
         "unexpected": RuntimeError(secret),
     }[failure]
     with patch("harness.web_extract.self_hosted.run_worker", side_effect=[outcome]):

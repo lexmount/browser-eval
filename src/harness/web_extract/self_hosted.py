@@ -735,7 +735,9 @@ def create_app():
                         if os.environ.get(key):
                             error = error.replace(os.environ[key], "[REDACTED]")
                     return await failed(error[-6000:])
-                return json.loads(completed.stdout)
+                payload = json.loads(completed.stdout)
+                json.dumps(payload, allow_nan=False)
+                return payload
             except subprocess.TimeoutExpired as exc:
                 raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
             except Exception as exc:
