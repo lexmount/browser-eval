@@ -336,6 +336,14 @@ def setup_report(tmp_path):
 
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
+    audit_calls = []
+    original_audit = publication.verify_completion_audit
+
+    def verify(*args, **kwargs):
+        audit_calls.append(1)
+        return original_audit(*args, **kwargs)
+
+    monkeypatch.setattr(publication, "verify_completion_audit", verify)
 
     def package(report, archive, *, visual_receipt, profile, home=None):
         archive.write_bytes(b"checked-package")
@@ -348,7 +356,8 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
         assert staged.slug == "existing"
         assert staged.expected_version == "ver_before"
         assert read_json(target)["expected_version"] == "ver_before"
-        staged.guard()
+        for _ in range(20):
+            staged.guard()
         staged.bind("ver_after")
         return "ver_after"
 
@@ -357,6 +366,7 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
     result = publication.publish(source, target, work, visual, home=tmp_path)
     bound = read_json(target)
     assert result["versionId"] == "ver_after"
+    assert len(audit_calls) == 3  # Initial, frozen upload boundary, final binding.
     assert bound["visibility"] == "private"
     assert bound["slug"] == "existing"
     assert bound["profile"]["path"] == str(tmp_path / "profile.json")
@@ -657,3 +667,21 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     monkeypatch.setattr(publication, 'publish_staged_update', update)
     result = publication.publish(source, target, work, visual, home=tmp_path)
     assert result['versionId'] == 'ver_packaged'
+
+
+def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_path):
+    from harness.web_extract.publication import publication_authorities
+
+    home = tmp_path / 'home'
+    content = tmp_path / 'content.json'
+    profile = tmp_path / 'profile.json'
+    save_json(profile, {'dataset': {'id': 'frozen'},
+                        'research_report': {'content': {'path': str(content)}}})
+    save_json(content, {'audit': {'path': 'audit.json'}, 'evidence_runs': [
+        {'run': 'first', 'repair': [{'path': str(home / 'repairs/final')}]},
+        {'run': 'runs/second'},
+    ]})
+    assert set(publication_authorities(profile, home)) == {
+        profile, content, tmp_path / 'audit.json', home / 'dataset',
+        home / 'runs/first', home / 'runs/second', home / 'repairs/final',
+    }
