@@ -1752,8 +1752,8 @@ def method_examples(output, binding, language="zh"):
                     ) from error
                 request = example["request"]
                 source = (
-                    request.get("fixture_url")
-                    or example.get("input_preview_url")
+                    example.get("input_preview_url")
+                    or request.get("fixture_url")
                     or request.get("source_url")
                 )
                 if "fields" in example:
