@@ -152,6 +152,63 @@ def test_operator_interruption_drains_results_before_propagating():
     assert sorted(retained) == [0, 1]
 
 
+def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
+    import json
+    import os
+    import signal
+    import subprocess
+    import sys
+    import textwrap
+
+    if os.name != "posix":
+        pytest.skip("Foreground process-group signals require POSIX")
+    script = tmp_path / "terminal_session.py"
+    script.write_text(textwrap.dedent('''
+        import json, sys, time
+        from pathlib import Path
+        from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
+        root = Path(sys.argv[1])
+        def initialize():
+            pass
+        def execute(value):
+            (root / str(value)).touch()
+            while not (root / "release").exists():
+                time.sleep(.01)
+            return value
+        if __name__ == "__main__":
+            retained = []
+            policy = ExecutionPolicy.from_dict({
+                "purpose": "quality", "backend": "process", "max_in_flight": 2,
+                "resources": {"api": {"capacity": 2}}})
+            try:
+                run_jobs([Job(str(i), ("api",), i) for i in range(4)], execute,
+                         lambda job, value, error: retained.append([job.key, value, str(error)]),
+                         policy, initialize=initialize)
+            except KeyboardInterrupt:
+                (root / "retained.json").write_text(json.dumps(retained))
+    '''), encoding="utf-8")
+    process = subprocess.Popen([sys.executable, str(script), str(tmp_path)],
+                               start_new_session=True, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 15
+        while not all((tmp_path / str(i)).exists() for i in range(2)):
+            assert process.poll() is None, process.communicate()
+            assert time.monotonic() < deadline, "Spawned calls never became ready"
+            time.sleep(.01)
+        os.killpg(process.pid, signal.SIGINT)
+        (tmp_path / "release").touch()
+        stdout, stderr = process.communicate(timeout=15)
+        assert process.returncode == 0, (stdout, stderr)
+        assert sorted(json.loads((tmp_path / "retained.json").read_text())) == [
+            ["0", 0, "None"], ["1", 1, "None"]]
+        assert not (tmp_path / "2").exists()
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+
+
 def test_interrupt_during_preparation_does_not_dispatch_the_prepared_job():
     import signal
     from concurrent.futures import CancelledError
@@ -332,6 +389,7 @@ def test_invalid_inventory_fails_before_any_dispatch(jobs):
 def test_rejected_submission_cleans_only_the_undispatched_preparation_and_drains_calls():
     from concurrent.futures import CancelledError
     from concurrent.futures.thread import BrokenThreadPool
+
     from harness import benchmark_execution
 
     reserved, retained, cancelled, dispatched = set(), [], [], []

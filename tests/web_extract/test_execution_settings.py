@@ -16,7 +16,7 @@ def test_multi_method_report_uses_every_assigned_shared_limit():
         "assignments": {method: [method, "account"] for method in methods},
     }
     contract = {"methods": methods, "concurrency": 2, "execution_policy": policy}
-    html = execution_settings({method: contract for method in methods}, methods, {}, "en")
+    html = execution_settings({method: [contract] for method in methods}, methods, {}, "en")
     rows = BeautifulSoup(html, "html.parser").select("tbody tr")
     assert len(rows) == 2
     assert [row.select("td")[1].get_text(strip=True) for row in rows] == ["1", "1"]

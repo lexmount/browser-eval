@@ -36,6 +36,48 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     assert "data-key=" in next((output / "zh").glob("case-*.html")).read_text(encoding="utf-8")
 
 
+@pytest.mark.parametrize("split_cases", [False, True])
+def test_compatibility_execution_settings_follow_selected_observations(tmp_path, split_cases):
+    import shutil
+
+    home = create(tmp_path / "first")
+    first = home / "runs/example-v1"
+    second = home / "runs/second"
+    shutil.copytree(first, second)
+    for source, concurrency in ((first, 1), (second, 4)):
+        contract = read_json(source / "contract.json")
+        contract["concurrency"] = concurrency
+        if split_cases:
+            contract["case_ids"] = (contract["case_ids"][:2] if source == first
+                                    else contract["case_ids"][2:])
+        save_json(source / "contract.json", contract)
+        manifest = read_json(source / "manifest.json")
+        manifest["contract_sha256"] = digest((source / "contract.json").read_bytes())
+        if split_cases:
+            manifest["calls"] = [entry for entry in manifest["calls"]
+                                 if read_json(source / entry["path"])["case_id"]
+                                 in contract["case_ids"]]
+        save_json(source / "manifest.json", manifest)
+    content = read_json(home / "content.json")
+    content["evidence_runs"] = [
+        {"run": "example-v1", "methods": None if split_cases else ["synthetic-success"]},
+        {"run": "second", "methods": None if split_cases else ["synthetic-blocked"]},
+    ]
+    save_json(home / "content.json", content)
+    output = tmp_path / "selected"
+    build(output, home / "content.json", home=home, profile=home / "profile.json")
+    check(output)
+    soup = BeautifulSoup((output / "zh/protocol.html").read_text(), "html.parser")
+    rows = soup.select("[data-execution-settings] tbody tr")
+    observed = [(r.select_one("[data-execution-method]")["data-execution-method"],
+                 r.select("td")[1].get_text()) for r in rows]
+    expected = [("synthetic-blocked", "4"), ("synthetic-success", "1")]
+    if split_cases:
+        expected.append(("synthetic-blocked", "1"))
+        expected.append(("synthetic-success", "4"))
+    assert sorted(observed) == sorted(expected)
+
+
 @pytest.mark.parametrize("damage", [None, "missing", "duplicate"])
 def test_result_links_open_isolated_participant_details_on_the_same_case(tmp_path, damage):
     from urllib.parse import urlsplit
@@ -556,8 +598,16 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
         "reviewer": {"model": "synthetic"},
         "audited_scores": scores,
     }
-    _, html = audit_explanation(audit, rows, methods, {}, "en", core_html=core)
+    authored = '<section data-authored-interpretation><h2>Source evidence</h2></section>'
+    _, html = audit_explanation(
+        audit, rows, methods, {}, "en", core_html=core, authored_html=authored
+    )
     soup = check_presentation(html)
+    reading_order = soup.select(
+        '[data-interpretation-comparison], [data-authored-interpretation], '
+        '[data-method-interpretation]'
+    )
+    assert reading_order[1].has_attr('data-authored-interpretation')
     comparison = soup.select("[data-interpretation-comparison] tbody tr")
     assert soup.select_one("[data-interpretation-comparison]").parent["class"] == ["table-wrap"]
     assert [r["data-method"] for r in comparison] == methods

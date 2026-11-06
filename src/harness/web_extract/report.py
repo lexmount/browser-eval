@@ -866,11 +866,22 @@ def usage_table(methods, rows, lang, labels=None):
     )
 
 
+def selected_execution_contracts(bindings):
+    sources = {}
+    for binding in bindings:
+        contract = binding["contract"]
+        methods = binding.get("methods")
+        for method in contract["methods"] if methods is None else methods:
+            sources.setdefault(method, []).append(contract)
+    return sources
+
+
 def execution_settings(sources, methods, labels, language):
     """Expose the collected load without treating concurrency as a ranking."""
     rows = []
-    for method in methods:
-        contract = sources.get(method, {})
+    for method, contract in (
+        (m, c) for m in methods for c in sources.get(m, [{}])
+    ):
         purpose = contract.get("execution_policy", {}).get("purpose", "undeclared")
         if purpose not in {"quality", "latency", "throughput", "undeclared"}:
             raise ValueError("Unknown execution purpose in measured evidence")
@@ -900,6 +911,7 @@ def execution_settings(sources, methods, labels, language):
                 number("post_call_cooldown_seconds"),
             ]
         )
+    rows = list(dict.fromkeys(tuple(row) for row in rows))
     return (
         "<section data-execution-settings><h2>"
         + message("execution_settings_title", language)
@@ -1259,7 +1271,7 @@ def check_audited_quality(soup, methods, scores, total, lang):
                 raise ValueError("Audited F1 or field population differs")
 
 
-def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
+def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, authored_html=""):
     """Reader-facing review scope and source-qualified correction inventory."""
     zh = lang == "zh"
     count = audit["result_count"]
@@ -1430,6 +1442,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             + str(compact)
             + "</div>"
         )
+    interpretation += authored_html
     interpretation += "<h2>" + (message("scoring_checks_field_matches", lang)) + "</h2><p>"
     interpretation += (
         message("each_field_allows_multiple_accepted_reference_values_but_one_pred", lang)
@@ -2101,11 +2114,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         directory.mkdir()
         bodies = {p: model["pages"].get(p, {}).get("body", {}).get(lang, "") for p in PAGES}
         bodies["protocol"] += method_examples(output, model.get("method_examples"), lang)
-        configurations = {
-            method: binding["contract"]
-            for binding in bindings
-            for method in binding["contract"]["methods"]
-        }
+        configurations = selected_execution_contracts(bindings)
         titles = {
             p: model["pages"]
             .get(p, {})
@@ -2156,7 +2165,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 methods, rows, bindings, len(truth), lang, names, truth=truth
             )
             bodies["index"] = (
-                core
+                (message("original_reference_home_scope", lang) if audit else "")
+                + core
                 + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
                 + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             )
@@ -2169,7 +2179,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
         if audit:
             review_body, interpretation_body = audit_explanation(
-                audit, rows, methods, names, lang, core_html=core if cohort else None
+                audit, rows, methods, names, lang, core_html=core if cohort else None,
+                authored_html=bodies["interpretation"],
             )
             bodies["review"] = review_body
             bodies["interpretation"] = interpretation_body
@@ -2774,13 +2785,9 @@ def check_reader_contract(output, manifest, *, release=False):
         check_case_comparison_controls(output, methods, labels, language)
         if manifest.get("mode") == "field-extraction-cohort":
             sources = read_json(output / "public-evidence/sources.json")
-            configurations = {m: value["contract"] for m, value in sources.items()}
+            configurations = {m: [value["contract"]] for m, value in sources.items()}
         else:
-            configurations = {
-                m: value["contract"]
-                for value in manifest["source_runs"]
-                for m in value["contract"]["methods"]
-            }
+            configurations = selected_execution_contracts(manifest["source_runs"])
         actual = BeautifulSoup(
             (output / language / "protocol.html").read_text(encoding="utf-8"), "html.parser"
         )
@@ -3774,7 +3781,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         stats, labels
     )
     bodies["protocol"] += execution_settings(
-        {m: value["contract"] for m, value in data["sources"].items()}, methods, labels, language
+        {m: [value["contract"]] for m, value in data["sources"].items()}, methods, labels, language
     )
     bodies["index"] = (
         "<section data-core-metrics>"

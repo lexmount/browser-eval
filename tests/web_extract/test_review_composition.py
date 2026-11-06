@@ -283,3 +283,25 @@ def test_nonempty_reference_absence_requires_a_source_decision_in_both_orders(tm
                           profile=home / 'profile.json', additional_reviews=[works[1]],
                           additional_adjudications=[second], decisions=decisions)
         assert result['unresolved'] == 0
+
+
+def test_product_build_keeps_authored_source_explanation_with_automatic_audit(tmp_path):
+    from harness.web_extract.report import build
+
+    home, content, works, adjudication, empty = product_reviews(tmp_path)
+    audit = tmp_path / 'complete-audit.json'
+    assemble(home, content, works[0], empty, adjudication, audit,
+             profile=home / 'profile.json', additional_reviews=[works[1]])
+    model = read_json(home / 'content.json')
+    model['audit'] = {'path': str(audit), 'sha256': digest(audit.read_bytes())}
+    model['pages']['interpretation'] = {'body': {'en': '<h2>Observed source limitation</h2>'}}
+    save_json(content, model)
+    profile = read_json(home / 'profile.json')
+    profile.setdefault('research_report', {})['content'] = {
+        'path': str(content), 'sha256': digest(content.read_bytes())}
+    save_json(home / 'profile.json', profile)
+    output = tmp_path / 'report'
+    build(output, content, home=home, profile=home / 'profile.json', language='en')
+    page = (output / 'en/interpretation.html').read_text(encoding='utf-8')
+    assert 'Observed source limitation' in page
+    assert 'data-method-interpretation' in page

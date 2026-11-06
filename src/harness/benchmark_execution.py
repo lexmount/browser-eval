@@ -204,6 +204,13 @@ class _InlineExecutor:
         return future
 
 
+def _initialize_process(initialize, initargs):
+    # The parent owns terminal interruption and drains calls before stopping.
+    signal.signal(signal.SIGINT, signal.SIG_IGN)
+    if initialize is not None:
+        initialize(*initargs)
+
+
 def run_jobs(
     jobs,
     execute,
@@ -249,6 +256,7 @@ def run_jobs(
     executor_class = ThreadPoolExecutor
     if policy.backend == "process":
         executor_class = ProcessPoolExecutor
+        options.update(initializer=_initialize_process, initargs=(initialize, initargs))
         # Fresh interpreters avoid copying a parent that may already own threads.
         options["mp_context"] = multiprocessing.get_context("spawn")
 
