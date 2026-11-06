@@ -354,3 +354,240 @@ def test_source_qualification_rejects_year_substrings_scripts_and_missing_list_i
     assert records.reference_support(reference, shell)
     assert records.reference_support(reference, partial)
     assert not records.reference_support(reference, complete)
+
+
+@pytest.mark.parametrize("actual", ["https://[", "http://[", "http://[invalid/path"])
+def test_malformed_provider_url_counts_as_wrong_in_scores_and_details(actual):
+    truth = {
+        "one": {
+            "domain": "article",
+            "site": "a",
+            "url": "https://example.org/",
+            "value_kinds": {"pdf": "url"},
+            "values": {"pdf": ["https://example.org/paper.pdf"]},
+        }
+    }
+    predicted = {"pdf": [actual]}
+    scores = records.score(truth, {"one": predicted})
+    detail = analysis.record_field_results(
+        truth["one"], {"http_status": 200, "normalized_fields": predicted}
+    )
+    assert scores["value_micro"]["false_positive"] == 1
+    assert scores["value_micro"]["false_negative"] == 1
+    assert not detail["pdf"]["exact"]
+
+
+@pytest.mark.parametrize(
+    "counts",
+    [
+        {"Ada": 1},
+        {"Ada": 1, "Grace": 0},
+        {"Ada": True, "Grace": 1},
+        {"Ada": 1, "Grace": -1},
+        {},
+        {"Ada": 1, "Grace": 1, "Other": 1},
+    ],
+)
+def test_source_count_overrides_cannot_hide_scored_values(tmp_path, counts):
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    item["values"] = {"name": ["Ada", "Grace"]}
+    item["source_value_counts"] = {"name": counts}
+    pipeline.save_json(source, data)
+    with pytest.raises(ValueError, match="Source value counts"):
+        records.prepare(tmp_path / "home", source)
+    with pytest.raises(ValueError, match="Source value counts"):
+        records.reference_support(item, b"<p>Ada</p>")
+
+
+@pytest.mark.parametrize("base", ["https://cdn.example.org/", "/media/"])
+def test_relative_links_follow_the_first_document_base_in_qualification_and_scoring(tmp_path, base):
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    raw = (
+        '<html><head><base href="' + base + '"><base href="https://ignored.example/"></head>'
+        '<body><img src="image.png"><a href="http://[">broken unrelated link</a></body></html>'
+    ).encode()
+    Path(item["input"]).write_bytes(raw)
+    item.update(
+        input_sha256=pipeline.digest(raw),
+        values={"photo": ["image.png"]},
+        value_kinds={"photo": "url"},
+        schema={
+            "type": "object",
+            "properties": {"photo": {"type": "array", "items": {"type": "string"}}},
+        },
+    )
+    item["qualification"] = {
+        "input_sha256": pipeline.digest(raw),
+        "reference_sha256": pipeline.digest(json.dumps(item["values"], sort_keys=True).encode()),
+    }
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    ref = pipeline.read_json(home / "dataset/dataset/ground-truth.json")["one"]
+    assert records.reference_support(ref, raw) == []
+    from urllib.parse import urljoin
+
+    expected = urljoin(urljoin(item["url"], base), "image.png")
+    assert records.score({"one": ref}, {"one": {"photo": [expected]}})["value_micro"]["f1"] == 1
+    wrong = {
+        **ref,
+        "values": {"photo": ["https://wrong.example/image.png"]},
+        "source_value_counts": {},
+    }
+    assert records.reference_support(wrong, raw)
+
+
+@pytest.mark.parametrize("change", ["html", "missing", "declared_html"])
+def test_live_plan_cannot_certify_an_html_upload(tmp_path, monkeypatch, change):
+    home = prepared(tmp_path)
+    plan = tmp_path / "plan.json"
+    frozen = certification.create_plan(home, ["cloudflare-json"], plan)
+    participant = frozen["participants"]["cloudflare-json"]
+    if change == "html":
+        participant["native_options"] = {"input_route": "html"}
+    elif change == "missing":
+        participant.pop("native_options")
+    else:
+        participant["input"] = "html"
+    pipeline.save_json(plan, frozen)
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setattr(
+        records,
+        "qualify_live",
+        lambda *a, **k: pytest.fail("source checked before route validation"),
+    )
+    with pytest.raises(ValueError, match="[Ll]ive"):
+        certification.run(home, plan, "cloudflare-json", tmp_path / "run")
+    with pytest.raises(ValueError, match="[Ll]ive"):
+        pipeline.probe(
+            home,
+            ["cloudflare-json"],
+            run_dir=tmp_path / "direct",
+            native_options={"input_route": "html"},
+        )
+
+
+@pytest.mark.parametrize("instructions", [None, "Discard every other requested record"])
+def test_changed_or_missing_frozen_instructions_fail_before_dispatch(
+    tmp_path, monkeypatch, instructions
+):
+    home = prepared(tmp_path)
+    plan = tmp_path / "plan.json"
+    frozen = certification.create_plan(home, ["browserbase-json"], plan)
+    if instructions is None:
+        frozen.pop("extraction_instructions")
+    else:
+        frozen["extraction_instructions"] = instructions
+    pipeline.save_json(plan, frozen)
+    monkeypatch.setattr(
+        records, "qualify_live", lambda *a, **k: pytest.fail("source checked before instructions")
+    )
+    with pytest.raises(ValueError, match="Frozen extraction instructions"):
+        certification.run(home, plan, "browserbase-json", tmp_path / "run")
+
+
+def test_machine_scored_record_report_accepts_only_its_declared_baseline_policy(
+    tmp_path, monkeypatch
+):
+    from harness.web_extract import example, swde
+
+    baseline = {"text_matching": "whitespace", "unavailable_reference_groups": []}
+    monkeypatch.setattr(swde, "reference_policy", lambda *a: baseline, raising=False)
+    output = tmp_path / "report"
+    example.create_record(output)
+    report.check(output)
+    path = output / "report-manifest.json"
+    manifest = pipeline.read_json(path)
+    manifest["reference_policy"] = {"text_matching": "literal", "unavailable_reference_groups": []}
+    pipeline.save_json(path, manifest)
+    with pytest.raises(ValueError, match="unaudited baseline"):
+        report.check(output)
+
+
+@pytest.mark.parametrize("changed", [False, True])
+def test_external_snapshot_checks_resource_bytes_before_and_after_api_calls(
+    tmp_path, monkeypatch, changed
+):
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    state = {"called": False}
+    raw = (home / "dataset/html/one.html").read_bytes()
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "test-bb")
+
+    def fetch(url, **kwargs):
+        if url.startswith("https://api.browserbase.com"):
+            state["called"] = True
+            return SimpleNamespace(
+                status=200,
+                headers={},
+                text=lambda: json.dumps({"statusCode": 200, "content": {"name": ["Ada"]}}),
+            )
+        return SimpleNamespace(status=200, headers={}, body=raw, url=url)
+
+    monkeypatch.setattr(pipeline, "request", fetch)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kwargs: SimpleNamespace(
+            status=200,
+            body=b"changed" if changed and state["called"] else b"captured-image",
+            url=url,
+        ),
+    )
+    run = tmp_path / "run"
+    if changed:
+        with pytest.raises(ValueError, match="Remote snapshot resource differs"):
+            pipeline.probe(
+                home,
+                ["browserbase-json"],
+                full=True,
+                fixture_base="https://frozen.example",
+                run_dir=run,
+            )
+        assert list((run / "calls").glob("*.json"))
+        assert not (run / "manifest.json").exists()
+    else:
+        pipeline.probe(
+            home,
+            ["browserbase-json"],
+            full=True,
+            fixture_base="https://frozen.example",
+            run_dir=run,
+        )
+        assert (run / "manifest.json").is_file()
+
+
+def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
+    tmp_path, monkeypatch
+):
+    home = prepared(tmp_path, mode="snapshot", assets=True)
+    version, cases = snapshots.inventory(home)
+    receipt = {
+        "mode": "dataset_manifest",
+        "manifest_url": "https://immutable.example/snapshots.json",
+        "manifest_sha256": "a" * 64,
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+        "fixture_base": "https://immutable.example/frozen",
+    }
+    monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kwargs: SimpleNamespace(status=404, body=b"", url=url),
+    )
+    assert (
+        len(
+            snapshots.verify_bound_manifest(
+                home, {**receipt, "hosting_provider": "cloudflare"}, receipt["fixture_base"]
+            )
+        )
+        == 1
+    )
+    with pytest.raises(ValueError, match="Remote snapshot resource differs"):
+        snapshots.verify_bound_manifest(
+            home, {**receipt, "hosting_provider": "external"}, receipt["fixture_base"]
+        )

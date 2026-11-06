@@ -334,6 +334,12 @@ def run(
     if participant.get("input", effective_input) != effective_input:
         raise ValueError("Native options conflict with the frozen participant input route")
     records = benchmark_config(home)["adapter"] is not None
+    if live:
+        if participant.get("input") != "url":
+            raise ValueError("Live participants must declare URL input")
+        validate_live_route(method, participant.get("native_options"))
+    if records and plan.get("extraction_instructions") != record_instructions(home):
+        raise ValueError("Frozen extraction instructions differ from the dataset")
     if records and plan.get("schema") != "archived-extraction-full-cohort/1":
         raise ValueError("Frozen plan schema differs from the selected record benchmark")
     if records or plan.get("task_adapter_sha256"):

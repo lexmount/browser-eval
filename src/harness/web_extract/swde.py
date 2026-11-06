@@ -237,7 +237,15 @@ def record_value_key(reference, field, value, text_matching="literal"):
     if reference.get("value_kinds", {}).get(field) == "url":
         from urllib.parse import urljoin, urlsplit
 
-        parts = urlsplit(urljoin(reference["url"], html.unescape(value).replace(" ", "%20")))
+        try:
+            parts = urlsplit(
+                urljoin(
+                    reference.get("document_base_url", reference["url"]),
+                    html.unescape(value).replace(" ", "%20"),
+                )
+            )
+        except ValueError:
+            return value
         return parts._replace(scheme=parts.scheme.lower(), netloc=parts.netloc.lower()).geturl()
     return canonical_text(value) if text_matching == "whitespace" else value
 

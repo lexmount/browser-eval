@@ -53,6 +53,7 @@ def prepare(home: Path, source: Path):
                 for values in references.values()
             ):
                 raise ValueError("References must be explicit string lists")
+            validate_value_counts(case)
             receipt = case.get("qualification")
             if (
                 not receipt
@@ -64,6 +65,9 @@ def prepare(home: Path, source: Path):
             from lexbench_webfetch.paths import validate_http_url
 
             validate_http_url(case["url"])
+            from lxml import html
+
+            base = document_base_url(html.fromstring(raw), case.get("final_url", case["url"]))
             (root / "html" / (cid + ".html")).write_bytes(raw)
             truth[cid] = {
                 "url": case["url"],
@@ -73,6 +77,7 @@ def prepare(home: Path, source: Path):
                 "schema_id": cid,
                 "value_kinds": case.get("value_kinds", {}),
                 "source_value_counts": case.get("source_value_counts", {}),
+                **({"document_base_url": base} if base != case["url"] else {}),
                 **({"query": case["query"]} if case.get("query") else {}),
             }
             schemas[cid] = schema
@@ -175,8 +180,38 @@ def probe_cases(truth):
     return select(truth)
 
 
-def reference_policy(home):
+def reference_policy(home=None):
     return {"text_matching": "whitespace", "unavailable_reference_groups": []}
+
+
+def document_base_url(tree, source_url):
+    """Match the document's first base href, including relative base URLs."""
+    bases = tree.xpath("(//base[@href])[1]/@href")
+    try:
+        return urljoin(source_url, bases[0]) if bases else source_url
+    except ValueError:
+        return source_url
+
+
+def validate_value_counts(reference):
+    """Optional source multiplicities cannot hide or weaken a scored reference."""
+    from collections import Counter
+
+    overrides = reference.get("source_value_counts", {})
+    if not isinstance(overrides, dict) or set(overrides) - set(reference["values"]):
+        raise ValueError("Invalid source value counts")
+    for field, counts in overrides.items():
+        expected = Counter(reference["values"][field])
+        if (
+            not isinstance(counts, dict)
+            or set(counts) != set(expected)
+            or any(
+                type(count) is not int or count < expected[value] for value, count in counts.items()
+            )
+        ):
+            raise ValueError(
+                "Source value counts must cover every reference with positive integers"
+            )
 
 
 def scoring_sources():
@@ -274,6 +309,8 @@ def reference_support(reference, raw, *, source_url=None):
 
     from harness.web_extract.swde import record_value_key
 
+    validate_value_counts(reference)
+
     def text_key(value):
         value = html_text.unescape(html_text.unescape(value))
         return " ".join(unicodedata.normalize("NFKC", value).split()).casefold()
@@ -289,17 +326,21 @@ def reference_support(reference, raw, *, source_url=None):
     for node in tree.xpath("//script|//style"):
         node.drop_tree()
     text = text_key(" ".join(tree.itertext()))
-    links = [
-        urljoin(source_url or reference["url"], u)
-        for u in tree.xpath("//@href|//@src|//@data-src|//@poster")
-    ]
+    base = document_base_url(tree, source_url or reference["url"])
+    links = []
+    for value in tree.xpath("//@href|//@src|//@data-src|//@poster"):
+        try:
+            links.append(urljoin(base, value))
+        except ValueError:
+            continue
+    url_context = {**reference, "document_base_url": reference.get("document_base_url", base)}
     missing = []
     for field, values in reference["values"].items():
         counts = reference.get("source_value_counts", {}).get(field) or dict(Counter(values))
         if reference.get("value_kinds", {}).get(field) == "url":
-            actual = Counter(record_value_key(reference, field, u, "whitespace") for u in links)
+            actual = Counter(record_value_key(url_context, field, u, "whitespace") for u in links)
             for value, count in counts.items():
-                key = record_value_key(reference, field, value, "whitespace")
+                key = record_value_key(url_context, field, value, "whitespace")
                 if actual[key] < count:
                     missing.append({"field": field, "value": value})
         else:

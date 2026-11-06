@@ -4619,7 +4619,13 @@ def record_preview(home, model, *, local_example):
     receipt = saved.get("snapshot_manifest", saved.get("verification", saved))
     if not isinstance(receipt, dict) or receipt.get("mode") != "dataset_manifest":
         raise ValueError("Record previews require a whole-dataset snapshot manifest")
-    verify_bound_manifest(home, receipt, base)
+    verification_context = {
+        **receipt,
+        **(
+            {"hosting_provider": saved["hosting_provider"]} if saved.get("hosting_provider") else {}
+        ),
+    }
+    verify_bound_manifest(home, verification_context, base)
     return receipt
 
 
