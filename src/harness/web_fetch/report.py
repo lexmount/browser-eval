@@ -1676,7 +1676,7 @@ def stable_anchor_evidence(metrics,output,metadata=None,base_url=''):
   if key!='section_headings':
    candidates.extend(('page_information.'+key,text) for text in (value if isinstance(value,list) else [value])
                      if isinstance(text,str))
- cards=[];normalized_lines=None
+ cards=[];normalized_lines=None;visible_lines=None
  anchors_required=metrics.get('stable_anchors_required',True)
  expected_label='标准答案' if anchors_required else '范围核对文字'
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
@@ -1700,7 +1700,18 @@ def stable_anchor_evidence(metrics,output,metadata=None,base_url=''):
    field_detail='<p class="source-note">整条记录按字段判定；文字出现不等于列表边界完整。</p>'+table(['字段','标准答案','实际解析','判定'],rows,metrics=[])
    badge='字段边界不合格'
   actual=f'<p translate="no">{esc(excerpt)}</p>' if excerpt else ''
-  if passed and not excerpt:
+  if passed and not actual:
+   if visible_lines is None:
+    visible = _visible(output, metrics.get('stable_task_schema'),
+                       representation=(metadata or {}).get('answer_format'))
+    visible_lines = _normalized_evidence_lines(visible)
+   for alternative in item.get('matched',[]):
+    visible_excerpt = _exact_evidence_lines(alternative, '', normalized_lines=visible_lines)
+    if visible_excerpt:
+     actual=('<p class="source-note">'+model_text('从返回内容读取的文字','Text read from the response')
+             +f'</p><p translate="no">{esc(visible_excerpt)}</p>')
+     break
+  if passed and not actual:
    field_match=next(((field,text) for field,text in candidates if any(
        _stable_literal_match(text,value,representation='plain_text') for value in item.get('matched',[]))),None)
    if field_match:
