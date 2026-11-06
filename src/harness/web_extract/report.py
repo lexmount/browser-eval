@@ -4205,9 +4205,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + ' data-search="'
                     + esc(cid + " " + ref["site"])
                     + '"><td>'
-                    + esc(cid)
-                    + "</td><td>"
                     + esc(labels[method])
+                    + "</td><td>"
+                    + esc(cid)
                     + "</td><td>"
                     + esc(domain_labels.get(ref["domain"], ref["domain"]))
                     + "</td><td>"
@@ -4335,9 +4335,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                 "<tr"
                 + attrs
                 + "><td>"
-                + esc(cid)
-                + "</td><td>"
                 + esc(labels[method])
+                + "</td><td>"
+                + esc(cid)
                 + "</td><td>"
                 + esc(domain_labels.get(ref["domain"], ref["domain"]))
                 + "</td><td>"
@@ -4374,7 +4374,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
         + "".join(
             "<th>" + t(k) + "</th>"
-            for k in ("case", "method", "domain", "outcome", "exact", "timing", "details")
+            for k in ("method", "case", "domain", "outcome", "exact", "timing", "details")
         )
         + "</tr></thead><tbody>"
         + "".join(inventory_rows)
@@ -4751,7 +4751,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
         inventory.select('tr[data-status="pending"]')
     ) != sum(x["unexecuted"] for x in metrics.values()):
         raise ValueError("Record inventory omits planned or pending results")
-    indexed = {(row.get("data-method"), row.select_one("td").get_text()): row for row in rows}
+    indexed = {(row.get("data-method"), row.select("td")[1].get_text()): row for row in rows}
     if set(indexed) != {(m, cid) for m in metrics for cid in truth}:
         raise ValueError("Record inventory method/case population changed")
     for method in manifest["planned_methods"]:
