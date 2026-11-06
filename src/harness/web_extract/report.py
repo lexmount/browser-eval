@@ -589,6 +589,19 @@ def verify_completion_audit(source, profile, *, home=None):
     if profile.is_symlink() or digest(profile.read_bytes()) != manifest["profile_sha256"]:
         raise ValueError("Completion audit frozen profile changed")
     instance = read_json(profile)
+    if home is None:
+        raise ValueError("Completion audit requires an explicit benchmark home")
+    home = Path(home)
+    require_external_output(home)
+    if instance.get("dataset"):
+        try:
+            validate_dataset(home, profile)
+        except (OSError, KeyError, ValueError) as error:
+            raise ValueError(
+                "Completion audit benchmark home differs from its frozen dataset"
+            ) from error
+    elif instance.get("local_example") is not True:
+        raise ValueError("Completion audit frozen profile lacks its dataset identity")
     records = manifest.get("mode") == "field-extraction-cohort"
     authority = manifest.get("audit" if records else "completion_audit")
     content_binding = instance.get("research_report", {}).get("content", {})
@@ -629,17 +642,9 @@ def verify_completion_audit(source, profile, *, home=None):
         raise ValueError("Completion audit differs from its frozen original")
     reviewed = json.loads(raw).get("results", {})
     if reviewed:
-        from harness.web_extract.pipeline import data_home
         from harness.web_extract.repair import load_selection
 
         model = read_json(content)
-        home = (
-            Path(model["dataset_manifest"]).parent.parent
-            if model.get("dataset_manifest")
-            else Path(home)
-            if home is not None
-            else data_home()
-        )
         public_rows = {}
         seen = set()
         for selection in model["evidence_runs"]:
@@ -715,14 +720,15 @@ def completion_bundle(methods, rows, *, records, complete_methods, excluded_fiel
     }
 
 
-def completion_table(bundle, methods, labels, language):
-    """Keep counts, metric definitions and directional comparisons together."""
+def completion_columns(bundle, methods, language):
+    """Render only the supplementary columns through the shared comparison owner."""
     values = bundle["methods"]
     rows = []
+    keys = ("page_exact", "empty_fields")
     for method in methods:
         metrics = values[method]
-        cells = [esc(labels.get(method, method))]
-        for key in ("page_exact", "empty_fields"):
+        cells = []
+        for key in keys:
             metric = metrics[key] if metrics else None
             cells.append(
                 message("completion_incomplete", language)
@@ -734,41 +740,83 @@ def completion_table(bundle, methods, labels, language):
                 )
             )
         if metrics and metrics["excluded_pages"]:
-            cells[1] += (
+            cells[0] += (
                 "<br><small>"
                 + message("completion_excluded", language, count=metrics["excluded_pages"])
                 + "</small>"
             )
         rows.append(cells)
-    comparison = record_comparison(
-        message("completion_headers", language),
-        rows,
-        {
-            column: (
-                "completion-" + key,
-                "max",
-                [values[m][key]["rate"] if values[m] else None for m in methods],
-            )
-            for column, key in enumerate(("page_exact", "empty_fields"), 1)
-        },
+    reference = message(
+        "completion_qualified_short"
+        if bundle["reference_view"] == "source-qualified"
+        else "completion_original_short",
+        language,
     )
-    return (
-        "<section data-completion-metrics><h2>"
-        + message("completion_title", language)
-        + "</h2><p>"
-        + message(
-            "completion_reference_qualified"
-            if bundle["reference_view"] == "source-qualified"
-            else "completion_reference_original",
-            language,
+    headers = [
+        esc(label)
+        + "<br><small>"
+        + message("completion_source", language)
+        + " · "
+        + reference
+        + "</small>"
+        for label in message("completion_headers", language)[1:]
+    ]
+    soup = BeautifulSoup(
+        record_comparison(
+            headers,
+            rows,
+            {
+                column: (
+                    "completion-" + key,
+                    "max",
+                    [values[m][key]["rate"] if values[m] else None for m in methods],
+                )
+                for column, key in enumerate(keys)
+            },
+        ),
+        "html.parser",
+    )
+    for index, key in enumerate(keys):
+        soup.select("thead th")[index]["data-completion-metric"] = key
+        for row in soup.select("tbody tr"):
+            row.select("td")[index]["data-completion-metric"] = key
+    return soup.table
+
+
+def with_completion_columns(core, bundle, methods, language, *, before_details=False):
+    """Extend the existing participant comparison without creating another table."""
+    soup = BeautifulSoup(core, "html.parser")
+    target = soup.select_one("table")
+    columns = completion_columns(bundle, methods, language)
+    if target is None or len(target.select("tbody tr")) != len(methods):
+        raise ValueError("Completion columns require the complete core comparison")
+    header = target.select_one("thead tr")
+    before = header.select("th")[-1] if before_details else None
+    for cell in list(columns.select("thead th")):
+        before.insert_before(cell.extract()) if before is not None else header.append(
+            cell.extract()
         )
-        + "</p><p>"
-        + message("completion_scope", language)
-        + "</p>"
-        + comparison
-        + '<p><a href="../data/completion-metrics.json">'
+    for method, row, extra in zip(
+        methods, target.select("tbody tr"), columns.select("tbody tr"), strict=True
+    ):
+        row["data-method"] = method
+        before = row.select("td")[-1] if before_details else None
+        for cell in list(extra.select("td")):
+            before.insert_before(cell.extract()) if before is not None else row.append(
+                cell.extract()
+            )
+    target["data-completion-metrics"] = "true"
+    target.parent.insert_after(BeautifulSoup(completion_links(language), "html.parser"))
+    return str(soup)
+
+
+def completion_links(language):
+    return (
+        '<p data-completion-links><a href="index.html#metric-completion-page_exact">'
+        + message("completion_guide_link", language)
+        + '</a> · <a href="../data/completion-metrics.json">'
         + message("completion_receipt", language)
-        + "</a></p></section>"
+        + "</a></p>"
     )
 
 
@@ -822,17 +870,33 @@ def check_completion_metrics(output, manifest, rows):
     if bundle != expected:
         raise ValueError("Completion metrics differ from retained final responses")
     for lang in manifest["languages"]:
-        wanted = BeautifulSoup(
-            completion_table(bundle, methods, manifest["method_labels"], lang), "html.parser"
-        ).section
-        for a in wanted.select('a[href="../data/completion-metrics.json"]'):
-            a["href"] = "data/completion-metrics.json"
+        expected = completion_columns(bundle, methods, lang)
         for route in ("index", "interpretation"):
-            page_view = BeautifulSoup(
+            document = BeautifulSoup(
                 (output / lang / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
             )
-            if page_view.select_one("[data-completion-metrics]") != wanted:
-                raise ValueError("Completion metric comparison is missing or inconsistent")
+            tables = document.select("table[data-completion-metrics]")
+            if len(tables) != 1 or document.select("section[data-completion-metrics]"):
+                raise ValueError("Completion metrics must share the core comparison")
+            table_view = tables[0]
+            owner = "data-core-metrics" if route == "index" else "data-interpretation-comparison"
+            if (
+                not table_view.has_attr(owner)
+                and table_view.find_parent(attrs={owner: True}) is None
+            ):
+                raise ValueError("Completion metrics are outside the core comparison")
+            if table_view.select("th[data-completion-metric]") != expected.select("th"):
+                raise ValueError("Completion metric headers or provenance differ")
+            actual_rows = table_view.select("tbody tr")
+            if len(actual_rows) != len(methods):
+                raise ValueError("Completion comparison population differs")
+            for method, actual, wanted in zip(
+                methods, actual_rows, expected.select("tbody tr"), strict=True
+            ):
+                if actual.get("data-method") != method or actual.select(
+                    "td[data-completion-metric]"
+                ) != wanted.select("td"):
+                    raise ValueError("Completion metric comparison is missing or inconsistent")
 
 
 def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=None):
@@ -1545,19 +1609,21 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
         compact = BeautifulSoup(core_html, "html.parser").select_one("table")
         for row in compact.select("tr"):
             for index, cell in enumerate(list(row.find_all(["th", "td"], recursive=False))):
-                if index not in (0, 3, 5, 6, 7, 8):
+                if index not in (0, 3, 5, 6, 7, 8) and not cell.has_attr("data-completion-metric"):
                     cell.decompose()
         compact.attrs = {
             "data-interpretation-comparison": "true",
+            "data-completion-metrics": "true",
             "data-highlight-ties": "all",
         }
         interpretation += (
             "<h2>"
-            + (message("compact_original_reference_comparison", lang))
+            + (message("compact_core_comparison", lang))
             + "</h2>"
             + '<div class="table-wrap">'
             + str(compact)
             + "</div>"
+            + completion_links(lang)
         )
     interpretation += "<h2>" + (message("scoring_checks_field_matches", lang)) + "</h2><p>"
     interpretation += (
@@ -1777,6 +1843,17 @@ def metric_definitions(language, *, records):
         )
         for i, (label, meaning) in enumerate(zip(labels, meanings, strict=True))
     ]
+    for i, key in enumerate(("page_exact", "empty_fields")):
+        result.append(
+            dict(
+                id="completion-" + key,
+                label=message("completion_headers", language)[i + 1],
+                meaning=message("guide_completion_meanings", language)[i],
+                unit=message("guide_rate_unit", language),
+                population=message("guide_completion_populations", language)[i],
+                direction=message("guide_higher", language),
+            )
+        )
     for i, (label, meaning) in enumerate(
         zip(
             message("guide_latency_labels", language),
@@ -2301,9 +2378,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             core, timings = cohort_metrics(
                 methods, rows, bindings, len(truth), lang, names, truth=truth
             )
+            core = with_completion_columns(core, completion, methods, lang)
             bodies["index"] = (
                 core
-                + completion_table(completion, methods, names, lang)
                 + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
                 + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             )
@@ -2328,8 +2405,10 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 + "</a></p>"
             )
         if cohort:
-            additional = completion_table(completion, methods, names, lang)
-            bodies["interpretation"] = additional + bodies["interpretation"]
+            if not audit:
+                interpretation_core = BeautifulSoup(core, "html.parser")
+                interpretation_core.table["data-interpretation-comparison"] = "true"
+                bodies["interpretation"] = str(interpretation_core) + bodies["interpretation"]
             bodies["protocol"] += "<p>" + message("completion_protocol", lang) + "</p>"
             bodies["protocol"] += (
                 "<h2>"
@@ -3055,7 +3134,7 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
             if [r.get("data-method") for r in summary] != methods:
                 raise ValueError("Missing or reordered planned participant")
             for method, row in zip(methods, summary, strict=True):
-                cells = row.select("td")
+                cells = row.select("td:not([data-completion-metric])")
                 expected = [
                     manifest["case_count"],
                     len(data[method]),
@@ -3827,6 +3906,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             2: [stats[m]["structured"] for m in methods],
         },
     )
+    core = with_completion_columns(core, completion, methods, language, before_details=True)
     operations = operating_metrics(
         methods,
         [row for m in methods for row in data["methods"][m]["results"].values()],
@@ -3855,7 +3935,6 @@ def build_record_cohort(output, content, *, home, language, profile):
         "<section data-core-metrics>"
         + core
         + "</section>"
-        + completion_table(completion, methods, labels, language)
         + report_metric_guide(language, records=True)
         + bodies["index"]
         + operations
@@ -4284,11 +4363,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         + dialog
     )
     bodies["interpretation"] = (
-        "<section data-interpretation-comparison>"
-        + core
-        + "</section>"
-        + completion_table(completion, methods, labels, language)
-        + bodies["interpretation"]
+        "<section data-interpretation-comparison>" + core + "</section>" + bodies["interpretation"]
     )
     for method in methods:
         current = stats[method]
@@ -4600,13 +4675,13 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
         ),
         "html.parser",
     )
-    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    home_view = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     check_price_coverage(
         output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )
-    if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
-        row.get_text(strip=True) for row in expected_operations.select("tbody tr")
-    ]:
+    if [
+        row.get_text(strip=True) for row in home_view.select("[data-operating-metrics] tbody tr")
+    ] != [row.get_text(strip=True) for row in expected_operations.select("tbody tr")]:
         raise ValueError("Record timing or pricing differs from measured evidence")
     for route, selector in (
         ("index", "[data-core-metrics]"),

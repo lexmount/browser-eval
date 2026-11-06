@@ -28,7 +28,9 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
     home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     assert all(
         c.get_text(strip=True) == "—"
-        for c in home.select("[data-core-metrics] tbody td:nth-child(n+6)")
+        for c in home.select(
+            "[data-core-metrics] tbody td:nth-child(n+6):not([data-completion-metric])"
+        )
     )
     assert check(output)["state"] == "full-cohort-progress"
     # Evidence is grouped by method, loaded on demand, rather than copied per detail.
@@ -395,13 +397,14 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
             tmp_path / "public.zip",
             visual_receipt=receipt,
             profile=tmp_path / "report-synthetic-inputs/profile.json",
+            home=tmp_path / "report-synthetic-inputs",
         )
     release_check.assert_called_once_with(
         output,
         release=True,
         visual_receipt=receipt,
         profile=tmp_path / "report-synthetic-inputs/profile.json",
-        home=None,
+        home=tmp_path / "report-synthetic-inputs",
     )
     with zipfile.ZipFile(tmp_path / "public.zip") as bundle:
         assert set(bundle.namelist()) == set(manifest["files"]) | {"report-manifest.json"}
@@ -413,6 +416,7 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
             tmp_path / "tampered.zip",
             visual_receipt=receipt,
             profile=tmp_path / "report-synthetic-inputs/profile.json",
+            home=tmp_path / "report-synthetic-inputs",
         )
     assert not (tmp_path / "tampered.zip").exists()
 
@@ -682,6 +686,7 @@ def test_package_rejects_unbound_nested_manifest(tmp_path):
             tmp_path / "report.zip",
             visual_receipt=tmp_path / "unused.json",
             profile=tmp_path / "report-synthetic-inputs/profile.json",
+            home=tmp_path / "report-synthetic-inputs",
         )
     assert not (tmp_path / "report.zip").exists()
 

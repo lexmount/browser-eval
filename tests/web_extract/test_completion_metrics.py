@@ -173,26 +173,59 @@ def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, d
         soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
         section = soup.select_one("[data-completion-metrics]")
         if damage == "comparison":
-            section.decompose()
+            section.select_one("th[data-completion-metric]").decompose()
         elif damage == "definition":
-            section.select_one("p").string = "Failures and missing references receive full credit."
+            soup.select_one(
+                "#metric-completion-page_exact td:nth-child(2)"
+            ).string = "Failures and missing references receive full credit."
         else:
-            section.select_one("tbody td:nth-child(2)")["class"] = "comparison-winner"
+            section.select_one("td[data-completion-metric]")["class"] = "comparison-winner"
         path.write_text(str(soup), encoding="utf-8")
     # Exercise semantic verification, rather than merely failing the file hash.
     manifest["files"][path.relative_to(output).as_posix()] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
-    with pytest.raises(ValueError, match="Completion"):
+    with pytest.raises(ValueError, match="Completion|Metric guide"):
         check(output)
 
 
 def test_incomplete_cohort_is_distinct_from_a_computed_empty_denominator():
-    from harness.web_extract.report import completion_table
+    from harness.web_extract.report import completion_columns
 
     bundle = {"reference_view": "original", "methods": {"pending": None}}
-    text = completion_table(bundle, ["pending"], {}, "en")
+    text = str(completion_columns(bundle, ["pending"], "en"))
     assert "complete certification pending" in text
     assert "denominator 0" not in text
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+def test_new_metrics_share_the_core_table_and_explain_their_origin(tmp_path, mode):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.example import create
+
+    output = tmp_path / "report"
+    create(output, mode=mode)
+    for route in ("index", "interpretation"):
+        soup = BeautifulSoup(
+            (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
+        )
+        tables = soup.select("table[data-completion-metrics]")
+        assert len(tables) == 1
+        assert not soup.select("section[data-completion-metrics]")
+        assert len(tables[0].select("th[data-completion-metric]")) == 2
+        assert "本项目补充" in tables[0].get_text()
+        assert any(
+            "F1" in th.get_text() for th in tables[0].select("th:not([data-completion-metric])")
+        )
+    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    page = home.select_one("#metric-completion-page_exact").get_text()
+    empty = home.select_one("#metric-completion-empty_fields").get_text()
+    assert all(
+        term in page for term in ("来源：本项目补充定义", "公式", "3/8", "37.5%", "参考完整")
+    )
+    assert all(
+        term in empty for term in ("来源：本项目补充定义", "公式", "4/5", "80%", "请求失败算错")
+    )
 
 
 @pytest.mark.parametrize("damage", ["coverage", "judgment"])
@@ -201,7 +234,7 @@ def test_completion_cannot_override_authoritative_audit(tmp_path, damage):
     from harness.web_extract.report import (
         check_completion_metrics,
         completion_bundle,
-        completion_table,
+        with_completion_columns,
     )
 
     row = product({"price": "5", "sku": "wrong", "availability": "InStock"})
@@ -255,9 +288,12 @@ def test_completion_cannot_override_authoritative_audit(tmp_path, damage):
         for route in ("index", "interpretation"):
             path = tmp_path / "zh" / (route + ".html")
             path.parent.mkdir(exist_ok=True)
-            html = completion_table(bundle, ["firecrawl-json"], {}, "zh").replace(
-                'href="../data/', 'href="data/'
+            base = (
+                '<div class="table-wrap"><table data-core-metrics data-interpretation-comparison>'
+                "<thead><tr><th>Method</th></tr></thead>"
+                "<tbody><tr><td>Firecrawl</td></tr></tbody></table></div>"
             )
+            html = with_completion_columns(base, bundle, ["firecrawl-json"], "zh")
             path.write_text(html, encoding="utf-8")
 
     regenerate({})

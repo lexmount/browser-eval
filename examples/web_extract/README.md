@@ -244,6 +244,9 @@ These diagnostics do not change the upstream scores or require provider calls.
 The report includes numerator/denominator counts, per-page outcomes and the input
 binding in `data/completion-metrics.json`; its release check recomputes the metrics
 and validates the overview and interpretation tables against the same evidence.
+The core table keeps these columns beside the existing field metrics. Its metric
+guide identifies their project-defined origin and gives formulas, population rules
+and worked examples; upstream metrics retain their own source explanations.
 
 Source-qualified reference corrections use the same scoring entry point:
 
@@ -318,7 +321,8 @@ uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-hom
   --visual-receipt /absolute/private/visual-receipt.json
 ```
 
-Formal checks and packaging require the external frozen profile. They verify its
+Formal checks, packaging and publication require the external frozen profile and
+an explicit `--home`. They verify that directory against the pinned dataset, its
 content and original audit, reproduce the public audit view, and bind each cached
 field judgment and native response to that audit. Public manifest edits cannot
 remove the required audit or change the completion denominator. Pass the same

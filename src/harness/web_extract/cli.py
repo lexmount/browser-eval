@@ -17,7 +17,7 @@ from harness.web_extract.pipeline import (
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--home", type=Path, default=data_home())
+    parser.add_argument("--home", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
@@ -128,6 +128,11 @@ def main(argv=None):
     p.add_argument("--additional-adjudication", type=Path, action="append", default=[])
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
+    formal = args.command in ("package", "publish") or (args.command == "check" and args.release)
+    if formal and args.home is None:
+        parser.error("Formal check, package and publish require an explicit --home")
+    if args.home is None:
+        args.home = data_home()
     if args.command == "host":
         from harness.web_extract.snapshots import host
 
