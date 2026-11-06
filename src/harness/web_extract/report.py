@@ -928,7 +928,9 @@ def check_completion_metrics(output, manifest, rows):
         complete_methods=bundle["complete_methods"],
         excluded_fields=bundle["excluded_fields"],
     )
-    if bundle != expected:
+    if canonical_json_sha256(bundle, allow_nan=False) != canonical_json_sha256(
+        expected, allow_nan=False
+    ):
         raise ValueError("Completion metrics differ from retained final responses")
     for lang in manifest["languages"]:
         expected = completion_columns(bundle, methods, lang)

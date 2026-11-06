@@ -360,3 +360,17 @@ for (const method of ['a', 'b', 'c']) comparisonRows.push({dataset: {...produced
 assert.equal(matching('all_fail').includes('unscored-failure'), false);
 assert.equal(matching('different').includes('unscored-failure'), false);
 console.log('PASS: failed calls without reference coverage retain diagnosis and stay outside quality comparisons');
+
+// A metric link must reveal its definition even while the guide is collapsed.
+const metricGuide = {open: false};
+let metricScrolled = false;
+const metricTarget = {
+  matches: () => false,
+  closest: selector => selector === 'details[data-metric-guide]' ? metricGuide : null,
+  scrollIntoView: () => { metricScrolled = true; },
+};
+context.location.hash = '#metric-completion-page_exact';
+context.document.getElementById = id => id === 'metric-completion-page_exact' ? metricTarget : null;
+vm.runInContext('revealResultPanel()', context);
+assert.equal(metricGuide.open, true);
+assert.equal(metricScrolled, true);
