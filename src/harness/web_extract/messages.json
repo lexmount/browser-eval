@@ -514,7 +514,13 @@
       "Mean (s)",
       "P50 (s)",
       "P95 (s)"
-    ]
+    ],
+    "schema_comparison_scope": "Relations compare model-reviewed correctness, not exact equality with the reference. Correct means the source review found no substantive errors; other outcomes include partial, incorrect, absent and source/schema ambiguity.",
+    "schema_comparison_different": "Different reviewed outcomes: correct vs other",
+    "schema_comparison_baseline_only": "Baseline reviewed correct; at least one comparison is other",
+    "schema_comparison_comparison_only": "Baseline is other; at least one comparison reviewed correct",
+    "schema_comparison_all_pass": "All selected methods reviewed correct",
+    "schema_comparison_all_fail": "No selected method reviewed correct"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -1031,6 +1037,12 @@
       "平均（秒）",
       "P50（秒）",
       "P95（秒）"
-    ]
+    ],
+    "schema_comparison_scope": "同题关系按模型复核结论筛选。正确表示按原文复核未发现实质错误，其他包括部分正确、错误、未交付及原文与 Schema 冲突；这里不按参考答案的字面相等筛选。",
+    "schema_comparison_different": "复核结论不同：正确与其他",
+    "schema_comparison_baseline_only": "基准复核正确，至少一家对照为其他结果",
+    "schema_comparison_comparison_only": "基准为其他结果，至少一家对照复核正确",
+    "schema_comparison_all_pass": "选中方法均复核正确",
+    "schema_comparison_all_fail": "选中方法均未被复核判为正确"
   }
 }
