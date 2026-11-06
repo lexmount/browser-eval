@@ -7,6 +7,8 @@ import json
 import math
 import runpy
 import tempfile
+from collections import Counter
+from decimal import Decimal
 from pathlib import Path
 
 CARD = Path(__file__).resolve().parents[1] / "benchmarks/cards/scrapegraph-human-eval.json"
@@ -15,16 +17,20 @@ INSTRUCTION_DELIVERY = "original-schema/1"
 SCORE_REQUIRES_HOME = True
 MISSING_OUTPUT_NONE = True
 SCORING_REVISION = {
-    "id": "human-eval-stable-value-sum/1",
+    "id": "human-eval-record-items/2",
     "root_cause": (
         "The upstream value_score sums scores over a hash-randomized key set. "
         "Use the same upstream leaf comparisons with math.fsum in sorted key order; "
-        "aggregate cases with math.fsum too."
+        "aggregate cases with math.fsum too. The official wildcard scorer loses record "
+        "associations and scores complete array fields all-or-nothing. Add a separate "
+        "duplicate-preserving exact item F1; keep every official metric unchanged."
     ),
     "regression_ids": [
         "human-eval-missing-empty-reference", "human-eval-delivered-empty-reference",
         "human-eval-correct-record-pairs", "human-eval-swapped-record-pairs",
         "human-eval-process-independent-value-score",
+        "human-eval-item-partial-recall", "human-eval-item-extra-record",
+        "human-eval-item-number-equivalence", "human-eval-item-boolean-type",
     ],
     "provider_calls_added": 0,
 }
@@ -153,6 +159,38 @@ def record_identity(value):
     return (type(value).__name__, value)
 
 
+def item_identity(value):
+    """Canonical JSON values; numeric serializers agree, Boolean and null stay distinct."""
+    if type(value) in (int, float):
+        return ("number", Decimal(str(value)))
+    if isinstance(value, dict):
+        return ("object", tuple(sorted((k, item_identity(v)) for k, v in value.items())))
+    if isinstance(value, list):
+        return ("array", tuple(sorted((item_identity(v) for v in value), key=repr)))
+    return (type(value).__name__, value)
+
+
+def exact_items(value, path=()):
+    """Array elements are whole records; ordinary object fields keep their full paths."""
+    if isinstance(value, dict) and value:
+        return Counter(item for key, child in value.items()
+                       for item in exact_items(child, (*path, key)).elements())
+    if isinstance(value, list) and value:
+        return Counter((path, item_identity(item)) for item in value)
+    return Counter({(path, item_identity(value)): 1})
+
+
+def item_scores(reference, prediction):
+    """Strict structural diagnostics, not semantic equivalence or task acceptance."""
+    expected = exact_items(reference)
+    actual = exact_items(prediction) if isinstance(prediction, dict) else Counter()
+    hits = sum((expected & actual).values())
+    precision = hits / sum(actual.values()) if actual else 0.0
+    recall = hits / sum(expected.values()) if expected else 0.0
+    return {"item_precision": precision, "item_recall": recall,
+            "item_f1": 2 * precision * recall / (precision + recall) if precision + recall else 0.0}
+
+
 def score(truth, predictions, *, home):
     """Reproduce upstream per-case metrics and keep every task in the denominator."""
     from harness.web_extract.pipeline import validate_dataset
@@ -184,6 +222,7 @@ def score(truth, predictions, *, home):
             metrics.update(scorer["magic_metric_failed"]())
         details[case_id] = {
             **metrics, "delivered": delivered,
+            **item_scores(case["response"], prediction),
             "exact_record_match": delivered
             and record_identity(prediction) == record_identity(case["response"]),
         }
@@ -236,3 +275,53 @@ def check_scoring_controls(home):
     if identifiers != SCORING_REVISION["regression_ids"]:
         raise ValueError("Scoring revision omits a registered regression control")
     return identifiers
+
+
+def load_reference_revision(home, path):
+    """Apply source-bound, explicitly adjudicated replacements without rewriting the dataset."""
+    import copy
+
+    from harness.web_extract.pipeline import digest, read_json, validate_dataset
+
+    validate_dataset(home, CARD)
+    authority = read_json(path)
+    original = home / "dataset/dataset/ground-truth.json"
+    if (authority.get("schema") != "source-json-reference-revision/1"
+            or authority.get("original_reference_sha256") != digest(original.read_bytes())
+            or not authority.get("root_cause")
+            or authority.get("regression_ids") != check_scoring_controls(home)):
+        raise ValueError("Reference correction lacks frozen provenance and executable controls")
+    truth, seen = copy.deepcopy(read_json(original)), set()
+    for change in authority["changes"]:
+        cid, pointer = change["case_id"], change["path"]
+        if (cid, pointer) in seen or not pointer.startswith("/"):
+            raise ValueError("Duplicate or invalid reference correction")
+        seen.add((cid, pointer))
+        source = (home / "dataset/markdown" / (cid + ".md")).read_bytes()
+        if (digest(source) != change["source_sha256"] or not change["reason"]
+                or not change["source_quote"]
+                or change["source_quote"] not in source.decode("utf-8")):
+            raise ValueError("Reference correction lacks exact frozen source evidence")
+        keys = [k.replace("~1", "/").replace("~0", "~") for k in pointer[1:].split("/")]
+        parent = truth[cid]["response"]
+        for key in keys[:-1]:
+            parent = parent[int(key)] if isinstance(parent, list) else parent[key]
+        key = int(keys[-1]) if isinstance(parent, list) else keys[-1]
+        if record_identity(parent[key]) != record_identity(change["before"]):
+            raise ValueError("Reference correction predecessor differs")
+        parent[key] = change["after"]
+    if not seen:
+        raise ValueError("Empty reference revision")
+    return truth, {}
+
+
+def reference_revision_receipt(home, path):
+    from harness.web_extract.pipeline import digest, read_json
+
+    load_reference_revision(home, path)
+    authority = read_json(path)
+    return {"schema": authority["schema"], "authority_sha256": digest(Path(path).read_bytes()),
+            "original_reference_sha256": authority["original_reference_sha256"],
+            "root_cause": authority["root_cause"], "regression_ids": authority["regression_ids"],
+            "changed_paths": [{"case_id": c["case_id"], "path": c["path"]}
+                              for c in authority["changes"]], "provider_calls_added": 0}

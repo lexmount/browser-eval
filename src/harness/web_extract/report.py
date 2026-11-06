@@ -646,7 +646,7 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
     return str(result) + "<p>" + note + "</p>", str(timing)
 
 
-def price_table(methods, prices, lang, labels=None):
+def price_table(methods, prices, lang, labels=None, *, native_pricing=False):
     labels = labels or {}
     records = []
     for method in methods:
@@ -672,8 +672,11 @@ def price_table(methods, prices, lang, labels=None):
                 ),
             ]
         )
+    headings = list(message("method_usd_1_000_requests_billing_terms_and_commitment_verified_o", lang))
+    if native_pricing:
+        headings[1] = message("native_quote_heading", lang)
     return table(
-        message("method_usd_1_000_requests_billing_terms_and_commitment_verified_o", lang),
+        headings,
         records,
         attrs='data-price-table="true"',
     )
@@ -746,7 +749,18 @@ def usage_table(methods, rows, lang, labels=None):
     )
 
 
-def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
+def latency_p95(values, policy="nearest-rank"):
+    if policy == "nearest-rank":
+        return values[max(0, math.ceil(len(values) * .95) - 1)]
+    if policy != "linear":
+        raise ValueError("Unsupported latency quantile policy")
+    rank = (len(values) - 1) * .95
+    index = math.floor(rank)
+    return values[index] + (values[min(index + 1, len(values) - 1)] - values[index]) * (rank - index)
+
+
+def operating_metrics(methods, rows, prices, lang, labels, *, compared=None,
+                      quantile="nearest-rank", native_pricing=False):
     """Home-page latency and price, with the measured population kept explicit."""
     price_table(methods, prices, lang, labels)
     compared = set(methods if compared is None else compared)
@@ -756,11 +770,12 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
         values = sorted(
             r["elapsed_seconds"] for r in selected if r.get("elapsed_seconds") is not None
         )
+        p95 = latency_p95(values, quantile) if values else None
         stats = (
             [
                 statistics.mean(values),
                 statistics.median(values),
-                values[max(0, math.ceil(len(values) * 0.95) - 1)],
+                p95,
             ]
             if values
             else [None] * 3
@@ -785,7 +800,8 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
     soup = BeautifulSoup(
         table(
             message("method_timed_n_untimed_n_mean_s_p50_s_p95_s_quoted_usd_1_000_call", lang)[:6]
-            + [message("price_range_heading", lang), message("price_remarks_heading", lang)],
+            + [message("native_quote_heading" if native_pricing else "price_range_heading", lang),
+               message("price_remarks_heading", lang)],
             records,
             attrs='data-operating-metrics="true" data-sortable',
             sort_values={column: [int(row[column]) for row in records] for column in (1, 2)},
@@ -808,7 +824,7 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
                     if metric == "mean"
                     else statistics.median(values)
                     if metric == "p50"
-                    else values[max(0, math.ceil(len(values) * 0.95) - 1)]
+                    else latency_p95(values, quantile)
                 )
                 cell.attrs.update(
                     {
@@ -831,7 +847,7 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
     note = (
         message("latency_includes_all_executed_cases_including_failures_using_the", lang)
         + " "
-        + message("pricing_scope_note", lang)
+        + message("native_pricing_scope_note" if native_pricing else "pricing_scope_note", lang)
     )
     return (
         "<section data-home-operations><h2>"
@@ -1677,6 +1693,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     from harness.web_extract.dataset import require_product_reference
 
     require_external_output(output)
+    if content.is_file() and read_json(content).get("mode") == "schema-extraction-cohort":
+        return build_schema_cohort(output, content, home=home, language=language, profile=profile)
     if content.is_file() and read_json(content).get("mode") == "field-extraction-cohort":
         return build_record_cohort(output, content, home=home, language=language, profile=profile)
     require_product_reference(home)
@@ -2509,6 +2527,8 @@ def check_reader_contract(output, manifest, *, release=False):
 def check(output: Path, *, release=False, visual_receipt=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    if manifest.get("mode") == "schema-extraction-cohort":
+        return check_schema_cohort(output, release=release, visual_receipt=visual_receipt)
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     check_report_identity(output, manifest, "web-extract")
@@ -3102,11 +3122,13 @@ def record_result_href(method, case_id):
     return record_route("c", case_id) + ".html#" + method
 
 
-def record_comparison(headers, rows, metrics, *, sort_values=None):
+def record_comparison(headers, rows, metrics, *, sort_values=None, highlight_ties=True):
     """Use the common table owner and raw-value extrema checks for each metric."""
     soup = BeautifulSoup(
         table(headers, rows, attrs="data-sortable", sort_values=sort_values), "html.parser"
     )
+    if not highlight_ties:
+        soup.table.attrs.pop("data-highlight-ties", None)
     for column, (name, direction, values) in metrics.items():
         observed = []
         for row, value in zip(soup.select("tbody tr"), values, strict=True):
@@ -3118,7 +3140,7 @@ def record_comparison(headers, rows, metrics, *, sort_values=None):
         if observed and direction != "neutral":
             extreme = (min if direction == "min" else max)(value for value, _ in observed)
             for value, cell in observed:
-                if value == extreme:
+                if value == extreme and (highlight_ties or sum(v == extreme for v, _ in observed) == 1):
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})
                     span.string = cell.get_text()
                     cell.clear()
@@ -4387,4 +4409,452 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         }
         if not required.issubset(observed):
             raise ValueError("Incomplete record report detail, theme or viewport coverage")
+    return manifest
+
+
+def schema_metric_definitions(language, count):
+    labels = {"delivered": "delivery", "exact_record_match": "exact_match"}
+    return [{
+        "id": key, "label": message("schema_" + labels.get(key, key), language),
+        "meaning": message("schema_meaning_" + key, language), "unit": "0–1",
+        "population": message("schema_all_tasks", language, count=count),
+        "direction": message("schema_higher", language),
+    } for key in ("delivered", "key_f1", "value_score", "item_f1", "exact_record_match", "reviewed_correct")]
+
+
+def schema_report_inputs(home, model):
+    """Read complete arbitrary-schema evidence without converting it to product fields."""
+    from harness.web_extract.review import json_leaf_paths
+
+    if model.get("synthetic"):
+        binding = model["synthetic_data"]
+        raw = Path(binding["path"]).read_bytes()
+        if digest(raw) != binding["sha256"]:
+            raise ValueError("Synthetic schema fixture changed")
+        data = json.loads(raw)
+        return data["cases"], data["rows"], data["scores"], data["audit"]
+    validate_dataset(home)
+    truth = read_json(home / "dataset/dataset/ground-truth.json")
+    binding = model["audit"]
+    audit = read_json(Path(binding["path"]))
+    if digest(Path(binding["path"]).read_bytes()) != binding["sha256"]:
+        raise ValueError("Schema report audit changed")
+    if audit.get("review_scope") != "all" or audit.get("accepted_unreviewed_passes") != 0:
+        raise ValueError("Schema report requires full source-evidence review")
+    if audit.get("dataset_manifest_sha256") != digest((home / "dataset/manifest.json").read_bytes()):
+        raise ValueError("Schema audit belongs to another dataset")
+    methods, rows, scores = list(model["participants"]), [], {}
+    for selection in model["evidence_runs"]:
+        run = Path(selection["path"])
+        contract, selected = load_run(run)
+        if len(contract["methods"]) != 1:
+            raise ValueError("Schema report needs one source run per method")
+        method = contract["methods"][0]
+        certificate = read_json(run / "certificate.json")
+        if certificate["manifest_sha256"] != digest((run / "manifest.json").read_bytes()):
+            raise ValueError("Schema report source certificate changed")
+        score_path = Path(selection["scores"]["path"])
+        if digest(score_path.read_bytes()) != selection["scores"]["sha256"]:
+            raise ValueError("Schema report selected score changed")
+        scored = read_json(score_path)
+        if scored["call_manifest_sha256"] != certificate["manifest_sha256"]:
+            raise ValueError("Schema score belongs to another call matrix")
+        if method in scores:
+            raise ValueError("Schema report duplicates a method")
+        scores[method] = scored["scores"][method]
+        rows.extend(selected)
+    expected = {(method, cid) for method in methods for cid in truth}
+    observed = {(row["method"], row["case_id"]) for row in rows}
+    if len(rows) != len(expected) or observed != expected or set(scores) != set(methods):
+        raise ValueError("Schema report requires the complete declared result matrix")
+    if set(audit["results"]) != {m + ":" + cid for m, cid in expected}:
+        raise ValueError("Schema report audit omits or adds results")
+    for row in rows:
+        opinion = audit["results"][row["method"] + ":" + row["case_id"]]
+        if opinion["execution_identity"] != execution_identity(row):
+            raise ValueError("Schema report review does not match the current native response")
+        actual = row.get("normalized_fields")
+        paths = json_leaf_paths(actual) if isinstance(actual, dict) else []
+        if sorted(opinion["checked_paths"]) != sorted(paths):
+            raise ValueError("Schema report review skipped nested values")
+    if set(audit["reference_reviews"]) != set(truth):
+        raise ValueError("Schema report reference audit is incomplete")
+    return truth, rows, scores, audit
+
+
+def build_schema_cohort(output, content, *, home, language, profile):
+    """Render arbitrary JSON cohorts with the existing shell, tables and evidence UI."""
+    from collections import Counter
+
+    from harness.reporting.presentation import metric_guide
+
+    require_external_output(output)
+    model, authority = read_json(content), read_json(profile)
+    if authority.get("research_report", {}).get("content", {}).get("sha256") != digest(
+        content.read_bytes()
+    ):
+        raise ValueError("Schema report content is not bound to its profile")
+    if authority.get("independent_result_review_scope") != "all":
+        raise ValueError("Schema report requires explicit full-review scope")
+    language = resolve_report_language(output, language)
+    languages = ("zh",) if language == "zh" else ("en", "zh")
+    if output.exists() and any(output.iterdir()):
+        raise ValueError("Use an empty report directory")
+    truth, rows, scores, audit = schema_report_inputs(home, model)
+    methods = list(model["participants"])
+    labels = {m: model["participants"][m]["label"] for m in methods}
+    output.mkdir(parents=True, exist_ok=True)
+    (output / "public-evidence").mkdir()
+    (output / "data").mkdir()
+    (output / "style.css").write_text(CSS, encoding="utf-8")
+    (output / "app.js").write_text(JS, encoding="utf-8")
+    by_case = {cid: [r for r in rows if r["case_id"] == cid] for cid in truth}
+    copy_report_assets(output, content, model)
+
+    def dump(name, value):
+        save_json(output / name, value)
+
+    for cid, definition in truth.items():
+        markdown = (home / "dataset/markdown" / (cid + ".md")).read_text(encoding="utf-8")
+        dump("public-evidence/t-" + cid + ".json", {
+            "case_id": cid, "schema": json.loads(definition["schema_text"]),
+            "reference": definition["response"], "markdown": markdown,
+        })
+        (output / "public-evidence" / ("source-" + cid + ".html")).write_text(
+            '<!doctype html><html><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" '
+            'content="default-src \'none\'; style-src \'unsafe-inline\'"><style>'
+            'body{font:15px/1.7 system-ui;max-width:1000px;margin:32px auto;padding:16px}'
+            'pre{white-space:pre-wrap;overflow-wrap:anywhere}</style><h1>' + esc(cid)
+            + "</h1><pre>" + esc(markdown) + "</pre></html>", encoding="utf-8",
+        )
+        for row in by_case[cid]:
+            method = row["method"]
+            opinion = audit["results"][method + ":" + cid]
+            dump("public-evidence/r-" + method + "-" + cid + ".json", {
+                "kind": "schema-json-result", "case_id": cid, "method": labels[method],
+                "review": opinion, "request": row.get("request"),
+                "response": row.get("response"), "runtime_error": row.get("error"),
+                "normalized_fields": row.get("normalized_fields"),
+                "scores": scores[method]["per_case"][cid],
+            })
+    dump("data/metrics.json", {m: scores[m] for m in methods})
+    dump("data/review.json", {k: audit[k] for k in (
+        "review_kind", "reviewer", "reviewed_results", "case_count", "cause_distribution"
+    )})
+    for attachment in model.get("attachments", []):
+        path = Path(attachment["path"])
+        name = attachment["name"]
+        if not re.fullmatch(r"[a-z0-9-]+\.json", name) or path.is_symlink():
+            raise ValueError("Invalid schema report attachment")
+        if digest(path.read_bytes()) != attachment["sha256"]:
+            raise ValueError("Schema report attachment changed")
+        dump("public-evidence/" + name, read_json(path))
+
+    for lang in languages:
+        (output / lang).mkdir()
+        def t(key, _lang=lang, **kw):
+            return message("schema_" + key, _lang, **kw)
+        title = model["title"][lang]
+        notice = t("synthetic_notice") if model.get("synthetic") else t("audit_notice")
+
+        def prose(route, _lang=lang):
+            blocks = model.get("authored", {}).get(_lang, {}).get(route, [])
+            body = "".join(
+                "<section><h2>" + esc(b["heading"]) + "</h2><p>" + esc(b["text"])
+                + "</p>" + (
+                    '<figure><img style="max-width:100%;height:auto" src="../'
+                    + esc(b["asset"], quote=True) + '" alt="' + esc(b["alt"], quote=True)
+                    + '"></figure>' if b.get("asset") else ""
+                ) + "".join(
+                    '<a href="c-' + esc(cid, quote=True) + '.html">' + esc(cid) + "</a> "
+                    for cid in b.get("cases", [])
+                ) + "</section>" for b in blocks
+            )
+            for attachment in model.get("attachments", []):
+                if attachment["route"] == route:
+                    body += '<p><a href="../public-evidence/' + esc(attachment["name"], quote=True)
+                    body += '">' + esc(attachment["label"][_lang]) + '</a></p>'
+            return body
+
+        def evidence_button(src, *, label=None, _t=t, target="schema-evidence", key=None):
+            return ('<button type="button" data-call-log-open="' + target + '"'
+                    + (' data-key="' + esc(key, quote=True) + '"' if key else '') + ' data-src="../'
+                    + esc(src, quote=True) + '">' + (label or _t("detail")) + "</button>")
+
+        def evidence_dialog(target="schema-evidence", _t=t):
+            return ('<dialog id="' + target + '" aria-labelledby="' + target + '-title">'
+                '<h2 id="' + target + '-title">' + _t("raw_evidence")
+                + '</h2><button type="button" data-call-log-close>' + _t("close")
+                + "</button><pre></pre></dialog>")
+
+        dialog = evidence_dialog()
+        quality = []
+        metrics = {i: (key, "max", []) for i, key in enumerate(
+            ("delivered", "key_f1", "value_score", "item_f1", "exact_record_match", "reviewed_correct"), 1
+        )}
+        for method in methods:
+            mean = scores[method]["mean"]
+            correct = sum(audit["results"][method + ":" + cid]["verdict"] == "correct" for cid in truth)
+            values = [mean["delivered"], mean["key_f1"], mean["value_score"], mean["item_f1"],
+                      mean["exact_record_match"], correct / len(truth)]
+            quality.append([esc(labels[method]), f'{scores[method]["delivery_count"]}/{len(truth)}',
+                f'{mean["key_f1"]:.4f}', f'{mean["value_score"]:.4f}', f'{mean["item_f1"]:.4f}',
+                f'{sum(v["exact_record_match"] for v in scores[method]["per_case"].values())}/{len(truth)}',
+                f'{correct}/{len(truth)}'])
+            for i, value in enumerate(values, 1):
+                metrics[i][2].append(value)
+        core = record_comparison([t(k) for k in (
+            "method", "delivery", "key_f1", "value_score", "item_f1", "exact_match", "reviewed_correct"
+        )], quality, metrics, highlight_ties=False)
+        core += '<p data-schema-population>' + t("all_tasks", count=len(truth)) + "</p>"
+        core += "<p>" + t("whole_result_note") + "</p>"
+        core += "<p>" + t("review_kind") + "</p>"
+        core += metric_guide(schema_metric_definitions(lang, len(truth)),
+            title=t("metric_guide"), headings=t("metric_headers"))
+        timing = operating_metrics(methods, rows, model["prices"], lang, labels,
+                                   quantile="linear", native_pricing=True)
+        bodies = {route: prose(route) for route in PAGES}
+        bodies["index"] = "<h2>" + t("core") + "</h2>" + core + timing + bodies["index"]
+        bodies["accounts"] += price_table(methods, model["prices"], lang, labels, native_pricing=True)
+        bodies["accounts"] += usage_table(methods, rows, lang, labels)
+        bodies["review"] = ("<p>" + t("reviewed", done=audit["reviewed_results"], total=len(rows))
+                            + "</p>" + bodies["review"])
+        bodies["interpretation"] = core + bodies["interpretation"]
+        successful_timing, conditional_metrics = [], {i: ("conditional-" + key, "min", [])
+            for i, key in enumerate(("mean", "p50", "p95"), 2)}
+        for method in methods:
+            values = sorted(r["elapsed_seconds"] for r in rows if r["method"] == method
+                            and isinstance(r.get("normalized_fields"), dict))
+            statistics_values = ([statistics.mean(values), statistics.median(values),
+                                  latency_p95(values, "linear")] if values else [None] * 3)
+            successful_timing.append([esc(labels[method]), str(len(values)), *[
+                f"{v:.3f}" if v is not None else "—" for v in statistics_values
+            ]])
+            for column, value in enumerate(statistics_values, 2):
+                conditional_metrics[column][2].append(value)
+        bodies["protocol"] += "<h2>" + t("conditional_latency") + "</h2><p>"
+        bodies["protocol"] += t("conditional_latency_scope") + "</p>" + record_comparison(
+            t("conditional_latency_headers"), successful_timing, conditional_metrics,
+            highlight_ties=False,
+        )
+        inventory = []
+        for row in rows:
+            method, cid = row["method"], row["case_id"]
+            opinion = audit["results"][method + ":" + cid]
+            metric = scores[method]["per_case"][cid]
+            inventory.append([esc(cid), esc(labels[method]), t("verdict_" + opinion["verdict"]),
+                t("cause_" + opinion["cause"]), f'{metric["value_score"]:.4f}',
+                '<a href="c-' + cid + '.html#' + method + '">' + t("comparison") + "</a> "
+                + evidence_button("public-evidence/r-" + method + "-" + cid + ".json")])
+        inventory_html = BeautifulSoup(table(
+            [t(k) for k in ("case", "method", "verdict", "cause", "value_score", "detail")],
+            inventory, inventory=True, attrs="data-sortable",
+        ), "html.parser")
+        for tr, row in zip(inventory_html.select("tbody tr"), rows, strict=True):
+            opinion = audit["results"][row["method"] + ":" + row["case_id"]]
+            tr.attrs.update({"data-result": "", "data-case": row["case_id"],
+                "data-method": row["method"], "data-status": "pass" if opinion["verdict"] == "correct" else "fail",
+                "data-stage": failure_stage(row),
+                "data-search": " ".join((row["case_id"], labels[row["method"]], opinion["cause"])),
+                "data-scored-fields": "1"})
+        controls = BeautifulSoup(result_controls(
+            methods, [{**r, "failure_stage": failure_stage(r)} for r in rows], labels, lang
+        ), "html.parser")
+        # Arbitrary JSON has no shared price/SKU/stock field inventory.
+        field_control = controls.select_one('[data-result-filter="field"]')
+        field_control.find_parent("label").decompose()
+        for value in ("pass", "fail"):
+            controls.select_one('[data-result-filter="status"] option[value="' + value + '"]').string = (
+                t("review_pass" if value == "pass" else "review_fail")
+            )
+        bodies["results"] += str(controls) + str(inventory_html) + dialog
+        dataset_rows = []
+        for cid, definition in truth.items():
+            source = (home / "dataset/markdown" / (cid + ".md")).read_text(encoding="utf-8")
+            schema = json.loads(definition["schema_text"])
+            dataset_rows.append([esc(cid), str(len(source)), str(len(schema.get("properties", {}))),
+                '<a href="t-' + cid + '.html">' + t("source") + "</a>"])
+            task = "<p>" + t("input_scope") + "</p>"
+            task += '<a href="../public-evidence/source-' + cid + '.html">' + t("source_preview") + "</a>"
+            for key, value in (("schema", schema), ("reference", definition["response"]), ("source", source)):
+                task += "<details><summary>" + t(key) + "</summary><pre>" + esc(
+                    value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, indent=2)
+                ) + "</pre></details>"
+            (output / lang / ("t-" + cid + ".html")).write_text(page(
+                lang, "t-" + cid, cid, task, detail=True, languages=languages,
+                state="schema-extraction-cohort", notice=notice), encoding="utf-8")
+            case_body = '<a href="t-' + cid + '.html">' + t("source") + " / " + t("schema") + "</a>"
+            for row in by_case[cid]:
+                method = row["method"]
+                opinion = audit["results"][method + ":" + cid]
+                failed = opinion["verdict"] != "correct"
+                error = row.get("error") or native_error(row)
+                log = ('<pre data-kind="error">' + esc(error) + "</pre>" if error else
+                       '<p data-log-unavailable>' + t("no_runtime_error") + "</p>")
+                native = row.get("normalized_fields")
+                native = native if isinstance(native, dict) else {}
+                expected_values = definition["response"]
+
+                def preview(value):
+                    text = json.dumps(value, ensure_ascii=False)
+                    return "<code>" + esc(text[:280] + ("…" if len(text) > 280 else "")) + "</code>"
+
+                fields = []
+                for field in opinion["fields"]:
+                    key = field["field"]
+                    fields.append([esc(key), preview(expected_values[key]) if key in expected_values else t("absent"),
+                        preview(native[key]) if key in native else t("absent"), t("field_" + field["status"])])
+                values_table = table([t(k) for k in ("field", "reference", "actual", "verdict")], fields)
+                case_body += ('<details data-result-panel data-report-detail="'
+                    + ("failed" if failed else "passed") + '" id="' + method + '"><summary data-result-summary>'
+                    + esc(labels[method]) + " · " + t("verdict_" + opinion["verdict"]) + "</summary>"
+                    + '<p data-failure-diagnosis>' + t("cause_" + opinion["cause"]) + "</p>"
+                    + values_table
+                    + evidence_button("public-evidence/t-" + cid + ".json", label=t("reference"),
+                                      target="reference-" + method, key="reference")
+                    + evidence_button("public-evidence/r-" + method + "-" + cid + ".json",
+                                      label=t("actual"), target="actual-" + method, key="normalized_fields")
+                    + evidence_dialog("reference-" + method) + evidence_dialog("actual-" + method)
+                    + "<details><summary>" + t("source_support") + "</summary><pre>"
+                    + esc(json.dumps(opinion["fields"], ensure_ascii=False, indent=2)) + "</pre></details>"
+                    + '<section data-result-logs>' + log + "</section>"
+                    + evidence_button("public-evidence/r-" + method + "-" + cid + ".json",
+                                      target="evidence-" + method)
+                    + ' <a href="../public-evidence/r-' + method + "-" + cid + '.json">'
+                    + t("raw_json") + "</a>" + evidence_dialog("evidence-" + method) + "</details>")
+            (output / lang / ("c-" + cid + ".html")).write_text(page(
+                lang, "c-" + cid, cid + " · " + t("comparison"), case_body,
+                detail=True, languages=languages, state="schema-extraction-cohort",
+                notice=notice), encoding="utf-8")
+        dataset_table = BeautifulSoup(table(
+            [t(k) for k in ("case", "source_size", "requested_fields", "source")], dataset_rows,
+            inventory=True, attrs="data-dataset-inventory data-sortable",
+        ), "html.parser")
+        for tr, cid in zip(dataset_table.select("tbody tr"), truth, strict=True):
+            tr["data-dataset-row"] = ""
+            tr["data-search"] = cid
+        bodies["dataset"] += dataset_controls(lang) + str(dataset_table)
+        for method in methods:
+            distribution = Counter(audit["results"][method + ":" + cid]["cause"] for cid in truth)
+            bodies["interpretation"] += "<section><h2>" + esc(labels[method]) + "</h2>"
+            bodies["interpretation"] += table([t("cause"), t("case_count")], [
+                [t("cause_" + cause), str(count)] for cause, count in sorted(distribution.items())
+            ], attrs='data-schema-causes style="min-width:0"') + "</section>"
+        candidates = []
+        for index, candidate in enumerate(model["candidates"]):
+            links = " ".join('<a href="' + esc(url, quote=True) + '">' + esc(urlsplit(url).hostname or "Source") + "</a>"
+                             for url in candidate["sources"])
+            example = candidate.get("example")
+            if example:
+                path = Path(example["path"])
+                if digest(path.read_bytes()) != example["sha256"]:
+                    raise ValueError("Candidate interface example changed")
+                name = "public-evidence/candidate-" + str(index) + ".json"
+                dump(name, read_json(path))
+                links += " " + evidence_button(name, label=t("input_output"))
+            candidates.append([esc(candidate["label"]), esc(candidate["status"][lang]),
+                esc(candidate["description"][lang]), links])
+        bodies["candidates"] += table(t("candidate_headers"), candidates) + dialog
+        for route in PAGES:
+            (output / lang / (route + ".html")).write_text(page(
+                lang, route, title if route == "index" else (
+                    EXTRA_LABELS[route][lang] if route in EXTRA_LABELS else LABELS[lang][PAGES.index(route)]
+                ), bodies[route], languages=languages, state="schema-extraction-cohort",
+                notice=notice), encoding="utf-8")
+    if "en" not in languages:
+        (output / "en").mkdir(exist_ok=True)
+        (output / "en/index.html").write_text(message("english_not_generated_notice", "en"), encoding="utf-8")
+    (output / "index.html").write_text('<!doctype html><meta http-equiv="refresh" content="0;url='
+        + language + '/index.html"><a href="' + language + '/index.html">Web Extract</a><body></body>', encoding="utf-8")
+    build_version = bind_build_version(output)
+    files = {p.relative_to(output).as_posix(): digest(p.read_bytes())
+             for p in sorted(output.rglob("*")) if p.is_file()}
+    save_json(output / "report-manifest.json", {
+        "schema_version": 1, "track": "web-extract", "mode": "schema-extraction-cohort",
+        "browser_eval": build_version,
+        "template": template_identity("web-extract"), "template_version": VERSION,
+        "renderer_sha256": digest(Path(__file__).read_bytes()),
+        "dependencies": {"messages": messages_sha256(), "css": digest(CSS.encode()),
+                         "js": digest(JS.encode())},
+        "profile_sha256": digest(profile.read_bytes()), "content_sha256": digest(content.read_bytes()),
+        "primary_language": language, "languages": list(languages), "planned_methods": methods,
+        "method_labels": labels, "case_count": len(truth), "observations": len(rows),
+        "reviewed_results": audit["reviewed_results"], "required_review_scope": "all",
+        "audit_sha256": binding["sha256"] if (binding := model["audit"]) else None,
+        "synthetic": model.get("synthetic", False), "files": files,
+    })
+    return check_schema_cohort(output)
+
+
+def check_schema_cohort(output, *, release=False, visual_receipt=None):
+    """Verify coverage, provenance, semantic tables and every lazy evidence target."""
+    from harness.reporting.presentation import check_metric_guide, check_presentation
+
+    output = Path(output)
+    manifest = read_json(output / "report-manifest.json")
+    check_report_identity(output, manifest, "web-extract")
+    if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
+        raise ValueError("Schema renderer changed; rebuild required")
+    if manifest.get("dependencies") != {
+        "messages": messages_sha256(), "css": digest(CSS.encode()), "js": digest(JS.encode())
+    }:
+        raise ValueError("Schema report dependencies changed; rebuild required")
+    expected = manifest["case_count"] * len(manifest["planned_methods"])
+    if manifest["observations"] != expected or manifest["reviewed_results"] != expected:
+        raise ValueError("Schema report requires complete measured and reviewed coverage")
+    for name, sha in manifest["files"].items():
+        path = output / name
+        if path.is_symlink() or digest(path.read_bytes()) != sha:
+            raise ValueError("Schema report file changed: " + name)
+        if path.suffix != ".html" or name.startswith("public-evidence/"):
+            continue
+        soup = check_presentation(path.read_text(encoding="utf-8"))
+        for element in soup.select("a[href], [data-src]"):
+            target = element.get("data-src", element.get("href", ""))
+            if urlsplit(target).scheme or target.startswith("#"):
+                continue
+            # The maintained page shell resolves all local resources against the report root.
+            relative = urlsplit(target).path
+            resolved = path.parent / relative if relative.startswith("../") else output / relative
+            if relative and not resolved.is_file():
+                raise ValueError("Schema report has a broken evidence or navigation link: " + target)
+    for lang in manifest["languages"]:
+        results = BeautifulSoup((output / lang / "results.html").read_text(), "html.parser")
+        if len(results.select("tr[data-result]")) != expected:
+            raise ValueError("Schema inventory omits results")
+        for route in ("index", "interpretation"):
+            document = (output / lang / (route + ".html")).read_text()
+            check_metric_guide(document,
+                schema_metric_definitions(lang, manifest["case_count"]),
+                title=message("schema_metric_guide", lang),
+                headings=message("schema_metric_headers", lang))
+            soup = BeautifulSoup(document, "html.parser")
+            metrics = read_json(output / "data/metrics.json")
+            for key in ("key_f1", "value_score", "item_f1"):
+                cells = soup.select('td[data-metric="' + key + '"]')
+                if len(cells) != len(manifest["planned_methods"]):
+                    raise ValueError("Schema comparison omits a metric or method")
+                for cell, method in zip(cells, manifest["planned_methods"], strict=True):
+                    value = metrics[method]["mean"][key]
+                    if (float(cell["data-sort"]) != value
+                            or cell.get_text(strip=True) != f"{value:.4f}"):
+                        raise ValueError("Schema displayed metric differs from frozen evidence")
+        for route in PAGES:
+            if not (output / lang / (route + ".html")).is_file():
+                raise ValueError("Schema report omits a core route")
+    if release:
+        if manifest.get("synthetic"):
+            raise ValueError("Synthetic schema evidence cannot be released")
+        check_visual_receipt(output, manifest, visual_receipt)
+        observed = {(o["language"], o["route_class"], o["viewport"], o.get("theme"))
+                    for o in read_json(visual_receipt)["observations"]}
+        routes = {(lang, route) for lang in manifest["languages"] for route in (
+            *PAGES, "success-detail", "failure-detail", "source-detail"
+        )}
+        if "en" not in manifest["languages"]:
+            routes.add(("en", "english-notice"))
+        required = {(lang, route, viewport, theme) for lang, route in routes
+                    for viewport in ("desktop", "narrow") for theme in ("light", "dark")}
+        if not required.issubset(observed):
+            raise ValueError("Schema report lacks complete route, theme and viewport coverage")
     return manifest

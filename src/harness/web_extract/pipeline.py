@@ -2059,7 +2059,7 @@ def score_run(
             }
             for r in rows
         ]
-    if reference_policy is not None:
+    if reference_policy is not None and "unavailable_reference_groups" in reference_policy:
         selected_groups = {
             (case["domain"], case["site"], field)
             for case in truth.values()
@@ -2123,40 +2123,62 @@ def score_run(
             original_rows,
             contract["methods"],
         )
-        if original.get("scores") != expected:
+        def preserves_saved(saved, current):
+            if isinstance(saved, dict):
+                return isinstance(current, dict) and all(
+                    key in current and preserves_saved(value, current[key])
+                    for key, value in saved.items()
+                )
+            if type(saved) is float and type(current) in (int, float):
+                return math.isclose(saved, current, rel_tol=0, abs_tol=1e-14)
+            return saved == current
+
+        reproduced = (
+            all(preserves_saved(original["scores"][m][section], expected[m][section])
+                for m in contract["methods"] for section in ("per_case", "mean"))
+            if hasattr(adapter, "reference_revision_receipt")
+            else original.get("scores") == expected
+        )
+        if not reproduced:
             raise ValueError("Original scores do not reproduce before reference correction")
         authority = read_json(reference_revision)
-        result["reference_revision"] = {
-            "schema": "source-qualified-record-scoring/1",
-            "authority_sha256": digest(Path(reference_revision).read_bytes()),
-            "original_reference_sha256": digest(
-                (home / "dataset/dataset/ground-truth.json").read_bytes()
-            ),
-            "original_scores_sha256": digest((run / "scores.json").read_bytes()),
-            "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
-            "regression_ids": adapter.check_reference_controls(),
-            "root_causes": [
-                reason
-                for observed, reason in (
-                    (True, "Whitespace refinement preserves source characters, units and case"),
-                    (
-                        authority.get("dom_text_changes"),
-                        "Encoded original labels differ from their exact frozen DOM text nodes",
-                    ),
-                    (
-                        authority.get("partial_label_decisions"),
-                        "Truncated original labels require full source elements and field context",
-                    ),
-                    (
-                        authority.get("unavailable_reference_groups"),
-                        "Entire original site-field annotations are absent, not quality zero",
-                    ),
-                )
-                if observed
-            ],
-            "policy": reference_policy,
-            "provider_calls_added": 0,
-        }
+        if hasattr(adapter, "reference_revision_receipt"):
+            result["reference_revision"] = adapter.reference_revision_receipt(
+                home, reference_revision
+            )
+        else:
+            result["reference_revision"] = {
+                "schema": "source-qualified-record-scoring/1",
+                "authority_sha256": digest(Path(reference_revision).read_bytes()),
+                "original_reference_sha256": digest(
+                    (home / "dataset/dataset/ground-truth.json").read_bytes()
+                ),
+                "original_scores_sha256": digest((run / "scores.json").read_bytes()),
+                "adapter_sha256": digest(Path(adapter.__file__).read_bytes()),
+                "regression_ids": adapter.check_reference_controls(),
+                "root_causes": [
+                    reason
+                    for observed, reason in (
+                        (True, "Whitespace refinement preserves source characters, units and case"),
+                        (
+                            authority.get("dom_text_changes"),
+                            "Encoded original labels differ from their exact frozen DOM text nodes",
+                        ),
+                        (
+                            authority.get("partial_label_decisions"),
+                            "Truncated original labels require full source elements "
+                            "and field context",
+                        ),
+                        (
+                            authority.get("unavailable_reference_groups"),
+                            "Entire original site-field annotations are absent, not quality zero",
+                        ),
+                    )
+                    if observed
+                ],
+                "policy": reference_policy,
+                "provider_calls_added": 0,
+            }
     target = Path(output) if output else run / "scores.json"
     if (reproject or reference_revision is not None) and target.resolve() == (
         run / "scores.json"
