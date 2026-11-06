@@ -75,8 +75,8 @@ def installed_environment_sha256():
 
 
 @lru_cache(maxsize=4)
-def browser_version(executable, _executable_sha256):
-    """Reuse the version probe while the configured executable bytes are unchanged."""
+def browser_version(executable, _file_identity):
+    """Avoid a second version subprocess for the same native browser file."""
     return subprocess.check_output([executable, "--version"], text=True, timeout=5).strip()
 
 
@@ -110,9 +110,14 @@ def local_runtime_identity(engine):
     if engine == "crawl4ai":
         identity["llm_output_protocol"] = "xml_blocks"
     if engine == "stagehand":
-        executable = os.environ["CHROME_PATH"]
+        executable = Path(os.environ["CHROME_PATH"]).resolve()
+        with executable.open("rb") as stream:
+            if stream.read(2) == b"#!":
+                raise ValueError("CHROME_PATH must name the native browser, not a launcher script")
+        identity_stat = executable.stat()
         identity["browser_version"] = browser_version(
-            executable, hashlib.sha256(Path(executable).read_bytes()).hexdigest()
+            str(executable),
+            (identity_stat.st_ino, identity_stat.st_size, identity_stat.st_mtime_ns)
         )
     return identity
 
@@ -206,7 +211,7 @@ def graph(value):
         temperature=0,
         max_tokens=8192,
         max_retries=0,
-        timeout=150,
+        timeout=100,
     )
     response = requests.get(
         value["url"],
@@ -531,8 +536,16 @@ def create_app():
 
     app = FastAPI(title="Open-source Web Extract", docs_url=None, redoc_url=None)
 
+    def authenticated(authorization):
+        token = os.environ.get("EXTRACTION_API_KEY", "")
+        return bool(token) and hmac.compare_digest(
+            authorization.encode("utf-8"), ("Bearer " + token).encode("utf-8")
+        )
+
     @app.get("/health")
-    def health():
+    def health(authorization: str = Header(default="")):
+        if not authenticated(authorization):
+            return {"status": "ok"}
         return {
             "status": "ok",
             "engines": {
@@ -549,10 +562,7 @@ def create_app():
         authorization: str = Header(default=""),
         keepalive: bool = False,
     ):
-        token = os.environ.get("EXTRACTION_API_KEY", "")
-        if not token or not hmac.compare_digest(
-            authorization.encode("utf-8"), ("Bearer " + token).encode("utf-8")
-        ):
+        if not authenticated(authorization):
             raise HTTPException(401, "Invalid API key")
         try:
             value = await read_request_body(request)
@@ -565,6 +575,18 @@ def create_app():
         except (KeyError, ValueError) as exc:
             raise HTTPException(400, str(exc)) from exc
 
+        async def failed(error, status=None):
+            payload = {"success": False, "data": None, "error": error}
+            if status is not None:
+                payload["http_status"] = status
+            try:
+                payload["runtime"] = await asyncio.to_thread(runtime_identity, engine)
+            except Exception as attestation_error:
+                payload.update(
+                    runtime=None, runtime_attestation_error=type(attestation_error).__name__
+                )
+            return payload
+
         async def result():
             try:
                 completed = await asyncio.to_thread(run_worker, value)
@@ -575,11 +597,7 @@ def create_app():
                 for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
                     if os.environ.get(key):
                         error = error.replace(os.environ[key], "[REDACTED]")
-                return {
-                    "success": False,
-                    "error": error[-6000:],
-                    "runtime": await asyncio.to_thread(runtime_identity, engine),
-                }
+                return await failed(error[-6000:])
             return json.loads(completed.stdout)
 
         if not keepalive:
@@ -602,13 +620,7 @@ def create_app():
                 except HTTPException as exc:
                     # Headers have already been sent; retain the native failure
                     # status inside the opt-in streaming result.
-                    payload = {
-                        "success": False,
-                        "data": None,
-                        "error": exc.detail,
-                        "http_status": exc.status_code,
-                        "runtime": await asyncio.to_thread(runtime_identity, engine),
-                    }
+                    payload = await failed(exc.detail, exc.status_code)
                 yield json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
             finally:
                 # A disconnected caller does not remove the worker's 110-second

@@ -326,6 +326,8 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
             if not method_ids or not set(method_ids).issubset(methods):
                 raise ValueError("Cohort does not contain every comparison participant")
             current = copy.deepcopy(current)
+            if current.get("execution_policy"):
+                current["collection_methods"] = current["methods"]
             current["methods"] = [methods[method_id] for method_id in method_ids]
             calls = [row for row in calls if row["method"] in method_ids]
         if profile is None:
@@ -371,7 +373,7 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
     # A batch-specific prose description is not the combined report's population.
     # Frozen source profiles remain bound separately by their original hashes.
     profile["protocol"].pop("comparison", None)
-    validate_profile(profile)
+    validate_profile(profile, execution_methods=profile.get("collection_methods"))
     return (
         profile,
         rows,
@@ -2298,7 +2300,7 @@ def execution_settings(profile, zh):
     t = partial(report_text, zh=zh)
     maximum = profile["protocol"]["concurrency"]
     policy = profile.get("execution_policy")
-    bindings = execution_resources(profile) if policy else {}
+    bindings = execution_resources({**profile, "methods": profile.get("collection_methods", profile["methods"])}) if policy else {}
     entries = []
     for method in profile["methods"]:
         resources = bindings.get(method["id"], ())
@@ -3383,6 +3385,8 @@ def project_comparison(profile, rows, content):
         if set(actual) != expected or len(actual) != len(expected):
             raise ValueError("Incomplete comparison participant matrix")
     projected = copy.deepcopy(profile)
+    if profile.get("execution_policy"):
+        projected.setdefault("collection_methods", copy.deepcopy(profile["methods"]))
     projected["methods"] = [dict(methods[mid], label=content.get("comparison_labels", {}).get(mid, methods[mid]["label"])) for mid in ids]
     projected["comparison_selection"] = {"method_ids": ids, "collection_method_ids": list(methods)}
     return projected, selected

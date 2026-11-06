@@ -129,7 +129,7 @@ def execution_resources(profile):
     return bindings
 
 
-def validate_profile(profile):
+def validate_profile(profile, *, execution_methods=None):
     if profile.get("schema") != "web-search/1":
         raise ValueError("Unsupported search profile")
     cases = profile["cases"]
@@ -155,17 +155,15 @@ def validate_profile(profile):
             raise ValueError("Search execution policy differs from declared concurrency/backend")
         if not {m["id"] for m in methods}.issubset(policy.resources):
             raise ValueError("Search execution requires a resource lane per method")
-        execution_resources(profile)
+        execution_resources({**profile, "methods": execution_methods or methods})
         order = protocol.get("order")
-        if order not in {"bounded provider batches", "bounded calls"}:
+        if order != "bounded calls":
             raise ValueError("Concurrent search requires an explicit bounded execution order")
-        if order == "bounded provider batches" and any(policy.resources[m["id"]] != 1 for m in methods):
-            raise ValueError("Provider batch execution requires one exclusive lane per method")
         if protocol.get("interval_s", 0) and any(policy.resources[m["id"]] != 1 for m in methods):
             raise ValueError("Post-call intervals require one in-flight call per search method")
     if protocol["score_round"] not in range(protocol["rounds"]):
         raise ValueError("Invalid score round")
-    if protocol.get("order", "complete provider batches") not in {"complete provider batches", "bounded provider batches", "bounded calls", "rotate methods by case", "rotate methods by case and round"}:
+    if protocol.get("order", "complete provider batches") not in {"complete provider batches", "bounded calls", "rotate methods by case", "rotate methods by case and round"}:
         raise ValueError("Unsupported execution order")
     query_limit = 4096 if protocol.get("preserve_publisher_queries") else 128
     for method in methods:

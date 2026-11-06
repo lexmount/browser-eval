@@ -117,6 +117,46 @@ class RunnerConcurrencyTest(unittest.TestCase):
             rows = [json.loads(line) for line in (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
             self.assertEqual([row['provider'] for row in rows], ['one'])
 
+    def test_quarantine_stops_already_active_batches_before_their_next_call(self):
+        from types import SimpleNamespace
+        from unittest.mock import patch
+        from harness.web_fetch import runner
+        from harness.web_fetch.providers.base import ProcessCleanupError
+
+        ready = threading.Barrier(2, timeout=3)
+        release = threading.Event()
+        calls = []
+
+        class StopEvent(threading.Event):
+            def set(self):
+                super().set()
+                release.set()
+
+        def fetch(provider, case, *args, **kwargs):
+            calls.append((provider.name, case.id))
+            ready.wait()
+            if provider.name == 'one':
+                raise ProcessCleanupError('Worker remains alive')
+            self.assertTrue(release.wait(3))
+            return ProviderResult(True, 'Expected'), None
+
+        providers = [BarrierProvider(name, threading.Barrier(1)) for name in ('one', 'two')]
+        cases = [EvalCase(str(i), 'Case', 'https://example.com', 'static', ['Expected'])
+                 for i in range(3)]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(runner, 'threading', SimpleNamespace(Event=StopEvent, Lock=threading.Lock)), \
+                patch.object(runner, 'fetch_with_deadline', side_effect=fetch):
+            with self.assertRaises(IncompleteEvaluationError):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=cases, providers=providers,
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=2, max_failure_retries=1)
+            rows = [json.loads(line) for line in
+                    (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+        self.assertEqual(sorted(calls), [('one', '0'), ('two', '0')])
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(next(row for row in rows if row['provider'] == 'two')['ok'])
+
     def test_shared_service_capacity_prevents_overlapping_provider_variants(self):
         import time
 

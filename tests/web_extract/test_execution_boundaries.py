@@ -28,6 +28,98 @@ def collection_context():
     return stack
 
 
+@pytest.mark.parametrize("concurrency", [1, 2])
+def test_interrupt_after_reservation_never_dispatches_or_leaves_pending_state(
+    tmp_path, concurrency
+):
+    import signal
+    from concurrent.futures import ThreadPoolExecutor
+
+    from harness.web_extract import pipeline
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / "example")
+    target = home / "runs/cancelled-preparation"
+    original = pipeline.save_json
+
+    def save(path, *args, **kwargs):
+        result = original(path, *args, **kwargs)
+        if path.name == "inflight.json":
+            signal.raise_signal(signal.SIGINT)
+        return result
+
+    def executor(**options):
+        options.pop("mp_context", None)
+        return ThreadPoolExecutor(**options)
+
+    policy = {"purpose": "quality", "max_in_flight": concurrency,
+              "serial_reason": "Declared single-call control",
+              "resources": {"cloudflare-json": {"capacity": concurrency,
+                                               "reason": "Declared provider lane"}},
+              "backend": "process"}
+    with (
+        collection_context(),
+        patch.object(pipeline, "save_json", side_effect=save),
+        patch("harness.benchmark_execution.ProcessPoolExecutor", side_effect=executor),
+        patch.object(pipeline, "provider_call") as call,
+        pytest.raises(KeyboardInterrupt),
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target, execution_policy=policy)
+    call.assert_not_called()
+    assert not (target / "inflight.json").exists()
+    assert not (target / "calls.journal.jsonl").exists()
+
+
+def test_serial_interrupt_after_response_retains_exactly_one_call_and_resumes(tmp_path):
+    import signal
+
+    from harness.web_extract import pipeline
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / "example")
+    target = home / "runs/serial-interrupt"
+
+    def response(*args, **kwargs):
+        signal.raise_signal(signal.SIGINT)
+        return {"http_status": 200, "response": {"result": {"sku": "retained"}}}
+
+    with (
+        collection_context(),
+        patch.object(pipeline, "provider_call", side_effect=response) as call,
+    ):
+        with pytest.raises(KeyboardInterrupt):
+            probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 1
+    journal = (target / "calls.journal.jsonl").read_text(encoding="utf-8")
+    assert len(journal.splitlines()) == 1
+    assert not (target / "inflight.json").exists()
+    with (
+        collection_context(),
+        patch.object(pipeline, "provider_call", side_effect=accepted) as call,
+    ):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target)
+        assert call.call_count == 2
+    assert (target / "calls.journal.jsonl").read_text(encoding="utf-8").startswith(journal)
+
+
+def test_source_qualification_rejects_invalid_utf8_before_collection(tmp_path):
+    from harness.web_extract import pipeline
+    from harness.web_extract.example import create
+
+    home = create(tmp_path / "example")
+    manifest = pipeline.read_json(home / "dataset/manifest.json")
+    name = next(name for name in manifest["files"] if name.startswith("html/"))
+    source = home / "dataset" / name
+    source.write_bytes(source.read_bytes() + b"\xff")
+    manifest["files"][name].update(sha256=pipeline.digest(source.read_bytes()),
+                                  bytes=source.stat().st_size)
+    pipeline.save_json(home / "dataset/manifest.json", manifest)
+    with patch.object(pipeline, "provider_call") as call:
+        with pytest.raises(ValueError, match="UTF-8"):
+            pipeline.validate_dataset(home, home / "profile.json")
+    call.assert_not_called()
+
+
 def accepted(*args, **kwargs):
     return {
         "state": "response_received",

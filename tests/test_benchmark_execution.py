@@ -152,6 +152,32 @@ def test_operator_interruption_drains_results_before_propagating():
     assert sorted(retained) == [0, 1]
 
 
+def test_interrupt_during_preparation_does_not_dispatch_the_prepared_job():
+    import signal
+    from concurrent.futures import CancelledError
+
+    executed, retained, cancelled = [], [], []
+
+    def prepare(job):
+        if job.key == "second":
+            signal.raise_signal(signal.SIGINT)
+        return job.payload
+
+    def commit(job, value, error):
+        if isinstance(error, CancelledError):
+            cancelled.append(job.key)
+        else:
+            assert error is None
+            retained.append(value)
+
+    with pytest.raises(KeyboardInterrupt):
+        run_jobs([Job("first", ("api-a",), 1), Job("second", ("api-a",), 2)],
+                 lambda value: executed.append(value) or value, commit,
+                 policy(max_in_flight=2), prepare=prepare)
+    assert executed == retained == [1]
+    assert cancelled == ["second"]
+
+
 def test_interrupt_after_submission_retains_the_submitted_call():
     import signal
 
@@ -214,18 +240,19 @@ def test_interrupt_between_wait_and_commit_retains_every_submitted_call():
 
 def test_stop_predicate_interruption_drains_another_running_call():
     release = threading.Event()
+    ready = threading.Barrier(2, timeout=2)
     retained = []
-    checks = 0
+    started = []
 
     def execute(value):
+        started.append(value)
+        ready.wait()
         if value == 2:
             assert release.wait(timeout=2)
         return value
 
     def stop():
-        nonlocal checks
-        checks += 1
-        if checks == 2:
+        if len(started) == 2:
             release.set()
             raise KeyboardInterrupt()
         return False

@@ -24,7 +24,7 @@ from harness.web_fetch.providers import build_provider
 from harness.web_fetch.reference_inputs import input_tree
 from harness.web_fetch.report_build import build_report
 from harness.web_fetch.runner import (
-    preflight_declared_capacity, provider_execution_policy, run_evaluation,
+    IncompleteEvaluationError, preflight_declared_capacity, provider_execution_policy, run_evaluation,
 )
 from harness.data_home import data_home
 
@@ -137,6 +137,9 @@ def main(argv=None):
             folder=args.output/'workers'/name/scope
             provider=build_provider(name,config[name])
             rs,_=run_evaluation(output_dir=folder,dataset_meta=meta,dataset_path=args.dataset,cases=selected,providers=[provider],provider_config_path=path,runs=args.runs,timeout=args.timeout,delay=.5,provider_concurrency=1,max_failure_retries=args.max_failure_retries,execution_context=execution_policy,stop_requested=stopped.is_set)
+            if json.loads((folder/'manifest.json').read_text(encoding='utf-8')).get('quarantined_providers'):
+                stopped.set()
+                raise IncompleteEvaluationError('Unresolved worker quarantines further provider calls')
             materialize_bound_artifacts(args.output, folder, rs)
             batches.append(json.loads((folder/'manifest.json').read_text(encoding='utf-8')));records.extend(rs)
         return records,batches
@@ -160,7 +163,7 @@ def main(argv=None):
             completed[job.key] = value
 
         run_jobs([Job(name, tuple(resource_bindings[name]), name) for name in names],
-                 work, commit, ExecutionPolicy.from_dict(execution_policy), on_stop=stopped.set)
+                 work, commit, ExecutionPolicy.from_dict(execution_policy), stop_event=stopped)
         parts = [completed[name] for name in names]
     aggregate_completed_at=datetime.now(UTC).isoformat()
     records=[r for rs,_ in parts for r in rs];batches=[b for _,bs in parts for b in bs]

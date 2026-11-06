@@ -13,8 +13,15 @@ import math
 import multiprocessing
 import signal
 import threading
-from concurrent.futures import FIRST_COMPLETED, ProcessPoolExecutor, ThreadPoolExecutor, wait
-from contextlib import contextmanager
+from concurrent.futures import (
+    FIRST_COMPLETED,
+    CancelledError,
+    Future,
+    ProcessPoolExecutor,
+    ThreadPoolExecutor,
+    wait,
+)
+from contextlib import contextmanager, nullcontext
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -184,6 +191,18 @@ def _retain_call_ownership(on_interrupt=None):
                 raise KeyboardInterrupt()
 
 
+class _InlineExecutor:
+    """Keep a single native call on the main thread, including its signal deadline."""
+
+    def submit(self, execute, payload):
+        future = Future()
+        try:
+            future.set_result(execute(payload))
+        except BaseException as error:
+            future.set_exception(error)
+        return future
+
+
 def run_jobs(
     jobs,
     execute,
@@ -194,7 +213,7 @@ def run_jobs(
     should_stop=lambda: False,
     initialize=None,
     initargs=(),
-    on_stop=None,
+    stop_event=None,
 ):
     """Dispatch a bounded set; commit every terminal call before propagating errors.
 
@@ -222,37 +241,42 @@ def run_jobs(
     active = {name: 0 for name in policy.resources}
     inflight = {}
     failure = None
+    stop_event = stop_event if stop_event is not None else threading.Event()
     options = {"max_workers": policy.max_in_flight}
     if initialize is not None:
         options.update(initializer=initialize, initargs=initargs)
     executor_class = ThreadPoolExecutor
     if policy.backend == "process":
         executor_class = ProcessPoolExecutor
-        # Native callers use Unix signal deadlines in each worker's main thread.
-        # The parent loads credentials before creating the workers.
-        options["mp_context"] = multiprocessing.get_context("fork")
+        # Fresh interpreters avoid copying a parent that may already own threads.
+        options["mp_context"] = multiprocessing.get_context("spawn")
 
     def stop(error):
         nonlocal failure
         if failure is None:
             failure = error
-            if on_stop is not None:
-                on_stop()
+            stop_event.set()
 
     with (
         _retain_call_ownership(lambda: stop(KeyboardInterrupt())),
-        executor_class(**options) as executor,
+        (nullcontext(_InlineExecutor()) if policy.max_in_flight == 1
+         else executor_class(**options)) as executor,
     ):
         while pending or inflight:
             try:
-                if failure is None and not should_stop():
+                if failure is None and not stop_event.is_set() and not should_stop():
                     for job in list(pending):
-                        if failure is not None or len(inflight) >= policy.max_in_flight:
+                        if (failure is not None or stop_event.is_set()
+                                or len(inflight) >= policy.max_in_flight):
                             break
                         if any(active[r] >= policy.resources[r] for r in job.resources):
                             continue
                         payload = prepare(job) if prepare else job.payload
                         with _retain_call_ownership():
+                            if failure is not None or stop_event.is_set() or should_stop():
+                                if prepare is not None:
+                                    commit(job, None, CancelledError("Stopped before dispatch"))
+                                break
                             future = executor.submit(execute, payload)
                             inflight[future] = job
                             for resource in job.resources:
@@ -266,19 +290,18 @@ def run_jobs(
                 done, _ = wait(inflight, return_when=FIRST_COMPLETED)
                 for future in done:
                     try:
-                        with _retain_call_ownership():
-                            job = inflight[future]
-                            value = error = None
-                            try:
-                                value = future.result()
-                            except BaseException as caught:
-                                error = caught
-                            try:
-                                commit(job, value, error)
-                            finally:
-                                inflight.pop(future)
-                                for resource in job.resources:
-                                    active[resource] -= 1
+                        job = inflight[future]
+                        value = error = None
+                        try:
+                            value = future.result()
+                        except BaseException as caught:
+                            error = caught
+                        try:
+                            commit(job, value, error)
+                        finally:
+                            inflight.pop(future)
+                            for resource in job.resources:
+                                active[resource] -= 1
                     except BaseException as caught:
                         stop(caught)
             except BaseException as error:

@@ -17,9 +17,6 @@ sample, and freeze concurrency, pacing, call budgets and timing scope. Reuse the
 shared scheduler and registered adapters. Review unexplained global serialization
 or repeated initialization before a full run. New tracks must register an execution
 owner and behavior tests alongside their report template.
-After executor, adapter or renderer changes, run `make benchmark-contract-check`
-before the full suite, then the affected track's behavioral tests. The shared gate
-covers registration, dataset entry points, encoding and report snapshots.
 
 Before writing report HTML, resolve the track through `scripts/report_template.py`. Inspect the maintained implementation and its pinned example. Reuse that implementation and its release checks; a different cohort or diagnostic evidence state calls for a data adapter or explicit mode. If no track fits, create the smallest reusable renderer with a synthetic runnable example and behavioral checks, then register it in `configs/report-templates.json`. Improve the owning template and this skill from demonstrated gaps, without embedding run-specific prose or copying old measurements. A report must carry the selected template identity and input hashes so its release check can detect a bypass.
 

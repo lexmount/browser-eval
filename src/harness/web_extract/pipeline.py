@@ -18,6 +18,7 @@ import signal
 import tempfile
 import time
 import uuid
+from concurrent.futures import CancelledError
 from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
@@ -232,8 +233,16 @@ def validate_dataset(home: Path, profile=None):
             or unsafe_parents(path)
         ):
             raise ValueError("Unsafe evidence path")
-        if not path.is_file() or digest(path.read_bytes()) != item["sha256"]:
+        if not path.is_file():
             raise ValueError("Dataset bytes changed: " + name)
+        raw = path.read_bytes()
+        if digest(raw) != item["sha256"]:
+            raise ValueError("Dataset bytes changed: " + name)
+        if name.startswith("html/"):
+            try:
+                raw.decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError("Frozen HTML must be UTF-8: " + name) from error
     for name, expected in pin.get("files", {}).items():
         if manifest["files"].get(name, {}).get("sha256") != expected:
             raise ValueError("Pinned source binding changed")
@@ -1751,6 +1760,10 @@ def collect_calls(
 
     def commit(job, row, error):
         nonlocal last_call_finished
+        if isinstance(error, CancelledError):
+            pending_calls.pop(job.payload, None)
+            save_pending()
+            return
         if error is not None:
             raise error
         method, case_id = job.payload
@@ -1824,31 +1837,21 @@ def collect_calls(
             )
             blocked.append(PermissionError(f"{method}: {blocker}; calls retained; {action}"))
 
-    if concurrency == 1:
-        for job in jobs:
-            if blocked:
-                break
-            commit(job, _execute_admitted_call(prepare(job)), None)
-    else:
-        policy = policy or ExecutionPolicy.from_dict(
-            {
-                "purpose": "quality",
-                "max_in_flight": concurrency,
-                "resources": {m: {"capacity": concurrency} for m in methods},
-                "backend": "process",
-            }
-        )
-        context = multiprocessing.get_context("fork")
-        run_jobs(
-            jobs,
-            _execute_admitted_call,
-            commit,
-            policy,
-            prepare=prepare,
-            should_stop=lambda: bool(blocked),
-            initialize=_initialize_collection_clock,
-            initargs=(context.Lock(), context.Value("d", 0), min_call_interval),
-        )
+    policy = policy or ExecutionPolicy.from_dict({
+        "purpose": "quality",
+        "max_in_flight": concurrency,
+        "resources": {m: {"capacity": concurrency,
+                          "reason": "Retain the declared provider pacing"} for m in methods},
+        "backend": "process",
+        "serial_reason": "Retain the declared serial call and cooldown policy",
+    })
+    context = multiprocessing.get_context("spawn")
+    run_jobs(
+        jobs, _execute_admitted_call, commit, policy,
+        prepare=prepare, should_stop=lambda: bool(blocked),
+        initialize=_initialize_collection_clock,
+        initargs=(context.Lock(), context.Value("d", 0), min_call_interval),
+    )
     if blocked:
         raise blocked[0]
     positions = {

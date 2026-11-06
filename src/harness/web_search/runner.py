@@ -460,7 +460,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
 def execution_schedule(profile):
     """Finish each provider's scope; reproduce explicit historical rotation only."""
     methods, cases, protocol = profile["methods"], profile["cases"], profile["protocol"]
-    if protocol.get("order", "complete provider batches") in {"complete provider batches", "bounded provider batches"}:
+    if protocol.get("order", "complete provider batches") == "complete provider batches":
         for method in methods:
             for round_id in range(protocol["rounds"]):
                 for case in cases:
@@ -538,7 +538,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 diagnostic=diagnostic,
                 resume_unit=(
                     "logical" if profile["protocol"].get("order", "complete provider batches")
-                    in {"complete provider batches", "bounded provider batches", "bounded calls"} else "case"
+                    in {"complete provider batches", "bounded calls"} else "case"
                 ),
                 timer=(
                     "Client process wall time including curl startup, network, "
@@ -560,13 +560,11 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
     stopped = threading.Event()
     result_lock = threading.Lock()
 
-    def run_batch(selected_method, selected_task=None):
+    def run_batch(selected_task=None):
         schedule = [selected_task] if selected_task is not None else execution_schedule(profile)
         for round_id, case, method in schedule:
             if stopped.is_set():
                 return
-            if selected_method is not None and method["id"] != selected_method:
-                continue
             identity = f"{case['id']}-{method['id']}-r{round_id}"
             if identity in existing_ids:
                 continue
@@ -581,6 +579,10 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                         return
                     break
                 with result_lock:
+                    if stopped.is_set():
+                        if not attempts:
+                            return
+                        break
                     budget = budgets.get(method["id"])
                     if budget is not None:
                         spent = spent_calls[method["id"]]
@@ -676,9 +678,9 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 )
             time.sleep(protocol["interval_s"])
 
-    def execute_batch(method_id):
+    def execute_call(task):
         try:
-            return run_batch(None, method_id) if isinstance(method_id, tuple) else run_batch(method_id)
+            return run_batch(task)
         except BaseException:
             stopped.set()
             raise
@@ -691,15 +693,11 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             if error is not None:
                 raise error
 
-        if protocol.get("order") == "bounded calls":
-            jobs = [Job(f"{case['id']}-{method['id']}-r{round_id}", resources[method["id"]],
+        jobs = [Job(f"{case['id']}-{method['id']}-r{round_id}", resources[method["id"]],
                         (round_id, case, method)) for round_id, case, method in execution_schedule(profile)
                     if f"{case['id']}-{method['id']}-r{round_id}" not in existing_ids]
-        else:
-            jobs = [Job(m["id"], resources[m["id"]], m["id"]) for m in profile["methods"]]
         try:
-            run_jobs(jobs, execute_batch, commit_batch, policy, should_stop=stopped.is_set,
-                     on_stop=stopped.set)
+            run_jobs(jobs, execute_call, commit_batch, policy, stop_event=stopped)
         except BaseException:
             interruption = output / "interruption.json"
             if interruption.exists():
@@ -709,7 +707,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 write_json(interruption, status)
             raise
     else:
-        run_batch(None)
+        run_batch()
     after = capture_references(profile, output, "after")
     changed = reference_changes(profile, before, after)
     write_json(
