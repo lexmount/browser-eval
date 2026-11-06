@@ -390,14 +390,29 @@ def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_pat
     receipt = tmp_path / "visual.json"
     receipt.write_text("{}", encoding="utf-8")
     with patch("harness.web_extract.report.check") as release_check:
-        result = package(output, tmp_path / "public.zip", visual_receipt=receipt)
-    release_check.assert_called_once_with(output, release=True, visual_receipt=receipt)
+        result = package(
+            output,
+            tmp_path / "public.zip",
+            visual_receipt=receipt,
+            profile=tmp_path / "report-synthetic-inputs/profile.json",
+        )
+    release_check.assert_called_once_with(
+        output,
+        release=True,
+        visual_receipt=receipt,
+        profile=tmp_path / "report-synthetic-inputs/profile.json",
+    )
     with zipfile.ZipFile(tmp_path / "public.zip") as bundle:
         assert set(bundle.namelist()) == set(manifest["files"]) | {"report-manifest.json"}
     assert result["files"] == len(manifest["files"]) + 1
     (output / "app.js").write_text("changed after validation", encoding="utf-8")
     with pytest.raises(ValueError, match="Report file changed"):
-        package(output, tmp_path / "tampered.zip", visual_receipt=receipt)
+        package(
+            output,
+            tmp_path / "tampered.zip",
+            visual_receipt=receipt,
+            profile=tmp_path / "report-synthetic-inputs/profile.json",
+        )
     assert not (tmp_path / "tampered.zip").exists()
 
 
@@ -661,7 +676,12 @@ def test_package_rejects_unbound_nested_manifest(tmp_path):
     )
     save_json(tmp_path / "unused.json", {})
     with pytest.raises(ValueError, match="file inventory differs"):
-        package(output, tmp_path / "report.zip", visual_receipt=tmp_path / "unused.json")
+        package(
+            output,
+            tmp_path / "report.zip",
+            visual_receipt=tmp_path / "unused.json",
+            profile=tmp_path / "report-synthetic-inputs/profile.json",
+        )
     assert not (tmp_path / "report.zip").exists()
 
 

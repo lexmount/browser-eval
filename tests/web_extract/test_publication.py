@@ -9,7 +9,10 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 def setup_report(tmp_path):
     source = tmp_path / "report"
     source.mkdir()
-    save_json(source / "report-manifest.json", {"profile_sha256": "profile"})
+    profile = tmp_path / "profile.json"
+    save_json(profile, {"local_example": True})
+    profile_hash = digest(profile.read_bytes())
+    save_json(source / "report-manifest.json", {"profile_sha256": profile_hash})
     save_json(source / "browser-eval-version.json", {"revision": "a" * 40})
     target = tmp_path / "target.json"
     save_json(
@@ -20,8 +23,8 @@ def setup_report(tmp_path):
             "expected_version": "ver_before",
             "title": "Existing report",
             "visibility": "private",
-            "profile_sha256": "profile",
-            "profile": {"path": "profile.json"},
+            "profile_sha256": profile_hash,
+            "profile": {"path": str(profile)},
         },
     )
     return source, target, tmp_path / "upload", tmp_path / "visual.json"
@@ -30,7 +33,7 @@ def setup_report(tmp_path):
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
 
-    def package(report, archive, *, visual_receipt):
+    def package(report, archive, *, visual_receipt, profile):
         archive.write_bytes(b"checked-package")
         return {
             "archive_sha256": digest(archive.read_bytes()),
@@ -52,7 +55,7 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
     assert result["versionId"] == "ver_after"
     assert bound["visibility"] == "private"
     assert bound["slug"] == "existing"
-    assert bound["profile"]["path"] == "profile.json"
+    assert bound["profile"]["path"] == str(tmp_path / "profile.json")
     assert bound["renderer_source_revision"] == "a" * 40
 
 
@@ -66,7 +69,8 @@ def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize(
-    "damage", [None, "coordinated-public-audit", "original", "content", "profile"]
+    "damage",
+    [None, "coordinated-public-audit", "missing-authority", "original", "content", "profile"],
 )
 def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
     tmp_path, monkeypatch, damage
@@ -115,6 +119,8 @@ def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
         manifest["completion_reference_exclusions"] = {"page": ["sku"]}
         # Source hashes still claim the untouched, frozen original. Rebuilding
         # the bundle and tables cannot legitimize the forged public audit.
+    elif damage == "missing-authority":
+        manifest.pop("completion_audit")
     elif damage:
         changed = {"original": audit, "content": content, "profile": profile}[damage]
         save_json(changed, {"substituted": True})
@@ -142,6 +148,22 @@ def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
 
     monkeypatch.setattr(publication, "publish_staged_update", update)
     if damage:
+        from harness.web_extract.cli import main
+
+        archive = tmp_path / "forged.zip"
+        for command in ("check", "package"):
+            args = [
+                command,
+                str(source),
+                "--profile",
+                str(profile),
+                "--visual-receipt",
+                str(visual),
+            ]
+            args += ["--release"] if command == "check" else ["--output", str(archive)]
+            with pytest.raises(ValueError, match="Completion audit"):
+                main(args)
+        assert not archive.exists()
         with pytest.raises(ValueError, match="Completion audit"):
             publication.publish(source, target, work, visual)
         assert calls == []
@@ -155,13 +177,13 @@ def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
 def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch, approved):
     source, target, work, visual = setup_report(tmp_path)
     next_profile = tmp_path / "next-profile.json"
-    save_json(next_profile, {"report": "next"})
+    save_json(next_profile, {"report": "next", "local_example": True})
     next_hash = digest(next_profile.read_bytes())
     save_json(source / "report-manifest.json", {"profile_sha256": next_hash})
     bound = read_json(target)
     if approved:
         bound["approved_profile_successor"] = {
-            "from_sha256": "profile",
+            "from_sha256": read_json(target)["profile_sha256"],
             "to_sha256": next_hash,
             "profile_path": str(next_profile),
         }
@@ -257,12 +279,12 @@ def test_self_consistent_zip_hash_cannot_replace_checked_contents(tmp_path, monk
 def test_approved_profile_cannot_change_during_publication(tmp_path, monkeypatch, when):
     source, target, work, visual = setup_report(tmp_path)
     selected = tmp_path / "successor.json"
-    save_json(selected, {"cohort": "approved"})
+    save_json(selected, {"cohort": "approved", "local_example": True})
     expected = digest(selected.read_bytes())
     save_json(source / "report-manifest.json", {"profile_sha256": expected})
     bound = read_json(target)
     bound["approved_profile_successor"] = {
-        "from_sha256": "profile",
+        "from_sha256": read_json(target)["profile_sha256"],
         "to_sha256": expected,
         "profile_path": str(selected),
     }

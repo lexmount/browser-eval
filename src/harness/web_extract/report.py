@@ -504,6 +504,51 @@ def price_quote(value, lang):
     return prefix + "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
 
 
+def verify_completion_audit(source, profile):
+    """Verify the externally selected profile and reproduce its original audit view."""
+    source = Path(source)
+    manifest = read_json(source / "report-manifest.json")
+    if not profile:
+        raise ValueError("Completion audit requires its frozen profile")
+    profile = Path(profile)
+    if profile.is_symlink() or digest(profile.read_bytes()) != manifest["profile_sha256"]:
+        raise ValueError("Completion audit frozen profile changed")
+    instance = read_json(profile)
+    records = manifest.get("mode") == "field-extraction-cohort"
+    authority = manifest.get("audit" if records else "completion_audit")
+    content_binding = instance.get("research_report", {}).get("content", {})
+    if instance.get("local_example") is True and not authority:
+        return
+    if not content_binding.get("path"):
+        raise ValueError("Completion audit requires frozen content")
+    content = profile.parent / content_binding["path"]
+    if content.is_symlink() or digest(content.read_bytes()) != content_binding["sha256"]:
+        raise ValueError("Completion audit frozen content changed")
+    audit_binding = read_json(content).get("audit")
+    if not audit_binding:
+        if authority or instance.get("independent_result_review_scope") == "all":
+            raise ValueError("Completion audit requires its frozen original")
+        return
+    if not authority or authority.get("path") != "public-evidence/audit.json":
+        raise ValueError("Completion audit public authority is missing")
+    audit = content.parent / audit_binding["path"]
+    raw = audit.read_bytes()
+    if audit.is_symlink() or digest(raw) != audit_binding["sha256"]:
+        raise ValueError("Completion audit original changed")
+    projected, _ = project_evidence_view(
+        authority["path"],
+        raw,
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    if (
+        authority["source_sha256"] != audit_binding["sha256"]
+        or (source / authority["path"]).read_bytes() != projected
+    ):
+        raise ValueError("Completion audit differs from its frozen original")
+
+
 def completion_bundle(methods, rows, *, records, complete_methods, excluded_fields=None):
     """Derive additional metrics from the same public final-response evidence."""
     from harness.web_extract.analysis import completion_metrics
@@ -636,6 +681,16 @@ def check_completion_metrics(output, manifest, rows):
             or audit.get("result_count") != manifest["observations"]
         ):
             raise ValueError("Completion reference coverage differs from authoritative audit")
+        for row in rows:
+            reviewed = audit.get("results", {}).get(row["method"] + ":" + row["case_id"], {})
+            if row.get("review", {}).get("audited_fields") != reviewed.get(
+                "audited_fields"
+            ) or reviewed.get("native_response_sha256") != digest(
+                json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+            ):
+                raise ValueError(
+                    "Completion judgments or native response differ from authoritative audit"
+                )
     elif not records and (manifest.get("review") or bundle["excluded_fields"]):
         raise ValueError("Completion reference coverage lacks its authoritative audit")
     expected = completion_bundle(
@@ -2704,11 +2759,15 @@ def check_reader_contract(output, manifest, *, release=False):
         )
 
 
-def check(output: Path, *, release=False, visual_receipt=None):
+def check(output: Path, *, release=False, visual_receipt=None, profile=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
+    if profile is not None:
+        verify_completion_audit(output, profile)
     if manifest.get("mode") == "field-extraction-cohort":
-        return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
+        return check_record_cohort(
+            output, release=release, visual_receipt=visual_receipt, profile=profile
+        )
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -3024,6 +3083,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
             raise ValueError("Missing English notice or stale English pages")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
+        verify_completion_audit(output, profile)
 
     return {
         "pages_per_language": len(zh),
@@ -3064,19 +3124,22 @@ def check_visual_receipt(output, manifest, visual_receipt):
         raise ValueError("Incomplete top-level reader coverage")
 
 
-def package(output, archive, *, visual_receipt):
+def package(output, archive, *, visual_receipt, profile):
     """Package only the release-checked report inventory, with no private siblings."""
     from harness.reporting.publication import package_archive
 
     require_external_output(archive)
+    verify_completion_audit(output, profile)
     manifest = read_json(output / "report-manifest.json")
     names = [*sorted(manifest["files"]), "report-manifest.json"]
     return package_archive(
         output,
         archive,
         archive.with_suffix(".receipt.json"),
-        inputs=(visual_receipt,),
-        validate=lambda: check(output, release=True, visual_receipt=visual_receipt),
+        inputs=(visual_receipt, profile),
+        validate=lambda: check(
+            output, release=True, visual_receipt=visual_receipt, profile=profile
+        ),
         attest=lambda path: {
             "files": len(names),
             "archive_bytes": path.stat().st_size,
@@ -4221,7 +4284,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     check_record_cohort(output)
 
 
-def check_record_cohort(output, *, release=False, visual_receipt=None):
+def check_record_cohort(output, *, release=False, visual_receipt=None, profile=None):
     """Check the public record matrix and shared presentation semantics."""
     from harness.reporting.presentation import check_presentation
     from harness.web_extract.analysis import record_statistics
@@ -4590,6 +4653,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         raise ValueError("Formal record release requires every comparison participant complete")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
+        verify_completion_audit(output, profile)
         observations = read_json(visual_receipt)["observations"]
         observed = {
             (item["route_class"], item["viewport"], item.get("theme")) for item in observations

@@ -1,5 +1,6 @@
 """Whole-page delivery and absent-field handling from retained responses."""
 
+import json
 from copy import deepcopy
 
 import pytest
@@ -194,7 +195,8 @@ def test_incomplete_cohort_is_distinct_from_a_computed_empty_denominator():
     assert "denominator 0" not in text
 
 
-def test_changing_both_coverage_metadata_copies_cannot_override_audit(tmp_path):
+@pytest.mark.parametrize("damage", ["coverage", "judgment", "response"])
+def test_completion_cannot_override_authoritative_audit(tmp_path, damage):
     from harness.web_extract.pipeline import digest, save_json
     from harness.web_extract.report import (
         check_completion_metrics,
@@ -206,9 +208,24 @@ def test_changing_both_coverage_metadata_copies_cannot_override_audit(tmp_path):
     row["field_results"] = {
         f: {"expected": ["reference"], "status": "wrong"} for f in ("price", "sku", "availability")
     }
+    row["review"] = {"audited_fields": deepcopy(row["field_results"])}
     rows = [row]
     audit_path = tmp_path / "public-evidence/audit.json"
-    save_json(audit_path, {"result_count": 1, "excluded_fields": {}})
+    save_json(
+        audit_path,
+        {
+            "result_count": 1,
+            "excluded_fields": {},
+            "results": {
+                "firecrawl-json:page": {
+                    **row["review"],
+                    "native_response_sha256": digest(
+                        json.dumps(row["response"], sort_keys=True, ensure_ascii=False).encode()
+                    ),
+                }
+            },
+        },
+    )
     sha = digest(audit_path.read_bytes())
     manifest = {
         "mode": "full-cohort-progress",
@@ -245,7 +262,12 @@ def test_changing_both_coverage_metadata_copies_cannot_override_audit(tmp_path):
 
     regenerate({})
     check_completion_metrics(tmp_path, manifest, rows)
-    manifest["completion_reference_exclusions"] = {"page": ["sku"]}
+    if damage == "coverage":
+        manifest["completion_reference_exclusions"] = {"page": ["sku"]}
+    elif damage == "judgment":
+        row["review"]["audited_fields"]["sku"]["status"] = "correct"
+    else:
+        row["response"]["data"]["json"]["sku"] = "substituted"
     regenerate(manifest["completion_reference_exclusions"])
     with pytest.raises(ValueError, match="authoritative audit"):
         check_completion_metrics(tmp_path, manifest, rows)

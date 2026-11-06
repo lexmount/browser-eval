@@ -92,9 +92,13 @@ def main(argv=None):
     p = sub.add_parser("check")
     p.add_argument("output", type=Path)
     p.add_argument("--release", action="store_true")
+    p.add_argument(
+        "--profile", type=Path, help="External frozen report profile; required for release"
+    )
     p.add_argument("--visual-receipt", type=Path)
     p = sub.add_parser("package")
     p.add_argument("report", type=Path)
+    p.add_argument("--profile", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--visual-receipt", type=Path, required=True)
     p = sub.add_parser("publish")
@@ -238,11 +242,22 @@ def main(argv=None):
     elif args.command == "check":
         from harness.web_extract.report import check
 
-        print(check(args.output, release=args.release, visual_receipt=args.visual_receipt))
+        print(
+            check(
+                args.output,
+                release=args.release,
+                visual_receipt=args.visual_receipt,
+                profile=args.profile,
+            )
+        )
     elif args.command == "package":
         from harness.web_extract.report import package
 
-        print(package(args.report, args.output, visual_receipt=args.visual_receipt))
+        print(
+            package(
+                args.report, args.output, visual_receipt=args.visual_receipt, profile=args.profile
+            )
+        )
     elif args.command == "publish":
         from harness.web_extract.publication import publish
 

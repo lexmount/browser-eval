@@ -313,8 +313,15 @@ renderer/component checks when those owners change, rather than every release:
 
 ```sh
 uv run --frozen python -m harness.web_extract.cli check /absolute/report \
-  --release --visual-receipt /absolute/private/visual-receipt.json
+  --release --profile /absolute/private/profile.json \
+  --visual-receipt /absolute/private/visual-receipt.json
 ```
+
+Formal checks and packaging require the external frozen profile. They verify its
+content and original audit, reproduce the public audit view, and bind each cached
+field judgment and native response to that audit. Public manifest edits cannot
+remove the required audit or change the completion denominator. Pass the same
+`--profile` to `package`; publication selects it from the bound target.
 
 Building a local report does not upload it or change access permissions.
 
