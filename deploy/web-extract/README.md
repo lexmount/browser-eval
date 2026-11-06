@@ -176,7 +176,11 @@ dependencies and mounts from `compose.yaml` in the selected workspace:
    Build `firecrawl-api` and `firecrawl-browser` with the same
    `Dockerfile.firecrawl`; the browser build selects its pinned upstream image
    through the `UPSTREAM_IMAGE` build argument and sets
-   `FIRECRAWL_SERVICE_KIND=browser` at runtime. Keep both identity ports (`3020`)
+   `FIRECRAWL_SERVICE_KIND=browser` at runtime. For Git builds, select
+   `dockerfile` and `deploy/web-extract/Dockerfile.firecrawl` after source detection;
+   the root Dockerfile builds the Python API. Rainbond stores this build argument
+   as `BUILD_ARG_UPSTREAM_IMAGE` in its build-parameter dictionary. Check the
+   actual `FROM` digest in the build log before starting the service. Keep both identity ports (`3020`)
    private, alongside API `3002`, browser `3000`, Redis `6379`, RabbitMQ `5672`
    and PostgreSQL `5432`.
 2. For a source-package builder, package that Dockerfile as `Dockerfile` and the
