@@ -366,3 +366,23 @@ def test_native_quote_merges_only_the_equivalent_text_record(author, passes):
     result = evaluate_stable_task(rendered, contract, representation='plain_text', returned_records=[native])
     assert result['stable_task_pass'] is passes
     assert ('source_record_mismatch' in result['stable_task_errors']) is not passes
+
+
+def test_returned_section_names_require_unique_ordered_body_locations():
+    from harness.web_fetch.native_projection import native_answer_projection
+    from lexbench_webfetch.document_structure import evaluate_document_structure
+
+    headings = ['Authentication', 'Next steps']
+    payload = {'result': {'main_text': 'Authentication Supply your key. Next steps Send a request.',
+                          'extra': {'section_headings': headings}}}
+    contract = {'version': 1, 'minimum_heading_coverage': 1.0, 'minimum_body_chars': 1,
+                'headings': [{'text': label, 'level': 2} for label in headings]}
+    projection = native_answer_projection('lexmount', {}, payload, 200)
+    body, fields = project_native_answer(payload, projection)
+    returned = fields['page_information']['section_headings']
+    assert returned == headings
+    assert evaluate_document_structure(body, contract, section_headings=returned)['document_structure_pass']
+    for missing_body in ('Authentication Next steps', 'Next steps body. Authentication body.',
+                         'Authentication Authentication help. Next steps Send a request.'):
+        assert not evaluate_document_structure(
+            missing_body, contract, section_headings=returned)['document_structure_pass']

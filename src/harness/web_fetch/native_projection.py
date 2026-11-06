@@ -56,7 +56,7 @@ def approved_native_policies(registry):
             if (not isinstance(row, dict) or set(row) != {'source_sha256', 'version', 'reason'}
                     or not isinstance(row['source_sha256'], str)
                     or not re.fullmatch('[0-9a-f]{64}', row['source_sha256'])
-                    or type(row['version']) is not int or row['version'] not in {1, 2, 3, 4, 5, 6}
+                    or type(row['version']) is not int or row['version'] not in {1, 2, 3, 4, 5, 6, 7}
                     or not isinstance(row['reason'], str) or not row['reason'].strip()
                     or row['source_sha256'] in sources):
                 raise ValueError('Invalid or duplicate approved native policy source')
@@ -70,7 +70,7 @@ def approved_native_policies(registry):
 
 def native_projection_policy_version(policy, provider_type):
     if policy == native_projection_policy(provider_type):
-        return 6
+        return 7
     if not isinstance(policy, dict):
         raise ValueError('Native answer selection policy must be an object')
     digest = policy.get('source_sha256')
@@ -85,7 +85,7 @@ def native_projection_policy_version(policy, provider_type):
 
 def native_projection_policy(provider_type):
     digest = hashlib.sha256(native_projection_source()).hexdigest()
-    return {'kind': 'native-answer-selection', 'version': 6,
+    return {'kind': 'native-answer-selection', 'version': 7,
             'provider_type': provider_type,
             'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
 
@@ -94,9 +94,9 @@ def _object(value):
     return value if isinstance(value, dict) else {}
 
 
-def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None, policy_version=6):
+def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None, policy_version=7):
     """Return the declaration selected by the pre-call structural policy."""
-    if type(policy_version) is not int or policy_version not in {1, 2, 3, 4, 5, 6}:
+    if type(policy_version) is not int or policy_version not in {1, 2, 3, 4, 5, 6, 7}:
         raise ValueError('Unknown native answer selection policy version')
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
     track, task_kind = get('track', 'web'), get('task_kind', 'body')
@@ -144,6 +144,9 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                                    ('table_of_contents', 'table_of_contents'),
                                    ('breadcrumbs', 'breadcrumbs'))},
                             'paragraphs': {'pointer': ['extra', 'dom_summary', 'paragraphs'], 'format': 'text_items', 'default': None},
+                            **({'section_headings': {'pointer': ['extra', 'section_headings'],
+                                                      'format': 'text_items', 'default': None}}
+                               if policy_version >= 7 and isinstance(extra.get('section_headings'), list) else {}),
                         }}}
                        if policy_version >= 5 else {})}}
     if provider_type == 'brightdata_unlocker':

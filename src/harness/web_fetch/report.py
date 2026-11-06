@@ -1662,14 +1662,27 @@ def _quote_field_issue(metrics):
  if contaminated:parts.append(f'{contaminated} 条的标签字段还混入或缺少文字')
  return '；'.join(parts)+'。任务要求标签列表保留字段边界，因此仍判未通过'
 
-def stable_anchor_evidence(metrics,output):
+def _returned_answer_fields(metadata):
+ return {key:metadata[key] for key in ('links','images','videos','media','extras','page_information','page_structure','records')
+         if metadata.get(key)}
+
+def stable_anchor_evidence(metrics,output,metadata=None,base_url=''):
+ from lexbench_webfetch.response_input import answer_input, safe_named_links
+ from lexbench_webfetch.stable_tasks import _stable_literal_match
+ fields=_returned_answer_fields(metadata or {})
+ _,links,_,_=answer_input(b'',fields)
+ candidates=[('links',label) for _,label in safe_named_links(links,base_url)]
+ for key,value in fields.get('page_information',{}).items():
+  if key!='section_headings':
+   candidates.extend(('page_information.'+key,text) for text in (value if isinstance(value,list) else [value])
+                     if isinstance(text,str))
  cards=[];normalized_lines=None
  anchors_required=metrics.get('stable_anchors_required',True)
  expected_label='标准答案' if anchors_required else '范围核对文字'
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
   alternatives=item.get('alternatives',[]);expected='\n<span>或</span>\n'.join(f'<span translate="no">{esc(value)}</span>' for value in alternatives)
   excerpt=''
-  for alternative in alternatives:
+  for alternative in (item.get('matched') or alternatives):
    if normalized_lines is None:normalized_lines=_normalized_evidence_lines(output)
    candidate=_exact_evidence_lines(alternative,output,normalized_lines=normalized_lines)
    if candidate:excerpt=candidate;break
@@ -1686,7 +1699,19 @@ def stable_anchor_evidence(metrics,output):
     rows.append(('',cell(esc(labels[field]))+cell(f'<span translate="no">{esc(wanted)}</span>')+cell(f'<span translate="no">{esc(got)}</span>')+cell(esc(verdict))))
    field_detail='<p class="source-note">整条记录按字段判定；文字出现不等于列表边界完整。</p>'+table(['字段','标准答案','实际解析','判定'],rows,metrics=[])
    badge='字段边界不合格'
-  actual=(f'<p translate="no">{esc(excerpt)}</p>' if excerpt else '<p class="empty">实际返回中未找到可供定位的连续原文。</p>')
+  actual=f'<p translate="no">{esc(excerpt)}</p>' if excerpt else ''
+  if passed and not excerpt:
+   field_match=next(((field,text) for field,text in candidates if any(
+       _stable_literal_match(text,value,representation='plain_text') for value in item.get('matched',[]))),None)
+   if field_match:
+    field,text=field_match
+    actual=(f'<p><a href="#returned-fields"><code>{esc(field)}</code></a></p>'
+            f'<p translate="no">{esc(text)}</p>')
+   else:
+    actual=model_text('保存的判定为命中。未找到可供定位的连续原文，请核对下方解析记录与返回字段。',
+                      'The saved check passed. This record has no locatable continuous excerpt. See the parsed records and returned fields.')
+  if not actual:
+   actual='<p class="empty">实际返回中未找到可供定位的连续原文。</p>'
   cards.append(f'<article class="anchor-card {css}"><div class="anchor-head"><h3>稳定文字 {index}</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>{expected_label}</b><p>{expected}</p></div><div class="evidence-sample"><b>实际返回证据</b>{actual}</div></div>{field_detail}</article>')
  if not cards:return ''
  role_note=('全部参与评分' if anchors_required else
@@ -2657,6 +2682,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    else:
     actual_body='<p class="empty">本次没有交付可校验的原始文件字节。</p>'
     output_note='实际交付 0 个文件'
+  returned_fields=_returned_answer_fields(provider_meta)
+  if returned_fields:
+   actual_body+=('<details id="returned-fields"><summary>'+model_text('查看随正文返回的字段','View fields returned with the text')
+                 +'</summary><pre translate="no">'+esc(json.dumps(returned_fields,ensure_ascii=False,indent=2))+'</pre></details>')
   reference_scope=('' if not (c.get('track')=='document' and 0 < len(ref) < 100) else
                    f'<p class="callout"><b>参考范围：</b>这是最小文档解析样本。冻结源文件的全部可提取正文共 {len(ref):,} 个字符，标准答案没有省略。它只验证短文档文字提取，不用于证明多页、表格或附录完整性。</p>')
   evidence_intro='左边是判定时使用的标准答案或明确验收规则，右边是该次调用原样保存的完整输出。两栏都是真实内容，不是摘要；长内容可在栏内滚动。'
@@ -2668,7 +2697,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section('标准答案与实际返回',evidence,'evidence')
   checks_html=''
   if 'stable_task_pass' in m:
-   checks_html+=stable_anchor_evidence(m,output)
+   checks_html+=stable_anchor_evidence(m,output,provider_meta,r.get("final_url") or c["url"])
    checks_html+=(f'<p class="decision-lead"><b>结构结果：</b>实际解析出 {m.get("stable_unique_record_count",0)} 条完整且不重复的记录，'
                  f'要求至少 {m.get("stable_minimum_records","—")} 条；结构检查{("通过" if m.get("stable_structure_pass") else "未通过")}，'
                  f'稳定文字检查{("通过" if m.get("stable_content_pass") else "未通过")}。</p>')

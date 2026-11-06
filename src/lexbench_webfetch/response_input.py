@@ -8,7 +8,7 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 PAGE_INFORMATION_FIELDS = frozenset({
     'title', 'author', 'description', 'publish_time', 'published_at', 'subtitle', 'lead',
     'source', 'editor', 'site_name', 'copyright', 'statement', 'categories',
-    'tags', 'headings', 'paragraphs', 'table_of_contents', 'breadcrumbs',
+    'tags', 'headings', 'section_headings', 'paragraphs', 'table_of_contents', 'breadcrumbs',
 })
 
 
@@ -23,13 +23,14 @@ def page_information_texts(information):
     if not isinstance(information, dict) or set(information) - PAGE_INFORMATION_FIELDS:
         raise ValueError('Invalid extracted page information fields')
     texts = []
-    for value in information.values():
+    for field, value in information.items():
         if value is None:
             continue
         values = value if isinstance(value, list) else [value]
         if any(not isinstance(text, str) for text in values):
             raise ValueError('Extracted page information must contain text values')
-        texts.extend(text for text in values if text.strip())
+        if field != 'section_headings':
+            texts.extend(text for text in values if text.strip())
     return texts
 
 
