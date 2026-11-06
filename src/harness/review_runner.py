@@ -11,6 +11,7 @@ import threading
 
 def parse_review_json(text):
     """Repair only omitted closing containers at EOF, never missing values or strings."""
+    text = text.rstrip()
     try:
         return json.loads(text), ""
     except json.JSONDecodeError as error:

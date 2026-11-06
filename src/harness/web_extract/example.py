@@ -191,6 +191,7 @@ def evaluate(truth, predictions, field, matcher, **options):
                 target / "certification-precall.json",
                 {
                     "profile_sha256": digest(plan_path.read_bytes()),
+                    "case_ids_sha256": digest(("\n".join(sorted(truth)) + "\n").encode()),
                     "method": method,
                     "dataset_manifest_sha256": sha,
                     "pipeline_sha256": digest(source),
@@ -331,6 +332,7 @@ def create_record(output: Path, *, language="zh"):
             run / "certification-precall.json",
             {
                 "profile_sha256": digest(plan_path.read_bytes()),
+                    "case_ids_sha256": digest(("\n".join(sorted(truth)) + "\n").encode()),
                 "method": method,
                 "dataset_manifest_sha256": manifest_sha,
                 "pipeline_sha256": digest(source),

@@ -284,16 +284,8 @@ def page(
     return str(soup)
 
 
-def cohort_source(source, selection, home, truth):
-    """Validate a complete certified run or an immutable journal checkpoint."""
-    from harness.web_extract.dataset import benchmark_config
-
-    adapter = benchmark_config(home)["adapter"]
-
-    def project(row):
-        schema = adapter.task_schema(home, truth[row["case_id"]]) if adapter else None
-        return normalize(row["method"], row.get("response", {}), schema=schema)
-
+def validate_cohort_plan(source, selection, truth):
+    """Bind the pre-call plan, population and execution before report ingestion."""
     contract = read_json(source / "contract.json")
     plan_path = Path(selection["plan"])
     plan = read_json(plan_path)
@@ -301,6 +293,7 @@ def cohort_source(source, selection, home, truth):
     if (
         digest(plan_path.read_bytes()) != selection["plan_sha256"]
         or precall["profile_sha256"] != selection["plan_sha256"]
+        or precall["case_ids_sha256"] != plan["case_ids_sha256"]
         or set(contract["case_ids"]) != set(truth)
         or contract["kind"] != "full_archived_extraction"
         or plan["case_count"] != len(truth)
@@ -311,20 +304,41 @@ def cohort_source(source, selection, home, truth):
         or precall["pipeline_sha256"] != contract["pipeline_sha256"]
     ):
         raise ValueError("Full cohort plan, population or execution binding differs")
+    return contract, precall
+
+
+def validate_cohort_certificate(source, selection, truth, contract, precall):
+    """Verify immutable original certification independently of selected score revisions."""
+    cert = read_json(source / "certificate.json")
+    for name, key in [("manifest.json", "manifest_sha256"),
+                      ("scores.json", "scores_sha256"),
+                      ("certification-precall.json", "precall_sha256")]:
+        if digest((source / name).read_bytes()) != cert[key]:
+            raise ValueError("Certified evidence changed")
+    if (cert["profile_sha256"] != selection["plan_sha256"]
+            or cert["case_count"] != len(truth)
+            or cert["method"] != precall["method"]
+            or cert["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]):
+        raise ValueError("Certificate population, method, dataset or profile differs")
+    return cert
+
+
+def cohort_source(source, selection, home, truth):
+    """Validate a complete certified run or an immutable journal checkpoint."""
+    from harness.web_extract.dataset import benchmark_config
+
+    adapter = benchmark_config(home)["adapter"]
+
+    def project(row):
+        schema = adapter.task_schema(home, truth[row["case_id"]]) if adapter else None
+        return normalize(row["method"], row.get("response", {}), schema=schema)
+
+    contract, precall = validate_cohort_plan(source, selection, truth)
     verify_execution_snapshot(source, contract)
     certificate = source / "certificate.json"
     if certificate.exists():
         contract, rows = load_run(source)
-        cert = read_json(certificate)
-        for name, key in [
-            ("manifest.json", "manifest_sha256"),
-            ("scores.json", "scores_sha256"),
-            ("certification-precall.json", "precall_sha256"),
-        ]:
-            if digest((source / name).read_bytes()) != cert[key]:
-                raise ValueError("Certified evidence changed")
-        if cert["profile_sha256"] != selection["plan_sha256"] or cert["case_count"] != len(truth):
-            raise ValueError("Certificate population or profile differs")
+        validate_cohort_certificate(source, selection, truth, contract, precall)
         saved = read_json(source / "scores.json")
         # Recompute through the original scoring boundary, without provider calls.
         recalculated = score_run(home, source)
@@ -4453,9 +4467,8 @@ def schema_report_inputs(home, model):
         if len(contract["methods"]) != 1:
             raise ValueError("Schema report needs one source run per method")
         method = contract["methods"][0]
-        certificate = read_json(run / "certificate.json")
-        if certificate["manifest_sha256"] != digest((run / "manifest.json").read_bytes()):
-            raise ValueError("Schema report source certificate changed")
+        _, precall = validate_cohort_plan(run, selection, truth)
+        certificate = validate_cohort_certificate(run, selection, truth, contract, precall)
         score_path = Path(selection["scores"]["path"])
         if digest(score_path.read_bytes()) != selection["scores"]["sha256"]:
             raise ValueError("Schema report selected score changed")

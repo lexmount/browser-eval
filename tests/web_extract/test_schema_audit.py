@@ -152,7 +152,7 @@ def test_malformed_cached_model_containers_are_retryable_value_errors(audit, def
         reconcile_citations(result, packet)
 
 
-@pytest.mark.parametrize('defect', ['outputs', 'case', 'method'])
+@pytest.mark.parametrize('defect', ['outputs', 'case', 'method', 'finding_kind'])
 def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(
     tmp_path, monkeypatch, audit, defect
 ):
@@ -172,8 +172,13 @@ def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(
         malformed['cases'][0].pop('outputs')
     elif defect == 'case':
         malformed['cases'][0]['case_id'] = 'unknown-case'
-    else:
+    elif defect == 'method':
         malformed['cases'][0]['outputs'][0]['method'] = 'unknown-method'
+    else:
+        malformed['cases'][0]['outputs'][0]['fields'][0]['findings'] = [{
+            'kind': [], 'path': '/items', 'reason': 'Malformed reply.',
+            'source_quote': 'Alice', 'proposed_json': '',
+        }]
     replies = iter([malformed, valid])
     calls = []
 

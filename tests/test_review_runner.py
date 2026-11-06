@@ -215,6 +215,8 @@ def test_chat_reviewer_rejects_truncated_output(monkeypatch):
 
 @pytest.mark.parametrize("raw, expected, suffix", [
     ('{"cases":[]}', {"cases": []}, ""),
+    ('{"cases":[]\n', {"cases": []}, "}"),
+    ('{"cases":[] \n\t', {"cases": []}, "}"),
     ('{"cases":[{}]', {"cases": [{}]}, "}"),
     ('{"text":"braces [ inside a string","cases":[]',
      {"text": "braces [ inside a string", "cases": []}, "}"),

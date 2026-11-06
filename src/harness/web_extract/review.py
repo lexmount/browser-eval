@@ -617,7 +617,9 @@ def reconcile_citations(result, packet):
                     if (not isinstance(field, dict)
                             or ("findings" in field and (
                                 not isinstance(field["findings"], list)
-                                or any(not isinstance(f, dict) for f in field["findings"])
+                                or any(not isinstance(f, dict)
+                                       or not isinstance(f.get("kind"), str)
+                                       for f in field["findings"])
                             ))):
                         raise ValueError("Invalid schema audit findings")
         result = copy.deepcopy(result)
