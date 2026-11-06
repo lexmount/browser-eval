@@ -18,6 +18,9 @@ def report(tmp_path):
 def test_schema_report_has_complete_matrix_and_source_only_dataset(report):
     manifest = check(report)
     assert manifest['observations'] == manifest['reviewed_results'] == 6
+    assert 'Relations compare model-reviewed correctness' in (
+        report / 'en/results.html'
+    ).read_text()
     for language in ('en', 'zh'):
         results = BeautifulSoup((report / language / 'results.html').read_text(), 'html.parser')
         assert len(results.select('tr[data-result]')) == 6

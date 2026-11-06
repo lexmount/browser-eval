@@ -5789,6 +5789,12 @@ def build_schema_cohort(output, content, *, home, language, profile):
             controls.select_one('[data-result-filter="status"] option[value="' + value + '"]').string = (
                 t("review_pass" if value == "pass" else "review_fail")
             )
+        comparison = controls.select_one("[data-case-comparison]")
+        if comparison:
+            comparison.select_one("p").string = t("comparison_scope")
+            for option in comparison.select("[data-comparison-relation] option[value]"):
+                if option["value"]:
+                    option.string = t("comparison_" + option["value"])
         bodies["results"] += str(controls) + str(inventory_html) + dialog
         dataset_rows = []
         for cid, definition in truth.items():
