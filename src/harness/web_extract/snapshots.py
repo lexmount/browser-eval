@@ -12,6 +12,7 @@ from harness.benchmarks.data import canonical_source_name
 from harness.record_io import bytes_sha256
 from harness.web_extract.dataset import benchmark_config
 from harness.web_extract.pipeline import (
+    fixture_url,
     qualify_fixture,
     read_json,
     require_external_output,
@@ -1079,7 +1080,8 @@ def validate_fixture_receipts(
         row = remaining[0]
         version, cases = inventory(home)
         if (
-            bound is None
+            suffix != ""
+            or bound is None
             or cloudflare_identity(bound, fixture_base) is None
             or row.get("schema") != "web-extract-deployment-bytes/1"
             or row.get("case_id") != "deployment-bytes"
@@ -1103,14 +1105,14 @@ def validate_fixture_receipts(
         return
     expected = {
         cid: (
-            fixture_base + "/" + cid + suffix,
+            fixture_url(fixture_base, cid, suffix),
             bytes_sha256((home / "dataset/html" / (cid + ".html")).read_bytes()),
         )
         for cid in case_ids
     }
     expected.update(
         {
-            "resource:" + name: (fixture_base + "/" + quote(name, safe="/"), sha)
+            "resource:" + name: (fixture_base.rstrip("/") + "/" + quote(name, safe="/"), sha)
             for name, sha in resource_inventory(home).items()
         }
     )
@@ -1137,6 +1139,8 @@ def verify_bound_manifest(home, bound, fixture_base, *, case_ids=None, suffix=""
         raise ValueError("Frozen dataset snapshot manifest changed")
     rows = manifest_receipt(home, bound, fixture_base)
     if managed_cloudflare(bound, origin):
+        if suffix != "":
+            raise ValueError("Managed snapshot URLs require an empty fixture suffix")
         rows.append(deployment_proof(home, bound, fixture_base))
     else:
         from harness.web_extract.pipeline import qualify_fixture

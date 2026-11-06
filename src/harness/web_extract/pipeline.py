@@ -1387,13 +1387,27 @@ def probe(home: Path, methods: list[str], **options):
 def captured_html(home, case_id, raw):
     """Decode an HTML upload with the charset frozen during source qualification."""
     provenance = home / "dataset/provenance.json"
-    encoding = None
-    if provenance.exists():
-        encoding = read_json(provenance)[case_id].get("qualification", {}).get("encoding")
-    if encoding is None and raw.strip():
+    qualification = None
+    if (
+        provenance.exists()
+        and "provenance.json" in read_json(home / "dataset/manifest.json")["files"]
+    ):
+        qualification = read_json(provenance)[case_id].get("qualification")
+    encoding = qualification.get("encoding") if qualification else None
+    if qualification and encoding is None and raw.strip():
         from lxml import html
 
-        encoding = html.fromstring(raw).getroottree().docinfo.encoding
+        tree = html.fromstring(raw)
+        declared = any(
+            node.get("charset", "").strip()
+            or (
+                node.get("http-equiv", "").casefold() == "content-type"
+                and re.search(r"\bcharset\s*=", node.get("content", ""), re.I)
+            )
+            for node in tree.xpath("//meta")
+        )
+        if declared or raw.startswith((b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")):
+            encoding = tree.getroottree().docinfo.encoding
     return raw.decode(encoding or "utf-8", errors="replace")
 
 
