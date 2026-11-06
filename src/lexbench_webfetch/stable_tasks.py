@@ -502,14 +502,22 @@ def _table_records(lines, schema):
     return records, occupied
 
 
-def _product_start(lines, index, schema):
+def _product_start(lines, index, schema, levels):
     """Recognize the same supported title/price layouts at every card boundary."""
     if re.match(r"description\s*:", lines[index], re.I):
         return None
     current = _field(lines[index], "price")
     price_first = bool(re.fullmatch(_MONEY, current, re.I))
     inline = None if price_first else re.fullmatch(rf"(.+?)\s*\|?\s+({_MONEY})", lines[index], re.I)
-    next_price = index + 1 < len(lines) and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I)
+    # In a catalog, heading price then a title heading no deeper than it is its own card;
+    # a plain line above is not its title. A deeper heading is the description.
+    next_price = (index + 1 < len(lines)
+                  and not (schema == "catalog_product"
+                           and levels[index + 1] is not None
+                           and (levels[index] is None or levels[index] > levels[index + 1])
+                           and index + 2 < len(lines) and levels[index + 2] is not None
+                           and levels[index + 2] <= levels[index + 1])
+                  and re.fullmatch(_MONEY, _field(lines[index + 1], "price"), re.I))
     if not price_first and not inline and not next_price:
         return None
     title_field = "title" if schema == "catalog_product" else "name"
@@ -540,7 +548,7 @@ def _products(lines, schema, *, literal=False):
     claimed_shipping = set()
     i = 0
     while i < len(lines):
-        start = _product_start(lines, i, schema)
+        start = _product_start(lines, i, schema, levels)
         if start is None:
             i += 1
             continue
@@ -561,7 +569,7 @@ def _products(lines, schema, *, literal=False):
                     break
                 # Stop before any subsequent card, rather than borrowing its
                 # description or review count to repair this card.
-                if _product_start(lines, end, schema) is not None:
+                if _product_start(lines, end, schema, levels) is not None:
                     break
                 description.append(_field(line, "description"))
                 end += 1
@@ -1065,7 +1073,15 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
     # Unicode phrase gate, while retaining complete-word matching on both ends.
     if not any(fact_in_text(text, phrase, latin_boundaries=alphabetic_boundaries)
                for text, phrase in surfaces):
-        return False
+        # A renderer can add spaces before Han text after a Latin label or
+        # copyright symbol. Preserve word boundaries on the original surface.
+        han_spacing = r'(?<=[a-z©]) +(?=[\u3400-\u4dbf\u4e00-\u9fff])'
+        compact_surface = re.sub(han_spacing, '', folded)
+        compact_phrase = re.sub(han_spacing, '', expected)
+        if ((compact_surface, compact_phrase) == (folded, expected)
+                or not fact_in_text(compact_surface, compact_phrase,
+                                    latin_boundaries=alphabetic_boundaries)):
+            return False
     # Arabic labels are whitespace-delimited words too. A longer inflected
     # word cannot supply an independently registered ordinary navigation label.
     if value.isalpha() and re.fullmatch(r'[\u0600-\u06ff]+', value):

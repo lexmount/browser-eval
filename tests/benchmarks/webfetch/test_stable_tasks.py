@@ -775,3 +775,56 @@ class StableTaskTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def test_named_records_use_heading_and_destination_evidence():
+    rules = contract(
+        'named_link', 2, hosts=['example.test'], entry_path=r'/item/[^/]+',
+        name_validation='nonempty',
+    )
+    content = (
+        '[12](/item/drama)\n[View All](/item/drama)\n'
+        '[Coupon offer](/item/drama)\n[Drama](/item/drama)\n'
+        '[\ue87d](/item/93)\n### [1917](/item/93)\n'
+    )
+    result = evaluate_stable_task(content, rules, 'https://example.test/')
+    assert result['stable_task_pass']
+    assert [row['fields']['title'] for row in result['stable_records']] == ['Drama', '1917']
+
+
+def test_ui_only_named_records_do_not_count():
+    rules = contract(
+        'named_link', 4, hosts=['example.test'], entry_path=r'/item/[^/]+',
+        name_validation='nonempty',
+    )
+    content = ('[12](/item/12-years-a-slave)\n[View All](/item/tv)\n'
+               '[查看详情](/item/other)\n[\ue87d](/item/favorite)')
+    result = evaluate_stable_task(content, rules, 'https://example.test/')
+    assert result['stable_record_count'] == 0
+    assert not result['stable_task_pass']
+
+
+def test_cjk_label_spacing_preserves_english_word_boundaries():
+    rules = contract('body_text', 0, stable_text_anchors=[
+        {'id': 'notice', 'alternatives': ['© 著作权归作者所有']},
+        {'id': 'event', 'alternatives': ['QCon全球软件开发大会']},
+        {'id': 'login', 'alternatives': ['sign in']},
+    ])
+    passed = evaluate_stable_task('©著作权归作者所有\nQCon 全球软件开发大会\nsign in', rules)
+    failed = evaluate_stable_task('©著作权归作者所有\nQCon 全球软件测试大会\nsignin', rules)
+    assert [x['pass'] for x in passed['stable_anchor_results']] == [True, True, True]
+    assert [x['pass'] for x in failed['stable_anchor_results']] == [True, False, False]
+
+
+def test_catalog_price_headings_open_new_cards_without_borrowing_fields():
+    rules = contract('catalog_product', 2)
+    text = (
+        '21 items\n### $10\n### [Alpha](/item/1)\n#### Blue device\n3 reviews\n'
+        '### $20\n### [Beta](/item/2)\n#### Red device\n5 reviews\n'
+    )
+    result = evaluate_stable_task(text, rules, 'https://example.test/catalog')
+    assert result['stable_task_pass']
+    assert [record['fields']['title'] for record in result['stable_records']] == ['Alpha', 'Beta']
+    missing_review = evaluate_stable_task(text.replace('3 reviews\n', ''), rules, 'https://example.test/catalog')
+    assert missing_review['stable_complete_record_count'] == 1
+    assert not missing_review['stable_task_pass']
