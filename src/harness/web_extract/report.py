@@ -2928,33 +2928,74 @@ def record_cohort_inputs(home, model, *, profile):
     native_rows = []
     seen = set()
     for selection in selections:
-        source = resolve_run_path(home, selection["run"])
-        contract, rows, receipt = cohort_source(source, selection, home, truth)
+        segments = selection.get("segments", [selection])
+        if not segments:
+            raise ValueError("Record source segments must cover the declared population")
+        rows, scopes, receipts, method = [], set(), [], None
+        for segment in segments:
+            source_home = Path(segment["home"]) if "home" in segment else home
+            if source_home != home:
+                validate_dataset(source_home)
+            source_truth = read_json(source_home / "dataset/dataset/ground-truth.json")
+            source_adapter = benchmark_config(source_home)["adapter"]
+            if (
+                source_adapter is not adapter
+                or scopes & set(source_truth)
+                or not set(source_truth) <= set(truth)
+            ):
+                raise ValueError("Record source segments must be disjoint parts of this dataset")
+            for cid, reference in source_truth.items():
+                if (
+                    reference != truth[cid]
+                    or adapter.task_schema(source_home, reference)
+                    != adapter.task_schema(home, truth[cid])
+                    or digest((source_home / "dataset/html" / (cid + ".html")).read_bytes())
+                    != digest((home / "dataset/html" / (cid + ".html")).read_bytes())
+                ):
+                    raise ValueError("Record source segment changed a task, schema or webpage")
+            from harness.web_extract.pipeline import input_mode, record_instructions
+
+            if input_mode(source_home) != input_mode(home) or record_instructions(
+                source_home
+            ) != record_instructions(home):
+                raise ValueError("Record source segment changed the input or instruction contract")
+            source = resolve_run_path(source_home, segment["run"])
+            contract, part_rows, receipt = cohort_source(source, segment, source_home, source_truth)
+            part_method = contract["methods"][0]
+            if method is not None and method != part_method:
+                raise ValueError("Record source segments must use the same participant")
+            method = part_method
+            scopes.update(source_truth)
+            rows.extend(part_rows)
+            receipts.append(
+                {
+                    "run_id": source.name,
+                    "contract": contract,
+                    "receipt": receipt,
+                    "plan_sha256": segment["plan_sha256"],
+                }
+            )
+        if scopes != set(truth):
+            raise ValueError("Record source segments omit part of the declared population")
         native_rows.extend(rows)
-        method = contract["methods"][0]
         if method not in methods or method in seen:
             raise ValueError("Unexpected or duplicated report participant")
         seen.add(method)
-        if contract["dataset_manifest_sha256"] != digest(
-            (home / "dataset/manifest.json").read_bytes()
-        ):
-            raise ValueError("Measured source belongs to a different dataset")
         stats = record_statistics(
             truth,
             rows,
-            certified=receipt["certified"],
+            certified=all(part["receipt"]["certified"] for part in receipts),
             scorer=adapter.score,
             reference_policy=result["reference_policy"],
         )
-        if stats["certified"] and receipt["scores"][method] != stats["scores"]:
+        if (
+            len(receipts) == 1
+            and stats["certified"]
+            and receipt["scores"][method] != stats["scores"]
+        ):
             raise ValueError("Record report scores differ from the certified scorer")
         result["methods"][method] = {"statistics": stats, "results": {}}
-        result["sources"][method] = {
-            "run_id": source.name,
-            "contract": contract,
-            "receipt": receipt,
-            "plan_sha256": selection["plan_sha256"],
-        }
+        result["sources"][method] = receipts[0] if len(receipts) == 1 else {"segments": receipts}
         for row in rows:
             result["methods"][method]["results"][row["case_id"]] = record_result_fields(
                 truth[row["case_id"]], row, policy=result["reference_policy"]

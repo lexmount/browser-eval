@@ -442,6 +442,107 @@ def test_hf_cached_manifest_can_reference_a_content_addressed_blob(tmp_path, mon
     assert snapshots.hf_resources(hf, "c" * 40) == {"assets/image.png": "b" * 64}
 
 
+@pytest.mark.parametrize("change", [None, "overlap", "missing", "page"])
+def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
+    tmp_path, monkeypatch, change
+):
+    import copy
+
+    monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "test-bb")
+    sources, definitions, raw_by_url, values_by_url, dispatched = [], [], {}, {}, []
+    for cid, name in [("one", "Ada"), ("two", "Grace")]:
+        folder = tmp_path / cid
+        folder.mkdir()
+        source = definition(folder)
+        data = pipeline.read_json(source)
+        item = data["cases"][0]
+        raw = ("<h1>" + name + "</h1>").encode()
+        Path(item["input"]).write_bytes(raw)
+        item.update(
+            id=cid,
+            url="https://source.example/" + cid,
+            values={"name": [name]},
+            input_sha256=pipeline.digest(raw),
+        )
+        item["qualification"].update(
+            input_sha256=pipeline.digest(raw),
+            reference_sha256=pipeline.digest(
+                json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+            ),
+        )
+        pipeline.save_json(source, data)
+        raw_by_url[item["url"]], values_by_url[item["url"]] = raw, item["values"]
+        home = folder / "home"
+        records.prepare(home, source)
+        definitions.append(data)
+        sources.append(home)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(status=200, body=raw_by_url[url], url=url),
+    )
+
+    def native(url, **kwargs):
+        source_url = kwargs["json_body"]["url"]
+        dispatched.append(source_url)
+        return SimpleNamespace(
+            status=200,
+            headers={},
+            text=lambda: json.dumps({"statusCode": 200, "content": values_by_url[source_url]}),
+        )
+
+    monkeypatch.setattr(pipeline, "request", native)
+    segments = []
+    for home in sources:
+        plan, run = home / "plan.json", home / "run"
+        certification.create_plan(home, ["browserbase-json"], plan)
+        certification.run(home, plan, "browserbase-json", run)
+        segments.append(
+            {
+                "home": str(home),
+                "run": str(run),
+                "plan": str(plan),
+                "plan_sha256": pipeline.digest(plan.read_bytes()),
+            }
+        )
+    combined = copy.deepcopy(definitions[0])
+    combined["cases"] += definitions[1]["cases"]
+    if change == "page":
+        item = combined["cases"][0]
+        path = tmp_path / "another-revision.html"
+        path.write_bytes(raw_by_url[item["url"]] + b"<!-- different source bytes -->")
+        item.update(input=str(path), input_sha256=pipeline.digest(path.read_bytes()))
+        item["qualification"]["input_sha256"] = item["input_sha256"]
+    path = tmp_path / "combined.json"
+    pipeline.save_json(path, combined)
+    home = tmp_path / "combined"
+    records.prepare(home, path)
+    model = {
+        "participants": ["browserbase-json"],
+        "dataset_manifest": str(home / "dataset/manifest.json"),
+        "evidence_runs": [
+            {
+                "segments": segments * 2
+                if change == "overlap"
+                else segments[:1]
+                if change == "missing"
+                else segments
+            }
+        ],
+    }
+    if change is None:
+        result = report.record_cohort_inputs(home, model, profile=home / "profile.json")
+        assert set(result["methods"]["browserbase-json"]["results"]) == {"one", "two"}
+        assert result["methods"]["browserbase-json"]["statistics"]["certified"]
+        assert (
+            result["methods"]["browserbase-json"]["statistics"]["scores"]["value_micro"]["f1"] == 1
+        )
+    else:
+        with pytest.raises(ValueError, match="segments|changed a task"):
+            report.record_cohort_inputs(home, model, profile=home / "profile.json")
+    assert len(dispatched) == 2
+
+
 @pytest.mark.parametrize("asset_name", ["image.bin", "frame.html"])
 def test_snapshot_resources_are_copied_and_change_the_whole_input_version(
     tmp_path, monkeypatch, asset_name
