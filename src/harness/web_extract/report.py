@@ -4578,7 +4578,8 @@ def build_record_cohort(output, content, *, home, language, profile):
     )
     bodies["protocol"] += "<p>" + message("completion_protocol", language) + "</p>"
     bodies["index"] = (
-        "<section data-core-metrics>"
+        bodies["index"]
+        + "<section data-core-metrics>"
         + core
         + "</section>"
         + report_metric_guide(language, records=True)

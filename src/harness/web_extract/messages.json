@@ -450,9 +450,6 @@
     "completion_receipt": "Counts, per-page outcomes and reproducibility receipt",
     "completion_protocol": "These metrics are recomputed from the retained final logical responses without new provider calls. Original scores, references, timing and billing evidence remain unchanged. Missing product values follow the native empty-value convention; array-valued tasks must explicitly return an empty array. A failed call cannot receive credit for an empty reference.",
     "completion_incomplete": "Unavailable: complete certification pending",
-    "completion_source": "Project supplement",
-    "completion_qualified_short": "Source-qualified reference",
-    "completion_original_short": "Original reference",
     "completion_guide_link": "Metric origins, formulas and examples",
     "guide_completion_meanings": [
       "Source: defined by this project, not an upstream benchmark metric. Formula: successfully delivered, valid pages with every requested field correct / pages with complete reference coverage. Failed calls are incorrect. Example: 2 of 10 pages lack full references; 3 of the remaining 8 are fully correct: 3/8 = 37.5%.",
@@ -940,9 +937,6 @@
     "completion_receipt": "计数、逐页判断及补算依据",
     "completion_protocol": "这两项指标由保留的最终逻辑响应补算，没有新增服务调用，原分数、参考、计时和计费证据保持不变。商品接口按原空值约定判断；数组字段必须明确返回空数组。请求失败不能因参考也为空而得分。",
     "completion_incomplete": "尚未完成完整批次认证",
-    "completion_source": "本项目补充",
-    "completion_qualified_short": "校验参考",
-    "completion_original_short": "原参考",
     "completion_guide_link": "指标来源、公式和例子",
     "guide_completion_meanings": [
       "来源：本项目补充定义，不属于数据集官方指标。公式：成功交付、格式合规且全部目标字段正确的页数 ÷ 参考完整的页面总数。请求失败算错。例：10 页中 2 页参考不完整，其余 8 页有 3 页全对，则为 3/8＝37.5%。",
