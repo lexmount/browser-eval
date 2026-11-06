@@ -415,7 +415,8 @@ def test_result_inventory_keeps_method_names_pinned(tmp_path, mode):
 
     import json
 
-    labels = json.loads((output / 'report-manifest.json').read_text())['method_labels']
+    manifest = json.loads((output / 'report-manifest.json').read_text(encoding='utf-8'))
+    labels = manifest['method_labels']
     for table_view in tables:
         for row in table_view.select('tbody tr[data-method][data-case]'):
             method_label = labels.get(row['data-method'], row['data-method'])
