@@ -21,6 +21,7 @@ from harness.web_extract.pipeline import (
     validate_dataset,
     validate_fixture_base,
     validate_instruction_schema,
+    validate_live_route,
 )
 
 
@@ -171,6 +172,12 @@ def run(home: Path, profile: Path, method: str, run_dir: Path, fixture_base=None
     ):
         raise ValueError("URL participant requires frozen HTTPS fixtures before collection")
     records = benchmark_config(home)["adapter"] is not None
+    if live:
+        if participant.get("input") != "url":
+            raise ValueError("Live participants must declare URL input")
+        validate_live_route(method, participant.get("native_options"))
+    if records and plan.get("extraction_instructions") != record_instructions(home):
+        raise ValueError("Frozen extraction instructions differ from the dataset")
     if records and plan.get("schema") != "archived-extraction-full-cohort/1":
         raise ValueError("Frozen plan schema differs from the selected record benchmark")
     if records or plan.get("task_adapter_sha256"):

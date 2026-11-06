@@ -5,7 +5,7 @@ import json
 import re
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
-from urllib.parse import urlsplit
+from urllib.parse import quote, urlsplit
 
 from harness.benchmarks.data import canonical_source_name
 from harness.record_io import bytes_sha256
@@ -176,7 +176,43 @@ def verify(homes, binding, *, workers=8):
         "schema": "web-extract-snapshot-verification/1",
         "verified_pages": len(results),
         "pages": results,
+        "resources": [
+            row
+            for home in homes.values()
+            for row in verify_resources(home, select(home, binding)["fixture_base"])
+        ],
     }
+
+
+def verify_resources(home, base):
+    """External services must serve the declared resource bytes, not only their hashes."""
+    from concurrent.futures import ThreadPoolExecutor
+
+    from harness.web_fetch.providers.http_client import request
+
+    assets = resource_inventory(home)
+
+    def one(name):
+        url = base.rstrip("/") + "/" + quote(name, safe="/")
+        response = request(
+            url,
+            headers={"Accept-Encoding": "identity"},
+            timeout=60,
+            max_bytes=(home / "dataset" / name).stat().st_size,
+        )
+        if response.status != 200 or bytes_sha256(response.body) != assets[name]:
+            raise ValueError("Remote snapshot resource differs: " + name)
+        if response.url != url:
+            raise ValueError("Use the canonical resource URL without redirects")
+        return {
+            "case_id": "resource:" + name,
+            "url": url,
+            "sha256": assets[name],
+            "http_status": 200,
+        }
+
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        return list(pool.map(one, assets))
 
 
 def select(home, binding):
@@ -294,6 +330,18 @@ def publication_metadata(home, binding, verification):
         if len(actual) != len(expected) or set(actual) != expected:
             raise ValueError("Snapshot publication requires every matching verified page")
         snapshot = binding.get("snapshot_manifest")
+    if binding.get("hosting_provider") != "cloudflare":
+        expected_resources = {
+            ("resource:" + name, value, selected["fixture_base"] + "/" + quote(name, safe="/"))
+            for name, value in resource_inventory(home).items()
+        }
+        actual_resources = {
+            (row["case_id"], row["sha256"], row["url"])
+            for row in verification.get("resources", [])
+            if row.get("http_status") == 200
+        }
+        if actual_resources != expected_resources:
+            raise ValueError("Snapshot publication requires every matching verified resource")
     checked = None
     if snapshot is not None:
         manifest_url = snapshot["manifest_url"]
@@ -829,7 +877,10 @@ def verify_bound_manifest(home, bound, fixture_base):
     actual = {k: v for k, v in receipt.items() if k != "hosting_provider"}
     if actual != expected or receipt["fixture_base"] != fixture_base:
         raise ValueError("Frozen dataset snapshot manifest changed")
-    return manifest_receipt(home, receipt, fixture_base)
+    rows = manifest_receipt(home, receipt, fixture_base)
+    if bound.get("hosting_provider") != "cloudflare":
+        rows += verify_resources(home, fixture_base)
+    return rows
 
 
 def manifest_receipt(home, receipt, fixture_base):

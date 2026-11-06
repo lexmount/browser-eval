@@ -3223,7 +3223,13 @@ def record_preview(home, model, *, local_example):
     receipt = saved.get("snapshot_manifest", saved.get("verification", saved))
     if not isinstance(receipt, dict) or receipt.get("mode") != "dataset_manifest":
         raise ValueError("Record previews require a whole-dataset snapshot manifest")
-    verify_bound_manifest(home, receipt, base)
+    verification_context = {
+        **receipt,
+        **(
+            {"hosting_provider": saved["hosting_provider"]} if saved.get("hosting_provider") else {}
+        ),
+    }
+    verify_bound_manifest(home, verification_context, base)
     return receipt
 
 
@@ -4170,8 +4176,11 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             "[data-record-review]"
         ):
             raise ValueError("Record review summary differs from its source-bound evidence")
-    elif manifest.get("reference_policy") is not None:
-        raise ValueError("Reference scoring policy requires its completed record audit")
+    else:
+        adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
+        baseline = adapter.reference_policy() if hasattr(adapter, "reference_policy") else None
+        if manifest.get("reference_policy") != baseline:
+            raise ValueError("Reference scoring policy differs from the unaudited baseline")
     if len(truth) != manifest["case_count"] or set(metrics) != set(manifest["planned_methods"]):
         raise ValueError("Record report matrix differs from its declared population")
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]

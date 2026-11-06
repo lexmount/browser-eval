@@ -933,6 +933,15 @@ def record_instructions(home):
     return prompt
 
 
+def validate_live_route(method, native_options=None):
+    spec = available_methods()[method]
+    if spec["input"] != "url" and (
+        "input_route" not in spec.get("options", [])
+        or (native_options or {}).get("input_route") != "url"
+    ):
+        raise ValueError("Live cohorts require a native URL extraction route: " + method)
+
+
 def resolve_run_path(home, value):
     """Bare run IDs live under runs/; explicit relative paths start at the data home."""
     path = Path(value)
@@ -1684,6 +1693,9 @@ def _probe_unlocked(
         if len(methods) != 1:
             raise ValueError("Native controls require a single method run")
         native_options = validate_native_options(methods[0], native_options)
+    if source_mode == "live":
+        for method in methods:
+            validate_live_route(method, native_options)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     if full and largest:
         raise ValueError("Full scope and a size probe are mutually exclusive")
@@ -1724,7 +1736,9 @@ def _probe_unlocked(
             if snapshot_manifest.get("hosting_provider") != "cloudflare":
                 receipts += [one(case_id) for case_id in case_ids]
             return receipts
-        return [one(case_id) for case_id in case_ids]
+        from harness.web_extract.snapshots import verify_resources
+
+        return [one(case_id) for case_id in case_ids] + verify_resources(home, fixture_base)
 
     run = Path(run_dir)
     continuing = (run / "contract.json").exists()
