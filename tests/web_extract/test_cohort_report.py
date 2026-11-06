@@ -67,7 +67,7 @@ def test_compatibility_execution_settings_follow_selected_observations(tmp_path,
     output = tmp_path / "selected"
     build(output, home / "content.json", home=home, profile=home / "profile.json")
     check(output)
-    soup = BeautifulSoup((output / "zh/protocol.html").read_text(), "html.parser")
+    soup = BeautifulSoup((output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser")
     rows = soup.select("[data-execution-settings] tbody tr")
     observed = [(r.select_one("[data-execution-method]")["data-execution-method"],
                  r.select("td")[1].get_text()) for r in rows]

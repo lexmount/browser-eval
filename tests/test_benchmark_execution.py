@@ -185,7 +185,7 @@ def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
                          lambda job, value, error: retained.append([job.key, value, str(error)]),
                          policy, initialize=initialize)
             except KeyboardInterrupt:
-                (root / "retained.json").write_text(json.dumps(retained))
+                (root / "retained.json").write_text(json.dumps(retained), encoding="utf-8")
     '''), encoding="utf-8")
     process = subprocess.Popen([sys.executable, str(script), str(tmp_path)],
                                start_new_session=True, stdout=subprocess.PIPE,
@@ -200,7 +200,7 @@ def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
         (tmp_path / "release").touch()
         stdout, stderr = process.communicate(timeout=15)
         assert process.returncode == 0, (stdout, stderr)
-        assert sorted(json.loads((tmp_path / "retained.json").read_text())) == [
+        assert sorted(json.loads((tmp_path / "retained.json").read_text(encoding="utf-8"))) == [
             ["0", 0, "None"], ["1", 1, "None"]]
         assert not (tmp_path / "2").exists()
     finally:
