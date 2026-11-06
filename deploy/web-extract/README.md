@@ -47,6 +47,9 @@ Runtime identities bind installed source, native libraries and package data by
 file hash. Startup rebuilds bytecode from the installed sources and binds those cache bytes
 too. Each request verifies file signatures against a private hash cache and
 rehashes changed files; fresh workers do not rewrite bytecode.
+A running Firecrawl service rejects executable changes until restart. When
+upgrading its browser, wait for browser health and identity before restarting
+the Firecrawl API.
 
 ## Check every extraction route
 
