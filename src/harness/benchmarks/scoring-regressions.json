@@ -84569,6 +84569,62 @@
       "expected": {
         "item_f1": 0
       }
+    },
+    {
+      "id": "human-eval-scalar-versus-array",
+      "reference": {
+        "price": 12
+      },
+      "prediction": {
+        "price": [
+          12
+        ]
+      },
+      "expected": {
+        "item_f1": 0
+      }
+    },
+    {
+      "id": "human-eval-array-versus-scalar",
+      "reference": {
+        "price": [
+          12
+        ]
+      },
+      "prediction": {
+        "price": 12
+      },
+      "expected": {
+        "item_f1": 0
+      }
+    },
+    {
+      "id": "human-eval-empty-versus-nested-array",
+      "reference": {
+        "price": []
+      },
+      "prediction": {
+        "price": [
+          []
+        ]
+      },
+      "expected": {
+        "item_f1": 0
+      }
+    },
+    {
+      "id": "human-eval-nested-versus-empty-array",
+      "reference": {
+        "price": [
+          []
+        ]
+      },
+      "prediction": {
+        "price": []
+      },
+      "expected": {
+        "item_f1": 0
+      }
     }
   ]
 }

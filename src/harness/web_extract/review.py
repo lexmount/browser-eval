@@ -181,7 +181,8 @@ def validate_schema_audit(result, packet):
                     native.get("normalized_fields"), dict
                 ):
                     raise ValueError("Absent or failed output cannot be reviewed correct")
-                if any(field["status"] in {"incorrect", "partial", "missing", "unsupported"}
+                if any(field["status"] in {
+                           "incorrect", "partial", "missing", "unsupported", "ambiguous"}
                        or any(f["kind"] == "extraction_error" for f in field["findings"])
                        for field in review["fields"]):
                     raise ValueError("Correct verdict contradicts field assessments")
@@ -655,7 +656,12 @@ def reconcile_citations(result, packet):
         validate_structure(result, packet)
         expected = {c["case_id"]: c for c in packet["cases"]}
         for case in result["cases"]:
+            if case["case_id"] not in expected:
+                raise ValueError("Unknown schema audit case")
             item = expected[case["case_id"]]
+            methods = {o["method"]: o for o in item["outputs"]}
+            if any(o["method"] not in methods for o in case["outputs"]):
+                raise ValueError("Unknown schema audit method")
             source = Path(item["source_outline"]).read_text(encoding="utf-8")
             for group in [case["reference"], *case["outputs"]]:
                 paths = item["reference_leaf_paths"] if group is case["reference"] else next(

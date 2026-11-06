@@ -5973,11 +5973,11 @@ def check_schema_cohort(output, *, release=False, visual_receipt=None):
             if relative and not resolved.is_file():
                 raise ValueError("Schema report has a broken evidence or navigation link: " + target)
     for lang in manifest["languages"]:
-        results = BeautifulSoup((output / lang / "results.html").read_text(), "html.parser")
+        results = BeautifulSoup((output / lang / "results.html").read_text(encoding="utf-8"), "html.parser")
         if len(results.select("tr[data-result]")) != expected:
             raise ValueError("Schema inventory omits results")
         for route in ("index", "interpretation"):
-            document = (output / lang / (route + ".html")).read_text()
+            document = (output / lang / (route + ".html")).read_text(encoding="utf-8")
             check_metric_guide(document,
                 schema_metric_definitions(lang, manifest["case_count"]),
                 title=message("schema_metric_guide", lang),

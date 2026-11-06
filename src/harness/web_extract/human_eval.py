@@ -20,14 +20,15 @@ INSTRUCTION_DELIVERY = "original-schema/1"
 SCORE_REQUIRES_HOME = True
 MISSING_OUTPUT_NONE = True
 SCORING_REVISION = {
-    "id": "human-eval-record-items/3",
+    "id": "human-eval-record-items/4",
     "root_cause": (
         "The upstream value_score sums scores over a hash-randomized key set. "
         "Use the same upstream leaf comparisons with math.fsum in sorted key order; "
         "aggregate cases with math.fsum too. The official wildcard scorer loses record "
         "associations and scores complete array fields all-or-nothing. Add a separate "
         "duplicate-preserving exact item F1, including numeric-equivalent nested array "
-        "multisets; keep every official metric unchanged."
+        "multisets and distinct array-member versus field identities; "
+        "keep every official metric unchanged."
     ),
     "regression_ids": [
         "human-eval-missing-empty-reference", "human-eval-delivered-empty-reference",
@@ -36,6 +37,8 @@ SCORING_REVISION = {
         "human-eval-item-partial-recall", "human-eval-item-extra-record",
         "human-eval-item-number-equivalence", "human-eval-item-boolean-type",
         "human-eval-nested-number-equivalence", "human-eval-nested-array-multiplicity",
+        "human-eval-scalar-versus-array", "human-eval-array-versus-scalar",
+        "human-eval-empty-versus-nested-array", "human-eval-nested-versus-empty-array",
     ],
     "provider_calls_added": 0,
 }
@@ -181,8 +184,8 @@ def exact_items(value, path=()):
         return Counter(item for key, child in value.items()
                        for item in exact_items(child, (*path, key)).elements())
     if isinstance(value, list) and value:
-        return Counter((path, item_identity(item)) for item in value)
-    return Counter({(path, item_identity(value)): 1})
+        return Counter(("array-member", path, item_identity(item)) for item in value)
+    return Counter({("field", path, item_identity(value)): 1})
 
 
 def item_scores(reference, prediction):
