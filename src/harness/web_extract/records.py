@@ -427,6 +427,11 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
             yield " "
 
     text = text_key("".join(visible(tree)))
+    # Adjacent controls/field containers can be visually separated by CSS rather
+    # than whitespace (for example a developer name beside a platform label).
+    # Keep their complete text as additional contexts without counting ancestors
+    # twice. Numeric values still require the complete surrounding number.
+    contexts = [text_key("".join(visible(node))) for node in tree.xpath("//span|//button")]
     base = (
         document_base
         if document_base is not None
@@ -458,6 +463,12 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
                 pattern = r"(?<!\w)" + re.escape(key) + r"(?!\w)"
                 if re.fullmatch(r"[+-]?\d+(?:[.,]\d+)*", key):
                     pattern = r"(?<![\w.,+\-])" + re.escape(key) + r"(?!\w|[.,+\-]\d)"
-                if not key or len(re.findall(pattern, text)) < count:
+                    observed = len(re.findall(pattern, text))
+                else:
+                    observed = max(
+                        (len(re.findall(pattern, context)) for context in [text, *contexts]),
+                        default=0,
+                    )
+                if not key or observed < count:
                     missing.append({"field": field, "value": key})
     return missing

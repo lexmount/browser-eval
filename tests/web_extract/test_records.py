@@ -1169,3 +1169,21 @@ def test_managed_snapshot_cannot_reuse_a_different_source_license(tmp_path, monk
 def test_visible_source_preserves_inline_words_and_block_boundaries(markup, expected, supported):
     reference = {"url": "https://example.org/", "values": {"name": [expected]}}
     assert (not records.reference_support(reference, markup.encode())) is supported
+
+
+@pytest.mark.parametrize(
+    "markup,value,supported",
+    [
+        (
+            "<span><strong>Developer:</strong> Bloober Team</span><span>Platform:</span>",
+            "Bloober Team",
+            True,
+        ),
+        ("<button>Ada Lovelace</button><button>Grace Hopper</button>", "Ada Lovelace", True),
+        ("<span>42</span>.99", "42", False),
+        ("<span>PrefixAdaSuffix</span>", "Ada", False),
+    ],
+)
+def test_source_field_containers_do_not_merge_adjacent_labels(markup, value, supported):
+    reference = {"url": "https://example.org/", "values": {"name": [value]}}
+    assert (not records.reference_support(reference, markup.encode())) is supported
