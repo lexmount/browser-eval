@@ -642,7 +642,7 @@ def host(
                 history = requests.get(
                     api + "/" + project + "/deployments",
                     headers=headers,
-                    params={"page": page, "per_page": 100},
+                    params={"page": page, "per_page": 25},
                     timeout=40,
                 )
                 history.raise_for_status()
@@ -668,7 +668,7 @@ def host(
                     or (info.get("total_pages") is not None and page >= info["total_pages"])
                     or (
                         info.get("total_pages") is None
-                        and len(data["result"]) < info.get("per_page", 100)
+                        and len(data["result"]) < info.get("per_page", 25)
                     )
                 ):
                     break
