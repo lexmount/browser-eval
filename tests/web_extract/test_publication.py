@@ -18,30 +18,37 @@ from harness.web_extract.pipeline import digest, execution_identity, read_json, 
         "http-status",
         "compatibility",
         "missing-delivery",
+        "request-parameters",
     ],
 )
 def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
     from harness.web_extract.cli import main
     from harness.web_extract.pipeline import normalize
-    from harness.web_extract.report import publication_host_names, verify_completion_audit
+    from harness.web_extract.report import (
+        publication_host_names,
+        redact_account_endpoint,
+        verify_completion_audit,
+    )
     from harness.web_fetch.publication_privacy import project_evidence_view
 
     home = tmp_path / "inputs"
     run = home / "run"
     row = {
-        "method": "firecrawl-json" if mode == "full-cohort-progress" else "firecrawl-parse-json",
+        "method": "cloudflare-json",
         "case_id": "page",
         "http_status": 200,
         "compatibility": "structured_output",
         "state": "response_received",
         "response": {
-            "data": {
-                "json": {"price": "10", "sku": "A", "availability": "InStock"}
-                if mode == "full-cohort-progress"
-                else {"title": ["A"]}
-            },
+            "result": {"price": "10", "sku": "A", "availability": "InStock"}
+            if mode == "full-cohort-progress"
+            else {"title": ["A"]},
             "message": "retained metadata",
             "debug_path": "/Users/example/private/trace.json",
+        },
+        "request": {
+            "endpoint": "https://api.cloudflare.com/client/v4/accounts/private-account-id/browser-rendering/json",
+            "parameters": {"waitUntil": "domcontentloaded", "timeout": 30000},
         },
     }
     if damage == "missing-delivery":
@@ -90,13 +97,15 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     report = tmp_path / "report"
     public, _ = project_evidence_view(
         "public-evidence/native-row.json",
-        json.dumps(row).encode(),
+        json.dumps(redact_account_endpoint(row)).encode(),
         role="native_response",
         content_format="json",
         host_names=publication_host_names(),
     )
     projected = json.loads(public)
     assert projected["response"] != row["response"]  # A real local-path redaction.
+    assert "/accounts/[REDACTED]/" in projected["request"]["endpoint"]
+    assert "/accounts/private-account-id/" in row["request"]["endpoint"]
     path = report / "public-evidence" / (row["method"] + ".json")
     save_json(path, {"page": projected})
     public_audit, _ = project_evidence_view(
@@ -125,7 +134,13 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     if damage == "public-envelope":
         projected["response"]["message"] = "substituted metadata"
         save_json(path, {"page": projected})
-    elif damage in ("http-status", "compatibility", "missing-delivery"):
+    elif damage == "missing-delivery":
+        projected.update(http_status=200, compatibility="structured_output")
+        save_json(path, {"page": projected})
+    elif damage == "request-parameters":
+        projected["request"]["parameters"]["timeout"] = 60000
+        save_json(path, {"page": projected})
+    elif damage in ("http-status", "compatibility"):
         projected["http_status" if damage == "http-status" else "compatibility"] = (
             500 if damage == "http-status" else "no_structured_output"
         )

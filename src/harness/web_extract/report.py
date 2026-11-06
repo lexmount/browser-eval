@@ -505,6 +505,19 @@ def price_quote(value, lang):
     return prefix + "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
 
 
+def redact_account_endpoint(row):
+    """Preserve request parameters while hiding account identifiers in its URL."""
+    result = dict(row)
+    request = row.get("request")
+    if isinstance(request, dict):
+        request = dict(request)
+        endpoint = request.get("endpoint", "")
+        if isinstance(endpoint, str):
+            request["endpoint"] = re.sub(r"/accounts/[^/]+/", "/accounts/[REDACTED]/", endpoint)
+        result["request"] = request
+    return result
+
+
 def verify_completion_audit(source, profile, *, home=None):
     """Verify the externally selected profile and reproduce its original audit view."""
     source = Path(source)
@@ -587,7 +600,7 @@ def verify_completion_audit(source, profile, *, home=None):
                     public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
                 view, _ = project_evidence_view(
                     "public-evidence/native-row.json",
-                    json.dumps(row, ensure_ascii=False).encode(),
+                    json.dumps(redact_account_endpoint(row), ensure_ascii=False).encode(),
                     role="native_response",
                     content_format="json",
                     host_names=publication_host_names(),
@@ -2045,11 +2058,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             r["review_execution_sha256"] = execution_identity(record)
             r["run_id"] = source.name
-            if "request" in r:
-                r["request"]["endpoint"] = re.sub(
-                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", r["request"]["endpoint"]
-                )
-            rows.append(r)
+            rows.append(redact_account_endpoint(r))
         bindings.append(
             {
                 "run_id": source.name,
@@ -3578,10 +3587,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             row["field_labels"] = model.get("field_labels", {})
             row["result_href"] = "zh/" + record_result_href(method, cid)
             row["case_href"] = "zh/" + record_route("c", cid) + ".html"
-            if isinstance(row.get("request"), dict):
-                row["request"]["endpoint"] = re.sub(
-                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", row["request"].get("endpoint", "")
-                )
+            bucket[cid] = redact_account_endpoint(row)
         raw, receipt = project_evidence_view(
             "public-evidence/" + method + ".json",
             json.dumps(bucket, ensure_ascii=False).encode(),
