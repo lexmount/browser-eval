@@ -6,8 +6,33 @@ from pathlib import Path
 from harness.record_io import json_bytes
 from harness.reporting.publication import PublicationClient, archive_inventory, atomic_write
 from harness.reporting.publish import StagedUpdate, publish_staged_update
-from harness.web_extract.pipeline import digest, read_json, require_external_output
+from harness.web_extract.pipeline import (
+    digest,
+    read_json,
+    require_external_output,
+    resolve_run_path,
+)
 from harness.web_extract.report import check, package, verify_completion_audit
+
+
+def publication_authorities(profile, home):
+    """Keep the verified private inputs under the shared upload snapshot guard."""
+    profile = Path(profile)
+    instance = read_json(profile)
+    paths = [profile]
+    if instance.get("dataset"):
+        paths.append(Path(home) / "dataset")
+    binding = instance.get("research_report", {}).get("content", {})
+    if binding.get("path"):
+        content = profile.parent / binding["path"]
+        paths.append(content)
+        model = read_json(content)
+        if model.get("audit"):
+            paths.append(content.parent / model["audit"]["path"])
+        for selection in model.get("evidence_runs", []):
+            paths.append(resolve_run_path(home, selection["run"]))
+            paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
+    return tuple(dict.fromkeys(paths))
 
 
 def publish(source, target, work, visual_receipt, *, transport=None, home=None):
@@ -50,8 +75,9 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     def unchanged_profile():
         if current != previous and digest(Path(next_profile).read_bytes()) != current:
             raise ValueError("Publication successor profile changed")
-        verify_completion_audit(source, next_profile, home=home)
 
+    verify_completion_audit(source, next_profile, home=home)
+    authority_inputs = publication_authorities(next_profile, home)
     unchanged_profile()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
@@ -79,13 +105,20 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
 
     unchanged_profile()
 
+    upload_checked = False
+
     def unchanged_target():
+        nonlocal upload_checked
         unchanged_profile()
+        if not upload_checked:
+            verify_completion_audit(source, next_profile, home=home)
+            upload_checked = True
         if target.read_bytes() != original:
             raise ValueError("Web Extract publication target changed")
 
     def bind(version):
         unchanged_target()
+        verify_completion_audit(source, next_profile, home=home)
         manifest = read_json(source / "report-manifest.json")
         builder = read_json(source / "browser-eval-version.json")
         updated = {
@@ -120,7 +153,7 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
                 source,
                 target,
                 Path(visual_receipt),
-                *((Path(next_profile),) if current != previous else ()),
+                *authority_inputs,
             ),
             work=work,
             guard=unchanged_target,
