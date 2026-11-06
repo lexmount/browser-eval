@@ -3584,7 +3584,7 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
     if profile is not None:
-        verify_completion_audit(output, profile)
+        verify_completion_audit(output, profile, home=home)
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(
             output, release=release, visual_receipt=visual_receipt, profile=profile, home=home
