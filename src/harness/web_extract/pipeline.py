@@ -1141,7 +1141,7 @@ def provider_call(
     }
 
 
-def normalize(method: str, payload: dict, *, schema=None):
+def normalize(method: str, payload: dict, *, schema=None, preserve_native_types=False):
     """Map exposed fields only. Never infer answers from labels or source URLs."""
     if not isinstance(payload, dict) or payload.get("success") is False:
         return None
@@ -1149,7 +1149,11 @@ def normalize(method: str, payload: dict, *, schema=None):
         item = payload.get("result")
         if not isinstance(item, dict):
             return None
-        result = {f: str(item[f]) for f in FIELDS if item.get(f) is not None}
+        result = {
+            f: item[f] if preserve_native_types else str(item[f])
+            for f in FIELDS
+            if item.get(f) is not None
+        }
         stock = [s for s in ("InStock", "OutOfStock") if item.get(s) == s]
         if not result.get("availability") and len(stock) == 1:
             result["availability"] = stock[0]
@@ -1191,7 +1195,7 @@ def normalize(method: str, payload: dict, *, schema=None):
             if isinstance(price, dict):
                 price = price.get("amount")
             stock = offer.get("availability")
-            if stock is not None and not isinstance(stock, str):
+            if not preserve_native_types and stock is not None and not isinstance(stock, str):
                 stock = None
             item = {
                 "price": price,
@@ -1200,7 +1204,9 @@ def normalize(method: str, payload: dict, *, schema=None):
                     "available": "InStock",
                     "unavailable": "OutOfStock",
                     "sold_out": "OutOfStock",
-                }.get(stock, stock),
+                }.get(stock, stock)
+                if isinstance(stock, str)
+                else stock,
             }
         else:
             item = None
@@ -1229,7 +1235,7 @@ def normalize(method: str, payload: dict, *, schema=None):
             item["availability"] = "InStock" if item["availability"] else "OutOfStock"
     else:
         item = None
-    if schema is not None:
+    if schema is not None or preserve_native_types:
         return dict(item) if isinstance(item, dict) else None
     if not isinstance(item, dict) or not any(f in item for f in ("price", "sku", "availability")):
         return None

@@ -87,6 +87,30 @@ def test_small_many_file_report_uses_one_bound_zip_request(tmp_path):
     assert bound == ["ver_after"]
 
 
+def test_verified_host_limit_can_avoid_unnecessary_per_file_uploads(tmp_path, monkeypatch):
+    from dataclasses import replace
+
+    monkeypatch.setattr("harness.reporting.publish.STAGED_UPLOAD_THRESHOLD", 1)
+    update, bound = release(tmp_path)
+    update = replace(update, inline_limit_bytes=update.archive.stat().st_size)
+    service = Service(update)
+    assert publish_staged_update(update, transport=service) == "ver_after"
+    assert len(service.uploads) == 1
+    assert bound == ["ver_after"]
+
+
+@pytest.mark.parametrize("limit", [0, -1, True, "100", 1.5])
+def test_invalid_host_limit_fails_before_remote_work(tmp_path, limit):
+    from dataclasses import replace
+
+    update, bound = release(tmp_path)
+    update = replace(update, inline_limit_bytes=limit)
+    service = Service(update)
+    with pytest.raises(ValueError, match="positive byte count"):
+        publish_staged_update(update, transport=service)
+    assert not service.calls and not bound
+
+
 def test_lost_inline_reply_recovers_same_operation_without_another_write(tmp_path):
     update, bound = release(tmp_path)
     service = Service(update, lose_reply=True)

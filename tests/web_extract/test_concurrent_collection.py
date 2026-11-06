@@ -25,6 +25,10 @@ def threaded_calls(monkeypatch):
         return ThreadPoolExecutor(**options)
 
     monkeypatch.setattr("harness.benchmark_execution.ProcessPoolExecutor", executor)
+    monkeypatch.setattr(
+        "harness.benchmark_execution._initialize_process",
+        lambda initialize, initargs: initialize(*initargs) if initialize else None,
+    )
     monkeypatch.setattr(pipeline, "_COLLECTION_CLOCK", None)
 
 
