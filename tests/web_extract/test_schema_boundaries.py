@@ -29,15 +29,28 @@ def evidence(tmp_path, monkeypatch):
     row = {'method': 'native', 'case_id': 'one', 'normalized_fields': native,
            'http_status': 200, 'response': {'json': native}}
     contract = {'methods': ['native'], 'case_ids': ['one'],
+                'kind': 'full_archived_extraction', 'pipeline_sha256': 'frozen-pipeline',
                 'dataset_manifest_sha256': manifest_sha}
     p.save_json(run / 'manifest.json', {'synthetic_calls': ['one']})
     p.save_json(run / 'contract.json', contract)
     call_sha = p.digest((run / 'manifest.json').read_bytes())
-    p.save_json(run / 'certificate.json', {'manifest_sha256': call_sha})
+    plan = tmp_path / 'plan.json'
+    case_sha = p.digest(b'one\n')
+    p.save_json(plan, {'case_count': 1, 'case_ids_sha256': case_sha,
+                      'participants': {'native': {}}})
+    plan_sha = p.digest(plan.read_bytes())
+    p.save_json(run / 'certification-precall.json', {
+        'profile_sha256': plan_sha, 'method': 'native', 'case_ids_sha256': case_sha,
+        'dataset_manifest_sha256': manifest_sha, 'pipeline_sha256': 'frozen-pipeline'})
     score = {'population': 1, 'delivery_count': 1, 'mean': {}, 'per_case': {'one': {}}}
     p.save_json(run / 'scores.json', {'scores': {'native': score},
         'call_manifest_sha256': call_sha,
         'scorer_sha256': p.digest((home / 'dataset/evaluate.py').read_bytes())})
+    p.save_json(run / 'certificate.json', {
+        'manifest_sha256': call_sha, 'scores_sha256': p.digest((run / 'scores.json').read_bytes()),
+        'precall_sha256': p.digest((run / 'certification-precall.json').read_bytes()),
+        'profile_sha256': plan_sha, 'case_count': 1, 'method': 'native',
+        'dataset_manifest_sha256': manifest_sha})
     field = {'field': 'name', 'status': 'supported', 'source_quote': 'Amber mug',
              'reason': 'The source names the mug.', 'findings': []}
     opinion = {'method': 'native', 'verdict': 'correct', 'summary': 'Correct mug.',
@@ -52,7 +65,8 @@ def evidence(tmp_path, monkeypatch):
     model = {'participants': {'native': {'label': 'Native'}},
              'audit': {'path': str(tmp_path / 'audit.json'),
                        'sha256': p.digest((tmp_path / 'audit.json').read_bytes())},
-             'evidence_runs': [{'path': str(run), 'scores': {'path': str(run / 'scores.json'),
+             'evidence_runs': [{'path': str(run), 'plan': str(plan), 'plan_sha256': plan_sha,
+                 'scores': {'path': str(run / 'scores.json'),
                  'sha256': p.digest((run / 'scores.json').read_bytes())}}]}
     monkeypatch.setattr(p, 'validate_dataset', lambda *a, **kw: None)
     monkeypatch.setattr(report, 'validate_dataset', lambda *a, **kw: None)
@@ -114,8 +128,10 @@ def test_official_columns_reject_revised_reference_or_projection_scores(evidence
     assert report.schema_report_inputs(home, model)[2]['native']['population'] == 1
     scored = p.read_json(run / 'scores.json')
     scored[revision] = {}
-    p.save_json(run / 'scores.json', scored)
-    model['evidence_runs'][0]['scores']['sha256'] = p.digest((run / 'scores.json').read_bytes())
+    selected = run / 'scores-revised.json'
+    p.save_json(selected, scored)
+    model['evidence_runs'][0]['scores'] = {
+        'path': str(selected), 'sha256': p.digest(selected.read_bytes())}
     with pytest.raises(ValueError, match='original-reference'):
         report.schema_report_inputs(home, model)
 
@@ -128,4 +144,27 @@ def test_report_revalidates_field_and_verdict_consistency(evidence):
     p.save_json(audit_path, audit)
     model['audit']['sha256'] = p.digest(audit_path.read_bytes())
     with pytest.raises(ValueError, match='contradicts'):
+        report.schema_report_inputs(home, model)
+
+
+@pytest.mark.parametrize('defect', ['missing_precall', 'precall_profile', 'certificate_method',
+                                  'certificate_population', 'certificate_profile'])
+def test_schema_report_requires_complete_original_certification(evidence, defect):
+    home, run, _, model, _ = evidence
+    assert report.schema_report_inputs(home, model)[2]['native']['population'] == 1
+    if defect == 'missing_precall':
+        (run / 'certification-precall.json').unlink()
+    elif defect == 'precall_profile':
+        path = run / 'certification-precall.json'
+        value = p.read_json(path)
+        value['profile_sha256'] = 'wrong'
+        p.save_json(path, value)
+    else:
+        path = run / 'certificate.json'
+        value = p.read_json(path)
+        key = {'certificate_method': 'method', 'certificate_population': 'case_count',
+               'certificate_profile': 'profile_sha256'}[defect]
+        value[key] = 'wrong'
+        p.save_json(path, value)
+    with pytest.raises((ValueError, FileNotFoundError)):
         report.schema_report_inputs(home, model)
