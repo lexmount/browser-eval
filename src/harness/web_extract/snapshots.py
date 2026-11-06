@@ -1011,7 +1011,11 @@ def deployment_proof(home, binding, fixture_base):
         list(pool.map(check_page, cases))
     verify_resources(home, fixture_base)
     proof["verified_at"] = datetime.now(UTC).isoformat()
-    save_json(path, proof)
+    try:
+        save_json(path, proof, exclusive=True)
+    except FileExistsError:
+        # Concurrent first users must return the same committed proof.
+        return deployment_proof(home, binding, fixture_base)
     return proof
 
 

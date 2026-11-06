@@ -1459,7 +1459,17 @@ def test_verified_deployment_reuses_proof_only_for_the_same_inventory_and_files(
         snapshots.deployment_proof(home, binding, base)
     assert not list((tmp_path / "cache").rglob("*.json"))
     state["bad"] = False
-    first = snapshots.deployment_proof(home, binding, base)
+    original_save = snapshots.save_json
+
+    def another_first_user(path, value, **options):
+        # A second evaluator finishes the same initial audit just before this one.
+        original_save(path, {**value, "verified_at": "2026-11-01T00:00:00+00:00"}, exclusive=True)
+        return original_save(path, value, **options)
+
+    with monkeypatch.context() as concurrent:
+        concurrent.setattr(snapshots, "save_json", another_first_user)
+        first = snapshots.deployment_proof(home, binding, base)
+    assert first["verified_at"] == "2026-11-01T00:00:00+00:00"
     count = state["calls"]
     assert snapshots.deployment_proof(home, binding, base) == first
     assert state["calls"] == count
