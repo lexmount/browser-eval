@@ -53,17 +53,6 @@
     "complete": "Complete",
     "access_limited": "Access limited",
     "incomplete": "Incomplete",
-    "method_planned_pages_executed_structured_output_full_scope_price": [
-      "Method",
-      "Planned pages",
-      "Executed",
-      "Structured output",
-      "Full scope",
-      "Price F1",
-      "SKU F1",
-      "Stock F1",
-      "Out-of-stock F1"
-    ],
     "f1_ranges_from_0_to_1_higher_is_better_quality_is_shown_only_for": "F1 ranges from 0 to 1; higher is better. Quality is shown only for complete verified cohorts. Structured output does not establish correctness. Machine scoring; no independent human review.",
     "additional_attempts_untimed": "≥ {value0} ({value1} additional attempts untimed)",
     "method_population_timed_n_untimed_n_extra_retry_time_s_mean_s_p50": [
@@ -431,9 +420,6 @@
     "completion_receipt": "Counts, per-page outcomes and reproducibility receipt",
     "completion_protocol": "These metrics are recomputed from the retained final logical responses without new provider calls. Original scores, references, timing and billing evidence remain unchanged. Missing product values follow the native empty-value convention; array-valued tasks must explicitly return an empty array. A failed call cannot receive credit for an empty reference.",
     "completion_incomplete": "Unavailable: complete certification pending",
-    "completion_source": "Project supplement",
-    "completion_qualified_short": "Source-qualified reference",
-    "completion_original_short": "Original reference",
     "completion_guide_link": "Metric origins, formulas and examples",
     "guide_completion_meanings": [
       "Source: defined by this project, not an upstream benchmark metric. Formula: successfully delivered, valid pages with every requested field correct / pages with complete reference coverage. Failed calls are incorrect. Example: 2 of 10 pages lack full references; 3 of the remaining 8 are fully correct: 3/8 = 37.5%.",
@@ -443,7 +429,18 @@
       "The same reference-complete pages for every method, including failed calls. Use the reference version named in the column: original dataset labels or source-qualified labels.",
       "Scored page-fields whose reference is explicitly empty, including failed calls. Each field on each page is one sample; small negative populations do not establish general capability."
     ],
-    "compact_core_comparison": "Core metric comparison"
+    "compact_core_comparison": "Core metric comparison",
+    "cohort_core_headers": [
+      "Method",
+      "Tested / total",
+      "Returned objects",
+      "Price F1",
+      "SKU F1",
+      "Stock F1",
+      "Out-of-stock F1"
+    ],
+    "completion_qualified_note": "Whole-page and empty-field metrics are project-defined supplements using source-reviewed references.",
+    "completion_original_note": "Whole-page and empty-field metrics are project-defined supplements using original dataset references."
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -499,17 +496,6 @@
     "complete": "已完成",
     "access_limited": "额度／权限受限",
     "incomplete": "尚未完成",
-    "method_planned_pages_executed_structured_output_full_scope_price": [
-      "方法",
-      "计划页数",
-      "已执行",
-      "返回字段",
-      "全量状态",
-      "价格 F1",
-      "SKU F1",
-      "库存 F1",
-      "缺货 F1"
-    ],
     "f1_ranges_from_0_to_1_higher_is_better_quality_is_shown_only_for": "F1 取值 0–1，越高越好；只展示已完成全部页面并通过证据校验的方法。返回字段不代表字段正确。机器评分，尚未进行独立人工复核。",
     "additional_attempts_untimed": "≥ {value0}（另 {value1} 次缺计时）",
     "method_population_timed_n_untimed_n_extra_retry_time_s_mean_s_p50": [
@@ -695,9 +681,9 @@
     "audited_population": "计分 {scored}/{total}；排除 {excluded}",
     "audited_population_scope": "核查后的诊断 F1 按表内各字段的分母计算，排除源页面无法确定的字段。原始标注分数仍覆盖全部页面。",
     "download_pinned_dataset": "下载冻结 HTML、原标注与修正依据（版本 {revision}）",
-    "population_values": "评分 {total} 页；有值 {present}，无值 {missing}",
-    "population_stock": "评分 {total} 页；有货 {present}，缺货 {missing}",
-    "population_out": "评分 {total} 页；缺货 {present}，其它 {missing}",
+    "population_values": "{total} 页 · 有值 {present} / 空 {missing}",
+    "population_stock": "{total} 页 · 有货 {present} / 缺货 {missing}",
+    "population_out": "{total} 页 · 缺货 {present} / 其它 {missing}",
     "pricing_scope_note": "统一为本轮提取接口每 1,000 次调用的美元报价。区间涵盖备注中的套餐；订阅价格按额度用满折算，未含税。免费试用额度不计入单价，按用量计费的接口按本轮页面估算，计算依据见“价格与接入”。",
     "price_range_heading": "美元／1,000 次",
     "price_remarks_heading": "官方计费方式与套餐",
@@ -877,9 +863,6 @@
     "completion_receipt": "计数、逐页判断及补算依据",
     "completion_protocol": "这两项指标由保留的最终逻辑响应补算，没有新增服务调用，原分数、参考、计时和计费证据保持不变。商品接口按原空值约定判断；数组字段必须明确返回空数组。请求失败不能因参考也为空而得分。",
     "completion_incomplete": "尚未完成完整批次认证",
-    "completion_source": "本项目补充",
-    "completion_qualified_short": "校验参考",
-    "completion_original_short": "原参考",
     "completion_guide_link": "指标来源、公式和例子",
     "guide_completion_meanings": [
       "来源：本项目补充定义，不属于数据集官方指标。公式：成功交付、格式合规且全部目标字段正确的页数 ÷ 参考完整的页面总数。请求失败算错。例：10 页中 2 页参考不完整，其余 8 页有 3 页全对，则为 3/8＝37.5%。",
@@ -889,6 +872,17 @@
       "所有方法使用同一批参考完整的页面；含失败请求。参考版本按表头标注：原参考来自数据集，校验参考经过网页证据复核。",
       "参考明确为空且可评分的字段，一个网页中的一个字段计一个样本；含失败请求。样本少时不据此推断整体能力。"
     ],
-    "compact_core_comparison": "核心指标对照"
+    "compact_core_comparison": "核心指标对照",
+    "cohort_core_headers": [
+      "方法",
+      "已测 / 总页数",
+      "返回对象",
+      "价格 F1",
+      "SKU F1",
+      "库存 F1",
+      "缺货 F1"
+    ],
+    "completion_qualified_note": "整页和空值指标由本项目补充定义，使用按网页证据复核后的参考答案。",
+    "completion_original_note": "整页和空值指标由本项目补充定义，使用数据集原参考答案。"
   }
 }

@@ -268,7 +268,7 @@ document.addEventListener("click", async (event) => {
 });
 for (const table of document.querySelectorAll("table[data-sortable]")) {
   for (const [column, th] of [...table.tHead.rows[0].cells].entries()) {
-    const note = th.querySelector("small[data-reference-population]");
+    const note = th.querySelector("small");
     const label = note
       ? [...th.childNodes].filter(child => child !== note && child.nodeName !== "BR")
           .map(child => child.textContent).join("").trim()
@@ -276,7 +276,7 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
     const button = node("button", label + " ↕");
     button.className = "sort-button";
     button.type = "button";
-    th.replaceChildren(button, ...(note ? [node("br"), note] : []));
+    th.replaceChildren(button, ...(note ? [note] : []));
     button.addEventListener("click", () => {
       const ascending = th.getAttribute("aria-sort") !== "ascending";
       const rows = [...table.tBodies[0].rows].map((row, index) => ({ row, index }));
