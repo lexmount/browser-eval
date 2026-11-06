@@ -101,7 +101,7 @@ checks literal source citations. Select one exact reviewer model. `review
 --backend litellm --model MODEL` uses the repository `.env` settings
 `OPENAI_BASE_URL` and `OPENAI_API_KEY`; `--credential-env-file` is an explicit
 per-invocation override. No tools or local filesystem access are given to the
-remote reviewer. Completed packets are reused and raw responses remain intact.
+remote reviewer. The gateway backend requires the frozen Markdown contract. Completed packets are reused and raw responses remain intact.
 
 Source-qualified reference revisions use `source-json-reference-revision/1`:
 original reference hash, root cause, executable regression IDs, and replacements

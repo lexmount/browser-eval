@@ -68,6 +68,30 @@ def schema_audit_schema():
             "properties": {"cases": {"type": "array", "items": case}}, "required": ["cases"]}
 
 
+def schema_audit_case(home, cid, case, rows):
+    """One source/schema/native contract for reviewer packets and report ingestion."""
+    schema = json.loads(case["schema_text"])
+    requested = set(schema.get("properties", {})) | set(case["response"])
+    outputs = []
+    for row in rows:
+        native = row.get("normalized_fields")
+        outputs.append({
+            "method": row["method"], "native_response": row.get("response"),
+            "normalized_fields": native, "http_status": row.get("http_status"),
+            "runtime_error": row.get("error"), "execution_identity": execution_identity(row),
+            "leaf_paths": json_leaf_paths(native) if isinstance(native, dict) else [],
+            "field_inventory": sorted(
+                requested | (set(native) if isinstance(native, dict) else set())
+            ),
+        })
+    return {"case_id": cid, "audit_kind": "schema-json-audit/1",
+            "source_outline": str(Path(home) / "dataset/markdown" / (cid + ".md")),
+            "source_html": str(Path(home) / "dataset/html" / (cid + ".html")),
+            "field_schema": schema, "reference": case["response"],
+            "reference_leaf_paths": json_leaf_paths(case["response"]),
+            "reference_field_inventory": sorted(requested), "outputs": outputs}
+
+
 def prepare_schema_audit(home, content, work):
     """Freeze arbitrary JSON tasks with explicit complete leaf and root-field inventories."""
     from harness.web_extract.pipeline import load_run, validate_dataset
@@ -83,24 +107,18 @@ def prepare_schema_audit(home, content, work):
     for selection in model["evidence_runs"]:
         run = Path(selection["path"])
         contract, rows = load_run(run)
+        require_schema_dataset(home, contract)
         for name in ("manifest.json", "contract.json", "certificate.json"):
             bindings[str(run / name)] = digest((run / name).read_bytes())
         for row in rows:
-            native = row.get("normalized_fields")
-            outputs[row["case_id"]].append({
-                "method": row["method"], "native_response": row.get("response"),
-                "normalized_fields": native, "http_status": row.get("http_status"),
-                "runtime_error": row.get("error"), "execution_identity": execution_identity(row),
-                "leaf_paths": json_leaf_paths(native) if isinstance(native, dict) else [],
-                "field_inventory": sorted(set(json.loads(truth[row["case_id"]]["schema_text"])
-                    .get("properties", {})) | set(truth[row["case_id"]]["response"])
-                    | (set(native) if isinstance(native, dict) else set())),
-            })
+            outputs[row["case_id"]].append(row)
     methods = sorted(o["method"] for o in next(iter(outputs.values())))
     if len(methods) != len(set(methods)) or any(
         sorted(o["method"] for o in items) != methods for items in outputs.values()
     ):
         raise ValueError("Audit requires each original result exactly once")
+    if not model.get("participants") or set(methods) != set(model["participants"]):
+        raise ValueError("Schema audit omits a declared participant")
     work.mkdir(parents=True, exist_ok=True)
     cases, packets = [], []
     for cid, case in sorted(truth.items()):
@@ -108,13 +126,7 @@ def prepare_schema_audit(home, content, work):
         source_html = home / "dataset/html" / (cid + ".html")
         for path in (markdown, source_html):
             bindings[str(path)] = digest(path.read_bytes())
-        schema = json.loads(case["schema_text"])
-        item = {"case_id": cid, "audit_kind": "schema-json-audit/1",
-                "source_outline": str(markdown), "source_html": str(source_html),
-                "field_schema": schema, "reference": case["response"],
-                "reference_leaf_paths": json_leaf_paths(case["response"]),
-                "reference_field_inventory": sorted(set(schema.get("properties", {}))
-                    | set(case["response"])), "outputs": outputs[cid]}
+        item = schema_audit_case(home, cid, case, outputs[cid])
         path = work / "packets" / (cid + ".json")
         save_packet(path, {"cases": [item]}, home)
         packets.append({"path": str(path), "sha256": digest(path.read_bytes())})
@@ -131,6 +143,13 @@ def prepare_schema_audit(home, content, work):
     else:
         save_json(schema_path, schema_audit_schema(), exclusive=True)
     return manifest
+
+
+def require_schema_dataset(home, contract):
+    if contract.get("dataset_manifest_sha256") != digest(
+        (Path(home) / "dataset/manifest.json").read_bytes()
+    ):
+        raise ValueError("Schema execution belongs to a different dataset")
 
 
 def validate_schema_audit(result, packet):
@@ -156,6 +175,16 @@ def validate_schema_audit(result, packet):
               for o in case["outputs"]),
         ]:
             evidence_sources = [source]
+            if "method" in review and review["verdict"] == "correct":
+                native = methods[review["method"]]
+                if native.get("http_status") != 200 or not isinstance(
+                    native.get("normalized_fields"), dict
+                ):
+                    raise ValueError("Absent or failed output cannot be reviewed correct")
+                if any(field["status"] in {"incorrect", "partial", "missing", "unsupported"}
+                       or any(f["kind"] == "extraction_error" for f in field["findings"])
+                       for field in review["fields"]):
+                    raise ValueError("Correct verdict contradicts field assessments")
             if "method" in review and methods[review["method"]].get("normalized_fields") is None:
                 def strings(value):
                     if isinstance(value, str):
@@ -574,6 +603,22 @@ def literal_citation_span(source, fragments, *, limit=4096):
 def reconcile_citations(result, packet):
     """Retain raw opinions and select literal excerpts without changing judgments."""
     if any(c.get("audit_kind") == "schema-json-audit/1" for c in packet["cases"]):
+        if not isinstance(result, dict) or not isinstance(result.get("cases"), list):
+            raise ValueError("Invalid schema audit containers")
+        for case in result["cases"]:
+            if (not isinstance(case, dict) or not isinstance(case.get("reference"), dict)
+                    or not isinstance(case.get("outputs"), list)):
+                raise ValueError("Invalid schema audit containers")
+            for group in [case["reference"], *case["outputs"]]:
+                if not isinstance(group, dict) or not isinstance(group.get("fields"), list):
+                    raise ValueError("Invalid schema audit field containers")
+                for field in group["fields"]:
+                    if (not isinstance(field, dict)
+                            or ("findings" in field and (
+                                not isinstance(field["findings"], list)
+                                or any(not isinstance(f, dict) for f in field["findings"])
+                            ))):
+                        raise ValueError("Invalid schema audit findings")
         result = copy.deepcopy(result)
         for case in result.get("cases", []):
             reference = case.get("reference", {})
@@ -1607,6 +1652,7 @@ def assemble_schema_audit(home, content, work, output, *, profile):
     for selection in model["evidence_runs"]:
         run = Path(selection["path"])
         contract, rows = load_run(run)
+        require_schema_dataset(home, contract)
         if len(contract["methods"]) != 1 or len(rows) != len(truth):
             raise ValueError("Schema audit requires complete single-method source runs")
         method = contract["methods"][0]
@@ -1626,9 +1672,9 @@ def assemble_schema_audit(home, content, work, output, *, profile):
             opinion = next(o for o in opinions[cid]["outputs"] if o["method"] == method)
             kinds = {finding["kind"] for field in opinion["fields"]
                      for finding in field["findings"]}
-            if not isinstance(row.get("normalized_fields"), dict):
+            if row.get("http_status") != 200 or not isinstance(row.get("normalized_fields"), dict):
                 cause = "delivery_failure"
-            elif opinion["verdict"] in {"partial", "incorrect"}:
+            elif opinion["verdict"] in {"partial", "incorrect", "no_output"}:
                 cause = "extraction_error"
             elif opinion["verdict"] == "ambiguous":
                 cause = "source_ambiguous"
@@ -1644,6 +1690,8 @@ def assemble_schema_audit(home, content, work, output, *, profile):
                 "cause": cause, "finding_kinds": sorted(kinds),
             }
         distribution[method] = dict(counts)
+    if not model.get("participants") or set(methods) != set(model["participants"]):
+        raise ValueError("Schema audit omits a declared participant")
     if set(identities) != {(m, cid) for m in methods for cid in truth}:
         raise ValueError("Schema audit coverage is incomplete or contains extra results")
     value = {
@@ -1679,6 +1727,8 @@ def run(work, *, model, workers=4, limit=None, backend="codex", credential_env_f
     for name in ("logs", "raw", "reviews", "reviewer.json", "schema.json"):
         require_external_output(work / name)
     manifest = read_manifest(work)
+    if backend == "litellm" and manifest["schema"] != "schema-json-audit/1":
+        raise ValueError("Gateway review requires the complete frozen Markdown schema contract")
     for item in manifest["packets"]:
         name = Path(item["path"]).name
         for target in (

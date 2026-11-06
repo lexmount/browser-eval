@@ -24,7 +24,7 @@ def audit(tmp_path):
         "reference": reference, "reference_leaf_paths": json_leaf_paths(reference),
         "reference_field_inventory": ["items"], "outputs": [{
             "method": "native", "leaf_paths": json_leaf_paths(native),
-            "field_inventory": ["items"],
+            "field_inventory": ["items"], "normalized_fields": native, "http_status": 200,
         }],
     }
     group = {"field": "items", "status": "supported", "source_quote": "Alice: red mug, 12 EUR.",
@@ -113,3 +113,82 @@ def test_runtime_error_is_evidence_only_for_an_absent_output(audit):
     native['normalized_fields'] = {}
     with pytest.raises(ValueError, match='literal'):
         validate(result, packet)
+
+
+@pytest.mark.parametrize('defect', ['absent', 'http_error', 'incorrect_field', 'error_finding'])
+def test_correct_verdict_cannot_contradict_native_evidence(audit, defect):
+    packet, result = audit
+    output = result['cases'][0]['outputs'][0]
+    if defect == 'absent':
+        packet['cases'][0]['outputs'][0]['normalized_fields'] = None
+    elif defect == 'http_error':
+        packet['cases'][0]['outputs'][0]['http_status'] = 400
+    elif defect == 'incorrect_field':
+        output['fields'][0]['status'] = 'incorrect'
+    else:
+        output['fields'][0]['findings'] = [{
+            'path': '/items', 'kind': 'extraction_error',
+            'reason': 'A requested record is missing.',
+            'source_quote': 'Bob: blue mug, 15 EUR.', 'proposed_json': '',
+        }]
+    with pytest.raises(ValueError):
+        validate(result, packet)
+
+
+@pytest.mark.parametrize('defect', ['outputs', 'reference', 'fields', 'findings'])
+def test_malformed_cached_model_containers_are_retryable_value_errors(audit, defect):
+    from harness.web_extract.review import reconcile_citations
+
+    packet, result = audit
+    case = result['cases'][0]
+    if defect in {'outputs', 'reference'}:
+        case.pop(defect)
+    elif defect == 'fields':
+        case['outputs'][0]['fields'] = None
+    else:
+        case['outputs'][0]['fields'][0]['findings'] = [None]
+    with pytest.raises(ValueError):
+        reconcile_citations(result, packet)
+
+
+def test_resume_quarantines_a_malformed_raw_reply_and_retries_once(tmp_path, monkeypatch, audit):
+    from harness.web_extract import review
+    from harness.web_extract.pipeline import digest, read_json
+
+    packet, valid = audit
+    work = tmp_path / 'work'
+    path = work / 'packets/one.json'
+    review.save_packet(path, packet, tmp_path)
+    review.save_manifest(work, {'schema': 'schema-json-audit/1', 'case_count': 1,
+        'result_count': 1, 'bindings': {}, 'packets': [{'path': str(path),
+            'sha256': digest(path.read_bytes())}]}, tmp_path)
+    save_json(work / 'schema.json', review.review_schema(packet['cases']))
+    malformed = copy.deepcopy(valid)
+    malformed['cases'][0].pop('outputs')
+    replies = iter([malformed, valid])
+    calls = []
+
+    def chat(**kwargs):
+        calls.append(kwargs)
+        return copy.deepcopy(next(replies)), {'requested_model': 'one-model'}
+
+    monkeypatch.setattr('harness.review_runner.run_chat_reviewer', chat)
+    credentials = tmp_path / 'gateway.env'
+    credentials.write_text('OPENAI_BASE_URL=https://example.org/v1\nOPENAI_API_KEY=test-only\n')
+    options = {'model': 'one-model', 'workers': 1, 'backend': 'litellm',
+               'credential_env_file': credentials}
+    assert len(review.run(work, **options)['needs_correction']) == 1
+    assert review.run(work, **options)['packets'] == 1
+    assert len(list((work / 'invalid').glob('*.json'))) == 1
+    assert read_json(work / 'reviews/one.json') == valid
+    assert review.run(work, **options)['packets'] == 1
+    assert len(calls) == 2
+
+
+def test_gateway_rejects_an_html_audit_without_a_complete_inline_source_contract(tmp_path):
+    from harness.web_extract.review import run
+
+    work = tmp_path / 'html-review'
+    save_json(work / 'manifest.json', {'schema': 'product-audit/1', 'packets': [], 'bindings': {}})
+    with pytest.raises(ValueError, match='complete frozen Markdown'):
+        run(work, model='one-model', backend='litellm')
