@@ -473,3 +473,46 @@ def test_provider_exclusion_scopes_revision_without_changing_originals(tmp_path)
     assert check_saved_matrix(output, spec_path=tmp_path/'spec.json')['valid']
     for relative in ('score-revision.json', 'score-revision-history.json'):
         assert_revision_document_mutation_rejected(output, tmp_path/'spec.json', relative)
+
+
+def test_revision_exports_verified_answer_fields_without_native_envelope(tmp_path):
+    spec, source, row, _ = fixture(tmp_path)
+    raw = b'{"content":"answer","page_information":{"published_at":"October 2024"}}'
+    path = 'private_artifacts/response.bin'
+    (source/path).parent.mkdir()
+    (source/path).write_bytes(raw)
+    digest = hashlib.sha256(raw).hexdigest()
+    row['provider_metadata'].update(
+        raw_response_path=path, raw_response_sha256=digest, raw_response_bytes=len(raw))
+    (source/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
+    spec['sources'][0]['results']['sha256'] = hashlib.sha256((source/'results.jsonl').read_bytes()).hexdigest()
+    spec_path = tmp_path/'spec.json'
+    write(spec_path, spec)
+    revision = build_saved_matrix(spec_path, tmp_path/'baseline').parent
+    original = json.loads((revision/'results.jsonl').read_bytes())
+    native_path = original['provider_metadata']['raw_response_path']
+    (revision/native_path).parent.mkdir(parents=True, exist_ok=True)
+    (revision/native_path).write_bytes(raw)
+    config = tmp_path/'revision.json'
+    write(config, {
+        'cases': [], 'authority': {'description': 'Restore a separately returned date'},
+        'regression_ids': ['extracted-date-field'],
+        'native_answer_corrections': [{
+            'attempt_id': original['attempt_id'],
+            'native_response': {'path': native_path, 'sha256': digest},
+            'projection': {'schema_version': 1, 'content_pointer': ['content'], 'content_format': 'text',
+                           'answer_fields': {'page_information': {'pointer': ['page_information'],
+                                                                  'format': 'identity'}}},
+        }],
+    })
+    revise_local_snapshot(revision, config)
+    receipt, = (revision/'local-evidence/offline-revisions').glob('*/receipt.json')
+    spec['offline_revision'] = {'root': str(revision), 'receipt': {
+        'path': str(receipt), 'sha256': hashlib.sha256(receipt.read_bytes()).hexdigest()}}
+    write(spec_path, spec)
+    output = build_saved_matrix(spec_path, tmp_path/'revised').parent
+    assert check_saved_matrix(output, spec_path=spec_path)['valid']
+    model = json.loads((output/'matrix.json').read_bytes())
+    record = json.loads((output/model['rows'][0]['record_path']).read_bytes())
+    assert record['provider_metadata']['page_information']['published_at'] == 'October 2024'
+    assert not list(output.rglob('response.bin'))
