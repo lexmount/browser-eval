@@ -53,7 +53,9 @@ def test_parallel_calls_overlap_and_completed_results_are_never_replayed(tmp_pat
         changed = {**policy(), "max_in_flight": 3}
         with collection_context(), pytest.raises(ValueError, match="concurrency"):
             probe(home, ["cloudflare-json"], full=True, run_dir=target, execution_policy=changed)
-        (target / "execution/benchmark_execution.py").write_text("changed scheduler")
+        (target / "execution/benchmark_execution.py").write_text(
+            "changed scheduler", encoding="utf-8"
+        )
         with pytest.raises(ValueError, match="source changed"):
             load_run(target)
 
@@ -109,7 +111,8 @@ def test_interrupted_parallel_dispatch_preserves_other_responses_and_blocks_repl
                 probe(
                     home, ["cloudflare-json"], full=True, run_dir=target, execution_policy=policy()
                 )
-        assert len((target / "calls.journal.jsonl").read_text().splitlines()) == counter.value - 1
+        journal = (target / "calls.journal.jsonl").read_text(encoding="utf-8")
+        assert len(journal.splitlines()) == counter.value - 1
         assert len(read_json(target / "inflight.json")["attempts"]) == 1
         with collection_context(), patch("harness.web_extract.pipeline.provider_call") as call:
             with pytest.raises(ValueError, match="Ambiguous"):

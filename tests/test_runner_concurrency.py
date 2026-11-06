@@ -58,7 +58,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             manifest = json.loads((Path(tmp) / "manifest.json").read_text(encoding="utf-8"))
         self.assertEqual(maximum, 1)
         self.assertEqual(len(rows), 2)
-        self.assertEqual(manifest['parameters']['execution_policy']['resources']['shared/one-service']['capacity'], 1)
+        self.assertEqual(manifest['execution_policy']['resources']['shared/one-service']['capacity'], 1)
 
     def test_certificate_and_transport_errors_are_classified(self):
         certificate = ssl.SSLCertVerificationError(1, "certificate verify failed")

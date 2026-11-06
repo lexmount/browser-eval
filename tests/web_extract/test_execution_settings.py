@@ -21,7 +21,7 @@ def test_execution_settings_follow_measured_contracts(tmp_path, mode, language, 
     create(output, mode=mode, language=language)
     check(output)
     path = output / language / "protocol.html"
-    soup = BeautifulSoup(path.read_text(), "html.parser")
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     section = soup.select_one("[data-execution-settings]")
     assert section is not None
     if damage == "missing":
@@ -30,6 +30,6 @@ def test_execution_settings_follow_measured_contracts(tmp_path, mode, language, 
         section.insert_after(BeautifulSoup(str(section), "html.parser"))
     else:
         section.select("tbody tr")[0].select("td")[1].string = "999"
-    path.write_text(str(soup))
+    path.write_text(str(soup), encoding="utf-8")
     with pytest.raises(ValueError, match="execution settings"):
         check(output)
