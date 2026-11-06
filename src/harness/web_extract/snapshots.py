@@ -758,6 +758,8 @@ def host(
                         },
                         "WRANGLER_SEND_METRICS": "false",
                         "npm_config_registry": "https://registry.npmjs.org",
+                        # Wrangler's registry-url dependency reads rc's npm_ prefix.
+                        "npm_registry": "https://registry.npmjs.org",
                     },
                     capture_output=True,
                     text=True,

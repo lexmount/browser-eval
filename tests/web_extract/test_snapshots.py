@@ -732,6 +732,7 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
     assert result["fixture_base"].startswith("https://new.dataset.pages.dev/")
     assert "UNRELATED_API_KEY" not in deploy.call_args.kwargs["env"]
     assert deploy.call_args.kwargs["env"]["npm_config_registry"] == "https://registry.npmjs.org"
+    assert deploy.call_args.kwargs["env"]["npm_registry"] == "https://registry.npmjs.org"
     assert "--commit-hash" in deploy.call_args.args[0]
     assert "a" * 40 in deploy.call_args.args[0]
     assert (
