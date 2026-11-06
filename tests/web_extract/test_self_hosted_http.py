@@ -664,3 +664,28 @@ def test_browser_dependency_mutation_rejects_the_frozen_backend(
                     self_hosted.validate_input({**BODY, 'engine': 'firecrawl',
                                                'expected_runtime': frozen})
                 assert requests.get(browser_url, timeout=5).status_code == 200
+
+
+@pytest.mark.parametrize("keepalive", [False, True])
+@pytest.mark.parametrize("failure", ["launch", "invalid-json", "unexpected"])
+def test_worker_boundary_failures_have_a_sanitized_server_status(client, keepalive, failure):
+    secret = "private-process-diagnostic"
+    outcome = {
+        "launch": OSError(secret),
+        "invalid-json": subprocess.CompletedProcess([], 0, secret, ""),
+        "unexpected": RuntimeError(secret),
+    }[failure]
+    with patch("harness.web_extract.self_hosted.run_worker", side_effect=[outcome]):
+        response = client.post(
+            "/extract/crawl4ai" + ("?keepalive=true" if keepalive else ""),
+            json=BODY, headers=AUTH,
+        )
+    assert response.status_code == (200 if keepalive else 500)
+    assert secret not in response.text
+    if keepalive:
+        payload = response.json()
+        assert payload["success"] is False and payload["data"] is None
+        assert payload["http_status"] == 500 and payload["runtime"] == IDENTITY
+        assert payload["error"] == "Native extraction worker failed"
+    else:
+        assert response.json()["detail"] == "Native extraction worker failed"

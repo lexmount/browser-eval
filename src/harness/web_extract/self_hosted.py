@@ -729,15 +729,19 @@ def create_app():
         async def result():
             try:
                 completed = await asyncio.to_thread(run_worker, value)
+                if completed.returncode:
+                    error = completed.stderr
+                    for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
+                        if os.environ.get(key):
+                            error = error.replace(os.environ[key], "[REDACTED]")
+                    return await failed(error[-6000:])
+                return json.loads(completed.stdout)
             except subprocess.TimeoutExpired as exc:
                 raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
-            if completed.returncode:
-                error = completed.stderr
-                for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
-                    if os.environ.get(key):
-                        error = error.replace(os.environ[key], "[REDACTED]")
-                return await failed(error[-6000:])
-            return json.loads(completed.stdout)
+            except Exception as exc:
+                # Keep process/decoder diagnostics private. Cancellation remains
+                # outside Exception and retains the existing cleanup path.
+                raise HTTPException(500, "Native extraction worker failed") from exc
 
         if not keepalive:
             return await result()
