@@ -94,7 +94,7 @@ def prepare(home: Path, source: Path):
         save_json(root / "dataset/ground-truth.json", truth)
         save_json(root / "schemas.json", schemas)
         save_json(root / "provenance.json", provenance)
-        (root / "evaluate.py").write_bytes(Path(__file__).read_bytes())
+        (root / "evaluate.py").write_bytes(scoring_sources()[0].read_bytes())
         (root / "LICENSE").write_text(definition["source_license"], encoding="utf-8")
         save_json(root / "source-versions.json", definition["source_versions"])
         files = {
@@ -206,12 +206,27 @@ def qualify_live(home, case_ids, *, timeout=30):
 
     def one(cid):
         reference = truth[cid]
-        response = request(
-            reference["url"],
-            timeout=timeout,
-            max_bytes=8_000_000,
-            headers={"User-Agent": "Mozilla/5.0 (compatible; benchmark-source-check/1.0)"},
-        )
+        attempts = []
+        for index in range(3):
+            try:
+                response = request(
+                    reference["url"],
+                    timeout=timeout,
+                    max_bytes=8_000_000,
+                    headers={"User-Agent": "Mozilla/5.0 (compatible; benchmark-source-check/1.0)"},
+                )
+            except OSError as error:
+                attempts.append({"error": type(error).__name__})
+                if index == 2:
+                    raise ValueError(f"Live source unavailable: {cid}; {error}") from error
+                delay = 2 ** (index + 1)
+            else:
+                attempts.append({"http_status": response.status})
+                if response.status not in {408, 429, 500, 502, 503, 504} or index == 2:
+                    break
+                retry_after = getattr(response, "headers", {}).get("retry-after", "")
+                delay = min(30, int(retry_after)) if retry_after.isdigit() else 2 ** (index + 1)
+            time.sleep(delay)
         if response.status != 200:
             raise ValueError(f"Live source unavailable: {cid}; HTTP {response.status}")
         missing = reference_support(reference, response.body, source_url=response.url)
@@ -224,6 +239,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             "observed_html_sha256": digest(response.body),
             "reference_sha256": digest(json.dumps(reference["values"], sort_keys=True).encode()),
             "reference_values_verified": sum(map(len, reference["values"].values())),
+            "source_attempts": attempts,
         }
 
     # One request at a time per origin prevents validation itself triggering rate limits.

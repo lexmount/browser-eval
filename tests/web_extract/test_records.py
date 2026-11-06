@@ -83,6 +83,26 @@ def test_definition_binds_both_page_bytes_and_reference_before_preparation(tmp_p
         records.prepare(tmp_path / "other", source)
 
 
+def test_exported_scorer_reproduces_scores_without_delegating_to_current_runtime(
+    tmp_path, monkeypatch
+):
+    import importlib.util
+
+    home = prepared(tmp_path)
+    path = home / "dataset/evaluate.py"
+    spec = importlib.util.spec_from_file_location("frozen_cohort_scorer", path)
+    evaluator = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(evaluator)
+
+    def changed_runtime(*args, **kwargs):
+        raise AssertionError("The frozen evaluator delegated to the current runtime")
+
+    monkeypatch.setattr("harness.web_extract.swde.score", changed_runtime)
+    truth = pipeline.read_json(home / "dataset/dataset/ground-truth.json")
+    assert evaluator.score(truth, {"one": {"name": ["Ada"]}})["value_micro"]["f1"] == 1
+    assert evaluator.score(truth, {"one": {"name": ["Another person"]}})["value_micro"]["f1"] == 0
+
+
 def test_live_url_calls_never_substitute_a_hosted_copy_or_send_reference_answers(
     tmp_path, monkeypatch
 ):
@@ -217,12 +237,35 @@ def test_live_source_drift_stops_certification_without_replacing_saved_calls(tmp
 @pytest.mark.parametrize("status", [200, 429, 503])
 def test_empty_or_unavailable_live_source_cannot_qualify(tmp_path, monkeypatch, status):
     home = prepared(tmp_path)
+    monkeypatch.setattr("time.sleep", lambda _: None)
     monkeypatch.setattr(
         "harness.web_fetch.providers.http_client.request",
         lambda url, **kwargs: SimpleNamespace(status=status, body=b"", url=url),
     )
     with pytest.raises(ValueError, match="Live (source unavailable|reference no longer supported)"):
         records.qualify_live(home, ["one"])
+
+
+def test_transient_source_failure_can_recover_without_retrying_provider_calls(
+    tmp_path, monkeypatch
+):
+    home = prepared(tmp_path)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    responses = iter(
+        [
+            SimpleNamespace(
+                status=503, body=b"", url="https://source.example/person/1", headers={}
+            ),
+            SimpleNamespace(
+                status=200, body=b"<h1>Ada</h1>", url="https://source.example/person/1"
+            ),
+        ]
+    )
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request", lambda *a, **k: next(responses)
+    )
+    receipt = records.qualify_live(home, ["one"])
+    assert receipt[0]["source_attempts"] == [{"http_status": 503}, {"http_status": 200}]
 
 
 @pytest.mark.parametrize("asset_name", ["image.bin", "frame.html"])

@@ -714,6 +714,9 @@ providers still visit the original site. Unavailable pages or references that no
 longer appear stop certification, while completed provider calls remain saved.
 Source checks run at most four origins concurrently, with serial requests and a
 one-second pause within each origin. They do not contribute to provider latency.
+Transient network errors and HTTP 408/429/5xx responses allow up to three source
+checks, with bounded backoff recorded in the receipt. Missing reference values do
+not trigger retries. This policy never retries provider extraction for a better score.
 
 Snapshots can include captured styles, images and other resources. Their hashes
 are part of the whole-snapshot version; changing an asset changes that version
