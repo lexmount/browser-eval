@@ -805,6 +805,8 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
             return status, raw
 
         site_path = '/api/sites/' + quote(slug, safe='')
+        started = time.perf_counter()
+        print(f'Preparing {label} remote version ({operation["transport"]})...', flush=True)
         _, raw = request(site_path)
         remote = json.loads(raw)
         version = operation.get('versionId')
@@ -840,6 +842,9 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
             save()
         elif not isinstance(version, str) or not version.startswith('ver_'):
             raise ValueError(f'{label} journal has an invalid activated version')
+        print(f'{label} remote version ready in {time.perf_counter() - started:.1f}s', flush=True)
+        started = time.perf_counter()
+        print(f'Verifying deployed {label} files...', flush=True)
         _, raw = request(site_path)
         published = json.loads(raw)
         if published['version']['id'] != version or published['version']['entry'] != 'index.html':
@@ -854,6 +859,7 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
                 'application/json', method='PATCH')
         release.check()
         update.bind(version)
+        print(f'{label} deployed files verified in {time.perf_counter() - started:.1f}s', flush=True)
     operation['verified'] = True
     save()
     return version

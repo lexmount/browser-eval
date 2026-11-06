@@ -16,6 +16,7 @@ from bs4 import BeautifulSoup
 from harness.distribution import repository_root
 from harness.env_file import local_setting
 from harness.report_languages import resolve_report_language
+from harness.reporting.links import LinkIndex
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
@@ -2768,6 +2769,7 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None):
         return check_record_cohort(
             output, release=release, visual_receipt=visual_receipt, profile=profile
         )
+    link_index = LinkIndex(errors="strict")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -2895,9 +2897,7 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None):
             target = output / unquote(u.path) if u.path else path
             if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
                 raise ValueError("Broken local target: " + link)
-            if u.fragment and not BeautifulSoup(
-                target.read_text(encoding="utf-8"), "html.parser"
-            ).find(id=u.fragment):
+            if u.fragment and unquote(u.fragment) not in link_index.page(target).ids:
                 raise ValueError("Broken evidence anchor")
     if manifest.get("mode") != "full-cohort-progress":
         rows = [
@@ -4291,6 +4291,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
     from harness.web_extract.dataset import benchmark_config
 
     output = open_report(output)
+    link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -4420,7 +4421,13 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
         raise ValueError("Record report matrix differs from its declared population")
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
     for method in manifest["planned_methods"]:
-        rows = list(read_json(output / "public-evidence" / (method + ".json")).values())
+        bucket = read_json(output / "public-evidence" / (method + ".json"))
+        if not isinstance(bucket, dict) or any(
+            not isinstance(row, dict) or cid != row.get("case_id")
+            for cid, row in bucket.items()
+        ):
+            raise ValueError("Record evidence keys differ from embedded case identities")
+        rows = list(bucket.values())
         for row in rows:
             verify_record_projection(truth[row["case_id"]], row)
         recomputed = record_statistics(
@@ -4618,14 +4625,15 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
                 or soup.select_one('a[href="' + expected + '"]') is None
             ):
                 raise ValueError("Record preview URL differs from the verified dataset snapshot")
-        for node in soup.select("a[href],script[src],link[href],img[src]"):
-            value = node.get("href", node.get("src", ""))
-            parsed = urlsplit(value)
-            if node.name == "a" and (parsed.scheme in {"http", "https"} or parsed.netloc):
+        for node in soup.select("a[href]"):
+            parsed = urlsplit(node["href"])
+            if parsed.scheme in {"http", "https"} or parsed.netloc:
                 if node.get("target") != "_blank" or not {"noopener", "noreferrer"}.issubset(
                     node.get("rel", [])
                 ):
                     raise ValueError("External documentation must open outside the report preview")
+        for value in link_index.page(file).values:
+            parsed = urlsplit(value)
             if parsed.scheme or parsed.netloc:
                 continue
             if parsed.path.startswith("/") or ".." in Path(unquote(parsed.path)).parts:
@@ -4633,9 +4641,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
             target = output / unquote(parsed.path) if parsed.path else file
             if not target.resolve().is_relative_to(output.resolve()) or not target.is_file():
                 raise ValueError("Broken record evidence/navigation target: " + value)
-            if parsed.fragment and not BeautifulSoup(
-                target.read_text(encoding="utf-8"), "html.parser"
-            ).find(id=unquote(parsed.fragment)):
+            if parsed.fragment and unquote(parsed.fragment) not in link_index.page(target).ids:
                 raise ValueError("Broken evidence anchor: " + value)
     if release and manifest.get("local_example"):
         raise ValueError("Synthetic record evidence cannot be a formal release")

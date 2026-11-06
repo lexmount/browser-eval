@@ -4,6 +4,18 @@ import tempfile
 import unittest
 from pathlib import Path
 
+import pytest
+
+
+def test_anchor_index_preserves_the_callers_decoding_contract(tmp_path):
+    from harness.reporting.links import LinkIndex
+
+    target = tmp_path / 'source.html'
+    target.write_bytes(b'<p id="source">Original encoding: \xff</p>')
+    assert 'source' in LinkIndex().page(target).ids
+    with pytest.raises(UnicodeDecodeError):
+        LinkIndex(errors='strict').page(target)
+
 
 class ReportLinkCheckTest(unittest.TestCase):
     def run_check(self, root: Path) -> subprocess.CompletedProcess[str]:
@@ -115,3 +127,28 @@ def test_bilingual_lazy_log_dialogs_require_the_same_root_bound_source():
     del files['logs/actual.txt']
     with pytest.raises(ValueError, match='Invalid internal evidence'):
         validate_virtual_links(files, pages.__getitem__)
+
+
+def test_many_anchors_share_one_read_but_the_next_check_observes_edits(tmp_path, monkeypatch):
+    from harness.reporting.links import LinkIndex, check
+
+    target = tmp_path / 'detail.html'
+    target.write_text('<h1 id="price&amp;stock">Fields</h1>', encoding='utf-8')
+    (tmp_path / 'index.html').write_text(
+        '<a href="detail.html#price%26stock">Fields</a>' * 100, encoding='utf-8')
+    index = LinkIndex()
+    read = Path.read_text
+    reads = []
+
+    def counted(path, *args, **kwargs):
+        reads.append(path)
+        return read(path, *args, **kwargs)
+
+    monkeypatch.setattr(Path, 'read_text', counted)
+    for _ in range(100):
+        assert 'price&stock' in index.page(target).ids
+    assert reads == [target]
+    check(tmp_path)
+    target.write_text('<h1 id="other">Changed</h1>', encoding='utf-8')
+    with pytest.raises(ValueError, match='missing fragment'):
+        check(tmp_path)

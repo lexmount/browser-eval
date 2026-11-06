@@ -92,19 +92,28 @@ class Links(HTMLParser):
             self.current_filter=None
 
 
+class LinkIndex:
+    """Parse link targets once within a single report check, never across releases."""
+
+    def __init__(self, *, errors="replace"):
+        self.pages: dict[Path, Links] = {}
+        self.errors = errors
+
+    def page(self, path: Path) -> Links:
+        if path not in self.pages:
+            parsed = Links()
+            parsed.feed(path.read_text(encoding="utf-8", errors=self.errors))
+            self.pages[path] = parsed
+        return self.pages[path]
+
+
 def check(root: Path) -> None:
     root = root.resolve()
     missing: list[str] = []
     pages = list(root.rglob("*.html"))
     if not root.is_dir() or not pages:
         raise ValueError("Report directory is missing or contains no HTML pages")
-    parsed_pages: dict[Path, Links] = {}
-
-    def parse_page(path: Path) -> Links:
-        if path not in parsed_pages:
-            parsed_pages[path] = Links()
-            parsed_pages[path].feed(path.read_text(encoding="utf-8", errors="replace"))
-        return parsed_pages[path]
+    parse_page = LinkIndex().page
 
     for page in pages:
         # Frozen source HTML retains the original site's relative navigation.

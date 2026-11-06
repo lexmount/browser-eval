@@ -95,6 +95,7 @@ Use focused checks while editing:
 make docs-check
 make test-python TEST_PATHS=tests/web_search
 make test-python TEST_PATHS=tests/test_scoring_regressions.py PYTEST_ARGS='-k reference'
+make test-python PYTEST_ARGS='-n 4 --dist worksteal --durations=20'
 ```
 
 `TEST_PATHS` selects files or directories; `PYTEST_ARGS` adds pytest options;
@@ -102,6 +103,12 @@ make test-python TEST_PATHS=tests/test_scoring_regressions.py PYTEST_ARGS='-k re
 Without `TEST_PATHS`, Python tests cover the entire suite. `make docs-check`
 checks README navigation, citations, track naming and source-language policy;
 it needs neither Node.js nor downloaded benchmark data.
+
+CI splits Python tests by a stable hash of their node IDs across two runners,
+with four workers per runner. Browser-test modules run once in `browser-check`;
+static, Node and fixture checks run once. Local
+`make ci` remains serial unless `PYTEST_ARGS` requests workers; focused checks
+are usually enough while editing, followed by the complete checks before release.
 
 CI uses this documentation check for PRs changing only the root README,
 contribution/security guidance, `AGENTS.md`, Markdown under `docs/`, or

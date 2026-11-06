@@ -306,10 +306,11 @@ uv run --frozen python -m harness.web_extract.example \
   --output /tmp/extract-cohort-example --mode full-cohort-progress
 ```
 
-The separate release check requires a receipt from one desktop reader pass over
+The release check requires a receipt from one desktop reader pass over
 each top-level navigation page in each generated language, plus the English notice
 when applicable. Responsive layout, themes and detail interactions belong to
-renderer/component checks when those owners change, rather than every release:
+renderer/component checks when those owners change, rather than every release.
+Use the standalone check for local validation without publishing:
 
 ```sh
 uv run --frozen python -m harness.web_extract.cli check /absolute/report \
@@ -324,6 +325,12 @@ remove the required audit or change the completion denominator. Pass the same
 `--profile` to `package`; publication selects it from the bound target.
 
 Building a local report does not upload it or change access permissions.
+The `publish` command runs the release check and packages the report itself;
+it does not require a preceding standalone release check or package command.
+It reports elapsed time for package preparation, remote-version preparation and
+deployed-file verification. Resuming the same work directory reuses verified
+staged files. Keep the final export comparison: it proves that the deployed file
+tree matches the validated package.
 
 Keep the deployed site, expected remote version, profile hash and report-manifest
 hash in an external `publication-target.json` beside the report evidence. Select

@@ -1,5 +1,6 @@
 """Publish an existing Web Extract report through the shared staged-update owner."""
 
+import time
 from pathlib import Path
 
 from harness.record_io import json_bytes
@@ -54,6 +55,8 @@ def publish(source, target, work, visual_receipt, *, transport=None):
     unchanged_profile()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
+    started = time.perf_counter()
+    print("Preparing Web Extract publication package...", flush=True)
     if archive.exists():
         check(source, release=True, visual_receipt=visual_receipt, profile=next_profile)
         proof = read_json(archive.with_suffix(".receipt.json"))
@@ -70,6 +73,7 @@ def publish(source, target, work, visual_receipt, *, transport=None):
             raise ValueError("Retained publication ZIP inventory differs from checked source")
     else:
         proof = package(source, archive, visual_receipt=visual_receipt, profile=next_profile)
+    print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 
     unchanged_profile()
 

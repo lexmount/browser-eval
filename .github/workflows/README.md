@@ -6,15 +6,24 @@
 Documentation-only PRs use `make docs-check`; installation and browser jobs are
 skipped. The [contributor guide](../../CONTRIBUTING.md#run-the-checks) lists the
 eligible paths. Unknown paths or missing history require full checks, as do all
-main pushes and tags. Full checks run these three jobs in parallel. Browser checks use Ubuntu 24.04, supported by the locked Playwright; `ubuntu-latest` can advance to an unsupported browser platform:
+main pushes and tags. Full checks run two Python partitions, installation and
+browser checks in parallel. Browser checks use Ubuntu 24.04, supported by the locked
+Playwright; `ubuntu-latest` can advance to an unsupported browser platform:
 
 | Job | Coverage |
 | --- | --- |
-| Tests and static checks | `make ci-tests`: naming, lint, the complete Python suite, Node UI/native-adapter tests and the fixture smoke test |
+| Tests and static checks (primary) | First Python shard, naming, lint, Node UI/native-adapter tests and the fixture smoke test |
+| Tests and static checks (secondary) | Second Python shard; no duplicate static or Node checks |
 | Installation and packaging | Base installation and CLI language checks, sdist/pip installation, wheel smoke checks and all existing optional installation profiles |
 | Rendered reference and report checks | Chromium reference capture, report interactions and Web Search visual checks |
 
-The Python suite uses the worker count configured in `ci.yml`, with
+Each Python test's node ID selects one of two shards through SHA-256, independent
+of Python's random hash seed. Both shards use the full inventory, so slow tests and
+new directories can reach either runner. The three browser-test modules listed in
+the Makefile run only in the dedicated browser job. Together these jobs cover the
+complete Python suite without overlap. All must pass the existing required status.
+Documentation-only PRs run only the primary partition's documentation checks.
+Each Python partition uses the worker count configured in `ci.yml`, with
 `--dist worksteal` redistributing pending tests when a worker becomes available.
 Slow-test durations appear in the job log. Local `make ci` remains serial by
 default; use `make ci PYTEST_ARGS='-n 4 --dist worksteal --durations=20'` for
@@ -24,7 +33,7 @@ Python checks.
 OCR loads `docs/references/review-guidelines.md`: the shared guide copied from `lexmount/ai-template-py`, with its source commit in the first line, followed by Browser Eval's supplement. To update the shared section, copy the new upstream text in an ordinary PR and update the commit.
 
 The existing `Python 3.11` status requires successful scope selection and tests.
-Full checks also require successful installation and browser jobs; the
+Full checks require both test partitions and successful installation and browser jobs; the
 documentation path requires those two jobs to be skipped. Failures, cancellations,
 unexpected skips and unknown scopes fail the status. New commits cancel obsolete
 CI runs for the same pull request. Main and tag runs each have a unique concurrency
