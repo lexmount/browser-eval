@@ -151,7 +151,12 @@ def native_test_credentials(monkeypatch):
 
 
 def parent_inputs(
-    tmp_path, method="cloudflare-json", failed_overrides=None, success_count=2, native_options=None
+    tmp_path,
+    method="cloudflare-json",
+    failed_overrides=None,
+    success_count=2,
+    native_options=None,
+    execution_policy=None,
 ):
     home = create(tmp_path / "example")
     source = home / "runs/parent"
@@ -160,6 +165,8 @@ def parent_inputs(
     contract = {"methods": [method], "case_ids": cases}
     if native_options is not None:
         contract["native_options"] = native_options
+    if execution_policy is not None:
+        contract["execution_policy"] = execution_policy
     save_json(source / "contract.json", contract)
     entries, rows = [], []
     for i, cid in enumerate(cases):
