@@ -796,6 +796,7 @@ def test_ui_only_named_records_do_not_count():
     rules = contract(
         'named_link', 4, hosts=['example.test'], entry_path=r'/item/[^/]+',
         name_validation='nonempty',
+        entry_scope={'html_selector': '.card', 'title_selector': 'h3', 'link_selector': 'a[href]'},
     )
     content = ('[12](/item/12-years-a-slave)\n[View All](/item/tv)\n'
                '[查看详情](/item/other)\n[\ue87d](/item/favorite)')

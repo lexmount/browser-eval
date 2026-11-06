@@ -61,7 +61,7 @@ class Links(HTMLParser):
 _PURE_CTA = re.compile(
     r'(?:details?|read more|view more|view all|learn more|'
     r'see (?:more|details|options)|open|visit|go|'
-    r'watch|free\s*tv|buy now|add to cart|click to see price|sign in|log in|'
+    r'watch|free\s*tv|tv|buy now|add to cart|click to see price|sign in|log in|'
     r'详情|查看|查看详情|更多|评论|分享|图片|点击|了解更多|打开|访问|进入|前往|'
     r'立即查看|立即购买|加入购物车|前往登录|登录|去看看|\d+)', re.I)
 
@@ -79,18 +79,24 @@ def _label_key(value, *, representation=None):
     return re.sub(r'\s+',' ',value).strip(' *#>`')
 
 
-def _is_named_label(title,url,parts,nonempty=False, *, representation=None, owned_title=False):
+def _is_named_label(
+    title, url, parts, nonempty=False, *, representation=None,
+    owned_title=False, declared_title_scope=False,
+):
     """A record name must identify the entity, not repeat its route or UI action."""
     label=_label_key(title, representation=representation)
     if not label or not any(c.isalnum() for c in label):
         return False
     if label.isdecimal():
-        # A bare number in a link can be an age badge or counter. Require
-        # corroboration in the destination name before using it as a title.
+        # A bare number in a title-scoped card can be an age badge or counter.
+        # Legacy lists may carry legitimate numeric names on opaque URLs.
         final_segment = unquote(parts.path.rstrip('/').rsplit('/', 1)[-1])
-        if not owned_title and (not nonempty or label != final_segment):
+        if not owned_title and (not nonempty
+                                or (declared_title_scope and label != final_segment)):
             return False
-    elif (_PURE_CTA.fullmatch(label) or _RATING_LABEL.fullmatch(label)
+    elif ((_PURE_CTA.fullmatch(label)
+           and not (label == 'tv' and label in parts.path.casefold().split('/')))
+          or _RATING_LABEL.fullmatch(label)
           or re.fullmatch(r'\(?\d+(?:[.,]\d+)?\s*[kmb]?\)?', label, re.I)
           or (not nonempty and (len(label)<2 or not any(c.isalpha() for c in label)))):
         return False
@@ -393,7 +399,8 @@ def _named_candidate(
     if (not excluded_name and not _is_named_label(
             title, destination, parts,
             contract.get('name_validation') == 'nonempty',
-            representation=representation, owned_title=owned_title)
+            representation=representation, owned_title=owned_title,
+            declared_title_scope=bool((contract.get('entry_scope') or {}).get('title_selector')))
             or any(pattern.fullmatch(title) for pattern in excluded_titles)):
         return None
     try:
@@ -1119,6 +1126,7 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics, *, re
                        for pattern in contract.get('title_exclusion_patterns', [])]
     excluded_names = {_label_key(value, representation=representation) for value in contract.get('record_name_exclusions', [])}
     candidates, positions, ranks = {}, {}, {}
+    match_first_record = contract.get('verification_scope') == 'first_three_name_detail_pairs'
     for index, item in enumerate(items):
         url, title = item[:2]
         located = isinstance(item, LocatedItem)
@@ -1141,7 +1149,8 @@ def _deduplicated_named_candidates(items, contract, base_url, diagnostics, *, re
         path_words = set(re.findall(r'[^\W_]+', unquote(urlsplit(entry['url']).path).casefold()))
         label_words = set(re.findall(r'[^\W_]+', entry['title'].casefold()))
         agreement = len(path_words & label_words) / max(1, len(label_words))
-        rank = (owned, not metadata, agreement, -position)
+        rank = ((not metadata, -position) if match_first_record
+                else (owned, not metadata, agreement, -position))
         order = (metadata, position)
         positions[identity] = min(positions.get(identity, order), order)
         if identity not in ranks or rank >= ranks[identity]:
