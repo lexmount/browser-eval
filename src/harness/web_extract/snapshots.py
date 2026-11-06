@@ -333,6 +333,8 @@ def publication_metadata(home, binding, verification):
             raise ValueError("Snapshot publication requires every matching verified page")
         snapshot = binding.get("snapshot_manifest")
     if not managed_cloudflare(binding, selected["fixture_base"]):
+        if len(actual) != len(expected) or set(actual) != expected:
+            raise ValueError("Snapshot publication requires every matching verified page")
         expected_resources = {
             ("resource:" + name, value, selected["fixture_base"] + "/" + quote(name, safe="/"))
             for name, value in resource_inventory(home).items()
@@ -932,7 +934,7 @@ def managed_cloudflare(binding, origin):
     return True
 
 
-def verify_bound_manifest(home, bound, fixture_base):
+def verify_bound_manifest(home, bound, fixture_base, *, case_ids=None, suffix=""):
     """Recheck a frozen dataset manifest before collection or failure repair."""
     manifest_url = bound.get("manifest_url", "")
     if not manifest_url.endswith("/snapshots.json"):
@@ -945,6 +947,13 @@ def verify_bound_manifest(home, bound, fixture_base):
         raise ValueError("Frozen dataset snapshot manifest changed")
     rows = manifest_receipt(home, receipt, fixture_base)
     if not managed_cloudflare(bound, origin):
+        from harness.web_extract.pipeline import qualify_fixture
+
+        _, cases = inventory(home)
+        selected = sorted(cases) if case_ids is None else list(case_ids)
+        if not selected or not set(selected).issubset(cases):
+            raise ValueError("Snapshot verification requires declared cases")
+        rows += [qualify_fixture(home, fixture_base, cid, suffix=suffix) for cid in selected]
         rows += verify_resources(home, fixture_base)
     return rows
 

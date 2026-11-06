@@ -824,7 +824,9 @@ def test_record_release_rejects_free_text_price_without_numeric_conversion(tmp_p
         check(output, release=True)
 
 
-@pytest.mark.parametrize("field", ["Display Name", "Price", "status", "x.y"])
+@pytest.mark.parametrize(
+    "field", ["Display Name", "Price", "status", "x.y", "constructor", "toString", "__proto__"]
+)
 def test_arbitrary_schema_field_names_keep_filter_identity(tmp_path, monkeypatch, field):
     from harness.web_extract import example
 

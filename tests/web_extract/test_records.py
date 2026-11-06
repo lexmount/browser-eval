@@ -1070,6 +1070,13 @@ def test_managed_manifest_skips_resource_fetch_but_external_manifest_does_not(
     )
     monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
     monkeypatch.setattr(
+        pipeline,
+        "request",
+        lambda url, **kwargs: SimpleNamespace(
+            status=200, body=(home / "dataset/html/one.html").read_bytes(), headers={}, url=url
+        ),
+    )
+    monkeypatch.setattr(
         "harness.web_fetch.providers.http_client.request",
         lambda url, **kwargs: SimpleNamespace(status=404, body=b"", url=url),
     )
@@ -1175,7 +1182,8 @@ def test_visible_source_preserves_inline_words_and_block_boundaries(markup, expe
     "markup,value,supported",
     [
         (
-            "<span><strong>Developer:</strong> Bloober Team</span><span>Platform:</span>",
+            "<span><strong>Developer:</strong> Bloober Team</span>"
+            "<span><strong>Platform:</strong></span>",
             "Bloober Team",
             True,
         ),
@@ -1196,7 +1204,7 @@ def test_source_field_containers_do_not_merge_adjacent_labels(markup, value, sup
         ("<div><!-- hidden -->Acme</div>", ["Acme"], True),
         ("<span>Micro<!-- hidden -->soft</span>", ["Microsoft"], True),
         (
-            "<div><span>Acme</span><span>Platform</span><span>Acme</span><span>Platform</span></div>",
+            "<div><button>Acme</button><button>Platform</button><button>Acme</button><button>Platform</button></div>",
             ["Acme", "Acme"],
             True,
         ),
@@ -1292,3 +1300,23 @@ def test_header_only_charset_is_preserved_for_live_and_captured_sources(
     receipt = records.qualify_live(home, ["one"])[0]
     assert receipt["encoding"] == "utf-8"
     assert receipt["reference_values_verified"] == 1
+
+
+@pytest.mark.parametrize(
+    "markup,value,supported",
+    [
+        ("<p>Micro<span>soft</span></p>", "soft", False),
+        ("<p><span>Micro</span>soft</p>", "Micro", False),
+        ("<p><span>Micro</span><span>soft</span></p>", "Microsoft", True),
+        ("<p><span>Micro</span><span>soft</span></p>", "soft", False),
+        (
+            "<div><span>Acme</span><span>Platform</span><span>Acme</span><span>Platform</span></div>",
+            "Acme",
+            False,
+        ),
+        ("<p><span><strong>Kind:</strong>soft</span>ware</p>", "soft", False),
+    ],
+)
+def test_inline_spans_do_not_invent_word_boundaries(markup, value, supported):
+    reference = {"url": "https://example.org/", "values": {"name": [value]}}
+    assert (not records.reference_support(reference, markup.encode())) is supported

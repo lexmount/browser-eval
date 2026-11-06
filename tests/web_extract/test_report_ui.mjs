@@ -366,3 +366,10 @@ for (const field of ["Price", "price", "Display Name", "status", "x.y"]) {
   assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({[arbitraryField]: 'correct'})}}, arbitraryField)`, context), true);
   assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({[arbitraryField]: 'missing'})}}, arbitraryField)`, context), false);
 }
+
+for (const field of ["constructor", "toString", "hasOwnProperty", "__proto__"]) {
+  context.arbitraryField = field;
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({other: 'correct'})}}, arbitraryField)`, context), null);
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({[arbitraryField]: 'correct'})}}, arbitraryField)`, context), true);
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass'}}, arbitraryField)`, context), null);
+}

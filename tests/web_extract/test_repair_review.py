@@ -2128,6 +2128,7 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         patch("harness.web_extract.repair.load_runtime_env"),
         patch("harness.web_extract.snapshots.validate_dataset"),
         patch("harness.web_extract.snapshots.check_manifest", return_value=receipt),
+        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=True),
         patch("harness.web_extract.pipeline.provider_call", return_value=response) as provider,
     ):
         run(home, plan, "cloudflare-json", target)

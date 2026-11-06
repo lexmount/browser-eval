@@ -307,8 +307,10 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
   }
 }
 // Compare the complete same-page population, before row-level diagnosis filters.
-const fieldOutcome = (row, field) => row.dataset.fieldOutcomes === undefined
-  ? row.dataset[field] : JSON.parse(row.dataset.fieldOutcomes)[field];
+const fieldOutcome = (row, field) => {
+  const outcomes = row.dataset.fieldOutcomes === undefined ? row.dataset : JSON.parse(row.dataset.fieldOutcomes);
+  return Object.prototype.hasOwnProperty.call(outcomes, field) ? outcomes[field] : undefined;
+};
 const qualityOutcome = (row, field) => {
   if (!row || ["pending", "unavailable"].includes(row.dataset.status)) return null;
   if (!field && row.dataset.scoredFields === "0") return null;
