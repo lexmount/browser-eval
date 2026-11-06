@@ -234,6 +234,17 @@ precision/recall/F1 and exact field-set rate expose partial lists and extra valu
 Schema validity is separate from field quality. Every completed API call retains
 latency and any native usage receipt; quota denials pause collection.
 
+Both product and array-field reports also compute whole-page exact accuracy and
+empty-field accuracy from the retained final responses. Whole-page accuracy
+requires a successful response, usable field types and every requested field
+correct; pages with incomplete reference coverage are excluded from its denominator.
+Empty-field accuracy uses covered page-fields whose reference is empty. Failed
+calls remain incorrect, and array tasks must explicitly return an empty array.
+These diagnostics do not change the upstream scores or require provider calls.
+The report includes numerator/denominator counts, per-page outcomes and the input
+binding in `data/completion-metrics.json`; its release check recomputes the metrics
+and validates the overview and interpretation tables against the same evidence.
+
 Source-qualified reference corrections use the same scoring entry point:
 
 ```sh

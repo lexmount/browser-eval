@@ -420,7 +420,21 @@
     "more_resources": "More resources",
     "no_reference_value": "No reference value",
     "no_value_returned": "No value returned",
-    "dataset_search": "Search pages, categories or sites"
+    "dataset_search": "Search pages, categories or sites",
+    "completion_title": "Complete pages and absent fields",
+    "completion_headers": [
+      "Method",
+      "Whole-page exact accuracy",
+      "Empty-field accuracy"
+    ],
+    "completion_scope": "Whole-page accuracy requires successful delivery, valid field shapes and every requested field correct. Pages with any unscored field are excluded from that denominator. Empty-field accuracy counts only covered fields whose reference is empty; failed calls are incorrect. These are supplementary metrics, separate from upstream scores.",
+    "completion_rate": "{correct}/{total} ({percent}%)",
+    "completion_unavailable": "Unavailable: denominator 0",
+    "completion_excluded": "{count} pages excluded for incomplete reference coverage",
+    "completion_receipt": "Counts, per-page outcomes and reproducibility receipt",
+    "completion_protocol": "These metrics are recomputed from the retained final logical responses without new provider calls. Original scores, references, timing and billing evidence remain unchanged. Missing product values follow the native empty-value convention; array-valued tasks must explicitly return an empty array. A failed call cannot receive credit for an empty reference.",
+    "completion_reference_qualified": "Reference: source-qualified field judgments. Original-reference scores remain separately available.",
+    "completion_reference_original": "Reference: original field judgments."
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -843,6 +857,20 @@
     "more_resources": "辅助资料",
     "no_reference_value": "无参考值",
     "no_value_returned": "未返回值",
-    "dataset_search": "搜索网页、类别或网站"
+    "dataset_search": "搜索网页、类别或网站",
+    "completion_title": "整页交付与空值处理",
+    "completion_headers": [
+      "方法",
+      "整页全对率",
+      "空值处理正确率"
+    ],
+    "completion_scope": "整页全对要求成功交付、字段格式可用且全部目标字段正确；任一字段缺少评分覆盖，该页不进入整页分母。空值处理按已标注为空的页面字段统计，调用失败计错。这两项是补充指标，与原指标分开展示。",
+    "completion_rate": "{correct}/{total}（{percent}%）",
+    "completion_unavailable": "无可评分项：分母为 0",
+    "completion_excluded": "{count} 页因参考覆盖不完整排除",
+    "completion_receipt": "计数、逐页判断及补算依据",
+    "completion_protocol": "这两项指标由保留的最终逻辑响应补算，没有新增服务调用，原分数、参考、计时和计费证据保持不变。商品接口按原空值约定判断；数组字段必须明确返回空数组。请求失败不能因参考也为空而得分。",
+    "completion_reference_qualified": "参考口径：按网页证据修订后的逐字段判断；原参考成绩另行保留。",
+    "completion_reference_original": "参考口径：原参考的逐字段判断。"
   }
 }
