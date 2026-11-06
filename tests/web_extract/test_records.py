@@ -1215,3 +1215,80 @@ def test_visible_source_counts_distinct_occurrences_without_comments(
         reference["values"]["name"] = list(dict.fromkeys(values))
         reference["source_value_counts"] = {"name": dict(Counter(values))}
     assert (not records.reference_support(reference, markup.encode())) is supported
+
+
+@pytest.mark.parametrize("failure", [OSError, KeyboardInterrupt])
+def test_preparation_retries_after_profile_published_but_dataset_not_installed(
+    tmp_path, monkeypatch, failure
+):
+    source = definition(tmp_path)
+    home = tmp_path / "home"
+    rename = Path.rename
+    with monkeypatch.context() as patch:
+
+        def fail_dataset(path, target):
+            if Path(target) == home / "dataset":
+                raise failure("interrupted dataset installation")
+            return rename(path, target)
+
+        patch.setattr(Path, "rename", fail_dataset)
+        with pytest.raises(failure):
+            records.prepare(home, source)
+    assert (home / "profile.json").exists()
+    assert not (home / "dataset").exists()
+    before = (home / "profile.json").read_bytes()
+    records.prepare(home, source)
+    assert (home / "profile.json").read_bytes() == before
+    pipeline.validate_dataset(home)
+
+
+def test_preparation_never_overwrites_an_unrelated_profile(tmp_path):
+    source = definition(tmp_path)
+    home = tmp_path / "home"
+    pipeline.save_json(home / "profile.json", {"name": "different cohort"})
+    before = (home / "profile.json").read_bytes()
+    with pytest.raises(ValueError, match="different cohort"):
+        records.prepare(home, source)
+    assert (home / "profile.json").read_bytes() == before
+    assert not (home / "dataset").exists()
+
+
+@pytest.mark.parametrize("status", [200, 429])
+def test_header_only_charset_is_preserved_for_live_and_captured_sources(
+    tmp_path, monkeypatch, status
+):
+    from datetime import datetime
+
+    source = definition(tmp_path)
+    data = pipeline.read_json(source)
+    item = data["cases"][0]
+    raw = "<html><h1>上海</h1></html>".encode()
+    Path(item["input"]).write_bytes(raw)
+    item["values"] = {"name": ["上海"]}
+    item["input_sha256"] = pipeline.digest(raw)
+    item["qualification"].update(
+        input_sha256=pipeline.digest(raw),
+        reference_sha256=pipeline.digest(
+            json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+        ),
+        source_url=item["url"],
+        observed_at=datetime.now(UTC).isoformat(),
+        encoding="utf-8",
+    )
+    data["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+    pipeline.save_json(source, data)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr("time.sleep", lambda _: None)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(
+            status=status,
+            body=raw if status == 200 else b"",
+            url=url,
+            headers={"content-type": "text/html; charset=utf-8"},
+        ),
+    )
+    receipt = records.qualify_live(home, ["one"])[0]
+    assert receipt["encoding"] == "utf-8"
+    assert receipt["reference_values_verified"] == 1

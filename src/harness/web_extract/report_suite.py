@@ -18,9 +18,11 @@ def section(output, entry):
     child = output / entry["id"]
     manifest = read_json(child / "report-manifest.json")
     metrics = read_json(child / "data/metrics.json")
-    methods = manifest["comparison_methods"]
+    methods = manifest["planned_methods"]
 
     def score(method, family, field):
+        if method not in manifest["comparison_methods"]:
+            return None
         scores = metrics[method]["scores"]
         return scores[family][field] if scores is not None else None
 
@@ -30,7 +32,12 @@ def section(output, entry):
         latency = current["latency"]
         quality.append(
             [
-                escape(manifest["method_labels"][method]),
+                escape(manifest["method_labels"][method])
+                + (
+                    "<br><small>" + escape(manifest["skipped_methods"][method]) + "</small>"
+                    if method in manifest["skipped_methods"]
+                    else ""
+                ),
                 f"{current['executed']} / {current['planned']}",
                 owner.record_metric(score(method, "value_micro", "f1")),
                 owner.record_metric(score(method, "page_hit_macro", "f1")),
