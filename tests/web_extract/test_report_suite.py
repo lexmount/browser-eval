@@ -99,3 +99,44 @@ def test_quality_exclusion_preserves_operational_comparison(tmp_path):
     assert model["participants"][method]["label"] in operation[0].get_text()
     assert operation[0].select('[data-metric="mean"]')
     assert "$" in operation[0].get_text()
+
+
+@pytest.mark.parametrize("position", [0, 1])
+@pytest.mark.parametrize("prefix", [None, "wrong"])
+def test_suite_validates_every_prefix_before_creating_output(tmp_path, position, prefix):
+    from harness.web_extract import report_suite
+
+    content = tmp_path / "content.json"
+    entries = []
+    for name in ["first", "second"]:
+        child = tmp_path / (name + ".json")
+        save_json(child, {"site_prefix": name})
+        entries.append({"id": name, "content": str(child)})
+    bad = read_json(tmp_path / (["first", "second"][position] + ".json"))
+    if prefix is None:
+        bad.pop("site_prefix")
+    else:
+        bad["site_prefix"] = prefix
+    save_json(tmp_path / (["first", "second"][position] + ".json"), bad)
+    save_json(content, {"cohorts": entries})
+    profile = tmp_path / "profile.json"
+    save_json(profile, {"research_report": {"content": {"sha256": digest(content.read_bytes())}}})
+    output = tmp_path / "report"
+    with pytest.raises(ValueError, match="suite directory"):
+        report_suite.build(output, content, profile=profile)
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("flag", [False, None, 0])
+def test_suite_example_identity_cannot_be_removed_or_relabelled(tmp_path, flag):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    path = output / "report-manifest.json"
+    manifest = read_json(path)
+    if flag is None:
+        manifest.pop("local_example")
+    else:
+        manifest["local_example"] = flag
+    save_json(path, manifest)
+    with pytest.raises(ValueError, match="example flag"):
+        check(output)

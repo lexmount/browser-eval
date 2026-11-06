@@ -116,6 +116,10 @@ def build(output, content, *, profile, language=None):
         )
     ):
         raise ValueError("Suite cohorts need distinct safe directory names")
+    for entry in entries:
+        child_content = read_json(Path(entry["content"]))
+        if child_content.get("site_prefix") != entry["id"]:
+            raise ValueError("Each cohort must declare its suite directory")
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use an empty suite report directory")
     output.mkdir(parents=True, exist_ok=True)
@@ -127,9 +131,6 @@ def build(output, content, *, profile, language=None):
     )
     bindings = []
     for entry in entries:
-        child_content = read_json(Path(entry["content"]))
-        if child_content.get("site_prefix") != entry["id"]:
-            raise ValueError("Each cohort must declare its suite directory")
         owner.build(
             output / entry["id"],
             Path(entry["content"]),
