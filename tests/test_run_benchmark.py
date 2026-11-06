@@ -83,11 +83,13 @@ class BenchmarkSelectionTests(unittest.TestCase):
         import threading
         import time
         from types import SimpleNamespace
+
         from harness.web_fetch import runner
         from harness.web_fetch.providers.base import ProcessCleanupError
         from harness.web_fetch.runner import IncompleteEvaluationError
 
         held, release = threading.Event(), threading.Event()
+        started = threading.Barrier(2, timeout=3)
         owner = threading.local()
         events, observed, calls = {}, [], []
         actual = run_benchmark.run_evaluation
@@ -104,6 +106,7 @@ class BenchmarkSelectionTests(unittest.TestCase):
         def fetch(provider, case, *args, **kwargs):
             owner.name = provider.name
             calls.append((provider.name, case.id))
+            started.wait()
             if provider.name == 'fixture-one':
                 raise ProcessCleanupError('Worker remains alive')
             try:
