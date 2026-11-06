@@ -342,7 +342,7 @@ def failure_stage(row):
 
 def record_field_results(reference, row, *, text_matching="literal", unavailable_fields=()):
     """Expose exact-set and official page-hit outcomes without changing saved scores."""
-    from harness.web_extract.swde import canonical_text
+    from harness.web_extract.swde import record_value_key
 
     if text_matching not in ("literal", "whitespace"):
         raise ValueError("Unsupported record text matching policy")
@@ -357,16 +357,14 @@ def record_field_results(reference, row, *, text_matching="literal", unavailable
         actual = prediction.get(field, [])
         valid = (
             {
-                canonical_text(value) if text_matching == "whitespace" else value
+                record_value_key(reference, field, value, text_matching)
                 for value in actual
                 if isinstance(value, str)
             }
             if isinstance(actual, list)
             else set()
         )
-        expected = {
-            canonical_text(value) if text_matching == "whitespace" else value for value in gold
-        }
+        expected = {record_value_key(reference, field, value, text_matching) for value in gold}
         if field in unavailable:
             result[field] = {
                 "expected": [],

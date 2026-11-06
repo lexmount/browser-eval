@@ -11,6 +11,10 @@ from harness.benchmarks.data import binding, canonical_source_name, definition_p
 from harness.record_io import bytes_sha256, read_json
 
 BENCHMARKS = {
+    "records": {
+        "profile": None,
+        "module": "harness.web_extract.records",
+    },
     "zyte": {
         "profile": "zyte-product-extraction.json",
         "module": None,
@@ -42,8 +46,17 @@ def benchmark_config(home=None, *, name=None):
     if name not in BENCHMARKS:
         raise ValueError("Unknown extraction benchmark: " + str(name))
     item = BENCHMARKS[name]
+    distribution = item.get("snapshot_distribution")
+    if name == "records" and home is not None:
+        distribution = read_json(Path(home) / "profile.json").get("snapshot_distribution")
     return {
-        "profile": Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"],
+        "profile": (
+            Path(home) / "profile.json"
+            if item["profile"] is None and home is not None
+            else Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"]
+            if item["profile"] is not None
+            else None
+        ),
         "adapter": importlib.import_module(item["module"]) if item["module"] else None,
         "snapshot_project": item.get("snapshot_project"),
         "snapshot_distribution": item.get("snapshot_distribution"),
@@ -88,11 +101,19 @@ def task_bindings(home):
     config = benchmark_config(home)
     if config["adapter"] is None:
         return {}
-    return {
+    result = {
         "task_adapter_sha256": adapter_sha256(home),
         "dataset_profile_sha256": bytes_sha256(config["profile"].read_bytes()),
         "dataset_registry_sha256": registry_sha256(),
     }
+    if hasattr(config["adapter"], "scoring_sources"):
+        result["task_scoring_dependencies_sha256"] = bytes_sha256(
+            b"\n".join(
+                bytes_sha256(path.read_bytes()).encode()
+                for path in config["adapter"].scoring_sources()
+            )
+        )
+    return result
 
 
 def distribution_identity(home: Path, pin, selection):
