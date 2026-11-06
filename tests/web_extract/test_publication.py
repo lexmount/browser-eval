@@ -331,6 +331,9 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         "coerced-type",
         "reordered-keys",
         "retry-coerced-type",
+        "missing-home",
+        "relocated-home",
+        "wrong-home",
     ],
 )
 def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
@@ -344,7 +347,7 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     from harness.web_fetch.publication_privacy import project_evidence_view
 
     home = tmp_path / "inputs"
-    run = home / "run"
+    run = home / "runs/run"
     row = {
         "method": "cloudflare-json",
         "case_id": "page",
@@ -404,7 +407,7 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
             "".join(json.dumps(v) + "\n" for v in inventory["physical_calls"]), encoding="utf-8"
         )
     save_json(run / "manifest.json", inventory)
-    save_json(home / "dataset/manifest.json", {})
+    pin = dataset_pin(home)
     audit = home / "audit.json"
     save_json(
         audit,
@@ -424,17 +427,21 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         content,
         {
             "audit": {"path": "audit.json", "sha256": digest(audit.read_bytes())},
-            "dataset_manifest": str(home / "dataset/manifest.json"),
-            "evidence_runs": [{"run": str(run)}],
+            "dataset_manifest": str(
+                (tmp_path / "retired-inputs" if damage == "relocated-home" else home)
+                / "dataset/manifest.json"
+            ),
+            "evidence_runs": [{"run": "run"}],
         },
     )
     profile = home / "profile.json"
     save_json(
         profile,
         {
+            "dataset": pin,
             "research_report": {
                 "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
-            }
+            },
         },
     )
     report = tmp_path / "report"
@@ -476,16 +483,46 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
             },
         },
     )
-    verify_completion_audit(report, profile)
+    verify_completion_audit(report, profile, home=home)
+    if damage == "relocated-home":
+        return
+    if damage == "missing-home":
+        with pytest.raises(ValueError, match="explicit benchmark home"):
+            verify_completion_audit(report, profile)
+        with pytest.raises(SystemExit) as error:
+            main(
+                [
+                    "package",
+                    str(report),
+                    "--profile",
+                    str(profile),
+                    "--output",
+                    str(tmp_path / "missing-home.zip"),
+                    "--visual-receipt",
+                    str(tmp_path / "visual.json"),
+                ]
+            )
+        assert error.value.code == 2
+        assert not (tmp_path / "missing-home.zip").exists()
+        return
+    if damage == "wrong-home":
+        wrong_home = tmp_path / "other-inputs"
+        dataset_pin(wrong_home)
+        wrong = read_json(wrong_home / "dataset/manifest.json")
+        wrong["commit"] = "another-dataset"
+        save_json(wrong_home / "dataset/manifest.json", wrong)
+        with pytest.raises(ValueError, match="benchmark home differs"):
+            verify_completion_audit(report, profile, home=wrong_home)
+        return
     if damage == "reordered-keys":
         projected["response"] = dict(reversed(list(projected["response"].items())))
         save_json(path, {"page": projected})
-        verify_completion_audit(report, profile)
+        verify_completion_audit(report, profile, home=home)
         return
     if damage == "single-attempt":
         projected["physical_attempts"] = [deepcopy(projected)]
         save_json(path, {"page": projected})
-        verify_completion_audit(report, profile)
+        verify_completion_audit(report, profile, home=home)
         return
     if damage is None:
         return
@@ -541,6 +578,8 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     with pytest.raises(ValueError, match="Completion audit native"):
         main(
             [
+                "--home",
+                str(home),
                 "package",
                 str(report),
                 "--profile",

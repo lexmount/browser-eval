@@ -4581,7 +4581,6 @@ def build_record_cohort(output, content, *, home, language, profile):
         "<section data-core-metrics>"
         + core
         + "</section>"
-        + completion_table(completion, methods, labels, language)
         + report_metric_guide(language, records=True)
         + operations
         + bodies["index"]
