@@ -515,7 +515,63 @@ def redact_account_endpoint(row):
         if isinstance(endpoint, str):
             request["endpoint"] = re.sub(r"/accounts/[^/]+/", "/accounts/[REDACTED]/", endpoint)
         result["request"] = request
+    if isinstance(row.get("physical_attempts"), list):
+        result["physical_attempts"] = [
+            redact_account_endpoint(v) if isinstance(v, dict) else v
+            for v in row["physical_attempts"]
+        ]
+    if isinstance(row.get("superseded_result"), dict):
+        result["superseded_result"] = redact_account_endpoint(row["superseded_result"])
     return result
+
+
+def verify_execution_projection(original, published):
+    """Bind delivery, timing, billing and every retained physical attempt."""
+    derived = {"normalized_fields", "collected_normalized_fields", "projection_revision"}
+    required = {
+        "response",
+        "http_status",
+        "compatibility",
+        "request",
+        "state",
+        "error",
+        "elapsed_seconds",
+        "provider_usage",
+        "physical_attempt",
+        "retry_execution_seconds",
+        "retry_missing_timers",
+    }
+
+    def same_fields(expected, actual):
+        fields = (set(expected) - derived - {"physical_attempts"}) | required
+        return all(actual.get(k) == expected.get(k) for k in fields)
+
+    if not same_fields(original, published):
+        raise ValueError("Completion audit native execution projection changed")
+    expected = original.get("physical_attempts")
+    actual = published.get("physical_attempts")
+    if expected is None and actual is None:
+        return
+    if expected is None:
+        expected = [{k: v for k, v in original.items() if k != "physical_attempts"}]
+    if (
+        not isinstance(expected, list)
+        or not expected
+        or any(not isinstance(v, dict) for v in expected)
+    ):
+        raise ValueError("Completion audit native attempt history is invalid")
+    if actual is None:
+        if len(expected) != 1 or not same_fields(expected[0], published):
+            raise ValueError("Completion audit native attempt history is missing")
+        return
+    if not isinstance(actual, list) or any(not isinstance(v, dict) for v in actual):
+        raise ValueError("Completion audit native attempt history is invalid")
+
+    def canonical(history):
+        return [{k: v for k, v in row.items() if k not in derived} for row in history]
+
+    if canonical(actual) != canonical(expected):
+        raise ValueError("Completion audit native attempt history changed")
 
 
 def verify_completion_audit(source, profile, *, home=None):
@@ -605,21 +661,8 @@ def verify_completion_audit(source, profile, *, home=None):
                     content_format="json",
                     host_names=publication_host_names(),
                 )
-                immutable = {
-                    k: v
-                    for k, v in json.loads(view).items()
-                    if k
-                    not in {
-                        "normalized_fields",
-                        "collected_normalized_fields",
-                        "projection_revision",
-                        "physical_attempts",
-                    }
-                }
                 published = public_rows[method].get(cid, {})
-                fields = set(immutable) | {"response", "http_status", "compatibility"}
-                if any(published.get(k) != immutable.get(k) for k in fields):
-                    raise ValueError("Completion audit native execution projection changed")
+                verify_execution_projection(json.loads(view), published)
         if seen != set(reviewed):
             raise ValueError("Completion audit native response coverage changed")
 

@@ -1,6 +1,7 @@
 """Bound-target publishing and resumable package integrity at the public boundary."""
 
 import json
+from copy import deepcopy
 
 import pytest
 
@@ -19,6 +20,12 @@ from harness.web_extract.pipeline import digest, execution_identity, read_json, 
         "compatibility",
         "missing-delivery",
         "request-parameters",
+        "retry-removed",
+        "retry-usage",
+        "retry-time",
+        "single-attempt",
+        "injected-usage",
+        "injected-time",
     ],
 )
 def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
@@ -39,6 +46,8 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         "http_status": 200,
         "compatibility": "structured_output",
         "state": "response_received",
+        "elapsed_seconds": 0.25,
+        "provider_usage": {"x-browser-ms-used": "100"},
         "response": {
             "result": {"price": "10", "sku": "A", "availability": "InStock"}
             if mode == "full-cohort-progress"
@@ -54,12 +63,40 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     if damage == "missing-delivery":
         row.pop("http_status")
         row.pop("compatibility")
+    if damage == "injected-usage":
+        row.pop("provider_usage")
+    if damage == "injected-time":
+        row.pop("elapsed_seconds")
+    retry = damage is not None and damage.startswith("retry-")
+    if retry:
+        previous = deepcopy(row)
+        previous.update(
+            http_status=402,
+            compatibility="no_structured_output",
+            response={"error": "Insufficient credits"},
+            elapsed_seconds=0.5,
+            provider_usage={"x-browser-ms-used": "0"},
+            physical_attempt=1,
+        )
+        save_json(run / "first.json", previous)
+        row.update(physical_attempt=2, retry_execution_seconds=0.5)
     save_json(run / "call.json", row)
-    save_json(run / "contract.json", {"methods": [row["method"]], "case_ids": ["page"]})
+    save_json(
+        run / "contract.json",
+        {"methods": [row["method"]], "case_ids": ["page"], "access_retry_limit": int(retry)},
+    )
     inventory = {
         "contract_sha256": digest((run / "contract.json").read_bytes()),
         "calls": [{"path": "call.json", "sha256": digest((run / "call.json").read_bytes())}],
     }
+    if retry:
+        inventory["physical_calls"] = [
+            {"path": "first.json", "sha256": digest((run / "first.json").read_bytes())},
+            *inventory["calls"],
+        ]
+        (run / "calls.journal.jsonl").write_text(
+            "".join(json.dumps(v) + "\n" for v in inventory["physical_calls"]), encoding="utf-8"
+        )
     save_json(run / "manifest.json", inventory)
     save_json(home / "dataset/manifest.json", {})
     audit = home / "audit.json"
@@ -95,9 +132,10 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         },
     )
     report = tmp_path / "report"
+    public_row = {**row, "physical_attempts": [previous, row]} if retry else row
     public, _ = project_evidence_view(
         "public-evidence/native-row.json",
-        json.dumps(redact_account_endpoint(row)).encode(),
+        json.dumps(redact_account_endpoint(public_row)).encode(),
         role="native_response",
         content_format="json",
         host_names=publication_host_names(),
@@ -106,6 +144,11 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     assert projected["response"] != row["response"]  # A real local-path redaction.
     assert "/accounts/[REDACTED]/" in projected["request"]["endpoint"]
     assert "/accounts/private-account-id/" in row["request"]["endpoint"]
+    if retry:
+        assert all(
+            "/accounts/[REDACTED]/" in v["request"]["endpoint"]
+            for v in projected["physical_attempts"]
+        )
     path = report / "public-evidence" / (row["method"] + ".json")
     save_json(path, {"page": projected})
     public_audit, _ = project_evidence_view(
@@ -128,6 +171,11 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         },
     )
     verify_completion_audit(report, profile)
+    if damage == "single-attempt":
+        projected["physical_attempts"] = [deepcopy(projected)]
+        save_json(path, {"page": projected})
+        verify_completion_audit(report, profile)
+        return
     if damage is None:
         return
     before = normalize(row["method"], projected["response"], schema={})
@@ -139,6 +187,24 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         save_json(path, {"page": projected})
     elif damage == "request-parameters":
         projected["request"]["parameters"]["timeout"] = 60000
+        save_json(path, {"page": projected})
+    elif damage in (
+        "retry-removed",
+        "retry-usage",
+        "retry-time",
+        "injected-usage",
+        "injected-time",
+    ):
+        if damage == "retry-removed":
+            projected.pop("physical_attempts")
+        elif damage == "retry-usage":
+            projected["physical_attempts"][0]["provider_usage"]["x-browser-ms-used"] = "90000"
+        elif damage == "retry-time":
+            projected["physical_attempts"][0]["elapsed_seconds"] = 50
+        elif damage == "injected-usage":
+            projected["provider_usage"] = {"x-browser-ms-used": "1"}
+        else:
+            projected["elapsed_seconds"] = 0
         save_json(path, {"page": projected})
     elif damage in ("http-status", "compatibility"):
         projected["http_status" if damage == "http-status" else "compatibility"] = (
