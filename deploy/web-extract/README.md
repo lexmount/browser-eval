@@ -180,9 +180,8 @@ dependencies and mounts from `compose.yaml` in the selected workspace:
 
 The delivered instance is in **Efficiency / office**, application
 **opensource-web-extract** (ID `222`). Its six components are exactly those in
-the Compose file. The API entry is
-`https://gra2e292-8080-ye7izl3p.dev.lexmount.net`; it requires office network access
-and `EXTRACTION_API_KEY`. Two earlier temporary collection components are stopped
+the Compose file. Use the API address recorded in the reports’ deployment
+evidence; it requires office network access and `EXTRACTION_API_KEY`. Two earlier temporary collection components are stopped
 and are not needed for the delivered stack. Live instance details belong in the
 reports' deployment evidence; they are not defaults for another installation.
 
