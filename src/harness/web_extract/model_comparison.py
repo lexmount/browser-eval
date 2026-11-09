@@ -5,6 +5,7 @@ import fcntl
 import json
 import math
 import time
+from concurrent.futures import CancelledError
 from pathlib import Path
 
 import requests
@@ -548,6 +549,9 @@ def collect(plan_path, output, *, phase, repair=None):
 
         def commit(job, result, error):
             target, pending, expected, body = prepared[job.key]
+            if isinstance(error, CancelledError):
+                pending.unlink()
+                return
             if error:
                 result = {"success": False, "error": redact(f"{type(error).__name__}: {error}")}
             receipt = {"binding": expected, "request": body, "response": result}

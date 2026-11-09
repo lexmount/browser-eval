@@ -93,6 +93,11 @@ Give each blocking stage a wall-time deadline and a process cleanup path. Browse
 operation timeouts alone cannot stop a stuck driver or teardown. Retain a stack
 dump or error receipt on expiry, stop admission, and release that stage's processes.
 
+Long-lived service and transport processes must outlive the invoking terminal or
+tool session. Record their readiness and an owned cleanup handle. Check that
+transport before resuming; retain physical call evidence and reconcile an
+interrupted request before admitting another call.
+
 Web Fetch provider configurations can declare `execution_resources`, a mapping
 from a shared service/account name to its `capacity` and `reason`. Variants using
 the same name share that limit; conflicting declarations stop before calls.

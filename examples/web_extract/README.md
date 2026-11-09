@@ -169,8 +169,21 @@ OLLAMA_HOST=127.0.0.1:11435 OLLAMA_MODELS="$MODEL_ROOT/models" \
 
 In another terminal, pull each declared tag with
 `OLLAMA_HOST=127.0.0.1:11435 "$MODEL_ROOT/runtime/bin/ollama" pull "$MODEL_TAG"`.
-Keep the listener private; from the collection machine, forward it with
-`ssh -N -L 19435:127.0.0.1:11435 "$MODEL_SSH_TARGET"`. Freeze `/api/version` and
+Keep the listener private. For a long collection, give the SSH forward an owned
+control socket so it outlives the invoking terminal or tool session:
+
+```sh
+MODEL_SSH_SOCKET="${MODEL_SSH_SOCKET:?Set an absolute path for this run's control socket}"
+ssh -fN -M -S "$MODEL_SSH_SOCKET" -o ControlPersist=8h \
+  -o BatchMode=yes -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+  -L 19435:127.0.0.1:11435 "$MODEL_SSH_TARGET"
+ssh -S "$MODEL_SSH_SOCKET" -O check "$MODEL_SSH_TARGET"
+```
+
+After collection, close that forward with
+`ssh -S "$MODEL_SSH_SOCKET" -O exit "$MODEL_SSH_TARGET"`.
+Freeze `/api/version` and
 `/api/tags` identities before calls, and check actual GPU layer placement in the
 server log. Existing workloads remain part of the declared host conditions.
 

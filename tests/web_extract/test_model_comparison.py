@@ -14,7 +14,8 @@ from harness.web_extract.pipeline import read_json, save_json
 
 
 @contextmanager
-def server(events, *, delay=0, status=200, identity=None, barrier=None, interrupt=(), drip=None):
+def server(events, *, delay=0, status=200, identity=None, barrier=None, interrupt=(), drip=None,
+           on_load=None):
     requests = []
     identity = identity if identity is not None else {"digest": "a" * 64}
 
@@ -51,6 +52,8 @@ def server(events, *, delay=0, status=200, identity=None, barrier=None, interrup
         def do_POST(self):
             requests.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
             if self.path == "/api/generate":
+                if on_load is not None:
+                    on_load()
                 self.reply_json({"done": True, "response": ""})
                 return
             if barrier is not None:
@@ -650,3 +653,40 @@ def test_invalid_auxiliary_deadlines_fail_before_any_model_call(tmp_path, invali
         with pytest.raises(ValueError, match='finite positive'):
             collect(path, tmp_path/'run', phase='preflight')
         assert not calls
+
+
+@pytest.mark.parametrize("phase", ["preflight", "comparison"])
+def test_interrupt_during_load_resumes_the_unsent_generation(tmp_path, phase):
+    import os
+    import signal
+
+    loads = 0
+
+    def interrupt_requested_load():
+        nonlocal loads
+        loads += 1
+        if loads == (1 if phase == "preflight" else 2):
+            os.kill(os.getpid(), signal.SIGINT)
+
+    events = [{"message": {"content": '{"name":"value"}'}}, {"done": True}]
+    with server(events, on_load=interrupt_requested_load) as (url, calls):
+        value = plan(url)
+        value["models"][0]["load_endpoint"] = url + "/api/generate"
+        path, output = tmp_path / "plan.json", tmp_path / "run"
+        save_json(path, value)
+        if phase == "comparison":
+            collect(path, output, phase="preflight")
+        index = output / "call-hashes.json"
+        before = read_json(index) if index.exists() else {}
+        generations = len([c for c in calls if "messages" in c])
+        with pytest.raises(KeyboardInterrupt):
+            collect(path, output, phase=phase)
+        assert len([c for c in calls if "messages" in c]) == generations
+        assert not list((output / "calls").glob("*.pending"))
+        assert (read_json(index) if index.exists() else {}) == before, (
+            "Unsent work is not a failed result")
+        assert collect(path, output, phase=phase)["new_calls"] == 1
+        assert len([c for c in calls if "messages" in c]) == generations + 1
+        assert all(read_json(p)["response"]["success"] for p in (output / "calls").glob("*.json"))
+        assert collect(path, output, phase=phase)["new_calls"] == 0
+        assert len([c for c in calls if "messages" in c]) == generations + 1
