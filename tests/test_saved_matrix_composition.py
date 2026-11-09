@@ -128,6 +128,6 @@ def test_composition_preserves_shared_revision_attachments(tmp_path):
         receipt = json.loads((output / row['score_revision']['receipt_path']).read_bytes())
         attachment = output / receipt['review_files']['notes']
         assert json.loads(attachment.read_bytes()) == {'reviewed': True}
-    attachment.write_text('{}')
+    attachment.write_text('{}', encoding='utf-8')
     with pytest.raises(ValueError):
         check_saved_matrix(output)
