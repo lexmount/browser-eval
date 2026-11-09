@@ -6,7 +6,7 @@ import hashlib
 from lexbench_webfetch.models import EvalCase
 
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.native_projection import native_answer_projection
+from harness.web_fetch.native_projection import native_answer_projection, project_native_answer
 from harness.web_fetch.native_routes import NativeRoute, encode_http_target_url
 from harness.web_fetch.providers.base import Provider
 from harness.web_fetch.providers.http_client import inner_timeout_budget, request
@@ -30,7 +30,8 @@ class LexmountProvider(Provider):
     def native_route(self, case):
         return NativeRoute('http', '/v1/extract',
                            ('result.main_text', 'result.final_url', 'result.url',
-                            'result.title', 'result.links', 'result.images'))
+                            'result.title', 'result.links', 'result.images', 'result.extra.dom_summary',
+                            'result.extra.reviews', 'result.author', 'result.description', 'result.publish_time', 'result.extra'))
 
     def native_http_arguments(self, case, timeout):
         engine = self.config.get('engine', 'lightmount_domstable')
@@ -168,6 +169,8 @@ class LexmountProvider(Provider):
         error = payload.get("error")
         error = error if isinstance(error, dict) else {}
         message = error.get("message") or payload.get("message")
+        declaration = native_answer_projection("lexmount", case, payload, response.status)
+        _, answer_fields = project_native_answer(payload, declaration)
         return ProviderResult(
             ok=ok,
             content=content,
@@ -181,8 +184,7 @@ class LexmountProvider(Provider):
                     "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                     "raw_response_bytes": len(response.body),
                     "api_http_status": response.status,
-                    **({"native_answer_projection": native_answer_projection(self.type, case, payload, response.status)}
-                       if parsed else {})}
+                    **({"native_answer_projection": declaration} if parsed else {})}
                    if self._native_mode else {}),
                 **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "request_id": payload.get("request_id"),
@@ -201,7 +203,6 @@ class LexmountProvider(Provider):
                 "dom_id": result.get("dom_id") or metadata.get("dom_id"),
                 "links_count": len(result.get("links") or []),
                 "images_count": len(result.get("images") or []),
-                "links": result.get("links") or [],
-                "images": result.get("images") or [],
+                **answer_fields,
             },
         )

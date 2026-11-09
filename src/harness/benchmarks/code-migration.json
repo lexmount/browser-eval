@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "fbcd7a39e0f5c64ab92b4f97f50f30a563d18136da8f11d160a7ae90f4c0ddee"
+          "after_sha256": "6b67866ee13efba4475d3c3cde3d2348ae8834edced72d1cb9b2d0f289a8cd12"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -28,7 +28,7 @@
         },
         "article_title.py": {
           "before_sha256": "eb59008ffceffce093a32592e1e2e0d244feed8fed1ed9c0d6306b6353573c54",
-          "after_sha256": "a55c0ce27a48f6944f62dea6a9555fecda782439e225f5f00d196c775a349ed5"
+          "after_sha256": "dd16387a71547c108aa28fc442d9218481ae85c34cd60edbce9df47585df57b7"
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
@@ -48,7 +48,7 @@
         },
         "document_structure.py": {
           "before_sha256": "bb0f2562048b45f2eaa08f5be5ce191f995eeb33f06274b1646a71825eff4312",
-          "after_sha256": "91cd5ac28453b9bc9f208a92cb701cc20bef3ce2cbd71d1afe555ece32f2b63a"
+          "after_sha256": "9692e2292e6b844c34fcb4e2e20b971da0daa31ebb5edc8cac94d78e26e606e1"
         },
         "dynamic_entry_matching.py": {
           "before_sha256": "206f483bac2f11280f2ecc04f8d6aeb61ea68a2a1b47ac2abee3ded219f3e4d3",
@@ -56,7 +56,7 @@
         },
         "dynamic_lists.py": {
           "before_sha256": "c2d9bedf1c82818f88f4e5db3c52caa5a064ba1d6fddb3814d38fdea5601957c",
-          "after_sha256": "47e751e2ef64498df3c90af36e1b6ef43ee90db8f1413295706256151072e4a5"
+          "after_sha256": "2ca7e3b6859acb2ebf5231ffe506487901821c7fdf8bdd46e79619af21b0be94"
         },
         "file_acceptance.py": {
           "before_sha256": "4f886206705c015baa3744d669cc851778aa595819394c5b149fd4803a9f40d1",
@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "990ab7aea8f4ba95d0bdcdae9b555c980dba982851dd5afa0c853ee3a7b38a7a"
+          "after_sha256": "c7a975df4a4b85732166ded91abd71c93f6d80e773ac835dd77afdc6bf513693"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -88,11 +88,11 @@
         },
         "required_components.py": {
           "before_sha256": "30ef963a179248ff9ce5addd9e2a3e26693508a921f42c5145477995a42f2e07",
-          "after_sha256": "666136bd21d6231770962a4b96176dbf0c071ee828ff1bbb1d2e720459b1a493"
+          "after_sha256": "43e541aeb7edde256604ae7c8ee3d9337e8055c466ac2f74eed2320f1e84dd84"
         },
         "response_input.py": {
           "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
-          "after_sha256": "22580d7221dafa0044a43935f2fe8ce2826810c47059a5cbe344504f0f47e5c9"
+          "after_sha256": "b8c8198ae3a3e3a259b3a6731a8330061f9f5a7989c16c9a665f6d00174864f8"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -100,7 +100,7 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "919f94c4c14ce799c4dc40b3c78ba85ef8f209a80f72161082c750362677bead"
+          "after_sha256": "53ab32519bb3b635b4b3c6bf4f537d9966e0729ee9ec58a7e631774a86b7e311"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "92d51537d0e440616a338bf385512a18ade0cfcedbcb3bb40bba8658c6df984a"
+          "after_sha256": "6b25e2f7f784ea20f901f68216713c651b5e6278860ca84e688b416b146e2781"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -4214,6 +4214,61 @@
             "tests/benchmarks/webfetch/test_mixed_markdown_comparisons.py"
           ],
           "root_cause": "The tolerated-attribute fallback rescanned the remaining text from every opener after the last closing bracket, which no tag pattern can match. Skip those scans; verdicts and projected text are unchanged."
+        },
+        {
+          "root_cause": "Plain text skipped typography matching; explicit returned headings, records and link labels were omitted. Preserve frozen record hashing and use explicit discussion headings to exclude preceding biographies.",
+          "modules": [
+            "metrics.py",
+            "stable_tasks.py",
+            "article_title.py",
+            "required_components.py",
+            "scoring.py",
+            "article_comments.py"
+          ],
+          "regression_ids": [
+            "plain-text-typography",
+            "plain-text-missing-word",
+            "plain-text-literal-markup",
+            "returned-page-heading",
+            "returned-page-wrong-heading",
+            "returned-page-metadata-title",
+            "returned-records-complete",
+            "returned-records-incomplete",
+            "returned-records-duplicate",
+            "returned-records-missing-field",
+            "returned-link-label",
+            "returned-link-split-label",
+            "returned-link-url-only",
+            "comment-heading-biography-not-comment",
+            "comment-heading-actual-discussion",
+            "visible-typography-cjk-punctuation",
+            "visible-typography-cjk-wrong-word",
+            "visible-typography-word-joiner",
+            "visible-typography-word-boundary",
+            "returned-records-no-region-ownership",
+            "returned-page-invalid-structure"
+          ]
+        },
+        {
+          "root_cause": "Structured extraction separated article information from prose; evaluate typed extracted page fields through common unscoped information and exact-title checks without synthesizing body text or page regions.",
+          "modules": [
+            "article_title.py",
+            "metrics.py",
+            "required_components.py",
+            "response_input.py",
+            "scoring.py",
+            "stable_tasks.py"
+          ],
+          "regression_ids": [
+            "extracted-date-field",
+            "extracted-date-wrong",
+            "extracted-fields-no-concatenation",
+            "extracted-fields-no-body",
+            "extracted-fields-excluded-region",
+            "extracted-title-field",
+            "extracted-title-wrong",
+            "extracted-fields-explicit-body-scope"
+          ]
         }
       ]
     },

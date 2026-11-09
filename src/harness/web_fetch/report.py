@@ -1451,14 +1451,47 @@ def _quote_field_issue(metrics):
  if contaminated:parts.append(t('records_have_tag_fields_mixed_with_extra', '{contaminated} records have tag fields mixed with extra text or missing text', contaminated=contaminated))
  return (f"{'；'.join(parts)}" + t('the_task_requires_the_tag_list_to', '. The task requires the tag list to keep field boundaries, so it still fails'))
 
-def stable_anchor_evidence(metrics,output):
- cards=[];normalized_lines=None
+def _returned_answer_fields(metadata):
+ return {key:metadata[key] for key in ('links','images','videos','media','extras','page_information','page_structure','records')
+         if metadata.get(key)}
+
+def _stable_passage_excerpt(text, alternatives, schema, representation):
+ from lexbench_webfetch.stable_tasks import _stable_literal_match
+ lines = [line for line in text.splitlines() if line.strip()]
+ visible_lines = lines if representation == 'plain_text' else [
+     re.sub(r'^\s*(?:#{1,6}|[-*+])[ 	]+', '', line) for line in lines]
+ normalized = [normalize_for_match(line, representation=representation) for line in visible_lines]
+ expected = [normalize_for_match(value, representation=representation) for value in alternatives]
+ for index in range(len(lines)):
+  for width in range(1, min(5, len(lines)-index)+1):
+   passage = '\n'.join(lines[index:index+width])
+   if len(passage)>1200:
+    break
+   joined = ' '.join(normalized[index:index+width])
+   if any(value and value in joined for value in expected) or any(
+       _stable_literal_match(passage, value, representation=representation,
+                                rendered=schema in {'body_text','page_identity'})
+          for value in alternatives):
+    return passage
+ return ''
+
+def stable_anchor_evidence(metrics,output,metadata=None,base_url='',contract=None):
+ from lexbench_webfetch.response_input import answer_input, safe_named_links
+ from lexbench_webfetch.stable_tasks import _stable_literal_match
+ fields=_returned_answer_fields(metadata or {})
+ _,links,_,_=answer_input(b'',fields)
+ candidates=[('links',label) for _,label in safe_named_links(links,base_url)]
+ for key,value in fields.get('page_information',{}).items():
+  if key!='section_headings':
+   candidates.extend(('page_information.'+key,text) for text in (value if isinstance(value,list) else [value])
+                     if isinstance(text,str))
+ cards=[];normalized_lines=None;visible_lines=None;passage_text=None;context_text=None
  anchors_required=metrics.get('stable_anchors_required',True)
  expected_label=t('reference_answer', 'Reference answer') if anchors_required else t('scope_check_text', 'Scope-check text')
  for index,item in enumerate(metrics.get('stable_anchor_results',[]),1):
   alternatives=item.get('alternatives',[]);expected=('\n<span>' + t('or', 'or') + '</span>\n').join(f'<span translate="no">{esc(value)}</span>' for value in alternatives)
   excerpt=''
-  for alternative in alternatives:
+  for alternative in (item.get('matched') or alternatives):
    if normalized_lines is None:normalized_lines=_normalized_evidence_lines(output)
    candidate=_exact_evidence_lines(alternative,output,normalized_lines=normalized_lines)
    if candidate:excerpt=candidate;break
@@ -1475,7 +1508,52 @@ def stable_anchor_evidence(metrics,output):
     rows.append(('',cell(esc(labels[field]))+cell(f'<span translate="no">{esc(wanted)}</span>')+cell(f'<span translate="no">{esc(got)}</span>')+cell(esc(verdict))))
    field_detail=('<p class="source-note">' + t('whole_records_are_judged_by_field_text', 'Whole records are judged by field; text appearing does not mean list boundaries are intact.') + f"</p>{table([t('field', 'Field'), t('reference_answer', 'Reference answer'), t('actually_parsed', 'Actually parsed'), t('verdict', 'Verdict')], rows, metrics=[])}")
    badge=t('invalid_field_boundaries', 'Invalid field boundaries')
-  actual=(f'<p translate="no">{esc(excerpt)}</p>' if excerpt else ('<p class="empty">' + t('no_continuous_source_excerpt_could_be_located', 'No continuous source excerpt could be located in the actual output.') + '</p>'))
+  actual=f'<p translate="no">{esc(excerpt)}</p>' if excerpt else ''
+  if passed and not actual:
+   if visible_lines is None:
+    visible = _visible(output, metrics.get('stable_task_schema'),
+                       representation=(metadata or {}).get('answer_format'))
+    visible_lines = _normalized_evidence_lines(visible)
+   for alternative in item.get('matched',[]):
+    visible_excerpt = _exact_evidence_lines(alternative, '', normalized_lines=visible_lines)
+    if visible_excerpt:
+     actual=('<p class="source-note">'+model_text('从返回内容读取的文字','Text read from the response')
+             +f'</p><p translate="no">{esc(visible_excerpt)}</p>')
+     break
+  if passed and not actual:
+   field_match=next(((field,text) for field,text in candidates if any(
+       _stable_literal_match(text,value,representation='plain_text') for value in item.get('matched',[]))),None)
+   if field_match:
+    field,text=field_match
+    actual=(f'<p><a href="#returned-fields"><code>{esc(field)}</code></a></p>'
+            f'<p translate="no">{esc(text)}</p>')
+  if passed and not actual:
+   from lexbench_webfetch.reference_quality import markdown_body_content, visible_mixed_html_text
+   from lexbench_webfetch.stable_tasks import _non_record_visible
+   schema=metrics.get('stable_task_schema')
+   representation=(metadata or {}).get('answer_format')
+   if item.get('match_scope')=='non_record_lines' and contract:
+    if context_text is None:
+     context_text=_non_record_visible(output,contract,metrics.get('stable_records',[]),
+                                      base_url,representation=representation) or ''
+    text=context_text
+   elif not item.get('match_scope') and not item.get('visible_control'):
+    if passage_text is None:
+     source=output if representation in {'plain_text','html'} else markdown_body_content(output)
+     source=source if representation=='plain_text' else visible_mixed_html_text(source)
+     passage_text=_visible(source,schema,representation=representation)
+    text=passage_text
+   else:
+    text=''
+   passage=_stable_passage_excerpt(text,item.get('matched',[]),schema,representation)
+   if passage:
+    actual=('<p class="source-note">'+model_text('从返回内容读取的文字','Text read from the response')
+            +f'</p><pre translate="no">{esc(passage)}</pre>')
+  if passed and not actual:
+   actual=model_text('保存的判定为命中。未找到可供定位的连续原文，请核对下方解析记录与返回字段。',
+                     'The saved check passed. This record has no locatable continuous excerpt. See the parsed records and returned fields.')
+  if not actual:
+   actual=('<p class="empty">' + t('no_continuous_source_excerpt_could_be_located', 'No continuous source excerpt could be located in the actual output.') + '</p>')
   cards.append((f'<article class="anchor-card {css}"><div class="anchor-head"><h3>' + t('stable_text', 'Stable text {index}', index=index) + f'</h3><span class="verdict-badge">{badge}</span></div><div class="evidence-pair"><div class="evidence-sample"><b>{expected_label}</b><p>{expected}</p></div><div class="evidence-sample"><b>' + t('actual_output_evidence', 'Actual-output evidence') + f'</b>{actual}</div></div>{field_detail}</article>'))
  if not cards:return ''
  role_note=(t('all_count_toward_scoring', 'All count toward scoring') if anchors_required else
@@ -2477,6 +2555,10 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
    else:
     actual_body=('<p class="empty">' + t('this_call_did_not_deliver_verifiable_original', 'This call did not deliver verifiable original-file bytes.') + '</p>')
     output_note=t('0_files_delivered', '0 files delivered')
+  returned_fields=_returned_answer_fields(provider_meta)
+  if returned_fields:
+   actual_body+=('<details id="returned-fields"><summary>'+model_text('查看随正文返回的字段','View fields returned with the text')
+                 +'</summary><pre translate="no">'+esc(json.dumps(returned_fields,ensure_ascii=False,indent=2))+'</pre></details>')
   reference_scope=('' if not (c.get('track')=='document' and 0 < len(ref) < 100) else
                    ('<p class="callout"><b>' + t('reference_scope', 'Reference scope:') + '</b>' + t('this_is_a_minimal_document_parsing_sample', 'This is a minimal document-parsing sample. All extractable body text of the frozen source is {count:,} characters, and the reference omits nothing. It only verifies short document text extraction, not multi-page, table or appendix completeness.', count=len(ref)) + '</p>'))
   evidence_intro=t('the_left_side_is_the_reference_or', 'The left side is the reference or explicit acceptance contract used for the verdict. The right side is the complete output saved from this call. Neither side is a summary; long content scrolls within its pane.')
@@ -2486,7 +2568,7 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   body+=section(t('reference_and_actual_output', 'Reference and actual output'),evidence,'evidence')
   checks_html=''
   if 'stable_task_pass' in m:
-   checks_html+=stable_anchor_evidence(m,output)
+   checks_html+=stable_anchor_evidence(m,output,provider_meta,r.get("final_url") or c["url"],c.get("acceptance_contract"))
    checks_html+=(('<p class="decision-lead"><b>' + t('structure_result', 'Structure result:') + f"</b>实际解析出 {m.get('stable_unique_record_count', 0)} 条完整且不重复的记录，要求至少 {m.get('stable_minimum_records', '—')} 条；结构检查{(t('pass_2', 'Pass') if m.get('stable_structure_pass') else t('fail_2', 'Fail'))}，稳定文字检查{(t('pass_2', 'Pass') if m.get('stable_content_pass') else t('fail_2', 'Fail'))}。</p>"))
    checks_html+=('<details class="technical-details"><summary>' + t('view_all_parsed_records_and_machine_check', 'View all parsed records and machine-check fields') + f'</summary>{stable_checks(m)}</details>')
    checks_html+=composite_result_evidence(m)

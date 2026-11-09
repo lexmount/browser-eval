@@ -325,3 +325,64 @@ def test_external_policy_approval_is_scoped_and_receipts_cannot_self_authorize()
     with pytest.raises(ValueError, match='duplicate'):
         with approved_native_policies({**registry, 'sources': registry['sources'] * 2}):
             pytest.fail('Duplicate approval was accepted')
+
+
+def test_extract_quote_records_preserve_ownership_and_historical_policy():
+    from harness.web_fetch.native_projection import native_answer_projection
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task
+
+    payload = {'result': {'main_text': 'Quotes', 'extra': {'quotes': [
+        {'text': 'A complete quotation', 'author': 'Alex Writer', 'tags': ['books', 'reading']},
+        {'text': 'Another complete quotation', 'tags': ['reading']},
+        {'author': 'Someone Else', 'tags': ['other']},
+    ]}}}
+    case = {'url': 'https://example.test/quotes'}
+    contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1}
+    current = native_answer_projection('lexmount', case, payload, 200)
+    previous = native_answer_projection('lexmount', case, payload, 200, policy_version=5)
+    text, fields = project_native_answer(payload, current)
+    assert text == project_native_answer(payload, previous)[0] == 'Quotes'
+    assert project_native_answer(payload, previous)[1]['records'] == []
+    assert fields['records'][0] == {
+        'quote': 'A complete quotation', 'author': 'Alex Writer', 'tags': 'books reading'}
+    accepted = evaluate_stable_task(text, contract, representation='plain_text',
+                                    returned_records=fields['records'])
+    rejected = evaluate_stable_task(text, contract, representation='plain_text',
+                                    returned_records=fields['records'][1:])
+    assert accepted['stable_structure_pass']
+    assert not rejected['stable_structure_pass']
+
+
+@pytest.mark.parametrize('author,passes', [('Alex Writer', True), ('Another Writer', False)])
+def test_native_quote_merges_only_the_equivalent_text_record(author, passes):
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task, source_record_hash
+
+    names = ['author', 'quote', 'tags']
+    native = {'quote': 'A complete quotation', 'author': 'Alex Writer', 'tags': 'books reading'}
+    contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1,
+                'source_membership': {'kind': 'fixed', 'fields': names,
+                                      'record_hashes': [source_record_hash(native, names, 'quote')]}}
+    rendered = f'“A complete quotation” by {author} Tags: books, reading'
+    result = evaluate_stable_task(rendered, contract, representation='plain_text', returned_records=[native])
+    assert result['stable_task_pass'] is passes
+    assert ('source_record_mismatch' in result['stable_task_errors']) is not passes
+
+
+def test_returned_section_names_require_unique_ordered_body_locations():
+    from harness.web_fetch.native_projection import native_answer_projection
+    from lexbench_webfetch.document_structure import evaluate_document_structure
+
+    headings = ['Authentication', 'Next steps']
+    payload = {'result': {'main_text': 'Authentication Supply your key. Next steps Send a request.',
+                          'extra': {'section_headings': headings}}}
+    contract = {'version': 1, 'minimum_heading_coverage': 1.0, 'minimum_body_chars': 1,
+                'headings': [{'text': label, 'level': 2} for label in headings]}
+    projection = native_answer_projection('lexmount', {}, payload, 200)
+    body, fields = project_native_answer(payload, projection)
+    returned = fields['page_information']['section_headings']
+    assert returned == headings
+    assert evaluate_document_structure(body, contract, section_headings=returned)['document_structure_pass']
+    for missing_body in ('Authentication Next steps', 'Next steps body. Authentication body.',
+                         'Authentication Authentication help. Next steps Send a request.'):
+        assert not evaluate_document_structure(
+            missing_body, contract, section_headings=returned)['document_structure_pass']
