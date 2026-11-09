@@ -153,7 +153,7 @@ the installed service cannot load the selected model. Take `OLLAMA_RELEASE`,
 The following Linux setup leaves the existing service and its models in place:
 
 ```sh
-MODEL_ROOT="$HOME/.cache/browser-eval/model-comparison"
+MODEL_ROOT="${MODEL_ROOT:?Set a directory on the model data volume}"
 mkdir -p "$MODEL_ROOT/runtime" "$MODEL_ROOT/models"
 curl --fail --location \
   "https://github.com/ollama/ollama/releases/download/${OLLAMA_RELEASE:?}/ollama-linux-amd64.tar.zst" \

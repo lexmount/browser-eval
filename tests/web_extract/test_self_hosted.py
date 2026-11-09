@@ -567,3 +567,78 @@ def test_host_move_rejects_the_frozen_runtime_without_exposing_boot_id(tmp_path,
         self_hosted.validate_input(value)
     finally:
         self_hosted.local_runtime_identity.cache_clear()
+
+
+def test_concurrent_worker_restarts_preserve_active_bytecode_and_detect_changed_sources(tmp_path):
+    import importlib.util
+    import json
+    import os
+    import subprocess
+    import sys
+    import time
+    from pathlib import Path
+
+    installed = tmp_path / 'installed'
+    installed.mkdir()
+    source = installed / 'sdk_fixture.py'
+    source.write_text('VALUE="alpha"\n', encoding='utf-8')
+    owner = tmp_path / 'owner.py'
+    owner.write_text('OWNER=True\n', encoding='utf-8')
+    ready, stop = tmp_path / 'ready', tmp_path / 'stop'
+    helper = tmp_path / 'prepare.py'
+    helper.write_text(
+        'import json,sys,time\nfrom pathlib import Path\n'
+        'from harness.web_extract import self_hosted as m\n'
+        f'm.__file__={str(owner)!r}\n'
+        f'm.sysconfig.get_paths=lambda:{{"purelib":{str(installed)!r},'
+        f'"platlib":{str(installed)!r}}}\n'
+        'store,receipt=m.prepare_environment()\n'
+        f'Path({str(ready)!r}).write_text(receipt["environment_sha256"],encoding="utf-8")\n'
+        'if sys.argv[1]=="observe":\n'
+        f' while not Path({str(stop)!r}).exists():\n'
+        '  assert m.installed_environment_sha256()==receipt["environment_sha256"]\n'
+        '  time.sleep(.001)\n'
+        'print(json.dumps(receipt["environment_sha256"]))\nstore.cleanup()\n',
+        encoding='utf-8',
+    )
+    observer = subprocess.Popen([sys.executable, str(helper), 'observe'],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 8
+        while not ready.exists():
+            assert observer.poll() is None, observer.communicate(timeout=1)[1]
+            assert time.monotonic() < deadline
+            time.sleep(.01)
+        expected = ready.read_text(encoding='utf-8')
+        bytecode = Path(importlib.util.cache_from_source(str(source)))
+        before = bytecode.stat()
+        workers = [subprocess.Popen([sys.executable, str(helper), 'once'],
+                                    stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+                   for _ in range(2)]
+        for process in workers:
+            stdout, stderr = process.communicate(timeout=10)
+            assert process.returncode == 0, stderr
+            assert json.loads(stdout) == expected
+        after = bytecode.stat()
+        assert (after.st_ino, after.st_mtime_ns) == (before.st_ino, before.st_mtime_ns)
+        stop.touch()
+        stdout, stderr = observer.communicate(timeout=4)
+        assert observer.returncode == 0, stderr
+        assert json.loads(stdout) == expected
+        timestamp = source.stat()
+        source.write_text('VALUE="bravo"\n', encoding='utf-8')
+        os.utime(source, ns=(timestamp.st_atime_ns, timestamp.st_mtime_ns))
+        revised = subprocess.run([sys.executable, str(helper), 'once'],
+                                 capture_output=True, text=True, timeout=10)
+        assert revised.returncode == 0, revised.stderr
+        assert json.loads(revised.stdout) != expected
+        value = subprocess.run([sys.executable, '-c',
+            f'import sys;sys.path.insert(0,{str(installed)!r});'
+            'import sdk_fixture;print(sdk_fixture.VALUE)'],
+            capture_output=True, text=True, timeout=4)
+        assert value.returncode == 0 and value.stdout.strip() == 'bravo'
+    finally:
+        stop.touch()
+        if observer.poll() is None:
+            observer.kill()
+            observer.communicate(timeout=3)

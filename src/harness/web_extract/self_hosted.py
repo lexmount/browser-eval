@@ -6,6 +6,7 @@ import fcntl
 import hashlib
 import hmac
 import importlib.metadata
+import importlib.util
 import json
 import os
 import resource
@@ -513,13 +514,45 @@ def native_failure(engine, native):
 
 def prepare_environment():
     """Compile once at startup and share only immutable file-hash hints, not SDK state."""
-    roots = sorted({sysconfig.get_paths()[key] for key in ("purelib", "platlib")})
-    compiled = run_worker({}, command=[sys.executable, "-m", "compileall", "-q", "-f",
-                                      *roots, __file__])
-    if compiled.returncode:
-        raise RuntimeError("Installed extraction bytecode preparation failed: "
-                           + compiled.stdout + compiled.stderr)
-    fingerprint = installed_environment_sha256()
+    from harness.reporting.publication import atomic_write
+
+    roots = sorted({str(Path(sysconfig.get_paths()[key]).resolve())
+                    for key in ("purelib", "platlib")})
+    identity = json.dumps([
+        roots, str(Path(__file__).resolve()), str(Path(sys.executable).resolve()),
+        sys.implementation.cache_tag, sys.flags.optimize,
+    ])
+    directory = Path(tempfile.gettempdir()) / "browser-eval-extraction-preparation"
+    if directory.is_symlink():
+        raise ValueError("Bytecode preparation directory must not be a symlink")
+    directory.mkdir(mode=0o700, exist_ok=True)
+    key = hashlib.sha256(identity.encode()).hexdigest()
+    marker = directory / (key + ".json")
+    descriptor = os.open(directory / (key + ".lock"),
+                         os.O_CREAT | os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+    with os.fdopen(descriptor, "a", encoding="utf-8") as lease:
+        fcntl.flock(lease, fcntl.LOCK_EX)
+
+        def state():
+            return {
+                "environment_sha256": installed_environment_sha256(),
+                "source_sha256": optional_file_sha256(Path(__file__)),
+                "bytecode_sha256": optional_file_sha256(
+                    Path(importlib.util.cache_from_source(__file__))),
+            }
+
+        prepared = state()
+        if not marker.exists() or json.loads(marker.read_bytes()) != prepared:
+            compiled = run_worker(
+                {}, command=[sys.executable, "-m", "compileall", "-q", "-f", *roots, __file__],
+                lease_fd=lease.fileno(),
+            )
+            if compiled.returncode:
+                raise RuntimeError("Installed extraction bytecode preparation failed: "
+                                   + compiled.stdout + compiled.stderr)
+            prepared = state()
+            atomic_write(marker, json.dumps(prepared).encode())
+        fingerprint = prepared["environment_sha256"]
     store = tempfile.TemporaryDirectory(prefix="extract-attestation-")
     target = Path(store.name) / "files.json"
     raw = json.dumps([(str(path), signature, checksum)
