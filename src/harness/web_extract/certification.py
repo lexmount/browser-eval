@@ -123,21 +123,34 @@ def create_plan(
     for method in methods:
         validate_native_options(method, native_options.get(method))
     execution = {}
+    service_capacities = {}
     if type(concurrency) is not int or not 1 <= concurrency <= 64:
         raise ValueError("Concurrency must be an integer between 1 and 64")
     for method in methods:
         cooldown = registry[method]["post_call_cooldown_seconds"]
         capacity = 1 if cooldown else concurrency
+        resource = method
         reason = (
             f"Provider requires a {cooldown}-second post-call cooldown"
             if cooldown
             else serial_reason
         )
+        if registry[method].get("deployment") == "self-hosted-open-source":
+            options = native_options[method]
+            limit = options["runtime_identity"].get("service_worker_capacity", 1)
+            if type(limit) is not int or not 1 <= limit <= 64:
+                raise ValueError("Frozen extraction service capacity must be between 1 and 64")
+            resource = "extraction-service-" + digest(options["endpoint"].rstrip("/").encode())[:16]
+            if resource in service_capacities and service_capacities[resource] != limit:
+                raise ValueError("Shared extraction service capacity differs between methods")
+            service_capacities[resource] = limit
+            capacity = min(capacity, limit)
+            reason = f"Frozen extraction service admits {limit} workers"
         value = {
             "purpose": execution_purpose,
             "max_in_flight": capacity,
             "serial_reason": reason,
-            "resources": {method: {"capacity": capacity, "reason": reason}},
+            "resources": {resource: {"capacity": capacity, "reason": reason}},
             "backend": "process",
         }
         ExecutionPolicy.from_dict(value)

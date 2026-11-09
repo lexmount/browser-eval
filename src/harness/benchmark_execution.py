@@ -195,9 +195,17 @@ def _retain_call_ownership(on_interrupt=None):
         return
     previous = signal.getsignal(signal.SIGINT)
     interrupted = None
+    failure = None
 
     def defer(number, frame):
         nonlocal interrupted
+        if interrupted is not None:
+            signal.signal(signal.SIGINT, previous)
+            if callable(previous):
+                previous(number, frame)
+            elif previous != signal.SIG_IGN:
+                raise KeyboardInterrupt()
+            return
         interrupted = (number, frame)
         if on_interrupt is not None:
             on_interrupt()
@@ -205,13 +213,21 @@ def _retain_call_ownership(on_interrupt=None):
     signal.signal(signal.SIGINT, defer)
     try:
         yield
+    except BaseException as error:
+        failure = error
+        raise
     finally:
         signal.signal(signal.SIGINT, previous)
         if interrupted is not None and previous != signal.SIG_IGN:
-            if callable(previous):
-                previous(*interrupted)
-            else:
-                raise KeyboardInterrupt()
+            try:
+                if callable(previous):
+                    previous(*interrupted)
+                else:
+                    raise KeyboardInterrupt()
+            except BaseException as interrupt:
+                if failure is not None and not isinstance(failure, KeyboardInterrupt):
+                    raise failure from interrupt
+                raise
 
 
 class _InlineExecutor:
@@ -381,8 +397,8 @@ def run_jobs(
                 # still reach the track's durable commit boundary.
                 stop(error)
                 continue
-    if failure is not None:
-        raise failure
+        if failure is not None:
+            raise failure
 
 
 def main(argv=None):

@@ -251,7 +251,8 @@ def http_call(url, body=None, header=None, timeout=20):
         start = time.perf_counter()
         try:
             call = subprocess.run(
-                command, input=config, text=True, capture_output=True, timeout=timeout + 5
+                command, input=config, text=True, capture_output=True, timeout=timeout + 5,
+                start_new_session=True,
             )
         except subprocess.TimeoutExpired:
             return {

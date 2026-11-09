@@ -191,7 +191,7 @@ def main(argv: list[str] | None = None) -> None:
     )
     args = parser.parse_args(argv)
     if args.workers is None:
-        args.workers = 1 if args.call_order == "case-alternating" else 4
+        args.workers = 1
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be positive and finite")
     if args.provider_config and not args.provider_config.is_file():

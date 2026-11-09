@@ -69,6 +69,9 @@ def test_separate_apps_share_one_worker_limit_and_release_after_cleanup(
                 ready.wait()
                 rejected = clients[-1].post("/extract/crawl4ai", json=BODY, headers=AUTH)
                 assert rejected.status_code == 429 and len(count) == capacity
+                from harness.web_extract.pipeline import access_blocker
+                assert access_blocker({"method": "crawl4ai-json", "http_status": 429,
+                                       "response": rejected.json()}) == "service_capacity"
             finally:
                 release.set()
             assert all(f.result(5).json()["success"] for f in futures)

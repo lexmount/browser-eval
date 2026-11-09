@@ -1172,6 +1172,13 @@ def normalize(method: str, payload: dict, *, schema=None, preserve_native_types=
             item["availability"] = "InStock" if item["availability"] else "OutOfStock"
     else:
         item = None
+    return normalize_extracted_fields(
+        item, schema=schema, preserve_native_types=preserve_native_types
+    )
+
+
+def normalize_extracted_fields(item, *, schema=None, preserve_native_types=False):
+    """Project an extracted object independently of its provider's response envelope."""
     if schema is not None or preserve_native_types:
         return dict(item) if isinstance(item, dict) else None
     if not isinstance(item, dict) or not any(f in item for f in ("price", "sku", "availability")):
@@ -1230,6 +1237,7 @@ def serve_fixtures(home: Path, *, port=8767):
 
 ACCESS_POLICY = {"receipt": "access-denial/1", "consecutive_403_sites": 3}
 ACCESS_REASONS = {
+    "service_capacity",
     "authentication",
     "permission",
     "quota_or_payment",
@@ -1249,6 +1257,10 @@ def access_blocker(row):
     status, native = row.get("http_status"), row.get("response", {})
     failure = native.get("native_failure") if isinstance(native, dict) else None
     method = METHODS.get(row.get("method"), {})
+    if (status == 429 and method.get("deployment") == "self-hosted-open-source"
+            and isinstance(native, dict)
+            and native.get("detail") == "Extraction worker capacity reached"):
+        return "service_capacity"
     if (
         method.get("deployment") == "self-hosted-open-source"
         and isinstance(native, dict)

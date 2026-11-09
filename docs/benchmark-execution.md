@@ -101,7 +101,9 @@ interrupted request before admitting another call.
 Web Fetch provider configurations can declare `execution_resources`, a mapping
 from a shared service/account name to its `capacity` and `reason`. Variants using
 the same name share that limit; conflicting declarations stop before calls.
-Provider cases retain their ordered lifecycle and reference checks.
+Certified Web Fetch keeps one worker when `--workers` is omitted; parallel
+collection requires an explicit value and its declared timing scope. Provider
+cases retain their ordered lifecycle and reference checks.
 
 Web Extract policies spanning several methods must provide `assignments`, mapping
 each method to its method lane and every shared resource it consumes. Unassigned

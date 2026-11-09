@@ -19,7 +19,7 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
 
     from harness.record_io import canonical_json_sha256, file_sha256, read_json
     from harness.web_extract.model_comparison import request_body, transport_replacements
-    from harness.web_extract.pipeline import normalize
+    from harness.web_extract.pipeline import normalize_extracted_fields
 
     plan_path, run, contract_path = Path(plan_path), Path(run), Path(contract_path)
     plan, contract = read_json(plan_path), read_json(contract_path)
@@ -85,9 +85,8 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
             )
             complete = all(v["status"] != "unavailable" for v in fields.values())
         else:
-            native["normalized_fields"] = normalize(
-                "crawl4ai-json", {"success": response.get("success", False), "data": data}
-            )
+            native["normalized_fields"] = normalize_extracted_fields(data) if response.get(
+                "success") else None
             fields = field_results(Path(home), reference, native)
             excluded = set(case.get("reference_excluded_fields", []))
             fields = {k: v for k, v in fields.items() if k not in excluded and k != "OutOfStock"}

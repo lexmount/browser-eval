@@ -250,6 +250,14 @@ The synthetic scenarios in
 [`test_model_comparison.py`](../../tests/web_extract/test_model_comparison.py)
 exercise the request format, real streams, deadlines and independent resource lanes.
 
+The model diagnostic reports value-level micro F1 over annotated fields, using
+the same upstream field matchers as the native track. It is separate from the
+SDK/API report's per-field product scores and official SWDE page-hit F1. Its
+hash-bound contract preserves the held-out page text, reference exclusions and
+reference revision; rebuilding a report never substitutes today's dataset or
+fetches live pages. Model streams use the shared scheduler with protocol-specific
+prepare/commit callbacks, not the native SDK row or certification format.
+
 A connection outage stops admission after retaining the failed call. Resume does
 not silently repeat it. For a proven connection refusal or interrupted chunked
 stream, freeze recovery before making new calls. Run the repair's comparison
@@ -329,6 +337,9 @@ cases, input hashes, pacing, concurrency and retry policy before calls. New CLI
 plans default to four in-flight calls per provider. A provider-mandated post-call
 cooldown selects one in-flight call and records the reason. Choose capacities
 from a measured preflight using the shared [execution contract](../../docs/benchmark-execution.md).
+Self-hosted methods share their endpoint's frozen `service_worker_capacity`,
+which caps the requested concurrency. A service-capacity 429 stops collection
+as an infrastructure rejection rather than becoming a scored engine failure.
 For isolated timing, select `--execution-purpose latency --concurrency 1` and give
 `--serial-reason`. Quality-run timings describe the declared concurrent load.
 A quota or permission

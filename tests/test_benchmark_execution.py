@@ -12,6 +12,64 @@ from harness.benchmark_execution import ExecutionPolicy, Job, assess_execution, 
 _INITIALIZER_PID = None
 
 
+def test_a_drain_interrupt_preserves_the_original_failure():
+    import signal
+    from harness import benchmark_execution
+
+    release = threading.Event()
+    calls = 0
+    original = benchmark_execution.wait
+
+    def wait(futures, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            signal.raise_signal(signal.SIGINT)
+            release.set()
+        return original(futures, **kwargs)
+
+    def execute(value):
+        if value == 2:
+            assert release.wait(3)
+        return value
+
+    def commit(job, value, error):
+        if value == 1:
+            raise ValueError("commit failed")
+
+    try:
+        with patch.object(benchmark_execution, "wait", side_effect=wait):
+            try:
+                run_jobs([Job(str(i), ("api-a",), i) for i in (1, 2)], execute, commit,
+                         policy(max_in_flight=2))
+            except BaseException as error:
+                assert isinstance(error, ValueError), repr(error)
+                assert str(error) == "commit failed"
+                assert isinstance(error.__cause__, KeyboardInterrupt)
+            else:
+                pytest.fail("Original failure disappeared")
+    finally:
+        release.set()
+
+
+def test_second_interrupt_restores_the_previous_signal_handler():
+    import signal
+    from harness.benchmark_execution import _retain_call_ownership
+
+    previous = signal.getsignal(signal.SIGINT)
+    restored = False
+    with pytest.raises(KeyboardInterrupt):
+        with _retain_call_ownership():
+            signal.raise_signal(signal.SIGINT)
+            assert signal.getsignal(signal.SIGINT) != previous
+            try:
+                signal.raise_signal(signal.SIGINT)
+            except KeyboardInterrupt:
+                pass
+            restored = signal.getsignal(signal.SIGINT) == previous
+    assert restored
+
+
 def initialize_pid():
     global _INITIALIZER_PID
     _INITIALIZER_PID = os.getpid()

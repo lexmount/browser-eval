@@ -99,6 +99,22 @@ _ENVIRONMENT_FILE_HASHES = {}
 _ENVIRONMENT_CACHE_RECEIPT = None
 
 
+def cached_browser_sha256(path):
+    info = path.stat()
+    signature = (info.st_dev, info.st_ino, info.st_size, info.st_mtime_ns, info.st_ctime_ns)
+    cached = _ENVIRONMENT_FILE_HASHES.get(path)
+    if os.name != "nt" and cached and cached[0] == signature:
+        return cached[1]
+    with path.open("rb") as stream:
+        checksum = hashlib.file_digest(stream, "sha256").hexdigest()
+    after = path.stat()
+    if signature != (after.st_dev, after.st_ino, after.st_size,
+                     after.st_mtime_ns, after.st_ctime_ns):
+        raise ValueError("Native browser changed during hashing")
+    _ENVIRONMENT_FILE_HASHES[path] = (signature, checksum)
+    return checksum
+
+
 def installed_environment_sha256():
     """Bind installed source, native libraries, package data and bytecode."""
     global _ENVIRONMENT_FILE_HASHES
@@ -133,6 +149,10 @@ def installed_environment_sha256():
                 observed[path] = (signature, checksum)
                 result.update(json.dumps((index, path.as_posix()[prefix_length:], checksum))
                               .encode("utf-8") + b"\n")
+    if os.environ.get("CHROME_PATH"):
+        browser = Path(os.environ["CHROME_PATH"]).resolve()
+        if browser in _ENVIRONMENT_FILE_HASHES:
+            observed.setdefault(browser, _ENVIRONMENT_FILE_HASHES[browser])
     _ENVIRONMENT_FILE_HASHES = observed
     return result.hexdigest()
 
@@ -197,8 +217,7 @@ def local_runtime_identity(engine):
         with executable.open("rb") as stream:
             if stream.read(2) == b"#!":
                 raise ValueError("CHROME_PATH must name the native browser, not a launcher script")
-        with executable.open("rb") as stream:
-            identity["browser_sha256"] = hashlib.file_digest(stream, "sha256").hexdigest()
+        identity["browser_sha256"] = cached_browser_sha256(executable)
         identity_stat = executable.stat()
         identity["browser_version"] = browser_version(
             str(executable),
@@ -597,6 +616,8 @@ def prepare_environment():
                     temporary.unlink(missing_ok=True)
         fingerprint = prepared["environment_sha256"]
     store = tempfile.TemporaryDirectory(prefix="extract-attestation-")
+    if os.environ.get("CHROME_PATH"):
+        cached_browser_sha256(Path(os.environ["CHROME_PATH"]).resolve())
     target = Path(store.name) / "files.json"
     raw = json.dumps([(str(path), signature, checksum)
                       for path, (signature, checksum) in _ENVIRONMENT_FILE_HASHES.items()]).encode()

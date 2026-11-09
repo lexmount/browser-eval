@@ -13,6 +13,26 @@ from tests.web_extract.test_execution_boundaries import accepted, collection_con
 pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
 
 
+@pytest.mark.parametrize("limit", [1, 2])
+def test_self_hosted_plan_shares_and_respects_the_frozen_service_limit(tmp_path, limit):
+    from tests.web_extract.test_self_hosted import OPTIONS, RUNTIME
+
+    home = create(tmp_path / "example")
+    methods = ["crawl4ai-json", "stagehand-local-json"]
+    options = {m: {**OPTIONS, "runtime_identity": {
+        **RUNTIME, "engine": "crawl4ai" if m == methods[0] else "stagehand",
+        "service_worker_capacity": limit}} for m in methods}
+    with (patch("harness.web_extract.certification.validate_dataset"),
+          patch("harness.web_extract.snapshots.validate_dataset")):
+        snapshot = bind_inputs(home, tmp_path / "snapshots.json")
+        value = create_plan(home, methods, tmp_path / "plan.json", snapshots=snapshot,
+                            native_options=options, concurrency=4, execution_purpose="quality")
+    policies = [value["participants"][m]["execution_policy"] for m in methods]
+    assert all(p["max_in_flight"] == limit for p in policies)
+    assert policies[0]["resources"] == policies[1]["resources"]
+    assert list(policies[0]["resources"].values())[0]["capacity"] == limit
+
+
 def test_preflight_is_separate_and_full_collection_requires_its_bound_assessment(tmp_path):
     home = create(tmp_path / "example")
     candidate, final = tmp_path / "candidate.json", tmp_path / "final.json"

@@ -18,6 +18,65 @@ RUNTIME = {
 OPTIONS = {"endpoint": "https://extract.example", "runtime_identity": RUNTIME}
 
 
+@pytest.mark.parametrize("method,expected", [("crawl4ai-json", "service_capacity"),
+                                             ("firecrawl-oss-json", "service_capacity"),
+                                             ("firecrawl-json", None)])
+def test_service_admission_rejection_stops_only_its_self_hosted_lane(method, expected):
+    from harness.web_extract.pipeline import access_blocker
+
+    assert access_blocker({"method": method, "http_status": 429, "response": {
+        "detail": "Extraction worker capacity reached"}}) == expected
+
+
+def test_browser_hash_is_prepared_once_reused_in_children_and_rechecked_on_change(
+        tmp_path, monkeypatch):
+    import hashlib
+
+    from harness.web_extract import self_hosted
+
+    installed = tmp_path / "installed"
+    installed.mkdir()
+    (installed / "sdk.py").write_text("VALUE = 1\n", encoding="utf-8")
+    browser = tmp_path / "browser"
+    browser.write_bytes(b"native browser v1")
+    monkeypatch.setenv("CHROME_PATH", str(browser))
+    monkeypatch.setenv("EXTRACTION_MODEL", "synthetic")
+    monkeypatch.setenv("EXTRACTION_MODEL_BASE", "https://model.example")
+    monkeypatch.setattr(self_hosted.sysconfig, "get_paths",
+                        lambda: {"purelib": str(installed), "platlib": str(installed)})
+    monkeypatch.setattr(self_hosted.importlib.metadata, "version", lambda _: "synthetic")
+    browser_reads = []
+    original = hashlib.file_digest
+
+    def digest(stream, *args, **kwargs):
+        if Path(stream.name) == browser:
+            browser_reads.append(stream.name)
+        return original(stream, *args, **kwargs)
+
+    from pathlib import Path
+
+    with patch.object(hashlib, "file_digest", side_effect=digest), patch.object(
+            self_hosted.subprocess, "check_output", return_value="Browser 1"):
+        store, receipt = self_hosted.prepare_environment()
+        try:
+            assert len(browser_reads) == 1
+            monkeypatch.setattr(self_hosted, "_ENVIRONMENT_FILE_HASHES", {})
+            self_hosted.load_environment_cache(receipt)
+            self_hosted.local_runtime_identity.cache_clear()
+            first = self_hosted.runtime_identity("stagehand")
+            self_hosted.local_runtime_identity.cache_clear()
+            assert self_hosted.runtime_identity("stagehand") == first
+            assert len(browser_reads) == 1
+            browser.write_bytes(b"native browser v2")
+            self_hosted.local_runtime_identity.cache_clear()
+            assert self_hosted.runtime_identity("stagehand")["browser_sha256"] != first[
+                "browser_sha256"]
+            assert len(browser_reads) == 2
+        finally:
+            store.cleanup()
+            self_hosted.local_runtime_identity.cache_clear()
+
+
 @pytest.mark.parametrize(
     "url",
     [

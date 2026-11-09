@@ -10,6 +10,69 @@ from unittest.mock import patch
 
 import pytest
 
+
+def test_terminal_interrupt_retains_a_completed_curl_response(tmp_path):
+    import json
+    import os
+    import signal
+    import subprocess
+    import sys
+    import threading
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    ready, release = threading.Event(), threading.Event()
+
+    class Handler(BaseHTTPRequestHandler):
+        def log_message(self, *args):
+            pass
+
+        def do_GET(self):
+            ready.set()
+            assert release.wait(5)
+            raw = b'{"answer":"retained"}'
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(raw)))
+            self.end_headers()
+            self.wfile.write(raw)
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    saved = tmp_path / "response.json"
+    code = '''import json,sys
+from pathlib import Path
+from harness.benchmark_execution import _retain_call_ownership
+from harness.web_search.runner import http_call
+try:
+    with _retain_call_ownership():
+        metadata, raw = http_call(sys.argv[1], timeout=5)
+        Path(sys.argv[2]).write_text(json.dumps([metadata, raw.decode()]), encoding="utf-8")
+except KeyboardInterrupt:
+    pass
+'''
+    process = subprocess.Popen(
+        [sys.executable, "-c", code, f"http://127.0.0.1:{server.server_port}/", str(saved)],
+        start_new_session=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+    )
+    try:
+        assert ready.wait(5)
+        os.killpg(process.pid, signal.SIGINT)
+        time.sleep(.05)
+        release.set()
+        stdout, stderr = process.communicate(timeout=10)
+        assert process.returncode == 0, (stdout, stderr)
+        metadata, raw = json.loads(saved.read_text(encoding="utf-8"))
+        assert metadata["http_status"] == 200 and json.loads(raw) == {"answer": "retained"}
+    finally:
+        release.set()
+        if process.poll() is None:
+            process.kill()
+            process.wait(timeout=5)
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=5)
+
 from harness.record_io import bytes_sha256
 from harness.web_search.report import load_run
 from harness.web_search.runner import run
