@@ -38,6 +38,13 @@ def server(events, *, delay=0, status=200, identity=None, barrier=None):
 
         def do_POST(self):
             requests.append(json.loads(self.rfile.read(int(self.headers["Content-Length"]))))
+            if self.path == "/api/generate":
+                body = b'{"done":true,"response":""}'
+                self.send_response(200)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+                return
             if barrier is not None:
                 barrier.wait(timeout=5)
             self.send_response(status)
@@ -102,6 +109,7 @@ def test_openai_sse_preserves_usage_and_ignores_empty_chunks():
         ([{"message": {"content": '{"name":"value"}'}}], "completion marker"),
         ([{"message": {"content": "[]"}}, {"done": True}], "JSON object"),
         ([{"message": {"content": "broken"}}, {"done": True}], "JSONDecodeError"),
+        ([{"message": {"content": '{"name":NaN}'}}, {"done": True}], "ValueError"),
         ([{"error": "unsupported context"}], "unsupported context"),
     ],
 )
@@ -282,3 +290,29 @@ def test_account_denial_stops_the_shared_lane_and_retains_the_call(tmp_path):
         with pytest.raises(ValueError, match="retained account denial"):
             collect(path, output, phase="preflight")
         assert len(calls) == 1
+
+
+def test_thinking_variants_share_one_weight_load_per_phase(tmp_path):
+    events = [{"message": {"content": "{}"}}, {"done": True}]
+    with server(events) as (url, calls):
+        value = plan(url)
+        first = value["models"][0]
+        first.update(
+            load_endpoint=url + "/api/generate",
+            parameters={"think": False, "options": {"num_ctx": 20000}},
+        )
+        value["models"].append(
+            {
+                **first,
+                "id": "thinking",
+                "parameters": {"think": True, "options": {"num_ctx": 20000}},
+            }
+        )
+        value["calls"] += [{**call, "model_id": "thinking"} for call in value["calls"]]
+        path, output = tmp_path / "plan.json", tmp_path / "run"
+        save_json(path, value)
+        collect(path, output, phase="preflight")
+        collect(path, output, phase="comparison")
+        loads = [c for c in calls if "prompt" in c]
+        generations = [c for c in calls if "messages" in c]
+        assert len(loads) == 2 and len(generations) == 4

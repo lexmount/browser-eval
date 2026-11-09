@@ -76,7 +76,12 @@ def stream_call(payload, *, timeout):
                     break
                 if not line.startswith("{"):
                     continue
-                event = json.loads(line)
+                try:
+                    event = json.loads(line)
+                    json.dumps(event, allow_nan=False)
+                except ValueError:
+                    result["invalid_stream_line"] = line
+                    raise
                 elapsed = time.monotonic() - started
                 result["events"].append({"seconds": elapsed, "event": event})
                 if event.get("error"):
@@ -103,9 +108,11 @@ def stream_call(payload, *, timeout):
             if not terminal:
                 raise ValueError("Stream ended without its completion marker")
             result["transport_complete"] = True
-            result["data"] = json.loads("".join(content))
-            if not isinstance(result["data"], dict):
+            data = json.loads("".join(content))
+            json.dumps(data, allow_nan=False)
+            if not isinstance(data, dict):
                 raise ValueError("Extraction must return one JSON object")
+            result["data"] = data
             result["success"] = True
     except Exception as exc:
         # Retain failures as physical calls; a resume must not silently retry them.
@@ -247,7 +254,14 @@ def collect(plan_path, output, *, phase):
         def prepare(job):
             nonlocal current_model
             model, _, _ = job.payload
-            if model.get("load_endpoint") and model["id"] != current_model:
+            weights = canonical_json_sha256(
+                {
+                    "model": model["model"],
+                    "endpoint": model.get("load_endpoint"),
+                    "options": model["parameters"].get("options", {}),
+                }
+            )
+            if model.get("load_endpoint") and weights != current_model:
                 load_body = {
                     "model": model["model"],
                     "prompt": "",
@@ -269,7 +283,7 @@ def collect(plan_path, output, *, phase):
                     },
                     exclusive=True,
                 )
-                current_model = model["id"]
+                current_model = weights
             _, pending, expected, _ = prepared[job.key]
             save_json(pending, expected, exclusive=True)
             return job.payload

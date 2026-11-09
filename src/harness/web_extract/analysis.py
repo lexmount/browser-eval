@@ -1,12 +1,168 @@
 """Per-field diagnostics derived through the upstream matching functions."""
 
 import json
+import math
+import statistics
+from collections import Counter
 from decimal import InvalidOperation
 from functools import lru_cache
+from pathlib import Path
 
 from harness.web_extract.pipeline import PROFILE, SCHEMA, digest, official_scorer
 
 FIELDS = tuple(SCHEMA["properties"])
+
+
+def score_model_comparison(plan_path, run, contract_path, home, *, stage):
+    """Score an exact declared subset without new calls or reference leakage."""
+    from jsonschema import Draft202012Validator
+
+    from harness.record_io import canonical_json_sha256, file_sha256, read_json
+    from harness.web_extract.model_comparison import request_body
+    from harness.web_extract.pipeline import normalize
+
+    plan_path, run, contract_path = Path(plan_path), Path(run), Path(contract_path)
+    plan, contract = read_json(plan_path), read_json(contract_path)
+    if plan["case_contract_sha256"] != file_sha256(contract_path):
+        raise ValueError("Model case contract changed")
+    binding = read_json(run / "binding.json")
+    if binding["plan_sha256"] != file_sha256(plan_path):
+        raise ValueError("Model plan differs from its collected evidence")
+    index = read_json(run / "call-hashes.json")
+    selected = {c["id"] for dataset in contract["stages"].values() for c in dataset[stage]}
+    cases = {c["id"]: c for c in plan["cases"] if c["id"] in selected}
+    if not cases or set(cases) != selected:
+        raise ValueError("Model stage omits declared cases")
+    originals = {c["id"]: c for dataset in contract["stages"].values() for c in dataset[stage]}
+    if cases != originals:
+        raise ValueError("Model plan changed the authoritative reference or input")
+    models = {m["id"]: m for m in plan["models"]}
+    rows = []
+    for call in (c for c in plan["calls"] if c["phase"] == "comparison" and c["case_id"] in cases):
+        key = canonical_json_sha256(call)
+        path = run / "calls" / (key + ".json")
+        if not path.exists() or index.get(key) != file_sha256(path):
+            raise ValueError("Missing or changed model call evidence")
+        record = read_json(path)
+        case, model = cases[call["case_id"]], models[call["model_id"]]
+        expected = {
+            **binding,
+            "call": call,
+            "request_sha256": canonical_json_sha256(request_body(plan, model, case)),
+        }
+        if (
+            record["binding"] != expected
+            or canonical_json_sha256(record["request"]) != expected["request_sha256"]
+        ):
+            raise ValueError("Model response does not bind the declared request")
+        response = record["response"]
+        data = response.get("data") if isinstance(response.get("data"), dict) else {}
+        valid = bool(
+            response.get("success")
+            and not list(Draft202012Validator(case["schema"]).iter_errors(data))
+        )
+        reference = case["reference"]
+        native = {"http_status": 200 if response.get("success") else 0}
+        if case["dataset"] == "swde":
+            policy = contract["bindings"]["swde"]["reference_policy"]
+            unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
+            native["normalized_fields"] = data
+            fields = record_field_results(
+                reference,
+                native,
+                text_matching=policy["text_matching"],
+                unavailable_fields=[
+                    field
+                    for field in reference["values"]
+                    if (reference["domain"], reference["site"], field) in unavailable
+                ],
+            )
+            complete = all(v["status"] != "unavailable" for v in fields.values())
+        else:
+            native["normalized_fields"] = normalize(
+                "crawl4ai-json", {"success": response.get("success", False), "data": data}
+            )
+            fields = field_results(Path(home), reference, native)
+            excluded = set(case.get("reference_excluded_fields", []))
+            fields = {k: v for k, v in fields.items() if k not in excluded and k != "OutOfStock"}
+            complete = not (set(case["schema"]["properties"]) & excluded)
+        counts = {
+            k: sum(v[k] for v in fields.values() if v["status"] != "unavailable")
+            for k in ("tp", "fp", "fn")
+        }
+        rows.append(
+            {
+                "model_id": call["model_id"],
+                "case_id": case["id"],
+                "dataset": case["dataset"],
+                "schema_valid": valid,
+                "fields": fields,
+                "reference_complete": complete,
+                "page_exact": (valid and all(v["status"] == "correct" for v in fields.values()))
+                if complete
+                else None,
+                "timings": {
+                    k: response.get(k)
+                    for k in (
+                        "first_any_output_seconds",
+                        "first_answer_seconds",
+                        "complete_json_seconds",
+                    )
+                },
+                "call_sha256": index[key],
+                **counts,
+            }
+        )
+    expected = {(m, c) for m in models for c in cases}
+    if len(rows) != len(expected) or {(r["model_id"], r["case_id"]) for r in rows} != expected:
+        raise ValueError("Incomplete or duplicate model comparison population")
+
+    def summarize(values):
+        totals = Counter({k: sum(r[k] for r in values) for k in ("tp", "fp", "fn")})
+        tp, fp, fn = (totals[k] for k in ("tp", "fp", "fn"))
+        timers = {}
+        for name in values[0]["timings"]:
+            durations = sorted(r["timings"][name] for r in values if r["timings"][name] is not None)
+            timers[name] = {
+                "count": len(durations),
+                "missing": len(values) - len(durations),
+                "mean": statistics.mean(durations) if durations else None,
+                "p50": statistics.median(durations) if durations else None,
+                "p95": durations[math.ceil(0.95 * len(durations)) - 1] if durations else None,
+            }
+        return {
+            "cases": len(values),
+            "schema_valid": sum(r["schema_valid"] for r in values),
+            "page_exact": sum(r["page_exact"] is True for r in values),
+            "page_exact_denominator": sum(r["reference_complete"] for r in values),
+            "precision": tp / (tp + fp) if tp + fp else None,
+            "recall": tp / (tp + fn) if tp + fn else None,
+            "f1": 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else None,
+            "timings": timers,
+            **totals,
+        }
+
+    groups = {}
+    for model in models:
+        values = [r for r in rows if r["model_id"] == model]
+        groups[model] = {
+            **summarize(values),
+            "datasets": {
+                ds: summarize([r for r in values if r["dataset"] == ds])
+                for ds in sorted({r["dataset"] for r in values})
+            },
+        }
+    return {
+        "stage": stage,
+        "plan_sha256": binding["plan_sha256"],
+        "case_contract_sha256": file_sha256(contract_path),
+        "scoring_sha256": file_sha256(Path(__file__)),
+        "groups": groups,
+        "case_ids": sorted(cases),
+        "details": rows,
+        "review_scope": "automatic scoring only",
+    }
+
 
 REFERENCE_CONTROLS = (
     ("locale-thousands-price", "price", ["24990"], "24990", "24.99"),

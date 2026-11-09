@@ -162,6 +162,10 @@ uv run --frozen python -m harness.web_extract.cli model-compare \
   --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase preflight
 uv run --frozen python -m harness.web_extract.cli model-compare \
   --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase comparison
+uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte model-score \
+  --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
+  --contract /absolute/data/case-contract.json --stage validation \
+  --output /absolute/data/model-scores.json
 ```
 
 Preflight records initialization separately and binds the shared execution-budget
@@ -170,6 +174,11 @@ exclusion. Every call retains first output, first answer, complete-response timi
 and raw stream events. A completed success or failure is reused on resume.
 An unresolved in-flight call stops collection for reconciliation. Changed inputs,
 weights, server versions or collector code require a new frozen contract.
+Offline scoring verifies the complete selected case matrix, original request
+bindings and retained response hashes. It uses the track's existing field rules,
+keeps unavailable reference fields outside quality denominators, and reports
+format validity separately from field accuracy. A validation partition remains
+separate from the screening set used to choose configurations.
 The synthetic scenarios in
 [`test_model_comparison.py`](../../tests/web_extract/test_model_comparison.py)
 exercise the request format, real streams, deadlines and independent resource lanes.

@@ -24,6 +24,10 @@ def main(argv=None):
     p.add_argument("--plan", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("preflight", "comparison"), required=True)
+    p = sub.add_parser("model-score", help="Score a retained model-only diagnostic without calls")
+    for flag in ("plan", "run", "contract", "output"):
+        p.add_argument("--" + flag, type=Path, required=True)
+    p.add_argument("--stage", choices=("screening", "validation"), required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
@@ -172,6 +176,16 @@ def main(argv=None):
         from harness.web_extract.model_comparison import collect
 
         print(collect(args.plan, args.output, phase=args.phase))
+    elif args.command == "model-score":
+        from harness.web_extract.analysis import score_model_comparison
+        from harness.web_extract.pipeline import save_json
+
+        save_json(
+            args.output,
+            score_model_comparison(args.plan, args.run, args.contract, args.home, stage=args.stage),
+            exclusive=True,
+        )
+        print(args.output)
     elif args.command == "host":
         from harness.web_extract.snapshots import host
 
@@ -361,7 +375,10 @@ def main(argv=None):
         except ValueError as error:
             parser.error(str(error))
         prepare_adjudication(
-            args.prior, args.work, args.rules, additional_priors=args.additional_prior,
+            args.prior,
+            args.work,
+            args.rules,
+            additional_priors=args.additional_prior,
             resolved_adjudications=args.resolved_adjudication,
             case_ids=read_json(args.case_ids) if args.case_ids else None,
         )
