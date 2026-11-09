@@ -454,7 +454,7 @@ def test_keepalive_survives_a_short_proxy_read_timeout_without_repeating_work(mo
     monkeypatch.setattr("harness.web_extract.self_hosted.KEEPALIVE_SECONDS", 0.02, raising=False)
     calls = []
 
-    def slow(value):
+    def slow(value, **kwargs):
         calls.append(value)
         time.sleep(0.35)
         return subprocess.CompletedProcess(

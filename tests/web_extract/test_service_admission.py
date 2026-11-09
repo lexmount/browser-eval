@@ -3,6 +3,7 @@
 import json
 import socket
 import subprocess
+import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
@@ -50,7 +51,7 @@ def test_separate_apps_share_one_worker_limit_and_release_after_cleanup(
     release = threading.Event()
     count = []
 
-    def worker(value):
+    def worker(value, **kwargs):
         count.append(value)
         if len(count) <= capacity:
             ready.wait()
@@ -82,7 +83,7 @@ def test_disconnect_does_not_release_a_still_running_worker(service):
     started, release = threading.Event(), threading.Event()
     calls = []
 
-    def worker(value):
+    def worker(value, **kwargs):
         calls.append(value)
         started.set()
         assert release.wait(5)
@@ -121,3 +122,121 @@ def test_disconnect_does_not_release_a_still_running_worker(service):
             thread.join(5)
             listener.close()
     assert not thread.is_alive()
+
+
+@pytest.mark.skipif(sys.platform != 'linux', reason='Linux request containment')
+def test_http_parent_death_keeps_admission_until_all_owned_processes_exit(tmp_path):
+    import psutil
+    import requests
+
+    pid_file = tmp_path / 'detached.pid'
+    directory = tmp_path / 'admission'
+    descendant = (
+        'import os,time;from pathlib import Path;'
+        f'Path({str(pid_file)!r}).write_text(str(os.getpid()),encoding="utf-8");time.sleep(60)'
+    )
+    native = (
+        'import subprocess,sys,time;'
+        f'subprocess.Popen([sys.executable,"-c",{descendant!r}],start_new_session=True);'
+        'time.sleep(60)'
+    )
+    with socket.socket() as listener:
+        listener.bind(('127.0.0.1', 0))
+        port = listener.getsockname()[1]
+    helper = tmp_path / 'http-parent.py'
+    helper.write_text(
+        'import os,sys,uvicorn\nfrom pathlib import Path\nfrom types import SimpleNamespace\n'
+        'from harness.web_extract import self_hosted as m\n'
+        f'm.ADMISSION_DIRECTORY=Path({str(directory)!r})\n'
+        'os.environ.update(EXTRACTION_API_KEY="service-key",EXTRACTION_MAX_WORKERS="1",'
+        'SNAPSHOT_ORIGINS="https://snapshots.example")\n'
+        'm.prepare_environment=lambda:(SimpleNamespace(cleanup=lambda:None),None)\n'
+        f'm.runtime_identity=lambda engine:{IDENTITY!r}\n'
+        'real=m.run_worker\n'
+        f'def worker(value,**kwargs):return real(value,timeout=15,command='
+        f'[sys.executable,"-c",{native!r}],**kwargs)\n'
+        'm.run_worker=worker\n'
+        f'uvicorn.run(m.create_app(),host="127.0.0.1",port={port},log_level="error")\n',
+        encoding='utf-8',
+    )
+    parent = subprocess.Popen([sys.executable, str(helper)], start_new_session=True)
+    unrelated = subprocess.Popen([sys.executable, '-c', 'import time;time.sleep(60)'])
+    owned = []
+    request = None
+    original_directory = self_hosted.ADMISSION_DIRECTORY
+    try:
+        origin = f'http://127.0.0.1:{port}'
+        for _ in range(300):
+            try:
+                if requests.get(origin + '/health', timeout=.2).status_code == 200:
+                    break
+            except requests.RequestException:
+                pass
+            assert parent.poll() is None, 'HTTP parent failed before the request'
+            time.sleep(.01)
+        else:
+            raise AssertionError('HTTP parent never became ready')
+
+        def send():
+            try:
+                requests.post(origin + '/extract/crawl4ai', json=BODY, headers=AUTH, timeout=20)
+            except requests.RequestException:
+                pass
+
+        request = threading.Thread(target=send, daemon=True)
+        request.start()
+        for _ in range(300):
+            if pid_file.exists():
+                break
+            time.sleep(.01)
+        assert pid_file.exists(), 'Native descendant never started'
+        owned = psutil.Process(parent.pid).children(recursive=True)
+        assert len(owned) >= 3
+        parent.kill()
+        parent.wait(timeout=3)
+        self_hosted.ADMISSION_DIRECTORY = directory
+        for _ in range(500):
+            alive = [p for p in owned if p.is_running() and p.status() != psutil.STATUS_ZOMBIE]
+            lease = self_hosted.acquire_worker_slot(1)
+            if lease is not None:
+                lease.close()
+                assert not alive, 'Worker admission reopened while orphaned extraction survived'
+                break
+            time.sleep(.01)
+        else:
+            raise AssertionError('Admission was not released after parent-death cleanup')
+        assert unrelated.poll() is None
+    finally:
+        self_hosted.ADMISSION_DIRECTORY = original_directory
+        if parent.poll() is None:
+            parent.kill()
+            parent.wait(timeout=3)
+        for process in reversed(owned):
+            try:
+                process.kill()
+            except psutil.NoSuchProcess:
+                pass
+        unrelated.kill()
+        unrelated.wait(timeout=3)
+        if request is not None:
+            request.join(timeout=1)
+
+
+@pytest.mark.skipif(sys.platform != 'linux', reason='Linux request containment')
+def test_supervisor_enforces_its_deadline_without_an_http_timeout(tmp_path):
+    import sys
+
+    import psutil
+
+    pid_file = tmp_path / 'deadline.pid'
+    command = (
+        'import os,time;from pathlib import Path;'
+        f'Path({str(pid_file)!r}).write_text(str(os.getpid()),encoding="utf-8");time.sleep(60)'
+    )
+    code = (
+        'import sys;from harness.web_extract.self_hosted import supervise;'
+        f'sys.exit(supervise([sys.executable,"-c",{command!r}],timeout=.5))'
+    )
+    result = subprocess.run([sys.executable, '-c', code], capture_output=True, timeout=5)
+    assert result.returncode == 142
+    assert pid_file.exists() and not psutil.pid_exists(int(pid_file.read_text(encoding='utf-8')))

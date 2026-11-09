@@ -6,6 +6,7 @@ import re
 from pathlib import Path
 
 from harness.benchmark_execution import ExecutionPolicy, exclusive_policy
+from harness.reporting.publication import atomic_create
 from harness.web_extract.dataset import task_bindings
 from harness.web_extract.pipeline import (
     ACCESS_POLICY,
@@ -344,11 +345,12 @@ def collect(home, profile, method, destination):
         if snapshot.is_symlink() or digest(snapshot.read_bytes()) != code["benchmark_execution.py"]:
             raise ValueError("Repair execution source changed before dispatch")
     else:
-        snapshot.parent.mkdir(parents=True, exist_ok=True)
-        with snapshot.open("xb") as output:
-            output.write(code_files["benchmark_execution.py"].read_bytes())
-            output.flush()
-            os.fsync(output.fileno())
+        atomic_create(snapshot, code_files["benchmark_execution.py"].read_bytes())
+        descriptor = os.open(snapshot.parent, os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
     receipt = destination / "fixture-before.json"
     if receipt.exists():
         if read_json(receipt) != before:

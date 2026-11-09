@@ -2477,3 +2477,34 @@ def test_repair_cli_allows_an_upload_only_plan_without_fixture_argument(tmp_path
         ]
     )
     assert read_json(output)["fixture_base"] is None
+
+
+def test_repair_initialization_recovers_an_unpublished_source_write(tmp_path):
+    from harness.reporting import publication
+
+    home, _, profile, _ = parent_inputs(tmp_path)
+    destination = tmp_path / 'repaired'
+    snapshot = destination / 'execution/benchmark_execution.py'
+    original_write = publication.atomic_write
+
+    def interrupted(path, payload):
+        if path.name == 'record':
+            path.write_bytes(payload[:17])
+            raise OSError('Interrupted before snapshot publication')
+        return original_write(path, payload)
+
+    with (patch('harness.web_extract.repair.validate_dataset'),
+          patch('harness.web_extract.repair.load_runtime_env'),
+          patch('harness.web_extract.pipeline.provider_call', return_value={
+              'state': 'response_received', 'http_status': 200,
+              'response': {'result': {'sku': 'new'}}}) as provider):
+        with patch.object(publication, 'atomic_write', side_effect=interrupted):
+            with pytest.raises(OSError, match='before snapshot publication'):
+                run(home, profile, 'cloudflare-json', destination)
+        assert not snapshot.exists() and provider.call_count == 0
+        run(home, profile, 'cloudflare-json', destination)
+        assert provider.call_count == 1
+        snapshot.write_bytes(b'modified published source')
+        with pytest.raises(ValueError, match='source changed'):
+            run(home, profile, 'cloudflare-json', destination)
+        assert provider.call_count == 1

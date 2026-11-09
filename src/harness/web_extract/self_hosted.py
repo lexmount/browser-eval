@@ -601,25 +601,32 @@ def terminate_children(parent):
     psutil.wait_procs(list(descendants.values()), timeout=1)
 
 
-def supervise(command):
+def supervise(command, *, timeout=110, parent_pid=None):
     """Keep Linux orphans under one request, rather than the shared HTTP service."""
     import ctypes
 
     import psutil
 
-    if ctypes.CDLL(None, use_errno=True).prctl(36, 1, 0, 0, 0) != 0:
-        raise OSError(ctypes.get_errno(), "Cannot enable request child-process reaping")
-
     def interrupted(signum, _frame):
         raise SystemExit(128 + signum)
 
-    for name in (signal.SIGTERM, signal.SIGINT):
+    parent_pid = os.getppid() if parent_pid is None else parent_pid
+    for name in (signal.SIGTERM, signal.SIGINT, signal.SIGALRM):
         signal.signal(name, interrupted)
     try:
+        libc = ctypes.CDLL(None, use_errno=True)
+        if libc.prctl(36, 1, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "Cannot enable request child-process reaping")
+        if libc.prctl(1, signal.SIGTERM, 0, 0, 0) != 0:
+            raise OSError(ctypes.get_errno(), "Cannot enable request parent-death cleanup")
+        if os.getppid() != parent_pid:
+            raise SystemExit(143)
+        signal.setitimer(signal.ITIMER_REAL, timeout)
         child = subprocess.Popen(command)
         return child.wait()
     finally:
-        for name in (signal.SIGTERM, signal.SIGINT):
+        signal.setitimer(signal.ITIMER_REAL, 0)
+        for name in (signal.SIGTERM, signal.SIGINT, signal.SIGALRM):
             signal.signal(name, signal.SIG_IGN)
         terminate_children(psutil.Process())
         while True:
@@ -630,7 +637,7 @@ def supervise(command):
                 break
 
 
-def run_worker(value, *, timeout=110, command=None):
+def run_worker(value, *, timeout=110, command=None, lease_fd=None):
     """Contain native browser descendants, including SDK-created sessions."""
     import psutil
 
@@ -642,7 +649,8 @@ def run_worker(value, *, timeout=110, command=None):
             value["_environment_cache"] = _ENVIRONMENT_CACHE_RECEIPT
     command = command or [sys.executable, "-m", "harness.web_extract.self_hosted"]
     if sys.platform == "linux":
-        command = [sys.executable, "-m", "harness.web_extract.self_hosted", "--supervise", *command]
+        command = [sys.executable, "-m", "harness.web_extract.self_hosted", "--supervise",
+                   str(timeout), str(os.getpid()), *command]
     process = subprocess.Popen(
         command,
         stdin=subprocess.PIPE,
@@ -652,6 +660,7 @@ def run_worker(value, *, timeout=110, command=None):
         env={**{k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"},
              "PYTHONDONTWRITEBYTECODE": "1"},
         start_new_session=True,
+        pass_fds=(lease_fd,) if sys.platform == "linux" and lease_fd is not None else (),
     )
     try:
         stdout, stderr = process.communicate(json.dumps(value), timeout=timeout)
@@ -785,7 +794,7 @@ def create_app():
 
         def owned_worker():
             try:
-                return run_worker(value)
+                return run_worker(value, lease_fd=lease.fileno())
             finally:
                 lease.close()
 
@@ -859,6 +868,6 @@ def create_app():
 
 if __name__ == "__main__":
     if sys.argv[1:2] == ["--supervise"]:
-        sys.exit(supervise(sys.argv[2:]))
+        sys.exit(supervise(sys.argv[4:], timeout=float(sys.argv[2]), parent_pid=int(sys.argv[3])))
     else:
         print(json.dumps(worker(json.load(sys.stdin)), default=str))

@@ -936,3 +936,64 @@ def test_execution_revision_preserves_or_archives_an_interrupted_retry(tmp_path,
     assert (archived if superseded_partial else retained).read_bytes() == original
     assert not list((output / 'partial-results').glob('*.json'))
     assert (output / 'resume-1/partial-results' / checkpoint.name).exists()
+
+
+def test_account_denial_stops_other_retries_before_failure_finalization(tmp_path):
+    import threading
+    import time
+    from concurrent.futures import ThreadPoolExecutor
+    from harness.web_search import runner
+
+    profile = execution_profile()
+    profile['cases'] = profile['cases'][:1]
+    profile['protocol'].update(order='bounded calls', rounds=1, concurrency=2, retry=True,
+                               interval_s=0, max_calls_per_method=2)
+    profile['execution_policy'] = {
+        'purpose': 'quality', 'max_in_flight': 2,
+        'resources': {m['id']: {'capacity': 1, 'reason': 'One provider account'}
+                      for m in profile['methods']}}
+    source, output = tmp_path / 'profile.json', tmp_path / 'run'
+    source.write_text(json.dumps(profile), encoding='utf-8')
+    started = threading.Barrier(2, timeout=3)
+    finalizing, release, extra = threading.Event(), threading.Event(), threading.Event()
+    sends = []
+
+    def http(url, body=None, header=None, timeout=20):
+        receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        sends.append(url)
+        if len(sends) > 2:
+            extra.set()
+            return receipt, b'{"results":[]}'
+        started.wait()
+        if url == profile['methods'][0]['endpoint']:
+            return dict(receipt, http_status=402), b'{"error":"account"}'
+        assert finalizing.wait(timeout=3)
+        return dict(receipt, http_status=503), b'{"error":"temporary"}'
+
+    def cost(method, status, *args):
+        if status == 402:
+            finalizing.set()
+            assert release.wait(timeout=3)
+        return None
+
+    with (patch.object(runner, 'http_call', side_effect=http),
+          patch.object(runner, 'request_cost', side_effect=cost),
+          patch.object(runner, 'load_runtime_env'),
+          patch.dict(os.environ, {m['key_env']: 'fixture' for m in profile['methods']}),
+          ThreadPoolExecutor(max_workers=1) as executor):
+        future = executor.submit(runner.run, source, output, certified=True)
+        try:
+            assert finalizing.wait(timeout=3)
+            deadline = time.monotonic() + 2
+            while not list((output / 'partial-results').glob('*.json')) and not extra.is_set():
+                assert time.monotonic() < deadline
+                time.sleep(.01)
+            assert not extra.is_set() and len(sends) == 2
+            assert len(list((output / 'reservations').glob('*.json'))) == 2
+        finally:
+            release.set()
+        with pytest.raises(ValueError, match='Provider account error'):
+            future.result(timeout=4)
+    assert len(sends) == 2

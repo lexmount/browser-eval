@@ -669,6 +669,12 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                     method["endpoint"], payload, header, protocol["client_timeout_s"]
                 )
                 made_call = True
+                if receipt["http_status"] in {401, 402} and (
+                    profile.get("execution_policy")
+                    or attempt_index == int(bool(protocol.get("retry")))
+                ):
+                    with result_lock:
+                        stopped.set()
                 # Provider error text must never echo a credential into evidence.
                 if key.encode() in raw:
                     raw = raw.replace(key.encode(), b"[REDACTED]")
