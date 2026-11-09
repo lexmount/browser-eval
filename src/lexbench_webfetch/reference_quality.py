@@ -6,6 +6,20 @@ from functools import lru_cache
 from html import unescape
 from html.entities import html5 as _HTML_ENTITIES
 
+from markdown_it.common.html_re import HTML_TAG_RE
+
+
+def _mixed_html_tag_pattern(pattern):
+    """Extend the pinned Markdown grammar without silently accepting drift."""
+    name_suffix = r'[A-Za-z0-9\-]*'
+    if name_suffix not in pattern:
+        raise RuntimeError('Markdown HTML tag grammar changed; review namespace handling')
+    return re.compile(pattern.removeprefix('^').replace(
+        name_suffix, r'[A-Za-z0-9:_.\-]*'))
+
+
+_MIXED_HTML_TAG_PATTERN = _mixed_html_tag_pattern(HTML_TAG_RE.pattern)
+
 
 # Cover the alphabets whose word boundaries the literal scorer enforces.
 _CASE_CODEPOINTS = (*range(0x0250), *range(0x0370, 0x0530), *range(0x1E00, 0x2000),
@@ -995,6 +1009,41 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
     protected = re.sub(
         r'\b(?:the|an?) +<(?P<element>script|style)> +(?:element|tag)\b',
         element_mention, protected, flags=re.I)
+    # Keep browser-tolerated tags, including malformed hidden/raw-text markup.
+    # Only escape an opener without its own closing bracket: otherwise a
+    # comparison such as x<y can consume prose up to an unrelated later tag.
+    pieces, cursor = [], 0
+    # Every tag pattern needs a closing bracket; openers after the last one
+    # cannot match and must not rescan the remaining text (quadratic in x<y).
+    last_close = protected.rfind('>')
+    while (left := protected.find('<', cursor)) >= 0:
+        pieces.append(protected[cursor:left])
+        tag = None if left > last_close else _MIXED_HTML_TAG_PATTERN.match(protected, left)
+        if tag is None and left < last_close:
+            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|[^<>])*>''').match(protected, left)
+        if tag is None and left < last_close:
+            tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|\s+[^\s>/="'][^\s>/="']*|[^<>])*>''').match(protected, left)
+            if tag:
+                unquoted = re.sub(r"""(?:"[^"]*"|'[^']*')""",
+                                  lambda quoted: "_" * len(quoted[0]), tag[0])
+                # A separate opener or a paragraph break is ambiguous in prose.
+                # Keep it only when a matching close or the visibility parser
+                # identifies the outer element.
+                boundary = re.search(r"\s<|\n[ \t]*\r?\n", unquoted)
+                if boundary:
+                    name = re.match(r"<([A-Za-z][\w:.-]*)", tag[0])
+                    closes = name and re.search(r"</" + re.escape(name[1]) + r"\s*>",
+                                                protected[tag.end():], re.I)
+                    if not closes and (not name or marker in visible_html_text(tag[0][:boundary.start()] + ">" + marker)):
+                        tag = None
+        if tag:
+            pieces.append(tag[0])
+            cursor = tag.end()
+        else:
+            pieces.append('&lt;')
+            cursor = left + 1
+    pieces.append(protected[cursor:])
+    protected = ''.join(pieces)
     if excluded_html_selectors:
         from bs4 import BeautifulSoup
         surface = BeautifulSoup(protected, 'html.parser')

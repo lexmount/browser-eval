@@ -55,22 +55,23 @@ class ReportRevisionTests(unittest.TestCase):
   rendered=overall_ranking(records,cases,call_budget_seconds=45)
   from bs4 import BeautifulSoup
   headers=[cell.get_text(' ',strip=True) for cell in BeautifulSoup(rendered,'html.parser').select('#ranking-overall thead th')]
-  self.assertEqual(headers[-3:],['总耗时均值 ↕','总耗时 P50 ↕','总耗时 P95 ↕'])
+  self.assertEqual(headers[-3:],['最终调用耗时均值 ↕','最终调用耗时 P50 ↕','最终调用耗时 P95 ↕'])
+  self.assertNotIn('累计执行耗时均值', ' '.join(headers))
   self.assertNotIn('全调用', ' '.join(headers))
-  self.assertIn('总耗时均值 / P50 / P95',rendered)
-  self.assertIn('包含失败重试和重试等待',rendered)
+  self.assertIn('最终调用耗时均值 / P50 / P95',rendered)
+  self.assertIn('不是包含此前重试和等待的累计耗时',rendered)
   self.assertIn('每次物理调用预算为 45 秒',rendered)
   from harness.web_fetch.report_i18n import translate_text
   self.assertEqual([translate_text(label) for label in ('均值','P50','P95')],['Mean','P50','P95'])
   self.assertIn('包含通过与失败',rendered)
   self.assertLess(rendered.index('slow-high-pass'),rendered.index('fast-low-pass'))
   self.assertIn('150 ms',rendered)
- def test_comparison_defaults_to_pass_rate_including_saved_snapshots(self):
+ def test_comparison_ranks_only_when_enabled(self):
   from bs4 import BeautifulSoup
   from harness.web_fetch.report import ranking
   cases={key:{'id':key,'track':'web','task_kind':'body'} for key in ('a','b')}
   records=[{'provider':name,'case_id':key,'ok':True,'elapsed_ms':10,
-            'metrics':{'content_pass':key=='a' or name=='z-high'}}
+            'metrics':{'content_pass':key=='a' or name=='z-high','scoring_source_sha256':'a'*64}}
            for name in ('a-low','z-high','b-low') for key in cases]
   for diagnostic in (False,True):
    for render in (lambda diagnostic=diagnostic:overall_ranking(records,cases,diagnostic=diagnostic),
@@ -82,8 +83,10 @@ class ReportRevisionTests(unittest.TestCase):
      self.assertEqual(table.get('data-dir'),'desc')
      rows=table.select('tbody tr')
      self.assertIn('z-high',rows[0].get_text())
-     self.assertEqual([row.select('td')[column].get_text() for row in rows],['100.0%','50.0%','50.0%'])
-     self.assertIsNotNone(rows[0].select('td')[column].select_one('.comparison-winner'))
+     expected=['100.0%','50.0%','50.0%']
+     self.assertEqual([row.select('td')[column].get_text() for row in rows],expected)
+     self.assertEqual(table.get('data-row-index'), 'false' if diagnostic else None)
+     self.assertEqual(bool(rows[0].select('td')[column].select_one('.comparison-winner')), not diagnostic)
      self.assertFalse(any(row.select('td')[column].select_one('.comparison-winner') for row in rows[1:]))
   # A shared maximum has no winner; unavailable metrics remain neutral.
   for row in records:row['metrics']['content_pass']=True
@@ -378,7 +381,7 @@ def test_measurement_display_policy_does_not_grant_certification():
  assert policy.local_matrix
  assert policy.native_outputs and policy.all_call_latency and policy.explain_unjudged
  assert 'data-evidence-state="local_measurement"' in local_audit_banner(local)
- assert '不可用于排名' in local_audit_banner(local)
+ assert '本地未认证诊断结果' in local_audit_banner(local)
  local['comparison']['presentation']={'ranking':'saved_task_pass_rate'}
  assert 'data-ranking-scope="saved-task-pass-rate"' in local_audit_banner(local)
 

@@ -56,7 +56,8 @@ class ReportMetricsTests(unittest.TestCase):
   value=ranking([record(),record(ok=False,passed=False)],{'c':{'track':'web'}},'web')
   self.assertIn('50.0%',value)
   self.assertNotIn('条件通过率',value);self.assertIn('已测任务',value)
-  self.assertIn('data-col="3"',value)
+  self.assertIn('data-col="2"',value)
+  self.assertIn('评分版本不同或缺失',value)
   self.assertLess(value.index('本表指标说明'),value.index('<table'))
   self.assertNotIn('(1/2)',value)
  def test_compact_rates(self):

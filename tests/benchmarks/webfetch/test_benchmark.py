@@ -142,6 +142,35 @@ class FrozenInputs(unittest.TestCase):
                 'regression_ids': data['regression_ids']}]} }})
         return data
 
+    def test_task_scope_revision_is_explicit_and_keeps_its_frozen_parent(self):
+        import copy
+        definition = self.annotation_revision()
+        original = bench.read(self.suites/'synthetic/tasks.json')
+        before = copy.deepcopy(original)
+        prompt = 'Return the article body and author; omit unrelated account controls.'
+        definition['changes'][0]['set']['task_prompt'] = prompt
+        revision_path = self.suites/'annotation-revisions/source-annotation-v2.json'
+        review_path = self.suites/'annotation-revisions/reviews.json'
+        review = bench.read(review_path)
+        after = {**original['cases'][0], **definition['changes'][0]['set']}
+        delta = bench.annotation_changes(bench.public_task(original['cases'][0]), bench.public_task(after))
+        item = review['revisions'][definition['id']]
+        item['changes'][0]['changes_sha256'] = hashlib.sha256(json.dumps(
+            delta, ensure_ascii=False, sort_keys=True, separators=(',', ':')).encode()).hexdigest()
+        for kind in ('score_only_annotation_revision', 'task_scope_revision'):
+            definition['kind'] = kind
+            item['revision_sha256'] = write(revision_path, definition)
+            write(review_path, review)
+            if kind == 'score_only_annotation_revision':
+                with self.assertRaisesRegex(ValueError, 'cannot change collection inputs'):
+                    bench.apply_annotation_revision('synthetic', original, definition['id'])
+            else:
+                result = bench.apply_annotation_revision('synthetic', original, definition['id'])
+                self.assertEqual(result['cases'][0]['task_prompt'], prompt)
+                self.assertEqual(result['definition_revision']['kind'], kind)
+                self.assertNotEqual(result['id'], original['id'])
+        self.assertEqual(original, before)
+
     def test_shared_contract_references_reject_missing_or_conflicting_definitions(self):
         contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1,
                     'stable_text_anchors': []}

@@ -47,7 +47,7 @@ class TavilyExtractProvider(Provider):
         return endpoint, arguments
 
     def validate(self) -> list[str]:
-        return [] if self.config.get("api_key") else ["api_key"]
+        return super().validate() + ([] if self.config.get("api_key") else ["api_key"])
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
@@ -86,6 +86,7 @@ class TavilyExtractProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 # The runner consumes this internal field into private evidence.
                 # Keep the exact response bytes until that persistence boundary;
                 # decoded text is not a byte-stable provider-call artifact.

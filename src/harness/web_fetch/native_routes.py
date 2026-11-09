@@ -8,6 +8,9 @@ import threading
 from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from urllib.parse import quote, urlsplit
+
+import idna
 
 from lexbench_webfetch.file_acceptance import evaluate_files
 from lexbench_webfetch.paths import contained_path
@@ -17,7 +20,7 @@ from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS
 from harness.web_fetch.native_projection import (
     SCORE_ANSWER_FIELDS,
     native_answer_projection,
-    native_projection_policy,
+    native_projection_policy, native_projection_policy_version,
     native_projection_source,
     require_native_answer_projection,
     require_native_projection_schema,
@@ -160,14 +163,34 @@ def _request_parameters(provider, case, cell, timeout_seconds):
     return {}
 
 
+def encode_http_target_url(url):
+    """Encode an IRI for transport without decoding escapes or changing its target."""
+    parts = urlsplit(url)
+    if parts.scheme not in ('http', 'https') or not parts.hostname:
+        raise ValueError('HTTP target URL must have a host and HTTP(S) scheme')
+    # Preserve existing ASCII spelling, delimiters, signed queries and escapes.
+    # Only international hostnames require IDNA rather than percent encoding.
+    if not parts.hostname.isascii():
+        host = idna.encode(parts.hostname, uts46=True, transitional=False).decode('ascii')
+        authority_start = url.index('//') + 2
+        authority_end = authority_start + len(parts.netloc)
+        userinfo, separator, host_port = parts.netloc.rpartition('@')
+        if not separator:
+            host_port = parts.netloc
+        _, colon, port = host_port.partition(':')
+        authority = (userinfo + separator if separator else '') + host + colon + port
+        url = url[:authority_start] + authority + url[authority_end:]
+    return quote(url, safe=":/?#[]@!$&'()*+,;=%")
+
+
 def normalized_http_parameters(case, arguments):
     body = deepcopy(arguments.get('json_body'))
     if not isinstance(body, dict):
         raise ValueError('Native HTTP request lacks its declared input field')
     slots = [key for key in ('url', 'urls') if key in body]
-    if slots == ['url'] and body['url'] == case.url:
+    if slots == ['url'] and body['url'] in (case.url, encode_http_target_url(case.url)):
         body['url'] = '<input-url>'
-    elif slots == ['urls'] and body['urls'] == [case.url]:
+    elif slots == ['urls'] and body['urls'] in ([case.url], [encode_http_target_url(case.url)]):
         body['urls'] = ['<input-url>']
     else:
         raise ValueError('Native HTTP input differs from the frozen task URL')
@@ -209,7 +232,7 @@ class NativeRouteLedger:
                 key, cell = native_route_cell(provider, case, timeout_seconds=self.timeout_seconds)
                 if case.track == 'dynamic':
                     if not native_default_case(case):
-                        raise ValueError('Native dynamic inputs require a stable acceptance contract')
+                        raise ValueError('Native dynamic inputs require a default retrieval declaration')
                 cell['request_parameters'] = _request_parameters(provider, case, cell, timeout_seconds)
                 if key in self.cells and self.cells[key] != cell:
                     raise ValueError('Native route intent differs within its declared class')
@@ -488,11 +511,14 @@ def native_cases_by_id(root):
     return indexed
 
 
-def _expected_native_declaration(root, record, raw, cases_by_id):
+def _expected_native_declaration(root, record, raw, cases_by_id, *, policy_version=3):
     cases_by_id = native_cases_by_id(root) if cases_by_id is None else cases_by_id
     case = (cases_by_id or {}).get(record.get('case_id'))
     if case is None or case.get('url') != record.get('url'):
         raise ValueError('Native answer selection lacks its frozen request identity')
+    # Serialized inputs may omit EvalCase defaults; replay must use the same
+    # routing defaults as acquisition without changing the frozen input bytes.
+    case = {'task_kind': 'body', 'track': 'web', **case}
     try:
         if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
             payload = parse_utf8_json(raw)
@@ -507,9 +533,15 @@ def _expected_native_declaration(root, record, raw, cases_by_id):
         payload = {}
     requests = record['provider_metadata']['native_route_receipt'].get('requests', [])
     interface = requests[0].get('signature', {}).get('interface') if requests else None
+    output_contract = record['provider_metadata'].get('output_contract', interface)
+    # Historical Moli captures used a format label instead of an interface.
+    # Replay their frozen request route; current adapters retain the route in
+    # output_contract. Never rewrite the old evidence to repair its label.
+    if record['provider_type'] == 'moli_webfetch' and output_contract == 'markdown':
+        output_contract = interface
     return native_answer_projection(record['provider_type'], case, payload,
                                     record['provider_metadata'].get('api_http_status', record.get('status_code')),
-                                    interface=record['provider_metadata'].get('output_contract', interface))
+                                    interface=output_contract, policy_version=policy_version)
 
 
 def verify_saved_native_answer(root, record, *, cases_by_id=None):
@@ -521,9 +553,9 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
     metadata = record.get('provider_metadata', {})
     declaration = metadata.get('native_answer_projection')
     policy = metadata.get('native_route_receipt', {}).get('answer_selection_policy')
+    policy_version = 3
     if policy is not None:
-        if policy != native_projection_policy(record.get('provider_type')):
-            raise ValueError('Native answer selection policy implementation differs from its pre-call freeze')
+        policy_version = native_projection_policy_version(policy, record.get('provider_type'))
         read_evidence_binding(root, {'path': policy['source_path'],
                                      'sha256': policy['source_sha256']})
     if not declaration:
@@ -545,7 +577,7 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
                 raw_hash = metadata.get('raw_stdout_sha256' if bytes_source else 'raw_response_sha256')
                 if raw_path or raw_hash:
                     raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
-                    if _expected_native_declaration(root, record, raw, cases_by_id) is not None:
+                    if _expected_native_declaration(root, record, raw, cases_by_id, policy_version=policy_version) is not None:
                         raise ValueError('Native answer declaration differs from its pre-call selection policy')
         return
     require_native_projection_schema(declaration)
@@ -564,7 +596,7 @@ def verify_saved_native_answer(root, record, *, cases_by_id=None):
         raise ValueError('Declared native answer lacks its retained raw response')
     raw = read_evidence_binding(root, {'path': raw_path, 'sha256': raw_hash}).read_bytes()
     if policy is not None:
-        expected_declaration = _expected_native_declaration(root, record, raw, cases_by_id)
+        expected_declaration = _expected_native_declaration(root, record, raw, cases_by_id, policy_version=policy_version)
         if expected_declaration != declaration:
             raise ValueError('Native answer declaration differs from its pre-call selection policy')
     files = [{'data': contained_path(root, item['artifact_path'], reject_symlinks=True).read_bytes()}

@@ -77,6 +77,12 @@ def pair(key: str, source: str, /, **values) -> tuple[str, str]:
 # are deliberately narrow report phrases; they never include task names,
 # reference answers, or provider output.
 PHRASES = dict(_TRANSLATIONS['PHRASES'])
+PHRASES.update({
+    '旧组遵守冻结的失败重试规则：是。': 'The baseline follows its frozen failure-retry policy: yes.',
+    '旧组遵守冻结的失败重试规则：否（不参与择优）。': 'The baseline follows its frozen failure-retry policy: no (ineligible).',
+    '旧组遵守冻结的失败重试规则：未核验。': 'The baseline follows its frozen failure-retry policy: unverified.',
+    '两组还须遵守各自冻结的失败重试规则。': 'Both groups must also follow their frozen failure-retry policies.',
+})
 
 
 # The adoption page carries a large, evidence-bound capability and pricing
@@ -96,6 +102,8 @@ def _body_region_summary(match):
 
 
 REGEX = [
+    (re.compile(r"^参数重测 (\d+) 项，已整组采用 (\d+) 项新结果。先检查整类配置是否一致，再比较符合条件的完整组通过数；不逐题拼接。两组还须遵守各自冻结的失败重试规则。配置不一致的组不能因通过数更高而入选。本轮不能证明参数导致速度提升。$"),
+     r"Parameter reruns evaluated \1 cases; \2 new results were selected as complete groups. Check configuration uniformity across each family before comparing eligible complete groups by pass count; do not combine individual cases. Both groups must also follow their frozen failure-retry policies. A group with inconsistent settings cannot qualify through a higher pass count. These runs do not establish that parameter changes improved speed."),
     (re.compile(r"^新批次启用自身 DEBUG 并捕获网络库日志；旧 (\d+) 条不计入本报告。$"), r"The new batch enabled native DEBUG output and captured network-library logs; \1 earlier records are excluded from this report."),
     (re.compile(r"^每次物理调用预算为 ([\d.]+) 秒，重试后的累计耗时可能超过该预算。$"), r"Each physical call has a \1-second budget; accumulated latency after retries can exceed it."),
     (re.compile(r"^本报告包含 (\d+) 个任务、(\d+) 个逻辑结果，任务通过 (\d+)/(\d+)。结论仅适用于已登记的任务和规则。$"), r"This report contains \1 tasks and \2 logical results, with \3/\4 task passes. Conclusions apply only to the registered tasks and rules."),
@@ -785,3 +793,150 @@ def write_english_report(out: Path, *, source_routes=None) -> int:
                 )
         target.write_text(localized, encoding="utf-8")
     return len(sources)
+
+
+# Saved-source presentation uses the shared localization owner.
+_SAVED_MATRIX_SOURCES = {'parameter_rerun_title': 'Parameter reruns and result selection',
+ 'changes_scope': 'Parameter reruns and offline revisions are recorded separately. Parameter reruns include '
+                  'new calls; offline revisions use retained responses only.',
+ 'offline_review_scope': 'This records rule review of known machine results, scored offline from saved '
+                         'answers, not independent blind review. New calls and result selection from '
+                         'parameter reruns are documented separately in Changes.',
+ 'parameter_rerun_banner': 'Parameter reruns evaluated {evaluated} tasks; {selected} new results were '
+                           'adopted as whole method/family groups by pass count. Adopted groups include '
+                           'regressions; old and new results are not combined task by task. Ties or lower '
+                           'pass counts retain the baseline. These runs do not establish that parameters '
+                           'improved speed.',
+ 'parameter_rerun_note': 'Categories and parameters are set before calls. A first failure permits at most '
+                         'one retry; the final call is retained. Compare whole method/family groups by pass '
+                         'count and adopt the complete improved group, including regressions. Ties or lower '
+                         'counts retain the baseline. Supplemental dynamic and popular tasks are selected '
+                         'with their respective specialist groups, not independently.',
+ 'parameter_family_banner': 'Parameter reruns evaluated {evaluated} cases; {selected} new results were '
+                            'selected as complete groups. Check configuration uniformity across each family '
+                            'before comparing eligible complete groups by pass count; do not combine '
+                            'individual cases. Both groups must also follow their frozen failure-retry '
+                            'policies. A group with inconsistent settings cannot qualify through a higher '
+                            'pass count. These runs do not establish that parameter changes improved speed.',
+ 'parameter_family_note': 'Check configuration uniformity across each family before comparing eligible '
+                          'complete groups by pass count. If only one group qualifies, select it even if its '
+                          'pass count is lower. Both groups must also follow their frozen failure-retry '
+                          'policies. If both groups qualify, retain the baseline when the candidate pass '
+                          'count is equal or lower.',
+ 'parameter_family_eligibility': 'Whole-family configuration uniformity: baseline {before}, candidate '
+                                 '{candidate}.',
+ 'parameter_baseline_retry_eligibility': 'The baseline follows its frozen failure-retry policy: {valid}.',
+ 'parameter_eligible': 'yes',
+ 'parameter_ineligible': 'no (ineligible)',
+ 'parameter_unverified': 'unverified',
+ 'parameter_rerun_selected': 'Rerun selected',
+ 'parameter_rerun_retained': 'Baseline retained',
+ 'parameter_rerun_group': 'This family contains {count} tasks: baseline passed {before_passed}, candidate '
+                          'passed {candidate_passed}.',
+ 'parameter_rerun_before': 'Baseline',
+ 'parameter_rerun_candidate': 'Rerun',
+ 'adapter_rejected': 'Not called · adapter rejected',
+ 'incomplete': 'Incomplete',
+ 'uncommitted': 'Called · result not saved',
+ 'undecidable': 'Called · undecidable',
+ 'not_called': 'Not called',
+ 'adapter_rejected_note': 'The adapter rejected the request before dispatch, so the product was not called. '
+                          'Original records and scores remain, but count as neither product failures nor '
+                          'pass-rate denominators.',
+ 'provider': 'Method',
+ 'limitations': 'Scope and limitations',
+ 'certification_note': 'This page summarizes saved results; evidence and file verification are not benchmark '
+                       'certification. Final presentation does not complete historical certification '
+                       'requirements or constitute a new independent blind review.',
+ 'record_link': 'Original result record',
+ 'answer_link': 'Original answer',
+ 'receipt_link': 'Evidence receipt',
+ 'completion_title': 'Completion and incomplete positions',
+ 'completion_note': 'Identically named tasks are distinguished by their original suite. Saved scores remain '
+                    'unchanged; uncommitted calls have no score. Adapter rejections are not product calls or '
+                    'failures and do not enter pass-rate denominators. Suite prefixes on detail-page IDs '
+                    'only avoid link collisions; original tasks and results remain in evidence files.',
+ 'completion_headers': ['Method',
+                        'Planned',
+                        'Actual calls',
+                        'Saved',
+                        'Normal returns',
+                        'Pass',
+                        'Adapter rejected',
+                        'Called but not saved',
+                        'Not called'],
+ 'missing_headers': ['Suite', 'Method', 'Original task ID', 'Status', 'Recorded reason', 'Evidence'],
+ 'suite_denominator_note': 'Counts use repository task suites. Pass rate is saved passes from actual calls '
+                           'divided by saved, decidable actual-call results. Missing and uncalled positions '
+                           'are not failures. Adapter rejections are not calls and do not enter the '
+                           'denominator; original records and scores remain unchanged.',
+ 'suite_result_headers': ['Method',
+                          'Planned tasks',
+                          'Saved results',
+                          'Not saved or not called',
+                          'Normal returns',
+                          'Pass',
+                          'Pass rate (explicit denominator)'],
+ 'history_title': 'Records before the correction',
+ 'history_note': 'Original records before the correction are retained below, without counting them again. '
+                 'Current results use replacement calls within a predeclared scope, not selection by score.',
+ 'history_scope': 'Replacement scope and original-record binding',
+ 'continuation_title': 'Completion of one failure retry',
+ 'continuation_note': 'One call already occurred. This completes its previously authorized retry, for two '
+                      'calls in total. Current scores and latency use the final call regardless of outcome; '
+                      'first-call evidence is retained.',
+ 'continuation_cost': 'Accumulated latency of both calls:',
+ 'continuation_unknown_cost': 'Unavailable: the exact first-call latency was not saved.',
+ 'continuation_prior': 'View first-call evidence',
+ 'coverage_banner_title': 'Saved-result coverage',
+ 'coverage_banner_counts': 'Planned {planned}; saved {saved}; called but not saved {uncommitted}; not called '
+                           '(including requested skips) {not_called}; adapter rejected {rejected}.',
+ 'coverage_banner_note': 'No scores are invented for missing or uncalled results; adapter rejections are not '
+                         'product failures. This report presents saved evidence, not complete acceptance or '
+                         'formal publication.',
+ 'final_call_timing_headers': ['Mean final-call latency', 'P50 final-call latency', 'P95 final-call latency'],
+ 'final_call_timing_title': 'Mean / P50 / P95 final-call latency',
+ 'final_call_timing_help': 'All three statistics use the final call of each retained result, including '
+                           'passes and failures. Uncommitted, uncalled and adapter-rejected entries are '
+                           'excluded; sample sizes can differ. Latency does not affect pass-rate ordering. '
+                           'Calls from different dates and batches are not a controlled same-window speed '
+                           'comparison.',
+ 'final_call_timing_note': 'Each logical result uses only its final call latency, not the accumulated cost '
+                           'of prior retries and waits. Continued retries disclose the known combined cost '
+                           'separately in their details; a missing first-call duration remains unavailable.'}
+
+
+def saved_matrix_text(key, **values):
+    """Use the shared English-source catalog for saved-result interface text."""
+    source = _SAVED_MATRIX_SOURCES[key]
+    if isinstance(source, list):
+        return [t(f'saved_matrix_{key}_{index}', text) for index, text in enumerate(source)]
+    result = t('saved_matrix_' + key, source, **values)
+    if values:
+        # Localized status labels need their English forms inside the sentence.
+        english_values = {name: translate_text(value) if isinstance(value, str) else value
+                          for name, value in values.items()}
+        TEXT[result.strip()] = source.format_map(english_values)
+    return result
+
+
+def _register_saved_matrix_fallbacks():
+    """Localize frozen Chinese pages from the same catalog and English sources."""
+    for key, source in _SAVED_MATRIX_SOURCES.items():
+        entries = [(f'saved_matrix_{key}_{index}', text) for index, text in enumerate(source)] if isinstance(source, list) else [('saved_matrix_' + key, source)]
+        for message_id, english in entries:
+            fields = re.findall(r'\{([a-z_]+)\}', english)
+            chinese = translate(MESSAGES, message_id, 'zh', **{name: '{' + name + '}' for name in fields})
+            if not fields:
+                TEXT.setdefault(chinese.strip(), english)
+                continue
+            pattern = re.escape(chinese)
+            for name in fields:
+                pattern = pattern.replace(re.escape('{' + name + '}'), '(?P<' + name + '>.+?)', 1)
+            def replacement(match, english=english):
+                return english.format_map({name: translate_text(value)
+                                           for name, value in match.groupdict().items()})
+            REGEX.append((re.compile('^' + pattern + '$'), replacement))
+
+
+_register_saved_matrix_fallbacks()

@@ -226,6 +226,7 @@ def _interface_error(*, response_status: int,
 
 
 class CloudflareMarkdownProvider(Provider):
+    native_configuration_fields = (*Provider.native_configuration_fields, 'scrape_selectors')
     def __init__(self, name, config):
         super().__init__(name, config)
         native = bool(config.get('uniform_native_parameters'))
@@ -273,7 +274,7 @@ class CloudflareMarkdownProvider(Provider):
         return None
 
     def _diagnostic_media(self, body, include_video_page_links, timeout_ms):
-        if include_video_page_links:
+        if include_video_page_links and not self.config.get('scrape_selectors'):
             body['elements'] = [{'selector': 'a[href]'}]
         self._diagnostic_timeouts(body, timeout_ms)
 
@@ -281,7 +282,7 @@ class CloudflareMarkdownProvider(Provider):
         return NativeRoute('http', self.native_http_interface(case), ('result', 'meta.title', 'meta.finalUrl',))
 
     def native_http_interface(self, case):
-        return ('/content' if self.type == 'cloudflare_content' else '/scrape'
+        return ('/content' if self.type == 'cloudflare_content' else '/scrape' if self.config.get('scrape_selectors') else '/scrape'
                 if case.task_kind == 'resource' and case.track in {'image', 'video'} else '/markdown')
 
     def native_http_arguments(self, case, timeout):
@@ -290,7 +291,7 @@ class CloudflareMarkdownProvider(Provider):
     def _http_arguments(self, case, timeout, interface):
         body = {'url': case.url, 'gotoOptions': {'waitUntil': self.config.get('wait_until', 'networkidle2')}}
         if interface == '/scrape':
-            selectors = (['img', 'picture source'] if case.track == 'image' else
+            selectors = self.config.get('scrape_selectors') or (['img', 'picture source'] if case.track == 'image' else
                          ['video', 'video source', 'audio', 'audio source', 'iframe', 'a[href]'])
             body['elements'] = [{'selector': value} for value in selectors]
         endpoint = 'https://api.cloudflare.com/client/v4/accounts/'+str(self.config.get('account_id', ''))+'/browser-rendering'+interface
@@ -299,7 +300,12 @@ class CloudflareMarkdownProvider(Provider):
         return endpoint, self.native_http_options(body, {'Authorization': 'Bearer '+str(self.config.get('api_token', ''))}, timeout)
 
     def validate(self) -> list[str]:
-        return [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        errors = super().validate() + [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        selectors = self.config.get('scrape_selectors')
+        if selectors is not None and (not isinstance(selectors, list) or not selectors
+                or any(not isinstance(x, str) or not x.strip() for x in selectors)):
+            errors.append('scrape_selectors')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
@@ -307,6 +313,8 @@ class CloudflareMarkdownProvider(Provider):
 
     def fetch_html(self, case: EvalCase, html: str, timeout: float) -> ProviderResult:
         """Run the product's documented inline-HTML route for frozen benchmarks."""
+        if self.config.get('scrape_selectors'):
+            raise ValueError('scrape_selectors is unsupported for inline HTML input')
         return self._fetch_payload(
             case,
             timeout,
@@ -323,7 +331,7 @@ class CloudflareMarkdownProvider(Provider):
     def _fetch_payload(self, case: EvalCase, timeout: float, request_body: dict | None = None, *, native_route_ledger=None) -> ProviderResult:
         account_id = str(self.config.get("account_id", ""))
         http_timeout = self.http_timeout_budget(timeout)
-        if (
+        if self.config.get('scrape_selectors') or (
             case.task_kind == "resource"
             and case.track in {"image", "video"}
             and self.config.get("page_output") != "native_markdown"
@@ -456,6 +464,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 # The runner removes this internal value into hash-bound private
                 # evidence before writing public results.
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
@@ -537,13 +546,14 @@ class CloudflareMarkdownProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
                 "api_http_status": response.status,
                 "route": "browser_rendering_scrape_resources",
                 "upstream_status": _origin_status(meta.get('status')),
-                **({'native_answer_projection': (native_answer_projection('cloudflare_markdown', case, payload, response.status))}
+                **({'native_answer_projection': (native_answer_projection('cloudflare_markdown', case, payload, response.status, interface='/scrape'))}
                    if envelope_success or meta else {}),
                 "browser": self.config.get("browser"),
                 "endpoint_route": "/browser-rendering/scrape" + ("?" + urlencode({"browser": self.config["browser"]}) if self.config.get("browser") else ""),
@@ -717,6 +727,7 @@ class CloudflareMarkdownProvider(Provider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),
@@ -749,7 +760,10 @@ class CloudflareContentProvider(CloudflareMarkdownProvider):
     """Rendered HTML diagnostic. It is deliberately excluded from the readable-text leaderboard."""
 
     def validate(self) -> list[str]:
-        return [name for name in ("api_token", "account_id") if not self.config.get(name)]
+        errors = super().validate()
+        if 'scrape_selectors' in self.config and 'scrape_selectors' not in errors:
+            errors.append('scrape_selectors')
+        return errors
 
     def fetch(self, case: EvalCase, timeout: float, *, native_route_ledger=None) -> ProviderResult:
         self.check_native_call(case)
@@ -785,6 +799,7 @@ class CloudflareContentProvider(CloudflareMarkdownProvider):
             error_type=error_type,
             error_message=error_message,
             metadata={
+                **response.dns_metadata,
                 "_raw_response_b64": base64.b64encode(response.body).decode("ascii"),
                 "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                 "raw_response_bytes": len(response.body),

@@ -230,6 +230,181 @@ class MoliTests(unittest.TestCase):
                     self.assertEqual(result.content.strip(), "native output")
                     self.assertEqual(result.metadata["dump"], "html" if kind == "resource" else "markdown")
 
+    def test_uniform_auto_document_command_and_delivery(self):
+        provider = self.provider(
+            "assert '--dump' not in sys.argv\n"
+            "assert sys.argv[sys.argv.index('--wait-until')+1] == 'done'\n"
+            "print('<html><body>document</body></html>')\n",
+            uniform_native_parameters=True, native_output="auto", wait_until="done")
+        commands = []
+        for media in ('direct_pdf', 'direct_docx', 'html_page'):
+            case = self.case_with(track='document', task_kind='body',
+                                  source_benchmark={'input_media_kind': media})
+            commands.append(provider.native_cli_command(case)[:-1])
+            result = provider.fetch(case, 5)
+            self.assertTrue(result.ok)
+            self.assertEqual(bool(result.files), media != 'html_page')
+            self.assertEqual(bool(result.content), media == 'html_page')
+            route = 'ordinary_html' if media == 'html_page' else 'native_document_bytes'
+            self.assertEqual(result.metadata['native_route_label'], route)
+            self.assertEqual(result.metadata['output_contract'], route)
+            self.assertEqual(result.metadata['output'], 'utf8_text' if media == 'html_page' else 'original_bytes')
+            self.assertEqual(result.metadata['requested_output'], 'auto')
+            self.assertEqual(provider.native_configured_parameters()['native_output'], 'auto')
+        self.assertTrue(all(command == commands[0] for command in commands))
+
+    def test_auto_output_reports_observed_text_without_guessing_its_markup(self):
+        from harness.web_fetch.native_routes import NativeRouteLedger, verify_saved_native_answer
+        from harness.web_fetch.runner import persist_result_artifacts
+        for index, content in enumerate(('<p>HTML body</p>', '# Markdown body', 'plain body')):
+            with self.subTest(content=content):
+                provider = self.provider(f'print({content!r})\n',
+                    uniform_native_parameters=True, native_output='auto')
+                case = self.case_with(source_benchmark={'input_media_kind': 'html_page'})
+                root = Path(self.directory.name)/f'auto-{index}'
+                root.mkdir()
+                ledger = NativeRouteLedger([case], [provider], timeout_seconds=5)
+                ledger.write(root, dataset_sha256='fixture', runtime_source_sha256='fixture')
+                result = provider.fetch(case, 5, native_route_ledger=ledger)
+                self.assertTrue(result.ok, result.error_message)
+                self.assertEqual(result.content.strip(), content)
+                self.assertEqual(result.metadata['requested_output'], 'auto')
+                self.assertEqual(result.metadata['output'], 'utf8_text')
+                self.assertEqual(result.metadata['output_format_source'], 'decoded_stdout')
+                self.assertEqual(result.metadata['extractor'], 'moli_native_stdout')
+                self.assertNotIn('--dump', provider.native_cli_command(case))
+                result.metadata['native_route_receipt'] = ledger.receipt(provider, case, ok=True)
+                artifact = persist_result_artifacts(root, Path('artifacts/answer.txt'), result, request_url=case.url)
+                record = {'ok': True, 'case_id': case.id, 'provider_type': provider.type,
+                    'url': case.url, 'final_url': result.final_url, 'title': result.title,
+                    'artifact_path': 'artifacts/answer.txt', 'provider_metadata': result.metadata,
+                    'metrics': {'content_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}}
+                verify_saved_native_answer(root, record, cases_by_id={case.id: vars(case)})
+                artifact.write_text('changed output', encoding='utf-8')
+                with self.assertRaises(ValueError):
+                    verify_saved_native_answer(root, record, cases_by_id={case.id: vars(case)})
+
+    def test_auto_output_does_not_claim_text_for_invalid_utf8(self):
+        provider = self.provider("sys.stdout.buffer.write(b'\\xff')\n",
+            uniform_native_parameters=True, native_output='auto')
+        result = provider.fetch(self.case_with(), 5)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.error_type, 'invalid_output')
+        self.assertEqual(result.metadata['output'], 'unknown')
+        self.assertEqual(result.metadata['output_format_source'], 'unobserved')
+
+    def test_auto_document_ignores_explicit_markdown_and_preserves_binary(self):
+        provider = self.provider("sys.stdout.buffer.write(b'%PDF-1.7\\xff')\n",
+            uniform_native_parameters=True, native_output='auto', document_output='markdown')
+        case = self.case_with(track='document', task_kind='body',
+                              source_benchmark={'input_media_kind': 'direct_pdf'})
+        result = provider.fetch(case, 5)
+        self.assertTrue(result.ok, result.error_message)
+        self.assertEqual(result.files[0]['data'], b'%PDF-1.7\xff')
+        self.assertEqual(provider.native_route(case).interface, 'native_document_bytes')
+
+    def test_html_direct_document_retains_text_and_failed_call(self):
+        from harness.web_fetch.native_routes import NativeRouteLedger, verify_saved_native_answer
+        from harness.web_fetch.runner import persist_result_artifacts
+        for failed in (False, True):
+            provider = self.provider("print('<p>document text</p>')\n" if not failed else "raise SystemExit(1)\n",
+                uniform_native_parameters=True, native_output='html')
+            case = self.case_with(track='document', task_kind='body',
+                                  source_benchmark={'input_media_kind': 'direct_pdf'})
+            root = Path(self.directory.name)/str(failed)
+            root.mkdir()
+            ledger = NativeRouteLedger([case], [provider], timeout_seconds=5)
+            ledger.write(root, dataset_sha256='fixture', runtime_source_sha256='fixture')
+            result = provider.fetch(case, 5, native_route_ledger=ledger)
+            self.assertEqual(result.ok, not failed)
+            self.assertEqual(result.metadata['output_contract'], 'ordinary_html')
+            self.assertEqual(result.metadata['native_route_label'], 'ordinary_html')
+            self.assertEqual(result.metadata['output'], 'html')
+            result.metadata['native_route_receipt'] = ledger.receipt(provider, case, ok=result.ok)
+            artifact = persist_result_artifacts(root,
+                Path('artifacts/document.txt'), result, request_url=case.url)
+            self.assertEqual(artifact.read_text(encoding='utf-8'), result.content)
+            self.assertFalse(result.files)
+            record = {'ok': result.ok, 'case_id': case.id, 'provider_type': provider.type,
+                      'url': case.url, 'final_url': result.final_url, 'title': result.title,
+                      'artifact_path': 'artifacts/document.txt', 'provider_metadata': result.metadata,
+                      'metrics': {'content_sha256': hashlib.sha256(artifact.read_bytes()).hexdigest()}}
+            verify_saved_native_answer(root, record, cases_by_id={case.id: vars(case)})
+            # Old retained calls used a format label; their frozen request still
+            # selects the same HTML projection without rewriting their bytes.
+            result.metadata['output_contract'] = 'markdown'
+            verify_saved_native_answer(root, record, cases_by_id={case.id: vars(case)})
+
+    def test_auto_dynamic_metadata_matches_omitted_layout_flags(self):
+        from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
+        provider = self.provider("print('<p>dynamic</p>')\n",
+            uniform_native_parameters=True, native_output='auto')
+        case = self.case_with(track='dynamic', retrieval_hints=NATIVE_RETRIEVAL_HINTS)
+        result = provider.fetch(case, 5)
+        self.assertTrue(result.ok, result.error_message)
+        self.assertFalse(result.metadata['layout'])
+        self.assertNotIn('layout', result.metadata['wait'])
+        self.assertNotIn('subdocuments', result.metadata['wait'])
+        self.assertNotIn('--with-frames', provider.native_cli_command(case))
+
+    def test_uniform_html_for_resource_and_body(self):
+        provider = self.provider("print('<html><body>native text</body></html>')\n",
+            uniform_native_parameters=True, native_output="html", wait_until="domstable")
+        commands = []
+        for track, kind in (('image', 'resource'), ('video', 'resource'), ('video', 'body')):
+            case = self.case_with(track=track, task_kind=kind)
+            commands.append(provider.native_cli_command(case)[:-1])
+            result = provider.fetch(case, 5)
+            self.assertTrue(result.ok)
+            self.assertEqual(result.metadata['dump'], 'html')
+            route = 'native_resource_html' if kind == 'resource' else 'ordinary_html'
+            self.assertEqual(result.metadata['output_contract'], route)
+            self.assertEqual(result.metadata['native_route_label'], route)
+            self.assertEqual(result.metadata['output'], 'html')
+        self.assertTrue(all(command == commands[0] for command in commands))
+
+    def test_uniform_document_markdown_uses_one_command_for_all_input_media(self):
+        provider = self.provider(
+            "assert sys.argv[sys.argv.index('--dump') + 1] == 'markdown'\n"
+            "assert sys.argv[sys.argv.index('--wait-until') + 1] == 'done'\n"
+            "print('native document text')\n",
+            uniform_native_parameters=True, document_output="markdown", wait_until="done")
+        for media in ("direct_pdf", "direct_docx", "html_page"):
+            case = self.case_with(track="document", task_kind="body",
+                                  source_benchmark={"input_media_kind": media})
+            result = provider.fetch(case, 5)
+            self.assertTrue(result.ok, result.error_message)
+            self.assertEqual(result.content.strip(), "native document text")
+            self.assertEqual(result.metadata["route"], "ordinary_markdown")
+            self.assertEqual(provider.native_route(case).interface, "ordinary_markdown")
+            self.assertEqual(result.metadata['output_contract'], 'ordinary_markdown')
+            self.assertEqual(provider.native_configured_parameters()['document_output'], 'markdown')
+            from harness.web_fetch.native_projection import require_native_answer_projection
+            result.metadata['native_route_receipt'] = {'answer_fields': ['stdout', 'diagnostic.main_document_url']}
+            require_native_answer_projection(result.content, result.metadata,
+                base64.b64decode(result.metadata['_raw_stdout_b64']), request_url=case.url, diagnostic=b'')
+            with self.assertRaises(ValueError):
+                require_native_answer_projection('changed answer', result.metadata,
+                    base64.b64decode(result.metadata['_raw_stdout_b64']), request_url=case.url, diagnostic=b'')
+
+    def test_uniform_document_markdown_preserves_native_failure(self):
+        provider = self.provider(
+            "print('raw download output only supports automatic output or --dump json', file=sys.stderr)\n"
+            "raise SystemExit(1)\n",
+            uniform_native_parameters=True, document_output="markdown", wait_until="done")
+        case = self.case_with(track="document", task_kind="body",
+                              source_benchmark={"input_media_kind": "direct_pdf"})
+        with patch("harness.web_fetch.document_text.extract_document_text", side_effect=AssertionError("caller conversion")):
+            result = provider.fetch(case, 5)
+        self.assertFalse(result.ok)
+        self.assertEqual(result.content, "")
+        self.assertFalse(result.files)
+
+    def test_invalid_document_output_rejected(self):
+        provider = self.provider("print('unused')\n", uniform_native_parameters=True,
+                                 document_output="pdf_to_markdown")
+        self.assertIn("document_output", provider.validate())
+
     def test_fixed_native_cli_omits_internal_timers(self):
         provider = self.provider(
             "import sys\n"
@@ -1286,6 +1461,33 @@ class MoliTests(unittest.TestCase):
                 'print("answer")', local_report_complete_diagnostic_links=True
             ).validate(),
         )
+
+    def test_empty_native_response_keeps_observed_final_url_through_persistence(self):
+        from copy import deepcopy
+        from harness.web_fetch.runner import persist_result_artifacts
+        for observed in (True, False):
+            with self.subTest(observed=observed):
+                log_url = self.case.url if observed else "https://cdn.example.com/asset"
+                log = (f"DEBUG fetch request complete method=GET url={log_url} "
+                       "final_url=https://example.com/final status=200 transfer_size=0")
+                provider = self.provider(f"print({log!r}, file=sys.stderr)\n",
+                    uniform_native_parameters=True, log_level="debug",
+                    retain_complete_diagnostic_log=True)
+                case = self.case_with(source_benchmark={"input_media_kind": "html_page"})
+                result = provider.fetch(case, 5)
+                self.assertFalse(result.ok)
+                self.assertEqual(result.content, "")
+                self.assertEqual(result.error_type, "empty_response")
+                self.assertEqual(result.error_message, "Moli returned no Markdown content")
+                self.assertEqual(result.final_url, "https://example.com/final" if observed else None)
+                output = Path(self.directory.name)/str(observed)
+                forged = deepcopy(result)
+                forged.final_url = "https://invented.example/"
+                with self.assertRaisesRegex(ValueError, "final URL"):
+                    persist_result_artifacts(output, Path("artifacts/forged.txt"), forged, request_url=case.url)
+                artifact = persist_result_artifacts(output, Path("artifacts/empty.txt"), result, request_url=case.url)
+                self.assertEqual(artifact.read_bytes(), b"")
+                self.assertFalse((output/"artifacts/forged.txt").exists())
 
     def test_zero_exit_empty_markdown_is_an_empty_response(self):
         result = self.provider('print(" ")').fetch(self.case, 2)

@@ -59,7 +59,7 @@ def test_default_retry_treats_all_task_failures_equally(tmp_path, run_task, fail
     assert (tmp_path/row['artifact_path']).read_text(encoding='utf-8') == 'Expected'
 
 
-@pytest.mark.parametrize('retries', [0, 1, 3])
+@pytest.mark.parametrize('retries', [0, 1])
 def test_configured_retry_bound_selects_last_answer_not_best(tmp_path, run_task, retries):
     provider = Responses([ProviderResult(True, f'wrong answer {number}',
                          metadata={'_answer_elapsed_ms': number * 10})
@@ -78,15 +78,16 @@ def test_success_stops_retries_before_exhausting_budget(run_task):
         ProviderResult(True, 'Expected', status_code=200, title='new title',
                        metadata={'_answer_elapsed_ms': 7}),
     ])
-    row = run_task(provider, max_failure_retries=4)
+    row = run_task(provider, max_failure_retries=1)
     assert provider.calls == 2
     assert (row['status_code'], row['title'], row['error_type'], row['elapsed_ms']) == (200, 'new title', None, 7)
 
 
-def test_cli_defaults_to_one_retry_and_accepts_larger_bounds():
+def test_cli_defaults_to_one_retry_and_rejects_larger_bounds():
     parser = build_parser()
     assert parser.parse_args(['run']).max_failure_retries == 1
-    assert parser.parse_args(['run', '--max-failure-retries', '4']).max_failure_retries == 4
+    with pytest.raises(SystemExit):
+        parser.parse_args(['run', '--max-failure-retries', '4'])
 
 
 @pytest.mark.parametrize('value', ['-1', '1.5'])
@@ -101,3 +102,80 @@ def test_hosted_credit_budget_accounts_for_all_configured_retries():
     provider = FirecrawlProvider('firecrawl', {'capacity_credits_per_call': 2})
     case = EvalCase('one', 'One', 'https://example.com', 'static', [])
     assert provider.capacity_credits_for_cases([case], runs=2, max_failure_retries=3) == 16
+
+
+def test_runner_rejects_extra_retry_before_any_call(run_task):
+    provider = Responses([ProviderResult(False, '')])
+    with pytest.raises(ValueError, match='At most one'):
+        run_task(provider, max_failure_retries=2)
+    assert provider.calls == 0
+
+
+def test_initial_success_never_retries(run_task):
+    provider = Responses([ProviderResult(True, 'Expected')])
+    assert run_task(provider)['metrics']['content_pass']
+    assert provider.calls == 1
+
+
+def test_late_first_call_is_discarded_then_retried_without_overlap(run_task):
+    import threading
+    import time
+
+    class SlowFirst(Responses):
+        def fetch(self, case, timeout, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                time.sleep(timeout + .05)
+                self.finished.set()
+                return ProviderResult(True, 'Expected')
+            assert self.finished.is_set()
+            return ProviderResult(False, '', error_type='second_failure')
+
+    provider = SlowFirst([])
+    provider.finished = threading.Event()
+    row = run_task(provider)
+    assert provider.calls == 2
+    assert not row['ok'] and row['error_type'] == 'second_failure'
+    attempts = row['provider_metadata']['retry']['attempts']
+    assert len(attempts) == 2
+    assert attempts[0]['error_type'] == 'timeout' and not attempts[0]['task_pass']
+    assert not attempts[1]['task_pass']
+
+
+def test_cleanup_events_and_native_logs_are_retained_before_retry(run_task, tmp_path):
+    import hashlib
+    import time
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    class CleanupLogging(Responses):
+        def fetch(self, case, timeout, **kwargs):
+            self.calls += 1
+            if self.calls == 1:
+                time.sleep(timeout + .1)
+                sink = self._call_diagnostics
+                sink.emit('native_library', 'cleanup_observation')
+                Path(str(sink.path)+'.moli.stderr').write_text('native cleanup bytes', encoding='utf-8')
+                self.finished = datetime.now(timezone.utc)
+                return ProviderResult(True, 'Late answer must be discarded')
+            assert self.finished is not None
+            return ProviderResult(True, 'Expected')
+
+    provider = CleanupLogging([])
+    provider.config['log_level'] = 'debug'
+    provider.finished = None
+    row = run_task(provider)
+    first, second = row['provider_metadata']['retry']['attempts']
+    assert first['error_type'] == 'timeout' and not first['task_pass']
+    assert second['task_pass'] and row['elapsed_ms'] == second['elapsed_ms']
+    assert (tmp_path/first['artifact_path']).read_bytes() == b''
+    assert len(first['private_artifacts']) == 1
+    diagnostic = first['private_artifacts'][0]
+    raw = (tmp_path/diagnostic['path']).read_bytes()
+    assert hashlib.sha256(raw).hexdigest() == diagnostic['sha256']
+    assert b'cleanup_observation' in raw and b'native cleanup bytes' in raw
+    assert raw.index(b'cleanup_observation') < raw.index(b'collection_completed')
+    assert datetime.fromisoformat(first['completed_at']) >= provider.finished
+    assert first['elapsed_ms'] < (provider.finished - datetime.fromisoformat(first['started_at'])).total_seconds() * 1000
+    call = json.loads((tmp_path/first['call_log']['path']).read_bytes())
+    assert call['timing']['completed_at'] == first['completed_at']

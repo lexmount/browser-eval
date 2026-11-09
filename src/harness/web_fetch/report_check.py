@@ -125,10 +125,10 @@ def require_table_index_headers(parser, *, english=False, diagnostic=False):
 
 
 def require_home_comparison_layout(home, track_count, *, diagnostic=False, sample_ranking=False):
-    overall = (t('task_judgments_not_a_ranking', 'Task judgments (not a ranking)') if diagnostic else
-               '本轮任务通过率排名' if sample_ranking else t('overall_coverage_ranking', 'Overall coverage ranking'))
-    details = t('diagnostic_results_by_task_family', 'Diagnostic results by task family') if diagnostic else t('rankings_for_task_families_2', 'Rankings for {track_count} task families', track_count=track_count)
-    markers = [t('task_families_2', '{track_count} task families', track_count=track_count), overall, details]
+    overall = ('任务通过情况' if diagnostic else
+               '本轮任务通过率排名' if sample_ranking else '综合通过率总榜')
+    details = '按任务类别查看诊断结果' if diagnostic else f'{track_count} 类分榜'
+    markers = [f'{track_count} 类任务概览', overall, details]
     headings = [re.sub(r'<[^>]+>', '', value) for value in re.findall(r'<h2[^>]*>(.*?)</h2>', home, re.S)]
     if any(marker not in headings for marker in markers) or not (
             headings.index(markers[1]) < headings.index(markers[0]) < headings.index(markers[2])):
@@ -272,16 +272,19 @@ class VisibleLocalScope(HTMLParser):
         super().__init__()
         self.stack = []
         self.visible = set()
+        self.is_report = False
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
+        if tag == 'meta' and attrs.get('name') == 'browser-eval-report' and attrs.get('content') == '1':
+            self.is_report = True
         inherited = self.stack[-1][1:] if self.stack else (False, set())
         style = re.sub(r'\s+', '', attrs.get('style', '')).lower()
         hidden = (inherited[0] or tag in {'script', 'style', 'template'}
                   or 'hidden' in attrs or attrs.get('aria-hidden') == 'true'
                   or 'display:none' in style or 'visibility:hidden' in style)
         kinds = set(inherited[1])
-        if attrs.get('data-evidence-state') == 'local_measurement': kinds.add('evidence')
+        if attrs.get('data-evidence-state') in {'local_measurement', 'saved_diagnostic', 'saved_results'}: kinds.add('evidence')
         if attrs.get('data-ranking-scope') == 'saved-task-pass-rate': kinds.add('ranking')
         if tag not in {'area','base','br','col','embed','hr','img','input','link','meta','param','source','track','wbr'}:
             self.stack.append((tag, hidden, kinds))
@@ -299,19 +302,26 @@ class VisibleLocalScope(HTMLParser):
 
 def check_local_diagnostic_presentation(root: Path, *, ranked=False):
     """Track evidence state and scope any explicitly requested sample ranking."""
+    from harness.report_languages import english_notice
     for path in root.rglob('*.html'):
+        relative = path.relative_to(root)
+        parts = relative.parts[1:] if relative.parts[0] == 'en' else relative.parts
+        if parts[0] in {'evidence', 'artifacts', 'sources', 'references', 'local-evidence'}:
+            continue
         page = path.read_text(encoding='utf-8')
-        if '<meta name="browser-eval-report" content="1">' not in page:
-            continue  # Original response/source HTML is evidence, not report prose.
         disclosure = VisibleLocalScope()
         disclosure.feed(page)
-        if 'evidence' not in disclosure.visible:
+        if relative.as_posix() == 'en/index.html' and page == english_notice():
+            continue
+        if not disclosure.is_report or 'evidence' not in disclosure.visible:
             raise ValueError('Local diagnostic disclosure missing: ' + str(path.relative_to(root)))
         if ranked and 'ranking' not in disclosure.visible:
             raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
         for table in re.findall(r'<table\b[^>]*\bid="ranking-[^"]+".*?</table>', page, re.S):
-            if not ranked and re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table):
-                raise ValueError('Uncertified diagnostic comparison assigns ranks: ' + str(path.relative_to(root)))
+            if not ranked and (re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table) or 'comparison-winner' in table):
+                raise ValueError('Unrequested diagnostic ranking: ' + str(path.relative_to(root)))
+            if re.search(r'<th>\s*(?:序号|Rank|No\.)\s*</th>', table) and 'ranking' not in disclosure.visible:
+                raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
 
 
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):

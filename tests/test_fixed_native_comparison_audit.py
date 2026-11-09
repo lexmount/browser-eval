@@ -24,6 +24,10 @@ class NativeFixture(Provider):
             "binary_sha256": config["expected_binary_sha256"],
         }
 
+    def _selected_native_route(self, case):
+        from harness.web_fetch.providers.moli import MoliWebFetchProvider
+        return MoliWebFetchProvider._selected_native_route(self, case)
+
     def native_cli_command(self, case):
         from harness.web_fetch.providers.moli import MoliWebFetchProvider
         return MoliWebFetchProvider.native_cli_command(self, case)
