@@ -368,6 +368,7 @@ class PipelineScenarios(unittest.TestCase):
                 patch("harness.web_extract.pipeline.provider_call", side_effect=call),
                 patch("harness.web_extract.pipeline.time.monotonic", side_effect=lambda: clock[0]),
                 patch("harness.web_extract.pipeline.time.sleep", side_effect=sleep),
+                patch("harness.benchmark_execution.threading.Event.wait", side_effect=sleep),
                 patch.dict(os.environ, {"DIFFBOT_API_TOKEN": "synthetic"}),
             ):
                 run = probe(home, ["diffbot-product"], full=True, min_call_interval=60)
