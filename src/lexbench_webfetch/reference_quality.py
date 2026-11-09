@@ -1013,12 +1013,15 @@ def visible_mixed_html_text(text: str, *, excluded_html_selectors=()) -> str:
     # Only escape an opener without its own closing bracket: otherwise a
     # comparison such as x<y can consume prose up to an unrelated later tag.
     pieces, cursor = [], 0
+    # Every tag pattern needs a closing bracket; openers after the last one
+    # cannot match and must not rescan the remaining text (quadratic in x<y).
+    last_close = protected.rfind('>')
     while (left := protected.find('<', cursor)) >= 0:
         pieces.append(protected[cursor:left])
-        tag = _MIXED_HTML_TAG_PATTERN.match(protected, left)
-        if tag is None:
+        tag = None if left > last_close else _MIXED_HTML_TAG_PATTERN.match(protected, left)
+        if tag is None and left < last_close:
             tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|[^<>])*>''').match(protected, left)
-        if tag is None:
+        if tag is None and left < last_close:
             tag = re.compile(r'''<(?=[A-Za-z/!?])(?>"[^"]*"|'[^']*'|=[^\s>"']+|\s+[^\s>/="'][^\s>/="']*|[^<>])*>''').match(protected, left)
             if tag:
                 unquoted = re.sub(r"""(?:"[^"]*"|'[^']*')""",
