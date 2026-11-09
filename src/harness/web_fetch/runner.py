@@ -25,7 +25,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 from lexbench_webfetch.response_input import apply_request_status
 from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256, load_list_reference, score_attempt
 
-from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs, validate_capacity
+from harness.benchmark_execution import ExecutionPolicy, ExecutionStop, Job, run_jobs, validate_capacity
 from harness.record_io import load_jsonl, optional_file_sha256
 from harness.reporting.privacy import WEB_FETCH_DIAGNOSTIC
 from harness.reporting.versions import software_identity
@@ -726,7 +726,9 @@ def run_evaluation(
     result_lock = threading.Lock()
     with results_path.open("w", encoding="utf-8") as results_file:
         completed_by_provider = {}
-        operator_stopped = stop_event if stop_event is not None else threading.Event()
+        operator_stopped = (
+            stop_event if isinstance(stop_event, ExecutionStop) else ExecutionStop(stop_event)
+        )
 
         def cancelled():
             return operator_stopped.is_set()

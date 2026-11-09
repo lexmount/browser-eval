@@ -15,7 +15,7 @@ import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
-from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
+from harness.benchmark_execution import ExecutionPolicy, ExecutionStop, Job, run_jobs
 from harness.record_io import bytes_sha256, read_completed_records
 from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.web_search.adapters import adapter_for
@@ -625,7 +625,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
         partial.pop(identity, None)
         (output / "partial-results" / (identity + ".json")).unlink(missing_ok=True)
     spent_calls = physical_call_counts(profile, output)
-    stopped = threading.Event()
+    stopped = ExecutionStop()
     result_lock = threading.Lock()
 
     def run_batch(selected_task=None):

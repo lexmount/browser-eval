@@ -29,6 +29,27 @@ from pathlib import Path
 from typing import Any
 
 
+class ExecutionStop:
+    """Expose a signal-safe stop flag; notify waiters outside signal handlers."""
+
+    def __init__(self, event=None):
+        self.event = event if event is not None else threading.Event()
+        self.requested = False
+
+    def request_stop(self):
+        self.requested = True
+
+    def is_set(self):
+        return self.requested or self.event.is_set()
+
+    def set(self):
+        self.request_stop()
+        self.event.set()
+
+    def wait(self, timeout=None):
+        return self.is_set() or self.event.wait(timeout)
+
+
 def exclusive_policy(resource, reason, *, purpose="quality"):
     """Describe a stateful environment whose full lifecycle has one owner."""
     value = {
@@ -251,7 +272,7 @@ def run_jobs(
     active = {name: 0 for name in policy.resources}
     inflight = {}
     failure = None
-    stop_event = stop_event if stop_event is not None else threading.Event()
+    stop_event = stop_event if isinstance(stop_event, ExecutionStop) else ExecutionStop(stop_event)
     options = {"max_workers": policy.max_in_flight}
     if initialize is not None:
         options.update(initializer=initialize, initargs=initargs)
@@ -271,6 +292,7 @@ def run_jobs(
     def record_interrupt():
         nonlocal failure
         # A signal can interrupt Event.wait while its non-reentrant lock is held.
+        stop_event.request_stop()
         if failure is None:
             failure = KeyboardInterrupt()
 

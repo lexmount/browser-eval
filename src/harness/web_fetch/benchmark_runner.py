@@ -4,12 +4,11 @@ from __future__ import annotations
 import argparse
 import json
 import math
-import threading
 from datetime import UTC, datetime
 from pathlib import Path
 
 from harness.distribution import repository_root
-from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
+from harness.benchmark_execution import ExecutionPolicy, ExecutionStop, Job, run_jobs
 from harness.web_fetch.artifacts import materialize_bound_artifacts, materialize_task_references
 from harness.web_fetch.config import (
     DEFAULT_CALL_TIMEOUT_SECONDS,
@@ -126,7 +125,7 @@ def main(argv=None):
     )
     frozen_runtime = runtime_source_sha256()
     args.output.mkdir(parents=True)
-    stopped = threading.Event()
+    stopped = ExecutionStop()
     if network_audit is not None:
         (args.output / "network-preflight.json").write_text(json.dumps(network_audit, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
     def work(name):
