@@ -151,9 +151,10 @@ class LexmountProvider(Provider):
         try:
             payload = response.json()
         except ValueError:
-            payload = {}
-        if not isinstance(payload, dict):
-            payload = {}
+            payload = None
+        # A non-JSON body (for example a proxy's HTML 502) has no declared answer.
+        parsed = isinstance(payload, dict)
+        payload = payload if parsed else {}
         result = payload.get("result")
         result = result if isinstance(result, dict) else {}
         metadata = payload.get("metadata")
@@ -180,7 +181,8 @@ class LexmountProvider(Provider):
                     "raw_response_sha256": hashlib.sha256(response.body).hexdigest(),
                     "raw_response_bytes": len(response.body),
                     "api_http_status": response.status,
-                    "native_answer_projection": native_answer_projection(self.type, case, payload, response.status)}
+                    **({"native_answer_projection": native_answer_projection(self.type, case, payload, response.status)}
+                       if parsed else {})}
                    if self._native_mode else {}),
                 **({"raw_response": response.text()} if case.task_kind == "file" else {}),
                 "request_id": payload.get("request_id"),

@@ -111,3 +111,18 @@ def test_native_nested_input_rejects_url_drift_and_snapshot_reuse():
     args['json_body']['extract']['url'] = 'https://other.example/'
     with pytest.raises(ValueError, match='frozen task URL'):
         normalized_http_parameters(case, args)
+
+
+@pytest.mark.parametrize('status,raw', [
+    (200, json.dumps({'result': {'main_text': 'Body', 'links': None, 'images': None}}).encode()),
+    (502, b'<html><body>Bad gateway</body></html>'),
+])
+def test_native_lexmount_replays_null_resources_and_non_json_failures(status, raw):
+    case = EvalCase(id='sample', name='Sample', category='test',
+                    url='https://example.com', expected_any=[])
+    with patch('harness.web_fetch.providers.lexmount.request',
+               return_value=HttpResponse(status, 'https://api.lexmount.com/v1/extract', {}, raw)):
+        result = provider().fetch(case, 30)
+    assert result.ok is (status == 200)
+    require_native_answer_projection(result.content, result.metadata, raw,
+        title=result.title, final_url=result.final_url, request_url=case.url)

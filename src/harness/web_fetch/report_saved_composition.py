@@ -39,8 +39,8 @@ def composition_model(output, spec, snapshots):
             raise ValueError('Saved composition source audit changed')
         check_saved_matrix(root)
         audit, model = _read(root / 'saved-matrix-audit.json'), _read(root / 'matrix.json')
-        selected = snapshot.get('providers')
-        if selected is not None:
+        if 'providers' in snapshot:
+            selected = snapshot['providers']
             available = {p['id'] for p in model['providers']}
             if (not isinstance(selected, list) or not selected
                     or any(not isinstance(p, str) for p in selected)

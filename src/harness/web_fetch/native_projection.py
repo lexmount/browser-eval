@@ -111,9 +111,10 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                     'final_url': {'pointer': ['result', 'final_url' if result.get('final_url') else 'url'],
                                   'format': 'text_or_none'},
                     'title': {'pointer': ['result', 'title'], 'format': 'text_or_none'}},
-                'answer_fields': {
-                    'links': {'pointer': ['result', 'links'], 'format': 'identity', 'default': []},
-                    'images': {'pointer': ['result', 'images'], 'format': 'identity', 'default': []}}}
+                # Declare resources only when returned as lists: an explicit null
+                # is no resources, like the adapter's metadata.
+                'answer_fields': {name: {'pointer': ['result', name], 'format': 'identity'}
+                                  for name in ('links', 'images') if isinstance(result.get(name), list)}}
     if provider_type == 'brightdata_unlocker':
         if policy_version >= 3 and task_kind == 'file':
             return {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'empty',

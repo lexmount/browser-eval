@@ -98,7 +98,7 @@ def test_composition_selects_method_without_changing_saved_results(tmp_path):
     assert row['passed'] == original['passed'] and row['elapsed_ms'] == original['elapsed_ms']
 
 
-@pytest.mark.parametrize('selected', [[], ['unknown'], ['method-0', 'method-0'], 'method-0', [None]])
+@pytest.mark.parametrize('selected', [[], ['unknown'], ['method-0', 'method-0'], 'method-0', [None], None])
 def test_composition_rejects_invalid_method_selection(tmp_path, selected):
     path, _ = reports(tmp_path)
     spec = json.loads(path.read_bytes())
