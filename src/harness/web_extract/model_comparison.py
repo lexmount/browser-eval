@@ -571,7 +571,9 @@ def collect(plan_path, output, *, phase, repair=None):
             )
             sample = {
                 "completed_calls": len(calls),
-                "wall_seconds": max(0.000001, elapsed - setup),
+                # A different resource can load while earlier inference is active.
+                # Keep the complete wall interval for a conservative projection.
+                "wall_seconds": max(0.000001, elapsed),
                 "max_in_flight": policy.max_in_flight,
                 "elapsed_wall_seconds": elapsed,
                 "separately_recorded_model_load_seconds": setup,
@@ -581,7 +583,7 @@ def collect(plan_path, output, *, phase, repair=None):
                 "binding": binding,
                 "execution_policy": plan["execution_policy"],
                 "planned_calls": sum(c["phase"] == "comparison" for c in plan["calls"]),
-                "setup_seconds": setup,
+                "setup_seconds": 0,  # Model loading is already in the sampled wall time.
                 "wall_time_budget_seconds": plan["wall_time_budget_seconds"],
                 "preflight": {
                     **sample,

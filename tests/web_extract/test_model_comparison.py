@@ -551,6 +551,65 @@ def test_optional_load_options_use_native_defaults(tmp_path):
         assert len(calls)==2 and calls[0]['options']=={}
 
 
+def test_overlapping_load_does_not_hide_work_from_budget_projection(tmp_path, monkeypatch):
+    from harness.web_extract import model_comparison
+
+    inference_started, second_loaded = threading.Event(), threading.Event()
+    value = plan('http://fixture')
+    value['execution_policy'] = {
+        'purpose': 'quality', 'max_in_flight': 2, 'backend': 'process',
+        'resources': {name: {'capacity': 1, 'reason': 'Independent model server'}
+                      for name in ('a', 'b')},
+    }
+    value['models'] = [
+        {**value['models'][0], 'id': name, 'model': name, 'resources': [name],
+         'load_endpoint': 'http://fixture/load'} for name in ('a', 'b')
+    ]
+    value['calls'] = [
+        {'model_id': name, 'case_id': 'page', 'phase': 'preflight'} for name in ('a', 'b')
+    ] + [
+        {'model_id': name, 'case_id': 'page', 'phase': 'comparison', 'ordinal': n}
+        for n in range(10) for name in ('a', 'b')
+    ]
+    value['wall_time_budget_seconds'] = 1
+
+    original_auxiliary = model_comparison.auxiliary_json
+
+    def load(*args, payload=None, **kwargs):
+        if payload is None:
+            return original_auxiliary(*args, **kwargs)
+        if payload['model'] == 'b':
+            assert inference_started.wait(timeout=2)
+            time.sleep(.2)
+            second_loaded.set()
+        return {'done': True}
+
+    class OverlappingInference:
+        def wait(self, timeout):
+            inference_started.set()
+            assert second_loaded.wait(timeout=timeout)
+
+    monkeypatch.setattr(model_comparison, 'auxiliary_json', load)
+    monkeypatch.setattr(model_comparison, 'verify_models', lambda models: None)
+    events = [{'message': {'content': '{}'}}, {'done': True}]
+    with server(events, barrier=OverlappingInference()) as (url, requests):
+        for model in value['models']:
+            model['endpoint'] = url+'/api/chat'
+            model['runtime']['base'] = url
+        path, output = tmp_path/'plan.json', tmp_path/'run'
+        save_json(path, value)
+        collect(path, output, phase='preflight')
+        sample = read_json(output/'preflight.json')
+        assert sample['wall_seconds'] >= sample['elapsed_wall_seconds']
+        assert sample['separately_recorded_model_load_seconds'] >= .2
+        value = read_json(output/'execution-plan.json')
+        value['wall_time_budget_seconds'] = sample['elapsed_wall_seconds'] * 5
+        save_json(output/'execution-plan.json', value)
+        with pytest.raises(ValueError, match='exceeds the budget'):
+            collect(path, output, phase='comparison')
+        assert len(requests) == 2
+
+
 @pytest.mark.parametrize('invalid', [0, -1, float('inf'), float('nan'), True])
 def test_invalid_auxiliary_deadlines_fail_before_any_model_call(tmp_path, invalid):
     with server([]) as (url, calls):
