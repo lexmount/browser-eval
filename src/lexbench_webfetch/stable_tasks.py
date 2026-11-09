@@ -2021,15 +2021,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if escaped_prose:
                 matched = [value for value in anchor['alternatives'] if _stable_literal_match(
                     escaped_prose, value, representation=match_representation, rendered=True, literal=True)]
-        if (not matched and links and schema in {'body_text', 'page_identity'}
-                and not exclusions and not anchor.get('match_scope')
-                and not anchor.get('visible_control')):
-            from .response_input import safe_named_links
-            # Keep each label separate: unrelated links cannot form a phrase.
-            labels = [label for _, label in safe_named_links(links, base_url)]
-            matched = [value for value in anchor['alternatives'] if any(
-                _stable_literal_match(label, value, registered_words, representation='plain_text')
-                for label in labels)]
         if (not matched and information_texts and unscoped_page_information(contract)
                 and not anchor.get('match_scope') and not anchor.get('visible_control')):
             matched = [value for value in anchor['alternatives'] if any(

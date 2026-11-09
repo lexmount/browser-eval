@@ -182,3 +182,12 @@ def test_native_lexmount_replays_null_resources_and_non_json_failures(status, ra
     version = native_projection_policy_version(native_projection_policy('lexmount'), 'lexmount')
     assert _expected_native_declaration(None, record, raw, {case.id: {'url': case.url}},
                                         policy_version=version) == result.metadata.get('native_answer_projection')
+
+
+def test_document_title_is_not_declared_as_extracted_page_information():
+    from harness.web_fetch.native_projection import native_answer_projection, project_native_answer
+    payload = {'result': {'main_text': 'Body', 'title': 'Document title', 'author': 'A. Writer'}}
+    declaration = native_answer_projection('lexmount', {}, payload, 200)
+    _, fields = project_native_answer(payload, declaration)
+    assert 'title' not in fields['page_information']
+    assert fields['page_information']['author'] == 'A. Writer'

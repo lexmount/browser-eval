@@ -83600,9 +83600,9 @@
     },
     {
       "id": "returned-link-label",
-      "failure_mode": "false-negative",
+      "failure_mode": "false-positive",
       "category": "answer-surface",
-      "root_cause": "Separately returned visible link labels were ignored by global page text checks; unrelated labels and bare URLs must not supply phrases.",
+      "root_cause": "A returned link list is page metadata: a label naming a link cannot supply a stable anchor the returned text lacks.",
       "case": {
         "url": "https://example.test/",
         "expected_any": [],
@@ -83631,7 +83631,7 @@
         ]
       },
       "ok": true,
-      "expected_task_pass": true
+      "expected_task_pass": false
     },
     {
       "id": "returned-link-split-label",
@@ -84313,6 +84313,43 @@
         "page_information": {
           "published_at": "May 2026"
         }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-fact-cross-page",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A required body fact that appears only as the label of a returned link to another page was counted as delivered content.",
+      "case": {
+        "url": "https://example.test/guide",
+        "expected_any": [],
+        "task_kind": "body",
+        "min_content_chars": 20,
+        "required_facts": [
+          {
+            "id": "intro",
+            "alternatives": [
+              "Installing the toolkit"
+            ]
+          },
+          {
+            "id": "storage",
+            "alternatives": [
+              "Configuring remote storage backends"
+            ]
+          }
+        ]
+      },
+      "artifact": "# Installing the toolkit\nRun the installer and follow the prompts to finish setup on your machine.",
+      "metadata": {
+        "links": [
+          {
+            "text": "Configuring remote storage backends",
+            "href": "https://other.test/blog/storage"
+          }
+        ]
       },
       "ok": true,
       "expected_task_pass": false

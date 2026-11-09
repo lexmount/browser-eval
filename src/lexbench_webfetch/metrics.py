@@ -1126,11 +1126,10 @@ def evaluate_content(
                                               representation=visible_representation) for target in targets)])
         if (not hits and not fact.get('match_scope') and not fact.get('visible_control')
                 and identifier not in entry_hits and unscoped_page_information(acceptance_contract)):
-            from .response_input import safe_named_links
-            extra_targets = information_texts + [label for _, label in safe_named_links(named_links or [], base_url)]
+            # Link labels name other pages; they never prove returned content.
             hits = [item for item in alternatives if any(_stable_literal_match(
                 target, item, registered_fact_words, phrase_boundaries=True,
-                representation='plain_text') for target in extra_targets)]
+                representation='plain_text') for target in information_texts)]
         fact_results.append({
             "id": identifier,
             "alternatives": alternatives,

@@ -35,8 +35,12 @@ def page_information_texts(information):
 
 
 def unscoped_page_information(contract):
-    """Flat fields cannot prove a visible control, record, or excluded region."""
-    contract = contract or {}
+    """Flat fields cannot prove a visible control, record, or excluded region.
+
+    Legacy tasks without an acceptance contract keep body-only facts.
+    """
+    if not contract:
+        return False
     return (contract.get('schema') in {None, 'body_text', 'page_identity'}
             and contract.get('content_scope') != 'target_content'
             and not any(contract.get(key) for key in ('entry_scope', 'table_scope', 'text_exclusions')))

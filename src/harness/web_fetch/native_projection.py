@@ -132,7 +132,8 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                         'pointer': ['result'], 'format': 'object_fields', 'default': {},
                         'fields': {
                             **{key: {'pointer': [key], 'default': None}
-                               for key in ('title', 'author', 'description', 'publish_time')},
+                               # result.title is the document title, scored as `title`.
+                               for key in ('author', 'description', 'publish_time')},
                             **{key: {'pointer': ['extra', source if source in extra
                                                    else {'lead': 'dek', 'breadcrumbs': 'breadcrumb'}.get(source, source)], 'default': None,
                                      **({'format': 'text_items'} if key in {'categories', 'tags', 'headings', 'table_of_contents', 'breadcrumbs'} else {})}
