@@ -164,12 +164,16 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
         if row["request"] != request_body(method["adapter"], cases[row["case_id"]], old["protocol"], method.get("output_options")):
             raise ValueError("Interrupted request differs from the frozen contract")
         verify_bundle(output, [a["evidence"] for a in row.get("attempts", [row])])
-    retained = [r for r in rows if r["method"] not in methods]
+    partial, _ = reconcile_incomplete_results(old, output, rows)
+    retained = [r for r in rows if r["method"] not in methods and r["id"] not in partial]
+    retained_partial = {key: row for key, row in partial.items() if row["method"] not in methods}
     spent_calls = physical_call_counts(new, output)
     for mid, budget in call_budgets(new).items():
         spent = spent_calls[mid]
         pending = len(new["cases"]) * new["protocol"]["rounds"] - sum(r["method"] == mid for r in retained)
-        if spent + pending * (1 + int(bool(new["protocol"].get("retry")))) > budget:
+        remaining = pending * (1 + int(bool(new["protocol"].get("retry"))))
+        remaining -= sum(len(r["attempts"]) for r in retained_partial.values() if r["method"] == mid)
+        if spent + remaining > budget:
             raise ValueError("Execution revision exceeds the physical call budget for " + mid)
     archive = output / f"resume-{len(list(output.glob('resume-*'))) + 1}"
     archive.mkdir()
@@ -178,6 +182,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     (archive / "previous-results.jsonl").write_bytes(raw)
     (archive / "execution-revision.json").write_bytes(revision_bytes)
     kept = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    kept.update(a["evidence"]["path"] for r in retained_partial.values() for a in r["attempts"])
     archive_reservations(output, archive, kept)
     locations = {}
     for call in (output / "calls").glob("*.json"):
@@ -198,6 +203,13 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     write_json(archive / "contract.json", {"schema": "web-search-execution-revision-receipt/1", "previous_profile_sha256": bytes_sha256(old_bytes), "profile_sha256": bytes_sha256(new_bytes), "previous_results_sha256": bytes_sha256(raw), "retained_result_ids": [r["id"] for r in retained], "superseded_result_ids": [r["id"] for r in rows if r["method"] in methods], "artifact_locations": locations, "resumed_at": datetime.now(UTC).isoformat()})
     (output / "profile.json").write_bytes(new_bytes)
     (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
+    for checkpoint in (output / "partial-results").glob("*.json"):
+        target = archive / "partial-results" / checkpoint.name
+        target.parent.mkdir(exist_ok=True)
+        checkpoint.rename(target)
+    for identity, row in retained_partial.items():
+        write_json(output / "partial-results" / (identity + ".json"), {
+            "profile_sha256": bytes_sha256(new_bytes), "row": row})
     write_json(output / "run-contract.json", {**contract, "profile_sha256": bytes_sha256(new_bytes), "implementation": sources, "installed_benchmark_datasets": selected_datasets, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": bytes_sha256(revision_bytes)}})
     return retained
 
@@ -410,6 +422,28 @@ def incomplete_results(profile, output):
     return found
 
 
+def reconcile_incomplete_results(profile, output, rows):
+    """Prefer a verified terminal receipt over its interrupted retry predecessor."""
+    partial = incomplete_results(profile, output)
+    stale = set()
+    maximum = 1 + int(bool(profile["protocol"].get("retry")))
+    for row in rows:
+        prior = partial.get(row["id"])
+        attempts = row.get("attempts", [row])
+        terminal = (len(attempts) == maximum or row["http_status"] in {401, 402}
+                    or not (row.get("error") or row["http_status"] != 200 or row["transport_exit"]))
+        if prior and terminal:
+            if (row["request"] != prior["request"]
+                    or attempts[:len(prior["attempts"])] != prior["attempts"]):
+                raise ValueError("Completed retry differs from its partial predecessor")
+            verify_bundle(output, [a["evidence"] for a in attempts])
+            del partial[row["id"]]
+            stale.add(row["id"])
+        elif not terminal and len(attempts) < maximum:
+            partial[row["id"]] = row
+    return partial, stale
+
+
 def prepare_resume(profile_path, output, *, retain_results=False, cohort="primary", validate_only=False):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
@@ -427,12 +461,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     validate_resume_implementation(output, contract)
     raw = (output / "results.jsonl").read_bytes()
     rows = read_completed_records(output / "results.jsonl")
-    partial = incomplete_results(profile, output)
-    if profile["protocol"].get("retry"):
-        for row in rows:
-            if (len(row.get("attempts", [row])) == 1 and row["http_status"] not in {401, 402}
-                    and (row.get("error") or row["http_status"] != 200 or row["transport_exit"])):
-                partial[row["id"]] = row
+    partial, stale_partial = reconcile_incomplete_results(profile, output, rows)
     expected = {(m["id"], r) for m in profile["methods"] for r in range(profile["protocol"]["rounds"])}
     by_case = {c["id"]: [] for c in profile["cases"]}
     for row in rows:
@@ -487,6 +516,8 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         "resumed_at": datetime.now(UTC).isoformat(),
     })
     (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
+    for identity in stale_partial:
+        (output / "partial-results" / (identity + ".json")).unlink(missing_ok=True)
     return retained, number
 
 

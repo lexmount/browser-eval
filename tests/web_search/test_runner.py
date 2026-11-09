@@ -8,6 +8,8 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
+
 from harness.record_io import bytes_sha256
 from harness.web_search.report import load_run
 from harness.web_search.runner import run
@@ -716,7 +718,8 @@ def test_resume_reference_drift_preserves_every_saved_result_and_call(tmp_path):
             assert (output / name).read_bytes() == raw
 
 
-def test_interrupted_retry_resumes_only_the_missing_physical_attempt(tmp_path):
+@pytest.mark.parametrize("checkpoint_state", ["partial", "legacy", "stale-final"])
+def test_interrupted_retry_resumes_only_the_missing_physical_attempt(tmp_path, checkpoint_state):
     import signal
     import pytest
     from harness.web_search import runner
@@ -755,6 +758,18 @@ def test_interrupted_retry_resumes_only_the_missing_physical_attempt(tmp_path):
         partial = json.loads(saved.read_text(encoding="utf-8"))['row']
         first = output / partial['attempts'][0]['evidence']['path']
         original = first.read_bytes()
+        if checkpoint_state == 'legacy':
+            (output / 'results.jsonl').write_text(json.dumps(partial) + '\n', encoding='utf-8')
+            saved.unlink()
+        if checkpoint_state == 'stale-final':
+            unlink = Path.unlink
+            def interrupt_cleanup(path, *args, **kwargs):
+                if path == saved and len(sends) == 2:
+                    raise KeyboardInterrupt
+                return unlink(path, *args, **kwargs)
+            with patch.object(Path, 'unlink', interrupt_cleanup), pytest.raises(KeyboardInterrupt):
+                runner.run(source, output, certified=True, resume=True)
+            assert len(sends) == 2 and saved.exists()
         runner.run(source, output, certified=True, resume=True)
     rows = [json.loads(line) for line in
             (output / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
@@ -856,3 +871,68 @@ def test_collect_cli_passes_selected_supplemental_cohort(tmp_path, monkeypatch):
     monkeypatch.setattr(runner, 'run', lambda *a, **kw: observed.append(kw))
     runner.main(['--profile', str(tmp_path / 'instance.json'), '--output', str(tmp_path / 'run'), '--cohort', 'factual'])
     assert observed[0]['cohort'] == 'factual'
+
+
+@pytest.mark.parametrize('superseded_partial', [False, True])
+def test_execution_revision_preserves_or_archives_an_interrupted_retry(tmp_path, superseded_partial):
+    import signal
+    from harness.web_search import runner
+
+    profile = execution_profile()
+    profile['methods'] = profile['methods'][:2]
+    profile['cases'] = profile['cases'][:1]
+    profile['protocol'].update(order='bounded calls', rounds=1, concurrency=1, retry=True,
+                               interval_s=0, max_calls_per_method=3)
+    profile['execution_policy'] = {
+        'purpose': 'quality', 'max_in_flight': 1, 'serial_reason': 'One provider account',
+        'resources': {m['id']: {'capacity': 1, 'reason': 'One provider account'}
+                      for m in profile['methods']}}
+    source, output = tmp_path / 'profile.json', tmp_path / 'run'
+    source.write_text(json.dumps(profile), encoding='utf-8')
+    sends = []
+
+    def http(url, body=None, header=None, timeout=20):
+        receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        sends.append(url)
+        if len(sends) == 1:
+            signal.raise_signal(signal.SIGINT)
+            return dict(receipt, http_status=503), b'{"error":"temporary"}'
+        return receipt, b'{"results":[]}'
+
+    with (patch.object(runner, 'http_call', side_effect=http),
+          patch.object(runner, 'load_runtime_env'),
+          patch.dict(os.environ, {m['key_env']: 'fixture' for m in profile['methods']})):
+        with pytest.raises(KeyboardInterrupt):
+            runner.run(source, output, certified=True)
+        checkpoint = next((output / 'partial-results').glob('*.json'))
+        partial = json.loads(checkpoint.read_text(encoding='utf-8'))['row']
+        physical = partial['attempts'][0]['evidence']
+        original = (output / physical['path']).read_bytes()
+        old_bytes = (output / 'profile.json').read_bytes()
+        changed = profile['methods'][0 if superseded_partial else 1]
+        changed['endpoint'] = 'https://revised.example/search'
+        revised = tmp_path / 'revised.json'
+        revised.write_text(json.dumps(profile), encoding='utf-8')
+        proof = tmp_path / 'proof.json'
+        proof.write_text('{"interface_changed":true}', encoding='utf-8')
+        revision = tmp_path / 'revision.json'
+        revision.write_text(json.dumps({
+            'schema': 'web-search-execution-revision/1', 'root_cause': 'Changed service endpoint',
+            'superseded_methods': [changed['id']],
+            'previous_profile_sha256': bytes_sha256(old_bytes),
+            'profile_sha256': bytes_sha256(revised.read_bytes()),
+            'evidence': [{'path': proof.name, 'sha256': bytes_sha256(proof.read_bytes())}]
+        }), encoding='utf-8')
+        runner.run(revised, output, certified=True, resume=True, execution_revision=revision)
+    rows = [json.loads(line) for line in
+            (output / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    assert len(sends) == 3 and len(rows) == 2
+    first = next(row for row in rows if row['method'] == partial['method'])
+    assert len(first['attempts']) == (1 if superseded_partial else 2)
+    retained = output / physical['path']
+    archived = output / 'resume-1' / physical['path']
+    assert (archived if superseded_partial else retained).read_bytes() == original
+    assert not list((output / 'partial-results').glob('*.json'))
+    assert (output / 'resume-1/partial-results' / checkpoint.name).exists()
