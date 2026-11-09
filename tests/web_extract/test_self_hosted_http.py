@@ -729,3 +729,93 @@ def test_worker_boundary_failures_have_a_sanitized_server_status(client, keepali
         assert payload["error"] == "Native extraction worker failed"
     else:
         assert response.json()["detail"] == "Native extraction worker failed"
+
+
+@pytest.mark.parametrize("keepalive", [False, True])
+def test_dripping_identity_expires_and_releases_the_admission_slot(monkeypatch, keepalive):
+    import threading
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+
+    from harness.web_extract import self_hosted
+
+    class DrippingIdentity(BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(200)
+            self.end_headers()
+            try:
+                # No individual read stalls; complete delivery still takes three seconds.
+                for _ in range(100):
+                    self.wfile.write(b" ")
+                    self.wfile.flush()
+                    time.sleep(0.03)
+                self.wfile.write(b"{}")
+            except (BrokenPipeError, ConnectionResetError):
+                pass
+
+        def log_message(self, *_):
+            pass
+
+    server = ThreadingHTTPServer(("127.0.0.1", 0), DrippingIdentity)
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    origin = f"http://127.0.0.1:{server.server_port}"
+    monkeypatch.setenv("EXTRACTION_API_KEY", "test-service-key")
+    monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
+    monkeypatch.setenv("FIRECRAWL_BACKEND_URL", origin)
+    monkeypatch.setenv("FIRECRAWL_IDENTITY_URL", origin + "/identity")
+    monkeypatch.setattr(self_hosted, "IDENTITY_TIMEOUT_SECONDS", 0.8, raising=False)
+    before = {p.pid for p in psutil.Process().children(recursive=True)}
+    try:
+        with (
+            patch.object(self_hosted, "local_runtime_identity", return_value=IDENTITY),
+            patch.object(self_hosted, "run_worker") as worker,
+            TestClient(create_app()) as client,
+        ):
+            started = time.monotonic()
+            response = client.post(
+                "/extract/firecrawl" + ("?keepalive=true" if keepalive else ""),
+                json=BODY, headers=AUTH,
+            )
+            assert response.status_code == 504
+            assert response.json() == {"detail": "Runtime validation deadline exceeded"}
+            assert time.monotonic() - started < 2
+            worker.assert_not_called()
+            worker.return_value = subprocess.CompletedProcess(
+                [], 0, json.dumps({"success": True}), "")
+            followup = client.post("/extract/crawl4ai", json=BODY, headers=AUTH)
+            assert followup.status_code == 200 and followup.json()["success"]
+            assert {p.pid for p in psutil.Process().children(recursive=True)} <= before
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join(timeout=2)
+
+
+def test_identity_dns_deadline_kills_the_resolver_process(tmp_path, monkeypatch):
+    import os
+
+    import requests
+
+    from harness.web_extract import self_hosted
+
+    pid_file = tmp_path / "resolver.pid"
+    (tmp_path / "sitecustomize.py").write_text(
+        "import os, socket, time\n"
+        "original = socket.getaddrinfo\n"
+        "def blocked(host, *args, **kwargs):\n"
+        "    if host == 'blocked.invalid':\n"
+        f"        open({str(pid_file)!r}, 'w').write(str(os.getpid()))\n"
+        "        time.sleep(30)\n"
+        "    return original(host, *args, **kwargs)\n"
+        "socket.getaddrinfo = blocked\n",
+        encoding="utf-8",
+    )
+    monkeypatch.setenv("PYTHONPATH", str(tmp_path) + os.pathsep + os.environ.get("PYTHONPATH", ""))
+    monkeypatch.setenv("NO_PROXY", "*")
+    monkeypatch.setattr(self_hosted, "IDENTITY_TIMEOUT_SECONDS", 1.5)
+    started = time.monotonic()
+    with pytest.raises(requests.Timeout, match="identity deadline"):
+        self_hosted.backend_identity("http://blocked.invalid/identity")
+    assert time.monotonic() - started < 3
+    assert pid_file.exists(), "The real child must reach the blocked resolver"
+    assert not psutil.pid_exists(int(pid_file.read_text()))

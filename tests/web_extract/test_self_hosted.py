@@ -516,8 +516,6 @@ def test_environment_identity_preserves_nested_names_across_install_locations(
 def test_firecrawl_identity_describes_the_actual_extraction_endpoint(
     monkeypatch, backend_url, identity_url, kind, port, accepted
 ):
-    from types import SimpleNamespace
-
     from harness.web_extract import self_hosted
 
     base = {'engine': 'firecrawl', 'model': 'fixture', 'model_base': 'https://model.example'}
@@ -528,9 +526,8 @@ def test_firecrawl_identity_describes_the_actual_extraction_endpoint(
                             'PORT': port}}
     monkeypatch.setenv('FIRECRAWL_BACKEND_URL', backend_url)
     monkeypatch.setenv('FIRECRAWL_IDENTITY_URL', identity_url)
-    response = SimpleNamespace(json=lambda: backend, raise_for_status=lambda: None)
     with (patch.object(self_hosted, 'local_runtime_identity', return_value=base),
-          patch('requests.get', return_value=response)):
+          patch.object(self_hosted, 'backend_identity', return_value=backend)):
         if accepted:
             assert self_hosted.runtime_identity('firecrawl')['backend'] == backend
         else:

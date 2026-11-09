@@ -80,6 +80,9 @@ These are deployment diagnostics, separate from benchmark results. Anonymous
 `/health` returns liveness only; authenticated health supplies the full frozen
 runtime identity. Keepalive addresses idle proxy timeouts while retaining the
 110-second worker deadline.
+Firecrawl identity checks have a five-second process deadline covering DNS and
+complete response delivery. A timed-out pre-call check returns HTTP 504 and releases
+the request's worker slot.
 
 Before streaming starts, authentication and malformed input use ordinary HTTP
 errors. After the HTTP 200 headers have been sent, check the JSON `success` and

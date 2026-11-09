@@ -31,6 +31,7 @@ ENGINES = {
     "firecrawl": None,
 }
 KEEPALIVE_SECONDS = 5
+IDENTITY_TIMEOUT_SECONDS = 5
 HOST_BOOT_ID_PATH = Path("/proc/sys/kernel/random/boot_id")
 ADMISSION_DIRECTORY = Path(tempfile.gettempdir()) / "browser-eval-extraction-admission"
 
@@ -206,11 +207,43 @@ def local_runtime_identity(engine):
     return identity
 
 
+def backend_identity(url):
+    """Bound DNS, response delivery and JSON parsing even in an ASGI thread."""
+    import requests
+
+    try:
+        completed = subprocess.run(
+            [sys.executable, "-m", "harness.web_extract.self_hosted", "--backend-identity", url],
+            capture_output=True, text=True, timeout=IDENTITY_TIMEOUT_SECONDS,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise requests.Timeout("Firecrawl identity deadline exceeded") from exc
+    if completed.returncode:
+        raise requests.ConnectionError("Firecrawl identity request failed")
+    envelope = json.loads(completed.stdout)
+    if envelope["status"] >= 400:
+        raise requests.HTTPError("Firecrawl identity returned HTTP " + str(envelope["status"]))
+    return envelope["body"]
+
+
+def fetch_backend_identity(url):
+    """Run only inside the deadline-owned HTTP subprocess."""
+    import requests
+
+    with requests.get(url, timeout=5, allow_redirects=False, stream=True) as response:
+        if response.status_code >= 400:
+            return {"status": response.status_code, "body": None}
+        raw = bytearray()
+        for chunk in response.iter_content(chunk_size=8192):
+            raw.extend(chunk)
+            if len(raw) > 1_048_576:
+                raise ValueError("Firecrawl identity response exceeds one MiB")
+        return {"status": response.status_code, "body": json.loads(raw)}
+
+
 def runtime_identity(engine):
     identity = dict(local_runtime_identity(engine))
     if engine == "firecrawl":
-        import requests
-
         endpoint = urlsplit(os.environ["FIRECRAWL_BACKEND_URL"])
         attestation = urlsplit(os.environ["FIRECRAWL_IDENTITY_URL"])
         if (
@@ -221,13 +254,7 @@ def runtime_identity(engine):
             or endpoint.path not in ("", "/") or attestation.path != "/identity"
         ):
             raise ValueError("Firecrawl backend endpoint and identity differ")
-        response = requests.get(
-            os.environ["FIRECRAWL_IDENTITY_URL"],
-            timeout=5,
-            allow_redirects=False,
-        )
-        response.raise_for_status()
-        backend = response.json()
+        backend = backend_identity(os.environ["FIRECRAWL_IDENTITY_URL"])
         if not isinstance(backend, dict) or backend.get("schema") != "firecrawl-runtime/2":
             raise ValueError("Incomplete Firecrawl backend attestation")
         if any(
@@ -820,6 +847,8 @@ def create_app():
         try:
             await asyncio.shield(validation)
         except BaseException as exc:
+            import requests
+
             def release_validation(done):
                 lease.close()
                 if not done.cancelled():
@@ -830,6 +859,8 @@ def create_app():
                 validation.add_done_callback(release_validation)
             if isinstance(exc, (KeyError, ValueError)):
                 raise HTTPException(400, str(exc)) from exc
+            if isinstance(exc, requests.Timeout):
+                raise HTTPException(504, "Runtime validation deadline exceeded") from exc
             raise
 
         def owned_worker():
@@ -911,5 +942,8 @@ def create_app():
 if __name__ == "__main__":
     if sys.argv[1:2] == ["--supervise"]:
         sys.exit(supervise(sys.argv[4:], timeout=float(sys.argv[2]), parent_pid=int(sys.argv[3])))
+    elif sys.argv[1:2] == ["--backend-identity"]:
+        signal.alarm(IDENTITY_TIMEOUT_SECONDS)
+        print(json.dumps(fetch_backend_identity(sys.argv[2])))
     else:
         print(json.dumps(worker(json.load(sys.stdin)), default=str))
