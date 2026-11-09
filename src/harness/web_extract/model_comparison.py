@@ -54,19 +54,24 @@ def repairable_transport_failure(response):
     )
 
 
-def transport_repair_plan(plan_path, run, output):
-    """Freeze failure-only recovery; quality failures and delivered calls stay untouched."""
+def transport_repair_plan(plan_path, run, output, *, repair=None):
+    """Freeze transport recovery; completed answers and quality failures stay untouched."""
     plan_path, run = Path(plan_path), Path(run)
     plan = read_json(plan_path)
     binding, index = read_json(run / "binding.json"), read_json(run / "call-hashes.json")
     if binding["plan_sha256"] != file_sha256(plan_path):
         raise ValueError("Transport repair parent plan changed")
+    resolved = transport_replacements(plan_path, run, repair) if repair else {}
     predecessors, selected = {}, []
     for call in plan["calls"]:
-        if call["phase"] != "comparison":
-            continue
         key = canonical_json_sha256(call)
+        if key in resolved:
+            continue
         path = run / "calls" / (key + ".json")
+        if not path.exists():
+            if key in index or path.with_suffix(".pending").exists():
+                raise ValueError("Reconcile missing or pending transport evidence first")
+            continue
         if index.get(key) != file_sha256(path):
             raise ValueError("Transport repair parent evidence changed")
         record = read_json(path)
@@ -91,9 +96,11 @@ def transport_repair_plan(plan_path, run, output):
         purpose="One final call for each frozen transport-failed result; no quality retries.",
         models=[m for m in plan["models"] if m["id"] in models],
         cases=[c for c in plan["cases"] if c["id"] in case_ids],
-        calls=preflights + selected,
+        calls=preflights + [c for c in selected if c["phase"] == "comparison"],
         transport_repair={"parent_plan_sha256": file_sha256(plan_path),
                           "parent_index_sha256": file_sha256(run / "call-hashes.json"),
+                          "parent_index": index,
+                          "previous_repairs": repair_identities(repair),
                           "predecessors": predecessors},
     )
     require_external_output(Path(output))
@@ -107,18 +114,28 @@ def transport_repair_records(plan_path, run, repair_plan_path, repair_run):
     repair_plan_path, repair_run = Path(repair_plan_path), Path(repair_run)
     plan, repaired = read_json(plan_path), read_json(repair_plan_path)
     authority = repaired["transport_repair"]
+    parent_index = read_json(run / "call-hashes.json")
+    snapshot = authority.get("parent_index")
+    index_matches = (
+        all(parent_index.get(key) == checksum for key, checksum in snapshot.items())
+        if snapshot is not None
+        else authority["parent_index_sha256"] == file_sha256(run / "call-hashes.json")
+    )
     if (authority["parent_plan_sha256"] != file_sha256(plan_path)
-            or authority["parent_index_sha256"] != file_sha256(run / "call-hashes.json")
-            or repaired["case_contract_sha256"] != plan["case_contract_sha256"]):
+            or not index_matches
+            or repaired.get("case_contract_sha256") != plan.get("case_contract_sha256")):
         raise ValueError("Transport repair parent binding changed")
+    for field in ("timeout_seconds", "execution_policy", "wall_time_budget_seconds"):
+        if repaired[field] != plan[field]:
+            raise ValueError("Transport repair execution budget changed: " + field)
     binding = read_json(repair_run / "binding.json")
     index = read_json(repair_run / "call-hashes.json")
     if binding["plan_sha256"] != file_sha256(repair_plan_path):
         raise ValueError("Transport repair plan changed after collection")
     expected = authority["predecessors"]
-    comparison = {canonical_json_sha256(c): c for c in repaired["calls"]
-                  if c["phase"] == "comparison"}
-    if not expected or set(comparison) != set(expected):
+    declared = {canonical_json_sha256(c): c for c in repaired["calls"]}
+    comparison = {key for key, call in declared.items() if call["phase"] == "comparison"}
+    if not expected or not set(expected) <= set(declared) or not comparison <= set(expected):
         raise ValueError("Transport repair scope differs from its frozen predecessors")
     result = {}
     for call in repaired["calls"]:
@@ -134,7 +151,7 @@ def transport_repair_records(plan_path, run, repair_plan_path, repair_run):
                                  "request_sha256": canonical_json_sha256(request)}
                 or record["request"] != request):
             raise ValueError("Transport repair request binding changed")
-        if call["phase"] != "comparison":
+        if key not in expected:
             continue
         prior_path = run / "calls" / (key + ".json")
         prior = read_json(prior_path)
@@ -147,9 +164,39 @@ def transport_repair_records(plan_path, run, repair_plan_path, repair_run):
                 or request_body(plan, parent_model, parent_case) != request
                 or model != parent_model or case != parent_case):
             raise ValueError("Transport repair changes a delivered request or quality result")
+        durations = [prior["response"].get("elapsed_seconds"),
+                     record["response"].get("elapsed_seconds")]
         result[key] = (record, index[key], expected[key],
-                       prior["response"]["elapsed_seconds"]
-                       + record["response"]["elapsed_seconds"])
+                       sum(durations) if all(v is not None for v in durations) else None)
+    return result
+
+
+def repair_pairs(repair):
+    if not repair:
+        return []
+    if len(repair) == 2 and all(isinstance(value, (str, Path)) for value in repair):
+        return [repair]
+    return list(repair)
+
+
+def repair_identities(repair):
+    return [{"plan_sha256": file_sha256(Path(plan)),
+             "index_sha256": file_sha256(Path(run) / "call-hashes.json")}
+            for plan, run in repair_pairs(repair)]
+
+
+def transport_replacements(plan_path, run, repair):
+    """Compose declared, disjoint recoveries without replaying an earlier final result."""
+    result, previous = {}, []
+    for repair_plan, repair_run in repair_pairs(repair):
+        authority = read_json(repair_plan)["transport_repair"]
+        if authority.get("previous_repairs", []) != repair_identities(previous):
+            raise ValueError("Supply every prior transport repair in frozen order")
+        selected = transport_repair_records(plan_path, run, repair_plan, repair_run)
+        if set(selected) & set(result):
+            raise ValueError("A logical model result already has its final recovery")
+        result.update(selected)
+        previous.append((repair_plan, repair_run))
     return result
 
 
@@ -279,7 +326,7 @@ def verify_models(models):
             raise ValueError("Model weights or Ollama version differ from the frozen runtime")
 
 
-def collect(plan_path, output, *, phase):
+def collect(plan_path, output, *, phase, repair=None):
     """Reserve before dispatch, checkpoint every terminal call, and reuse completed work."""
     plan_path, output = Path(plan_path), Path(output)
     require_external_output(output)
@@ -337,6 +384,7 @@ def collect(plan_path, output, *, phase):
             index[pending.stem] = checksum
             save_json(index_path, index)
             pending.unlink()
+        replacements = transport_replacements(plan_path, output, repair) if repair else {}
         if phase == "comparison":
             for call in (c for c in plan["calls"] if c["phase"] == "preflight"):
                 key = canonical_json_sha256(call)
@@ -344,7 +392,8 @@ def collect(plan_path, output, *, phase):
                 if (
                     not target.exists()
                     or index.get(key) != file_sha256(target)
-                    or not read_json(target)["response"].get("transport_complete")
+                    or not (replacements[key][0] if key in replacements else read_json(target))[
+                        "response"].get("transport_complete")
                 ):
                     raise ValueError("Complete the declared model preflight before comparison")
             if {c["model_id"] for c in plan["calls"] if c["phase"] == "preflight"} != set(models):
@@ -375,7 +424,8 @@ def collect(plan_path, output, *, phase):
                     target
                 ):
                     raise ValueError("Completed model call differs from frozen request")
-                prior = read_json(target)["response"]
+                prior = (replacements[key][0] if key in replacements else read_json(target))[
+                    "response"]
                 if access_blocker({"http_status": prior.get("http_status"), "response": prior}):
                     raise ValueError("Resolve the retained account denial before a new contract")
                 if repairable_transport_failure(prior):

@@ -24,15 +24,21 @@ def main(argv=None):
     p.add_argument("--plan", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--phase", choices=("preflight", "comparison"), required=True)
+    p.add_argument("--repair-plan", type=Path, action="append")
+    p.add_argument("--repair-run", type=Path, action="append")
     p = sub.add_parser("model-score", help="Score a retained model-only diagnostic without calls")
     for flag in ("plan", "run", "contract", "output"):
         p.add_argument("--" + flag, type=Path, required=True)
     p.add_argument("--stage", choices=("screening", "validation"), required=True)
-    p.add_argument("--repair-plan", type=Path)
-    p.add_argument("--repair-run", type=Path)
-    p = sub.add_parser("model-repair-plan", help="Freeze recovery of refused model connections")
+    p.add_argument("--repair-plan", type=Path, action="append")
+    p.add_argument("--repair-run", type=Path, action="append")
+    p = sub.add_parser(
+        "model-repair-plan", help="Freeze recovery of retained model transport failures"
+    )
     for flag in ("plan", "run", "output"):
         p.add_argument("--" + flag, type=Path, required=True)
+    p.add_argument("--repair-plan", type=Path, action="append")
+    p.add_argument("--repair-run", type=Path, action="append")
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
@@ -177,26 +183,31 @@ def main(argv=None):
         parser.error("Formal check, package and publish require an explicit --home")
     if args.home is None:
         args.home = data_home()
+    repairs = None
+    if args.command in {"model-compare", "model-score", "model-repair-plan"}:
+        plans, runs = args.repair_plan or [], args.repair_run or []
+        if len(plans) != len(runs):
+            parser.error("--repair-plan and --repair-run must be supplied in matching pairs")
+        repairs = list(zip(plans, runs, strict=True)) or None
     if args.command == "model-compare":
         from harness.web_extract.model_comparison import collect
 
-        print(collect(args.plan, args.output, phase=args.phase))
+        print(collect(args.plan, args.output, phase=args.phase,
+                      repair=repairs))
     elif args.command == "model-repair-plan":
         from harness.web_extract.model_comparison import transport_repair_plan
 
-        transport_repair_plan(args.plan, args.run, args.output)
+        transport_repair_plan(args.plan, args.run, args.output, repair=repairs)
         print(args.output)
     elif args.command == "model-score":
         from harness.web_extract.analysis import score_model_comparison
         from harness.web_extract.pipeline import save_json
 
-        if bool(args.repair_plan) != bool(args.repair_run):
-            parser.error("--repair-plan and --repair-run must be supplied together")
         save_json(
             args.output,
             score_model_comparison(
                 args.plan, args.run, args.contract, args.home, stage=args.stage,
-                repair=(args.repair_plan, args.repair_run) if args.repair_plan else None,
+                repair=repairs,
             ),
             exclusive=True,
         )

@@ -14,7 +14,7 @@ from harness.web_extract.pipeline import read_json, save_json
 
 
 @contextmanager
-def server(events, *, delay=0, status=200, identity=None, barrier=None):
+def server(events, *, delay=0, status=200, identity=None, barrier=None, interrupt=()):
     requests = []
     identity = identity if identity is not None else {"digest": "a" * 64}
 
@@ -57,8 +57,9 @@ def server(events, *, delay=0, status=200, identity=None, barrier=None):
                     body = raw.encode()
                     self.wfile.write(f"{len(body):x}\r\n".encode() + body + b"\r\n")
                     self.wfile.flush()
-                self.wfile.write(b"0\r\n\r\n")
-                self.wfile.flush()
+                if len(requests) not in interrupt:
+                    self.wfile.write(b"0\r\n\r\n")
+                    self.wfile.flush()
             except (BrokenPipeError, ConnectionResetError):
                 pass
             finally:
@@ -367,3 +368,86 @@ def test_unreachable_connection_stops_admission_and_requires_reconciliation(tmp_
         with pytest.raises(ValueError, match='retained (connection refusal|transport failure)'):
             collect(path, output, phase='preflight')
         assert len(list((output / 'calls').glob('*.json'))) == 1
+
+
+@pytest.mark.parametrize("failed_phase", ["preflight", "comparison"])
+def test_partial_transport_recovery_continues_only_undispatched_calls(tmp_path, failed_phase):
+    import copy
+
+    from harness.web_extract.model_comparison import transport_repair_plan
+
+    events = [{"message": {"content": "{}"}}, {"done": True}]
+    with server(events, interrupt={1 if failed_phase == "preflight" else 3}) as (url, calls):
+        value = plan(url)
+        later = copy.deepcopy(value["cases"][0])
+        later["id"] = "later"
+        value["cases"].append(later)
+        value["calls"].append({"model_id": "local", "case_id": "later", "phase": "comparison"})
+        second = copy.deepcopy(value["models"][0])
+        second.update(id="second", parameters={"think": True})
+        value["models"].append(second)
+        value["calls"] += [{**call, "model_id": "second"} for call in value["calls"]]
+        path, run = tmp_path / "plan.json", tmp_path / "run"
+        save_json(path, value)
+        if failed_phase == "comparison":
+            collect(path, run, phase="preflight")
+        with pytest.raises(RuntimeError, match="transport failed"):
+            collect(path, run, phase=failed_phase)
+        original = {p.name: p.read_bytes() for p in (run / "calls").glob("*.json")}
+        repair_path, repair_run = tmp_path / "repair.json", tmp_path / "repair-run"
+        repaired = transport_repair_plan(path, run, repair_path)
+        assert len(repaired["transport_repair"]["predecessors"]) == 1
+        collect(repair_path, repair_run, phase="preflight")
+        if failed_phase == "comparison":
+            collect(repair_path, repair_run, phase="comparison")
+        recovery = (repair_path, repair_run)
+        collect(path, run, phase=failed_phase, repair=recovery)
+        collect(path, run, phase="comparison", repair=recovery)
+        assert len(calls) == (7 if failed_phase == "preflight" else 8)
+        count = len(calls)
+        collect(path, run, phase="comparison", repair=recovery)
+        assert len(calls) == count
+        assert len(read_json(run / "call-hashes.json")) == 6
+        assert all((run / "calls" / name).read_bytes() == raw for name, raw in original.items())
+
+
+def test_later_outage_keeps_prior_recovery_and_never_replays_its_answer(tmp_path):
+    import copy
+
+    from harness.web_extract.model_comparison import transport_repair_plan
+
+    events = [{'message': {'content': '{}'}}, {'done': True}]
+    with server(events, interrupt={2, 5}) as (url, calls):
+        value = plan(url)
+        for cid in ['second', 'third']:
+            case = copy.deepcopy(value['cases'][0])
+            case['id'] = cid
+            value['cases'].append(case)
+            value['calls'].append({'model_id': 'local', 'case_id': cid, 'phase': 'comparison'})
+        path, run = tmp_path/'plan.json', tmp_path/'run'
+        save_json(path, value)
+        collect(path, run, phase='preflight')
+        with pytest.raises(RuntimeError, match='transport failed'):
+            collect(path, run, phase='comparison')
+        first_plan, first_run = tmp_path/'first.json', tmp_path/'first-run'
+        transport_repair_plan(path, run, first_plan)
+        collect(first_plan, first_run, phase='preflight')
+        collect(first_plan, first_run, phase='comparison')
+        first = (first_plan, first_run)
+        with pytest.raises(RuntimeError, match='transport failed'):
+            collect(path, run, phase='comparison', repair=first)
+        second_plan, second_run = tmp_path/'second.json', tmp_path/'second-run'
+        second = transport_repair_plan(path, run, second_plan, repair=first)
+        assert len(second['transport_repair']['predecessors']) == 1
+        assert [c['case_id'] for c in second['calls'] if c['phase']=='comparison'] == ['second']
+        collect(second_plan, second_run, phase='preflight')
+        collect(second_plan, second_run, phase='comparison')
+        with pytest.raises(ValueError, match='every prior'):
+            collect(path, run, phase='comparison', repair=(second_plan, second_run))
+        repairs = [first, (second_plan, second_run)]
+        collect(path, run, phase='comparison', repair=repairs)
+        assert len(calls) == 8
+        collect(path, run, phase='comparison', repair=repairs)
+        assert len(calls) == 8
+        with pytest.raises(ValueError, match='No recoverable'):
+            transport_repair_plan(path, run, tmp_path/'repeat.json', repair=repairs)

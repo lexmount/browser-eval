@@ -100,10 +100,10 @@ def test_model_plan_cannot_replace_its_authoritative_reference(tmp_path):
         score_model_comparison(path, output, contract_path, tmp_path, stage="screening")
 
 
-@pytest.mark.parametrize("change_request", [False, True])
-@pytest.mark.parametrize("failure", ["refused", "interrupted"])
+@pytest.mark.parametrize("change_request", [None, "temperature", "timeout", "policy"])
+@pytest.mark.parametrize("failure", ["refused", "interrupted", "worker-error"])
 def test_transport_recovery_preserves_scope_and_uses_the_final_bound_call(
-    tmp_path, change_request, failure
+    tmp_path, change_request, failure, monkeypatch
 ):
     import copy
 
@@ -165,13 +165,27 @@ def test_transport_recovery_preserves_scope_and_uses_the_final_bound_call(
         repair_path, repaired_run = tmp_path / "repair.json", tmp_path / "repaired"
         repaired = transport_repair_plan(path, run, repair_path)
         assert [c for c in repaired["calls"] if c["phase"] == "comparison"] == [comparison]
-        if change_request:
+        if change_request == "temperature":
             repaired["models"][0]["parameters"]["temperature"] = 0.5
+        elif change_request == "timeout":
+            repaired["timeout_seconds"] += 1
+        elif change_request == "policy":
+            repaired["execution_policy"]["max_in_flight"] = 2
+        if change_request:
             save_json(repair_path, repaired)
         collect(repair_path, repaired_run, phase="preflight")
-        collect(repair_path, repaired_run, phase="comparison")
+        if failure == "worker-error":
+            with monkeypatch.context() as scoped:
+                scoped.setattr(
+                    "harness.web_extract.model_comparison._execute", _failed_model_worker
+                )
+                collect(repair_path, repaired_run, phase="comparison")
+        else:
+            collect(repair_path, repaired_run, phase="comparison")
         if change_request:
-            with pytest.raises(ValueError, match="delivered request or quality result"):
+            with pytest.raises(
+                ValueError, match="delivered request or quality result|execution budget"
+            ):
                 score_model_comparison(
                     path,
                     run,
@@ -191,10 +205,17 @@ def test_transport_recovery_preserves_scope_and_uses_the_final_bound_call(
                     repair=(repair_path, repaired_run),
                 )
                 group = score["groups"]["local"]
-                assert group["cases"] == 1 and group["f1"] == 1 and group["schema_valid"] == 1
-                assert group["retry_execution_seconds"] > 0.25
+                assert group["cases"] == 1
+                if failure == "worker-error":
+                    assert group["f1"] == 0 and group["schema_valid"] == 0
+                    assert group["retry_execution_seconds"] is None
+                    assert group["timings"]["elapsed_seconds"]["missing"] == 1
+                else:
+                    assert group["f1"] == 1 and group["schema_valid"] == 1
+                    assert group["retry_execution_seconds"] > 0.25
                 assert score["details"][0]["superseded_call_sha256"] == prior_hash
-        assert file_sha256(source) == prior_hash and len(calls) == 4
+        assert file_sha256(source) == prior_hash
+        assert len(calls) == (3 if failure == "worker-error" else 4)
         # A wrong but delivered answer is never eligible for transport recovery.
         record["response"] = {"success": True, "transport_complete": True, "data": {"name": ["B"]}}
         save_json(source, record)
@@ -202,3 +223,7 @@ def test_transport_recovery_preserves_scope_and_uses_the_final_bound_call(
         save_json(run / "call-hashes.json", index)
         with pytest.raises(ValueError, match="No recoverable"):
             transport_repair_plan(path, run, tmp_path / "quality-retry.json")
+
+
+def _failed_model_worker(payload):
+    raise RuntimeError("fixture worker failed before returning")

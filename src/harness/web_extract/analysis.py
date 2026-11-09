@@ -18,7 +18,7 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
     from jsonschema import Draft202012Validator
 
     from harness.record_io import canonical_json_sha256, file_sha256, read_json
-    from harness.web_extract.model_comparison import request_body, transport_repair_records
+    from harness.web_extract.model_comparison import request_body, transport_replacements
     from harness.web_extract.pipeline import normalize
 
     plan_path, run, contract_path = Path(plan_path), Path(run), Path(contract_path)
@@ -29,7 +29,7 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
     if binding["plan_sha256"] != file_sha256(plan_path):
         raise ValueError("Model plan differs from its collected evidence")
     index = read_json(run / "call-hashes.json")
-    replacements = transport_repair_records(plan_path, run, *repair) if repair else {}
+    replacements = transport_replacements(plan_path, run, repair) if repair else {}
     selected = {c["id"] for dataset in contract["stages"].values() for c in dataset[stage]}
     cases = {c["id"]: c for c in plan["cases"] if c["id"] in selected}
     if not cases or set(cases) != selected:
@@ -148,7 +148,8 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
             "precision": tp / (tp + fp) if tp + fp else None,
             "recall": tp / (tp + fn) if tp + fn else None,
             "f1": 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else None,
-            "retry_execution_seconds": sum(r["retry_execution_seconds"] for r in values),
+            "retry_execution_seconds": sum(r["retry_execution_seconds"] for r in values)
+            if all(r["retry_execution_seconds"] is not None for r in values) else None,
             "timings": timers,
             **totals,
         }

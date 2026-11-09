@@ -219,7 +219,9 @@ exercise the request format, real streams, deadlines and independent resource la
 
 A connection outage stops admission after retaining the failed call. Resume does
 not silently repeat it. For a proven connection refusal or interrupted chunked
-stream, freeze the complete recovery scope before making new calls:
+stream, freeze recovery before making new calls. Run the repair's comparison
+phase only when its call list contains comparison entries; a preflight-only repair
+ends after its preflight command. Then continue the original phases before scoring:
 
 ```sh
 uv run --frozen python -m harness.web_extract.cli model-repair-plan \
@@ -228,9 +230,16 @@ uv run --frozen python -m harness.web_extract.cli model-repair-plan \
 uv run --frozen python -m harness.web_extract.cli model-compare \
   --plan /absolute/data/delivery-repair-plan.json --output /absolute/data/delivery-repair \
   --phase preflight
+# Skip this command for a preflight-only repair.
 uv run --frozen python -m harness.web_extract.cli model-compare \
   --plan /absolute/data/delivery-repair-plan.json --output /absolute/data/delivery-repair \
   --phase comparison
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase preflight \
+  --repair-plan /absolute/data/delivery-repair-plan.json --repair-run /absolute/data/delivery-repair
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase comparison \
+  --repair-plan /absolute/data/delivery-repair-plan.json --repair-run /absolute/data/delivery-repair
 uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte model-score \
   --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
   --contract /absolute/data/case-contract.json --stage validation \
@@ -239,11 +248,16 @@ uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte mod
 ```
 
 Recovery retains the original run and binds every predecessor hash, request,
-configuration and replacement. Scoring requires the complete declared recovery,
-uses its final response even if it fails, and records predecessor-plus-final
-execution time separately from final-call latency. Completed answers, malformed
-JSON and exhausted generation budgets are ineligible. A connection timeout stops
-collection but needs delivery reconciliation before any new contract.
+configuration, timeout, execution policy and replacement. Scoring requires the
+complete declared recovery, uses its final response even if it fails, and records
+predecessor-plus-final execution time separately from final-call latency.
+Unavailable timing remains unavailable. Completed answers, malformed JSON and
+exhausted generation budgets are ineligible. A connection timeout stops collection
+but needs delivery reconciliation before any new contract.
+
+For later failures on other calls, repeat both repair flags in frozen order on
+planning, collection and scoring. Earlier final responses remain fixed; each
+logical result has at most one transport recovery.
 
 ## Freeze and run the full population
 
