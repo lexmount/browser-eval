@@ -515,6 +515,11 @@ def native_cases_by_id(root):
     return indexed
 
 
+# Adapters that declare no answer for a malformed (non-object JSON) envelope.
+_MALFORMED_ENVELOPE_IS_EVIDENCE = frozenset({'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud',
+                                    'lexmount', 'lexmount_cn'})
+
+
 def _expected_native_declaration(root, record, raw, cases_by_id, *, policy_version=3):
     cases_by_id = native_cases_by_id(root) if cases_by_id is None else cases_by_id
     case = (cases_by_id or {}).get(record.get('case_id'))
@@ -524,13 +529,13 @@ def _expected_native_declaration(root, record, raw, cases_by_id, *, policy_versi
     # routing defaults as acquisition without changing the frozen input bytes.
     case = {'task_kind': 'body', 'track': 'web', **case}
     try:
-        if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
+        if record['provider_type'] in _MALFORMED_ENVELOPE_IS_EVIDENCE:
             payload = parse_utf8_json(raw)
         else:
             payload = json.loads(raw) if record['provider_type'] not in {'moli_webfetch', 'brightdata_unlocker'} else {}
     except (ValueError, UnicodeDecodeError):
         payload = None
-    if record['provider_type'] in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
+    if record['provider_type'] in _MALFORMED_ENVELOPE_IS_EVIDENCE:
         if not isinstance(payload, dict):
             return None  # Malformed API envelopes are evidence, never answers.
     if payload is None:

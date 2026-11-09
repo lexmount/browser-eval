@@ -126,3 +126,11 @@ def test_native_lexmount_replays_null_resources_and_non_json_failures(status, ra
     assert result.ok is (status == 200)
     require_native_answer_projection(result.content, result.metadata, raw,
         title=result.title, final_url=result.final_url, request_url=case.url)
+    # Saved-evidence replay derives the same declaration from the raw bytes.
+    from harness.web_fetch.native_projection import native_projection_policy, native_projection_policy_version
+    from harness.web_fetch.native_routes import _expected_native_declaration
+    record = {'case_id': case.id, 'url': case.url, 'provider_type': 'lexmount', 'status_code': status,
+              'provider_metadata': {**result.metadata, 'native_route_receipt': {'requests': []}}}
+    version = native_projection_policy_version(native_projection_policy('lexmount'), 'lexmount')
+    assert _expected_native_declaration(None, record, raw, {case.id: {'url': case.url}},
+                                        policy_version=version) == result.metadata.get('native_answer_projection')
