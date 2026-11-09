@@ -3,6 +3,7 @@
 import copy
 import fcntl
 import json
+import math
 import time
 from pathlib import Path
 
@@ -22,6 +23,36 @@ from harness.web_extract.pipeline import (
 from harness.web_fetch.config import repository_env
 
 TRANSPORT_ERRORS = ("ConnectionError:", "ConnectTimeout:", "ChunkedEncodingError:")
+AUXILIARY_TIMEOUTS = {"verification": 10, "load": 180, "telemetry": 5}
+
+
+def auxiliary_timeout(model, stage):
+    settings = model.get("auxiliary_timeouts", {})
+    if not isinstance(settings, dict) or set(settings) - set(AUXILIARY_TIMEOUTS):
+        raise ValueError("Unknown auxiliary HTTP deadline configuration")
+    value = settings.get(stage, AUXILIARY_TIMEOUTS[stage])
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not (
+        math.isfinite(value) and value > 0
+    ):
+        raise ValueError("Auxiliary HTTP deadlines must be finite positive seconds")
+    return value
+
+
+@total_deadline
+def auxiliary_json(url, *, timeout, payload=None):
+    """Bound complete HTTP delivery and parsing, including a continuously dripped body."""
+    method = requests.get if payload is None else requests.post
+    options = {} if payload is None else {"json": payload}
+    with method(url, timeout=timeout, stream=True, **options) as response:
+        response.raise_for_status()
+        raw = bytearray()
+        for chunk in response.iter_content(chunk_size=8192):
+            raw.extend(chunk)
+            if len(raw) > 1_048_576:
+                raise ValueError("Auxiliary JSON response exceeds one MiB")
+        value = json.loads(raw.decode("utf-8"))
+        json.dumps(value, ensure_ascii=False, allow_nan=False).encode("utf-8")
+        return value
 
 
 def request_body(plan, model, case):
@@ -228,6 +259,24 @@ def stream_call(payload, *, timeout):
             result.update(
                 http_status=response.status_code, headers_seconds=time.monotonic() - started
             )
+            if response.status_code >= 400:
+                raw_error = bytearray()
+                try:
+                    for chunk in response.iter_content(chunk_size=1):
+                        raw_error.extend(chunk)
+                        if len(raw_error) >= 16_384:
+                            break
+                finally:
+                    text = raw_error.decode("utf-8", errors="replace")
+                    try:
+                        text = json.dumps(redact(json.loads(text)), ensure_ascii=True)
+                    except ValueError:
+                        text = redact(text)
+                    if model.get("key_env"):
+                        secret = repository_env().get(model["key_env"])
+                        if secret:
+                            text = text.replace(secret, "[REDACTED]")
+                    result["non_json_response"] = text
             response.raise_for_status()
             for raw in response.iter_lines(chunk_size=1):
                 if not raw:
@@ -295,12 +344,15 @@ def _execute(payload):
     model, body, timeout = payload
     result = stream_call((model, body), timeout=timeout)
     if model.get("telemetry_endpoint"):
+        started = time.monotonic()
         try:
-            result["loaded_models_after"] = requests.get(
-                model["telemetry_endpoint"], timeout=5
-            ).json()
-        except requests.RequestException as exc:
+            result["loaded_models_after"] = auxiliary_json(
+                model["telemetry_endpoint"], timeout=auxiliary_timeout(model, "telemetry")
+            )
+        except (requests.RequestException, TimeoutError, ValueError) as exc:
             result["telemetry_error"] = type(exc).__name__
+        finally:
+            result["telemetry_seconds"] = time.monotonic() - started
     return result
 
 
@@ -314,13 +366,13 @@ def verify_models(models):
         base = runtime["base"].rstrip("/")
         if model["endpoint"] != base + "/api/chat":
             raise ValueError("Model identity does not bind the inference endpoint")
-        if base not in observed:
-            version = requests.get(base + "/api/version", timeout=10)
-            tags = requests.get(base + "/api/tags", timeout=10)
-            version.raise_for_status()
-            tags.raise_for_status()
-            observed[base] = (version.json()["version"], tags.json()["models"])
-        version, tags = observed[base]
+        timeout = auxiliary_timeout(model, "verification")
+        key = (base, timeout)
+        if key not in observed:
+            version = auxiliary_json(base + "/api/version", timeout=timeout)
+            tags = auxiliary_json(base + "/api/tags", timeout=timeout)
+            observed[key] = (version["version"], tags["models"])
+        version, tags = observed[key]
         actual = next((m["digest"] for m in tags if m["name"] == model["model"]), None)
         if version != runtime["version"] or actual != runtime["digest"]:
             raise ValueError("Model weights or Ollama version differ from the frozen runtime")
@@ -341,6 +393,8 @@ def collect(plan_path, output, *, phase, repair=None):
     for model in models.values():
         if model["protocol"] not in ("ollama", "openai"):
             raise ValueError("Unsupported streaming protocol")
+        for stage in AUXILIARY_TIMEOUTS:
+            auxiliary_timeout(model, stage)
         if model.get("key_env") and not repository_env().get(model["key_env"]):
             raise ValueError("Missing model credential in the repository .env")
     verify_models(models)
@@ -457,18 +511,20 @@ def collect(plan_path, output, *, phase, repair=None):
                     "prompt": "",
                     "stream": False,
                     "keep_alive": "15m",
-                    "options": model["parameters"]["options"],
+                    "options": model["parameters"].get("options", {}),
                 }
                 started = time.monotonic()
-                response = requests.post(model["load_endpoint"], json=load_body, timeout=180)
-                response.raise_for_status()
+                response = auxiliary_json(
+                    model["load_endpoint"], payload=load_body,
+                    timeout=auxiliary_timeout(model, "load"),
+                )
                 save_json(
                     output / "loads" / (str(time.time_ns()) + ".json"),
                     {
                         "model_id": model["id"],
                         "phase": phase,
                         "request": load_body,
-                        "response": response.json(),
+                        "response": response,
                         "seconds": time.monotonic() - started,
                     },
                     exclusive=True,

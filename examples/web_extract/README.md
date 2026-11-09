@@ -182,6 +182,14 @@ The external plan declares cases, text hashes, model parameters, ordered physica
 calls, deadlines, execution resources and a wall-time budget. Controlled Ollama
 configurations also bind the server version and installed model digest. Read
 credentials from the repository `.env` through each model's `key_env`.
+Auxiliary HTTP requests have total wall deadlines: 10 seconds per runtime/weight
+verification request, 180 seconds per model load, and 5 seconds per telemetry
+request. A model's `auxiliary_timeouts` mapping may override `verification`, `load`
+and `telemetry` with finite positive seconds; these settings remain bound during
+recovery. Telemetry expiry retains the completed inference and records its own
+elapsed time. Error responses retain a redacted body of at most 16 KiB so quota
+and account-permission denials stop admission.
+
 Freeze sampling parameters from each model's official guidance before collection;
 a shared temperature of zero can cause repetitive generation on some models.
 Declare the common time and output-token budgets separately from these native
