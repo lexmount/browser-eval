@@ -145,6 +145,35 @@ page. Dataset discovery and evaluation do not depend on it. `snapshots-build`,
 `snapshots-verify` and `snapshots-index` expose the package, verification and
 navigation stages for other hosting workflows.
 
+## Compare model backends
+
+Use `model-compare` for a model-only streaming diagnostic. It supplies the same
+frozen page text, instruction and JSON Schema to each configuration. Reference
+answers stay outside the request. These results describe model extraction from
+the supplied text; they do not replace native extractor scores.
+
+The external plan declares cases, text hashes, model parameters, ordered physical
+calls, deadlines, execution resources and a wall-time budget. Controlled Ollama
+configurations also bind the server version and installed model digest. Read
+credentials from the repository `.env` through each model's `key_env`.
+
+```sh
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase preflight
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase comparison
+```
+
+Preflight records initialization separately and binds the shared execution-budget
+assessment. A malformed answer remains a quality failure; it is not a readiness
+exclusion. Every call retains first output, first answer, complete-response timing
+and raw stream events. A completed success or failure is reused on resume.
+An unresolved in-flight call stops collection for reconciliation. Changed inputs,
+weights, server versions or collector code require a new frozen contract.
+The synthetic scenarios in
+[`test_model_comparison.py`](../../tests/web_extract/test_model_comparison.py)
+exercise the request format, real streams, deadlines and independent resource lanes.
+
 ## Freeze and run the full population
 
 ```sh

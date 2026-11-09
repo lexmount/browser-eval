@@ -20,6 +20,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--home", type=Path)
     sub = parser.add_subparsers(dest="command", required=True)
+    p = sub.add_parser("model-compare", help="Collect a frozen model-only streaming diagnostic")
+    p.add_argument("--plan", type=Path, required=True)
+    p.add_argument("--output", type=Path, required=True)
+    p.add_argument("--phase", choices=("preflight", "comparison"), required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
@@ -164,7 +168,11 @@ def main(argv=None):
         parser.error("Formal check, package and publish require an explicit --home")
     if args.home is None:
         args.home = data_home()
-    if args.command == "host":
+    if args.command == "model-compare":
+        from harness.web_extract.model_comparison import collect
+
+        print(collect(args.plan, args.output, phase=args.phase))
+    elif args.command == "host":
         from harness.web_extract.snapshots import host
 
         print(
