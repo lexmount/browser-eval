@@ -50,11 +50,12 @@ def test_composition_retains_exact_source_records(tmp_path):
         check_saved_matrix(output)
 
 
-def test_composition_packages_through_shared_owner(tmp_path):
+def test_composition_cannot_be_packaged_for_release(tmp_path):
     from harness.web_fetch.report_package import build as package
     spec, _ = reports(tmp_path)
     output = build_saved_matrix(spec, tmp_path / 'combined').parent
-    package(output, tmp_path / 'combined.zip')
+    with pytest.raises(ValueError, match='Diagnostic evidence cannot enter certified assembly or reports'):
+        package(output, tmp_path / 'combined.zip')
 
 
 def test_composition_rejects_rebound_row_change(tmp_path):
