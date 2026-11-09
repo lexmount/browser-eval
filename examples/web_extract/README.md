@@ -217,6 +217,34 @@ The synthetic scenarios in
 [`test_model_comparison.py`](../../tests/web_extract/test_model_comparison.py)
 exercise the request format, real streams, deadlines and independent resource lanes.
 
+A connection outage stops admission after retaining the failed call. Resume does
+not silently repeat it. For a proven connection refusal or interrupted chunked
+stream, freeze the complete recovery scope before making new calls:
+
+```sh
+uv run --frozen python -m harness.web_extract.cli model-repair-plan \
+  --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
+  --output /absolute/data/delivery-repair-plan.json
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/delivery-repair-plan.json --output /absolute/data/delivery-repair \
+  --phase preflight
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/delivery-repair-plan.json --output /absolute/data/delivery-repair \
+  --phase comparison
+uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte model-score \
+  --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
+  --contract /absolute/data/case-contract.json --stage validation \
+  --repair-plan /absolute/data/delivery-repair-plan.json \
+  --repair-run /absolute/data/delivery-repair --output /absolute/data/recovered-scores.json
+```
+
+Recovery retains the original run and binds every predecessor hash, request,
+configuration and replacement. Scoring requires the complete declared recovery,
+uses its final response even if it fails, and records predecessor-plus-final
+execution time separately from final-call latency. Completed answers, malformed
+JSON and exhausted generation budgets are ineligible. A connection timeout stops
+collection but needs delivery reconciliation before any new contract.
+
 ## Freeze and run the full population
 
 ```sh

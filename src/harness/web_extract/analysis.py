@@ -13,12 +13,12 @@ from harness.web_extract.pipeline import PROFILE, SCHEMA, digest, official_score
 FIELDS = tuple(SCHEMA["properties"])
 
 
-def score_model_comparison(plan_path, run, contract_path, home, *, stage):
+def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair=None):
     """Score an exact declared subset without new calls or reference leakage."""
     from jsonschema import Draft202012Validator
 
     from harness.record_io import canonical_json_sha256, file_sha256, read_json
-    from harness.web_extract.model_comparison import request_body
+    from harness.web_extract.model_comparison import request_body, transport_repair_records
     from harness.web_extract.pipeline import normalize
 
     plan_path, run, contract_path = Path(plan_path), Path(run), Path(contract_path)
@@ -29,6 +29,7 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage):
     if binding["plan_sha256"] != file_sha256(plan_path):
         raise ValueError("Model plan differs from its collected evidence")
     index = read_json(run / "call-hashes.json")
+    replacements = transport_repair_records(plan_path, run, *repair) if repair else {}
     selected = {c["id"] for dataset in contract["stages"].values() for c in dataset[stage]}
     cases = {c["id"]: c for c in plan["cases"] if c["id"] in selected}
     if not cases or set(cases) != selected:
@@ -55,6 +56,11 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage):
             or canonical_json_sha256(record["request"]) != expected["request_sha256"]
         ):
             raise ValueError("Model response does not bind the declared request")
+        replacement = replacements.get(key)
+        if replacement:
+            record, selected_checksum, predecessor_checksum, retry_seconds = replacement
+        else:
+            selected_checksum, predecessor_checksum, retry_seconds = index[key], None, 0
         response = record["response"]
         data = response.get("data") if isinstance(response.get("data"), dict) else {}
         valid = bool(
@@ -111,7 +117,9 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage):
                     if response.get("success")
                     else None,
                 },
-                "call_sha256": index[key],
+                "call_sha256": selected_checksum,
+                "superseded_call_sha256": predecessor_checksum,
+                "retry_execution_seconds": retry_seconds,
                 **counts,
             }
         )
@@ -140,6 +148,7 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage):
             "precision": tp / (tp + fp) if tp + fp else None,
             "recall": tp / (tp + fn) if tp + fn else None,
             "f1": 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else None,
+            "retry_execution_seconds": sum(r["retry_execution_seconds"] for r in values),
             "timings": timers,
             **totals,
         }

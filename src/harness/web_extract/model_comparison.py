@@ -1,5 +1,6 @@
 """Stream a frozen model-only diagnostic through the shared execution scheduler."""
 
+import copy
 import fcntl
 import json
 import time
@@ -20,6 +21,8 @@ from harness.web_extract.pipeline import (
 )
 from harness.web_fetch.config import repository_env
 
+TRANSPORT_ERRORS = ("ConnectionError:", "ConnectTimeout:", "ChunkedEncodingError:")
+
 
 def request_body(plan, model, case):
     """Reference answers never enter the request; every configuration gets the same text."""
@@ -34,6 +37,120 @@ def request_body(plan, model, case):
         },
     ]
     return {**model["parameters"], "model": model["model"], "messages": messages, "stream": True}
+
+
+def repairable_transport_failure(response):
+    """Recover delivery failures, never a completed answer or model budget failure."""
+    if response.get("success") or response.get("transport_complete"):
+        return False
+    if (response.get("error", "").startswith("ChunkedEncodingError:")
+            and response.get("http_status") == 200):
+        return True
+    return (
+        not response.get("http_status")
+        and not response.get("events") and not response.get("first_any_output_seconds")
+        and response.get("error", "").startswith("ConnectionError:")
+        and "Connection refused" in response["error"]
+    )
+
+
+def transport_repair_plan(plan_path, run, output):
+    """Freeze failure-only recovery; quality failures and delivered calls stay untouched."""
+    plan_path, run = Path(plan_path), Path(run)
+    plan = read_json(plan_path)
+    binding, index = read_json(run / "binding.json"), read_json(run / "call-hashes.json")
+    if binding["plan_sha256"] != file_sha256(plan_path):
+        raise ValueError("Transport repair parent plan changed")
+    predecessors, selected = {}, []
+    for call in plan["calls"]:
+        if call["phase"] != "comparison":
+            continue
+        key = canonical_json_sha256(call)
+        path = run / "calls" / (key + ".json")
+        if index.get(key) != file_sha256(path):
+            raise ValueError("Transport repair parent evidence changed")
+        record = read_json(path)
+        model = next(m for m in plan["models"] if m["id"] == call["model_id"])
+        case = next(c for c in plan["cases"] if c["id"] == call["case_id"])
+        request = request_body(plan, model, case)
+        if (record["binding"] != {**binding, "call": call,
+                                 "request_sha256": canonical_json_sha256(request)}
+                or record["request"] != request):
+            raise ValueError("Transport repair parent request changed")
+        if repairable_transport_failure(record["response"]):
+            predecessors[key] = index[key]
+            selected.append(call)
+    if not selected:
+        raise ValueError("No recoverable model transport failures")
+    models = {c["model_id"] for c in selected}
+    preflights = [c for c in plan["calls"] if c["phase"] == "preflight"
+                  and c["model_id"] in models]
+    case_ids = {c["case_id"] for c in selected + preflights}
+    repaired = copy.deepcopy(plan)
+    repaired.update(
+        purpose="One final call for each frozen transport-failed result; no quality retries.",
+        models=[m for m in plan["models"] if m["id"] in models],
+        cases=[c for c in plan["cases"] if c["id"] in case_ids],
+        calls=preflights + selected,
+        transport_repair={"parent_plan_sha256": file_sha256(plan_path),
+                          "parent_index_sha256": file_sha256(run / "call-hashes.json"),
+                          "predecessors": predecessors},
+    )
+    require_external_output(Path(output))
+    save_json(Path(output), repaired, exclusive=True)
+    return repaired
+
+
+def transport_repair_records(plan_path, run, repair_plan_path, repair_run):
+    """Verify the complete frozen repair before selecting any replacement response."""
+    plan_path, run = Path(plan_path), Path(run)
+    repair_plan_path, repair_run = Path(repair_plan_path), Path(repair_run)
+    plan, repaired = read_json(plan_path), read_json(repair_plan_path)
+    authority = repaired["transport_repair"]
+    if (authority["parent_plan_sha256"] != file_sha256(plan_path)
+            or authority["parent_index_sha256"] != file_sha256(run / "call-hashes.json")
+            or repaired["case_contract_sha256"] != plan["case_contract_sha256"]):
+        raise ValueError("Transport repair parent binding changed")
+    binding = read_json(repair_run / "binding.json")
+    index = read_json(repair_run / "call-hashes.json")
+    if binding["plan_sha256"] != file_sha256(repair_plan_path):
+        raise ValueError("Transport repair plan changed after collection")
+    expected = authority["predecessors"]
+    comparison = {canonical_json_sha256(c): c for c in repaired["calls"]
+                  if c["phase"] == "comparison"}
+    if not expected or set(comparison) != set(expected):
+        raise ValueError("Transport repair scope differs from its frozen predecessors")
+    result = {}
+    for call in repaired["calls"]:
+        key = canonical_json_sha256(call)
+        path = repair_run / "calls" / (key + ".json")
+        if index.get(key) != file_sha256(path):
+            raise ValueError("Missing or changed transport repair evidence")
+        record = read_json(path)
+        model = next(m for m in repaired["models"] if m["id"] == call["model_id"])
+        case = next(c for c in repaired["cases"] if c["id"] == call["case_id"])
+        request = request_body(repaired, model, case)
+        if (record["binding"] != {**binding, "call": call,
+                                 "request_sha256": canonical_json_sha256(request)}
+                or record["request"] != request):
+            raise ValueError("Transport repair request binding changed")
+        if call["phase"] != "comparison":
+            continue
+        prior_path = run / "calls" / (key + ".json")
+        prior = read_json(prior_path)
+        parent_call = next((c for c in plan["calls"] if c == call), None)
+        parent_model = next(m for m in plan["models"] if m["id"] == call["model_id"])
+        parent_case = next(c for c in plan["cases"] if c["id"] == call["case_id"])
+        if (file_sha256(prior_path) != expected[key] or parent_call is None
+                or not repairable_transport_failure(prior["response"])
+                or prior["request"] != request
+                or request_body(plan, parent_model, parent_case) != request
+                or model != parent_model or case != parent_case):
+            raise ValueError("Transport repair changes a delivered request or quality result")
+        result[key] = (record, index[key], expected[key],
+                       prior["response"]["elapsed_seconds"]
+                       + record["response"]["elapsed_seconds"])
+    return result
 
 
 @total_deadline
@@ -261,6 +378,10 @@ def collect(plan_path, output, *, phase):
                 prior = read_json(target)["response"]
                 if access_blocker({"http_status": prior.get("http_status"), "response": prior}):
                     raise ValueError("Resolve the retained account denial before a new contract")
+                if repairable_transport_failure(prior):
+                    raise ValueError("Resolve retained transport failure through a frozen repair")
+                if prior.get("error", "").startswith(TRANSPORT_ERRORS):
+                    raise ValueError("Reconcile retained transport failure before continuing")
                 continue
             pending = target.with_suffix(".pending")
             if pending.exists():
@@ -330,6 +451,8 @@ def collect(plan_path, output, *, phase):
             blocker = access_blocker({"http_status": result.get("http_status"), "response": result})
             if blocker:
                 raise RuntimeError("Model account blocked: " + blocker)
+            if result.get("error", "").startswith(TRANSPORT_ERRORS):
+                raise RuntimeError("Model transport failed; retained call requires reconciliation")
 
         run_jobs(jobs, _execute, commit, policy, prepare=prepare)
         verify_models(models)

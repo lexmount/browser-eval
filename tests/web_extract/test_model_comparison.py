@@ -344,3 +344,26 @@ def test_result_index_write_interruption_recovers_without_another_inference(tmp_
         assert len(calls) == 1 and not list((output / "calls").glob("*.pending"))
         collect(path, output, phase="comparison")
         assert len(calls) == 2
+
+
+def test_unreachable_connection_stops_admission_and_requires_reconciliation(tmp_path):
+    import socket
+
+    with socket.socket() as unavailable:
+        unavailable.bind(('127.0.0.1', 0))
+        value = plan('http://127.0.0.1:' + str(unavailable.getsockname()[1]))
+        value['models'][0]['protocol'] = 'openai'
+        value['models'].append({**value['models'][0], 'id': 'second'})
+        value['calls'] += [{**c, 'model_id': 'second'} for c in value['calls']]
+        path, output = tmp_path / 'plan.json', tmp_path / 'run'
+        save_json(path, value)
+        with pytest.raises(RuntimeError, match='transport failed'):
+            collect(path, output, phase='preflight')
+        records = list((output / 'calls').glob('*.json'))
+        assert len(records) == 1
+        result = read_json(records[0])['response']
+        assert result.get('http_status') is None
+        assert result['elapsed_seconds'] > 0 and not result['events']
+        with pytest.raises(ValueError, match='retained (connection refusal|transport failure)'):
+            collect(path, output, phase='preflight')
+        assert len(list((output / 'calls').glob('*.json'))) == 1

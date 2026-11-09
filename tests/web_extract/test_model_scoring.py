@@ -11,8 +11,12 @@ from tests.web_extract.test_model_comparison import plan, server
 
 @pytest.mark.parametrize(
     "name,expected_f1,valid,complete",
-    [(["A"], 1, True, True), (["B"], 0, True, True), ("A", 0, False, True),
-     (float("nan"), 0, False, False)],
+    [
+        (["A"], 1, True, True),
+        (["B"], 0, True, True),
+        ("A", 0, False, True),
+        (float("nan"), 0, False, False),
+    ],
 )
 def test_unavailable_reference_is_excluded_without_a_perfect_page_claim(
     tmp_path, name, expected_f1, valid, complete
@@ -94,3 +98,107 @@ def test_model_plan_cannot_replace_its_authoritative_reference(tmp_path):
     save_json(output / "call-hashes.json", {})
     with pytest.raises(ValueError, match="authoritative reference or input"):
         score_model_comparison(path, output, contract_path, tmp_path, stage="screening")
+
+
+@pytest.mark.parametrize("change_request", [False, True])
+@pytest.mark.parametrize("failure", ["refused", "interrupted"])
+def test_transport_recovery_preserves_scope_and_uses_the_final_bound_call(
+    tmp_path, change_request, failure
+):
+    import copy
+
+    from harness.web_extract.model_comparison import transport_repair_plan
+
+    events = [{"message": {"content": '{"name":["A"]}'}}, {"done": True}]
+    with server(events) as (url, calls):
+        value = plan(url)
+        case = value["cases"][0]
+        case.update(
+            dataset="swde",
+            schema={"type": "object", "properties": {"name": {"type": "array"}}},
+            reference={"domain": "book", "site": "fixture", "values": {"name": ["A"]}},
+        )
+        contract = {
+            "stages": {"swde": {"screening": [copy.deepcopy(case)]}},
+            "bindings": {
+                "swde": {
+                    "reference_policy": {
+                        "text_matching": "whitespace",
+                        "unavailable_reference_groups": [],
+                    }
+                }
+            },
+        }
+        contract_path, path, run = (
+            tmp_path / "contract.json",
+            tmp_path / "plan.json",
+            tmp_path / "run",
+        )
+        save_json(contract_path, contract)
+        value["case_contract_sha256"] = file_sha256(contract_path)
+        save_json(path, value)
+        collect(path, run, phase="preflight")
+        collect(path, run, phase="comparison")
+        comparison = value["calls"][1]
+        key = canonical_json_sha256(comparison)
+        source = run / "calls" / (key + ".json")
+        record = read_json(source)
+        # A retained no-delivery attempt, independent of the successful recovery server.
+        record["response"] = {
+            "success": False,
+            "transport_complete": False,
+            "events": [],
+            "error": "ConnectionError: Connection refused",
+            "elapsed_seconds": 0.25,
+        }
+        if failure == "interrupted":
+            record["response"].update(
+                http_status=200,
+                error="ChunkedEncodingError: Response ended prematurely",
+                events=[{"seconds": 0.1, "event": {"message": {"thinking": "partial"}}}],
+            )
+        save_json(source, record)
+        index = read_json(run / "call-hashes.json")
+        index[key] = file_sha256(source)
+        save_json(run / "call-hashes.json", index)
+        prior_hash = file_sha256(source)
+        repair_path, repaired_run = tmp_path / "repair.json", tmp_path / "repaired"
+        repaired = transport_repair_plan(path, run, repair_path)
+        assert [c for c in repaired["calls"] if c["phase"] == "comparison"] == [comparison]
+        if change_request:
+            repaired["models"][0]["parameters"]["temperature"] = 0.5
+            save_json(repair_path, repaired)
+        collect(repair_path, repaired_run, phase="preflight")
+        collect(repair_path, repaired_run, phase="comparison")
+        if change_request:
+            with pytest.raises(ValueError, match="delivered request or quality result"):
+                score_model_comparison(
+                    path,
+                    run,
+                    contract_path,
+                    tmp_path,
+                    stage="screening",
+                    repair=(repair_path, repaired_run),
+                )
+        else:
+            for _ in range(2):
+                score = score_model_comparison(
+                    path,
+                    run,
+                    contract_path,
+                    tmp_path,
+                    stage="screening",
+                    repair=(repair_path, repaired_run),
+                )
+                group = score["groups"]["local"]
+                assert group["cases"] == 1 and group["f1"] == 1 and group["schema_valid"] == 1
+                assert group["retry_execution_seconds"] > 0.25
+                assert score["details"][0]["superseded_call_sha256"] == prior_hash
+        assert file_sha256(source) == prior_hash and len(calls) == 4
+        # A wrong but delivered answer is never eligible for transport recovery.
+        record["response"] = {"success": True, "transport_complete": True, "data": {"name": ["B"]}}
+        save_json(source, record)
+        index[key] = file_sha256(source)
+        save_json(run / "call-hashes.json", index)
+        with pytest.raises(ValueError, match="No recoverable"):
+            transport_repair_plan(path, run, tmp_path / "quality-retry.json")

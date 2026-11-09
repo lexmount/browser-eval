@@ -28,6 +28,11 @@ def main(argv=None):
     for flag in ("plan", "run", "contract", "output"):
         p.add_argument("--" + flag, type=Path, required=True)
     p.add_argument("--stage", choices=("screening", "validation"), required=True)
+    p.add_argument("--repair-plan", type=Path)
+    p.add_argument("--repair-run", type=Path)
+    p = sub.add_parser("model-repair-plan", help="Freeze recovery of refused model connections")
+    for flag in ("plan", "run", "output"):
+        p.add_argument("--" + flag, type=Path, required=True)
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
@@ -176,13 +181,23 @@ def main(argv=None):
         from harness.web_extract.model_comparison import collect
 
         print(collect(args.plan, args.output, phase=args.phase))
+    elif args.command == "model-repair-plan":
+        from harness.web_extract.model_comparison import transport_repair_plan
+
+        transport_repair_plan(args.plan, args.run, args.output)
+        print(args.output)
     elif args.command == "model-score":
         from harness.web_extract.analysis import score_model_comparison
         from harness.web_extract.pipeline import save_json
 
+        if bool(args.repair_plan) != bool(args.repair_run):
+            parser.error("--repair-plan and --repair-run must be supplied together")
         save_json(
             args.output,
-            score_model_comparison(args.plan, args.run, args.contract, args.home, stage=args.stage),
+            score_model_comparison(
+                args.plan, args.run, args.contract, args.home, stage=args.stage,
+                repair=(args.repair_plan, args.repair_run) if args.repair_plan else None,
+            ),
             exclusive=True,
         )
         print(args.output)
