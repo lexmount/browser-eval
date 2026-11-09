@@ -453,13 +453,18 @@ def test_keepalive_survives_a_short_proxy_read_timeout_without_repeating_work(mo
     monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
     monkeypatch.setattr("harness.web_extract.self_hosted.KEEPALIVE_SECONDS", 0.02, raising=False)
     calls = []
+    entered, release, finished = threading.Event(), threading.Event(), threading.Event()
 
     def slow(value, **kwargs):
         calls.append(value)
-        time.sleep(0.35)
-        return subprocess.CompletedProcess(
-            [], 0, json.dumps({"success": True, "data": {"name": "Ada"}}), ""
-        )
+        entered.set()
+        try:
+            assert release.wait(timeout=8), "The client must release the blocked worker"
+            return subprocess.CompletedProcess(
+                [], 0, json.dumps({"success": True, "data": {"name": "Ada"}}), ""
+            )
+        finally:
+            finished.set()
 
     listener = socket.socket()
     listener.bind(("127.0.0.1", 0))
@@ -472,30 +477,45 @@ def test_keepalive_survives_a_short_proxy_read_timeout_without_repeating_work(mo
         thread = threading.Thread(target=server.run, kwargs={"sockets": [listener]}, daemon=True)
         thread.start()
         try:
-            for _ in range(100):
-                if server.started:
-                    break
+            startup_deadline = time.monotonic() + 5
+            while not server.started and time.monotonic() < startup_deadline:
                 time.sleep(0.01)
             assert server.started
-            with pytest.raises(requests.exceptions.ReadTimeout):
-                requests.post(
-                    origin + "/extract/crawl4ai", json=BODY, headers=AUTH, timeout=(2, 0.12)
-                )
-            response = requests.post(
+            try:
+                with pytest.raises(requests.exceptions.ReadTimeout):
+                    requests.post(
+                        origin + "/extract/crawl4ai", json=BODY, headers=AUTH, timeout=(2, 0.5)
+                    )
+                assert entered.is_set() and not finished.is_set()
+            finally:
+                release.set()
+            assert finished.wait(timeout=2)
+            entered.clear()
+            release.clear()
+            finished.clear()
+            with requests.post(
                 origin + "/extract/crawl4ai?keepalive=true",
                 json=BODY,
                 headers=AUTH,
-                timeout=(2, 0.12),
-            )
-            assert response.status_code == 200
-            assert response.json() == {"success": True, "data": {"name": "Ada"}}
-            assert response.headers["X-Accel-Buffering"] == "no"
+                timeout=(2, 2),
+                stream=True,
+            ) as response:
+                chunks = response.iter_content(chunk_size=None)
+                padding = next(chunks) + next(chunks)
+                assert not padding.strip()
+                assert entered.wait(timeout=2) and not finished.is_set()
+                release.set()
+                payload = padding + b"".join(chunks)
+                assert response.status_code == 200
+                assert json.loads(payload) == {"success": True, "data": {"name": "Ada"}}
+                assert response.headers["X-Accel-Buffering"] == "no"
             assert len(calls) == 2
             rejected = requests.post(
                 origin + "/extract/crawl4ai?keepalive=true", json=[], headers=AUTH, timeout=2
             )
             assert rejected.status_code == 400 and len(calls) == 2
         finally:
+            release.set()
             server.should_exit = True
             thread.join(timeout=4)
             listener.close()
