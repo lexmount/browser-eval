@@ -804,7 +804,7 @@ def test_identity_dns_deadline_kills_the_resolver_process(tmp_path, monkeypatch)
         "original = socket.getaddrinfo\n"
         "def blocked(host, *args, **kwargs):\n"
         "    if host == 'blocked.invalid':\n"
-        f"        open({str(pid_file)!r}, 'w').write(str(os.getpid()))\n"
+        f"        open({str(pid_file)!r}, 'w', encoding='utf-8').write(str(os.getpid()))\n"
         "        time.sleep(30)\n"
         "    return original(host, *args, **kwargs)\n"
         "socket.getaddrinfo = blocked\n",
@@ -818,4 +818,4 @@ def test_identity_dns_deadline_kills_the_resolver_process(tmp_path, monkeypatch)
         self_hosted.backend_identity("http://blocked.invalid/identity")
     assert time.monotonic() - started < 3
     assert pid_file.exists(), "The real child must reach the blocked resolver"
-    assert not psutil.pid_exists(int(pid_file.read_text()))
+    assert not psutil.pid_exists(int(pid_file.read_text(encoding="utf-8")))

@@ -162,6 +162,7 @@ printf '%s  %s\n' "${OLLAMA_ARCHIVE_SHA256:?}" "$MODEL_ROOT/runtime.tar.zst" | s
 tar --zstd --extract --file "$MODEL_ROOT/runtime.tar.zst" --directory "$MODEL_ROOT/runtime"
 OLLAMA_HOST=127.0.0.1:11435 OLLAMA_MODELS="$MODEL_ROOT/models" \
   OLLAMA_NUM_PARALLEL=1 OLLAMA_MAX_LOADED_MODELS=1 OLLAMA_CONTEXT_LENGTH=20000 \
+  OLLAMA_LOAD_TIMEOUT="${MODEL_LOAD_TIMEOUT:-5m}" \
   OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_NO_CLOUD=1 \
   "$MODEL_ROOT/runtime/bin/ollama" serve
 ```
@@ -186,7 +187,10 @@ Auxiliary HTTP requests have total wall deadlines: 10 seconds per runtime/weight
 verification request, 180 seconds per model load, and 5 seconds per telemetry
 request. A model's `auxiliary_timeouts` mapping may override `verification`, `load`
 and `telemetry` with finite positive seconds; these settings remain bound during
-recovery. Telemetry expiry retains the completed inference and records its own
+recovery. Measure cold loading on the selected model volume before freezing those
+limits. A slow disk may require both a longer `auxiliary_timeouts.load` and a
+matching `MODEL_LOAD_TIMEOUT`; these preparation limits do not extend the model's
+generation deadline. Telemetry expiry retains the completed inference and records its own
 elapsed time. Error responses retain a redacted body of at most 16 KiB so quota
 and account-permission denials stop admission.
 
