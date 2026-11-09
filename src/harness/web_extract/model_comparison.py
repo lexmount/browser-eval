@@ -438,6 +438,8 @@ def collect(plan_path, output, *, phase, repair=None):
             index[pending.stem] = checksum
             save_json(index_path, index)
             pending.unlink()
+        if any(not (output / 'calls' / (key + '.json')).is_file() for key in index):
+            raise ValueError('Missing indexed model result; restore the retained evidence')
         replacements = transport_replacements(plan_path, output, repair) if repair else {}
         if phase == "comparison":
             for call in (c for c in plan["calls"] if c["phase"] == "preflight"):
@@ -455,6 +457,16 @@ def collect(plan_path, output, *, phase, repair=None):
             assessment = read_json(output / "execution-plan.json")
             if assessment["binding"] != binding:
                 raise ValueError("Execution preflight differs from this diagnostic")
+            parameters = {
+                'execution_policy': plan['execution_policy'],
+                'planned_calls': sum(c['phase'] == 'comparison' for c in plan['calls']),
+                'wall_time_budget_seconds': plan['wall_time_budget_seconds'],
+                'over_budget_reason': plan.get('over_budget_reason'),
+            }
+            if canonical_json_sha256(parameters) != canonical_json_sha256(
+                {key: assessment.get(key) for key in parameters}
+            ):
+                raise ValueError('Execution parameters differ from the frozen model plan')
             save_json(
                 output / "execution-assessment.json",
                 assess_execution(assessment, evidence_root=output),

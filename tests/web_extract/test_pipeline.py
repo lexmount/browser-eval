@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from bs4 import BeautifulSoup
 
 from harness.reporting.presentation import check_presentation
@@ -19,6 +20,8 @@ from harness.web_extract.pipeline import (
     read_json,
 )
 from harness.web_extract.report import check, image_width
+
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
 
 
 class PipelineScenarios(unittest.TestCase):

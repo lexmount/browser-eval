@@ -13,6 +13,8 @@ from harness.web_extract.example import create
 from harness.web_extract.pipeline import access_blocker, load_run, probe, save_json
 from harness.web_fetch.providers.http_client import HttpResponse
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def collection_context():
     stack = ExitStack()

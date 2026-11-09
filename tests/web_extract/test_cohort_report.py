@@ -10,6 +10,8 @@ from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.report import build, check, cohort_metrics
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def test_historical_comparison_uses_only_profile_selected_methods(tmp_path):
     from copy import deepcopy

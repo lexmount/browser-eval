@@ -10,6 +10,8 @@ from harness.web_extract.pipeline import load_run, read_json
 from tests.web_extract.snapshot_inputs import bind_inputs, serve_input
 from tests.web_extract.test_execution_boundaries import accepted, collection_context
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def test_preflight_is_separate_and_full_collection_requires_its_bound_assessment(tmp_path):
     home = create(tmp_path / "example")

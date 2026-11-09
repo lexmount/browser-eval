@@ -224,6 +224,39 @@ def test_pending_call_and_changed_inputs_stop_before_dispatch(tmp_path):
         assert not calls
 
 
+def test_missing_indexed_result_never_dispatches_a_replacement(tmp_path):
+    with server([{'message': {'content': '{}'}}, {'done': True}]) as (url, calls):
+        path, output = tmp_path/'plan.json', tmp_path/'run'
+        save_json(path, plan(url))
+        collect(path, output, phase='preflight')
+        target = next((output/'calls').glob('*.json'))
+        index = (output/'call-hashes.json').read_bytes()
+        target.unlink()
+        with pytest.raises(ValueError, match='Missing indexed'):
+            collect(path, output, phase='preflight')
+        assert len(calls) == 1
+        assert (output/'call-hashes.json').read_bytes() == index
+
+
+@pytest.mark.parametrize('field,value', [
+    ('planned_calls', 2), ('wall_time_budget_seconds', 300),
+    ('over_budget_reason', 'Bypass budget'),
+    ('execution_policy', {'purpose': 'throughput', 'max_in_flight': 2,
+                          'resources': {'host': {'capacity': 2}}}),
+])
+def test_assessment_parameters_cannot_override_frozen_plan(tmp_path, field, value):
+    with server([{'message': {'content': '{}'}}, {'done': True}]) as (url, calls):
+        path, output = tmp_path/'plan.json', tmp_path/'run'
+        save_json(path, plan(url))
+        collect(path, output, phase='preflight')
+        assessment = read_json(output/'execution-plan.json')
+        assessment[field] = value
+        save_json(output/'execution-plan.json', assessment)
+        with pytest.raises(ValueError, match='Execution parameters'):
+            collect(path, output, phase='comparison')
+        assert len(calls) == 1
+
+
 def test_reference_changes_cannot_change_the_model_prompt():
     value = plan("http://localhost")
     case = value["cases"][0]
@@ -602,9 +635,6 @@ def test_overlapping_load_does_not_hide_work_from_budget_projection(tmp_path, mo
         sample = read_json(output/'preflight.json')
         assert sample['wall_seconds'] >= sample['elapsed_wall_seconds']
         assert sample['separately_recorded_model_load_seconds'] >= .2
-        value = read_json(output/'execution-plan.json')
-        value['wall_time_budget_seconds'] = sample['elapsed_wall_seconds'] * 5
-        save_json(output/'execution-plan.json', value)
         with pytest.raises(ValueError, match='exceeds the budget'):
             collect(path, output, phase='comparison')
         assert len(requests) == 2

@@ -1,5 +1,6 @@
 """Execution must overlap independent work without mixing shared state."""
 
+import os
 import threading
 import time
 from unittest.mock import patch
@@ -7,6 +8,32 @@ from unittest.mock import patch
 import pytest
 
 from harness.benchmark_execution import ExecutionPolicy, Job, assess_execution, run_jobs
+
+_INITIALIZER_PID = None
+
+
+def initialize_pid():
+    global _INITIALIZER_PID
+    _INITIALIZER_PID = os.getpid()
+
+
+def execute_pid(payload):
+    return os.getpid(), _INITIALIZER_PID
+
+
+def test_serial_process_policy_initializes_and_executes_in_a_child():
+    parent = os.getpid()
+    results = []
+    run_jobs(
+        [Job('one', ('host',), None)], execute_pid,
+        lambda job, value, error: results.append((value, error)),
+        policy(backend='process', max_in_flight=1, serial_reason='One model slot',
+               resources={'host': {'capacity': 1, 'reason': 'One model slot'}}),
+        initialize=initialize_pid,
+    )
+    ((execution, initialization), error), = results
+    assert error is None and execution == initialization and execution != parent
+    assert _INITIALIZER_PID is None
 
 
 def policy(**updates):

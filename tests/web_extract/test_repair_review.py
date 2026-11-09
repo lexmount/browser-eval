@@ -11,6 +11,8 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.repair import compose, create_plan, run
 from harness.web_extract.review import prepare, read_packet, reconcile_citations, validate
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def review_payload(packet, quote="synthetic product"):
     finding = {

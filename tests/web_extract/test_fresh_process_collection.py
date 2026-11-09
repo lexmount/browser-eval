@@ -7,13 +7,16 @@ import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from unittest.mock import patch
 
+import pytest
+
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import load_run, probe
 from tests.web_extract.test_self_hosted import RUNTIME
 
 
+@pytest.mark.parametrize('concurrency', [1, 2])
 def test_threaded_parent_collects_through_real_https_without_inheriting_locks(
-    tmp_path, monkeypatch
+    tmp_path, monkeypatch, concurrency
 ):
     home = create(tmp_path / 'example')
     certificate, key = tmp_path / 'cert.pem', tmp_path / 'key.pem'
@@ -54,7 +57,7 @@ basicConstraints=critical,CA:TRUE
             with lock:
                 requests.append(body)
                 ordinal = len(requests)
-            if ordinal <= 2:
+            if concurrency > 1 and ordinal <= 2:
                 barrier.wait()
             self.respond(b'{"success":true,"data":{"sku":"value"}}')
 
@@ -84,9 +87,11 @@ basicConstraints=critical,CA:TRUE
             probe(home, ['crawl4ai-json'], full=True, run_dir=target,
                   fixture_base=endpoint,
                   native_options={'endpoint': endpoint, 'runtime_identity': RUNTIME},
-                  execution_policy={'purpose': 'quality', 'max_in_flight': 2,
+                  execution_policy={'purpose': 'quality', 'max_in_flight': concurrency,
+                                    'serial_reason': 'One model slot',
                                     'backend': 'process',
-                                    'resources': {'crawl4ai-json': {'capacity': 2}}})
+                                    'resources': {'crawl4ai-json': {
+                                        'capacity': concurrency, 'reason': 'Model service slots'}}})
     finally:
         parent_lock.release()
         server.shutdown()

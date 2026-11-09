@@ -9,6 +9,8 @@ from harness.web_extract import snapshots
 from harness.web_extract.certification import create_plan, run
 from harness.web_extract.pipeline import METHODS, SCHEMA, digest, provider_call
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 HF_INVENTORY = snapshots.hf_inventory
 CHECK_MANIFEST = snapshots.check_manifest
 

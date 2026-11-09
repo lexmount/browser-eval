@@ -270,10 +270,11 @@ def run_jobs(
 
     with (
         _retain_call_ownership(lambda: stop(KeyboardInterrupt())),
-        (nullcontext(_InlineExecutor()) if policy.max_in_flight == 1
+        (nullcontext(_InlineExecutor()) if policy.max_in_flight == 1 and policy.backend == 'thread'
          else executor_class(**options)) as executor,
     ):
-        if pending and policy.max_in_flight == 1 and initialize is not None:
+        if (pending and policy.max_in_flight == 1 and policy.backend == 'thread'
+                and initialize is not None):
             initialize(*initargs)
         while pending or inflight:
             next_ready = None

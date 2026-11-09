@@ -10,6 +10,8 @@ import pytest
 from harness.web_extract import certification, dataset, pipeline, swde
 from tests.web_extract.snapshot_inputs import bind_inputs, serve_input
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def plan_for_inputs(home, methods, output):
     return certification.create_plan(

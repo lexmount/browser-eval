@@ -11,6 +11,8 @@ from harness.web_extract.certification import create_plan
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import read_json
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def test_certified_default_keeps_webfetch_arguments():
     with patch("harness.web_fetch.certification.main", return_value="legacy") as run:
