@@ -27,7 +27,8 @@ AUTH = {"Authorization": "Bearer test-service-key"}
 def isolated_http_startup(tmp_path, monkeypatch):
     # HTTP contract tests replace the SDK initialization, which has its own
     # real-process and native-environment checks.
-    monkeypatch.setattr("harness.web_extract.self_hosted.ADMISSION_DIRECTORY", tmp_path / "admission")
+    monkeypatch.setattr(
+        "harness.web_extract.self_hosted.ADMISSION_DIRECTORY", tmp_path / "admission")
     monkeypatch.setenv("EXTRACTION_MAX_WORKERS", "1")
     with patch("harness.web_extract.self_hosted.prepare_environment",
                return_value=(SimpleNamespace(cleanup=lambda: None), None)):

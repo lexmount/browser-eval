@@ -156,6 +156,12 @@ The external plan declares cases, text hashes, model parameters, ordered physica
 calls, deadlines, execution resources and a wall-time budget. Controlled Ollama
 configurations also bind the server version and installed model digest. Read
 credentials from the repository `.env` through each model's `key_env`.
+Freeze sampling parameters from each model's official guidance before collection;
+a shared temperature of zero can cause repetitive generation on some models.
+Declare the common time and output-token budgets separately from these native
+settings. Diagnose repetition or exhausted output budgets before interpreting
+latency as a hardware limitation. Preserve any corrected configuration's earlier
+calls and replace its complete declared scope rather than retrying selected cases.
 
 ```sh
 uv run --frozen python -m harness.web_extract.cli model-compare \
@@ -170,8 +176,10 @@ uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte mod
 
 Preflight records initialization separately and binds the shared execution-budget
 assessment. A malformed answer remains a quality failure; it is not a readiness
-exclusion. Every call retains first output, first answer, complete-response timing
-and raw stream events. A completed success or failure is reused on resume.
+exclusion. Every call retains elapsed time and raw stream events. First output,
+first answer and successful JSON completion each have their own observed counts;
+failed requests retain elapsed time without a JSON-completion milestone.
+A completed success or failure is reused on resume.
 An unresolved in-flight call stops collection for reconciliation. Changed inputs,
 weights, server versions or collector code require a new frozen contract.
 Offline scoring verifies the complete selected case matrix, original request
