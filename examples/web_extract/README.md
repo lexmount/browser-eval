@@ -147,6 +147,32 @@ navigation stages for other hosting workflows.
 
 ## Compare model backends
 
+For an existing GPU host, use a separate Ollama installation and model store when
+the installed service cannot load the selected model. Take `OLLAMA_RELEASE`,
+`OLLAMA_ARCHIVE_SHA256` and exact model tags from the frozen experiment inputs.
+The following Linux setup leaves the existing service and its models in place:
+
+```sh
+MODEL_ROOT="$HOME/.cache/browser-eval/model-comparison"
+mkdir -p "$MODEL_ROOT/runtime" "$MODEL_ROOT/models"
+curl --fail --location \
+  "https://github.com/ollama/ollama/releases/download/${OLLAMA_RELEASE:?}/ollama-linux-amd64.tar.zst" \
+  --output "$MODEL_ROOT/runtime.tar.zst"
+printf '%s  %s\n' "${OLLAMA_ARCHIVE_SHA256:?}" "$MODEL_ROOT/runtime.tar.zst" | sha256sum --check
+tar --zstd --extract --file "$MODEL_ROOT/runtime.tar.zst" --directory "$MODEL_ROOT/runtime"
+OLLAMA_HOST=127.0.0.1:11435 OLLAMA_MODELS="$MODEL_ROOT/models" \
+  OLLAMA_NUM_PARALLEL=1 OLLAMA_MAX_LOADED_MODELS=1 OLLAMA_CONTEXT_LENGTH=20000 \
+  OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_NO_CLOUD=1 \
+  "$MODEL_ROOT/runtime/bin/ollama" serve
+```
+
+In another terminal, pull each declared tag with
+`OLLAMA_HOST=127.0.0.1:11435 "$MODEL_ROOT/runtime/bin/ollama" pull "$MODEL_TAG"`.
+Keep the listener private; from the collection machine, forward it with
+`ssh -N -L 19435:127.0.0.1:11435 "$MODEL_SSH_TARGET"`. Freeze `/api/version` and
+`/api/tags` identities before calls, and check actual GPU layer placement in the
+server log. Existing workloads remain part of the declared host conditions.
+
 Use `model-compare` for a model-only streaming diagnostic. It supplies the same
 frozen page text, instruction and JSON Schema to each configuration. Reference
 answers stay outside the request. These results describe model extraction from
