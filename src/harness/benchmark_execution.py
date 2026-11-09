@@ -268,8 +268,14 @@ def run_jobs(
             failure = error
             stop_event.set()
 
+    def record_interrupt():
+        nonlocal failure
+        # A signal can interrupt Event.wait while its non-reentrant lock is held.
+        if failure is None:
+            failure = KeyboardInterrupt()
+
     with (
-        _retain_call_ownership(lambda: stop(KeyboardInterrupt())),
+        _retain_call_ownership(record_interrupt),
         (nullcontext(_InlineExecutor()) if policy.max_in_flight == 1 and policy.backend == 'thread'
          else executor_class(**options)) as executor,
     ):
@@ -320,6 +326,8 @@ def run_jobs(
                         pending.remove(job)
             except BaseException as error:
                 stop(error)
+            if failure is not None:
+                stop_event.set()
             if not inflight:
                 if (pending and next_ready is not None and failure is None
                         and not stop_event.is_set() and not should_stop()):

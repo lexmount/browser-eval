@@ -254,6 +254,37 @@ def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
             process.communicate()
 
 
+def test_interrupt_while_cooldown_condition_is_locked_cannot_deadlock(tmp_path):
+    import subprocess
+    import sys
+    import textwrap
+
+    script = tmp_path/'locked_cooldown.py'
+    script.write_text(textwrap.dedent('''
+        import signal, threading, time
+        from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
+        class InterruptedWait(threading.Event):
+            def wait(self, timeout=None):
+                with self._cond:
+                    signal.raise_signal(signal.SIGINT)
+                return False
+        policy = ExecutionPolicy.from_dict({
+            'purpose': 'quality', 'max_in_flight': 1,
+            'serial_reason': 'Cooldown control',
+            'resources': {'api': {'capacity': 1, 'reason': 'Cooldown control'}}})
+        try:
+            run_jobs([Job('one', ('api',), None)], lambda value: None,
+                     lambda *args: None, policy, stop_event=InterruptedWait(),
+                     ready_at=lambda job: time.monotonic()+10)
+        except KeyboardInterrupt:
+            print('Stopped without lock reentry')
+    '''), encoding='utf-8')
+    result = subprocess.run([sys.executable, str(script)], capture_output=True,
+                            text=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    assert 'Stopped without lock reentry' in result.stdout
+
+
 def test_interrupt_during_preparation_does_not_dispatch_the_prepared_job():
     import signal
     from concurrent.futures import CancelledError
