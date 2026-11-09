@@ -214,6 +214,14 @@ exclusion. Every call retains elapsed time and raw stream events. First output,
 first answer and successful JSON completion each have their own observed counts;
 failed requests retain elapsed time without a JSON-completion milestone.
 A completed success or failure is reused on resume.
+To extend a completed model study, freeze only the additional configurations in a
+new plan and run directory. Reuse the original case contract and bind the existing
+baseline plan, call index and scores by hash; do not include baseline calls in the
+new plan. Predeclare thinking modes and sampling parameters before collection.
+Show historical and supplemental collection windows beside their latency metrics.
+Matched frozen inputs preserve the quality comparison. A contemporaneous speed
+comparison needs a fresh, authorized baseline cohort. Preserve the existing full
+SDK/API cohort when adding model-only evidence.
 An unresolved in-flight call stops collection for reconciliation. Changed inputs,
 weights, server versions or collector code require a new frozen contract.
 Offline scoring verifies the complete selected case matrix, original request
