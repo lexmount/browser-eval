@@ -207,6 +207,14 @@ def local_runtime_identity(engine):
     return identity
 
 
+def worker_environment():
+    """Read prepared bytecode without creating or redirecting runtime cache files."""
+    return {
+        **{k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"},
+        "PYTHONDONTWRITEBYTECODE": "1",
+    }
+
+
 def backend_identity(url):
     """Bound DNS, response delivery and JSON parsing even in an ASGI thread."""
     import requests
@@ -215,6 +223,7 @@ def backend_identity(url):
         completed = subprocess.run(
             [sys.executable, "-m", "harness.web_extract.self_hosted", "--backend-identity", url],
             capture_output=True, text=True, timeout=IDENTITY_TIMEOUT_SECONDS,
+            env=worker_environment(),
         )
     except subprocess.TimeoutExpired as exc:
         raise requests.Timeout("Firecrawl identity deadline exceeded") from exc
@@ -724,8 +733,7 @@ def run_worker(value, *, timeout=110, command=None, lease_fd=None):
         stdout=subprocess.PIPE,
         stderr=subprocess.PIPE,
         text=True,
-        env={**{k: v for k, v in os.environ.items() if k != "PYTHONPYCACHEPREFIX"},
-             "PYTHONDONTWRITEBYTECODE": "1"},
+        env=worker_environment(),
         start_new_session=True,
         pass_fds=(lease_fd,) if sys.platform == "linux" and lease_fd is not None else (),
     )

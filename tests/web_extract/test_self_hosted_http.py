@@ -812,6 +812,8 @@ def test_identity_dns_deadline_kills_the_resolver_process(tmp_path, monkeypatch)
     )
     monkeypatch.setenv("PYTHONPATH", str(tmp_path) + os.pathsep + os.environ.get("PYTHONPATH", ""))
     monkeypatch.setenv("NO_PROXY", "*")
+    bytecode = tmp_path / "inherited-bytecode-prefix"
+    monkeypatch.setenv("PYTHONPYCACHEPREFIX", str(bytecode))
     monkeypatch.setattr(self_hosted, "IDENTITY_TIMEOUT_SECONDS", 1.5)
     started = time.monotonic()
     with pytest.raises(requests.Timeout, match="identity deadline"):
@@ -819,3 +821,4 @@ def test_identity_dns_deadline_kills_the_resolver_process(tmp_path, monkeypatch)
     assert time.monotonic() - started < 3
     assert pid_file.exists(), "The real child must reach the blocked resolver"
     assert not psutil.pid_exists(int(pid_file.read_text(encoding="utf-8")))
+    assert not bytecode.exists(), "Identity checks must not rewrite the bound runtime's bytecode"
