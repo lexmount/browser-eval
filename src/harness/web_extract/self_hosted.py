@@ -514,8 +514,6 @@ def native_failure(engine, native):
 
 def prepare_environment():
     """Compile once at startup and share only immutable file-hash hints, not SDK state."""
-    from harness.reporting.publication import atomic_write
-
     roots = sorted({str(Path(sysconfig.get_paths()[key]).resolve())
                     for key in ("purelib", "platlib")})
     identity = json.dumps([
@@ -551,7 +549,16 @@ def prepare_environment():
                 raise RuntimeError("Installed extraction bytecode preparation failed: "
                                    + compiled.stdout + compiled.stderr)
             prepared = state()
-            atomic_write(marker, json.dumps(prepared).encode())
+            # This disposable startup marker must also work in the standalone
+            # SDK image, which does not install the report publishing stack.
+            with tempfile.NamedTemporaryFile(dir=directory, delete=False) as staged:
+                temporary = Path(staged.name)
+                try:
+                    staged.write(json.dumps(prepared).encode())
+                    staged.flush()
+                    temporary.replace(marker)
+                finally:
+                    temporary.unlink(missing_ok=True)
         fingerprint = prepared["environment_sha256"]
     store = tempfile.TemporaryDirectory(prefix="extract-attestation-")
     target = Path(store.name) / "files.json"
@@ -846,6 +853,8 @@ def create_app():
         async def result():
             try:
                 completed = await asyncio.to_thread(owned_worker)
+                if sys.platform == "linux" and completed.returncode == 128 + signal.SIGALRM:
+                    raise subprocess.TimeoutExpired("native-supervisor", 110)
                 if completed.returncode:
                     error = completed.stderr
                     for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):

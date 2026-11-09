@@ -515,6 +515,28 @@ def test_keepalive_retains_a_worker_timeout_as_a_failed_json_result(client):
     worker.assert_called_once()
 
 
+@pytest.mark.parametrize("keepalive", [False, True])
+def test_supervisor_deadline_returns_gateway_timeout_in_both_http_modes(client, keepalive):
+    with (
+        patch("harness.web_extract.self_hosted.sys.platform", "linux"),
+        patch("harness.web_extract.self_hosted.run_worker",
+              return_value=subprocess.CompletedProcess([], 142, "", "")) as worker,
+    ):
+        response = client.post(
+            "/extract/crawl4ai" + ("?keepalive=true" if keepalive else ""),
+            json=BODY, headers=AUTH,
+        )
+    if keepalive:
+        assert response.status_code == 200
+        assert response.json()["http_status"] == 504
+        assert response.json()["success"] is False
+        assert response.json()["error"] == "Native extraction exceeded 110 seconds"
+    else:
+        assert response.status_code == 504
+        assert response.json()["detail"] == "Native extraction exceeded 110 seconds"
+    worker.assert_called_once()
+
+
 @pytest.mark.skipif(sys.platform != "linux", reason="Linux request subreaper containment")
 def test_timeout_reaps_reparented_detached_processes_without_killing_other_requests(tmp_path):
     import os

@@ -587,7 +587,10 @@ def test_concurrent_worker_restarts_preserve_active_bytecode_and_detect_changed_
     ready, stop = tmp_path / 'ready', tmp_path / 'stop'
     helper = tmp_path / 'prepare.py'
     helper.write_text(
-        'import json,sys,time\nfrom pathlib import Path\n'
+        'import json,sys,time,importlib.metadata\nfrom pathlib import Path\n'
+        'def no_project_metadata(name):\n'
+        ' raise importlib.metadata.PackageNotFoundError(name)\n'
+        'importlib.metadata.version=no_project_metadata\n'
         'from harness.web_extract import self_hosted as m\n'
         f'm.__file__={str(owner)!r}\n'
         f'm.sysconfig.get_paths=lambda:{{"purelib":{str(installed)!r},'
