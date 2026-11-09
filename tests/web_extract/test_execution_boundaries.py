@@ -552,6 +552,7 @@ def test_resumed_collection_observes_frozen_pacing_before_dispatch(tmp_path):
         collection_context(),
         patch("harness.web_extract.pipeline.time.monotonic", side_effect=lambda: clock[0]),
         patch("harness.web_extract.pipeline.time.sleep", side_effect=sleep),
+        patch("harness.benchmark_execution.threading.Event.wait", side_effect=sleep),
         patch("harness.web_extract.pipeline.provider_call", side_effect=call),
     ):
         with (
