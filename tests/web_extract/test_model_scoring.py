@@ -10,10 +10,12 @@ from tests.web_extract.test_model_comparison import plan, server
 
 
 @pytest.mark.parametrize(
-    "name,expected_f1,valid", [(["A"], 1, True), (["B"], 0, True), ("A", 0, False)]
+    "name,expected_f1,valid,complete",
+    [(["A"], 1, True, True), (["B"], 0, True, True), ("A", 0, False, True),
+     (float("nan"), 0, False, False)],
 )
 def test_unavailable_reference_is_excluded_without_a_perfect_page_claim(
-    tmp_path, name, expected_f1, valid
+    tmp_path, name, expected_f1, valid, complete
 ):
     import json
 
@@ -63,7 +65,8 @@ def test_unavailable_reference_is_excluded_without_a_perfect_page_claim(
         assert group["page_exact_denominator"] == 0
         assert summary["details"][0]["fields"]["phone"]["status"] == "unavailable"
         assert summary["details"][0]["page_exact"] is None
-        assert group["timings"]["complete_json_seconds"]["count"] == 1
+        assert group["timings"]["complete_json_seconds"]["count"] == int(complete)
+        assert group["timings"]["elapsed_seconds"]["count"] == 1
         assert len(calls) == 2
         target = output / "calls" / (canonical_json_sha256(value["calls"][1]) + ".json")
         record = read_json(target)

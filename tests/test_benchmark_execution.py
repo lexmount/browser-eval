@@ -97,6 +97,24 @@ def test_stop_after_denial_drains_and_records_already_started_calls():
     assert sorted(retained) == [0, 1]
 
 
+def test_pacing_wait_drains_a_fast_denial_before_the_next_admission():
+    deadline = time.monotonic() + .15
+    stopped, retained, called = [], [], []
+
+    def execute(value):
+        called.append(value)
+        return value
+
+    def commit(job, value, error):
+        retained.append(value)
+        stopped.append(True)
+
+    run_jobs([Job(str(i), ("api-a",), i) for i in range(4)], execute, commit,
+             policy(), ready_at=lambda job: 0 if job.key == "0" else deadline,
+             should_stop=lambda: bool(stopped))
+    assert retained == called == [0]
+
+
 @pytest.mark.parametrize("bad", [0, -1, True, 1.5, "4", 65])
 def test_invalid_limits_fail_before_work_starts(bad):
     with pytest.raises(ValueError):

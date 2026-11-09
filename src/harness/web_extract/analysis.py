@@ -102,12 +102,14 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage):
                 if complete
                 else None,
                 "timings": {
-                    k: response.get(k)
-                    for k in (
-                        "first_any_output_seconds",
-                        "first_answer_seconds",
-                        "complete_json_seconds",
-                    )
+                    "first_any_output_seconds": response.get("first_any_output_seconds"),
+                    "first_answer_seconds": response.get("first_answer_seconds"),
+                    "elapsed_seconds": response.get(
+                        "elapsed_seconds", response.get("complete_json_seconds")
+                    ),
+                    "complete_json_seconds": response.get("complete_json_seconds")
+                    if response.get("success")
+                    else None,
                 },
                 "call_sha256": index[key],
                 **counts,

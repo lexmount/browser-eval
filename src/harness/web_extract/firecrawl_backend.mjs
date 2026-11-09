@@ -6,11 +6,13 @@ import {
   lstatSync as lstat, readdirSync as readdir,
   readlinkSync as readlink, realpathSync as realpath,
   openSync as open, closeSync as close, readSync as read,
+  existsSync as exists, readFileSync as readFile,
 } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const fileHashes = new Map();
+const hostBootPath = '/proc/sys/kernel/random/boot_id';
 function fileHash(target, info) {
   info ??= lstat(target, { bigint: true });
   const signature = [info.dev, info.ino, info.size, info.mtimeNs, info.ctimeNs].join(':');
@@ -107,6 +109,8 @@ async function currentIdentity() {
     native_dependencies_sha256: treeHash(path.resolve('node_modules')),
     node_sha256: fileHash(process.execPath),
     wrapper_sha256: fileHash(fileURLToPath(import.meta.url)),
+    host_boot_sha256: exists(hostBootPath)
+      ? createHash('sha256').update(readFile(hostBootPath)).digest('hex') : null,
     controls: Object.fromEntries(controls.map(key => [key, childEnv[key] ?? ''])),
   };
   if (kind === 'browser') {

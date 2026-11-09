@@ -9,7 +9,7 @@ import requests
 
 from harness import benchmark_execution
 from harness.benchmark_execution import ExecutionPolicy, Job, assess_execution, run_jobs
-from harness.record_io import bytes_sha256, canonical_json_sha256, file_sha256
+from harness.record_io import bytes_sha256, canonical_json_sha256, file_sha256, json_bytes
 from harness.web_extract.pipeline import (
     access_blocker,
     read_json,
@@ -78,7 +78,7 @@ def stream_call(payload, *, timeout):
                     continue
                 try:
                     event = json.loads(line)
-                    json.dumps(event, allow_nan=False)
+                    json.dumps(event, ensure_ascii=False, allow_nan=False).encode("utf-8")
                 except ValueError:
                     result["invalid_stream_line"] = line
                     raise
@@ -109,7 +109,7 @@ def stream_call(payload, *, timeout):
                 raise ValueError("Stream ended without its completion marker")
             result["transport_complete"] = True
             data = json.loads("".join(content))
-            json.dumps(data, allow_nan=False)
+            json.dumps(data, ensure_ascii=False, allow_nan=False).encode("utf-8")
             if not isinstance(data, dict):
                 raise ValueError("Extraction must return one JSON object")
             result["data"] = data
@@ -117,10 +117,12 @@ def stream_call(payload, *, timeout):
     except Exception as exc:
         # Retain failures as physical calls; a resume must not silently retry them.
         result["error"] = redact(f"{type(exc).__name__}: {exc}")
+    elapsed = time.monotonic() - started
     result.update(
         content="".join(content),
         thinking="".join(reasoning),
-        complete_json_seconds=time.monotonic() - started,
+        elapsed_seconds=elapsed,
+        complete_json_seconds=elapsed if result["success"] else None,
     )
     return result
 
@@ -191,7 +193,7 @@ def collect(plan_path, output, *, phase):
         "collector_sha256": file_sha256(Path(__file__)),
         "scheduler_sha256": file_sha256(Path(benchmark_execution.__file__)),
     }
-    with (output / "execution.lock").open("a") as lock:
+    with (output / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         bound = output / "binding.json"
         if bound.exists():
@@ -201,6 +203,23 @@ def collect(plan_path, output, *, phase):
             save_json(bound, binding, exclusive=True)
         index_path = output / "call-hashes.json"
         index = read_json(index_path) if index_path.exists() else {}
+        for pending in (output / "calls").glob("*.pending"):
+            target = pending.with_suffix(".json")
+            if not target.exists():
+                continue
+            receipt, reservation = read_json(target), read_json(pending)
+            checksum = reservation.pop("completed_sha256", None)
+            if (
+                checksum != file_sha256(target)
+                or receipt["binding"] != reservation
+                or any(reservation.get(k) != v for k, v in binding.items())
+                or canonical_json_sha256(receipt["request"]) != reservation["request_sha256"]
+                or index.get(pending.stem) not in (None, checksum)
+            ):
+                raise ValueError("Cannot reconcile a changed or unbound model call")
+            index[pending.stem] = checksum
+            save_json(index_path, index)
+            pending.unlink()
         if phase == "comparison":
             for call in (c for c in plan["calls"] if c["phase"] == "preflight"):
                 key = canonical_json_sha256(call)
@@ -292,9 +311,9 @@ def collect(plan_path, output, *, phase):
             target, pending, expected, body = prepared[job.key]
             if error:
                 result = {"success": False, "error": redact(f"{type(error).__name__}: {error}")}
-            save_json(
-                target, {"binding": expected, "request": body, "response": result}, exclusive=True
-            )
+            receipt = {"binding": expected, "request": body, "response": result}
+            save_json(pending, {**expected, "completed_sha256": bytes_sha256(json_bytes(receipt))})
+            save_json(target, receipt, exclusive=True)
             index[job.key] = file_sha256(target)
             save_json(index_path, index)
             pending.unlink()

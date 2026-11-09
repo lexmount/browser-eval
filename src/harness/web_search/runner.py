@@ -389,6 +389,27 @@ def validate_resume_datasets(contract, output=None):
     return legacy_dependencies("websearch", pins[0])
 
 
+def incomplete_results(profile, output):
+    """Retain completed physical attempts whose declared retry has not run yet."""
+    found = {}
+    methods = {m["id"]: m for m in profile["methods"]}
+    cases = {c["id"]: c for c in profile["cases"]}
+    expected_hash = bytes_sha256((output / "profile.json").read_bytes())
+    for path in (output / "partial-results").glob("*.json"):
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        row = saved["row"]
+        if saved["profile_sha256"] != expected_hash:
+            raise ValueError("Incomplete retry differs from the frozen profile")
+        method, case = methods[row["method"]], cases[row["case_id"]]
+        if not 0 < len(row["attempts"]) < 1 + int(bool(profile["protocol"].get("retry"))):
+            raise ValueError("Incomplete retry has no remaining declared attempt")
+        if row["request"] != request_body(method["adapter"], case, profile["protocol"], method.get("output_options")):
+            raise ValueError("Incomplete retry request changed")
+        verify_bundle(output, [a["evidence"] for a in row["attempts"]])
+        found[row["id"]] = row
+    return found
+
+
 def prepare_resume(profile_path, output, *, retain_results=False, cohort="primary", validate_only=False):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
@@ -406,6 +427,12 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     validate_resume_implementation(output, contract)
     raw = (output / "results.jsonl").read_bytes()
     rows = read_completed_records(output / "results.jsonl")
+    partial = incomplete_results(profile, output)
+    if profile["protocol"].get("retry"):
+        for row in rows:
+            if (len(row.get("attempts", [row])) == 1 and row["http_status"] not in {401, 402}
+                    and (row.get("error") or row["http_status"] != 200 or row["transport_exit"])):
+                partial[row["id"]] = row
     expected = {(m["id"], r) for m in profile["methods"] for r in range(profile["protocol"]["rounds"])}
     by_case = {c["id"]: [] for c in profile["cases"]}
     for row in rows:
@@ -421,15 +448,21 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         if len(group) == len(expected)
         and {(r["method"], r["round"]) for r in group} == expected
         and not any(r["http_status"] in {401, 402} for r in group)
+        and not any(r["id"] in partial for r in group)
     }
-    retained = [row for row in rows if (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
+    retained = [row for row in rows if row["id"] not in partial and
+                (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
     if validate_only:
         return retained, None
     number = len(list(output.glob("resume-*"))) + 1
     archive = output / f"resume-{number}"
     archive.mkdir()
     (archive / "previous-results.jsonl").write_bytes(raw)
+    for identity, row in partial.items():
+        write_json(output / "partial-results" / (identity + ".json"), {
+            "profile_sha256": bytes_sha256(profile_bytes), "row": row})
     kept_paths = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    kept_paths.update(a["evidence"]["path"] for row in partial.values() for a in row["attempts"])
     archive_reservations(output, archive, kept_paths)
     for call in (output / "calls").glob("*.json"):
         if call.relative_to(output).as_posix() not in kept_paths:
@@ -556,6 +589,10 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
     (output / "results.jsonl").touch(exist_ok=True)
     protocol = profile["protocol"]
     existing_ids = {r["id"] for r in rows}
+    partial = incomplete_results(profile, output)
+    for identity in existing_ids:
+        partial.pop(identity, None)
+        (output / "partial-results" / (identity + ".json")).unlink(missing_ok=True)
     spent_calls = physical_call_counts(profile, output)
     stopped = threading.Event()
     result_lock = threading.Lock()
@@ -571,17 +608,23 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
             payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
             key = os.environ[method["key_env"]]
             header = adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix + key
-            attempts = []
+            prior = partial.get(identity)
+            attempts = list(prior["attempts"]) if prior else []
+            prior_elapsed_ms = prior["elapsed_ms"] if prior else 0
+            interrupted_retry = False
+            made_call = False
             operation_start = time.perf_counter()
-            for attempt_index in range(1 + int(bool(protocol.get("retry")))):
+            for attempt_index in range(len(attempts), 1 + int(bool(protocol.get("retry")))):
                 if stopped.is_set():
-                    if not attempts:
+                    if not made_call:
                         return
+                    interrupted_retry = True
                     break
                 with result_lock:
                     if stopped.is_set():
-                        if not attempts:
+                        if not made_call:
                             return
+                        interrupted_retry = True
                         break
                     budget = budgets.get(method["id"])
                     if budget is not None:
@@ -594,6 +637,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 receipt, raw = http_call(
                     method["endpoint"], payload, header, protocol["client_timeout_s"]
                 )
+                made_call = True
                 # Provider error text must never echo a credential into evidence.
                 if key.encode() in raw:
                     raw = raw.replace(key.encode(), b"[REDACTED]")
@@ -624,7 +668,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 if (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
                     break
             total_elapsed_ms = max(
-                (time.perf_counter() - operation_start) * 1000,
+                prior_elapsed_ms + (time.perf_counter() - operation_start) * 1000,
                 sum(a["elapsed_ms"] for a in attempts),
             )
             total_cost = (
@@ -654,9 +698,17 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
             )
             with result_lock:
+                partial_path = output / "partial-results" / (identity + ".json")
+                if interrupted_retry:
+                    write_json(partial_path, {
+                        "profile_sha256": bytes_sha256((output / "profile.json").read_bytes()),
+                        "row": row,
+                    })
+                    return
                 rows.append(row)
                 with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
                     stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                partial_path.unlink(missing_ok=True)
             print(
                 f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
                 f"{receipt['elapsed_ms']:.0f} ms",

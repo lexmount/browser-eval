@@ -110,6 +110,8 @@ def test_openai_sse_preserves_usage_and_ignores_empty_chunks():
         ([{"message": {"content": "[]"}}, {"done": True}], "JSON object"),
         ([{"message": {"content": "broken"}}, {"done": True}], "JSONDecodeError"),
         ([{"message": {"content": '{"name":NaN}'}}, {"done": True}], "ValueError"),
+        ([{"message": {"content": '{"name":1e400}'}}, {"done": True}], "ValueError"),
+        ([{"message": {"content": '{"name":"\\ud800"}'}}, {"done": True}], "UnicodeEncodeError"),
         ([{"error": "unsupported context"}], "unsupported context"),
     ],
 )
@@ -117,6 +119,7 @@ def test_broken_streams_remain_failures_without_retries(events, error):
     with server(events) as (url, calls):
         result = stream_call(({"endpoint": url, "protocol": "ollama"}, {}), timeout=2)
     assert not result["success"] and error in result["error"] and len(calls) == 1
+    assert result["elapsed_seconds"] > 0 and result["complete_json_seconds"] is None
 
 
 def test_wall_deadline_interrupts_a_continuing_stream():
@@ -316,3 +319,28 @@ def test_thinking_variants_share_one_weight_load_per_phase(tmp_path):
         loads = [c for c in calls if "prompt" in c]
         generations = [c for c in calls if "messages" in c]
         assert len(loads) == 2 and len(generations) == 4
+
+
+def test_result_index_write_interruption_recovers_without_another_inference(tmp_path, monkeypatch):
+    from harness.web_extract import model_comparison
+
+    events = [{"message": {"content": "{}"}}, {"done": True}]
+    with server(events) as (url, calls):
+        path, output = tmp_path / "plan.json", tmp_path / "run"
+        save_json(path, plan(url))
+        original = model_comparison.save_json
+
+        def fail_index(target, *args, **kwargs):
+            if target.name == "call-hashes.json":
+                raise OSError("Interrupted between result and index")
+            return original(target, *args, **kwargs)
+
+        monkeypatch.setattr(model_comparison, "save_json", fail_index)
+        with pytest.raises(OSError, match="between result and index"):
+            collect(path, output, phase="preflight")
+        assert len(calls) == 1 and list((output / "calls").glob("*.pending"))
+        monkeypatch.setattr(model_comparison, "save_json", original)
+        assert collect(path, output, phase="preflight")["new_calls"] == 0
+        assert len(calls) == 1 and not list((output / "calls").glob("*.pending"))
+        collect(path, output, phase="comparison")
+        assert len(calls) == 2

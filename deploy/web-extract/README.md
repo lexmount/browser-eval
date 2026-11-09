@@ -114,6 +114,10 @@ command. Prepare a separate assessment for every method; pass all four assessmen
 paths to the final plan. Start with `--concurrency 1 --execution-purpose quality
 --serial-reason "Shared native worker and browser budget"` for this single API
 instance. Freeze a higher capacity only after its bounded preflight succeeds.
+The service also enforces `EXTRACTION_MAX_WORKERS` (default `1`) across its HTTP
+workers. Requests beyond that capacity receive HTTP 429 before extraction starts.
+Disconnected clients retain their slot until the underlying work finishes. Increase
+this limit only after checking available resources and the model provider's limits.
 Run the certified command once per method and score its complete output. A new
 full run makes 560 Zyte and 3,200 SWDE logical calls, plus separately declared
 preflights and allowed infrastructure repairs. It incurs model API usage.

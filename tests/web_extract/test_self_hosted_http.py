@@ -201,7 +201,10 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
     source_wrapper = (Path(__file__).resolve().parents[2]
                       / "src/harness/web_extract/firecrawl_backend.mjs")
     wrapper = tmp_path / "backend-wrapper.mjs"
-    wrapper.write_bytes(source_wrapper.read_bytes())
+    boot = tmp_path / "host-boot-id"
+    boot.write_text("first-host", encoding="utf-8")
+    wrapper.write_text(source_wrapper.read_text(encoding="utf-8").replace(
+        "/proc/sys/kernel/random/boot_id", str(boot)), encoding="utf-8")
     base = {"engine": "firecrawl", "model": "test-model", "model_base": "https://model.example"}
     monkeypatch.setenv("FIRECRAWL_BACKEND_URL", "http://127.0.0.1:3002")
     monkeypatch.setenv("SNAPSHOT_ORIGINS", "https://snapshots.example")
@@ -233,7 +236,7 @@ def test_backend_attestation_changes_with_the_native_source_and_model(tmp_path, 
             os.killpg(process.pid, signal.SIGTERM)
             process.communicate(timeout=5)
 
-    for target in (script, tmp_path / "node_modules/native.js", wrapper):
+    for target in (script, tmp_path / "node_modules/native.js", wrapper, boot):
         with backend("test-model") as original:
             assert original["backend"]["controls"]["MODEL_NAME"] == "test-model"
             before = target.read_bytes()
@@ -390,6 +393,7 @@ def test_backend_rejects_unsafe_startup_without_leaving_a_native_child(tmp_path,
 
 
 def test_slow_identity_validation_does_not_block_other_http_requests(monkeypatch):
+    monkeypatch.setenv("EXTRACTION_MAX_WORKERS", "2")
     import asyncio
     import threading
 
@@ -435,6 +439,7 @@ def test_slow_identity_validation_does_not_block_other_http_requests(monkeypatch
 
 
 def test_keepalive_survives_a_short_proxy_read_timeout_without_repeating_work(monkeypatch):
+    monkeypatch.setenv("EXTRACTION_MAX_WORKERS", "2")
     import socket
     import threading
 
@@ -605,7 +610,7 @@ def test_startup_does_not_become_ready_when_preparation_times_out():
         pytest.fail('An unprepared runtime became ready')
 
 
-@pytest.mark.parametrize('changed_file', ['bundle', 'browser-binary'])
+@pytest.mark.parametrize('changed_file', ['bundle', 'browser-binary', 'host-boot'])
 def test_browser_dependency_mutation_rejects_the_frozen_backend(
     tmp_path, monkeypatch, changed_file
 ):
@@ -625,8 +630,13 @@ def test_browser_dependency_mutation_rejects_the_frozen_backend(
         (folder / 'node_modules').mkdir()
         for target in (folder / 'dist/api.js', folder / 'dist/src/harness.js'):
             target.write_text('setInterval(() => {}, 1000);\n', encoding='utf-8')
+        boot = folder / 'host-boot-id'
+        boot.write_text('first-host', encoding='utf-8')
+        installed = folder / 'wrapper.mjs'
+        installed.write_text(wrapper.read_text(encoding='utf-8').replace(
+            '/proc/sys/kernel/random/boot_id', str(boot)), encoding='utf-8')
         process = subprocess.Popen(
-            ['node', str(wrapper)], cwd=folder,
+            ['node', str(installed)], cwd=folder,
             env={**os.environ, 'FIRECRAWL_IDENTITY_PORT': '0', **extra},
             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, start_new_session=True,
         )
@@ -659,7 +669,8 @@ def test_browser_dependency_mutation_rejects_the_frozen_backend(
                 frozen = self_hosted.runtime_identity('firecrawl')
                 assert frozen['backend']['browser']['kind'] == 'browser'
                 assert self_hosted.runtime_identity('firecrawl') == frozen
-                target = browser / 'dist/api.js' if changed_file == 'bundle' else binary
+                target = (browser / 'dist/api.js' if changed_file == 'bundle' else
+                          browser / 'host-boot-id' if changed_file == 'host-boot' else binary)
                 target.write_bytes(target.read_bytes() + b'\nchanged')
                 with pytest.raises(requests.HTTPError):
                     self_hosted.validate_input({**BODY, 'engine': 'firecrawl',
@@ -668,13 +679,15 @@ def test_browser_dependency_mutation_rejects_the_frozen_backend(
 
 
 @pytest.mark.parametrize("keepalive", [False, True])
-@pytest.mark.parametrize("failure", ["launch", "invalid-json", "non-finite-json", "unexpected"])
+@pytest.mark.parametrize(
+    "failure", ["launch", "invalid-json", "non-finite-json", "surrogate", "unexpected"])
 def test_worker_boundary_failures_have_a_sanitized_server_status(client, keepalive, failure):
     secret = "private-process-diagnostic"
     outcome = {
         "launch": OSError(secret),
         "invalid-json": subprocess.CompletedProcess([], 0, secret, ""),
         "non-finite-json": subprocess.CompletedProcess([], 0, '{"data": NaN}', ""),
+        "surrogate": subprocess.CompletedProcess([], 0, '{"data":{"name":"\\ud800"}}', ""),
         "unexpected": RuntimeError(secret),
     }[failure]
     with patch("harness.web_extract.self_hosted.run_worker", side_effect=[outcome]):

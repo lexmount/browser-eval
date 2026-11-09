@@ -2,6 +2,7 @@
 
 import asyncio
 import contextlib
+import fcntl
 import hashlib
 import hmac
 import importlib.metadata
@@ -19,6 +20,7 @@ from functools import lru_cache
 from pathlib import Path
 from urllib.parse import urlsplit
 
+from harness.benchmark_execution import validate_capacity
 from harness.record_io import optional_file_sha256
 
 ENGINES = {
@@ -29,6 +31,28 @@ ENGINES = {
 }
 KEEPALIVE_SECONDS = 5
 HOST_BOOT_ID_PATH = Path("/proc/sys/kernel/random/boot_id")
+ADMISSION_DIRECTORY = Path(tempfile.gettempdir()) / "browser-eval-extraction-admission"
+
+
+def worker_capacity():
+    return validate_capacity(int(os.environ.get("EXTRACTION_MAX_WORKERS", "1")))
+
+
+def acquire_worker_slot(capacity):
+    """Share one container budget across requests and ASGI worker processes."""
+    if ADMISSION_DIRECTORY.is_symlink():
+        raise ValueError("Extraction admission directory must not be a symlink")
+    ADMISSION_DIRECTORY.mkdir(mode=0o700, parents=True, exist_ok=True)
+    for number in range(capacity):
+        descriptor = os.open(ADMISSION_DIRECTORY / str(number),
+                             os.O_CREAT | os.O_RDWR | os.O_CLOEXEC | os.O_NOFOLLOW, 0o600)
+        lease = os.fdopen(descriptor, "a", encoding="utf-8")
+        try:
+            fcntl.flock(lease, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            return lease
+        except BlockingIOError:
+            lease.close()
+    return None
 
 
 def validate_input(value):
@@ -150,6 +174,7 @@ def local_runtime_identity(engine):
         "environment_binding": "installed-files/1",
         "bytecode_cache": "precompiled-installed-files",
         "host_boot_sha256": host_boot_sha256(),
+        "service_worker_capacity": worker_capacity(),
         "native_thread_limits": {
             key: os.environ.get(key) for key in (
                 "OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"
@@ -696,6 +721,7 @@ def create_app():
             _ENVIRONMENT_CACHE_RECEIPT = None
             store.cleanup()
 
+    capacity = worker_capacity()
     app = FastAPI(title="Open-source Web Extract", docs_url=None, redoc_url=None, lifespan=lifespan)
 
     def authenticated(authorization):
@@ -731,11 +757,37 @@ def create_app():
             if not isinstance(value, dict):
                 raise ValueError("Request must be a JSON object")
             value["engine"] = engine
-            await asyncio.to_thread(validate_input, value)
         except OverflowError as exc:
             raise HTTPException(413, str(exc)) from exc
         except (KeyError, ValueError) as exc:
             raise HTTPException(400, str(exc)) from exc
+
+        lease = acquire_worker_slot(capacity)
+        if lease is None:
+            raise HTTPException(
+                429, "Extraction worker capacity reached", headers={"Retry-After": "1"}
+            )
+        validation = asyncio.create_task(asyncio.to_thread(validate_input, value))
+        try:
+            await asyncio.shield(validation)
+        except BaseException as exc:
+            def release_validation(done):
+                lease.close()
+                if not done.cancelled():
+                    done.exception()
+            if validation.done():
+                release_validation(validation)
+            else:
+                validation.add_done_callback(release_validation)
+            if isinstance(exc, (KeyError, ValueError)):
+                raise HTTPException(400, str(exc)) from exc
+            raise
+
+        def owned_worker():
+            try:
+                return run_worker(value)
+            finally:
+                lease.close()
 
         async def failed(error, status=None):
             payload = {"success": False, "data": None, "error": error}
@@ -751,7 +803,7 @@ def create_app():
 
         async def result():
             try:
-                completed = await asyncio.to_thread(run_worker, value)
+                completed = await asyncio.to_thread(owned_worker)
                 if completed.returncode:
                     error = completed.stderr
                     for key in ("EXTRACTION_MODEL_API_KEY", "EXTRACTION_API_KEY"):
@@ -759,7 +811,7 @@ def create_app():
                             error = error.replace(os.environ[key], "[REDACTED]")
                     return await failed(error[-6000:])
                 payload = json.loads(completed.stdout)
-                json.dumps(payload, allow_nan=False)
+                json.dumps(payload, ensure_ascii=False, allow_nan=False).encode("utf-8")
                 return payload
             except subprocess.TimeoutExpired as exc:
                 raise HTTPException(504, "Native extraction exceeded 110 seconds") from exc
@@ -768,13 +820,14 @@ def create_app():
                 # outside Exception and retains the existing cleanup path.
                 raise HTTPException(500, "Native extraction worker failed") from exc
 
+        task = asyncio.create_task(result())
+        task.add_done_callback(lambda done: None if done.cancelled() else done.exception())
         if not keepalive:
-            return await result()
+            return await asyncio.shield(task)
 
         from fastapi.responses import StreamingResponse
 
         async def stream():
-            task = asyncio.create_task(result())
             try:
                 # JSON permits leading whitespace. The complete response remains
                 # one JSON document, while intermediate proxies keep receiving bytes.

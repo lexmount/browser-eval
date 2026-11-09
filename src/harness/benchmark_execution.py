@@ -13,6 +13,7 @@ import math
 import multiprocessing
 import signal
 import threading
+import time
 from concurrent.futures import (
     FIRST_COMPLETED,
     BrokenExecutor,
@@ -218,6 +219,7 @@ def run_jobs(
     policy,
     *,
     prepare=None,
+    ready_at=None,
     should_stop=lambda: False,
     initialize=None,
     initargs=(),
@@ -274,6 +276,7 @@ def run_jobs(
         if pending and policy.max_in_flight == 1 and initialize is not None:
             initialize(*initargs)
         while pending or inflight:
+            next_ready = None
             try:
                 if failure is None and not stop_event.is_set() and not should_stop():
                     for job in list(pending):
@@ -282,6 +285,16 @@ def run_jobs(
                             break
                         if any(active[r] >= policy.resources[r] for r in job.resources):
                             continue
+                        if ready_at is not None:
+                            available = ready_at(job)
+                            if (not isinstance(available, (int, float))
+                                    or not math.isfinite(available)):
+                                raise ValueError(
+                                    "Admission deadline must be a finite monotonic time")
+                            if available > time.monotonic():
+                                next_ready = (available if next_ready is None
+                                              else min(next_ready, available))
+                                continue
                         payload = prepare(job) if prepare else job.payload
                         if failure is not None or stop_event.is_set() or should_stop():
                             if prepare is not None:
@@ -307,9 +320,15 @@ def run_jobs(
             except BaseException as error:
                 stop(error)
             if not inflight:
+                if (pending and next_ready is not None and failure is None
+                        and not stop_event.is_set() and not should_stop()):
+                    stop_event.wait(min(.1, max(0, next_ready - time.monotonic())))
+                    continue
                 break
             try:
-                done, _ = wait(inflight, return_when=FIRST_COMPLETED)
+                wait_options = ({"timeout": max(0, next_ready - time.monotonic())}
+                           if next_ready is not None else {})
+                done, _ = wait(inflight, return_when=FIRST_COMPLETED, **wait_options)
                 for future in done:
                     try:
                         job = inflight[future]

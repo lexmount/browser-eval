@@ -716,6 +716,54 @@ def test_resume_reference_drift_preserves_every_saved_result_and_call(tmp_path):
             assert (output / name).read_bytes() == raw
 
 
+def test_interrupted_retry_resumes_only_the_missing_physical_attempt(tmp_path):
+    import signal
+    import pytest
+    from harness.web_search import runner
+
+    profile = execution_profile()
+    profile['methods'] = profile['methods'][:1]
+    profile['cases'] = profile['cases'][:1]
+    method = profile['methods'][0]
+    profile['protocol'].update(order='bounded calls', rounds=1, concurrency=1, retry=True,
+                               interval_s=0, max_calls_per_method=2)
+    profile['execution_policy'] = {
+        'purpose': 'quality', 'max_in_flight': 1, 'serial_reason': 'One provider account',
+        'resources': {method['id']: {'capacity': 1, 'reason': 'One provider account'}}}
+    source, output = tmp_path / 'profile.json', tmp_path / 'run'
+    source.write_text(json.dumps(profile), encoding="utf-8")
+    sends = []
+
+    def http(url, body=None, header=None, timeout=20):
+        receipt = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        sends.append(body)
+        if len(sends) == 1:
+            signal.raise_signal(signal.SIGINT)
+            return dict(receipt, http_status=503), b'{"error":"temporary"}'
+        return receipt, b'{"results":[]}'
+
+    with (patch.object(runner, 'http_call', side_effect=http),
+          patch.object(runner, 'load_runtime_env'),
+          patch.dict(os.environ, {method['key_env']: 'fixture'})):
+        with pytest.raises(KeyboardInterrupt):
+            runner.run(source, output, certified=True)
+        assert len(sends) == 1
+        assert not (output / 'results.jsonl').read_bytes()
+        saved = next((output / 'partial-results').glob('*.json'))
+        partial = json.loads(saved.read_text(encoding="utf-8"))['row']
+        first = output / partial['attempts'][0]['evidence']['path']
+        original = first.read_bytes()
+        runner.run(source, output, certified=True, resume=True)
+    rows = [json.loads(line) for line in
+            (output / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
+    assert len(sends) == 2 and len(rows) == 1
+    assert [a['http_status'] for a in rows[0]['attempts']] == [503, 200]
+    assert first.read_bytes() == original
+    assert not list((output / 'partial-results').glob('*.json'))
+
+
 def test_certified_entry_rejects_diagnostic_before_any_call(tmp_path, monkeypatch):
     import pytest
     from harness.web_search import runner

@@ -1513,6 +1513,13 @@ def collect_calls(
     repair=False,
 ):
     """Own dispatch, pacing, checkpoints and retry accounting for every native run."""
+    execution_policy = contract.get("execution_policy")
+    policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
+    concurrency = policy.max_in_flight if policy else contract.get("concurrency", 1)
+    if type(concurrency) is not int or not 1 <= concurrency <= 64:
+        raise ValueError("Concurrency must be an integer between 1 and 64")
+    if concurrency > 1 and policy and policy.backend != "process":
+        raise ValueError("Native signal deadlines require the process execution backend")
     journal = run / "calls.journal.jsonl"
     if journal.is_symlink() or unsafe_parents(journal):
         raise ValueError("Symlink inputs are prohibited")
@@ -1588,8 +1595,6 @@ def collect_calls(
     # Conservatively observe the full frozen pause after a cross-process resume.
     last_call_started = time.monotonic() if prior else None
     last_call_finished = last_call_started
-    execution_policy = contract.get("execution_policy")
-    policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
     assignments = execution_policy.get("assignments") if execution_policy else None
     if assignments is None:
         if policy and len(methods) > 1 and set(policy.resources) != set(methods):
@@ -1612,9 +1617,6 @@ def collect_calls(
         != set(policy.resources)
     ):
         raise ValueError("Execution assignments must bind every method and declared resource")
-    concurrency = policy.max_in_flight if policy else contract.get("concurrency", 1)
-    if type(concurrency) is not int or not 1 <= concurrency <= 64:
-        raise ValueError("Concurrency must be an integer between 1 and 64")
     if concurrency > 1 and post_call_cooldown:
         raise ValueError("Post-call cooldown requires serial execution")
     pending_calls = {}
@@ -1674,21 +1676,6 @@ def collect_calls(
         if missing:
             row.update(state="credentials_missing", missing_variables=missing)
         else:
-            if last_call_started is not None:
-                remaining = max(
-                    min_call_interval - (time.monotonic() - last_call_started),
-                    (post_call_cooldown - (time.monotonic() - last_call_finished))
-                    if last_call_finished is not None
-                    else 0,
-                )
-                while remaining > 0:
-                    time.sleep(min(remaining, 30))
-                    remaining = max(
-                        min_call_interval - (time.monotonic() - last_call_started),
-                        (post_call_cooldown - (time.monotonic() - last_call_finished))
-                        if last_call_finished is not None
-                        else 0,
-                    )
             pending_calls[(method, case_id)] = {
                 "method": method,
                 "case_id": case_id,
@@ -1805,9 +1792,15 @@ def collect_calls(
         "serial_reason": "Retain the declared serial call and cooldown policy",
     })
     context = multiprocessing.get_context("spawn")
+    def ready_at(_job):
+        return max(
+            last_call_started + min_call_interval if last_call_started is not None else 0,
+            last_call_finished + post_call_cooldown if last_call_finished is not None else 0,
+        )
     run_jobs(
         jobs, _execute_admitted_call, commit, policy,
         prepare=prepare, should_stop=lambda: bool(blocked),
+        ready_at=ready_at,
         initialize=_initialize_collection_clock,
         initargs=(context.Lock(), context.Value("d", time.monotonic() - min_call_interval),
                   min_call_interval),

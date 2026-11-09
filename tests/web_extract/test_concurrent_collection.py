@@ -107,6 +107,36 @@ def test_parallel_calls_obey_the_declared_start_interval(tmp_path, threaded_call
         assert all(b - a >= 0.045 for a, b in zip(ordered, ordered[1:], strict=False))
 
 
+def test_paced_collection_records_account_denial_before_the_next_call(tmp_path, threaded_calls):
+    home = create(tmp_path / "example")
+    target = home / "runs/paced-denial"
+    with (collection_context(),
+          patch("harness.web_extract.pipeline.provider_call", return_value={
+              "http_status": 402, "response": {"error": "account balance exhausted"}}) as call,
+          pytest.raises(PermissionError)):
+        probe(home, ["cloudflare-json"], full=True, run_dir=target,
+              min_call_interval=.2, execution_policy=policy())
+    assert call.call_count == 1
+    assert len((target / "calls.journal.jsonl").read_text(encoding="utf-8").splitlines()) == 1
+
+
+@pytest.mark.parametrize("explicit_backend", [False, True])
+def test_shared_collection_boundary_rejects_thread_policies_before_inputs_or_calls(
+    tmp_path, explicit_backend
+):
+    from harness.web_extract.pipeline import collect_calls
+
+    execution = policy()
+    if explicit_backend:
+        execution["backend"] = "thread"
+    else:
+        execution.pop("backend")
+    with pytest.raises(ValueError, match="process execution backend"):
+        collect_calls(tmp_path / "not-loaded", ["cloudflare-json"], ["case"], tmp_path / "run",
+                      {"execution_policy": execution}, repair=True)
+    assert not (tmp_path / "run").exists()
+
+
 @pytest.mark.parametrize("assigned", [False, True])
 def test_multi_method_collection_never_ignores_a_shared_account(tmp_path, assigned, threaded_calls):
     home = create(tmp_path / "example")
