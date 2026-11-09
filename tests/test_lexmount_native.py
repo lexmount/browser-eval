@@ -24,10 +24,10 @@ def test_prior_projection_keeps_its_original_answer_scope():
     old = native_answer_projection('lexmount', {}, payload, 200, policy_version=3)
     content, fields = project_native_answer(payload, old)
     assert content == 'Body'
-    assert fields == {'links': [], 'images': []}
+    assert fields == {}  # No returned links or images: none declared.
     previous = native_answer_projection('lexmount', {}, payload, 200, policy_version=4)
     assert project_native_answer(payload, previous)[1] == {
-        'links': [], 'images': [], 'answer_format': 'plain_text',
+        'answer_format': 'plain_text',
         'page_structure': {'headings': ['Heading']}, 'records': [{'text': 'Review'}]}
     current = native_answer_projection('lexmount', {}, payload, 200)
     assert 'page_information' in project_native_answer(payload, current)[1]
