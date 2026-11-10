@@ -126,8 +126,9 @@ The hosted API cohort uses each provider's built-in extraction. Browserbase JSON
 uses only the Browserbase API key. The separately registered hosted Stagehand route
 uses its Model Gateway and needs a project ID; it does not read an OpenAI key.
 Self-hosted configurations use a separate model and are described below. Bright
-Data's site-specific extractor is rejected by the full archived-page plan because
-it cannot parse arbitrary archived HTML.
+Data's site-specific extractor remains a candidate, but is outside arbitrary-schema
+cohorts because it requires a supported site-specific extractor. Browser infrastructure
+alone does not supply the requested field values.
 
 New cohorts give every native API the same public URL for each frozen page.
 Each dataset has its own hosting service. Browser Eval can find and reuse a
@@ -707,6 +708,9 @@ asset registry. The disclosure uses schema `web-extract-cost-disclosure/1`, the
 method ID, `case_count`, `total_charge_receipts` and `source_plan_sha256`.
 Build and release checks require matching populations and source-plan hashes;
 an unavailable total cannot also declare a numeric price or billing formula.
+For multiple certified source segments, use schema `web-extract-cost-disclosure/2`
+with `source_plan_sha256s` listing every segment's plan hash in source order;
+single-plan receipts retain the version 1 contract.
 
 Quality cells link to method/field filters; result rows open lazy evidence dialogs
 and link to full field diagnostics, same-case comparisons and safe source previews.
@@ -891,6 +895,45 @@ A repair inherits its parent's instructions and native options unless the plan e
 overrides the native options. The instruction-delivery format is frozen too: historical
 record runs with a different format require a new cohort instead of a mixed repair. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
 resolve from `<home>`, and absolute paths retain their meaning.
+
+## Independent benchmarks in one report
+
+Use the same renderer's `field-extraction-suite` mode to publish several cohorts
+under one entry. Each cohort keeps its own dataset, scorer, result inventory,
+timing population and denominator. The overview does not average quality scores
+across benchmarks. Run the network-free example with:
+
+```sh
+uv run --frozen python -m harness.web_extract.example --output /tmp/extract-suite --mode field-extraction-suite
+uv run --frozen python -m harness.web_extract.cli check /tmp/extract-suite
+```
+
+The suite content lists `cohorts`, each with `id`, `label`, `home`, `content`,
+`profile`, `content_sha256` and `profile_sha256`. Each child's content declares a
+matching `site_prefix`. The instance profile binds the suite content hash and a
+publication-safe `research_report.cohorts` registry containing the ordered IDs,
+labels, summaries and child input hashes. The package retains the exact profile
+bytes, so release checks verify that registry against the original profile hash
+without trusting a separately edited public projection or needing local files.
+Nested pages, evidence dialogs,
+the English notice and the return link use the same hosted-root navigation.
+The release receipt binds a visual receipt for every child under `cohorts`.
+
+A participant can reuse several disjoint certified scopes through an evidence
+selection's `segments` array. Each segment identifies its original `home`,
+`run`, `plan` and `plan_sha256`. Assembly verifies each original certificate and
+requires identical task definitions, schemas, instructions and HTML for the
+selected IDs. The scopes must cover the declared dataset exactly once. This
+allows an expanded cohort to retain earlier calls without selecting the best
+answer, changing evidence or repeating completed calls.
+
+The report lists each segment's native options, frozen participant settings and
+pipeline/scorer hashes in Methodology, linked beside the quality comparison.
+Only segments with identical native options, participant settings and pipeline/scorer
+identities can share a participant row. The total physical-call budget is scoped to
+the segment's case count and is not a method setting. Different configurations need
+separate participants or cohorts. Each certified segment's scores are checked on
+its own case population before aggregation.
 
 ## Self-hosted open-source extraction
 

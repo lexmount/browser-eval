@@ -198,6 +198,8 @@ def page(
     state="compatibility",
     navigation=None,
     notice=None,
+    site_prefix="",
+
     intro="",
 ):
     if intro:
@@ -872,15 +874,8 @@ def verify_execution_projection(original, published):
         raise ValueError("Completion audit native attempt history changed")
 
 
-def cohort_source_binding(source, selection, contract, receipt, *, records=False):
+def cohort_source_binding(source, selection, contract, receipt):
     """Use one metadata shape for initial publication and independent verification."""
-    if records:
-        return {
-            "run_id": source.name,
-            "contract": contract,
-            "receipt": receipt,
-            "plan_sha256": selection["plan_sha256"],
-        }
     return {
         "run_id": source.name,
         "manifest_sha256": digest((source / "manifest.json").read_bytes())
@@ -1043,7 +1038,10 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
                 if selection.get("methods") is None or row["method"] in selection["methods"]
             ]
         elif cohort_rows is None:
-            _, originals = load_selection(home, selection)
+            originals = [
+                row for source_home, segment in record_source_segments(home, selection)
+                for row in load_selection(source_home, segment)[1]
+            ]
         else:
             originals = cohort_rows[index]
         for row in originals:
@@ -1135,6 +1133,17 @@ def verify_completion_audit(source, profile, *, home=None):
     if profile.is_symlink() or digest(profile.read_bytes()) != manifest["profile_sha256"]:
         raise ValueError("Completion audit frozen profile changed")
     instance = read_json(profile)
+    if manifest.get("mode") == "field-extraction-suite":
+        from harness.web_extract.report_suite import suite_inputs
+
+        _, entries = suite_inputs(profile)
+        if [entry["id"] for entry in entries] != [entry["id"] for entry in manifest["cohorts"]]:
+            raise ValueError("Suite registry differs from its profile-authorized content")
+        for entry in entries:
+            verify_completion_audit(
+                source / entry["id"], Path(entry["profile"]), home=Path(entry["home"])
+            )
+        return
     if home is None:
         raise ValueError("Completion audit requires an explicit benchmark home")
     home = Path(home)
@@ -1822,6 +1831,8 @@ def latency_comparable(sources, methods):
     limits = {effective_concurrency(contract, method)
               for method in methods for contract in sources.get(method, [{}])}
     return len(limits) == 1 and None not in limits
+
+
 
 
 def execution_settings(sources, methods, labels, language):
@@ -3742,10 +3753,12 @@ def check_cost_disclosures(output, manifest):
         return
     if manifest.get("mode") == "field-extraction-cohort":
         sources = read_json(output / "public-evidence/sources.json")
-        plans = {method: item["plan_sha256"] for method, item in sources.items()}
+        plans = {method: [segment["plan_sha256"]
+                          for segment in item.get("segments", [item])]
+                 for method, item in sources.items()}
     else:
         plans = {
-            method: item.get("source_plan_sha256")
+            method: [item.get("source_plan_sha256")]
             for item in manifest.get("source_runs", [])
             for method in (item.get("methods") or item.get("contract", {}).get("methods", []))
         }
@@ -3767,15 +3780,18 @@ def check_cost_disclosures(output, manifest):
             or unsafe_parents(path)
             or digest(path.read_bytes()) != evidence["sha256"]
             or manifest["files"].get(relative.as_posix()) != evidence["sha256"]
-            or not re.fullmatch(r"[0-9a-f]{64}", plans.get(method) or "")
+            or not plans.get(method)
+            or any(not re.fullmatch(r"[0-9a-f]{64}", plan or "") for plan in plans[method])
         ):
             raise ValueError("Cost disclosure population or evidence differs")
         expected = {
-            "schema": "web-extract-cost-disclosure/1",
+            "schema": "web-extract-cost-disclosure/1" if len(plans[method]) == 1
+            else "web-extract-cost-disclosure/2",
             "method": method,
             "case_count": disclosure["population_cases"],
             "total_charge_receipts": disclosure["population_cases"] - disclosure["missing_cases"],
-            "source_plan_sha256": plans[method],
+            **({"source_plan_sha256": plans[method][0]} if len(plans[method]) == 1
+               else {"source_plan_sha256s": plans[method]}),
         }
         observed = read_json(path)
         if observed != expected or any(
@@ -3902,9 +3918,9 @@ def _check_rendered_report(output: Path, *, release=False, visual_receipt=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
     if manifest.get("mode") == "field-extraction-suite":
-        from harness.web_extract.report_suite import check as check_suite
+        from harness.web_extract.report_suite import _check_rendered_suite
 
-        return check_suite(output, release=release, visual_receipt=visual_receipt)
+        return _check_rendered_suite(output, release=release, visual_receipt=visual_receipt)
     if manifest.get("mode") == "field-extraction-cohort":
         return _check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     link_index = LinkIndex(errors="strict")
@@ -4279,6 +4295,14 @@ def completion_authorities(profile, home):
     instance = read_json(profile)
     paths = [profile]
     plans = set()
+    if "cohorts" in instance.get("research_report", {}):
+        from harness.web_extract.report_suite import suite_inputs
+
+        content, entries = suite_inputs(profile)
+        paths.append(content)
+        for entry in entries:
+            paths.extend(completion_authorities(Path(entry["profile"]), Path(entry["home"])))
+        return tuple(dict.fromkeys(paths))
 
     def include_plan(path):
         paths.append(path)
@@ -4314,8 +4338,8 @@ def completion_authorities(profile, home):
 
                         paths.extend(reference_revision_authorities(Path(home), read_json(path)))
         for group in model.get("evidence_runs", []):
-            for selection in group.get("segments", [group]):
-                paths.append(resolve_run_path(home, selection["run"]))
+            for source_home, selection in record_source_segments(Path(home), group):
+                paths.extend((source_home / "dataset", resolve_run_path(source_home, selection["run"])))
                 if selection.get("plan"):
                     include_plan(Path(selection["plan"]))
                 if selection.get("assessment"):
@@ -4497,13 +4521,14 @@ def record_cohort_inputs(home, model, *, profile):
             raise ValueError("Unexpected or duplicated report participant")
         seen.add(method)
         stats = record_statistics(
-            truth, rows, certified=receipt["certified"], scorer=adapter.score,
+            truth,
+            rows,
+            certified=all(part["receipt"]["certified"] for part in receipts),
+            scorer=adapter.score,
             reference_policy=result["reference_policy"],
         )
         result["methods"][method] = {"statistics": stats, "results": {}}
-        result["sources"][method] = cohort_source_binding(
-            source, selection, contract, receipt, records=True
-        )
+        result["sources"][method] = receipts[0] if len(receipts) == 1 else {"segments": receipts}
         for row in rows:
             result["methods"][method]["results"][row["case_id"]] = record_result_fields(
                 truth[row["case_id"]], row, policy=result["reference_policy"]
@@ -4864,8 +4889,13 @@ def build_record_cohort(output, content, *, home, language, profile):
             row["method_label"] = labels[method]
             row["record_schema"] = True
             row["field_labels"] = model.get("field_labels", {})
-            row["result_href"] = "zh/" + record_result_href(method, cid)
-            row["case_href"] = "zh/" + record_route("c", cid) + ".html"
+            row["result_href"] = (
+                (site_prefix + "/" if site_prefix else "") + "zh/" + record_result_href(method, cid)
+            )
+            row["case_href"] = (
+                (site_prefix + "/" if site_prefix else "")
+                + "zh/" + record_route("c", cid) + ".html"
+            )
             bucket[cid] = redact_account_endpoint(row)
         raw, receipt = project_evidence_view(
             "public-evidence/" + method + ".json",
@@ -4968,6 +4998,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             languages=("zh",), state="field-extraction-cohort",
             navigation=model.get("navigation"),
             notice=t("reviewed_notice") if audit_binding else None, intro=intro,
+            site_prefix=site_prefix,
         )
         (output / "zh" / (route + ".html")).write_text(
             rendered,
@@ -5085,6 +5116,11 @@ def build_record_cohort(output, content, *, home, language, profile):
     bodies["protocol"] += method_examples(output, model.get("method_examples")) + retry_summary(
         stats, labels
     )
+    segments = record_segment_configurations(
+        read_json(output / "public-evidence/sources.json"), labels, language
+    )
+    bodies["protocol"] += segments
+
     bodies["protocol"] += execution_settings(
         selected_execution_contracts(data["sources"].values()), methods, labels, language
     )
@@ -5094,6 +5130,8 @@ def build_record_cohort(output, content, *, home, language, profile):
         + core
         + "</section>"
         + report_metric_guide(language, records=True)
+        + ('<p data-segment-note><a href="protocol.html#segment-configurations">'
+           + message("segment_configurations", language) + "</a></p>" if segments else "")
         + operations
         + bodies["index"]
     )
@@ -5623,6 +5661,8 @@ def build_record_cohort(output, content, *, home, language, profile):
         output / "report-manifest.json",
         {
             "mode": "field-extraction-cohort",
+            **({"site_prefix": site_prefix} if site_prefix else {}),
+
             "page_intros": page_intros,
             "model_comparison": model.get("model_comparison"),
             **report_dependencies(),
@@ -5683,6 +5723,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
 
     def read_html(path):
         return scope_record_html(path.read_text(encoding="utf-8"), site_prefix, restore=True)
+
 
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -5915,7 +5956,7 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
     )
     for anchor in expected_operations.select('a[href="accounts.html"]'):
         anchor["href"] = "zh/accounts.html"
-    home_view = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    home_view = BeautifulSoup(read_html(output / "zh/index.html"), "html.parser")
     check_price_coverage(
         output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )

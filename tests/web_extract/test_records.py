@@ -9,6 +9,8 @@ import pytest
 
 from harness.web_extract import analysis, certification, pipeline, records, report, snapshots
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def definition(tmp_path, *, mode="live", assets=False, asset_name="image.bin"):
     raw = b"<html><head><title>Profile</title></head><body><h1>Ada</h1></body></html>"
@@ -1175,14 +1177,19 @@ def test_machine_scored_record_report_accepts_only_its_declared_baseline_policy(
     baseline = {"text_matching": "whitespace", "unavailable_reference_groups": []}
     monkeypatch.setattr(swde, "reference_policy", lambda *a: baseline, raising=False)
     output = tmp_path / "report"
-    example.create_record(output)
-    report.check(output)
+    home = example.create_record(tmp_path / "seed")
+    content, profile = home / "content.json", home / "profile.json"
+    authority = pipeline.read_json(profile)
+    authority["research_report"]["content"]["path"] = str(content)
+    pipeline.save_json(profile, authority)
+    report.build(output, content, home=home, profile=profile)
+    report.check(output, profile=profile, home=home)
     path = output / "report-manifest.json"
     manifest = pipeline.read_json(path)
     manifest["reference_policy"] = {"text_matching": "literal", "unavailable_reference_groups": []}
     pipeline.save_json(path, manifest)
-    with pytest.raises(ValueError, match="unaudited baseline"):
-        report.check(output)
+    with pytest.raises(ValueError, match="reference policy differs"):
+        report.check(output, profile=profile, home=home)
 
 
 @pytest.mark.parametrize("changed", [False, True])

@@ -368,6 +368,19 @@ assert.equal(matching('all_fail').includes('unscored-failure'), false);
 assert.equal(matching('different').includes('unscored-failure'), false);
 console.log('PASS: failed calls without reference coverage retain diagnosis and stay outside quality comparisons');
 
+for (const field of ["Price", "price", "Display Name", "status", "x.y"]) {
+  context.arbitraryField = field;
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({[arbitraryField]: 'correct'})}}, arbitraryField)`, context), true);
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({[arbitraryField]: 'missing'})}}, arbitraryField)`, context), false);
+}
+
+for (const field of ["constructor", "toString", "hasOwnProperty", "__proto__"]) {
+  context.arbitraryField = field;
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({other: 'correct'})}}, arbitraryField)`, context), null);
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass', fieldOutcomes: JSON.stringify({[arbitraryField]: 'correct'})}}, arbitraryField)`, context), true);
+  assert.equal(vm.runInContext(`qualityOutcome({dataset: {status: 'pass'}}, arbitraryField)`, context), null);
+}
+
 // A metric link must reveal its definition even while the guide is collapsed.
 const metricGuide = {open: false};
 let metricScrolled = false;

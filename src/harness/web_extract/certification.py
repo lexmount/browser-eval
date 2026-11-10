@@ -25,6 +25,7 @@ from harness.web_extract.pipeline import (
     validate_dataset,
     validate_fixture_base,
     validate_instruction_schema,
+    validate_live_route,
     validate_native_options,
 )
 
@@ -329,16 +330,16 @@ def run(
         and (not fixture_base or not fixture_base.startswith("https://"))
     ):
         raise ValueError("URL participant requires frozen HTTPS fixtures before collection")
-    effective_input = participant.get("native_options", {}).get(
-        "input_route", available_methods()[method]["input"]
-    )
-    if participant.get("input", effective_input) != effective_input:
-        raise ValueError("Native options conflict with the frozen participant input route")
     records = benchmark_config(home)["adapter"] is not None
     if live:
         if participant.get("input") != "url":
             raise ValueError("Live participants must declare URL input")
         validate_live_route(method, participant.get("native_options"))
+    effective_input = participant.get("native_options", {}).get(
+        "input_route", available_methods()[method]["input"]
+    )
+    if participant.get("input", effective_input) != effective_input:
+        raise ValueError("Native options conflict with the frozen participant input route")
     # Original SWDE plans predate the explicit instruction field. Their default
     # remains valid only with the unchanged, hash-bound dataset/task profile.
     if records:

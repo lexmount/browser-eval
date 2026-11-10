@@ -1577,6 +1577,35 @@ def test_permission_denial_tied_directly_to_an_entitlement_pauses(message):
     assert access_blocker({"http_status": 403, "response": {"error": message}}) == "permission"
 
 
+@pytest.mark.parametrize(
+    "title,detail,blocked",
+    [
+        (
+            "QUOTA_EXCEEDED",
+            "You have reached your plan's quota. Upgrade your plan to continue.",
+            True,
+        ),
+        ("LIMIT_REACHED", "Your subscription quota has been exhausted.", True),
+        ("RATE_LIMITED", "Too many requests. Try again later.", False),
+    ],
+)
+def test_problem_details_account_quota_stops_before_remaining_dispatch(
+    tmp_path, title, detail, blocked
+):
+    home = create(tmp_path / "cohort")
+    response = {"http_status": 429, "response": {"status": 429, "title": title, "detail": detail}}
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.provider_call", return_value=response) as call,
+    ):
+        if blocked:
+            with pytest.raises(PermissionError, match="quota_or_permission"):
+                probe(home, ["cloudflare-json"], full=True)
+            assert call.call_count == 1
+        else:
+            probe(home, ["cloudflare-json"], full=True)
+            assert call.call_count == 3
+
 @pytest.mark.parametrize('method,engine,native,reason', [
     ('firecrawl-oss-json', 'firecrawl',
      {'http_status': 402, 'response': {'error': 'Payment required'}}, 'quota_or_payment'),

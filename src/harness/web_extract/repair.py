@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.benchmark_execution import ExecutionPolicy, exclusive_policy
 from harness.reporting.publication import atomic_create
-from harness.web_extract.dataset import task_bindings
+from harness.web_extract.dataset import input_mode, task_bindings
 from harness.web_extract.pipeline import (
     ACCESS_POLICY,
     RECORD_INSTRUCTION_DELIVERY,
@@ -516,45 +516,6 @@ def verify_repair(home, source, repair):
             bound=configuration["snapshot_manifest"],
             allow_legacy_manifest="fixture_verification" not in contract,
         )
-        if participant["snapshot_manifest"].get("hosting_provider") == "external":
-            expected += [
-                {
-                    "case_id": cid,
-                    "url": participant["snapshot_manifest"]["fixture_base"]
-                    + "/"
-                    + cid
-                    + participant.get("fixture_suffix", ""),
-                    "sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
-                }
-                for cid in participant["case_ids"]
-            ]
-
-        def without_hosting_annotation(receipts):
-            # Hosting policy belongs to the frozen participant, not the remote
-            # manifest. Retained receipts may predate or include that annotation.
-            return [
-                {
-                    **item,
-                    "snapshot_manifest": {
-                        key: value
-                        for key, value in item["snapshot_manifest"].items()
-                        if key != "hosting_provider"
-                    },
-                }
-                if isinstance(item.get("snapshot_manifest"), dict)
-                else item
-                for item in receipts
-            ]
-
-        if without_hosting_annotation(before) != without_hosting_annotation(expected):
-            raise ValueError("Repair dataset snapshot qualification differs")
-    elif needs_fixture:
-        if {item["case_id"] for item in before} != set(participant["case_ids"]):
-            raise ValueError("Repair fixture qualification is incomplete")
-        for item in before:
-            raw = home / "dataset/html" / (item["case_id"] + ".html")
-            if item["sha256"] != digest(raw.read_bytes()):
-                raise ValueError("Repair fixture qualification source changed")
     verify_retry_history(directory, manifest, contract)
     replacements = {}
     for entry in manifest["calls"]:

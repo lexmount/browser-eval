@@ -350,7 +350,7 @@ def test_nested_benchmark_keeps_navigation_evidence_and_english_notice_in_scope(
     (root / "index.html").write_text("<h1>All benchmarks</h1>", encoding="utf-8")
     output = root / "sample"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
-    check(output)
+    _check_rendered_report(output)
     soup = BeautifulSoup((output / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
     assert soup.select_one("[data-suite-home]")["href"] == "index.html"
     assert soup.select_one("[data-call-log-open]")["data-src"].startswith("sample/public-evidence/")
@@ -366,7 +366,7 @@ def test_nested_benchmark_keeps_navigation_evidence_and_english_notice_in_scope(
         lambda s: s.replace('href="sample/style.css"', 'href="style.css"'),
     )
     with pytest.raises(ValueError, match="escaped its dataset"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("change", ["substitute", "remove"])
@@ -377,7 +377,7 @@ def test_live_report_requires_reference_bound_original_source_navigation(tmp_pat
     create_record(output, input_mode="live")
     truth = read_json(output / "public-evidence/reference.json")
     manifest = read_json(output / "report-manifest.json")
-    check(output)
+    _check_rendered_report(output)
     cid = next(iter(truth))
     if change == "substitute":
         manifest["preview_snapshot"]["urls"][cid] = "https://unrelated.example/"
@@ -389,7 +389,7 @@ def test_live_report_requires_reference_bound_original_source_navigation(tmp_pat
                 link.decompose()
             rebind(output, path.relative_to(output).as_posix(), lambda _, s=soup: str(s))
     with pytest.raises(ValueError, match="Live preview URLs|requires its original source link"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_snapshot_report_cannot_relabel_its_preview_as_live(tmp_path):
@@ -404,7 +404,7 @@ def test_snapshot_report_cannot_relabel_its_preview_as_live(tmp_path):
     }
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="input mode"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("button_index", [0, -1])
@@ -1026,3 +1026,96 @@ def test_record_report_uses_declared_adapter_policy_and_rejects_substitution(
     save_json(path, manifest)
     with pytest.raises(ValueError, match="reference policy differs"):
         report.check(output, profile=profile, home=home)
+
+
+@pytest.mark.parametrize(
+    "field", ["Display Name", "Price", "status", "x.y", "constructor", "toString", "__proto__"]
+)
+def test_arbitrary_schema_field_names_keep_filter_identity(tmp_path, monkeypatch, field):
+    from harness.web_extract import example
+
+    save = example.save_json
+
+    def rename(value):
+        if isinstance(value, dict):
+            return {field if key == "author" else key: rename(item) for key, item in value.items()}
+        if isinstance(value, list):
+            return [rename(item) for item in value]
+        return field if value == "author" else value
+
+    def write(path, value, **kwargs):
+        return save(path, rename(value), **kwargs)
+
+    monkeypatch.setattr(example, "save_json", write)
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    _check_rendered_report(output)
+    soup = BeautifulSoup((output / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
+    import json
+
+    outcomes = [json.loads(row["data-field-outcomes"]) for row in soup.select("tr[data-status]")]
+    assert outcomes and all(field in value for value in outcomes)
+
+
+def test_record_latency_build_and_check_accept_segmented_source_receipts(tmp_path, monkeypatch):
+    from harness.web_extract import report
+
+    original = report.record_cohort_inputs
+
+    def assemble(*args, **options):
+        data = original(*args, **options)
+        data["sources"] = {method: {"segments": [source]}
+                           for method, source in data["sources"].items()}
+        return data
+
+    monkeypatch.setattr(report, "record_cohort_inputs", assemble)
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    report._check_rendered_report(output)
+    sources = read_json(output / "public-evidence/sources.json")
+    execution = report.selected_execution_contracts(sources.values())
+    assert set(execution) == set(sources)
+    for method, source in sources.items():
+        assert execution[method] == [segment["contract"] for segment in source["segments"]]
+
+
+@pytest.mark.parametrize("damage", [None, "omit", "reverse", "replace"])
+def test_segmented_cost_disclosure_binds_every_source_plan(tmp_path, damage):
+    from copy import deepcopy
+
+    from harness.web_extract import report
+
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-cohort")
+    manifest = read_json(output / "report-manifest.json")
+    source_path = output / "public-evidence/sources.json"
+    sources = read_json(source_path)
+    method = next(iter(sources))
+    first, second = deepcopy(sources[method]), deepcopy(sources[method])
+    second["plan_sha256"] = "b" * 64
+    sources[method] = {"segments": [first, second]}
+    save_json(source_path, sources)
+    plans = [first["plan_sha256"], second["plan_sha256"]]
+    if damage == "omit":
+        plans.pop()
+    elif damage == "reverse":
+        plans.reverse()
+    elif damage == "replace":
+        plans[1] = "c" * 64
+    relative = "assets/cost.json"
+    receipt = output / relative
+    save_json(receipt, {
+        "schema": "web-extract-cost-disclosure/2", "method": method,
+        "case_count": 3, "total_charge_receipts": 0, "source_plan_sha256s": plans,
+    })
+    manifest["files"][relative] = digest(receipt.read_bytes())
+    manifest["prices"][method]["cost_unavailable"] = {
+        "population_cases": 3, "missing_cases": 3,
+        "reason": {"zh": "No invoice was collected."},
+        "evidence": {"path": relative, "sha256": digest(receipt.read_bytes())},
+    }
+    if damage is None:
+        report.check_cost_disclosures(output, manifest)
+    else:
+        with pytest.raises(ValueError, match="Cost disclosure does not match"):
+            report.check_cost_disclosures(output, manifest)

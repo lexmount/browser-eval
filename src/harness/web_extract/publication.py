@@ -19,6 +19,44 @@ from harness.web_extract.report import (
 )
 
 
+def audit_previews(source, binding):
+    """Recheck public inputs using the private content bound to this release."""
+    def archived(report):
+        manifest = read_json(report / "report-manifest.json")
+        if manifest.get("mode") == "field-extraction-suite":
+            return any(archived(report / entry["id"]) for entry in manifest["cohorts"])
+        return manifest.get("preview_snapshot", {}).get("mode") == "dataset_manifest"
+
+    if not archived(source):
+        return ()
+    content = binding.get("content", {})
+    if not content.get("path"):
+        raise ValueError("Record publication requires its bound content path")
+    paths = []
+
+    def visit(report, path):
+        require_external_output(path)
+        current = read_json(report / "report-manifest.json")
+        model = read_json(path)
+        if digest(path.read_bytes()) != current["content_sha256"]:
+            raise ValueError("Publication content differs from the built report")
+        paths.append(path)
+        if current["mode"] == "field-extraction-suite":
+            for entry in model["cohorts"]:
+                visit(report / entry["id"], Path(entry["content"]))
+        elif model.get("preview_snapshot"):
+            from harness.web_extract.report import record_preview
+
+            home = Path(model["dataset_manifest"]).parent.parent
+            receipt = record_preview(home, model, local_example=False, audit=True)
+            if receipt != current["preview_snapshot"]:
+                raise ValueError("Publication preview differs from the built report")
+            paths.append(Path(model["preview_snapshot"]["path"]))
+
+    visit(source, Path(content["path"]))
+    return tuple(paths)
+
+
 def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     source, target, work = Path(source), Path(target), Path(work)
     require_external_output(target)
@@ -60,7 +98,8 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
         if current != previous and digest(Path(next_profile).read_bytes()) != current:
             raise ValueError("Publication successor profile changed")
 
-    authority_inputs = completion_authorities(next_profile, home)
+    preview_inputs = audit_previews(source, bound)
+    authority_inputs = (*completion_authorities(next_profile, home), *preview_inputs)
     unchanged_profile()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
@@ -87,7 +126,6 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 
     unchanged_profile()
-    preview_inputs = audit_previews(source, bound)
 
     upload_checked = False
 

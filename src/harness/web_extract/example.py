@@ -421,6 +421,7 @@ def create_suite(output: Path, *, language="zh"):
         save_json(content, model)
         authority = read_json(profile)
         authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+        authority["research_report"]["content"]["path"] = "content.json"
         save_json(profile, authority)
         cohorts.append(
             {
@@ -445,7 +446,7 @@ def create_suite(output: Path, *, language="zh"):
         {
             "local_example": True,
             "research_report": {
-                "content": {"sha256": digest(content.read_bytes())},
+                "content": {"path": "content.json", "sha256": digest(content.read_bytes())},
                 "cohorts": cohort_registry(cohorts),
             },
         },

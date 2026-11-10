@@ -270,7 +270,7 @@ def validate_dataset(home: Path, profile=None):
             raise ValueError("Dataset bytes changed: " + name)
         if name.startswith("html/"):
             try:
-                raw.decode("utf-8")
+                captured_html(home, Path(name).stem, raw, qualifications=qualifications)
             except UnicodeDecodeError as error:
                 raise ValueError("Frozen HTML must be UTF-8: " + name) from error
     for name, expected in pin.get("files", {}).items():
@@ -1495,6 +1495,28 @@ def probe(home: Path, methods: list[str], **options):
         return _probe_unlocked(home, methods, run_dir=run, **options)
 
 
+def capture_qualifications(home, manifest=None):
+    """Read decoding metadata once for one validation or collection operation."""
+    provenance = home / "dataset/provenance.json"
+    if not provenance.exists():
+        return None
+    manifest = manifest if manifest is not None else read_json(home / "dataset/manifest.json")
+    return ({cid: item.get("qualification") for cid, item in read_json(provenance).items()}
+            if "provenance.json" in manifest["files"] else None)
+
+
+def captured_html(home, case_id, raw, *, qualifications=_CAPTURE_METADATA_UNSET):
+    """Decode an HTML upload with the charset frozen during source qualification."""
+    if qualifications is _CAPTURE_METADATA_UNSET:
+        qualifications = capture_qualifications(home)
+    qualification = qualifications[case_id] if qualifications is not None else None
+    if not qualification:
+        # Legacy archives promise UTF-8; replacement would alter frozen input.
+        return raw.decode("utf-8")
+    from harness.web_extract.records import source_encoding
+
+    return raw.decode(source_encoding(raw, qualification.get("encoding")), errors="replace")
+
 def _initialize_collection_clock(lock, clock, interval):
     global _COLLECTION_CLOCK
     _COLLECTION_CLOCK = lock, clock, interval
@@ -1503,7 +1525,7 @@ def _initialize_collection_clock(lock, clock, interval):
 def _execute_collection_call(payload):
     (
         method,
-        raw,
+        html_input,
         source_url,
         public_url,
         schema_options,
@@ -1528,7 +1550,7 @@ def _execute_collection_call(payload):
         row.update(
             provider_call(
                 method,
-                raw.decode("utf-8"),
+                html_input,
                 source_url,
                 public_url,
                 **schema_options,
@@ -1770,12 +1792,20 @@ def collect_calls(
         last_call_started = time.monotonic()
         if missing:
             return (None, row)
-        public_url = fixture_url(fixture_base, case_id, fixture_suffix) if fixture_base else None
+        html_input = (
+            "" if registry[method]["input"] == "url"
+            or (native_options or {}).get("input_route") == "url"
+            else captured_html(home, case_id, raw, qualifications=qualifications)
+        )
+        public_url = (
+            truth[case_id]["url"] if contract.get("input_mode") == "live"
+            else fixture_url(fixture_base, case_id, fixture_suffix) if fixture_base else None
+        )
         return (
             True,
             (
                 method,
-                raw,
+                html_input,
                 truth[case_id]["url"],
                 public_url,
                 schema_options,
@@ -2046,6 +2076,9 @@ def _probe_unlocked(
         else SCHEMA,
         "remote_fixture_before": remote_before,
     }
+    if source_mode == "live":
+        requested["input_mode"] = "live"
+
     if execution_policy is not None:
         requested["execution_policy"] = execution_policy
     if benchmark_config(home)["adapter"] is not None:

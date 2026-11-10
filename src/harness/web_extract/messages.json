@@ -282,7 +282,6 @@
     "records_details": "Full result",
     "records_schema": "Frozen request schema",
     "records_preview": "Archived page preview",
-    "records_live_page": "Open live webpage",
     "records_original_url": "Original source URL",
     "records_download": "Frozen HTML",
     "records_error": "Exact runtime response/error",
@@ -485,7 +484,54 @@
       "Complete JSON P50 (s)",
       "Total P50 (s)",
       "Cohort"
-    ]
+    ],
+    "method_planned_pages_executed_structured_output_full_scope_price": [
+      "Method",
+      "Planned pages",
+      "Executed",
+      "Structured output",
+      "Full scope",
+      "Price F1",
+      "SKU F1",
+      "Stock F1",
+      "Out-of-stock F1"
+    ],
+    "compact_original_reference_comparison": "Compact original-reference comparison",
+    "baseline_stock_projection": "The upstream extruct baseline emits a canonical stock indicator but can omit availability. Restore the primary field only when that indicator is unambiguous; retain native responses and original scores.",
+    "records_live_page": "Open live webpage",
+    "segment_configurations": "Settings and versions by collection segment",
+    "segment_explanation": "Separately certified portions share a method label. The table retains each portion’s native options, frozen participant settings and pipeline/scorer identities; their results are pooled over the declared task population.",
+    "segment_headers": [
+      "Method / segment",
+      "Cases",
+      "Native options and frozen settings",
+      "Pipeline SHA-256",
+      "Scorer SHA-256"
+    ],
+    "suite_quality_headers": [
+      "Method",
+      "Executed / cases",
+      "Value F1 ↑",
+      "Page-hit F1 ↑",
+      "Exact field sets ↑",
+      "Interpretation"
+    ],
+    "suite_operation_headers": [
+      "Method",
+      "Timed / cases",
+      "Mean (s) ↓",
+      "P50 (s) ↓",
+      "P95 (s) ↓",
+      "USD / 1,000 calls",
+      "Pricing notes"
+    ],
+    "suite_results": "View results",
+    "suite_pricing": "Plans and billing terms",
+    "suite_cases": "{count} cases",
+    "suite_dataset": "Tasks and webpages",
+    "suite_examples": "Methods and real examples",
+    "suite_case_results": "Per-page results",
+    "suite_notice": "Independent benchmark comparisons · machine-scored"
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -770,7 +816,6 @@
     "records_details": "完整结果",
     "records_schema": "冻结请求字段定义",
     "records_preview": "归档页面预览",
-    "records_live_page": "打开实时网页",
     "records_original_url": "原网站地址",
     "records_download": "原始 HTML",
     "records_error": "调用错误",
@@ -973,6 +1018,53 @@
       "完整 JSON P50（秒）",
       "总耗时 P50（秒）",
       "采集批次"
-    ]
+    ],
+    "method_planned_pages_executed_structured_output_full_scope_price": [
+      "方法",
+      "计划页数",
+      "已执行",
+      "返回字段",
+      "全量状态",
+      "价格 F1",
+      "SKU F1",
+      "库存 F1",
+      "缺货 F1"
+    ],
+    "compact_original_reference_comparison": "原标注下的紧凑比较",
+    "baseline_stock_projection": "上游 extruct 仅写出规范库存辅助键，未写回 availability；只在该辅助键唯一明确时补回主字段。原生响应和原评分保留。",
+    "records_live_page": "打开实时网页",
+    "segment_configurations": "分段采集的设置与版本",
+    "segment_explanation": "同一方法的结果可能来自分别认证的多批题目。下表逐批列出接口参数、固定的运行设置，以及执行代码和评分器的哈希；汇总仍按声明的题目范围计算。",
+    "segment_headers": [
+      "方法 / 分段",
+      "题数",
+      "接口参数与固定设置",
+      "执行代码 SHA-256",
+      "评分器 SHA-256"
+    ],
+    "suite_quality_headers": [
+      "方法",
+      "已执行 / 题数",
+      "值级 F1 ↑",
+      "页面命中 F1 ↑",
+      "字段完全一致率 ↑",
+      "结果解读"
+    ],
+    "suite_operation_headers": [
+      "方法",
+      "计时 / 题数",
+      "平均（秒）↓",
+      "P50（秒）↓",
+      "P95（秒）↓",
+      "美元 / 1,000 次",
+      "报价说明"
+    ],
+    "suite_results": "查看结果",
+    "suite_pricing": "套餐与计费条件",
+    "suite_cases": "{count} 题",
+    "suite_dataset": "题目与网页",
+    "suite_examples": "方法与真实示例",
+    "suite_case_results": "逐页结果",
+    "suite_notice": "各数据集独立比较 · 机器评分"
   }
 }

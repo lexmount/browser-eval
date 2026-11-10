@@ -1282,6 +1282,16 @@ def test_existing_deployment_missing_manifest_requires_approval_not_a_network_by
             deploy.assert_called_once()
 
 
+@pytest.mark.parametrize("hosting_provider", ["external", "cloudflare"])
+def test_unconfirmed_snapshot_manifest_cannot_replace_page_evidence_at_publication(
+    home, tmp_path, hosting_provider
+):
+    value = binding(home, tmp_path)
+    value["hosting_provider"] = hosting_provider
+    claim = {**value["snapshot_manifest"], "mode": "dataset_manifest"}
+    with pytest.raises(ValueError, match="every matching verified page"):
+        snapshots.publication_metadata(home, value, claim)
+
 @pytest.mark.parametrize("method", ["cloudflare-json", "scrapegraph-extract", "zyte-product"])
 def test_native_options_cannot_relabel_an_upload_as_a_snapshot_call(home, tmp_path, method):
     source = tmp_path / "binding.json"

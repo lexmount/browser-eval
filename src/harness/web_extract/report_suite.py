@@ -24,12 +24,35 @@ def cohort_registry(entries):
     ]
 
 
+def suite_inputs(profile):
+    """Resolve private child inputs from the suite's hash-bound content."""
+    authority = read_json(profile)
+    binding = authority.get("research_report", {}).get("content", {})
+    if not binding.get("path"):
+        raise ValueError("Suite authority requires its bound content path")
+    content = profile.parent / binding["path"]
+    if content.is_symlink() or digest(content.read_bytes()) != binding.get("sha256"):
+        raise ValueError("Suite content differs from its bound input profile")
+    entries = read_json(content)["cohorts"]
+    if cohort_registry(entries) != authority.get("research_report", {}).get("cohorts"):
+        raise ValueError("Suite registry differs from its profile-authorized content")
+    for entry in entries:
+        for key in ("content", "profile"):
+            path = Path(entry[key])
+            require_external_output(path)
+            if path.is_symlink() or digest(path.read_bytes()) != entry.get(key + "_sha256"):
+                raise ValueError("Suite child input differs from its declared binding")
+    return content, entries
+
+
 def section(output, entry, language="zh"):
     child = output / entry["id"]
     manifest = read_json(child / "report-manifest.json")
     metrics = read_json(child / "data/metrics.json")
     methods = manifest["planned_methods"]
-    contracts = owner.record_execution_contracts(read_json(child / "public-evidence/sources.json"))
+    contracts = owner.selected_execution_contracts(
+        read_json(child / "public-evidence/sources.json").values()
+    )
     latency_compared = (set(manifest["comparison_methods"])
                         if owner.latency_comparable(contracts, methods) else set())
     def t(key, **values):
@@ -215,18 +238,11 @@ def build(output, content, *, profile, language=None):
         },
         exclusive=True,
     )
-    return check(output)
+    return _check_rendered_suite(output)
 
 
-def check(output, *, release=False, visual_receipt=None, profile=None):
+def _check_rendered_suite(output, *, release=False, visual_receipt=None):
     output = owner.open_report(output)
-    if release and profile is None:
-        raise ValueError("Suite release requires its frozen profile")
-    private = {}
-    if profile is not None:
-        owner.verify_completion_audit(output, profile)
-        _, inputs = suite_inputs(profile)
-        private = {entry["id"]: entry for entry in inputs}
     manifest = read_json(output / "report-manifest.json")
     owner.check_report_identity(output, manifest, "web-extract")
     owner.check_input_profile(output, manifest)
@@ -289,10 +305,8 @@ def check(output, *, release=False, visual_receipt=None, profile=None):
             or digest(Path(receipt["path"]).read_bytes()) != receipt.get("sha256")
         ):
             raise ValueError("Suite requires each cohort's bound visual receipt")
-        owner.check_record_cohort(
+        owner._check_record_cohort(
             child, release=release, visual_receipt=Path(receipt["path"]) if release else None,
-            **({"profile": Path(private[entry["id"]]["profile"]),
-                "home": Path(private[entry["id"]]["home"])} if private else {}),
         )
     from harness.reporting.presentation import check_metric_guide, check_presentation
 

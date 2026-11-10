@@ -2556,6 +2556,26 @@ def test_frozen_legacy_url_plan_still_uses_run_fixture_base(inputs, tmp_path, mo
     )
 
 
+def test_historical_swde_plan_defaults_instructions_on_run_and_resume(
+    inputs, tmp_path, monkeypatch
+):
+    home, _ = inputs
+    path = tmp_path / "old-plan.json"
+    plan = plan_for_inputs(home, ["browserbase-json"], path)
+    plan.pop("extraction_instructions")
+    pipeline.save_json(path, plan)
+    dispatch = Mock(return_value={"http_status": 200, "response": {
+        "statusCode": 200, "content": {"author": ["Ada"], "title": ["Engineer"]}
+    }})
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "synthetic")
+    monkeypatch.setattr(pipeline, "provider_call", dispatch)
+    run = tmp_path / "run"
+    certification.run(home, path, "browserbase-json", run)
+    certification.run(home, path, "browserbase-json", run)
+    assert dispatch.call_count == 2
+    assert (pipeline.read_json(run / "contract.json")["extraction_instructions"]
+            == pipeline.RECORD_INSTRUCTIONS)
+
 @pytest.mark.parametrize('kind', ['identical', 'new-claim', 'conflict', 'different-rules'])
 def test_record_adjudication_scopes_compose_claims_without_whole_case_replacement(
     record_audit_material, tmp_path, kind

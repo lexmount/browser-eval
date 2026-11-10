@@ -317,11 +317,18 @@ def test_data_selection_exposes_only_the_current_track_name():
 
 
 @pytest.mark.parametrize("raw", ["<p>商品 SKU-1</p>".encode(), b"<p>SKU-\xff</p>"])
-def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(tmp_path, monkeypatch, raw):
+def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(
+    tmp_path, monkeypatch, raw, stubbed_serial_collection
+):
     from harness.web_extract import pipeline
 
     _, profile, _ = distribution(tmp_path, monkeypatch, html=raw)
     home = tmp_path / "home"
+    if b"\xff" in raw:
+        with pytest.raises(ValueError, match="Frozen HTML must be UTF-8"):
+            prepare(home, profile)
+        assert not (tmp_path / "run").exists()
+        return
     prepare(home, profile)
     monkeypatch.setattr(pipeline, "selected_profile", lambda _: profile)
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
@@ -334,11 +341,5 @@ def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(tmp_path,
         return {"http_status": 200, "response": {"result": {"sku": "SKU-1"}}}
 
     monkeypatch.setattr(pipeline, "provider_call", provider)
-    if b"\xff" in raw:
-        with pytest.raises(UnicodeDecodeError):
-            pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
-        assert sent == []
-        assert not (tmp_path / "run/inflight.json").exists()
-    else:
-        pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
-        assert sent == [raw.decode("utf-8")]
+    pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
+    assert sent == [raw.decode("utf-8")]

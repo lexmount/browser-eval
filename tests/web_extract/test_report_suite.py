@@ -5,14 +5,14 @@ from bs4 import BeautifulSoup
 
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import check
+from harness.web_extract.report import _check_rendered_report
 
 
 @pytest.mark.parametrize("damage", [None, "quality", "navigation", "child-binding"])
 def test_suite_uses_each_cohorts_results_and_bound_details(tmp_path, damage):
     output = tmp_path / "report"
     create(output, mode="field-extraction-suite")
-    manifest = check(output)
+    manifest = _check_rendered_report(output)
     assert [c["id"] for c in manifest["cohorts"]] == ["first", "second"]
     path = output / "zh/index.html"
     soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
@@ -26,7 +26,7 @@ def test_suite_uses_each_cohorts_results_and_bound_details(tmp_path, damage):
     assert soup.select_one(".report-tools #theme")
     if damage is None:
         with pytest.raises(ValueError, match="visual|Synthetic|profile"):
-            check(output, release=True)
+            _check_rendered_report(output, release=True)
         return
     if damage == "quality":
         soup.select_one('[data-cohort="first"] [data-metric="micro-f1"]').string = "0.999"
@@ -42,7 +42,7 @@ def test_suite_uses_each_cohorts_results_and_bound_details(tmp_path, damage):
     manifest["files"][path.relative_to(output).as_posix()] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="comparison|navigation|cohort manifest"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_suite_example_rejects_repository_output_before_creating_anything():
@@ -183,19 +183,26 @@ def test_suite_package_passes_each_childs_frozen_authority_to_release_check(tmp_
     report.build(output, home / "content.json", home=home, profile=home / "profile.json")
     entries = read_json(home / "content.json")["cohorts"]
     # Isolate suite orchestration from child visual/pricing gates, tested by their owners.
-    original = report.check_record_cohort
-    observed = []
+    original = report._check_record_cohort
+    original_audit = report.verify_completion_audit
+    observed = set()
 
-    def child_check(child, *, release=False, visual_receipt=None, profile=None, home=None):
-        if release:
+    def audit(child, profile, *, home=None):
+        if child.name in {entry["id"] for entry in entries}:
             entry = next(e for e in entries if e["id"] == child.name)
             assert profile == Path(entry["profile"])
             assert home == Path(entry["home"])
-            assert visual_receipt is not None
-            observed.append(child.name)
-        return original(child, profile=profile, home=home)
+            observed.add(child.name)
+        return original_audit(child, profile, home=home)
 
-    monkeypatch.setattr(report, "check_record_cohort", child_check)
+    def child_check(child, *, release=False, visual_receipt=None):
+        if release:
+            assert child.name in observed
+            assert visual_receipt is not None
+        return original(child)
+
+    monkeypatch.setattr(report, "verify_completion_audit", audit)
+    monkeypatch.setattr(report, "_check_record_cohort", child_check)
     monkeypatch.setattr(report, "check_visual_receipt", lambda *args, **kwargs: None)
     visual = tmp_path / "visual.json"
     receipts = {}
@@ -252,7 +259,7 @@ def test_suite_example_identity_cannot_be_removed_or_relabelled(tmp_path, flag):
         manifest["local_example"] = flag
     save_json(path, manifest)
     with pytest.raises(ValueError, match="example flag"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_suite_explicit_unsupported_language_fails_before_children_or_output(tmp_path):
@@ -298,7 +305,7 @@ def test_suite_summary_links_survive_owner_normalization_and_are_checked(tmp_pat
     manifest["files"]["zh/index.html"] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Suite comparison"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("damage", [
@@ -347,7 +354,7 @@ def test_suite_scope_is_bound_to_approved_content_after_rehashing(tmp_path, dama
     }
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="profile-authorized|child input|bound input profile"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("mode,suffix", [
@@ -361,4 +368,34 @@ def test_unsupported_example_language_leaves_output_reusable(tmp_path, mode, suf
     assert not output.exists()
     assert not output.with_name(output.name + suffix).exists()
     create(output, mode=mode, language="zh")
-    check(output)
+    _check_rendered_report(output)
+
+
+@pytest.mark.parametrize("child", ["first", "second"])
+def test_suite_private_authority_checks_every_child_and_freezes_native_inputs(tmp_path, child):
+    from pathlib import Path
+
+    from harness.web_extract import report
+
+    output = tmp_path / "report"
+    home = create(output, mode="field-extraction-suite")
+    profile = home / "profile.json"
+    report.check(output, profile=profile, home=home)
+    model = read_json(home / "content.json")
+    entry = next(e for e in model["cohorts"] if e["id"] == child)
+    child_home = Path(entry["home"])
+    inputs = report.completion_authorities(profile, home)
+    assert child_home / "dataset" in inputs
+    selection = read_json(Path(entry["content"]))["evidence_runs"][0]
+    assert Path(selection["plan"]) in inputs
+    from harness.reporting.publication import PublicationSnapshot
+
+    guard = PublicationSnapshot.for_inputs((output, *inputs))
+    plan = Path(selection["plan"])
+    plan.write_bytes(plan.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="changed"):
+        guard.check()
+    dataset = child_home / "dataset/dataset/ground-truth.json"
+    dataset.write_bytes(dataset.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="Completion audit.*dataset"):
+        report.check(output, profile=profile, home=home)

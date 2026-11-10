@@ -2104,21 +2104,10 @@ def test_product_review_rejects_whitespace_evidence(tmp_path, key):
 
 
 @pytest.mark.parametrize("legacy", [False, True])
-@pytest.mark.parametrize("remote_has_hosting_annotation", [False, True])
-@pytest.mark.parametrize(
-    "corrupted_field",
-    [
-        None,
-        "manifest_sha256",
-        "html_inventory_sha256",
-        "case_count",
-        "fixture_base",
-        "huggingface",
-        "extra_identity_field",
-    ],
-)
-def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
-    tmp_path, legacy, remote_has_hosting_annotation, corrupted_field
+@pytest.mark.parametrize("hosting", ["external", "cloudflare"])
+@pytest.mark.parametrize("with_assets", [False, True])
+def test_snapshot_repair_collects_verifies_composes_and_resumes(
+    tmp_path, legacy, hosting, with_assets
 ):
     from harness.web_extract import snapshots
 
@@ -2159,6 +2148,114 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
         home, tmp_path / "content.json", plan, {"cloudflare-json": {"input_route": "url"}}, base
     )
     target = tmp_path / "managed-repair"
+    response = {
+        "state": "response_received",
+        "http_status": 200,
+        "response": {"result": {"sku": "recovered"}},
+    }
+    with (
+        patch("harness.web_extract.repair.validate_dataset"),
+        patch("harness.web_extract.repair.load_runtime_env"),
+        patch("harness.web_extract.snapshots.validate_dataset"),
+        patch("harness.web_extract.snapshots.check_manifest", return_value=receipt),
+        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=False),
+        patch(
+            "harness.web_extract.pipeline.qualify_fixture",
+            side_effect=lambda h, base, cid, **kw: {
+                "case_id": cid,
+                "url": base + "/" + cid,
+                "sha256": digest((h / "dataset/html" / (cid + ".html")).read_bytes()),
+                "http_status": 200,
+                "qualification_fetch_attempts": 1,
+            },
+        ),
+        patch(
+            "harness.web_extract.snapshots.snapshot_request",
+            side_effect=lambda url, **kw: __import__("types").SimpleNamespace(
+                status=200, body=b"image", url=url
+            ),
+        ),
+        patch("harness.web_extract.pipeline.provider_call", return_value=response) as provider,
+    ):
+        run(home, plan, "cloudflare-json", target)
+        run(home, plan, "cloudflare-json", target)
+        if legacy:
+            # Archived managed receipts predate the explicit hosting-policy field.
+            archived = read_json(target / "contract.json")
+            archived.pop("fixture_base")
+            archived["participant"]["snapshot_manifest"].pop("hosting_provider")
+            save_json(target / "contract.json", archived)
+            manifest = read_json(target / "manifest.json")
+            for name in ("fixture-before.json", "fixture-after.json"):
+                receipt_rows = read_json(target / name)
+                receipt_rows[0]["snapshot_manifest"].pop("hosting_provider")
+                save_json(target / name, receipt_rows)
+                manifest["fixtures"][name] = digest((target / name).read_bytes())
+            manifest["contract_sha256"] = digest((target / "contract.json").read_bytes())
+            save_json(target / "manifest.json", manifest)
+            certificate = read_json(target / "certificate.json")
+            certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
+            save_json(target / "certificate.json", certificate)
+        revision = {
+            "path": str(target),
+            "sha256": digest((target / "certificate.json").read_bytes()),
+        }
+        composed = compose(home, source, deepcopy(rows), revision)
+        assert provider.call_count == 1
+    assert composed[-1]["normalized_fields"]["sku"] == "recovered"
+    fixture_rows = read_json(target / "fixture-before.json")
+    assert fixture_rows[0]["case_id"] == "dataset-snapshot"
+    assert any(row["case_id"] == "resource:assets/image.png" for row in fixture_rows) is with_assets
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("remote_has_hosting_annotation", [False, True])
+@pytest.mark.parametrize(
+    "corrupted_field",
+    [
+        None,
+        "manifest_sha256",
+        "html_inventory_sha256",
+        "case_count",
+        "fixture_base",
+        "huggingface",
+        "extra_identity_field",
+    ],
+)
+def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
+    tmp_path, legacy, remote_has_hosting_annotation, corrupted_field
+):
+    from harness.web_extract import snapshots
+
+    home, source, _, rows = parent_inputs(tmp_path)
+    base = "https://frozen.example"
+    with patch("harness.web_extract.snapshots.validate_dataset"):
+        version, cases = snapshots.inventory(home)
+    receipt = {
+        "hosting_provider": "cloudflare",
+        "mode": "dataset_manifest",
+        "manifest_url": base + "/snapshots.json",
+        "manifest_sha256": "a" * 64,
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+        "fixture_base": base,
+    }
+    contract = read_json(source / "contract.json")
+    contract.update(snapshot_manifest=receipt, fixture_base=base, fixture_suffix="")
+    save_json(source / "contract.json", contract)
+    manifest = read_json(source / "manifest.json")
+    manifest["contract_sha256"] = digest((source / "contract.json").read_bytes())
+    save_json(source / "manifest.json", manifest)
+    save_json(
+        source / "certificate.json",
+        {"manifest_sha256": digest((source / "manifest.json").read_bytes())},
+    )
+    plan = tmp_path / "managed-plan.json"
+    create_plan(
+        home, tmp_path / "content.json", plan, {"cloudflare-json": {"input_route": "url"}}, base
+    )
+    target = tmp_path / "managed-repair"
     remote_receipt = deepcopy(receipt)
     if not remote_has_hosting_annotation:
         # Real snapshot manifests omit the caller's local hosting policy.
@@ -2173,6 +2270,15 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
         patch("harness.web_extract.repair.load_runtime_env"),
         patch("harness.web_extract.snapshots.validate_dataset"),
         patch("harness.web_extract.snapshots.check_manifest", return_value=remote_receipt),
+        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=False),
+        patch(
+            "harness.web_extract.pipeline.qualify_fixture",
+            side_effect=lambda h, base, cid, **kw: {
+                "case_id": cid, "url": base + "/" + cid,
+                "sha256": digest((h / "dataset/html" / (cid + ".html")).read_bytes()),
+                "http_status": 200, "qualification_fetch_attempts": 1,
+            },
+        ),
         patch("harness.web_extract.pipeline.provider_call", return_value=response) as provider,
     ):
         run(home, plan, "cloudflare-json", target)
@@ -2180,7 +2286,6 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
         if legacy:
             # Archived managed receipts predate the explicit hosting-policy field.
             archived = read_json(target / "contract.json")
-            archived.pop("fixture_base")
             archived["participant"]["snapshot_manifest"].pop("hosting_provider")
             save_json(target / "contract.json", archived)
             manifest = read_json(target / "manifest.json")
@@ -2220,7 +2325,6 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
             pytest.raises(ValueError, match="snapshot qualification"),
         ):
             compose(home, source, deepcopy(rows), revision)
-
 
 @pytest.mark.parametrize(
     "source,quote,accepted",

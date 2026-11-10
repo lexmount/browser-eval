@@ -122,9 +122,19 @@ def benchmark_config(home=None, *, name=None):
         ),
         "adapter": importlib.import_module(item["module"]) if item["module"] else None,
         "snapshot_project": item.get("snapshot_project"),
-        "snapshot_distribution": item.get("snapshot_distribution"),
+        "snapshot_distribution": distribution,
         "reference_coverage_archive": item.get("reference_coverage_archive"),
     }
+
+
+def input_mode(home):
+    """A live source and a hosted immutable page have distinct qualification rules."""
+    from harness.web_extract.pipeline import read_json
+
+    mode = read_json(Path(home) / "dataset/manifest.json").get("input_mode", "snapshot")
+    if mode not in {"snapshot", "live"}:
+        raise ValueError("Unknown extraction input mode")
+    return mode
 
 
 def reference_revision_authorities(home, revision):
