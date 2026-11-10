@@ -87,7 +87,7 @@
       "example_version": 1,
       "example_build": "uv run --frozen python -m harness.web_extract.example --output /tmp/extract-example",
       "build": "uv run --frozen python -m harness.web_extract.cli report --profile /absolute/report-profile.json --content /absolute/content.json --output /absolute/report --language zh",
-      "check": "uv run --frozen python -m harness.web_extract.cli check /absolute/report",
+      "check": "uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-home check /absolute/report --profile /absolute/report-profile.json",
       "tests": "tests/web_extract/",
       "variants": [
         "research-and-compatibility",

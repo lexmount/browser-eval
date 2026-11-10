@@ -843,64 +843,74 @@ def verify_execution_projection(original, published):
         raise ValueError("Completion audit native attempt history changed")
 
 
-def completion_authorities(profile, home):
-    """Watch original evidence while the shared package validator verifies it once."""
-    if not profile or home is None:
-        raise ValueError("Publication requires its frozen profile and benchmark home")
-    profile, home = Path(profile), Path(home)
-    instance = read_json(profile)
-    paths = [profile]
-    if instance.get("dataset"):
-        paths.append(home / "dataset")
-    binding = instance.get("research_report", {}).get("content", {})
-    if not binding.get("path"):
-        return paths
-    content = profile.parent / binding["path"]
-    paths.append(content)
-    model = read_json(content)
-    if model.get("audit"):
-        paths.append(content.parent / model["audit"]["path"])
-
-    def bound_paths(value):
-        if isinstance(value, dict):
-            if isinstance(value.get("path"), str):
-                paths.append(content.parent / value["path"])
-            for nested in value.values():
-                bound_paths(nested)
-        elif isinstance(value, list):
-            for nested in value:
-                bound_paths(nested)
-
-    for selection in model.get("evidence_runs", []):
-        paths.append(resolve_run_path(home, selection["run"]))
-        bound_paths(selection)
-    return tuple(dict.fromkeys(paths))
+def cohort_source_binding(source, selection, contract, receipt, *, records=False):
+    """Use one metadata shape for initial publication and independent verification."""
+    if records:
+        return {
+            "run_id": source.name,
+            "contract": contract,
+            "receipt": receipt,
+            "plan_sha256": selection["plan_sha256"],
+        }
+    return {
+        "run_id": source.name,
+        "manifest_sha256": digest((source / "manifest.json").read_bytes())
+        if (source / "manifest.json").exists()
+        else None,
+        **receipt,
+        "source_plan_sha256": selection.get("plan_sha256"),
+        "methods": selection.get("methods"),
+        "contract": contract,
+    }
 
 
-_COMPLETION_AUDIT_SCOPE = ContextVar("web_extract_completion_audit", default=None)
-
-
-@contextmanager
-def completion_audit_scope(source, profile, home, guard=None):
-    """Reuse a complete audit only while every original and public input is frozen."""
-    if profile is None or home is None:
-        verify_completion_audit(source, profile, home=home)
-    key = tuple(Path(p).resolve() for p in (source, profile, home))
-    cached = _COMPLETION_AUDIT_SCOPE.get()
-    if cached and cached[0] == key:
-        cached[1].check()
-        yield
-        return
-    if guard is None:
-        guard = PublicationSnapshot.for_inputs((source, *completion_authorities(profile, home)))
-    guard.check()
-    verify_completion_audit(source, profile, home=home)
-    guard.check()
-    token = _COMPLETION_AUDIT_SCOPE.set((key, guard))
-    try:
-        yield
-    finally:
-        _COMPLETION_AUDIT_SCOPE.reset(token)
+def verify_cohort_authorities(source, home, model, manifest):
+    """Revalidate private certification through the same owner used by the build."""
+    mode = model.get("mode")
+    if mode not in ("full-cohort-progress", "field-extraction-cohort"):
+        return None
+    truth = read_json(home / "dataset/dataset/ground-truth.json")
+    records = mode == "field-extraction-cohort"
+    if records:
+        published = read_json(source / "public-evidence/sources.json")
+        expected_methods = set(model["participants"])
+    else:
+        plan = model["cohort_plan"]
+        raw = Path(plan["path"]).read_bytes()
+        if digest(raw) != plan["sha256"]:
+            raise ValueError("Completion audit cohort plan changed")
+        expected_methods = set(json.loads(raw)["participants"])
+        published = manifest["source_runs"]
+    originals, seen = [], set()
+    expected = {} if records else []
+    for selection in model["evidence_runs"]:
+        directory = resolve_run_path(home, selection["run"])
+        try:
+            contract, rows, receipt = cohort_source(directory, selection, home, truth)
+        except (OSError, KeyError, TypeError, ValueError) as error:
+            raise ValueError("Completion audit cohort authority differs") from error
+        method = contract["methods"][0]
+        if method in seen:
+            raise ValueError("Completion audit certified participant scope differs")
+        binding = cohort_source_binding(directory, selection, contract, receipt, records=records)
+        if records:
+            expected[method] = binding
+        else:
+            expected.append(binding)
+        seen.add(method)
+        originals.append(rows)
+    if seen != expected_methods:
+        raise ValueError("Completion audit certified participant scope differs")
+    view, _ = project_evidence_view(
+        "public-evidence/sources.json" if records else "public-evidence/metadata.json",
+        json.dumps(expected, ensure_ascii=False).encode(),
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    if canonical_json_sha256(json.loads(view)) != canonical_json_sha256(published):
+        raise ValueError("Completion audit certification binding changed")
+    return originals
 
 
 def verify_completion_audit(source, profile, *, home=None):
@@ -950,6 +960,7 @@ def verify_completion_audit(source, profile, *, home=None):
         raise ValueError("Completion audit frozen content changed")
     model = read_json(content)
     verify_page_intros(source, model, manifest)
+    cohort_rows = verify_cohort_authorities(source, home, model, manifest)
     audit_binding = model.get("audit")
     if not audit_binding:
         if authority or instance.get("independent_result_review_scope") == "all":
@@ -977,11 +988,13 @@ def verify_completion_audit(source, profile, *, home=None):
     if reviewed:
         from harness.web_extract.repair import load_selection
 
-        model = read_json(content)
         public_rows = {}
         seen = set()
-        for selection in model["evidence_runs"]:
-            _, originals = load_selection(home, selection)
+        for index, selection in enumerate(model["evidence_runs"]):
+            if cohort_rows is None:
+                _, originals = load_selection(home, selection)
+            else:
+                originals = cohort_rows[index]
             for row in originals:
                 method, cid = row["method"], row["case_id"]
                 key = method + ":" + cid
@@ -2756,18 +2769,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             r["review_execution_sha256"] = execution_identity(record)
             r["run_id"] = source.name
             rows.append(redact_account_endpoint(r))
-        bindings.append(
-            {
-                "run_id": source.name,
-                "manifest_sha256": digest((source / "manifest.json").read_bytes())
-                if (source / "manifest.json").exists()
-                else None,
-                **extra,
-                "source_plan_sha256": selection.get("plan_sha256"),
-                "methods": selection.get("methods"),
-                "contract": contract,
-            }
-        )
+        bindings.append(cohort_source_binding(source, selection, contract, extra))
     if cohort:
         expected_cases = digest(("\n".join(sorted(truth)) + "\n").encode())
         if (
@@ -3490,7 +3492,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         },
         exclusive=True,
     )
-    check(output)
+    _check_rendered_report(output)
 
 
 def report_dependencies():
@@ -3669,16 +3671,20 @@ def check_reader_contract(output, manifest, *, release=False):
 
 
 def check(output: Path, *, release=False, visual_receipt=None, profile=None, home=None):
-    if release and (profile is None or home is None):
-        raise ValueError("Release check requires an explicit profile and benchmark home")
+    """Validate a report against explicitly selected external authorities."""
+    if profile is None or home is None:
+        raise ValueError("Report check requires an explicit profile and benchmark home")
+    output = open_report(output)
+    verify_completion_audit(output, profile, home=home)
+    return _check_rendered_report(output, release=release, visual_receipt=visual_receipt)
+
+
+def _check_rendered_report(output: Path, *, release=False, visual_receipt=None):
+    """Internal build self-check of rendered evidence and reader-facing semantics."""
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
     if manifest.get("mode") == "field-extraction-cohort":
-        return check_record_cohort(
-            output, release=release, visual_receipt=visual_receipt, profile=profile, home=home
-        )
-    if profile is not None:
-        verify_completion_audit(output, profile, home=home)
+        return _check_record_cohort(output, release=release, visual_receipt=visual_receipt)
     link_index = LinkIndex(errors="strict")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -4155,12 +4161,9 @@ def record_cohort_inputs(home, model, *, profile):
         if stats["certified"] and receipt["scores"][method] != stats["scores"]:
             raise ValueError("Record report scores differ from the certified scorer")
         result["methods"][method] = {"statistics": stats, "results": {}}
-        result["sources"][method] = {
-            "run_id": source.name,
-            "contract": contract,
-            "receipt": receipt,
-            "plan_sha256": selection["plan_sha256"],
-        }
+        result["sources"][method] = cohort_source_binding(
+            source, selection, contract, receipt, records=True
+        )
         for row in rows:
             result["methods"][method]["results"][row["case_id"]] = record_result_fields(
                 truth[row["case_id"]], row
@@ -5253,20 +5256,16 @@ def build_record_cohort(output, content, *, home, language, profile):
         },
         exclusive=True,
     )
-    check_record_cohort(output)
+    _check_record_cohort(output)
 
 
-def check_record_cohort(output, *, release=False, visual_receipt=None, profile=None, home=None):
+def _check_record_cohort(output, *, release=False, visual_receipt=None):
     """Check the public record matrix and shared presentation semantics."""
     from harness.reporting.presentation import check_presentation
     from harness.web_extract.analysis import record_statistics
     from harness.web_extract.dataset import benchmark_config
 
-    if release and (profile is None or home is None):
-        raise ValueError("Release check requires an explicit profile and benchmark home")
     output = open_report(output)
-    if profile is not None:
-        verify_completion_audit(output, profile, home=home)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
     if profile is not None:

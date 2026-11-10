@@ -957,7 +957,8 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     monkeypatch.setattr(publication, "verify_completion_audit", verify)
     monkeypatch.setattr(report_owner, "verify_completion_audit", verify)
     monkeypatch.setattr(
-        report_owner, "check",
+        report_owner,
+        "check",
         lambda report, **kwargs: verify(report, kwargs["profile"], home=kwargs["home"]),
     )
 
@@ -1035,9 +1036,12 @@ def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_p
             "reference_revision": {"path": str(home / "reference.json")},
             "dataset_manifest": str(tmp_path / "retired-home/dataset/manifest.json"),
             "evidence_runs": [
-                {"run": "first", "plan": str(home / "plan.json"),
-                 "assessment": {"path": str(home / "assessment.json")},
-                 "repair": [{"path": str(home / "repairs/final")}]},
+                {
+                    "run": "first",
+                    "plan": str(home / "plan.json"),
+                    "assessment": {"path": str(home / "assessment.json")},
+                    "repair": [{"path": str(home / "repairs/final")}],
+                },
                 {"run": "runs/second"},
             ],
         },
@@ -1068,7 +1072,7 @@ def test_release_check_rejects_missing_profile_before_opening_report(tmp_path, c
         check(tmp_path / "absent", release=True, home=tmp_path)
 
 
-@pytest.mark.parametrize("operation", ["release_check", "package", "publish"])
+@pytest.mark.parametrize("operation", ["check", "release_check", "package", "publish"])
 def test_registered_release_commands_supply_real_cli_requirements(tmp_path, monkeypatch, operation):
     import shlex
     from pathlib import Path
@@ -1092,7 +1096,9 @@ def test_registered_release_commands_supply_real_cli_requirements(tmp_path, monk
 
     monkeypatch.setattr(
         publication if operation == "publish" else report,
-        {"release_check": "check", "package": "package", "publish": "publish"}[operation],
+        {"check": "check", "release_check": "check", "package": "package", "publish": "publish"}[
+            operation
+        ],
         boundary,
     )
     cli.main(argv)
@@ -1112,9 +1118,19 @@ def test_check_verifies_original_evidence_once_for_each_cohort(tmp_path, monkeyp
     assert calls == [1]
 
 
-@pytest.mark.parametrize('changed', [
-    'profile', 'content', 'audit', 'dataset', 'execution', 'plan', 'assessment', 'reference',
-])
+@pytest.mark.parametrize(
+    "changed",
+    [
+        "profile",
+        "content",
+        "audit",
+        "dataset",
+        "execution",
+        "plan",
+        "assessment",
+        "reference",
+    ],
+)
 def test_packaging_rejects_private_authority_changes_during_validation(
     tmp_path, monkeypatch, changed
 ):
@@ -1122,33 +1138,62 @@ def test_packaging_rejects_private_authority_changes_during_validation(
 
     source, target, work, visual = setup_report(tmp_path)
     paths = {
-        'profile': tmp_path / 'profile.json',
-        'content': tmp_path / 'content.json',
-        'audit': tmp_path / 'audit.json',
-        'dataset': tmp_path / 'dataset/page.html',
-        'execution': tmp_path / 'runs/first/call.json',
-        'plan': tmp_path / 'plan.json',
-        'assessment': tmp_path / 'assessment.json',
-        'reference': tmp_path / 'reference.json',
+        "profile": tmp_path / "profile.json",
+        "content": tmp_path / "content.json",
+        "audit": tmp_path / "audit.json",
+        "dataset": tmp_path / "dataset/page.html",
+        "execution": tmp_path / "runs/first/call.json",
+        "plan": tmp_path / "plan.json",
+        "assessment": tmp_path / "assessment.json",
+        "reference": tmp_path / "reference.json",
     }
     for path in paths.values():
         save_json(path, {})
-    save_json(paths['content'], {
-        'audit': {'path': 'audit.json'},
-        'reference_revision': {'path': str(paths['reference'])},
-        'evidence_runs': [{'run': 'first', 'plan': str(paths['plan']),
-                          'assessment': {'path': str(paths['assessment'])}}],
-    })
-    save_json(paths['profile'], {'dataset': {'id': 'frozen'},
-                                'research_report': {'content': {'path': 'content.json'}}})
+    save_json(
+        paths["content"],
+        {
+            "audit": {"path": "audit.json"},
+            "reference_revision": {"path": str(paths["reference"])},
+            "evidence_runs": [
+                {
+                    "run": "first",
+                    "plan": str(paths["plan"]),
+                    "assessment": {"path": str(paths["assessment"])},
+                }
+            ],
+        },
+    )
+    save_json(
+        paths["profile"],
+        {"dataset": {"id": "frozen"}, "research_report": {"content": {"path": "content.json"}}},
+    )
 
     def validation(*args, **kwargs):
-        paths[changed].write_text('substituted bytes', encoding='utf-8')
+        paths[changed].write_text("substituted bytes", encoding="utf-8")
 
-    monkeypatch.setattr(report, 'check', validation)
-    archive = tmp_path / 'report.zip'
-    with pytest.raises(ValueError, match='changed'):
-        report.package(source, archive, visual_receipt=visual,
-                       profile=paths['profile'], home=tmp_path)
+    monkeypatch.setattr(report, "check", validation)
+    archive = tmp_path / "report.zip"
+    with pytest.raises(ValueError, match="changed"):
+        report.package(
+            source, archive, visual_receipt=visual, profile=paths["profile"], home=tmp_path
+        )
     assert not archive.exists()
-    assert not archive.with_suffix('.receipt.json').exists()
+    assert not archive.with_suffix(".receipt.json").exists()
+
+
+@pytest.mark.parametrize("missing", ["both", "profile", "home"])
+def test_public_check_never_infers_or_omits_its_authorities(tmp_path, missing, capsys):
+    from harness.web_extract.cli import main
+    from harness.web_extract.report import check
+
+    arguments = ["check", str(tmp_path / "absent-report")]
+    if missing == "home":
+        arguments += ["--profile", str(tmp_path / "profile.json")]
+    if missing == "profile":
+        arguments = ["--home", str(tmp_path)] + arguments
+    with pytest.raises(SystemExit) as error:
+        main(arguments)
+    assert error.value.code == 2
+    assert ("--home" if missing == "home" else "--profile") in capsys.readouterr().err
+    with pytest.raises(ValueError, match="explicit profile and benchmark home"):
+        check(tmp_path / "absent-report")

@@ -139,9 +139,7 @@ def main(argv=None):
     p = sub.add_parser("check")
     p.add_argument("output", type=Path)
     p.add_argument("--release", action="store_true")
-    p.add_argument(
-        "--profile", type=Path, help="External frozen report profile; required for release"
-    )
+    p.add_argument("--profile", type=Path, required=True, help="External frozen report profile")
     p.add_argument("--visual-receipt", type=Path)
     p = sub.add_parser("package")
     p.add_argument("report", type=Path)
@@ -177,13 +175,8 @@ def main(argv=None):
     p.add_argument("--additional-adjudication", type=Path, action="append", default=[])
     p.add_argument("--decisions", type=Path, help="Source-bound final reference decisions")
     args = parser.parse_args(argv)
-    if args.command == "check" and args.release and args.profile is None:
-        parser.error("check --release requires --profile")
-    formal = args.command in ("package", "publish") or (args.command == "check" and args.release)
-    if formal and args.home is None:
-        parser.error("Formal check, package and publish require an explicit --home")
-    if args.command == "check" and args.release and args.profile is None:
-        parser.error("Release check requires an explicit --profile")
+    if args.command in ("check", "package", "publish") and args.home is None:
+        parser.error("Check, package and publish require an explicit --home")
     if args.home is None:
         args.home = data_home()
     repairs = None

@@ -539,7 +539,7 @@ def test_record_report_reproduces_complete_review_and_preserves_original_evidenc
     from harness.web_extract import report
 
     home, content, profile, output, audit = reviewed_record_report
-    report.check(output)
+    report._check_rendered_report(output)
     manifest = pipeline.read_json(output / "report-manifest.json")
     assert manifest["required_review_scope"] == "all"
     assert manifest["audit"]["source_sha256"] == pipeline.digest(audit.read_bytes())
@@ -617,7 +617,7 @@ def test_record_release_checks_review_content_beyond_file_hashes(reviewed_record
     manifest["files"][route] = pipeline.digest(path.read_bytes())
     pipeline.save_json(manifest_path, manifest)
     with pytest.raises(ValueError, match="review summary|inventory"):
-        report.check(output)
+        report._check_rendered_report(output)
 
 
 @pytest.mark.parametrize(

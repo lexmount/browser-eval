@@ -8,7 +8,12 @@ from bs4 import BeautifulSoup
 from harness.reporting.presentation import check_presentation
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import check, record_comparison, record_route
+from harness.web_extract.report import (
+    _check_rendered_report,
+    check,
+    record_comparison,
+    record_route,
+)
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
@@ -153,7 +158,7 @@ def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path)
     save_json(home / "profile.json", profile)
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
-    check(output)
+    _check_rendered_report(output)
     for route in ["protocol", record_route("c", "three")]:
         soup = BeautifulSoup(
             (output / "zh" / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
@@ -169,7 +174,7 @@ def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path)
     )
     rebind(output, "zh/protocol.html", lambda s: s.replace("Read protocol", "Wrong label"))
     with pytest.raises(ValueError, match="navigation differs"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("routes", [[], ["index"] * 9, ["index"], ["unknown"] * 9])
@@ -269,7 +274,7 @@ def test_native_method_examples_keep_benchmarks_separate_and_reject_changed_outp
     save_json(home / "profile.json", profile)
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
-    check(output)
+    _check_rendered_report(output)
     soup = BeautifulSoup((output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser")
     assert '"price": 12' in soup.select_one("#examples-products").get_text()
     assert '"author"' in soup.select_one("#examples-books").get_text()
@@ -277,13 +282,13 @@ def test_native_method_examples_keep_benchmarks_separate_and_reject_changed_outp
     assert len(soup.select("[data-method-example]")) == 2
     rebind(output, "zh/protocol.html", lambda s: s.replace('"price": 12', '"price": 99'))
     with pytest.raises(ValueError, match="native input/output evidence"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path):
     output = tmp_path / "report"
     home = create(output, mode="field-extraction-cohort")
-    manifest = check(output)
+    manifest = _check_rendered_report(output)
     assert manifest["observations"] == 4
     assert len(list(output.rglob("*.html"))) == 17
     assert manifest["languages"] == ["zh"]
@@ -345,7 +350,7 @@ def test_inventory_evidence_targets_are_validated_after_rebinding(tmp_path, butt
 
     rebind(output, 'zh/results.html', break_evidence)
     with pytest.raises(ValueError, match='Broken record evidence|relative to the hosted site root'):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path):
@@ -371,7 +376,7 @@ def test_evidence_index_keys_must_match_embedded_case_ids(tmp_path):
             return str(soup)
         rebind(output, 'zh/' + record_route('c', case_id) + '.html', swap_target)
     with pytest.raises(ValueError, match='evidence.*case identit'):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize(
@@ -450,7 +455,7 @@ def test_record_evidence_and_rendered_values_must_agree(tmp_path, damage):
         )
         error = "Broken record evidence"
     with pytest.raises(ValueError, match=error):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize(
@@ -502,7 +507,7 @@ def test_release_checks_reject_semantic_damage_even_after_file_rebinding(tmp_pat
                 ),
             )
     with pytest.raises(ValueError, match=error):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_record_metrics_highlight_all_exact_ties_and_ignore_unavailable():
@@ -555,7 +560,7 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
     save_json(home / "profile.json", profile)
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
-    manifest = check(output)
+    manifest = _check_rendered_report(output)
     assert manifest["comparison_methods"] == ["scrapegraph-extract"]
     assert manifest["skipped_methods"] == {
         "firecrawl-json": "User omitted the interrupted participant"
@@ -579,7 +584,7 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
         lambda s: s.replace("User omitted the interrupted participant", "Unrelated reason"),
     )
     with pytest.raises(ValueError, match="exclusion reason"):
-        check(output)
+        _check_rendered_report(output)
     rebind(output, "zh/index.html", lambda _: original)
     assert (
         len(
@@ -592,7 +597,7 @@ def test_omission_does_not_remove_observations_or_pending_cases(tmp_path):
     manifest["skipped_methods"].clear()
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="comparison scope"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_skipped_latency_is_retained_without_ranking_it_as_comparison_leader():
@@ -643,7 +648,7 @@ def test_record_example_relative_output_outside_working_directory(tmp_path, monk
     monkeypatch.chdir(working)
     home = create(Path("../record-demo"), mode="field-extraction-cohort")
     assert home.is_absolute()
-    check(tmp_path / "record-demo")
+    _check_rendered_report(tmp_path / "record-demo")
 
 
 @pytest.mark.parametrize(
@@ -668,7 +673,7 @@ def test_record_distribution_scans_all_files_including_metadata(tmp_path, route,
         manifest["files"][route] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="privacy risk"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("href", ["#missing-section", "zh/interpretation.html#missing-method"])
@@ -681,7 +686,7 @@ def test_record_release_rejects_missing_local_fragment(tmp_path, href):
         lambda s: s.replace("</main>", f'<a href="{href}">Evidence</a></main>'),
     )
     with pytest.raises(ValueError, match="Broken evidence anchor"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_record_inventory_sorts_exact_counts_and_missing_timers_numerically(tmp_path):
@@ -727,7 +732,7 @@ def test_record_build_resolves_the_same_run_ids_as_review_and_repair(tmp_path, s
     save_json(home / "profile.json", profile)
     output = tmp_path / "report"
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
-    check(output)
+    _check_rendered_report(output)
 
 
 def test_record_example_rejects_unsupported_language_without_leaving_files(tmp_path):
@@ -763,7 +768,7 @@ def test_record_release_requires_all_retry_time_totals(tmp_path, damage):
 
     rebind(output, "zh/protocol.html", change)
     with pytest.raises(ValueError, match="Retry timing"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("invalid", [2024, ["Ada", 1], None, False, {"value": "Ada"}])
@@ -787,7 +792,7 @@ def test_complete_record_report_renders_invalid_native_field_types(tmp_path, mon
     monkeypatch.setattr(example, "save_json", write)
     output = tmp_path / "report"
     create(output, mode="field-extraction-cohort")
-    check(output)
+    _check_rendered_report(output)
     evidence = read_json(output / "public-evidence/scrapegraph-extract.json")
     assert evidence["one"]["field_results"]["author"]["status"] == "invalid"
     assert evidence["one"]["field_results"]["author"]["actual"] == invalid
@@ -845,7 +850,7 @@ def test_record_report_rejects_stale_client_dependencies(tmp_path, monkeypatch, 
         monkeypatch.setattr(messages, "MESSAGES", changed)
     changed.write_bytes(changed.read_bytes() + b"\n")
     with pytest.raises(ValueError, match="dependencies changed"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_record_release_rejects_free_text_price_without_numeric_conversion(tmp_path, monkeypatch):

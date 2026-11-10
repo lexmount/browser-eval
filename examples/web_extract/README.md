@@ -467,7 +467,8 @@ and are not used for SWDE’s domain-specific fields.
 
 ```sh
 uv run --frozen python -m harness.web_extract.example --output /tmp/extract-example
-uv run --frozen python -m harness.web_extract.cli check /tmp/extract-example
+uv run --frozen python -m harness.web_extract.cli --home /tmp/extract-example-synthetic-inputs \
+  check /tmp/extract-example --profile /tmp/extract-example-synthetic-inputs/profile.json
 uv run --frozen python -m pytest tests/web_extract -q
 ```
 
@@ -541,10 +542,10 @@ uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-hom
   --visual-receipt /absolute/private/visual-receipt.json
 ```
 
-Formal checks, packaging and publication require the external frozen profile and
-an explicit `--home`. They verify that directory against the pinned dataset, its
-content and original audit, reproduce the public audit view, and bind each cached
-field judgment and native response to that audit. Public manifest edits cannot
+Checks, packaging and publication require the external frozen profile and
+an explicit `--home`. They verify the pinned dataset, frozen content, selected
+plans, certificates and assessments. They reproduce the public audit view and
+bind each cached field judgment and native response to its original audit. Public manifest edits cannot
 remove the required audit or change the completion denominator. Pass the same
 `--profile` to `package`; publication selects it from the bound target. Use the
 same global `--home` as the report build so original calls and repair chains resolve
@@ -692,7 +693,8 @@ methods retain progress and latency without a quality score.
 ```sh
 uv run --frozen python -m harness.web_extract.example \
   --output /tmp/extract-record-example --mode field-extraction-cohort
-uv run --frozen python -m harness.web_extract.cli check /tmp/extract-record-example
+uv run --frozen python -m harness.web_extract.cli --home /tmp/extract-record-example-synthetic-inputs \
+  check /tmp/extract-record-example --profile /tmp/extract-record-example-synthetic-inputs/profile.json
 ```
 
 The synthetic example has no provider certification and cannot be released.

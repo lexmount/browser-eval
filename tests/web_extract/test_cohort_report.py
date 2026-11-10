@@ -8,7 +8,7 @@ from bs4 import BeautifulSoup
 from harness.reporting.presentation import check_presentation
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import build, check, cohort_metrics
+from harness.web_extract.report import _check_rendered_report, build, check, cohort_metrics
 
 pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
 
@@ -111,7 +111,7 @@ def test_progress_includes_unexecuted_cases_without_inventing_calls(tmp_path):
             "[data-core-metrics] tbody td:nth-child(n+4):not([data-completion-metric])"
         )
     )
-    assert check(output)["state"] == "full-cohort-progress"
+    assert _check_rendered_report(output)["state"] == "full-cohort-progress"
     # Evidence is grouped by method, loaded on demand, rather than copied per detail.
     assert len(list((output / "public-evidence").glob("*.json"))) == 2
     assert "data-key=" in next((output / "zh").glob("case-*.html")).read_text(encoding="utf-8")
@@ -407,7 +407,7 @@ def test_public_evidence_requires_complete_projection_receipts(tmp_path):
     manifest["public_evidence_views"].pop()
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="receipts are incomplete"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_contract_url_credentials_are_omitted_from_public_metadata(tmp_path):
@@ -427,7 +427,7 @@ def test_contract_url_credentials_are_omitted_from_public_metadata(tmp_path):
     manifest["source_runs"][0]["contract"]["fixture_base"] = contract["fixture_base"]
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="metadata.*privacy"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("mode", ["compatibility", "full-cohort-progress"])
@@ -465,7 +465,7 @@ def test_multiple_certified_plans_require_explicit_report_composition_binding(tm
     content["source_cohorts"] = {selection["run"]: sha}
     save_json(home / "content.json", content)
     build(tmp_path / "bound", home / "content.json", home=home, profile=home / "profile.json")
-    assert check(tmp_path / "bound")["observations"] == 4
+    assert _check_rendered_report(tmp_path / "bound")["observations"] == 4
 
 
 def test_progress_release_check_rejects_changed_counts_even_with_new_file_hash(tmp_path):
@@ -479,7 +479,7 @@ def test_progress_release_check_rejects_changed_counts_even_with_new_file_hash(t
     manifest["files"]["zh/index.html"] = digest(page.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="progress count differs"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_quality_highlights_all_raw_leaders_and_leaves_missing_values_neutral():
@@ -573,7 +573,7 @@ def test_progress_check_rejects_timing_or_usage_value_changes(tmp_path, selector
     manifest["files"]["zh/protocol.html"] = digest(page.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Timing or usage"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_external_participant_labels_are_used_without_changing_evidence_identity(tmp_path):
@@ -583,7 +583,7 @@ def test_external_participant_labels_are_used_without_changing_evidence_identity
     save_json(home / "content.json", content)
     output = tmp_path / "labeled"
     build(output, home / "content.json", home=home, profile=home / "profile.json")
-    check(output)
+    _check_rendered_report(output)
     soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     assert [
         r.select_one("td").get_text(strip=True) for r in soup.select("[data-core-metrics] tbody tr")
@@ -609,7 +609,7 @@ def test_release_rejects_missing_operating_metrics_and_broken_drilldown(tmp_path
     manifest["files"]["zh/" + route] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Home latency|filters|Field diagnostics|same-case"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_package_checks_release_and_includes_only_the_frozen_public_tree(tmp_path):
@@ -755,7 +755,7 @@ def test_secret_only_in_html_is_rejected_even_with_valid_inventory(tmp_path, mod
     manifest["files"]["zh/dataset.html"] = digest(page.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="artifact.*privacy"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_report_defaults_and_saved_primary_use_shared_language_policy(tmp_path, monkeypatch):
@@ -835,7 +835,7 @@ def test_report_release_binds_the_message_catalog(tmp_path):
     manifest["messages_sha256"] = "0" * 64
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="dependencies changed"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_usage_preserves_browser_receipts_in_separate_units():
@@ -887,7 +887,7 @@ def test_configured_private_host_is_projected_from_contract_and_rejected_on_chec
         manifest["source_runs"][0]["contract"]["fixture_base"] = contract["fixture_base"]
         save_json(output / "report-manifest.json", manifest)
         with pytest.raises(ValueError, match="metadata.*privacy"):
-            check(output)
+            _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("data", [None, {"metadata": None}, {"metadata": []}])
@@ -1081,7 +1081,7 @@ def test_report_dataset_download_link_is_pinned_and_release_checked(tmp_path, mo
     manifest["files"]["zh/dataset.html"] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Pinned dataset download link"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("suffix", [".svg", ".xml", ".jsonl", ".unknown"])
@@ -1114,7 +1114,7 @@ def test_all_asset_formats_receive_publication_privacy_checks(tmp_path, suffix, 
             build(tmp_path / "new", home / "content.json", **kwargs)
     else:
         build(tmp_path / "new", home / "content.json", **kwargs)
-        check(tmp_path / "new")
+        _check_rendered_report(tmp_path / "new")
 
 
 def test_published_release_cannot_drop_dataset_distribution_binding(tmp_path, monkeypatch):
@@ -1500,7 +1500,15 @@ def audited_product_report(tmp_path, monkeypatch):
         },
     )
     model["cohort_plan"]["sha256"] = plan_hash
-    model["evidence_runs"] = [{**selection, "plan_sha256": plan_hash}]
+    assessment = tmp_path / "assessment.json"
+    pipeline.score_run(home, source, reproject=True, output=assessment)
+    model["evidence_runs"] = [
+        {
+            **selection,
+            "plan_sha256": plan_hash,
+            "assessment": {"path": str(assessment), "sha256": digest(assessment.read_bytes())},
+        }
+    ]
     save_json(content_path, model)
     work = tmp_path / "review"
     review = prepare(home, content_path, work)
@@ -1530,6 +1538,14 @@ def audited_product_report(tmp_path, monkeypatch):
     )
     model["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
     save_json(content_path, model)
+    instance = read_json(profile)
+    instance["research_report"] = {
+        "content": {
+            "path": str(content_path),
+            "sha256": digest(content_path.read_bytes()),
+        }
+    }
+    save_json(profile, instance)
     output = tmp_path / "audited-report"
     build(output, content_path, home=home, profile=profile, language="en")
     return output
@@ -1540,13 +1556,17 @@ def test_audited_product_build_checks_official_and_completion_columns_separately
     audited_product_report, damage
 ):
     output = audited_product_report
-    assert check(output)["observations"] == 3
+    home = output.parent / "fixture-synthetic-inputs"
+    assert check(output, profile=home / "profile.json", home=home)["observations"] == 3
     path = output / "en/interpretation.html"
     document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     row = document.select_one("[data-interpretation-comparison] tbody tr")
     assert len(row.select("td:not([data-completion-metric])")[2:]) == 4
     assert len(row.select("td[data-completion-metric]")) == 2
     if damage is None:
+        from harness.web_extract.cli import main
+
+        main(["--home", str(home), "check", str(output), "--profile", str(home / "profile.json")])
         return
     selector = (
         "td:not([data-completion-metric])"
@@ -1561,7 +1581,7 @@ def test_audited_product_build_checks_official_and_completion_columns_separately
     manifest["files"]["en/interpretation.html"] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
     with pytest.raises(ValueError, match="Interpretation scores|Completion metric comparison"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
@@ -1671,6 +1691,10 @@ def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mo
     manifest["files"][relative] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
     if damage.startswith("coordinated-") or damage == "undeclared-addition":
+        from harness.web_extract.cli import main
+
+        with pytest.raises(ValueError, match="Frozen page intro"):
+            main(["--home", str(home), "check", str(output), "--profile", str(profile_path)])
         visual = tmp_path / "visual.json"
         save_json(visual, {})
         for release in (False, True):
@@ -1685,4 +1709,85 @@ def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mo
         assert not archive.with_suffix(".receipt.json").exists()
         return
     with pytest.raises(ValueError, match="intro|Core comparison"):
-        check(output)
+        _check_rendered_report(output)
+
+
+@pytest.mark.parametrize(
+    "damage",
+    [
+        "certificate-method",
+        "certificate-dataset",
+        "certificate-envelope",
+        "certificate-removed",
+        "precall",
+        "plan",
+        "assessment",
+        "scores",
+    ],
+)
+def test_private_certification_drift_is_rejected_before_check_and_package(
+    audited_product_report, damage
+):
+    from harness.web_extract.cli import main
+    from harness.web_extract.report import package
+
+    output = audited_product_report
+    home = output.parent / "fixture-synthetic-inputs"
+    profile = home / "profile.json"
+    assert check(output, profile=profile, home=home)["observations"] == 3
+    model = read_json(home / "content.json")
+    selection = model["evidence_runs"][0]
+    source = home / "runs" / selection["run"]
+    certificate = source / "certificate.json"
+    if damage.startswith("certificate-"):
+        if damage == "certificate-removed":
+            certificate.unlink()
+        else:
+            value = read_json(certificate)
+            value[
+                {
+                    "certificate-method": "method",
+                    "certificate-dataset": "dataset_manifest_sha256",
+                    "certificate-envelope": "extra",
+                }[damage]
+            ] = "changed private authority"
+            save_json(certificate, value)
+    else:
+        path = {
+            "precall": source / "certification-precall.json",
+            "plan": Path(selection["plan"]),
+            "assessment": Path(selection["assessment"]["path"]),
+            "scores": source / "scores.json",
+        }[damage]
+        save_json(path, {"substituted": True})
+    visual = output.parent / "visual.json"
+    save_json(visual, {})
+    for release in (False, True):
+        with pytest.raises(ValueError, match="Completion audit"):
+            check(output, profile=profile, home=home, release=release, visual_receipt=visual)
+    with pytest.raises(ValueError, match="Completion audit"):
+        main(["--home", str(home), "check", str(output), "--profile", str(profile)])
+    archive = output.parent / "public.zip"
+    with pytest.raises(ValueError, match="Completion audit"):
+        package(output, archive, profile=profile, home=home, visual_receipt=visual)
+    assert not archive.exists()
+    assert not archive.with_suffix(".receipt.json").exists()
+
+
+@pytest.mark.parametrize("field", ["contract", "manifest_sha256", "source_plan_sha256"])
+def test_published_cohort_metadata_is_reproduced_from_private_authorities(
+    audited_product_report, field
+):
+    output = audited_product_report
+    home = output.parent / "fixture-synthetic-inputs"
+    profile = home / "profile.json"
+    check(output, profile=profile, home=home)
+    path = output / "report-manifest.json"
+    manifest = read_json(path)
+    if field == "contract":
+        manifest["source_runs"][0]["contract"]["native_options"] = {"model": "unmeasured-model"}
+    else:
+        manifest["source_runs"][0][field] = "0" * 64
+    save_json(path, manifest)
+    with pytest.raises(ValueError, match="Completion audit certification binding"):
+        check(output, profile=profile, home=home)

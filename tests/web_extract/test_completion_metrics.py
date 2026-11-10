@@ -6,6 +6,7 @@ from copy import deepcopy
 import pytest
 
 from harness.web_extract.analysis import completion_metrics, record_field_results
+from harness.web_extract.report import _check_rendered_report
 
 
 @pytest.mark.parametrize("values,winners", [([1, 1], 2), ([0, 0], 2), ([0.4, 0.7], 1)])
@@ -193,7 +194,6 @@ def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, d
 
     from harness.web_extract.example import create
     from harness.web_extract.pipeline import digest, read_json, save_json
-    from harness.web_extract.report import check
 
     output = tmp_path / "report"
     create(output, mode=mode)
@@ -228,7 +228,7 @@ def test_release_check_rejects_misleading_supplemental_metrics(tmp_path, mode, d
     manifest["files"][path.relative_to(output).as_posix()] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
     with pytest.raises(ValueError, match="Completion|Metric guide"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_incomplete_cohort_is_distinct_from_a_computed_empty_denominator():
@@ -451,11 +451,10 @@ def test_home_comparison_precedes_authored_content_and_gate_rejects_reordering(
 
     from harness.web_extract.example import create
     from harness.web_extract.pipeline import digest, read_json, save_json
-    from harness.web_extract.report import check
 
     output = tmp_path / "report"
     create(output, mode=mode)
-    check(output)
+    _check_rendered_report(output)
     path = output / "zh/index.html"
     document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     first = document.main.find(recursive=False)
@@ -477,7 +476,7 @@ def test_home_comparison_precedes_authored_content_and_gate_rejects_reordering(
     manifest["files"]["zh/index.html"] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
     with pytest.raises(ValueError, match="Core comparison must precede"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_product_targets_match_requested_schema_and_exclude_derived_stock_flags():
