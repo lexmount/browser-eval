@@ -488,6 +488,12 @@ fields. Combining independently frozen source plans requires an explicit
 `source_cohorts` method-to-plan-hash binding; each run retains its own timing policy.
 This progress report does not certify an incomplete comparison.
 
+Use `pages.<route>.intro` for language-keyed HTML that must precede generated
+tables, such as a pipeline diagram at the start of an interpretation page. Keep
+the remaining authored material in `body`. The manifest binds the intro's
+rendered content and position; checks reject a removed, changed or moved intro.
+English builds require an English intro whenever a Chinese intro is supplied.
+
 Each product or record case has one comparison page. Participant links open the
 matching detail panel through its URL fragment. Each panel keeps its own field
 diagnostics, failure evidence and response dialog. Adding participants expands

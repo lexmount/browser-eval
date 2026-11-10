@@ -11,6 +11,63 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.report import check, record_comparison, record_route
 
 
+def test_english_build_requires_a_translated_page_intro(tmp_path):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "initial")
+    content = home / "content.json"
+    model = read_json(content)
+    model["pages"]["interpretation"]["intro"] = {"zh": "<p>Source-language intro.</p>"}
+    save_json(content, model)
+    output = tmp_path / "english"
+    with pytest.raises(ValueError, match="English content is missing"):
+        build(output, content, home=home, profile=home / "profile.json", language="en")
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize("damage", ["missing", "moved", "changed"])
+def test_authored_page_intro_precedes_generated_tables_and_is_release_bound(tmp_path, mode, damage):
+    from harness.web_extract.report import build
+
+    initial = tmp_path / "initial"
+    home = create(initial, mode=mode)
+    content = home / "content.json"
+    model = read_json(content)
+    model.setdefault("pages", {}).setdefault("interpretation", {})["intro"] = {
+        "zh": "<h2>Pipeline overview</h2><p>Frozen input, extraction, structured output.</p>"
+    }
+    save_json(content, model)
+    profile = read_json(home / "profile.json")
+    profile.setdefault("research_report", {}).setdefault("content", {})["sha256"] = digest(
+        content.read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    build(output, content, home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    assert (output / "data/completion-metrics.json").read_bytes() == (
+        initial / "data/completion-metrics.json").read_bytes()
+    soup = BeautifulSoup((output / "zh/interpretation.html").read_text(encoding="utf-8"),
+                         "html.parser")
+    intro = soup.select_one("main > [data-page-intro]")
+    assert intro is not None and soup.main.find(True, recursive=False) is intro
+
+    def alter(raw):
+        page = BeautifulSoup(raw, "html.parser")
+        node = page.select_one("[data-page-intro]")
+        if damage == "missing":
+            node.decompose()
+        elif damage == "moved":
+            page.main.append(node.extract())
+        else:
+            node.h2.string = "Wrong pipeline"
+        return str(page)
+
+    rebind(output, "zh/interpretation.html", alter)
+    with pytest.raises(ValueError, match="page intro"):
+        check(output)
+
+
 def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path):
     from harness.web_extract.report import PAGES, build
 

@@ -14,6 +14,10 @@ Web Fetch diagnostic models, compiled reruns and diagnostic releases are in the 
 
 ## Reader-facing structure
 
+Web Extract accepts language-keyed `pages.<route>.intro` content before its
+generated summaries and tables. Use this field for a leading workflow diagram;
+the renderer binds its content and position in the release checks.
+
 [Presentation quality](presentation-quality.md#reader-facing-structure) owns page structure, failure chapters, language passes and interpretation pages. The rules below add multilingual, review and result-page requirements.
 
 For a multilingual report, generate every language from one semantic report model. Keep route inventory, section order, tables, values, filters and evidence links aligned one-to-one. Localize navigation and explanatory prose for the target language instead of translating mechanically; preserve task names, IDs, URLs, references, provider outputs and other measured evidence unless the benchmark explicitly evaluates translated content. A summary-only secondary language must be labeled as a summary, not presented as the full report.

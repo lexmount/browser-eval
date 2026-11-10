@@ -201,7 +201,10 @@ def page(
     state="compatibility",
     navigation=None,
     notice=None,
+    intro="",
 ):
+    if intro:
+        body = '<section data-page-intro>' + intro + "</section>" + body
     labels = LABELS[language]
     if state != "compatibility":
         labels = list(labels)
@@ -299,6 +302,20 @@ def page(
             if value is not None and not urlsplit(value).scheme and not urlsplit(value).netloc:
                 element[attr] = urljoin(f"/{language}/{route}.html", value).lstrip("/")
     return str(soup)
+
+
+def authored_intro(model, route, language):
+    value = model.get("pages", {}).get(route, {}).get("intro", {})
+    if not isinstance(value, dict) or not isinstance(value.get(language, ""), str):
+        raise ValueError("Report page intro must contain language-keyed HTML")
+    return value.get(language, "")
+
+
+def page_intro_hash(rendered):
+    node = BeautifulSoup(rendered, "html.parser").select_one("main > [data-page-intro]")
+    if node is None:
+        raise ValueError("Report page intro was not rendered")
+    return digest(str(node).encode())
 
 
 def cohort_source(source, selection, home, truth):
@@ -2432,8 +2449,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     model = read_json(content)
     names = model.get("method_labels", {})
     if language == "en" and any(
-        page.get("body", {}).get("zh") and not page.get("body", {}).get("en")
+        page.get(part, {}).get("zh") and not page.get(part, {}).get("en")
         for page in model["pages"].values()
+        for part in ("body", "intro")
     ):
         raise ValueError("English content is missing; generate the English edition first")
     cohort = model.get("mode") == "full-cohort-progress"
@@ -2661,6 +2679,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             excluded_fields=audit.get("excluded_fields", {}) if audit else None,
         )
         save_json(output / "data/completion-metrics.json", completion)
+    page_intros = {}
     for lang in languages:
         lab = LABELS[lang]
         directory = output / lang
@@ -3163,10 +3182,16 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             + "</button><div data-diagnosis-body></div></dialog>"
         )
         for p in PAGES:
+            intro = authored_intro(model, p, lang)
+            rendered = page(
+                lang, p, titles[p], bodies[p], languages=languages, state=state, intro=intro
+            )
             (directory / (p + ".html")).write_text(
-                page(lang, p, titles[p], bodies[p], languages=languages, state=state),
+                rendered,
                 encoding="utf-8",
             )
+            if intro:
+                page_intros[lang + "/" + p + ".html"] = page_intro_hash(rendered)
     if "en" not in languages:
         (output / "en").mkdir()
         (output / "en/index.html").write_text(
@@ -3193,6 +3218,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         output / "report-manifest.json",
         {
             "template": template_identity("web-extract"),
+            "page_intros": page_intros,
             "template_version": VERSION,
             "methods": methods,
             "browser_eval": build_version,
@@ -3339,6 +3365,14 @@ def check_reader_contract(output, manifest, *, release=False):
         raise ValueError("Report client dependencies changed; rebuild required")
     check_input_profile(output, manifest)
     check_cost_disclosures(output, manifest)
+    for route, checksum in manifest.get("page_intros", {}).items():
+        if route not in manifest["files"] or Path(route).is_absolute() or ".." in Path(route).parts:
+            raise ValueError("Unsafe report page intro binding")
+        soup = BeautifulSoup((output / route).read_text(encoding="utf-8"), "html.parser")
+        nodes = soup.select("main > [data-page-intro]")
+        if (len(nodes) != 1 or soup.main.find(True, recursive=False) is not nodes[0]
+                or digest(str(nodes[0]).encode()) != checksum):
+            raise ValueError("Report page intro is missing, moved or changed")
     if release:
         validate_release_prices(manifest)
     methods = manifest.get("planned_methods") or manifest.get("methods", [])
@@ -4235,21 +4269,22 @@ def build_record_cohort(output, content, *, home, language, profile):
     def route_link(route, label):
         return '<a href="' + route + '.html">' + esc(label) + "</a>"
 
+    page_intros = {}
+
     def write(route, heading, body):
+        intro = authored_intro(model, route, language) if route in PAGES else ""
+        rendered = page(
+            language, route, heading, body, detail=route not in PAGES,
+            languages=("zh",), state="field-extraction-cohort",
+            navigation=model.get("navigation"),
+            notice=t("reviewed_notice") if audit_binding else None, intro=intro,
+        )
         (output / "zh" / (route + ".html")).write_text(
-            page(
-                language,
-                route,
-                heading,
-                body,
-                detail=route not in PAGES,
-                languages=("zh",),
-                state="field-extraction-cohort",
-                navigation=model.get("navigation"),
-                notice=t("reviewed_notice") if audit_binding else None,
-            ),
+            rendered,
             encoding="utf-8",
         )
+        if intro:
+            page_intros[language + "/" + route + ".html"] = page_intro_hash(rendered)
 
     def value(value):
         return esc(json.dumps(value, ensure_ascii=False))
@@ -4871,6 +4906,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         output / "report-manifest.json",
         {
             "mode": "field-extraction-cohort",
+            "page_intros": page_intros,
             **report_dependencies(),
             "local_example": bound_profile.get("local_example", False),
             "dataset_kind": "local-example"
