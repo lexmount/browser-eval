@@ -105,6 +105,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     if provider_type in {'lexmount', 'lexmount_cn'}:
         result = _object(payload.get('result'))
         extra = _object(result.get('extra'))
+        text_scalar = {'format': 'text_or_none'} if policy_version >= 7 else {}
         return {'schema_version': 2, 'content_pointer': ['result', 'main_text'],
                 **({'answer_format': 'plain_text'} if policy_version >= 4 else {}),
                 'content_format': 'text' if isinstance(result.get('main_text'), str) else 'empty',
@@ -117,9 +118,16 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                     # Resources only when returned as lists: an explicit null is no resources.
                     **{name: {'pointer': ['result', name], 'format': 'identity'}
                        for name in ('links', 'images') if isinstance(result.get(name), list)},
+                    # Malformed returned fields are absent: keep only text values and rows.
                     **({'page_structure': {'pointer': ['result', 'extra', 'dom_summary'],
-                                          'format': 'identity', 'default': {}},
-                        'records': (
+                                          'format': 'object_fields', 'default': {},
+                                          'fields': {'headings': {'pointer': ['headings'], 'format': 'text_items',
+                                                                  'default': None}}}
+                        if policy_version >= 7 else {'pointer': ['result', 'extra', 'dom_summary'],
+                                                     'format': 'identity', 'default': {}}}
+                       if policy_version >= 4 and (policy_version < 7 or isinstance(extra.get('dom_summary', {}), dict))
+                       else {}),
+                    **({'records': (
                             {'pointer': ['result', 'extra', 'quotes'], 'format': 'object_rows', 'default': [],
                              'fields': {'quote': {'pointer': ['text'], 'default': None},
                                         'author': {'pointer': ['author'], 'default': None},
@@ -127,20 +135,24 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
                             if policy_version >= 6 and isinstance(extra.get('quotes'), list)
                             and not extra.get('reviews')
                             else {'pointer': ['result', 'extra', 'reviews'], 'format': 'identity', 'default': []})}
-                       if policy_version >= 4 else {}),
+                       if policy_version >= 4 and (policy_version < 7 or isinstance(extra.get('reviews', []), list)
+                                                   or isinstance(extra.get('quotes'), list) and not extra.get('reviews'))
+                       else {}),
                     **({'page_information': {
                         'pointer': ['result'], 'format': 'object_fields', 'default': {},
                         'fields': {
-                            **{key: {'pointer': [key], 'default': None}
-                               # result.title is the document title, scored as `title`.
-                               for key in ('author', 'description', 'publish_time')},
+                            # Title, description and site name are document metadata, not page text.
+                            **{key: {'pointer': [key], 'default': None, **text_scalar}
+                               for key in ('author', 'description', 'publish_time')
+                               if policy_version < 7 or key != 'description'},
                             **{key: {'pointer': ['extra', source if source in extra
                                                    else {'lead': 'dek', 'breadcrumbs': 'breadcrumb'}.get(source, source)], 'default': None,
-                                     **({'format': 'text_items'} if key in {'categories', 'tags', 'headings', 'table_of_contents', 'breadcrumbs'} else {})}
+                                     **({'format': 'text_items'} if key in {'categories', 'tags', 'headings', 'table_of_contents', 'breadcrumbs'} else text_scalar)}
                                for key, source in (
                                    ('published_at', 'published_at'), ('subtitle', 'subtitle'),
                                    ('lead', 'lead'), ('source', 'source'), ('editor', 'editor'),
-                                   ('site_name', 'site_name'), ('copyright', 'copyright_statement'),
+                                   *((('site_name', 'site_name'),) if policy_version < 7 else ()),
+                                   ('copyright', 'copyright_statement'),
                                    ('statement', 'statement'), ('categories', 'categories'),
                                    ('tags', 'tags'), ('headings', 'headings'),
                                    ('table_of_contents', 'table_of_contents'),
@@ -390,6 +402,8 @@ def _project_field(payload, spec, *, historical_scoring_source=None):
     kind = spec.get('format', 'identity')
     if kind == 'identity':
         return value
+    if kind == 'text_or_none':
+        return value if isinstance(value, str) else None
     if kind == 'text_items':
         if value is None:
             return []

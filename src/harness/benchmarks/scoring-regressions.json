@@ -84335,6 +84335,79 @@
       },
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "description-field-not-page-text",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A returned document description or site name was scored as extracted page text, so navigation-only output passed anchors and page patterns. Like the document title, generic document metadata is not page text.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "product",
+              "alternatives": [
+                "Synthetic Widget Pro"
+              ]
+            }
+          ],
+          "page_patterns": [
+            "Synthetic Widget Pro"
+          ]
+        }
+      },
+      "artifact": "Home | Products | About us | Contact | Sign in | Cookie settings",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "description": "Synthetic Widget Pro",
+          "site_name": "Synthetic Widget Pro"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-subtitle-field-page-text",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "A returned document description or site name was scored as extracted page text, so navigation-only output passed anchors and page patterns. Like the document title, generic document metadata is not page text.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "product",
+              "alternatives": [
+                "Synthetic Widget Pro"
+              ]
+            }
+          ],
+          "page_patterns": [
+            "Synthetic Widget Pro"
+          ]
+        }
+      },
+      "artifact": "Home | Products | About us | Contact | Sign in | Cookie settings",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "subtitle": "Synthetic Widget Pro"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

@@ -1476,14 +1476,14 @@ def _stable_passage_excerpt(text, alternatives, schema, representation):
  return ''
 
 def stable_anchor_evidence(metrics,output,metadata=None,base_url='',contract=None):
- from lexbench_webfetch.response_input import unscoped_page_information
+ from lexbench_webfetch.response_input import NON_TEXT_PAGE_INFORMATION_FIELDS, unscoped_page_information
  from lexbench_webfetch.stable_tasks import _stable_literal_match
  fields=_returned_answer_fields(metadata or {})
  # Only fields the scorer accepts for anchors can be shown as their evidence;
  # returned link labels never count as page text.
  candidates=[]
  for key,value in (fields.get('page_information',{}) if unscoped_page_information(contract) else {}).items():
-  if key!='section_headings':
+  if key not in NON_TEXT_PAGE_INFORMATION_FIELDS:
    candidates.extend(('page_information.'+key,text) for text in (value if isinstance(value,list) else [value])
                      if isinstance(text,str))
  cards=[];normalized_lines=None;visible_lines=None;passage_text=None;context_text=None
