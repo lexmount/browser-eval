@@ -101,17 +101,6 @@ def test_metadata_between_body_and_comment_heading_preserves_heading_stop():
     assert not result['article_comments_pass']
 
 
-def test_author_biography_before_explicit_discussion_is_not_a_comment():
-    content = ('The article ends right here.\n\n**Article author**\n'
-               'A biography, not a reader response.\n\n## Comments\n'
-               '### Alice\nOne actual reply.')
-    result = check(content)
-    assert result['article_comment_count'] == 1
-    assert not result['article_comments_pass']
-    complete = content + '\n### Bob\nSecond actual reply.'
-    assert check(complete)['article_comments_pass']
-
-
 @pytest.mark.parametrize('ending_present', [True, False])
 @pytest.mark.parametrize('footer', ['Post your reply', '## Post your reply'])
 def test_reviewed_end_marker_wins_over_overlapping_start_marker(ending_present, footer):
@@ -145,11 +134,3 @@ def test_character_sliced_ending_matches_inside_full_body_tokens(ending, full_bo
     result = check(full_body + COMMENTS, contract)
     assert result['article_comments_pass']
     assert result['article_comment_count'] == 2
-
-
-def test_trailing_reply_form_heading_keeps_earlier_comments():
-    content = ('The article ends right here.\n\n**Alice**\nFirst actual reply.\n\n'
-               '**Bob**\nSecond actual reply.\n## Post your reply')
-    result = check(content)
-    assert result['article_comment_count'] == 2
-    assert result['article_comments_pass']

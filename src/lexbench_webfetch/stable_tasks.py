@@ -1931,7 +1931,15 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         if not isinstance(returned_records, list):
             raise ValueError('returned records must be a list')
         names = SCHEMA_FIELDS[schema]
-        known = {source_record_hash(row['fields'], names, schema) for row in records}
+        # Merge only overlap with valid text rows. API paths keep their case,
+        # as the uniqueness check does, although frozen hashes fold it.
+        def merge_key(fields):
+            return (source_record_hash(fields, names, schema),
+                    fields.get('path', '').strip() if schema == 'api_operation' else None)
+
+        known = {merge_key(row['fields']) for row in records if row['valid']}
+        # A complete returned row replaces the same fields parsed as invalid text.
+        invalid = {merge_key(row['fields']): i for i, row in enumerate(records) if not row['valid']}
         # An explicit quote row can also be rendered in prose with comma
         # separators between tags. Keep its native field boundaries and
         # replace only an equivalent text-derived row.
@@ -1945,10 +1953,11 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if not isinstance(fields, dict) or not all(isinstance(fields.get(key), str) for key in names):
                 continue
             selected = {key: fields[key] for key in names}
-            identity = source_record_hash(selected, names, schema)
-            if identity not in known:
+            if merge_key(selected) not in known:
                 record = _record(selected, schema)
                 equivalent = text_quotes.pop(quote_identity(selected), None) if record['valid'] and text_quotes else None
+                if equivalent is None and record['valid']:
+                    equivalent = invalid.pop(merge_key(selected), None)
                 if equivalent is None:
                     records.append(record)
                 else:

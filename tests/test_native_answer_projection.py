@@ -366,3 +366,19 @@ def test_native_quote_merges_only_the_equivalent_text_record(author, passes):
     result = evaluate_stable_task(rendered, contract, representation='plain_text', returned_records=[native])
     assert result['stable_task_pass'] is passes
     assert ('source_record_mismatch' in result['stable_task_errors']) is not passes
+
+
+def test_returned_records_merge_only_with_valid_case_exact_text_rows():
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task
+
+    reviews = {'version': 1, 'schema': 'review', 'minimum_records': 1}
+    table = '| date | text |\n| --- | --- |\n| 2026-11-01 | Great service | extra |'
+    returned = [{'date': '2026-11-01', 'text': 'Great service'}]
+    assert not evaluate_stable_task(table, reviews, representation='plain_text')['stable_task_pass']
+    assert evaluate_stable_task(table, reviews, representation='plain_text',
+                                returned_records=returned)['stable_task_pass']
+    operations = {'version': 1, 'schema': 'api_operation', 'minimum_records': 2}
+    text = 'GET /Foo\nRead one item.'
+    row = [{'method': 'GET', 'path': '/foo', 'summary': 'Read one item.'}]
+    result = evaluate_stable_task(text, operations, representation='plain_text', returned_records=row)
+    assert result['stable_record_count'] == 2, result

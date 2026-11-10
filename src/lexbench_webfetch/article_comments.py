@@ -170,19 +170,6 @@ def _coverage_text_start(lines, contract, *, representation=None):
         if offset >= 0:
             first = owners[offset + len(expected) - 1] + 1
             found_ending = True
-    if found_ending and representation != 'plain_text':
-        # An explicit discussion heading owns the following records. Author
-        # biographies and related-article cards between the prose ending and
-        # that heading must not become comments merely because they use bold
-        # names or colon labels. A reviewed closing boundary still wins.
-        for index in range(first, len(lines)):
-            label = marker_tokens(lines[index])
-            if label in end_markers:
-                break
-            heading = re.match(r'\s*(#{1,6})\s+', lines[index])
-            # A final heading with nothing below it is a reply form, not the discussion.
-            if heading and label in markers and any(line.strip() for line in lines[index + 1:]):
-                return index + 1, len(heading[1]), True
     for index in range(first, len(lines)):
         # A reviewed end boundary wins over a historical start label. Forms
         # below the last comment must never open a new discussion component.
