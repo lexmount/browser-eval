@@ -10,6 +10,9 @@ PAGE_INFORMATION_FIELDS = frozenset({
     'source', 'editor', 'site_name', 'copyright', 'statement', 'categories',
     'tags', 'headings', 'section_headings', 'paragraphs', 'table_of_contents', 'breadcrumbs',
 })
+# Section headings are structure; description and site name are document
+# metadata. Neither is page text.
+NON_TEXT_PAGE_INFORMATION_FIELDS = frozenset({'section_headings', 'description', 'site_name'})
 
 
 def page_information_texts(information):
@@ -29,7 +32,7 @@ def page_information_texts(information):
         values = value if isinstance(value, list) else [value]
         if any(not isinstance(text, str) for text in values):
             raise ValueError('Extracted page information must contain text values')
-        if field != 'section_headings':
+        if field not in NON_TEXT_PAGE_INFORMATION_FIELDS:
             texts.extend(text for text in values if text.strip())
     return texts
 

@@ -191,3 +191,72 @@ def test_document_title_is_not_declared_as_extracted_page_information():
     _, fields = project_native_answer(payload, declaration)
     assert 'title' not in fields['page_information']
     assert fields['page_information']['author'] == 'A. Writer'
+
+
+BODY = 'This is the complete synthetic article body, delivered in full.'
+NAVIGATION = 'Home | Products | About us | Contact | Sign in | Cookie settings'
+
+
+def scored_fetch(case, result):
+    """Fetch one synthetic response, then score it through the public predicate."""
+    from lexbench_webfetch.metrics import task_passed
+    from lexbench_webfetch.scoring import score_attempt
+    raw = json.dumps({'result': result}).encode()
+    with patch('harness.web_fetch.providers.lexmount.request',
+               return_value=HttpResponse(200, 'https://api.lexmount.com/v1/extract', {}, raw)):
+        fetched = provider().fetch(case, 30)
+    require_native_answer_projection(fetched.content, fetched.metadata, raw,
+        title=fetched.title, final_url=fetched.final_url, request_url=case.url)
+    metrics = score_attempt(case, fetched.content.encode(), ok=fetched.ok,
+                            metadata=fetched.metadata, title=fetched.title, final_url=fetched.final_url)
+    return fetched, task_passed(fetched.ok, metrics, case.task_kind)
+
+
+def body_case(**fields):
+    return EvalCase(id='sample', name='Sample', category='test', url='https://example.com/essay',
+                    expected_any=[], **fields)
+
+
+ANCHOR_CONTRACT = {'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+                   'stable_text_anchors': [{'id': 'date', 'alternatives': ['May 2026']}]}
+TITLE_CONTRACT = {'title_contract': {'version': 1, 'alternatives': ['H'], 'html_selector': 'h1'}}
+
+
+@pytest.mark.parametrize('case,result,passed', [
+    (body_case(acceptance_contract=ANCHOR_CONTRACT),
+     {'main_text': BODY + ' May 2026.', 'publish_time': 1730000000}, True),
+    (body_case(acceptance_contract=ANCHOR_CONTRACT),
+     {'main_text': BODY + ' May 2026.', 'author': [{'name': 'A'}]}, True),
+    (body_case(acceptance_contract=ANCHOR_CONTRACT),
+     {'main_text': BODY + ' May 2026.', 'extra': {'subtitle': {'text': 'May 2026'}}}, True),
+    # Malformed values are absent: they neither crash nor supply the anchor.
+    (body_case(acceptance_contract=ANCHOR_CONTRACT),
+     {'main_text': BODY, 'publish_time': 1730000000, 'extra': {'subtitle': {'text': 'May 2026'}}}, False),
+    (body_case(source_benchmark=TITLE_CONTRACT),
+     {'main_text': BODY, 'extra': {'dom_summary': {'headings': [{'level': 1, 'text': 'H'}]}}}, True),
+    (body_case(source_benchmark=TITLE_CONTRACT),
+     {'main_text': BODY, 'extra': {'dom_summary': 'H'}}, False),
+    (body_case(acceptance_contract={'version': 1, 'schema': 'quote', 'minimum_records': 1,
+                                    'stable_text_anchors': []}),
+     {'main_text': '“A complete quotation” by Alex Writer Tags: books reading',
+      'extra': {'reviews': {}}}, True),
+])
+def test_malformed_returned_fields_are_absent_not_errors(case, result, passed):
+    fetched, task_pass = scored_fetch(case, result)
+    assert task_pass is passed
+    for value in fetched.metadata.get('page_information', {}).values():
+        assert value is None or isinstance(value, str) or all(isinstance(item, str) for item in value)
+
+
+@pytest.mark.parametrize('field', ['description', 'site_name'])
+def test_document_metadata_cannot_supply_page_text(field):
+    pattern = dict(ANCHOR_CONTRACT, stable_text_anchors=[], page_patterns=['May 2026'])
+    for contract in (ANCHOR_CONTRACT, pattern):
+        case = body_case(acceptance_contract=contract)
+        result = {'main_text': NAVIGATION}
+        result.update({field: 'May 2026'} if field == 'description' else {'extra': {field: 'May 2026'}})
+        fetched, passed = scored_fetch(case, result)
+        assert field not in fetched.metadata['page_information']
+        assert passed is False
+        # The same value as an extracted page field still counts.
+        assert scored_fetch(case, {'main_text': NAVIGATION, 'extra': {'subtitle': 'May 2026'}})[1] is True

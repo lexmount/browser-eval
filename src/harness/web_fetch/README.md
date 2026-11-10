@@ -272,9 +272,10 @@ Adapters declare `answer_format` and retain structurally selected answer fields.
 The common scorer accepts `page_structure.headings` as standalone title candidates,
 and `records` as explicit field dictionaries subject to the existing completeness,
 uniqueness and source-membership checks. Flat records cannot establish a scoped
-section or bypass excluded page regions. Returned named-link labels can satisfy
-unscoped page-text anchors, but separate labels cannot form a phrase. These fields
-are not inferred from document metadata, request echoes or diagnostic logs.
+section or bypass excluded page regions. Returned link labels never satisfy
+facts or page-text anchors. These fields are not inferred from document metadata,
+request echoes or diagnostic logs. Adapters keep only text values and text lists
+from returned fields; a field of another shape is absent, not an error.
 Native projections bind every selected field to the original response. A changed
 projection over saved responses is an explicit offline correction, never a rewrite
 of the historical pre-call declaration or an additional provider call.
@@ -284,7 +285,8 @@ authors, dates and other declared page text as separate values. Unscoped fact an
 page-identity checks may read them without concatenating fields. They do not
 increase body length or coverage, supply records, or bypass region exclusions.
 An extracted title may satisfy an exact title contract; generic HTML document
-metadata, search keywords, image alternatives and debug logs remain separate.
+metadata (including a document description or site name), search keywords, image
+alternatives and debug logs remain separate.
 
 Plain-text post lists require a blank line before each later author line and
 permalink. A name and post URL inside body prose do not establish another record.

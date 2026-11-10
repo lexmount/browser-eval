@@ -92,7 +92,7 @@
         },
         "response_input.py": {
           "before_sha256": "d45d0bac0d629e7314504a87ae890444f704b7a488af842b4d1e34dd912ec00d",
-          "after_sha256": "674bdd4ebc89615254308a78383f2e3d846c20bd5f1aae3f4bc5dbc341706013"
+          "after_sha256": "7370b8ed4aa3715bb1a3e31d6c489d5b3f9428fc7da1cb17fbd2004b66abb8ca"
         },
         "risk_control_dataset.py": {
           "before_sha256": "59d2a1877f1a8b8ecf464113fbce70bf713d6d44414b83141880e71cccb7c1d6",
@@ -4284,6 +4284,20 @@
           "regression_ids": [
             "returned-link-label",
             "returned-link-fact-cross-page"
+          ]
+        },
+        {
+          "modules": [
+            "response_input.py"
+          ],
+          "tests": [
+            "tests/benchmarks/test_current_scoring_controls.py",
+            "tests/test_lexmount_native.py"
+          ],
+          "root_cause": "A returned document description or site name was scored as extracted page text, so navigation-only output passed anchors and page patterns. Like the document title, generic document metadata is not page text.",
+          "regression_ids": [
+            "description-field-not-page-text",
+            "extracted-subtitle-field-page-text"
           ]
         }
       ]
