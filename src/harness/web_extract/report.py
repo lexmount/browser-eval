@@ -35,6 +35,7 @@ from harness.web_extract.analysis import (
 from harness.web_extract.messages import message, messages_sha256, validate_catalog
 from harness.web_extract.pipeline import (
     FIELDS,
+    PRODUCT_FIELDS,
     PROFILE,
     SCHEMA,
     available_methods,
@@ -163,9 +164,8 @@ ASSETS = Path(__file__).with_name("assets")
 CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
 
 
-def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
+def table(headers, rows, *, inventory=False, attrs="", sort_values=None, pin_method=False):
     sort_values = sort_values or {}
-    method_table = headers[0] in ("Method", "方法")
     if any(len(values) != len(rows) for values in sort_values.values()):
         raise ValueError("Numeric sort population differs from table rows")
 
@@ -179,7 +179,7 @@ def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
         + (" inventory" if inventory else "")
         + '" tabindex="0"><table '
         + attrs
-        + (' data-method-column="true"' if method_table else "")
+        + (' data-method-column="true"' if pin_method else "")
         + ' data-highlight-ties="all"><thead><tr>'
         + "".join("<th>" + h + "</th>" for h in headers)
         + "</tr></thead><tbody>"
@@ -286,12 +286,6 @@ def page(
     # Artifact Site injects a site-root base even on nested pages. Use the same
     # root-relative references locally, where our own base supplies that root.
     soup = BeautifulSoup(html, "html.parser")
-    for rendered_table in soup.select("table:not([data-method-column])"):
-        first_heading = rendered_table.select_one("thead th")
-        if first_heading and first_heading.get_text(strip=True) in ("Method", "方法"):
-            rendered_table["data-method-column"] = "true"
-            if "table-wrap" in rendered_table.parent.get("class", []):
-                rendered_table.parent["tabindex"] = "0"
     for anchor in soup.select("a[href]"):
         parsed = urlsplit(anchor["href"])
         if parsed.scheme in {"http", "https"} or parsed.netloc:
@@ -964,7 +958,7 @@ def completion_bundle(methods, rows, *, records, complete_methods, excluded_fiel
             fields = row["field_results"]
             if not records:
                 fields = row.get("review", {}).get("audited_fields", fields)
-                fields = {f: fields[f] for f in SCHEMA["properties"]}
+                fields = {f: fields[f] for f in PRODUCT_FIELDS}
             judgments[row["case_id"]] = {
                 f: {**v, "status": "unavailable"}
                 if f in excluded_fields.get(row["case_id"], [])
@@ -1066,7 +1060,6 @@ def with_completion_columns(core, bundle, methods, language, *, before_details=F
                 cell.extract()
             )
     target["data-completion-metrics"] = "true"
-    target["data-method-column"] = "true"
     target.parent.insert_after(
         BeautifulSoup(completion_links(language, bundle["reference_view"]), "html.parser")
     )
@@ -1079,7 +1072,8 @@ def completion_links(language, reference_view="source-qualified"):
         + message(
             "completion_qualified_note"
             if reference_view == "source-qualified"
-            else "completion_original_note", language
+            else "completion_original_note",
+            language,
         )
         + ' <a href="index.html#metric-completion-page_exact">'
         + message("completion_guide_link", language)
@@ -1194,12 +1188,13 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         complete = method in scores
         cells = [
             esc(labels.get(method, method)),
-            f'<span data-execution-count>{len(subset)} / {count}</span>'
+            f"<span data-execution-count>{len(subset)} / {count}</span>"
             + (
                 '<small class="scope-state">'
                 + message("access_limited" if method in blocked else "incomplete", lang)
                 + "</small>"
-                if not complete else ""
+                if not complete
+                else ""
             ),
             str(sum(r.get("compatibility") == "structured_output" for r in subset)),
         ]
@@ -1212,6 +1207,7 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             message("cohort_core_headers", lang),
             records,
             attrs='data-core-metrics="full-cohort" data-sortable',
+            pin_method=True,
             sort_values={
                 1: [sum(r["method"] == method for r in rows) for method in methods],
                 2: [int(row[2]) for row in records],
@@ -1290,6 +1286,7 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             message("method_population_timed_n_untimed_n_extra_retry_time_s_mean_s_p50", lang),
             latency,
             attrs='data-latency-table="true" data-sortable',
+            pin_method=True,
             sort_values={i: [int(row[i]) for row in latency] for i in (2, 3)},
         ),
         "html.parser",
@@ -1385,6 +1382,7 @@ def price_table(methods, prices, lang, labels=None):
         message("method_usd_1_000_requests_billing_terms_and_commitment_verified_o", lang),
         records,
         attrs='data-price-table="true"',
+        pin_method=True,
     )
 
 
@@ -1512,6 +1510,7 @@ def usage_table(methods, rows, lang, labels=None):
         message("method_physical_attempts_usage_receipts_reported_usage", lang),
         records,
         attrs='data-usage-table="true"',
+        pin_method=True,
     )
 
 
@@ -1676,6 +1675,7 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None, exe
             + [message("price_range_heading", lang), message("price_remarks_heading", lang)],
             records,
             attrs='data-operating-metrics="true" data-sortable',
+            pin_method=True,
             sort_values={column: [int(row[column]) for row in records] for column in (1, 2)},
         ),
         "html.parser",
@@ -3304,7 +3304,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             bodies["index"] = report_metric_guide(lang, records=False) + bodies["index"]
         bodies["results"] += (
             result_controls(methods, rows, names, lang)
-            + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
+            + '<div class="table-wrap inventory" tabindex="0"><table data-sortable data-method-column="true"><thead><tr>'
             + "".join(
                 "<th>" + x + "</th>"
                 for x in [
@@ -3572,8 +3572,16 @@ def check_reader_contract(output, manifest, *, release=False):
     from harness.reporting.presentation import check_metric_guide
 
     for lang in manifest["languages"]:
+        home_page = (output / lang / "index.html").read_text(encoding="utf-8")
+        if manifest.get("mode") in ("full-cohort-progress", "field-extraction-cohort"):
+            document = BeautifulSoup(home_page, "html.parser")
+            first = document.select_one("main").find(recursive=False)
+            if first is None or not (
+                first.has_attr("data-core-metrics") or first.select_one("[data-core-metrics]")
+            ):
+                raise ValueError("Core comparison must precede authored home-page content")
         check_metric_guide(
-            (output / lang / "index.html").read_text(encoding="utf-8"),
+            home_page,
             metric_definitions(lang, records=manifest.get("mode") == "field-extraction-cohort"),
             title=message("guide_title", lang),
             headings=message("guide_headings", lang),
@@ -3581,10 +3589,10 @@ def check_reader_contract(output, manifest, *, release=False):
 
 
 def check(output: Path, *, release=False, visual_receipt=None, profile=None, home=None):
+    if release and (profile is None or home is None):
+        raise ValueError("Release check requires an explicit profile and benchmark home")
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
-    if profile is not None:
-        verify_completion_audit(output, profile, home=home)
     if manifest.get("mode") == "field-extraction-cohort":
         return check_record_cohort(
             output, release=release, visual_receipt=visual_receipt, profile=profile, home=home
@@ -3914,8 +3922,6 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
             raise ValueError("Missing English notice or stale English pages")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
-        if profile is None:
-            verify_completion_audit(output, profile, home=home)
 
     return {
         "pages_per_language": len(zh),
@@ -3956,30 +3962,55 @@ def check_visual_receipt(output, manifest, visual_receipt):
         raise ValueError("Incomplete top-level reader coverage")
 
 
+def completion_authorities(profile, home):
+    """Inputs whose bytes must stay frozen during packaging and upload."""
+    profile = Path(profile)
+    instance = read_json(profile)
+    paths = [profile]
+    if instance.get("dataset"):
+        paths.append(Path(home) / "dataset")
+    binding = instance.get("research_report", {}).get("content", {})
+    if binding.get("path"):
+        content = profile.parent / binding["path"]
+        paths.append(content)
+        model = read_json(content)
+        if model.get("audit"):
+            paths.append(content.parent / model["audit"]["path"])
+        for selection in model.get("evidence_runs", []):
+            paths.append(resolve_run_path(home, selection["run"]))
+            paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
+    return tuple(dict.fromkeys(paths))
+
+
 def package(output, archive, *, visual_receipt, profile, home=None):
     """Package only the release-checked report inventory, with no private siblings."""
     from harness.reporting.publication import package_archive
 
     require_external_output(archive)
-    with completion_audit_scope(output, profile, home):
-        manifest = read_json(output / "report-manifest.json")
-        names = [*sorted(manifest["files"]), "report-manifest.json"]
-        return package_archive(
-            output,
-            archive,
-            archive.with_suffix(".receipt.json"),
-            inputs=(visual_receipt, *completion_authorities(profile, home)),
-            validate=lambda: check(
-                output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
+    if profile is None or home is None:
+        raise ValueError("Packaging requires an explicit profile and benchmark home")
+    return package_archive(
+        output,
+        archive,
+        archive.with_suffix(".receipt.json"),
+        inputs=(visual_receipt, *completion_authorities(profile, home)),
+        validate=lambda: check(
+            output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
+        ),
+        attest=lambda path: {
+            "files": len(read_json(output / "report-manifest.json")["files"]) + 1,
+            "archive_bytes": path.stat().st_size,
+            "expanded_bytes": sum(
+                (output / name).stat().st_size
+                for name in (
+                    *read_json(output / "report-manifest.json")["files"],
+                    "report-manifest.json",
+                )
             ),
-            attest=lambda path: {
-                "files": len(names),
-                "archive_bytes": path.stat().st_size,
-                "expanded_bytes": sum((output / name).stat().st_size for name in names),
-                "archive_sha256": digest(path.read_bytes()),
-                "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
-            },
-        )
+            "archive_sha256": digest(path.read_bytes()),
+            "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
+        },
+    )
 
 
 def record_cohort_inputs(home, model, *, profile):
@@ -4196,10 +4227,11 @@ def record_result_href(method, case_id):
     return record_route("c", case_id) + ".html#" + method
 
 
-def record_comparison(headers, rows, metrics, *, sort_values=None):
+def record_comparison(headers, rows, metrics, *, sort_values=None, pin_method=False):
     """Use the common table owner and raw-value extrema checks for each metric."""
     soup = BeautifulSoup(
-        table(headers, rows, attrs="data-sortable", sort_values=sort_values), "html.parser"
+        table(headers, rows, attrs="data-sortable", sort_values=sort_values, pin_method=pin_method),
+        "html.parser",
     )
     for column, (name, direction, values) in metrics.items():
         observed = []
@@ -4547,6 +4579,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             1: [stats[m]["executed"] for m in methods],
             2: [stats[m]["structured"] for m in methods],
         },
+        pin_method=True,
     )
     core = with_completion_columns(core, completion, methods, language, before_details=True)
     operations = operating_metrics(
@@ -4578,11 +4611,11 @@ def build_record_cohort(output, content, *, home, language, profile):
     )
     bodies["protocol"] += "<p>" + message("completion_protocol", language) + "</p>"
     bodies["index"] = (
-        bodies["index"]
-        + "<section data-core-metrics>"
+        "<section data-core-metrics>"
         + core
         + "</section>"
         + report_metric_guide(language, records=True)
+        + bodies["index"]
         + operations
         + bodies["index"]
     )
@@ -4999,7 +5032,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     )
     bodies["results"] += (
         controls
-        + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
+        + '<div class="table-wrap inventory" tabindex="0"><table data-sortable data-method-column="true"><thead><tr>'
         + "".join(
             "<th>" + t(k) + "</th>"
             for k in ("method", "case", "domain", "outcome", "exact", "timing", "details")
@@ -5134,7 +5167,11 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
     from harness.web_extract.analysis import record_statistics
     from harness.web_extract.dataset import benchmark_config
 
+    if release and (profile is None or home is None):
+        raise ValueError("Release check requires an explicit profile and benchmark home")
     output = open_report(output)
+    if profile is not None:
+        verify_completion_audit(output, profile, home=home)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
     if profile is not None:
@@ -5514,8 +5551,6 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
         raise ValueError("Formal record release requires every comparison participant complete")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
-        if profile is None:
-            verify_completion_audit(output, profile, home=home)
         observations = read_json(visual_receipt)["observations"]
         observed = {
             (item["route_class"], item["viewport"], item.get("theme")) for item in observations

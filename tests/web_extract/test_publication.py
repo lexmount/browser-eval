@@ -293,6 +293,7 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
         save_json(run / "manifest.json", inventory)
     assert normalize(row["method"], projected["response"], schema={}) == before
     archive = tmp_path / "forged.zip"
+    save_json(tmp_path / "visual.json", {})
     with pytest.raises(ValueError, match="Completion audit native"):
         main(
             [
@@ -614,6 +615,7 @@ def setup_report(tmp_path):
             "profile": {"path": str(profile)},
         },
     )
+    save_json(tmp_path / "visual.json", {})
     return source, target, tmp_path / "upload", tmp_path / "visual.json"
 
 
@@ -656,7 +658,7 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
     result = publication.publish(source, target, work, visual, home=tmp_path)
     bound = read_json(target)
     assert result["versionId"] == "ver_after"
-    assert len(audit_calls) == 3  # Initial, frozen upload boundary, final binding.
+    assert len(audit_calls) == 1  # Once at the frozen upload boundary, not per request.
     assert bound["visibility"] == "private"
     assert bound["slug"] == "existing"
     assert bound["profile"]["path"] == str(tmp_path / "profile.json")
@@ -740,14 +742,14 @@ def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
     )
     save_json(target, bound)
     calls = []
-    monkeypatch.setattr(
-        publication,
-        "package",
-        lambda *a, **k: (
-            calls.append("package")
-            or {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
-        ),
-    )
+
+    def checked_package(source, *args, profile, home, **kwargs):
+        # Preserve the real package boundary's audit gate while stubbing ZIP I/O.
+        publication.verify_completion_audit(source, profile, home=home)
+        calls.append("package")
+        return {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+
+    monkeypatch.setattr(publication, "package", checked_package)
 
     def update(staged, **kwargs):
         calls.append("network")
@@ -778,7 +780,8 @@ def test_publication_uses_frozen_audit_even_when_public_receipts_are_rewritten(
         with pytest.raises(ValueError, match="Completion audit"):
             publication.publish(source, target, work, visual, home=frozen)
         assert calls == []
-        assert not work.exists()
+        # No package or journal survives rejection.
+        assert not work.exists() or not any(work.iterdir())
     else:
         assert (
             publication.publish(source, target, work, visual, home=frozen)["versionId"]
@@ -829,7 +832,8 @@ def test_different_report_profile_needs_explicit_successor(tmp_path, monkeypatch
         with pytest.raises(ValueError, match="profile differs"):
             publication.publish(source, target, work, visual, home=tmp_path)
         assert not called
-        assert not work.exists()
+        # No package or journal survives rejection.
+        assert not work.exists() or not any(work.iterdir())
 
 
 def test_tampered_resume_package_never_dispatches(tmp_path, monkeypatch):
@@ -937,26 +941,39 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     from harness.web_extract import report as report_owner
 
     source, target, work, visual = setup_report(tmp_path)
-    manifest = read_json(source / 'report-manifest.json')
-    manifest['files'] = {
-        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
+    manifest = read_json(source / "report-manifest.json")
+    manifest["files"] = {
+        "browser-eval-version.json": digest((source / "browser-eval-version.json").read_bytes())
     }
-    save_json(source / 'report-manifest.json', manifest)
+    save_json(source / "report-manifest.json", manifest)
     save_json(visual, {})
-    monkeypatch.setattr(report_owner, 'verify_completion_audit', lambda *a, **k: None)
-    monkeypatch.setattr(report_owner, 'check', lambda *a, **k: None)
+    audit_calls = []
+    original_audit = report_owner.verify_completion_audit
+
+    def verify(*args, **kwargs):
+        audit_calls.append(1)
+        return original_audit(*args, **kwargs)
+
+    monkeypatch.setattr(publication, "verify_completion_audit", verify)
+    monkeypatch.setattr(report_owner, "verify_completion_audit", verify)
+    monkeypatch.setattr(
+        report_owner, "check",
+        lambda report, **kwargs: verify(report, kwargs["profile"], home=kwargs["home"]),
+    )
 
     def update(staged, *, transport):
         assert set(publication.archive_inventory(staged.archive)) == {
-            'report-manifest.json', 'browser-eval-version.json'
+            "report-manifest.json",
+            "browser-eval-version.json",
         }
         staged.guard()
-        staged.bind('ver_packaged')
-        return 'ver_packaged'
+        staged.bind("ver_packaged")
+        return "ver_packaged"
 
-    monkeypatch.setattr(publication, 'publish_staged_update', update)
+    monkeypatch.setattr(publication, "publish_staged_update", update)
     result = publication.publish(source, target, work, visual, home=tmp_path)
-    assert result['versionId'] == 'ver_packaged'
+    assert result["versionId"] == "ver_packaged"
+    assert len(audit_calls) == 2  # Package and upload have independent frozen snapshots.
 
 
 def test_standalone_package_preserves_previous_release_when_audit_changes_during_zip(
@@ -998,3 +1015,123 @@ def test_standalone_package_preserves_previous_release_when_audit_changes_during
         owner.package(source, archive, visual_receipt=visual, profile=profile, home=tmp_path)
     assert archive.read_bytes() == b'previous release'
     assert receipt.read_bytes() == b'previous proof'
+
+
+def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_path):
+    from harness.web_extract.report import completion_authorities
+
+    home = tmp_path / "home"
+    content = tmp_path / "content.json"
+    profile = tmp_path / "profile.json"
+    save_json(
+        profile,
+        {"dataset": {"id": "frozen"}, "research_report": {"content": {"path": str(content)}}},
+    )
+    save_json(
+        content,
+        {
+            "audit": {"path": "audit.json"},
+            "evidence_runs": [
+                {"run": "first", "repair": [{"path": str(home / "repairs/final")}]},
+                {"run": "runs/second"},
+            ],
+        },
+    )
+    assert set(completion_authorities(profile, home)) == {
+        profile,
+        content,
+        tmp_path / "audit.json",
+        home / "dataset",
+        home / "runs/first",
+        home / "runs/second",
+        home / "repairs/final",
+    }
+
+
+def test_release_check_rejects_missing_profile_before_opening_report(tmp_path, capsys):
+    from harness.web_extract.cli import main
+    from harness.web_extract.report import check
+
+    with pytest.raises(SystemExit) as error:
+        main(["--home", str(tmp_path), "check", str(tmp_path / "absent"), "--release"])
+    assert error.value.code == 2
+    assert "--profile" in capsys.readouterr().err
+    with pytest.raises(ValueError, match="explicit profile"):
+        check(tmp_path / "absent", release=True, home=tmp_path)
+
+
+@pytest.mark.parametrize("operation", ["release_check", "package", "publish"])
+def test_registered_release_commands_supply_real_cli_requirements(tmp_path, monkeypatch, operation):
+    import shlex
+    from pathlib import Path
+
+    from harness.distribution import repository_root
+    from harness.web_extract import cli, report
+
+    command = read_json(repository_root() / "configs/report-templates.json")["tracks"][
+        "web-extract"
+    ][operation]
+    argv = shlex.split(command)[5:]  # uv run --frozen python -m MODULE
+    assert argv.pop(0) == "harness.web_extract.cli"
+    called = []
+
+    def boundary(*args, **kwargs):
+        assert kwargs["home"] == Path("/absolute/benchmark-home")
+        if operation != "publish":
+            assert kwargs["profile"] == Path("/absolute/report-profile.json")
+        called.append(True)
+        return {}
+
+    monkeypatch.setattr(
+        publication if operation == "publish" else report,
+        {"release_check": "check", "package": "package", "publish": "publish"}[operation],
+        boundary,
+    )
+    cli.main(argv)
+    assert called == [True]
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+def test_check_verifies_original_evidence_once_for_each_cohort(tmp_path, monkeypatch, mode):
+    from harness.web_extract import report
+    from harness.web_extract.example import create
+
+    output = tmp_path / "report"
+    home = create(output, mode=mode)
+    calls = []
+    monkeypatch.setattr(report, "verify_completion_audit", lambda *a, **k: calls.append(1))
+    report.check(output, profile=home / "profile.json", home=home)
+    assert calls == [1]
+
+
+@pytest.mark.parametrize('changed', ['profile', 'content', 'audit', 'dataset', 'execution'])
+def test_packaging_rejects_private_authority_changes_during_validation(
+    tmp_path, monkeypatch, changed
+):
+    from harness.web_extract import report
+
+    source, target, work, visual = setup_report(tmp_path)
+    paths = {
+        'profile': tmp_path / 'profile.json',
+        'content': tmp_path / 'content.json',
+        'audit': tmp_path / 'audit.json',
+        'dataset': tmp_path / 'dataset/page.html',
+        'execution': tmp_path / 'runs/first/call.json',
+    }
+    for path in paths.values():
+        save_json(path, {})
+    save_json(paths['content'], {'audit': {'path': 'audit.json'},
+                                'evidence_runs': [{'run': 'first'}]})
+    save_json(paths['profile'], {'dataset': {'id': 'frozen'},
+                                'research_report': {'content': {'path': 'content.json'}}})
+
+    def validation(*args, **kwargs):
+        paths[changed].write_text('substituted bytes', encoding='utf-8')
+
+    monkeypatch.setattr(report, 'check', validation)
+    archive = tmp_path / 'report.zip'
+    with pytest.raises(ValueError, match='changed'):
+        report.package(source, archive, visual_receipt=visual,
+                       profile=paths['profile'], home=tmp_path)
+    assert not archive.exists()
+    assert not archive.with_suffix('.receipt.json').exists()

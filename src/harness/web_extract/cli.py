@@ -182,6 +182,8 @@ def main(argv=None):
     formal = args.command in ("package", "publish") or (args.command == "check" and args.release)
     if formal and args.home is None:
         parser.error("Formal check, package and publish require an explicit --home")
+    if args.command == "check" and args.release and args.profile is None:
+        parser.error("Release check requires an explicit --profile")
     if args.home is None:
         args.home = data_home()
     repairs = None

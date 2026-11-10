@@ -8,9 +8,7 @@ from decimal import InvalidOperation
 from functools import lru_cache
 from pathlib import Path
 
-from harness.web_extract.pipeline import PROFILE, SCHEMA, digest, official_scorer
 
-FIELDS = tuple(SCHEMA["properties"])
 
 
 def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair=None):
@@ -180,6 +178,8 @@ def summarize_model_rows(rows, models):
         }
     return groups
 
+from harness.web_extract.pipeline import PRODUCT_FIELDS as FIELDS
+from harness.web_extract.pipeline import PROFILE, digest, official_scorer, valid_product_value
 
 REFERENCE_CONTROLS = (
     ("locale-thousands-price", "price", ["24990"], "24990", "24.99"),
@@ -502,8 +502,6 @@ def completion_metrics(rows, fields_by_case, *, records):
     failed calls in its denominator. Missing values are valid for native product
     APIs; array-schema tasks require an explicitly delivered empty array.
     """
-    from decimal import Decimal, InvalidOperation
-
     from harness.web_extract.pipeline import normalize
 
     by_case = {row["case_id"]: row for row in rows}
@@ -539,19 +537,7 @@ def completion_metrics(rows, fields_by_case, *, records):
                     and isinstance(value, list)
                     and all(isinstance(item, str) for item in value)
                 )
-            if value is None:
-                return True
-            if isinstance(value, (bool, dict, list)):
-                return False
-            definition = SCHEMA["properties"].get(field, {})
-            if "number" in definition.get("type", []):
-                try:
-                    return Decimal(str(value)).is_finite()
-                except (InvalidOperation, ValueError):
-                    return False
-            if "enum" in definition:
-                return value in definition["enum"]
-            return isinstance(value, (str, int, float))
+            return valid_product_value(field, value)
 
         correct = {
             f: delivered

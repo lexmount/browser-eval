@@ -513,7 +513,7 @@ class ReportScenarios(unittest.TestCase):
 
     def test_release_rejects_missing_visual_evidence(self):
         with self.assertRaisesRegex(ValueError, "actual visual coverage"):
-            check(self.output, release=True)
+            check(self.output, release=True, profile=self.home / "profile.json", home=self.home)
 
     def test_release_rejects_desktop_capture_labeled_narrow(self):
         receipt = self.home / "visual.json"
@@ -529,7 +529,13 @@ class ReportScenarios(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "viewport dimensions"):
-            check(self.output, release=True, visual_receipt=receipt)
+            check(
+                self.output,
+                release=True,
+                visual_receipt=receipt,
+                profile=self.home / "profile.json",
+                home=self.home,
+            )
 
     def test_negative_highlight_summary_error_and_dialog_controls(self):
         good = (self.output / "en/index.html").read_text(encoding="utf-8")

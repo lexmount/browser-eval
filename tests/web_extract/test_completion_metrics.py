@@ -332,7 +332,8 @@ def test_completion_cannot_override_authoritative_audit(tmp_path, damage):
             path = tmp_path / "zh" / (route + ".html")
             path.parent.mkdir(exist_ok=True)
             base = (
-                '<div class="table-wrap"><table data-core-metrics data-interpretation-comparison>'
+                '<div class="table-wrap"><table data-core-metrics data-interpretation-comparison '
+                'data-method-column="true">'
                 "<thead><tr><th>Method</th></tr></thead>"
                 "<tbody><tr><td>Firecrawl</td></tr></tbody></table></div>"
             )
@@ -425,3 +426,77 @@ def test_result_inventory_keeps_method_names_pinned(tmp_path, mode):
                 row['data-case'][:12] if mode == 'full-cohort-progress' else row['data-case']
             )
             assert row.select('td')[1].get_text() == displayed_case
+
+
+@pytest.mark.parametrize("heading", ["Method", "方法", "Participant"])
+def test_only_explicit_comparison_tables_pin_the_method_column(heading):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.report import table
+
+    for pinned in (False, True):
+        document = BeautifulSoup(
+            table([heading, "Value"], [["a", "1"]], pin_method=pinned), "html.parser"
+        )
+        assert document.table.has_attr("data-method-column") is pinned
+        assert document.table.parent.get("tabindex") == "0"
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+def test_home_comparison_precedes_authored_content_and_gate_rejects_reordering(tmp_path, mode):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.example import create
+    from harness.web_extract.pipeline import digest, read_json, save_json
+    from harness.web_extract.report import check
+
+    output = tmp_path / "report"
+    create(output, mode=mode)
+    check(output)
+    path = output / "zh/index.html"
+    document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    first = document.main.find(recursive=False)
+    assert first.has_attr("data-core-metrics") or first.select_one("[data-core-metrics]")
+    introduction = document.new_tag("section")
+    introduction.string = "A long introduction must follow the comparison."
+    document.main.insert(0, introduction)
+    path.write_text(str(document), encoding="utf-8")
+    manifest_path = output / "report-manifest.json"
+    manifest = read_json(manifest_path)
+    manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+    save_json(manifest_path, manifest)
+    with pytest.raises(ValueError, match="Core comparison must precede"):
+        check(output)
+
+
+def test_product_targets_match_requested_schema_and_exclude_derived_stock_flags():
+    from harness.web_extract.pipeline import PRODUCT_FIELDS, SCHEMA
+    from harness.web_extract.report import completion_bundle
+
+    assert set(PRODUCT_FIELDS) == set(SCHEMA["required"]) == set(SCHEMA["properties"])
+    row = product({"price": 1, "sku": "A", "availability": "InStock"})
+    row["field_results"] = {f: {"expected": ["value"], "status": "correct"} for f in PRODUCT_FIELDS}
+    # The official scorer's derived stock flags must not become extra extraction targets.
+    row["field_results"]["OutOfStock"] = {"expected": [], "status": "wrong"}
+    bundle = completion_bundle(
+        ["firecrawl-json"], [row], records=False, complete_methods=["firecrawl-json"]
+    )
+    assert bundle["methods"]["firecrawl-json"]["page_exact"]["rate"] == 1
+
+
+@pytest.mark.parametrize('rates', [(1, 1, None), (0, 0, None)])
+def test_completion_metrics_highlight_every_tied_best_value(rates):
+    from harness.reporting.presentation import check_presentation
+    from harness.web_extract.report import completion_columns
+
+    methods = ['a', 'b', 'unavailable']
+    bundle = {'methods': {method: {
+        key: {'correct': int(rate or 0), 'total': int(rate is not None), 'rate': rate}
+        for key in ('page_exact', 'empty_fields')
+    } | {'excluded_pages': 0} for method, rate in zip(methods, rates, strict=True)}}
+    html = str(completion_columns(bundle, methods, 'en'))
+    soup = check_presentation(html)
+    assert len(soup.select('.comparison-winner')) == 4
+    assert not soup.select('tbody tr:last-child .comparison-winner')
+    with pytest.raises(ValueError, match='highlight'):
+        check_presentation(html.replace('class="comparison-winner"', 'class="ordinary"', 1))

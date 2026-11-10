@@ -282,7 +282,7 @@ def test_native_method_examples_keep_benchmarks_separate_and_reject_changed_outp
 
 def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path):
     output = tmp_path / "report"
-    create(output, mode="field-extraction-cohort")
+    home = create(output, mode="field-extraction-cohort")
     manifest = check(output)
     assert manifest["observations"] == 4
     assert len(list(output.rglob("*.html"))) == 17
@@ -318,7 +318,7 @@ def test_record_report_drills_to_source_output_native_error_and_pending(tmp_path
     )
     assert "data-language-notice" in (output / "en/index.html").read_text(encoding="utf-8")
     with pytest.raises(ValueError, match="Synthetic record evidence"):
-        check(output, release=True)
+        check(output, release=True, profile=home / "profile.json", home=home)
 
 
 def rebind(output, route, transform):
@@ -869,4 +869,4 @@ def test_record_release_rejects_free_text_price_without_numeric_conversion(tmp_p
     # This control isolates quote validation from the independently tested dataset authority.
     monkeypatch.setattr("harness.web_extract.report.check_input_profile", lambda *args: None)
     with pytest.raises(ValueError, match="normalized price"):
-        check(output, release=True)
+        check(output, release=True, profile=home / "profile.json", home=home)

@@ -1105,7 +1105,9 @@ def test_all_asset_formats_receive_publication_privacy_checks(tmp_path, suffix, 
         check(tmp_path / "new")
 
 
-def test_published_release_cannot_drop_dataset_distribution_binding(tmp_path):
+def test_published_release_cannot_drop_dataset_distribution_binding(tmp_path, monkeypatch):
+    # Isolate this release gate; original-audit integrity has separate mutation controls.
+    monkeypatch.setattr("harness.web_extract.report.verify_completion_audit", lambda *a, **k: None)
     output = tmp_path / "report"
     home = create(tmp_path / "fixture", mode="full-cohort-progress")
     profile = read_json(home / "profile.json")
@@ -1119,7 +1121,7 @@ def test_published_release_cannot_drop_dataset_distribution_binding(tmp_path):
         value["usd_per_1000_range"] = [0, 0]
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="pinned dataset download binding"):
-        check(output, release=True)
+        check(output, release=True, profile=home / "profile.json", home=home)
 
 
 def test_field_headers_count_both_nonempty_and_absent_references():
@@ -1138,7 +1140,7 @@ def test_field_headers_count_both_nonempty_and_absent_references():
 @pytest.mark.parametrize("kind", [None, "", "other", "published-upstream"])
 def test_release_cannot_change_dataset_kind_independently_of_input_profile(tmp_path, kind):
     output = tmp_path / "report"
-    create(output, mode="full-cohort-progress")
+    home = create(output, mode="full-cohort-progress")
     manifest = read_json(output / "report-manifest.json")
     if kind is None:
         manifest.pop("dataset_kind")
@@ -1146,12 +1148,12 @@ def test_release_cannot_change_dataset_kind_independently_of_input_profile(tmp_p
         manifest["dataset_kind"] = kind
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="dataset kind.*bound input profile"):
-        check(output, release=True)
+        check(output, release=True, profile=home / "profile.json", home=home)
 
 
 def test_recorded_profile_change_cannot_be_hidden_by_resealing_file_inventory(tmp_path):
     output = tmp_path / "report"
-    create(output, mode="full-cohort-progress")
+    home = create(output, mode="full-cohort-progress")
     manifest = read_json(output / "report-manifest.json")
     path = output / manifest["input_profile"]["path"]
     profile = read_json(path)
@@ -1160,11 +1162,15 @@ def test_recorded_profile_change_cannot_be_hidden_by_resealing_file_inventory(tm
     manifest["files"][manifest["input_profile"]["path"]] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="input profile binding"):
-        check(output, release=True)
+        check(output, release=True, profile=home / "profile.json", home=home)
 
 
 @pytest.mark.parametrize("completed", [False, True])
-def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp_path, completed):
+def test_formal_release_requires_certification_even_for_complete_checkpoints(
+    tmp_path, completed, monkeypatch
+):
+    # Isolate this release gate; original-audit integrity has separate mutation controls.
+    monkeypatch.setattr("harness.web_extract.report.verify_completion_audit", lambda *a, **k: None)
     output = tmp_path / "report"
     home = create(output, mode="full-cohort-progress")
     if completed:
@@ -1197,7 +1203,7 @@ def test_formal_release_requires_certification_even_for_complete_checkpoints(tmp
     manifest["dataset_distribution"] = {"revision": "a" * 40}
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="complete certified cohort"):
-        check(output, release=True)
+        check(output, release=True, profile=home / "profile.json", home=home)
 
 
 @pytest.mark.parametrize("lang", ["en", "zh"])
