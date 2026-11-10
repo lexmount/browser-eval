@@ -388,7 +388,15 @@ def qualify_live(home, case_ids, *, timeout=30):
             return unavailable(cid, attempts)
         content_type = Message()
         content_type["content-type"] = getattr(response, "headers", {}).get("content-type", "")
-        encoding = source_encoding(response.body, content_type.get_content_charset())
+        from lxml import html
+        from lxml.etree import ParserError
+
+        try:
+            encoding = source_encoding(response.body, content_type.get_content_charset())
+            html.fromstring(response.body, parser=html.HTMLParser(encoding=encoding))
+        except ParserError as error:
+            attempts[-1]["error"] = type(error).__name__
+            return unavailable(cid, attempts)
         missing = reference_support(
             reference,
             response.body,

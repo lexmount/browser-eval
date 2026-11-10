@@ -70,6 +70,74 @@ def prepared(tmp_path, **options):
     return home
 
 
+def test_validation_reads_decoding_inventory_once_and_rechecks_the_next_operation(
+    tmp_path, monkeypatch
+):
+    source = definition(tmp_path)
+    model = pipeline.read_json(source)
+    model["cases"] = [dict(model["cases"][0], id=f"case-{i}") for i in range(8)]
+    pipeline.save_json(source, model)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    original = pipeline.read_json
+    reads = []
+
+    def read(path):
+        if Path(path).name == "provenance.json":
+            reads.append(path)
+        return original(path)
+
+    monkeypatch.setattr(pipeline, "read_json", read)
+    pipeline.validate_dataset(home)
+    assert len(reads) == 1
+    pipeline.validate_dataset(home)
+    assert len(reads) == 2
+    path = home / "dataset/provenance.json"
+    path.write_bytes(path.read_bytes() + b" ")
+    with pytest.raises(ValueError, match="Dataset bytes changed"):
+        pipeline.validate_dataset(home)
+
+
+def test_qualified_decoder_rejects_an_unknown_case(tmp_path):
+    home = prepared(tmp_path)
+    with pytest.raises(KeyError):
+        pipeline.captured_html(home, "unknown-case", b"<p>Unbound content</p>")
+
+
+@pytest.mark.parametrize("policy", [False, True])
+@pytest.mark.parametrize("header", [None, "text/html; charset=utf-8"])
+def test_unparseable_live_body_retains_access_evidence_and_bounded_fallback(
+    tmp_path, monkeypatch, policy, header
+):
+    from datetime import datetime
+
+    source = definition(tmp_path)
+    model = pipeline.read_json(source)
+    if policy:
+        model["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+        model["cases"][0]["qualification"].update(
+            source_url=model["cases"][0]["url"], observed_at=datetime.now(UTC).isoformat()
+        )
+    pipeline.save_json(source, model)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(
+            status=200, body=b"<!-- temporarily unavailable -->", url=url,
+            headers={"content-type": header} if header else {},
+        ),
+    )
+    if policy:
+        receipt = records.qualify_live(home, ["one"])[0]
+        assert receipt["verification_mode"] == "independent_captured_reference"
+        assert receipt["source_attempts"] == [{"http_status": 200, "error": "ParserError"}]
+    else:
+        with pytest.raises(records.LiveSourceAccessError) as caught:
+            records.qualify_live(home, ["one"])
+        assert caught.value.source_attempts == [{"http_status": 200, "error": "ParserError"}]
+
+
 def test_runtime_scorer_must_match_the_pinned_portable_evaluator(tmp_path, monkeypatch):
     home = prepared(tmp_path)
     pipeline.validate_dataset(home)

@@ -29,6 +29,9 @@ def section(output, entry, language="zh"):
     manifest = read_json(child / "report-manifest.json")
     metrics = read_json(child / "data/metrics.json")
     methods = manifest["planned_methods"]
+    contracts = owner.record_execution_contracts(read_json(child / "public-evidence/sources.json"))
+    latency_compared = (set(manifest["comparison_methods"])
+                        if owner.latency_comparable(contracts, methods) else set())
     def t(key, **values):
         return owner.message(key, language, **values)
 
@@ -83,7 +86,9 @@ def section(output, entry, language="zh"):
         t("suite_operation_headers"),
         operation,
         {
-            column: (key, "min", [metrics[m]["latency"][key] for m in methods])
+            column: (key, "min" if latency_compared else "neutral", [
+                metrics[m]["latency"][key] if m in latency_compared else None for m in methods
+            ])
             for column, key in [(2, "mean"), (3, "p50"), (4, "p95")]
         },
     )
@@ -213,8 +218,15 @@ def build(output, content, *, profile, language=None):
     return check(output)
 
 
-def check(output, *, release=False, visual_receipt=None):
+def check(output, *, release=False, visual_receipt=None, profile=None):
     output = owner.open_report(output)
+    if release and profile is None:
+        raise ValueError("Suite release requires its frozen profile")
+    private = {}
+    if profile is not None:
+        owner.verify_completion_audit(output, profile)
+        _, inputs = suite_inputs(profile)
+        private = {entry["id"]: entry for entry in inputs}
     manifest = read_json(output / "report-manifest.json")
     owner.check_report_identity(output, manifest, "web-extract")
     owner.check_input_profile(output, manifest)
@@ -278,7 +290,9 @@ def check(output, *, release=False, visual_receipt=None):
         ):
             raise ValueError("Suite requires each cohort's bound visual receipt")
         owner.check_record_cohort(
-            child, release=release, visual_receipt=Path(receipt["path"]) if release else None
+            child, release=release, visual_receipt=Path(receipt["path"]) if release else None,
+            **({"profile": Path(private[entry["id"]]["profile"]),
+                "home": Path(private[entry["id"]]["home"])} if private else {}),
         )
     from harness.reporting.presentation import check_metric_guide, check_presentation
 

@@ -3786,7 +3786,10 @@ def check_cost_disclosures(output, manifest):
 
 def check_price_coverage(output, methods, prices, language, labels):
     accounts = BeautifulSoup(
-        (output / language / "accounts.html").read_text(encoding="utf-8"), "html.parser"
+        scope_record_html(
+            (output / language / "accounts.html").read_text(encoding="utf-8"),
+            read_json(output / "report-manifest.json").get("site_prefix", ""), restore=True,
+        ), "html.parser"
     )
     expected = BeautifulSoup(
         price_table(methods, prices, language, labels), "html.parser"

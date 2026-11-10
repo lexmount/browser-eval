@@ -40,6 +40,7 @@ PRODUCT_FIELDS = ("price", "sku", "availability")
 FIELDS = (*PRODUCT_FIELDS, "InStock", "OutOfStock")
 _RAW_SESSIONS = {}
 _COLLECTION_CLOCK = None
+_CAPTURE_METADATA_UNSET = object()
 
 
 def valid_product_value(field, value):
@@ -252,6 +253,7 @@ def validate_dataset(home: Path, profile=None):
         verify_distribution(manifest, pin)
     if manifest["commit"] != pin["commit"] or manifest["cases"] != pin["cases"]:
         raise ValueError("Dataset is not the selected pinned cohort")
+    qualifications = capture_qualifications(home, manifest)
     for name, item in manifest["files"].items():
         path = root / name
         if (
@@ -1601,6 +1603,7 @@ def collect_calls(
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     dataset_manifest = read_json(home / "dataset/manifest.json")
     frozen_inputs = dataset_manifest["files"]
+    qualifications = capture_qualifications(home, dataset_manifest)
     source_mode = input_mode(home)
     if contract.get("input_mode", "snapshot") != source_mode:
         raise ValueError("Collection input mode differs from the frozen dataset")

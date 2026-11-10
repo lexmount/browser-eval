@@ -25,7 +25,7 @@ def test_suite_uses_each_cohorts_results_and_bound_details(tmp_path, damage):
     assert soup.select_one("header .report-toolbar nav")
     assert soup.select_one(".report-tools #theme")
     if damage is None:
-        with pytest.raises(ValueError, match="visual|Synthetic"):
+        with pytest.raises(ValueError, match="visual|Synthetic|profile"):
             check(output, release=True)
         return
     if damage == "quality":
@@ -110,6 +110,104 @@ def test_quality_exclusion_preserves_operational_comparison(tmp_path):
     assert model["participants"][method]["label"] in operation[0].get_text()
     assert operation[0].select('[data-metric="mean"]')
     assert "$" in operation[0].get_text()
+
+
+@pytest.mark.parametrize("limits,compared,winner", [
+    ([1, 2], ["scrapegraph-extract", "firecrawl-json"], None),
+    ([1, 1], ["scrapegraph-extract", "firecrawl-json"], "firecrawl-json"),
+    ([1, 1], ["scrapegraph-extract"], "scrapegraph-extract"),
+])
+def test_suite_latency_uses_execution_scope_without_hiding_measurements(
+    tmp_path, limits, compared, winner
+):
+    from harness.web_extract import report_suite
+
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    child = output / "first"
+    sources = read_json(child / "public-evidence/sources.json")
+    for method, limit in zip(sources, limits, strict=True):
+        sources[method]["contract"]["concurrency"] = limit
+    save_json(child / "public-evidence/sources.json", sources)
+    manifest = read_json(child / "report-manifest.json")
+    manifest["comparison_methods"] = compared
+    save_json(child / "report-manifest.json", manifest)
+    entry = read_json(output / "suite.json")["cohorts"][0]
+    soup = BeautifulSoup(report_suite.section(output, entry), "html.parser")
+    rows = soup.select("table")[1].select("tbody tr")
+    assert all(row.select('[data-metric="mean"]')[0].get_text() != "—" for row in rows)
+    leaders = [row.select("td")[0].get_text() for row in rows if row.select(".comparison-winner")]
+    assert leaders == ([winner] if winner else [])
+
+
+@pytest.mark.parametrize("damage", [False, True])
+def test_nested_cost_disclosure_links_use_the_same_render_and_check_scope(tmp_path, damage):
+    from harness.web_extract import report
+
+    output = tmp_path / "first"
+    (output / "zh").mkdir(parents=True)
+    save_json(output / "report-manifest.json", {"site_prefix": "first"})
+    quote = {
+        "usd_per_1000": "Unknown", "terms": {"zh": "未取得账单。"},
+        "verified_at": "2026-11-10", "sources": ["https://provider.example/pricing"],
+        "cost_unavailable": {
+            "population_cases": 3, "missing_cases": 3,
+            "reason": {"zh": "未取得账单。"},
+            "evidence": {"path": "assets/billing.json", "sha256": "a" * 64},
+        },
+    }
+    raw = report.price_table(["method"], {"method": quote}, "zh", {"method": "API"})
+    raw = report.scope_record_html(raw.replace("../", ""), "first")
+    if damage:
+        raw = raw.replace("first/assets/billing.json", "first/assets/wrong.json")
+    (output / "zh/accounts.html").write_text(raw, encoding="utf-8")
+    if damage:
+        with pytest.raises(ValueError, match="Cost/pricing coverage"):
+            report.check_price_coverage(
+                output, ["method"], {"method": quote}, "zh", {"method": "API"}
+            )
+    else:
+        report.check_price_coverage(output, ["method"], {"method": quote}, "zh", {"method": "API"})
+
+
+def test_suite_package_passes_each_childs_frozen_authority_to_release_check(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from harness.web_extract import report
+
+    output = tmp_path / "report"
+    home = create(tmp_path / "seed", mode="field-extraction-suite")
+    authority = read_json(home / "profile.json")
+    authority["local_example"] = False
+    save_json(home / "profile.json", authority)
+    report.build(output, home / "content.json", home=home, profile=home / "profile.json")
+    entries = read_json(home / "content.json")["cohorts"]
+    # Isolate suite orchestration from child visual/pricing gates, tested by their owners.
+    original = report.check_record_cohort
+    observed = []
+
+    def child_check(child, *, release=False, visual_receipt=None, profile=None, home=None):
+        if release:
+            entry = next(e for e in entries if e["id"] == child.name)
+            assert profile == Path(entry["profile"])
+            assert home == Path(entry["home"])
+            assert visual_receipt is not None
+            observed.append(child.name)
+        return original(child, profile=profile, home=home)
+
+    monkeypatch.setattr(report, "check_record_cohort", child_check)
+    monkeypatch.setattr(report, "check_visual_receipt", lambda *args, **kwargs: None)
+    visual = tmp_path / "visual.json"
+    receipts = {}
+    for entry in entries:
+        path = tmp_path / (entry["id"] + "-visual.json")
+        save_json(path, {})
+        receipts[entry["id"]] = {"path": str(path), "sha256": digest(path.read_bytes())}
+    save_json(visual, {"cohorts": receipts})
+    archive = tmp_path / "report.zip"
+    report.package(output, archive, visual_receipt=visual, profile=home / "profile.json", home=home)
+    assert archive.is_file()
+    assert set(observed) == {"first", "second"}
 
 
 @pytest.mark.parametrize("position", [0, 1])
