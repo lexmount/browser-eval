@@ -3,22 +3,18 @@
 
 from __future__ import annotations
 
-
-from harness.distribution import repository_root
-
 import argparse
 import hashlib
 import json
 import math
+import re
 import shutil
 import sys
+from collections import Counter
 from collections.abc import Callable
 from pathlib import Path
 
-from lexbench_webfetch.metrics import normalize_for_match
-from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
-from lexbench_webfetch.versions import verify_release
-
+from harness.distribution import repository_root
 from harness.record_io import load_jsonl
 from harness.web_fetch import (
     benchmark_runner,
@@ -29,7 +25,11 @@ from harness.web_fetch import (
     webmainbench_certification,
     webmainbench_runner,
 )
-from harness.web_fetch.config import DEFAULT_CALL_TIMEOUT_SECONDS, add_failure_retry_argument, resolve_provider_selection
+from harness.web_fetch.config import (
+    DEFAULT_CALL_TIMEOUT_SECONDS,
+    add_failure_retry_argument,
+    resolve_provider_selection,
+)
 from harness.web_fetch.reference_inputs import read_dataset_bytes
 from harness.web_fetch.reference_lifecycle import (
     requires_browser_observation,
@@ -39,10 +39,71 @@ from harness.web_fetch.retrieval_hints import native_fetch_dataset, parse_retrie
 from harness.web_fetch.risk_control import main as risk_control_main
 from harness.web_fetch.wcxb_dataset import validate_manifest
 from harness.web_fetch.webmainbench_correction import certify_case_correction as correction_main
-from harness.web_fetch.webmainbench_runner import WCXB_PROVIDERS, load_wcxb_source, selected_wcxb_input
+from harness.web_fetch.webmainbench_runner import (
+    WCXB_PROVIDERS,
+    load_wcxb_source,
+    selected_wcxb_input,
+)
 from harness.web_search.runner import main as search_main
+from lexbench_webfetch.metrics import normalize_for_match
+from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+from lexbench_webfetch.versions import verify_release
 
 ROOT = repository_root()
+
+
+def population_selection(path: Path, suite: str, dataset: dict) -> tuple[list[str], dict, bytes]:
+    """Bind one exported suite to an explicit, revision-bound population."""
+    if path.is_symlink():
+        raise ValueError("Population selection rejects symlinks")
+    raw = path.read_bytes()
+    spec = json.loads(raw)
+    if not isinstance(spec, dict) or not isinstance(dataset, dict):
+        raise ValueError("Population and exported dataset must be JSON objects")
+    if not isinstance(dataset.get("comparison", {}), dict):
+        raise ValueError("Exported dataset comparison must be an object")
+    if spec.get("schema_version") != 1 or spec.get("kind") != "task_population_selection":
+        raise ValueError("Unsupported population selection")
+    from lexbench_webfetch.paths import safe_identifier
+
+    selected = [(r["suite"], safe_identifier(r["id"])) for r in spec["cases"]]
+    excluded = [(r["suite"], safe_identifier(r["id"])) for r in spec["excluded"]]
+    if (len(set(selected)) != len(selected) or len(set(excluded)) != len(excluded)
+            or set(selected) & set(excluded)
+            or len(selected) != spec["task_count"]
+            or dict(Counter(s for s, _ in selected)) != spec["suite_counts"]):
+        raise ValueError("Population counts or identities do not match")
+    if not suite or suite not in spec["suite_counts"]:
+        raise ValueError("Choose a suite declared in the population")
+    revision = dataset.get("definition_revision", {})
+    bindings = spec["frozen_task_bindings"]
+    if not isinstance(revision, dict) or not isinstance(bindings, dict):
+        raise ValueError("Definition revision and frozen task bindings must be objects")
+    suite_binding = bindings[suite]
+    if not isinstance(suite_binding, dict):
+        raise ValueError("Frozen suite binding must be an object")
+    revision_sha = spec.get("revision_sha256", "")
+    if (not isinstance(revision_sha, str) or not re.fullmatch(r"[0-9a-f]{64}", revision_sha)
+            or spec["id"] != spec["revision"]
+            or revision.get("id") != spec["revision"]
+            or revision.get("sha256") != revision_sha
+            or revision.get("parent_tasks_sha256") != suite_binding["sha256"]):
+        raise ValueError("Exported suite does not match the population's rules or frozen tasks")
+    known = [safe_identifier(case["id"]) for case in dataset["cases"]]
+    allowed = {cid for sid, cid in selected + excluded if sid == suite}
+    if len(known) != len(set(known)) or set(known) != allowed:
+        raise ValueError("Exported cases do not match the population's suite")
+    from harness.record_io import canonical_json_sha256
+    expected_cases = suite_binding.get("exported_cases_sha256")
+    if (not isinstance(expected_cases, str) or not re.fullmatch(r"[0-9a-f]{64}", expected_cases)
+            or canonical_json_sha256(dataset["cases"]) != expected_cases):
+        raise ValueError("Exported definitions do not match the population's bound task content")
+    ids = [cid for sid, cid in selected if sid == suite]
+    binding = {"path": "task-population.json", "sha256": hashlib.sha256(raw).hexdigest(),
+               "id": spec["id"], "task_count": spec["task_count"], "suite": suite,
+               "selected_case_ids": ids, "selected_case_count": len(ids),
+               "definition_revision": revision.copy()}
+    return ids, binding, raw
 
 
 def browser_observation_cases(
@@ -158,7 +219,11 @@ def main(argv: list[str] | None = None) -> None:
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--work-root", type=Path, required=True)
     parser.add_argument("--providers", required=True, help="Comma-separated names or configured with --provider-config")
-    parser.add_argument("--case-ids", required=True)
+    selection = parser.add_mutually_exclusive_group(required=True)
+    selection.add_argument("--case-ids", help="Explicit legacy case selection")
+    selection.add_argument("--population", type=Path,
+                           help="Revision-bound population JSON; selects all declared cases in one suite")
+    parser.add_argument("--population-suite", help="Suite in --population, matching the exported dataset")
     parser.add_argument("--workers", type=int, default=None,
                         help="Bounded independent provider concurrency; paired latency needs 1")
     parser.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
@@ -205,10 +270,23 @@ def main(argv: list[str] | None = None) -> None:
     if args.browser_capture_attempts < 1:
         parser.error("--browser-capture-attempts must be at least 1")
 
-    case_ids = [value.strip() for value in args.case_ids.split(",") if value.strip()]
-    if not case_ids or len(case_ids) != len(set(case_ids)):
-        parser.error("--case-ids must contain nonempty unique IDs")
-    dataset = json.loads(read_dataset_bytes(args.dataset))
+    input_raw = read_dataset_bytes(args.dataset)
+    dataset = json.loads(input_raw)
+    population_raw = population_binding = None
+    if args.population:
+        try:
+            case_ids, population_binding, population_raw = population_selection(
+                args.population, args.population_suite, dataset)
+        except (OSError, ValueError, KeyError, TypeError) as error:
+            parser.error("Invalid population selection: " + str(error))
+        population_binding["input_dataset_sha256"] = hashlib.sha256(input_raw).hexdigest()
+        dataset.setdefault("comparison", {})["task_population"] = population_binding
+    else:
+        if args.population_suite:
+            parser.error("--population-suite requires --population")
+        case_ids = [value.strip() for value in args.case_ids.split(",") if value.strip()]
+        if not case_ids or len(case_ids) != len(set(case_ids)):
+            parser.error("--case-ids must contain nonempty unique IDs")
     known = {case["id"] for case in dataset["cases"]}
     if set(case_ids) - known:
         parser.error("Unknown case IDs: " + ", ".join(sorted(set(case_ids) - known)))
@@ -344,6 +422,12 @@ def main(argv: list[str] | None = None) -> None:
     if args.provider_config:
         benchmark.extend(["--provider-config", str(args.provider_config)])
     run(benchmark_runner.main, benchmark)
+    if population_raw is not None:
+        (args.output / "task-population.json").write_bytes(population_raw)
+        execution_path = args.output / "execution.json"
+        execution = json.loads(execution_path.read_text(encoding="utf-8"))
+        execution["aggregate"]["task_population"] = population_binding
+        execution_path.write_text(json.dumps(execution, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     if release_raw is not None:
         (args.output / 'benchmark-input-release.json').write_bytes(release_raw)
         execution_path = args.output / 'execution.json'

@@ -938,6 +938,63 @@ class ProviderTest(unittest.TestCase):
                 self.assertEqual(providers["exa-resources"]["livecrawl_timeout_ms"], 15_000)
 
     @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_uniform_scrape_includes_body_and_all_media(self, request_mock):
+        from dataclasses import replace
+        from harness.web_fetch.native_projection import require_native_answer_projection
+        selectors = ['body', 'img', 'video', 'a[href]']
+        raw = json.dumps({'success': True, 'result': [
+            {'selector': 'body', 'results': [{'text': 'native visible body', 'html': '<body>native visible body</body>'}]},
+            {'selector': 'img', 'results': [{'attributes': [{'name': 'src', 'value': '/photo.png'}]}]},
+        ]}).encode()
+        request_mock.return_value = HttpResponse(200, self.case.url, {}, raw)
+        provider = CloudflareMarkdownProvider('cf', {'api_token': 'x', 'account_id': 'a',
+            'uniform_native_parameters': True, 'scrape_selectors': selectors})
+        self.assertEqual(provider.native_configured_parameters()['scrape_selectors'], selectors)
+        bodies = []
+        for track, kind in (('image', 'resource'), ('video', 'resource'), ('video', 'body')):
+            case = replace(self.case, track=track, task_kind=kind)
+            result = provider.fetch(case, 30)
+            self.assertTrue(result.ok)
+            self.assertIn('native visible body', result.content)
+            self.assertEqual(provider.native_http_interface(case), '/scrape')
+            body = request_mock.call_args.kwargs['json_body']
+            bodies.append(body)
+            self.assertEqual(body['elements'], [{'selector': x} for x in selectors])
+            require_native_answer_projection(result.content, result.metadata, raw,
+                final_url=result.final_url, request_url=case.url)
+        self.assertTrue(all(body == bodies[0] for body in bodies))
+        provider.config['scrape_selectors'] = []
+        self.assertIn('scrape_selectors', provider.validate())
+
+    def test_cloudflare_content_rejects_scrape_selectors(self):
+        from harness.web_fetch.providers.cloudflare import CloudflareContentProvider
+        provider = CloudflareContentProvider('content', {'type': 'cloudflare_content',
+            'api_token': 'x', 'account_id': 'a', 'uniform_native_parameters': True,
+            'scrape_selectors': ['body', 'img']})
+        self.assertIn('scrape_selectors', provider.validate())
+        self.assertEqual(provider.native_http_interface(self.case), '/content')
+        provider.config.pop('scrape_selectors')
+        self.assertEqual(provider.validate(), [])
+
+    @patch('harness.web_fetch.providers.cloudflare.request')
+    def test_cloudflare_explicit_selectors_override_diagnostic_defaults(self, mock_request):
+        from dataclasses import replace
+        selectors = ['body', 'video']
+        case = replace(self.case, track='video', task_kind='resource',
+                       expected_resources=[{'id': 'entry', 'kind': 'video-link'}])
+        mock_request.return_value = HttpResponse(200, case.url, {}, b'{"success":true,"result":[]}')
+        for native in (False, True):
+            with self.subTest(native=native):
+                provider = CloudflareMarkdownProvider('cf', {
+                    'api_token': 'x', 'account_id': 'a', 'scrape_selectors': selectors,
+                    'uniform_native_parameters': native})
+                provider.fetch(case, 2)
+                body = mock_request.call_args.kwargs['json_body']
+                self.assertEqual(body['elements'], [{'selector': value} for value in selectors])
+                if not native:
+                    self.assertIn('actionTimeout', body)
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_reads_markdown(self, mock_request) -> None:
         body = b'{"success":true,"result":"# Example","meta":{"status":200}}'
         mock_request.return_value = HttpResponse(200, "u", {}, body)
@@ -1426,6 +1483,17 @@ class ProviderTest(unittest.TestCase):
         self.assertEqual(result.content, "<html>Not found</html>")
         self.assertEqual(result.error_type, "http_status")
         self.assertEqual(result.metadata["upstream_status"], 404)
+
+    @patch("harness.web_fetch.providers.cloudflare.request")
+    def test_cloudflare_frozen_html_rejects_selectors_before_dispatch(self, mock_request):
+        for native in (False, True):
+            with self.subTest(native=native):
+                provider = CloudflareMarkdownProvider('cf', {
+                    'api_token': 'x', 'account_id': 'a', 'scrape_selectors': ['body'],
+                    'uniform_native_parameters': native})
+                with self.assertRaisesRegex(ValueError, 'scrape_selectors.*inline HTML'):
+                    provider.fetch_html(self.case, '<h1>Frozen document</h1>', 1)
+        mock_request.assert_not_called()
 
     @patch("harness.web_fetch.providers.cloudflare.request")
     def test_cloudflare_frozen_html_disables_dynamic_resources(self, mock_request) -> None:

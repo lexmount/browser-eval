@@ -11,6 +11,8 @@ import hashlib
 import json
 import re
 from functools import lru_cache
+from contextlib import contextmanager
+from contextvars import ContextVar
 from pathlib import Path
 from types import SimpleNamespace
 from urllib.parse import parse_qsl, quote, urljoin, urlsplit
@@ -33,9 +35,57 @@ def native_projection_regressions():
     return indexed
 
 
+# Historical implementations are approved by a caller-selected, hash-bound
+# evidence registry, never by a receipt's self-declared version.
+_HISTORICAL_POLICIES = ContextVar('webfetch_approved_native_policies', default=None)
+
+
+@contextmanager
+def approved_native_policies(registry):
+    """Scope an independently selected registry to one evidence-validation job.
+
+    The caller must verify the registry's immutable path/hash binding first.
+    Saved selector bytes are still verified separately and are never executed.
+    """
+    sources = {}
+    if registry is not None:
+        if (not isinstance(registry, dict) or set(registry) != {'schema_version', 'sources'}
+                or registry['schema_version'] != 1 or not isinstance(registry['sources'], list)):
+            raise ValueError('Invalid approved native policy registry')
+        for row in registry['sources']:
+            if (not isinstance(row, dict) or set(row) != {'source_sha256', 'version', 'reason'}
+                    or not isinstance(row['source_sha256'], str)
+                    or not re.fullmatch('[0-9a-f]{64}', row['source_sha256'])
+                    or type(row['version']) is not int or row['version'] not in {1, 2, 3, 4, 5, 6, 7}
+                    or not isinstance(row['reason'], str) or not row['reason'].strip()
+                    or row['source_sha256'] in sources):
+                raise ValueError('Invalid or duplicate approved native policy source')
+            sources[row['source_sha256']] = row['version']
+    token = _HISTORICAL_POLICIES.set(sources)
+    try:
+        yield
+    finally:
+        _HISTORICAL_POLICIES.reset(token)
+
+
+def native_projection_policy_version(policy, provider_type):
+    if policy == native_projection_policy(provider_type):
+        return 7
+    if not isinstance(policy, dict):
+        raise ValueError('Native answer selection policy must be an object')
+    digest = policy.get('source_sha256')
+    version = (_HISTORICAL_POLICIES.get() or {}).get(digest) if isinstance(digest, str) else None
+    expected = {'kind': 'native-answer-selection', 'version': version,
+                'provider_type': provider_type, 'source_sha256': digest,
+                'source_path': 'native-answer-policies/'+str(digest)+'.py'}
+    if version is None or policy != expected:
+        raise ValueError('Native answer selection policy implementation differs from its pre-call freeze')
+    return version
+
+
 def native_projection_policy(provider_type):
     digest = hashlib.sha256(native_projection_source()).hexdigest()
-    return {'kind': 'native-answer-selection', 'version': 1,
+    return {'kind': 'native-answer-selection', 'version': 7,
             'provider_type': provider_type,
             'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
 
@@ -44,13 +94,67 @@ def _object(value):
     return value if isinstance(value, dict) else {}
 
 
-def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None):
+def native_answer_projection(provider_type, case, payload, status_code=None, *, interface=None, policy_version=7):
     """Return the declaration selected by the pre-call structural policy."""
+    if type(policy_version) is not int or policy_version not in {1, 2, 3, 4, 5, 6, 7}:
+        raise ValueError('Unknown native answer selection policy version')
     get = case.get if isinstance(case, dict) else lambda key, default=None: getattr(case, key, default)
     track, task_kind = get('track', 'web'), get('task_kind', 'body')
     payload = _object(payload)
     successful_http = type(status_code) is int and 200 <= status_code < 300
+    if provider_type in {'lexmount', 'lexmount_cn'}:
+        result = _object(payload.get('result'))
+        extra = _object(result.get('extra'))
+        return {'schema_version': 2, 'content_pointer': ['result', 'main_text'],
+                **({'answer_format': 'plain_text'} if policy_version >= 4 else {}),
+                'content_format': 'text' if isinstance(result.get('main_text'), str) else 'empty',
+                'optional_content': True,
+                'result_fields': {
+                    'final_url': {'pointer': ['result', 'final_url' if result.get('final_url') else 'url'],
+                                  'format': 'text_or_none'},
+                    'title': {'pointer': ['result', 'title'], 'format': 'text_or_none'}},
+                'answer_fields': {
+                    # Resources only when returned as lists: an explicit null is no resources.
+                    **{name: {'pointer': ['result', name], 'format': 'identity'}
+                       for name in ('links', 'images') if isinstance(result.get(name), list)},
+                    **({'page_structure': {'pointer': ['result', 'extra', 'dom_summary'],
+                                          'format': 'identity', 'default': {}},
+                        'records': (
+                            {'pointer': ['result', 'extra', 'quotes'], 'format': 'object_rows', 'default': [],
+                             'fields': {'quote': {'pointer': ['text'], 'default': None},
+                                        'author': {'pointer': ['author'], 'default': None},
+                                        'tags': {'pointer': ['tags'], 'format': 'joined_text_items', 'default': []}}}
+                            if policy_version >= 6 and isinstance(extra.get('quotes'), list)
+                            and not extra.get('reviews')
+                            else {'pointer': ['result', 'extra', 'reviews'], 'format': 'identity', 'default': []})}
+                       if policy_version >= 4 else {}),
+                    **({'page_information': {
+                        'pointer': ['result'], 'format': 'object_fields', 'default': {},
+                        'fields': {
+                            **{key: {'pointer': [key], 'default': None}
+                               # result.title is the document title, scored as `title`.
+                               for key in ('author', 'description', 'publish_time')},
+                            **{key: {'pointer': ['extra', source if source in extra
+                                                   else {'lead': 'dek', 'breadcrumbs': 'breadcrumb'}.get(source, source)], 'default': None,
+                                     **({'format': 'text_items'} if key in {'categories', 'tags', 'headings', 'table_of_contents', 'breadcrumbs'} else {})}
+                               for key, source in (
+                                   ('published_at', 'published_at'), ('subtitle', 'subtitle'),
+                                   ('lead', 'lead'), ('source', 'source'), ('editor', 'editor'),
+                                   ('site_name', 'site_name'), ('copyright', 'copyright_statement'),
+                                   ('statement', 'statement'), ('categories', 'categories'),
+                                   ('tags', 'tags'), ('headings', 'headings'),
+                                   ('table_of_contents', 'table_of_contents'),
+                                   ('breadcrumbs', 'breadcrumbs'))},
+                            'paragraphs': {'pointer': ['extra', 'dom_summary', 'paragraphs'], 'format': 'text_items', 'default': None},
+                            **({'section_headings': {'pointer': ['extra', 'section_headings'],
+                                                      'format': 'text_items', 'default': None}}
+                               if policy_version >= 7 and isinstance(extra.get('section_headings'), list) else {}),
+                        }}}
+                       if policy_version >= 5 else {})}}
     if provider_type == 'brightdata_unlocker':
+        if policy_version >= 3 and task_kind == 'file':
+            return {'schema_version': 2, 'source_format': 'bytes', 'content_format': 'empty',
+                    **({'files': {'format': 'raw_bytes'}} if successful_http else {})}
         return {'schema_version': 2, 'source_format': 'bytes',
                 'content_format': 'utf8' if successful_http else 'empty'}
     if provider_type in {'browser_use_fetch', 'browserbase_fetch', 'deepseek_fetch', 'crawl4ai_cloud'}:
@@ -61,6 +165,22 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
         declaration = {'schema_version': 2, 'content_pointer': [field],
                        'content_format': fmt if successful_http else 'empty',
                        'optional_content': True, 'result_fields': {}}
+        if policy_version >= 2 and task_kind == 'file' and provider_type in {'browser_use_fetch', 'browserbase_fetch'}:
+            declaration['content_format'] = 'empty'
+            binary = (payload.get('is_binary') is True if provider_type == 'browser_use_fetch'
+                      else payload.get('encoding') == 'base64')
+            file_field = 'body_base64' if binary and provider_type == 'browser_use_fetch' else field
+            file_value = payload.get(file_field)
+            encoding_valid = (type(payload.get('is_binary', False)) is bool if provider_type == 'browser_use_fetch'
+                              else payload.get('encoding', 'utf-8') in ('utf-8', 'base64'))
+            if successful_http and encoding_valid and not payload.get('error') and isinstance(file_value, str) and file_value:
+                try:
+                    delivered = base64.b64decode(file_value, validate=True) if binary else file_value.encode('utf-8')
+                except (ValueError, UnicodeError):
+                    delivered = b''
+                if delivered:
+                    declaration['files'] = {'pointer': [file_field],
+                                            'format': 'base64_file' if binary else 'utf8_file'}
         if provider_type == 'deepseek_fetch':
             declaration['result_fields']['title'] = {'pointer': ['title'], 'format': 'text_or_none'}
         if provider_type == 'browser_use_fetch':
@@ -159,7 +279,8 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     if provider_type == 'moli_webfetch':
         from harness.web_fetch.providers.moli import _route_for_case
         projected_case = SimpleNamespace(**case) if isinstance(case, dict) else case
-        raw = _route_for_case(projected_case, native_default=True) in {'raw_file', 'native_document_bytes'}
+        raw = _route_for_case(projected_case, native_default=True,
+            document_output='markdown' if interface in {'ordinary_markdown', 'ordinary_html'} else 'native') in {'raw_file', 'native_document_bytes'}
         return {'schema_version': 2, 'source_format': 'bytes',
                 'content_format': 'empty' if raw else 'utf8',
                 **({'files': {'format': 'raw_bytes'}} if raw else
@@ -248,7 +369,7 @@ def _attribute_record_urls(groups, base_url, *, parser=None, historical_scoring_
     return sorted(set(urls))
 
 
-SCORE_ANSWER_FIELDS = frozenset({'links', 'images', 'videos', 'media', 'extras'})
+SCORE_ANSWER_FIELDS = frozenset({'links', 'images', 'videos', 'media', 'extras', 'page_structure', 'records', 'page_information'})
 
 
 def _selected(payload, spec):
@@ -269,6 +390,24 @@ def _project_field(payload, spec, *, historical_scoring_source=None):
     kind = spec.get('format', 'identity')
     if kind == 'identity':
         return value
+    if kind == 'text_items':
+        if value is None:
+            return []
+        items = value if isinstance(value, list) else [value]
+        return [item if isinstance(item, str) else item['text']
+                for item in items if isinstance(item, str) or
+                isinstance(item, dict) and isinstance(item.get('text'), str)]
+    if kind == 'joined_text_items':
+        if not isinstance(value, list) or not all(isinstance(item, str) for item in value):
+            return None
+        return ' '.join(value)
+    if kind == 'object_rows':
+        return [{name: _project_field(row, child, historical_scoring_source=historical_scoring_source)
+                 for name, child in spec['fields'].items()} for row in value if isinstance(row, dict)
+                ] if isinstance(value, list) else []
+    if kind == 'object_fields':
+        return {name: _project_field(value, child, historical_scoring_source=historical_scoring_source)
+                for name, child in spec['fields'].items()}
     if kind == 'html_attribute_urls':
         return _attribute_record_urls(value, spec['base_url'], parser=spec.get('srcset_parser'),
                                       historical_scoring_source=historical_scoring_source)
@@ -302,6 +441,8 @@ def require_native_projection_schema(declaration):
             if name not in allowed:
                 raise ValueError('Unknown native projection field: ' + field)
             _require_field_spec(spec, field)
+    if 'answer_format' in declaration and declaration['answer_format'] not in {'plain_text', 'markdown', 'html'}:
+        raise ValueError('Invalid native answer representation')
     if declaration.get('files') is not None:
         _require_field_spec(declaration['files'], 'files')
 
@@ -324,6 +465,11 @@ def _require_field_spec(spec, field):
                 or any(not isinstance(key, str) and not (type(key) is int and key >= 0)
                        for key in pointer)):
             raise ValueError(field + '.pointer must be a nonempty list of names or nonnegative indexes')
+    if spec.get('format') in {'object_fields', 'object_rows'}:
+        if not isinstance(spec.get('fields'), dict):
+            raise ValueError(field + '.fields must be an object')
+        for name, child in spec['fields'].items():
+            _require_field_spec(child, field + '.fields.' + name)
     if 'legacy' in spec:
         _require_field_spec(spec['legacy'], field + '.legacy')
 
@@ -357,7 +503,7 @@ def project_native_answer(payload, declaration, *, historical_scoring_source=Non
             content = json.dumps(value, ensure_ascii=False, separators=(',', ':'))
         else:
             raise ValueError('Native answer field differs from its declared type')
-    fields = {}
+    fields = ({'answer_format': declaration['answer_format']} if 'answer_format' in declaration else {})
     for name, spec in declaration.get('answer_fields', {}).items():
         if name not in SCORE_ANSWER_FIELDS:
             raise ValueError('Unknown native answer metadata field')
@@ -373,13 +519,17 @@ def project_native_files(payload, declaration):
     if not isinstance(spec, dict):
         raise ValueError('Native file projection must be an object')
     kind = spec.get('format')
-    if kind not in {'raw_bytes', 'base64_file', 'worker_files'}:
+    if kind not in {'raw_bytes', 'base64_file', 'utf8_file', 'worker_files'}:
         raise ValueError('Unknown native file projection')
     if kind == 'raw_bytes':
         if not isinstance(payload, bytes):
             raise ValueError('Native raw file projection requires bytes')
         return [payload] if payload else []
     value = _selected(payload, spec)
+    if kind == 'utf8_file':
+        if not isinstance(value, str):
+            raise ValueError('Native UTF-8 file projection requires text')
+        return [value.encode('utf-8')] if value else []
     if kind == 'base64_file':
         values = [value] if value else []
         if not isinstance(value, str):
@@ -555,17 +705,22 @@ def require_native_answer_projection(content, metadata, raw_response, *, files=(
         raise ValueError('Scored native answer has undeclared answer fields')
     allowed = metadata.get('native_route_receipt', {}).get('answer_fields')
     if allowed is not None:
-        def check_source(spec):
-            pointer = spec.get('pointer')
+        def check_source(spec, prefix=()):
+            pointer = [*prefix, *spec.get('pointer', [])]
+            if spec.get('format') in {'object_fields', 'object_rows'}:
+                for child in spec['fields'].values():
+                    check_source(child, pointer)
+                return
             if pointer:
                 name = '.'.join(str(key) for key in pointer if not isinstance(key, int))
                 allowed_names = [field.replace('[]', '') for field in allowed]
                 if not any(name == field or name.startswith(field+'.') for field in allowed_names):
                     raise ValueError('Native projection reads outside its frozen answer fields')
             if 'legacy' in spec:
-                check_source(spec['legacy'])
+                check_source(spec['legacy'], prefix)
         if declaration.get('source_format') == 'bytes':
-            required = ('original_bytes' if declaration.get('files') else
+            required = ('original_bytes' if (declaration.get('files') or
+                        (declaration.get('content_format') == 'empty' and 'original_bytes' in allowed)) else
                         'response_body' if 'response_body' in allowed
                         else 'stdout')
             if required not in allowed:

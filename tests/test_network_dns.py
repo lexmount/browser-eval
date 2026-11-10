@@ -241,3 +241,89 @@ class CrawlBrowserDnsTests(unittest.IsolatedAsyncioTestCase):
         with self.assertRaisesRegex(ValueError, "frozen Chrome channel"):
             async with crawl4ai_public_dns_browser(SimpleNamespace(chrome_channel="chromium")):
                 self.fail("different browser must not start")
+
+
+class HostedDnsBoundaryTests(unittest.TestCase):
+    kinds = ('firecrawl', 'exa_contents', 'tavily_extract', 'cloudflare_markdown',
+             'brightdata_unlocker', 'browser_use_fetch', 'browserbase_fetch',
+             'deepseek_fetch', 'crawl4ai_cloud')
+
+    def provider_and_case(self, kind, mode):
+        from harness.web_fetch.providers import build_provider
+        from lexbench_webfetch.models import EvalCase
+        provider = build_provider(kind, {'type': kind, 'api_key': 'fixture',
+            'api_token': 'fixture', 'account_id': 'fixture', 'zone': 'fixture',
+            'dns_mode': mode, 'uniform_native_parameters': True})
+        case = EvalCase('case', 'Case', 'https://target.invalid/page', 'static', [],
+                       source_benchmark={'input_media_kind': 'html_page'})
+        return provider, case
+
+    def test_all_hosted_boundaries_honor_doh_and_system_modes(self):
+        from urllib.parse import urlsplit
+        from harness.web_fetch.providers.http_client import HttpResponse
+        for kind in self.kinds:
+            for mode in ('system', 'public_doh'):
+                with self.subTest(kind=kind, mode=mode):
+                    provider, case = self.provider_and_case(kind, mode)
+                    endpoint, kwargs = provider.native_http_arguments(case, 30)
+                    hostname = urlsplit(endpoint).hostname
+                    seen = []
+                    def transport(url, seen=seen, **arguments):
+                        seen.append(socket.getaddrinfo(urlsplit(url).hostname, 443,
+                                                     type=socket.SOCK_STREAM)[0][4][0])
+                        return HttpResponse(200, url, {}, b'{}')
+                    with patch('harness.web_fetch.network_dns.lookup_public_dns',
+                               return_value=[('203.0.113.5', 4)]) as doh, \
+                         patch('socket.getaddrinfo', side_effect=lambda host, *a, **kw: [
+                             (socket.AF_INET, socket.SOCK_STREAM, 6, '',
+                              (host if host == '203.0.113.5' else '127.0.0.1', 443))]) as system:
+                        response = provider.native_http_request(case, transport, endpoint, **kwargs)
+                    self.assertEqual(seen, ['203.0.113.5' if mode == 'public_doh' else '127.0.0.1'])
+                    self.assertEqual(response.dns_metadata['dns_mode'], mode)
+                    if mode == 'public_doh':
+                        self.assertEqual(doh.call_args.args, (hostname,))
+                        self.assertEqual(doh.call_count, 1)
+                        self.assertEqual(system.call_args.args[0], '203.0.113.5')
+                        self.assertEqual(response.dns_metadata['dns_trace'][0]['hostname'], hostname)
+                    else:
+                        doh.assert_not_called()
+                        self.assertEqual(response.dns_metadata['dns_trace'], [])
+
+    def test_invalid_mode_and_doh_failure_never_fall_back(self):
+        from unittest.mock import Mock
+        for kind in self.kinds:
+            with self.subTest(kind=kind):
+                provider, case = self.provider_and_case(kind, 'invalid')
+                endpoint, kwargs = provider.native_http_arguments(case, 30)
+                transport = Mock()
+                with self.assertRaises(ValueError):
+                    provider.native_http_request(case, transport, endpoint, **kwargs)
+                transport.assert_not_called()
+                provider.config['dns_mode'] = 'public_doh'
+                def resolve_transport(url, **arguments):
+                    socket.getaddrinfo('api.fixture.invalid', 443)
+                with patch('harness.web_fetch.network_dns.lookup_public_dns',
+                           side_effect=OSError('DNS unavailable')) as doh, \
+                     patch('socket.getaddrinfo') as system:
+                    with self.assertRaisesRegex(OSError, 'DNS unavailable'):
+                        provider.native_http_request(case, resolve_transport, endpoint, **kwargs)
+                self.assertEqual(doh.call_count, 1)
+                system.assert_not_called()
+
+    def test_invalid_dns_is_rejected_before_preflight_and_ledger_capture(self):
+        from unittest.mock import Mock
+        for kind in ('firecrawl', 'exa_contents', 'tavily_extract',
+                     'cloudflare_markdown', 'cloudflare_content'):
+            with self.subTest(kind=kind):
+                for mode in ('system', 'public_doh'):
+                    provider, _ = self.provider_and_case(kind, mode)
+                    self.assertEqual(provider.validate(), [])
+                provider, case = self.provider_and_case(kind, 'public-doh')
+                self.assertTrue(any('dns_mode' in error for error in provider.validate()))
+                endpoint, arguments = provider.native_http_arguments(case, 30)
+                transport, ledger = Mock(), Mock()
+                with self.assertRaisesRegex(ValueError, 'dns_mode'):
+                    provider.native_http_request(case, transport, endpoint,
+                                                 native_route_ledger=ledger, **arguments)
+                ledger.observe.assert_not_called()
+                transport.assert_not_called()

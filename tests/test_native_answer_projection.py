@@ -232,3 +232,153 @@ def test_acquisition_declares_current_srcset_semantics():
         {'track': 'image', 'task_kind': 'resource', 'url': 'https://example.test/'},
         {'success': True, 'result': []}, 200)
     assert declaration['answer_fields']['images']['srcset_parser'] == 'html-candidates-v1'
+
+
+def test_historical_selector_policy_requires_exact_trusted_identity():
+    from harness.web_fetch.native_projection import native_projection_policy_version
+    digest = hashlib.sha256(b'synthetic historical selector').hexdigest()
+    policy = {'kind': 'native-answer-selection', 'version': 1, 'provider_type': 'browserbase_fetch',
+              'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
+    from harness.web_fetch.native_projection import approved_native_policies
+    with approved_native_policies({'schema_version': 1, 'sources': [
+            {'source_sha256': digest, 'version': 1, 'reason': 'Synthetic reviewed fixture'}]}):
+        assert native_projection_policy_version(policy, 'browserbase_fetch') == 1
+        for key, value in [('source_sha256', '0'*64), ('version', 2), ('provider_type', 'firecrawl'),
+                           ('source_path', 'other.py'), ('kind', 'other')]:
+            with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+                native_projection_policy_version({**policy, key: value}, 'browserbase_fetch')
+
+
+def test_historical_selector_replays_old_file_scope_and_checks_saved_source(tmp_path, monkeypatch):
+    from harness.web_fetch import native_projection as projection
+    from harness.web_fetch.native_routes import verify_saved_native_answer
+    source = b'# synthetic trusted legacy selector fixture\n'
+    digest = hashlib.sha256(source).hexdigest()
+    policy = {'kind': 'native-answer-selection', 'version': 1, 'provider_type': 'browserbase_fetch',
+              'source_sha256': digest, 'source_path': 'native-answer-policies/'+digest+'.py'}
+    source_path = tmp_path / policy['source_path']
+    source_path.parent.mkdir()
+    source_path.write_bytes(source)
+    case = {'id': 'file', 'url': 'https://example.test/file.pdf', 'task_kind': 'file'}
+    payload = {'content': 'JVBERg==', 'encoding': 'base64', 'statusCode': 200}
+    raw = json.dumps(payload).encode()
+    (tmp_path / 'dataset.json').write_text(json.dumps({'cases': [case]}), encoding='utf-8')
+    (tmp_path / 'raw.json').write_bytes(raw)
+    (tmp_path / 'answer.txt').write_text(payload['content'], encoding='utf-8')
+    old = projection.native_answer_projection('browserbase_fetch', case, payload, 200, policy_version=1)
+    metadata = {'native_answer_projection': old, 'api_http_status': 200,
+                'native_route_receipt': {'answer_selection_policy': policy, 'answer_fields': ['content']},
+                'raw_response_path': 'raw.json', 'raw_response_sha256': hashlib.sha256(raw).hexdigest()}
+    record = {'case_id': 'file', 'provider_type': 'browserbase_fetch', 'url': case['url'], 'ok': False,
+              'title': None, 'final_url': None, 'artifact_path': 'answer.txt', 'provider_metadata': metadata,
+              'metrics': {'content_sha256': hashlib.sha256(payload['content'].encode()).hexdigest()}}
+    with projection.approved_native_policies({'schema_version': 1, 'sources': [
+            {'source_sha256': digest, 'version': 1, 'reason': 'Synthetic reviewed fixture'}]}):
+        verify_saved_native_answer(tmp_path, record)
+        frozen = deepcopy(record)
+        source_path.write_bytes(source + b'tampered')
+        with pytest.raises(ValueError):
+            verify_saved_native_answer(tmp_path, record)
+        source_path.write_bytes(source)
+        metadata['native_answer_projection'] = projection.native_answer_projection('browserbase_fetch', case, payload, 200)
+        assert metadata['native_answer_projection']['files']
+        with pytest.raises(ValueError, match='differs from its pre-call selection policy'):
+            verify_saved_native_answer(tmp_path, record)
+        metadata['native_answer_projection'] = old
+        assert record == frozen
+
+
+def test_moli_markdown_route_preserves_historical_document_contract():
+    from harness.web_fetch import native_projection as projection
+    case = {'task_kind': 'body', 'track': 'document',
+            'source_benchmark': {'input_media_kind': 'direct_pdf'}}
+    historical = projection.native_answer_projection('moli_webfetch', case, {},
+        interface='original_document_bytes_without_extracted_text')
+    assert historical['content_format'] == 'empty'
+    assert historical['files'] == {'format': 'raw_bytes'}
+    markdown = projection.native_answer_projection('moli_webfetch', case, {},
+        interface='ordinary_markdown')
+    assert markdown['content_format'] == 'utf8'
+    assert 'files' not in markdown
+    direct_file = projection.native_answer_projection('moli_webfetch',
+        {**case, 'task_kind': 'file'}, {}, interface='ordinary_markdown')
+    assert direct_file['files'] == {'format': 'raw_bytes'}
+
+
+def test_external_policy_approval_is_scoped_and_receipts_cannot_self_authorize():
+    from harness.web_fetch.native_projection import approved_native_policies, native_projection_policy_version
+    digest = hashlib.sha256(b'synthetic separately reviewed implementation').hexdigest()
+    policy = {'kind': 'native-answer-selection', 'version': 2, 'provider_type': 'browserbase_fetch',
+              'source_sha256': digest, 'source_path': 'native-answer-policies/' + digest + '.py'}
+    registry = {'schema_version': 1, 'sources': [
+        {'source_sha256': digest, 'version': 2, 'reason': 'Reviewed independent fixture'}]}
+    with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+        native_projection_policy_version(policy, 'browserbase_fetch')
+    with approved_native_policies(registry):
+        assert native_projection_policy_version(policy, 'browserbase_fetch') == 2
+        with approved_native_policies(None):
+            with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+                native_projection_policy_version(policy, 'browserbase_fetch')
+        assert native_projection_policy_version(policy, 'browserbase_fetch') == 2
+    with pytest.raises(ValueError, match='differs from its pre-call freeze'):
+        native_projection_policy_version(policy, 'browserbase_fetch')
+    with pytest.raises(ValueError, match='duplicate'):
+        with approved_native_policies({**registry, 'sources': registry['sources'] * 2}):
+            pytest.fail('Duplicate approval was accepted')
+
+
+def test_extract_quote_records_preserve_ownership_and_historical_policy():
+    from harness.web_fetch.native_projection import native_answer_projection
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task
+
+    payload = {'result': {'main_text': 'Quotes', 'extra': {'quotes': [
+        {'text': 'A complete quotation', 'author': 'Alex Writer', 'tags': ['books', 'reading']},
+        {'text': 'Another complete quotation', 'tags': ['reading']},
+        {'author': 'Someone Else', 'tags': ['other']},
+    ]}}}
+    case = {'url': 'https://example.test/quotes'}
+    contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1}
+    current = native_answer_projection('lexmount', case, payload, 200)
+    previous = native_answer_projection('lexmount', case, payload, 200, policy_version=5)
+    text, fields = project_native_answer(payload, current)
+    assert text == project_native_answer(payload, previous)[0] == 'Quotes'
+    assert project_native_answer(payload, previous)[1]['records'] == []
+    assert fields['records'][0] == {
+        'quote': 'A complete quotation', 'author': 'Alex Writer', 'tags': 'books reading'}
+    accepted = evaluate_stable_task(text, contract, representation='plain_text',
+                                    returned_records=fields['records'])
+    rejected = evaluate_stable_task(text, contract, representation='plain_text',
+                                    returned_records=fields['records'][1:])
+    assert accepted['stable_structure_pass']
+    assert not rejected['stable_structure_pass']
+
+
+@pytest.mark.parametrize('author,passes', [('Alex Writer', True), ('Another Writer', False)])
+def test_native_quote_merges_only_the_equivalent_text_record(author, passes):
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task, source_record_hash
+
+    names = ['author', 'quote', 'tags']
+    native = {'quote': 'A complete quotation', 'author': 'Alex Writer', 'tags': 'books reading'}
+    contract = {'version': 1, 'schema': 'quote', 'minimum_records': 1,
+                'source_membership': {'kind': 'fixed', 'fields': names,
+                                      'record_hashes': [source_record_hash(native, names, 'quote')]}}
+    rendered = f'“A complete quotation” by {author} Tags: books, reading'
+    result = evaluate_stable_task(rendered, contract, representation='plain_text', returned_records=[native])
+    assert result['stable_task_pass'] is passes
+    assert ('source_record_mismatch' in result['stable_task_errors']) is not passes
+
+
+def test_returned_records_merge_only_with_valid_case_exact_text_rows():
+    from lexbench_webfetch.stable_tasks import evaluate_stable_task
+
+    reviews = {'version': 1, 'schema': 'review', 'minimum_records': 1}
+    table = '| date | text |\n| --- | --- |\n| 2026-11-01 | Great service | extra |'
+    returned = [{'date': '2026-11-01', 'text': 'Great service'}]
+    assert not evaluate_stable_task(table, reviews, representation='plain_text')['stable_task_pass']
+    assert evaluate_stable_task(table, reviews, representation='plain_text',
+                                returned_records=returned)['stable_task_pass']
+    operations = {'version': 1, 'schema': 'api_operation', 'minimum_records': 2}
+    text = 'GET /Foo\nRead one item.'
+    row = [{'method': 'GET', 'path': '/foo', 'summary': 'Read one item.'}]
+    result = evaluate_stable_task(text, operations, representation='plain_text', returned_records=row)
+    assert result['stable_record_count'] == 2, result

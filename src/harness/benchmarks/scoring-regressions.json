@@ -76216,19 +76216,19 @@
               "view",
               "views",
               "yesterday",
-              "\u4eca\u5929",
-              "\u5206\u4eab",
-              "\u52a0\u8f7d\u66f4\u591a",
-              "\u56de\u590d",
-              "\u5c55\u5f00",
-              "\u6536\u85cf",
-              "\u6628\u5929",
-              "\u67e5\u770b",
-              "\u67e5\u770b\u66f4\u591a",
-              "\u6ce8\u518c",
-              "\u70b9\u8d5e",
-              "\u767b\u5f55",
-              "\u8f6c\u53d1"
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
             ],
             "unavailable_notices": [],
             "non_author_labels": [
@@ -76239,10 +76239,10 @@
               "permalink",
               "view post",
               "post",
-              "\u4eca\u5929",
-              "\u6628\u5929",
-              "\u8be6\u60c5",
-              "\u67e5\u770b\u5e16\u5b50"
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
             ],
             "version": 2,
             "hosts": [
@@ -76296,19 +76296,19 @@
               "view",
               "views",
               "yesterday",
-              "\u4eca\u5929",
-              "\u5206\u4eab",
-              "\u52a0\u8f7d\u66f4\u591a",
-              "\u56de\u590d",
-              "\u5c55\u5f00",
-              "\u6536\u85cf",
-              "\u6628\u5929",
-              "\u67e5\u770b",
-              "\u67e5\u770b\u66f4\u591a",
-              "\u6ce8\u518c",
-              "\u70b9\u8d5e",
-              "\u767b\u5f55",
-              "\u8f6c\u53d1"
+              "今天",
+              "分享",
+              "加载更多",
+              "回复",
+              "展开",
+              "收藏",
+              "昨天",
+              "查看",
+              "查看更多",
+              "注册",
+              "点赞",
+              "登录",
+              "转发"
             ],
             "unavailable_notices": [],
             "non_author_labels": [
@@ -76319,10 +76319,10 @@
               "permalink",
               "view post",
               "post",
-              "\u4eca\u5929",
-              "\u6628\u5929",
-              "\u8be6\u60c5",
-              "\u67e5\u770b\u5e16\u5b50"
+              "今天",
+              "昨天",
+              "详情",
+              "查看帖子"
             ],
             "version": 2,
             "hosts": [
@@ -78435,6 +78435,2973 @@
       "expected_task_pass": false
     },
     {
+      "id": "article-primary-scope-complete-without-shell",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "General site navigation, account controls, promotions and footer text must not become article-primary-content requirements after an independently justified scope correction; title, author and body remain mandatory.",
+      "case": {
+        "id": "article-primary-scope",
+        "name": "Reading a technical article",
+        "url": "https://example.test/article",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "page_patterns": [
+            "A practical guide to small gardens"
+          ],
+          "stable_text_anchors": [
+            {
+              "id": "author",
+              "alternatives": [
+                "Morgan Example"
+              ]
+            },
+            {
+              "id": "body",
+              "alternatives": [
+                "Plant seedlings in deep soil and water the roots each morning. Keep enough space between plants for light and airflow."
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "A practical guide to small gardens\nMorgan Example\nPlant seedlings in deep soil and water the roots each morning. Keep enough space between plants for light and airflow.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "article-primary-scope-shell-cannot-replace-body",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "General site navigation, account controls, promotions and footer text must not become article-primary-content requirements after an independently justified scope correction; title, author and body remain mandatory.",
+      "case": {
+        "id": "article-primary-scope",
+        "name": "Reading a technical article",
+        "url": "https://example.test/article",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_role": "required",
+          "page_patterns": [
+            "A practical guide to small gardens"
+          ],
+          "stable_text_anchors": [
+            {
+              "id": "author",
+              "alternatives": [
+                "Morgan Example"
+              ]
+            },
+            {
+              "id": "body",
+              "alternatives": [
+                "Plant seedlings in deep soil and water the roots each morning. Keep enough space between plants for light and airflow."
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "A practical guide to small gardens\nMorgan Example\nHome Log in Register Follow Share Subscribe Download app Help Contact Privacy Terms of use",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "category": "acceptance-contract",
+      "root_cause": "Removing independently identified peripheral navigation must preserve complete primary list records and their eligible links.",
+      "case": {
+        "id": "list-primary-scope",
+        "name": "Initial product list",
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/product/[0-9]+",
+          "name_validation": "nonempty",
+          "stable_text_anchors": [
+            {
+              "id": "catalog-title",
+              "alternatives": [
+                "Garden catalog"
+              ]
+            }
+          ]
+        }
+      },
+      "ok": true,
+      "id": "list-primary-scope-complete-without-shell",
+      "failure_mode": "false-negative",
+      "artifact": "Garden catalog\n[Clay planter](https://example.test/product/1)\n[Watering can](https://example.test/product/2)",
+      "expected_task_pass": true
+    },
+    {
+      "category": "acceptance-contract",
+      "root_cause": "Removing independently identified peripheral navigation must preserve complete primary list records and their eligible links.",
+      "case": {
+        "id": "list-primary-scope",
+        "name": "Initial product list",
+        "url": "https://example.test/catalog",
+        "task_kind": "structure",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "named_link",
+          "minimum_records": 2,
+          "hosts": [
+            "example.test"
+          ],
+          "entry_path": "/product/[0-9]+",
+          "name_validation": "nonempty",
+          "stable_text_anchors": [
+            {
+              "id": "catalog-title",
+              "alternatives": [
+                "Garden catalog"
+              ]
+            }
+          ]
+        }
+      },
+      "ok": true,
+      "id": "list-primary-scope-shell-cannot-replace-records",
+      "failure_mode": "false-positive",
+      "artifact": "Garden catalog\n[Clay planter](https://example.test/product/1)\nHome Login Privacy Terms Subscribe",
+      "expected_task_pass": false
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024年9月12日 15:42",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024年9月12日 15:42-False-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024年9月12日 15:42\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024年9月12日 15:42 | # | 引用",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024年9月12日 15:42-True-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024年9月12日 15:42 | # | 引用\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024-09-12 15:42-False-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024-09-12 15:42",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024-09-12 15:42-False-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024-09-12 15:42\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024-09-12 15:42-True-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024-09-12 15:42 | # | 引用",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-2024-09-12 15:42-True-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n2024-09-12 15:42 | # | 引用\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-15:42-False-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n15:42",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-15:42-False-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n15:42\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-15:42-True-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n15:42 | # | 引用",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-markdown-15:42-True-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice: First reply.\n\n15:42 | # | 引用\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024年9月12日 15:42",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024年9月12日 15:42-False-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024年9月12日 15:42\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024年9月12日 15:42 | # | 引用",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024年9月12日 15:42-True-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024年9月12日 15:42 | # | 引用\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024-09-12 15:42",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024-09-12 15:42-False-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024-09-12 15:42\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024-09-12 15:42 | # | 引用",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-2024-09-12 15:42-True-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n2024-09-12 15:42 | # | 引用\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-15:42-False-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n15:42",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-15:42-False-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n15:42\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-15:42-True-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n15:42 | # | 引用",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-timestamp-owner-plain_text-15:42-True-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Timestamp metadata was parsed as a colon-delimited author before metadata filtering.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\nComments\n\nAlice: First reply.\n\n15:42 | # | 引用\n\nBob: The event was on 2024年9月12日 15:42.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-standalone-author-prose-colon-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Inline prose colon paragraphs were counted as authors within a standalone-author comment format.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice:\n\nFirst reply.\n\nCSS: display flex.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-explicit-speech-author-False",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Colon-ended explanations and quoted addressees broke explicit standalone speech-attribution ownership.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice 说：\n\nFirst reply.\n\nCSS:\n\ndisplay flex.\n\n> @Bob:\n> quoted reply.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "article_comment_count": 1
+      }
+    },
+    {
+      "id": "comment-standalone-author-prose-colon-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Inline prose colon paragraphs were counted as authors within a standalone-author comment format.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice:\n\nFirst reply.\n\nCSS: display flex.\n\nBob:\n\nSecond reply.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-explicit-speech-author-True",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Colon-ended explanations and quoted addressees broke explicit standalone speech-attribution ownership.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice 说：\n\nFirst reply.\n\nCSS:\n\ndisplay flex.\n\n> @Bob:\n> quoted reply.\n\nBob 说：\n\nSecond reply.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-speech-then-structural-heading",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Speech-attribution filtering suppressed independent structural author boundaries.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice 说：\n\nFirst reply.\n\n### Bob\n\nSecond reply.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-speech-then-structural-link",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Speech-attribution filtering suppressed independent structural author boundaries.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice 说：\n\nFirst reply.\n\n[Bob](https://example.test/bob)\n\nSecond reply.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "comment-speech-then-structural-bold",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Speech-attribution filtering suppressed independent structural author boundaries.",
+      "case": {
+        "id": "article-ownership",
+        "name": "Benchmark page",
+        "url": "https://example.test/feed",
+        "category": "article",
+        "task_kind": "body",
+        "expected_any": [],
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "page_patterns": [
+            "Benchmark page"
+          ],
+          "stable_text_role": "required",
+          "stable_text_anchors": []
+        },
+        "source_benchmark": {
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 2,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".body",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        }
+      },
+      "artifact": "Benchmark page\n\n## Comments\n\nAlice 说：\n\nFirst reply.\n\n**Bob**\n\nSecond reply.",
+      "ok": true,
+      "metadata": {
+        "answer_format": "markdown"
+      },
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "article_comment_count": 2
+      }
+    },
+    {
+      "id": "mixed-comparison-visible-prose",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Mixed Markdown comparisons must not consume later prose or expose hidden HTML.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Heading<sup>1</sup>\n\nx<y\n\nVisible sentence.\n\nTail<sub>2</sub>",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "mixed-comparison-hidden-prose",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Mixed Markdown comparisons must not consume later prose or expose hidden HTML.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Heading<sup>1</sup>\n\nx<y\n\n<span hidden>Visible sentence.</span>\n\nTail<sub>2</sub>",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-malformed-hidden-prose",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div hidden class=\"a\"id=\"b\">Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-malformed-script-prose",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<script/x>Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-malformed-visible-prose",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div class=\"a\"id=\"b\">Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "mixed-unquoted-apostrophe-script",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<script x=a'b>Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-unquoted-apostrophe-hidden",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div hidden x=a'b>Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-unquoted-apostrophe-visible",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "CommonMark tag rejection must not turn browser-tolerated hidden or raw-text markup into visible answer text.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div x=a'b>Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "mixed-unquoted-less-than-script",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Browser-tolerated less-than characters in unquoted attributes must preserve visible text while excluding hidden and raw-text content.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<script x=a<b>Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-unquoted-less-than-hidden",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Browser-tolerated less-than characters in unquoted attributes must preserve visible text while excluding hidden and raw-text content.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div hidden x=a<b>Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-unquoted-less-than-visible",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Browser-tolerated less-than characters in unquoted attributes must preserve visible text while excluding hidden and raw-text content.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "<div x=a<b>Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
       "id": "structured-resource-route-image-links-answer",
       "category": "answer-surface",
       "root_cause": "The rendered-DOM image route declares structured_resource_urls and returns only <img>/<picture source> URLs as a JSON links list; only that declared list is an image answer.",
@@ -80156,6 +83123,1216 @@
         }
       },
       "artifact": "`P`EDIT \\!",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-less-than-script",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<script data<x> Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-less-than-hidden",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<div hidden data<x> Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-less-than-visible",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "The mixed-HTML fallback rejected less-than characters inside tolerated attribute names and exposed hidden/raw-text content. Preserve attribute tokens without consuming unrelated later tags.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<div data<x> Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "mixed-attribute-name-leading-less-than-script",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "A leading less-than character in a tolerated attribute name can look like a separate tag. Preserve the outer element when its close or visibility context disambiguates the opener.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<script <x> Visible sentence.</script> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-leading-less-than-hidden",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "A leading less-than character in a tolerated attribute name can look like a separate tag. Preserve the outer element when its close or visibility context disambiguates the opener.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<div hidden <x> Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "mixed-attribute-name-leading-less-than-visible",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "A leading less-than character in a tolerated attribute name can look like a separate tag. Preserve the outer element when its close or visibility context disambiguates the opener.",
+      "case": {
+        "id": "comparison-prose",
+        "name": "Comparison prose",
+        "url": "https://example.test/comparisons",
+        "category": "static",
+        "task_kind": "body",
+        "expected_any": [
+          "Visible sentence."
+        ],
+        "required_facts": [
+          {
+            "id": "sentence",
+            "alternatives": [
+              "Visible sentence."
+            ]
+          }
+        ],
+        "min_content_chars": 1
+      },
+      "artifact": "Prefix<sup>1</sup>\nx<y\n<div <x> Visible sentence.</div> after",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "plain-text-typography",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Declared plain text skipped shared typography normalization; formatting syntax must remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "sentence",
+              "alternatives": [
+                "Current: reader's guide 中文文本"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Current : reader’s guide 中文文本",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "plain-text-missing-word",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Declared plain text skipped shared typography normalization; formatting syntax must remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "sentence",
+              "alternatives": [
+                "Current: reader's guide 中文文本"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Current : reader’s 中文 文本",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-text-literal-markup",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Declared plain text skipped shared typography normalization; formatting syntax must remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "sentence",
+              "alternatives": [
+                "Current: reader's guide 中文文本"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Current : **reader’s guide** 中文 文本",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-page-heading",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {
+        "page_structure": {
+          "headings": [
+            "A visible heading"
+          ]
+        }
+      },
+      "title": null,
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "returned-page-wrong-heading",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {
+        "page_structure": {
+          "headings": [
+            "Another heading"
+          ]
+        }
+      },
+      "title": null,
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-page-metadata-title",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {},
+      "title": "A visible heading",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-02",
+            "text": "Second complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "returned-records-incomplete",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-missing-field",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-02"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-label",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A returned link list is page metadata: a label naming a link cannot supply a stable anchor the returned text lacks.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "Sign in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Page body",
+      "metadata": {
+        "links": [
+          {
+            "text": "Sign in",
+            "href": "/login"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-split-label",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Separately returned visible link labels were ignored by global page text checks; unrelated labels and bare URLs must not supply phrases.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "Sign in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Page body",
+      "metadata": {
+        "links": [
+          {
+            "text": "Sign",
+            "href": "/a"
+          },
+          {
+            "text": "in",
+            "href": "/b"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-url-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Separately returned visible link labels were ignored by global page text checks; unrelated labels and bare URLs must not supply phrases.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "Sign in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Page body",
+      "metadata": {
+        "links": [
+          {
+            "href": "https://example.test/Sign in"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "visible-typography-cjk-punctuation",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "编者按：日前，BBC发布消息。"
+            ]
+          }
+        ]
+      },
+      "artifact": "编者按： 日前， BBC发布消息。",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "visible-typography-cjk-wrong-word",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "编者按：日前，BBC发布消息。"
+            ]
+          }
+        ]
+      },
+      "artifact": "编者按： 日前， ABC发布消息。",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "visible-typography-word-joiner",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "A nonbreaking phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "A non⁠breaking phrase",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "visible-typography-word-boundary",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "A nonbreaking phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "A non breaking phrase",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-no-region-ownership",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-02",
+            "text": "Second complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-page-invalid-structure",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {
+        "page_structure": "A visible heading"
+      },
+      "title": null,
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "page_structure must be an object"
+    },
+    {
+      "id": "extracted-date-field",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "extracted-date-wrong",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2025"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-no-concatenation",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": [
+            "May",
+            "2026"
+          ]
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-no-body",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-excluded-region",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-title-field",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A Useful Essay"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026",
+          "title": "A Useful Essay"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "extracted-title-wrong",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A Useful Essay"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026",
+          "title": "Another Essay"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-explicit-body-scope",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        },
+        "required_facts": [
+          {
+            "id": "date",
+            "alternatives": [
+              "May 2026"
+            ],
+            "match_scope": "body"
+          }
+        ]
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-fact-cross-page",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A required body fact that appears only as the label of a returned link to another page was counted as delivered content.",
+      "case": {
+        "url": "https://example.test/guide",
+        "expected_any": [],
+        "task_kind": "body",
+        "min_content_chars": 20,
+        "required_facts": [
+          {
+            "id": "intro",
+            "alternatives": [
+              "Installing the toolkit"
+            ]
+          },
+          {
+            "id": "storage",
+            "alternatives": [
+              "Configuring remote storage backends"
+            ]
+          }
+        ]
+      },
+      "artifact": "# Installing the toolkit\nRun the installer and follow the prompts to finish setup on your machine.",
+      "metadata": {
+        "links": [
+          {
+            "text": "Configuring remote storage backends",
+            "href": "https://other.test/blog/storage"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-unique-count",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Repeated returned rows were deduplicated before the duplicate-record check, so two identical reviews passed a one-record minimum. Only overlap with text-derived rows is merged.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-text-cjk-punctuated-paragraphs-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The layout fold after CJK punctuation also removed paragraph breaks in declared plain text, so separate paragraphs ending in 。 joined into one required fact.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "第一段。第二段"
+            ]
+          }
+        ]
+      },
+      "artifact": "第一段。\n\n第二段",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-with-body-copy",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A returned row equal to a text-derived row was skipped every time it repeated, so duplicate returned rows evaded the duplicate-record check when the body also contained one copy. Each text row absorbs only one returned copy.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews\n2026-10-01\nFirst complete review.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-quote-with-body-copy",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A body quote row could absorb two returned copies, one by exact fields and one by equivalent tags, so duplicate returned quotes evaded the duplicate-record check. Each text row absorbs only one returned copy.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“A complete quotation” by Alex Writer Tags: books reading",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "quote": "A complete quotation",
+            "author": "Alex Writer",
+            "tags": "books reading"
+          },
+          {
+            "quote": "A complete quotation",
+            "author": "Alex Writer",
+            "tags": "books reading"
+          }
+        ]
+      },
       "ok": true,
       "expected_task_pass": false
     }

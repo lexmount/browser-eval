@@ -89,6 +89,32 @@ The same command selects the other dataset keys registered in the lock, includin
 
 Author dataset changes in a checkout of the corresponding Hugging Face dataset. Commit the definitions and materialize any Git LFS files, then use `uv run --frozen python -m harness.benchmarks.publication --help` to build the inspected commit. `--create-pr HF_REPOSITORY` opens a Hugging Face pull request for review; it does not update dataset main or create a release tag. Install the optional `dataset-publish` extra and authenticate with `HF_TOKEN` for uploads; readers need no token. Preserve upstream attribution and redistribution terms. Scores, provider responses, model grades and private run directories do not belong in a dataset release.
 
+Web Fetch revisions preserve their original task files. `score_only_annotation_revision`
+cannot change the request. An explicitly selected `task_scope_revision` may also
+replace a nonempty `task_prompt`; it still cannot change task identity, URL,
+retrieval route or output type. Both forms require exact parent hashes, per-task
+field-change hashes, independent source bindings and passing regression controls.
+Select a reviewed revision through the existing Web Fetch `export --revision`
+command and retain its new dataset identity. A scope revision changes the task
+contract. For local analysis of saved answers, use the existing
+`revise_local_snapshot` owner with explicit `rule_revision`, authority and paired
+regression IDs, then bind its receipt as the saved matrix's `offline_revision`.
+This retains the original calls and rules and applies each changed case to every
+method. The narrower certified scoring-correction command does not authorize
+arbitrary prompt changes. A local re-evaluation does not establish that old calls
+executed the revised task or make changed input contracts directly comparable:
+a formal release requires a major edition and remains a separate comparison.
+Changed-prompt offline revisions cannot enter a saved matrix's final primary
+ranking. Keep original-contract results and revised-rule sensitivity analysis
+separate, including per-method effects and any counterfactual retry differences.
+All-method failure is a review trigger, not evidence that a requirement is wrong;
+scope corrections from method-independent task evidence and apply the same rule
+to equivalent tasks, including tasks that already passed.
+Neither a revision PR nor an export creates a release tag. Merge revision support
+first, then the reviewed dataset PR; select its verified merged commit in a
+separate `make pin-dataset DATASET=webfetch REV=<full-HF-commit>` change.
+
+
 After review, merge the HF pull request and validate its merged commit. For a
 formal dataset release, assign a `vMAJOR.MINOR.PATCH` tag in that dataset repository
 and retain its exact target commit. Preserve existing historical tags and never
@@ -244,6 +270,13 @@ that profile. Put report prose in the evidence tree and bind it through
 `comparison.report_interpretation`; a report refresh does not require changing
 Python strings. The normal build and check retain certification and review gates.
 The diagnostic build is a separate evidence state and does not certify results.
+
+Saved-matrix specifications default to `presentation: "audit"`. An explicitly
+selected `presentation: "final"` removes audit-workflow banners only after every
+declared result has complete, judged call evidence. It preserves scores, source
+bindings, limitations and evidence links; it does not confer independent review
+or benchmark certification. The source-aware check also verifies this selection
+against the external specification. Incomplete matrices cannot use final mode.
 
 ```sh
 uv run --frozen python scripts/build_report.py \

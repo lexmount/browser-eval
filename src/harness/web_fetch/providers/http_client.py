@@ -4,7 +4,7 @@ import json
 import math
 import urllib.error
 import urllib.request
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from email.message import Message
 from typing import Any
 
@@ -18,6 +18,7 @@ class HttpResponse:
     url: str
     headers: dict[str, str]
     body: bytes
+    dns_metadata: dict[str, Any] = field(default_factory=dict)
 
     def text(self) -> str:
         content_type = self.headers.get("content-type", "")

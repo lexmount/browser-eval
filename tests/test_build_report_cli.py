@@ -39,3 +39,39 @@ def test_local_audit_rejects_release_profile():
     )
     assert result.returncode == 2
     assert "cannot be combined with a release profile" in result.stderr
+
+
+def test_saved_matrix_rejects_mixed_build_modes():
+    for options in [
+        ['--local-audit'], ['--wcxb-source', '/tmp/source'],
+        ['--wcxb-sample', '/tmp/sample'],
+    ]:
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), '--saved-matrix', '/tmp/spec.json',
+             '--output', '/tmp/report', *options],
+            cwd=ROOT, text=True, capture_output=True, check=False)
+        assert result.returncode == 2
+        assert 'cannot be combined with other build modes' in result.stderr
+
+
+def test_saved_matrix_check_cannot_generate_or_replace_report():
+    result = subprocess.run(
+        [sys.executable, str(SCRIPT), '--check-saved-matrix', '/tmp/report',
+         '--output', '/tmp/another'],
+        cwd=ROOT, text=True, capture_output=True, check=False)
+    assert result.returncode == 2
+    assert 'cannot be combined with build options' in result.stderr
+
+
+def test_saved_matrix_check_rejects_ignored_options():
+    for options in [
+        ['--presentation-binding', '/tmp/binding.json'],
+        ['--authority-root', '/tmp/authority'], ['--include-english'],
+        ['--language', 'zh'], ['--wcxb-source', '/tmp/source'],
+        ['--wcxb-sample', '/tmp/sample'],
+    ]:
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), '--check-saved-matrix', '/tmp/report', *options],
+            cwd=ROOT, text=True, capture_output=True, check=False)
+        assert result.returncode == 2
+        assert 'cannot be combined with build options' in result.stderr

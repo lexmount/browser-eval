@@ -12,9 +12,11 @@ from typing import Any
 
 from lexbench_webfetch.models import EvalCase
 
+from harness.web_fetch.diagnostics import emit
 from harness.web_fetch.models import ProviderResult
-from harness.web_fetch.native_routes import normalized_http_parameters
-from harness.web_fetch.providers.http_client import inner_timeout_budget
+from harness.web_fetch.network_dns import public_dns_context, validate_dns_mode
+from harness.web_fetch.native_routes import encode_http_target_url, normalized_http_parameters
+from harness.web_fetch.providers.http_client import HttpResponse, inner_timeout_budget
 from harness.web_fetch.retrieval_hints import NATIVE_RETRIEVAL_HINTS
 
 
@@ -175,10 +177,18 @@ class Provider(ABC):
                     ledger.reject(self, case, 'Native adapter arguments differ from its canonical request builder')
                 raise ValueError('Native adapter arguments differ from its canonical request builder')
             endpoint, kwargs = native_endpoint, native_arguments
-        if ledger is not None:
-            self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
-                                        parameters=normalized_http_parameters(case, kwargs))
-        return callback(endpoint, **kwargs)
+        mode = self.config.get('dns_mode', 'system')
+        with public_dns_context(mode, kwargs.get('timeout', 30)) as traces:
+            if ledger is not None:
+                self.capture_native_request(case, transport='http', endpoint=endpoint, native_route_ledger=ledger,
+                                            parameters=normalized_http_parameters(case, kwargs))
+            try:
+                response = callback(endpoint, **kwargs)
+            finally:
+                emit('http_dns_resolution', dns_mode=mode, dns_trace=traces)
+        if isinstance(response, HttpResponse):
+            response.dns_metadata = {'dns_mode': mode, 'dns_trace': traces}
+        return response
 
     def native_http_arguments(self, case, timeout):
         raise ValueError('Provider has no fixed-native HTTP request builder')
@@ -191,6 +201,11 @@ class Provider(ABC):
         return self.native_http_arguments(case, timeout)
 
     def native_http_options(self, body, headers, timeout):
+        body = deepcopy(body)
+        if 'url' in body:
+            body['url'] = encode_http_target_url(body['url'])
+        if 'urls' in body:
+            body['urls'] = [encode_http_target_url(url) for url in body['urls']]
         return {'method': 'POST', 'json_body': body, 'headers': headers,
                 'timeout': timeout, 'max_bytes': int(self.config.get('max_bytes', 20_000_000))}
 
@@ -204,6 +219,10 @@ class Provider(ABC):
         raise NotImplementedError
 
     def validate(self) -> list[str]:
+        try:
+            validate_dns_mode(self.config.get('dns_mode', 'system'))
+        except ValueError as error:
+            return [str(error)]
         return []
 
     def cancel(self) -> None:

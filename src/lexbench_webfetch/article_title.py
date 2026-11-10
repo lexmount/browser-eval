@@ -121,13 +121,14 @@ def validate_title_contract(contract):
         raise ValueError('invalid article title contract') from error
 
 
-def verify_article_title(content, contract, *, representation=None):
-    """Require a visible selected HTML title or an exact standalone text line.
+def verify_article_title(content, contract, *, representation=None, headings=(), extracted_title=None):
+    """Require an exact selected title, standalone line, or extracted title field.
 
     Explicit visibility follows the shared HTML projection. External stylesheet
     visibility must be reviewed when authoring source contracts. Plain text
     cannot establish DOM ownership, but a title mention inside prose cannot
-    substitute for the standalone title component.
+    substitute for the standalone title component. An adapter-declared extracted
+    title is a separate output component; generic document metadata is not.
     """
     validate_title_contract(contract)
     if not isinstance(content, str):
@@ -163,7 +164,23 @@ def verify_article_title(content, contract, *, representation=None):
             if heading or restore_inline_code(text, remove=True).strip():
                 candidates.append(article_field_text(text, restore_inline_code))
         surface = 'standalone_text_line'
+    # Explicit extracted headings are page content; the document/SEO title
+    # and arbitrary metadata are deliberately not title candidates.
+    if not isinstance(headings, (list, tuple)) or any(not isinstance(x, str) for x in headings):
+        raise ValueError('returned headings must be a list of text values')
     matched = next((text for text in candidates if _title_key(text, representation='plain_text') in expected), None)
+    # Returned fields carry no page position, so they cannot prove they are
+    # outside a task's excluded regions.
+    if matched is None and not contract.get('excluded_html_selectors'):
+        matched = next((text for text in headings
+                        if _title_key(text, representation='plain_text') in expected), None)
+        if matched is not None:
+            surface = 'returned_heading_field'
+    if extracted_title is not None and not isinstance(extracted_title, str):
+        raise ValueError('Extracted page title must be text')
+    if matched is None and extracted_title and not contract.get('excluded_html_selectors'):
+        if _title_key(extracted_title, representation='plain_text') in expected:
+            matched, surface = extracted_title, 'extracted_page_title_field'
     return {'article_title_pass': matched is not None,
             'article_title_surface': surface,
             'article_title_matched': matched}

@@ -400,7 +400,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         self.assertIn('各方法文字核对范围不同',rendered)
         self.assertIn('<summary>文字核对覆盖范围</summary>',rendered)
         for row in table_cells(rendered,'ranking-challenge'):
-            self.assertEqual(row[7],'100.0%')
+            self.assertEqual(row[6],'100.0%')
         self.assertNotIn('· 1/2 例',rendered)
 
     def test_all_text_tracks_share_columns_and_text_coverage_semantics(self):
@@ -491,7 +491,7 @@ class ReportBodyScopeTests(unittest.TestCase):
         first,second=case('a','body'),case('b','body')
         rs=[record(first,score=1),record(first,ok=False,score=1),record(second,score=.2)]
         row=table_cells(ranking(rs, {'a':first,'b':second}, 'challenge'),'ranking-challenge')[0]
-        self.assertEqual(row[6], '35.0%')  # mean(mean(1,0), .2), not pooled .4
+        self.assertEqual(row[5], '35.0%')  # mean(mean(1,0), .2), not pooled .4
 
     def test_optional_full_reference_diagnostics_independent_of_task_kind(self):
         a,b=case('a'),case('b','body')

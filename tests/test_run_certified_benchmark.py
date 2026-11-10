@@ -47,7 +47,7 @@ class CertifiedBenchmarkTests(unittest.TestCase):
         )
         from harness.web_fetch.report_build import build_report
         from harness.web_fetch.evidence import finalize_aggregate
-        for mode, retries in (('declared', 0), ('native', 3)):
+        for mode, retries in (('declared', 0), ('native', 1)):
             with self.subTest(mode=mode, retries=retries), tempfile.TemporaryDirectory() as directory:
                 root=Path(directory); dataset=root/'dataset.json'; output=root/'run'
                 case={'id':'stable','name':'Stable page','url':'https://example.test/page',

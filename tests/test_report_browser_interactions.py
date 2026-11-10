@@ -405,3 +405,34 @@ def test_web_extract_same_case_panels_keep_native_evidence_and_keyboard_return(
             assert errors == []
         finally:
             page.close()
+
+
+def test_webfetch_shared_ranks_survive_sorting(tmp_path, browser, display):
+    from pathlib import Path
+    from harness.web_fetch import report
+    from tests.test_report_body_scope import case, record
+    c = case('sample', kind='body', track='web')
+    records = []
+    for provider, passed, elapsed in [('a', True, 90), ('b', True, 30), ('c', False, 10)]:
+        row = record(c, passed=passed, elapsed=elapsed)
+        row['provider'] = provider
+        records.append(row)
+    markup = report.overall_ranking(records, {c['id']: c})
+    js = Path(report.__file__).with_name('assets').joinpath('report.js').read_text(encoding='utf-8')
+    (tmp_path/'app.js').write_text(js, encoding='utf-8')
+    (tmp_path/'index.html').write_text(
+        '<!doctype html><html><head><meta charset="utf-8">'
+        '<script defer src="app.js"></script></head><body>'+markup+'</body></html>', encoding='utf-8')
+    with local_report_server(tmp_path) as origin:
+        page = local_page(browser, origin, **display)
+        try:
+            page.goto(origin)
+            ranks = page.locator('#ranking-overall td[data-rank]')
+            assert ranks.all_text_contents() == ['1', '1', '3']
+            page.locator('#ranking-overall th button').last.click()
+            assert sorted(ranks.all_text_contents()) == ['1', '1', '3']
+            for row in page.locator('#ranking-overall tbody tr').all():
+                expected = '3' if 'providers/c.html' in row.inner_html() else '1'
+                assert row.locator('td').first.inner_text() == expected
+        finally:
+            page.close()

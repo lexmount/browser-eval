@@ -239,12 +239,16 @@ def _remove_fields(case, fields):
         case.pop(field, None)
 
 
-def apply_annotation_change(case, change, reference_sha256):
+def apply_annotation_change(case, change, reference_sha256, *, task_scope_revision=False):
     """Apply declared edits in dependency order, independent of JSON key order."""
     updates, removals = change.get('set', {}), change.get('remove', [])
+    editable = EDITABLE_FIELDS | ({'task_prompt'} if task_scope_revision else set())
     if (not isinstance(updates, dict) or not isinstance(removals, list)
-            or (set(updates) | set(removals)) - EDITABLE_FIELDS):
+            or (set(updates) | set(removals)) - editable):
         raise ValueError('Annotation revision cannot change collection inputs')
+    if 'task_prompt' in removals or ('task_prompt' in updates and (
+            not isinstance(updates['task_prompt'], str) or not updates['task_prompt'].strip())):
+        raise ValueError('Task scope revision requires a nonempty task prompt')
     if ('acceptance_patch' in change
             and 'acceptance_contract' in set(updates) | set(removals)):
         raise ValueError('Conflicting acceptance replacement and patch')

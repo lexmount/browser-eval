@@ -6,6 +6,9 @@ import threading
 import unittest
 import urllib.error
 from pathlib import Path
+from types import SimpleNamespace
+
+import pytest
 
 from lexbench_webfetch.models import EvalCase
 from harness.web_fetch.models import ProviderResult
@@ -14,6 +17,53 @@ from harness.web_fetch.runner import (
     IncompleteEvaluationError, preflight_declared_capacity, run_evaluation,
     classify_exception,
 )
+
+
+@pytest.mark.parametrize('cooldown', [0, .5])
+def test_retry_retains_cleanup_wait_after_worker_exits(tmp_path, monkeypatch, cooldown):
+    now = [0.0]
+    def sleep(seconds):
+        now[0] += seconds
+    monkeypatch.setattr('harness.web_fetch.runner.time', SimpleNamespace(
+        monotonic=lambda: now[0], perf_counter=lambda: now[0], sleep=sleep))
+    class Pending:
+        process_cleanup_failed = False
+        alive = True
+
+        def is_alive(self):
+            return self.alive
+
+        def join(self, timeout):
+            assert timeout == 1.0
+            sleep(.8)
+            self.alive = False
+
+    worker = Pending()
+    outcomes = iter([
+        (ProviderResult(False, '', error_type='timeout', metadata={'_answer_elapsed_ms': 20}), worker),
+        (ProviderResult(True, 'Expected', metadata={'_answer_elapsed_ms': 5}), None),
+    ])
+    call_starts = []
+    def fetch(*args, **kwargs):
+        call_starts.append(now[0])
+        return next(outcomes)
+    monkeypatch.setattr('harness.web_fetch.runner.fetch_with_deadline', fetch)
+    provider = BarrierProvider('fixture', threading.Barrier(1))
+    provider.config['min_interval_seconds'] = cooldown
+    records, _ = run_evaluation(
+        output_dir=tmp_path, dataset_meta={'id': 'test'}, dataset_path=Path('dataset.json'),
+        cases=[EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])],
+        providers=[provider],
+        provider_config_path=Path('providers.json'), runs=1, timeout=2, delay=0,
+        max_failure_retries=1)
+    retry = records[0]['provider_metadata']['retry']
+    wait = retry['attempts'][0]['retry_cleanup_wait_ms']
+    assert wait == 800
+    assert call_starts[1] - .8 == pytest.approx(cooldown)
+    assert retry['attempts'][1]['retry_throttle_wait_ms'] == cooldown * 1000
+    assert retry['execution_cost_ms'] == round(25 + wait + cooldown * 1000, 2)
+    assert records[0]['elapsed_ms'] == 5
+    assert (tmp_path / records[0]['artifact_path']).read_text(encoding='utf-8') == 'Expected'
 
 
 class BarrierProvider(Provider):
@@ -522,7 +572,7 @@ class RunnerConcurrencyTest(unittest.TestCase):
             release.set()
             finished.wait(2)
 
-    def test_unstoppable_timeout_on_final_case_is_complete(self):
+    def test_unstoppable_timeout_on_final_case_retains_pending_retry(self):
         release = threading.Event()
 
         class Unstoppable(Provider):
@@ -533,18 +583,21 @@ class RunnerConcurrencyTest(unittest.TestCase):
         try:
             with tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
-                records, _ = run_evaluation(
-                    output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
-                    dataset_path=Path('dataset.json'),
-                    cases=[EvalCase('only', 'Only', 'https://example.com', 'static', [])],
-                    providers=[Unstoppable('slow', {})],
-                    provider_config_path=Path('providers.json'), runs=1,
-                    timeout=.02, delay=0,
-                )
+                with self.assertRaises(IncompleteEvaluationError):
+                    run_evaluation(
+                        output_dir=root, dataset_meta={'id': 'fixture', 'cases': []},
+                        dataset_path=Path('dataset.json'),
+                        cases=[EvalCase('only', 'Only', 'https://example.com', 'static', [])],
+                        providers=[Unstoppable('slow', {})],
+                        provider_config_path=Path('providers.json'), runs=1,
+                        timeout=.02, delay=0,
+                    )
+                records = [json.loads(line) for line in (root/'results.jsonl').read_text(encoding='utf-8').splitlines()]
                 self.assertEqual(len(records), 1)
                 self.assertEqual(records[0]['error_type'], 'timeout')
                 manifest = json.loads((root / 'manifest.json').read_text(encoding='utf-8'))
-                self.assertEqual(manifest['unexecuted'], [])
+                self.assertEqual(manifest['unexecuted'][0]['reason'], 'failure_retry_pending_previous_call_still_running')
+                self.assertEqual(records[0]['provider_metadata']['retry_pending']['remaining_physical_calls'], 1)
         finally:
             release.set()
 

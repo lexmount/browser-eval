@@ -118,7 +118,11 @@ def _comment_time_metadata(line, *, representation=None):
     unambiguous representation for that unusual case.
     """
     stamp = (line if representation == 'plain_text' else visible_markdown_links(line)).strip()
-    return bool(TIMESTAMP_LINE.fullmatch(stamp))
+    # Serialized comment footers may append permalink and quote controls.
+    # Match the whole footer so date mentions in real prose remain content.
+    stamp = re.sub(r'(?:\s*\|\s*(?:#|引用|Reply|Quote))*\s*$', '', stamp, flags=re.I)
+    return bool(TIMESTAMP_LINE.fullmatch(stamp) or re.fullmatch(
+        r'\d{4}年\s*\d{1,2}月\s*\d{1,2}日\s+\d{1,2}:\d{2}(?::\d{2})?', stamp))
 
 
 def _coverage_text_start(lines, contract, *, representation=None):
@@ -186,23 +190,23 @@ def _coverage_text_start(lines, contract, *, representation=None):
 def _text_author(stripped, heading, heading_authors, explicit_scope, new_paragraph, *, representation=None):
     """Recognize one author format without treating inline prose as a new record."""
     if heading:
-        return heading[2], '', True
+        return heading[2], '', True, 'structural'
     if heading_authors:
-        return None, '', True
+        return None, '', True, None
     links = [] if representation == 'plain_text' else [link for link in markdown_links(stripped) if not link.is_image]
     if len(links) == 1 and links[0].start == 0 and links[0].end == len(stripped):
-        return links[0].label, '', False
+        return links[0].label, '', False, 'structural'
     bold = None if representation == 'plain_text' else re.fullmatch(r'\*\*(.+?)\*\*[:：]?', stripped)
     if bold:
-        return bold[1], '', False
+        return bold[1], '', False, 'structural'
     delimiter = r'(?::(?=\s|$)|：)' if representation == 'plain_text' else r'[:：]'
     colon = re.fullmatch(r'([^\n:：]{1,120})' + delimiter + r'\s*(.*)', stripped)
     if explicit_scope and colon:
         if new_paragraph:
-            return colon[1], colon[2], False
+            return colon[1], colon[2], False, 'colon'
         if not colon[2]:
-            return colon[1], '', False
-    return None, '', False
+            return colon[1], '', False, 'colon'
+    return None, '', False, None
 
 
 def _coverage_text_records(content, contract, *, representation=None):
@@ -242,6 +246,8 @@ def _coverage_text_records(content, contract, *, representation=None):
     rows, current = [], None
     heading_authors = False
     author_heading_level = None
+    standalone_colon_authors = None
+    speech_attribution_authors = False
     for offset, line in enumerate(lines[start:], start):
         previous_blank = offset == start or not lines[offset - 1].strip()
         stripped = line.strip()
@@ -275,15 +281,28 @@ def _coverage_text_records(content, contract, *, representation=None):
             rows.append({'author': label, 'text': visible(line).strip()})
             current = None
             continue
-        author, body, heading_authors = _text_author(
+        if _comment_time_metadata(line, representation=representation):
+            continue
+        author, body, heading_authors, author_format = _text_author(
             stripped, heading, heading_authors, explicit_scope,
             current is None or previous_blank, representation=representation)
+        # Once the serializer establishes standalone "Author:" lines, inline
+        # colon paragraphs belong to that author's body, not another record.
+        if standalone_colon_authors and body:
+            author = None
+        if speech_attribution_authors and author_format == 'colon' and author is not None and not re.fullmatch(r'.+\s+说', author):
+            author = None
         if author is not None:
+            if standalone_colon_authors is None:
+                standalone_colon_authors = bool(re.fullmatch(r'[^\n:：]+[:：]', stripped))
+                # Explicit "name says:" serialization distinguishes author
+                # lines from colon-ended explanations and quoted addressees.
+                speech_attribution_authors = standalone_colon_authors and bool(re.fullmatch(r'.+\s+说', author))
             if heading:
                 author_heading_level = len(heading[1])
             current = {'author': visible(author), 'text': visible(body)}
             rows.append(current)
-        elif current is not None and not _comment_time_metadata(line, representation=representation):
+        elif current is not None:
             current['text'] += '\n' + visible(line)
     for row in rows:
         row['author'] = article_field_text(row['author'], restore_inline_code, representation=representation)
