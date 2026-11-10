@@ -105,7 +105,7 @@ def native_answer_projection(provider_type, case, payload, status_code=None, *, 
     if provider_type in {'lexmount', 'lexmount_cn'}:
         result = _object(payload.get('result'))
         extra = _object(result.get('extra'))
-        text_scalar = {'format': 'text_or_none'} if policy_version >= 7 else {}
+        text_scalar = {'format': 'text_or_text_list'} if policy_version >= 7 else {}
         return {'schema_version': 2, 'content_pointer': ['result', 'main_text'],
                 **({'answer_format': 'plain_text'} if policy_version >= 4 else {}),
                 'content_format': 'text' if isinstance(result.get('main_text'), str) else 'empty',
@@ -404,6 +404,9 @@ def _project_field(payload, spec, *, historical_scoring_source=None):
         return value
     if kind == 'text_or_none':
         return value if isinstance(value, str) else None
+    if kind == 'text_or_text_list':
+        return value if isinstance(value, str) or (
+            isinstance(value, list) and all(isinstance(item, str) for item in value)) else None
     if kind == 'text_items':
         if value is None:
             return []

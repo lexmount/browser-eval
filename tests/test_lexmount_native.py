@@ -260,3 +260,29 @@ def test_document_metadata_cannot_supply_page_text(field):
         assert passed is False
         # The same value as an extracted page field still counts.
         assert scored_fetch(case, {'main_text': NAVIGATION, 'extra': {'subtitle': 'May 2026'}})[1] is True
+
+
+@pytest.mark.parametrize('author,kept', [
+    (['A. Writer', 'B. Editor'], True),
+    ('B. Editor', True),
+    (['A. Writer', {'name': 'B. Editor'}], False),
+    ({'name': 'B. Editor'}, False),
+])
+def test_text_lists_survive_and_other_shapes_are_absent(author, kept):
+    contract = dict(ANCHOR_CONTRACT, stable_text_anchors=[{'id': 'by', 'alternatives': ['B. Editor']}])
+    subtitle = ['May 2026', 'Essay'] if kept else 7
+    fetched, passed = scored_fetch(body_case(acceptance_contract=contract),
+                                   {'main_text': BODY, 'author': author, 'extra': {'subtitle': subtitle}})
+    assert passed is kept
+    information = fetched.metadata['page_information']
+    assert information['author'] == (author if kept else None)
+    assert information['subtitle'] == (subtitle if kept else None)
+
+
+@pytest.mark.parametrize('result', [
+    {'main_text': BODY, 'title': ['Heading'], 'final_url': {'href': 'https://example.com/essay'}},
+    {'main_text': BODY, 'title': 7, 'url': ['https://example.com/essay']},
+])
+def test_non_text_title_and_address_are_absent(result):
+    fetched, _ = scored_fetch(body_case(), result)
+    assert fetched.title is None and fetched.final_url is None
