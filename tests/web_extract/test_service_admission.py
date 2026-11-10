@@ -199,11 +199,14 @@ def test_http_parent_death_keeps_admission_until_all_owned_processes_exit(tmp_pa
         parent.wait(timeout=3)
         self_hosted.ADMISSION_DIRECTORY = directory
         for _ in range(500):
-            alive = [p for p in owned if p.is_running() and p.status() != psutil.STATUS_ZOMBIE]
             lease = self_hosted.acquire_worker_slot(1)
             if lease is not None:
-                lease.close()
-                assert not alive, 'Worker admission reopened while orphaned extraction survived'
+                with lease:
+                    # Cleanup may finish while acquisition is attempted. Observe
+                    # descendants after admission succeeds, while holding the slot.
+                    alive = [p for p in owned
+                             if p.is_running() and p.status() != psutil.STATUS_ZOMBIE]
+                    assert not alive, 'Worker admission reopened while orphaned extraction survived'
                 break
             time.sleep(.01)
         else:
