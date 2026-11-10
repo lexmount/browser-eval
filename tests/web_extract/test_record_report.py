@@ -11,6 +11,47 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.report import check, record_comparison, record_route
 
 
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize("damage", [None, "home-intro", "moved-home-content"])
+def test_interpretation_intro_and_core_first_home_rules_hold_together(tmp_path, mode, damage):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "initial", mode=mode)
+    model = read_json(home / "content.json")
+    pages = model.setdefault("pages", {})
+    pages.setdefault("interpretation", {})["intro"] = {"zh": "<h2>Extraction diagram</h2>"}
+    if damage == "home-intro":
+        pages.setdefault("index", {})["intro"] = {"zh": "<p>Misplaced home intro.</p>"}
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile.setdefault("research_report", {})["content"] = {
+        "path": str(home / "content.json"), "sha256": digest((home / "content.json").read_bytes())}
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    if damage == "home-intro":
+        with pytest.raises(ValueError, match="Home-page content must follow"):
+            build(output, home / "content.json", home=home, profile=home / "profile.json",
+                  language="zh")
+        return
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    current = soup.select_one("main table[data-completion-metrics]")
+    while current is not soup.main:
+        assert not any(str(node).strip() for node in current.previous_siblings)
+        current = current.parent
+    if damage == "moved-home-content":
+        def prepend(raw):
+            page = BeautifulSoup(raw, "html.parser")
+            node = page.new_tag("p")
+            node.string = "Secondary interpretation before the comparison"
+            page.main.insert(0, node)
+            return str(page)
+        rebind(output, "zh/index.html", prepend)
+        with pytest.raises(ValueError, match="Core comparison must precede"):
+            check(output)
+
+
 def test_english_build_requires_a_translated_page_intro(tmp_path):
     from harness.web_extract.report import build
 
@@ -23,6 +64,37 @@ def test_english_build_requires_a_translated_page_intro(tmp_path):
     with pytest.raises(ValueError, match="English content is missing"):
         build(output, content, home=home, profile=home / "profile.json", language="en")
     assert not output.exists()
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+def test_latency_directions_are_checked_against_the_collected_contract(tmp_path, mode):
+    output = tmp_path / "report"
+    create(output, mode=mode)
+
+    def change_comparison(raw):
+        soup = BeautifulSoup(raw, "html.parser")
+        cells = soup.select('[data-operating-metrics] [data-metric]')
+        direction = ("min" if all(c["data-metric-direction"] == "neutral" for c in cells)
+                     else "neutral")
+        for cell in cells:
+            cell["data-metric-direction"] = direction
+            for winner in cell.select(".comparison-winner"):
+                winner.unwrap()
+        if direction == "min":
+            for metric in {cell["data-metric"] for cell in cells}:
+                selected = [cell for cell in cells if cell["data-metric"] == metric]
+                minimum = min(float(cell["data-sort"]) for cell in selected)
+                for cell in selected:
+                    if float(cell["data-sort"]) == minimum:
+                        winner = soup.new_tag("span", attrs={"class": "comparison-winner"})
+                        for child in list(cell.contents):
+                            winner.append(child.extract())
+                        cell.append(winner)
+        return str(soup)
+
+    rebind(output, "zh/index.html", change_comparison)
+    with pytest.raises(ValueError, match="latency/pricing|timing or pricing"):
+        check(output)
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])

@@ -126,6 +126,21 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
     if len(rows) != len(expected) or {(r["model_id"], r["case_id"]) for r in rows} != expected:
         raise ValueError("Incomplete or duplicate model comparison population")
 
+    groups = summarize_model_rows(rows, models)
+    return {
+        "stage": stage,
+        "plan_sha256": binding["plan_sha256"],
+        "case_contract_sha256": file_sha256(contract_path),
+        "scoring_sha256": file_sha256(Path(__file__)),
+        "groups": groups,
+        "case_ids": sorted(cases),
+        "details": rows,
+        "review_scope": "automatic scoring only",
+    }
+
+
+def summarize_model_rows(rows, models):
+    """Aggregate retained model judgments and timers without generating or rescoring answers."""
     def summarize(values):
         totals = Counter({k: sum(r[k] for r in values) for k in ("tp", "fp", "fn")})
         tp, fp, fn = (totals[k] for k in ("tp", "fp", "fn"))
@@ -163,16 +178,7 @@ def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair
                 for ds in sorted({r["dataset"] for r in values})
             },
         }
-    return {
-        "stage": stage,
-        "plan_sha256": binding["plan_sha256"],
-        "case_contract_sha256": file_sha256(contract_path),
-        "scoring_sha256": file_sha256(Path(__file__)),
-        "groups": groups,
-        "case_ids": sorted(cases),
-        "details": rows,
-        "review_scope": "automatic scoring only",
-    }
+    return groups
 
 
 REFERENCE_CONTROLS = (

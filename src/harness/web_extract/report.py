@@ -7,6 +7,7 @@ import math
 import re
 import statistics
 import struct
+import zipfile
 from collections import Counter
 from contextlib import contextmanager
 from contextvars import ContextVar
@@ -308,6 +309,8 @@ def authored_intro(model, route, language):
     value = model.get("pages", {}).get(route, {}).get("intro", {})
     if not isinstance(value, dict) or not isinstance(value.get(language, ""), str):
         raise ValueError("Report page intro must contain language-keyed HTML")
+    if route == "index" and any(value.values()):
+        raise ValueError("Home-page content must follow its core comparison; use body")
     return value.get(language, "")
 
 
@@ -316,6 +319,99 @@ def page_intro_hash(rendered):
     if node is None:
         raise ValueError("Report page intro was not rendered")
     return digest(str(node).encode())
+
+
+def model_comparison_tables(output, binding, language):
+    """Render model diagnostics from hash-bound scored cases, not authored numbers."""
+    from harness.web_extract.analysis import summarize_model_rows
+
+    if not binding:
+        return {}
+    dataset = binding["dataset"]
+    rendered = {}
+    archives = {}
+    for name, specification in binding["tables"].items():
+        if not re.fullmatch(r"[a-z]+", name):
+            raise ValueError("Unsafe model comparison table name")
+        rows, metrics, case_ids, seen = [], {i: [] for i in range(1, 8)}, None, set()
+        for cohort in specification["cohorts"]:
+            archive = cohort["archive"]
+            relative = Path(archive["path"])
+            if relative.is_absolute() or ".." in relative.parts or relative.parts[0] != "assets":
+                raise ValueError("Unsafe model comparison evidence archive")
+            path = output / relative
+            if path.is_symlink():
+                raise ValueError("Unsafe model comparison evidence archive")
+            if archive["path"] not in archives:
+                archives[archive["path"]] = digest(path.read_bytes())
+            if archives[archive["path"]] != archive["sha256"]:
+                raise ValueError("Model comparison evidence archive changed")
+            with zipfile.ZipFile(path) as bundle:
+                raw = bundle.read(cohort["scores"]["path"])
+            if digest(raw) != cohort["scores"]["sha256"]:
+                raise ValueError("Model comparison scored evidence changed")
+            scores = json.loads(raw)
+            if scores["stage"] != name:
+                raise ValueError("Model comparison stage differs from its evidence")
+            identities = [(row["model_id"], row["case_id"]) for row in scores["details"]]
+            expected = {(model_id, case_id) for model_id in scores["groups"]
+                        for case_id in scores["case_ids"]}
+            if len(identities) != len(expected) or set(identities) != expected:
+                raise ValueError("Model comparison case population is incomplete or duplicated")
+            if case_ids is not None and scores["case_ids"] != case_ids:
+                raise ValueError("Model comparison cohorts must use the same cases")
+            case_ids = scores["case_ids"]
+            groups = summarize_model_rows(scores["details"], scores["groups"])
+            if groups != scores["groups"]:
+                raise ValueError("Model comparison aggregates differ from retained case scores")
+            for model_id, group in groups.items():
+                if model_id in seen:
+                    raise ValueError("Duplicate model comparison configuration")
+                seen.add(model_id)
+                values = group["datasets"][dataset]
+                count = values["cases"]
+                timers = [values["timings"][key] for key in (
+                    "first_any_output_seconds", "first_answer_seconds",
+                    "complete_json_seconds", "elapsed_seconds")]
+                label = specification.get("labels", {}).get(model_id, model_id)
+                if isinstance(label, dict):
+                    label = label[language]
+                cohort_label = cohort.get("label", {})
+                rows.append([
+                    esc(label), record_metric(values["f1"], True),
+                    f'{values["schema_valid"]}/{count}',
+                    f'{values["page_exact"]}/{values["page_exact_denominator"]}',
+                    *[record_metric(timer["p50"]) + '<br><small>'
+                      + f'{timer["count"]}/{count}</small>' for timer in timers],
+                    esc(cohort_label.get(language, "")),
+                ])
+                raw_values = [values["f1"], values["schema_valid"] / count,
+                              values["page_exact"] / values["page_exact_denominator"]
+                              if values["page_exact_denominator"] else None,
+                              *[timer["p50"] for timer in timers]]
+                for index, value in enumerate(raw_values, 1):
+                    metrics[index].append(value)
+        rendered[name] = record_comparison(
+            message("model_comparison_headers", language), rows,
+            {i: ("model-" + name + "-" + str(i), "max" if i <= 3 else "neutral", values)
+             for i, values in metrics.items()},
+        )
+    return rendered
+
+
+def bind_model_tables(output, binding, language, body):
+    soup = BeautifulSoup(body, "html.parser")
+    tables = model_comparison_tables(output, binding, language)
+    existing = soup.select("[data-model-validation], [data-model-screening]")
+    if len(existing) != len(tables):
+        raise ValueError("Model comparison requires one evidence-bound table per stage")
+    for name, markup in tables.items():
+        nodes = soup.select("[data-model-" + name + "]")
+        if len(nodes) != 1:
+            raise ValueError("Model comparison table placeholder is missing or duplicated")
+        nodes[0].clear()
+        nodes[0].append(BeautifulSoup(markup, "html.parser"))
+    return str(soup) if tables else body
 
 
 def cohort_source(source, selection, home, truth):
@@ -1063,6 +1159,10 @@ def check_completion_metrics(output, manifest, rows):
 def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=None):
     """One full-population summary, with incomplete quality left unavailable."""
     labels = labels or {}
+    comparable = latency_comparable(
+        selected_execution_contracts([binding for binding in bindings if "contract" in binding]),
+        methods,
+    )
     scores = {m: b["scores"][m] for b in bindings if b.get("certified") for m in b["scores"]}
     fields = ("price", "sku", "availability", "OutOfStock")
     blocked = {b["contract"]["methods"][0] for b in bindings if b.get("access_blocked")}
@@ -1195,9 +1295,11 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             )
             name = population + "-" + metric
             cell.attrs.update(
-                {"data-metric": name, "data-metric-direction": "min", "data-sort": str(value)}
+                {"data-metric": name, "data-metric-direction": "min" if comparable else "neutral",
+                 "data-sort": str(value)}
             )
-            groups.setdefault(name, []).append((value, cell))
+            if comparable:
+                groups.setdefault(name, []).append((value, cell))
     for values in groups.values():
         lowest = min(v for v, _ in values)
         for value, cell in values:
@@ -1208,6 +1310,8 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             span = timing.new_tag("span", attrs={"class": "comparison-winner"})
             span.string = text
             cell.append(span)
+    if not comparable:
+        note += " " + message("latency_loads_differ", lang)
     return str(result) + "<p>" + note + "</p>", str(timing)
 
 
@@ -1399,6 +1503,27 @@ def selected_execution_contracts(bindings):
     return sources
 
 
+def effective_concurrency(contract, method):
+    value = contract.get("concurrency")
+    policy = contract.get("execution_policy", {})
+    if type(value) is not int:
+        return None
+    if policy:
+        groups = policy["resources"]
+        selected = policy.get("assignments", {}).get(method)
+        if selected is None:
+            selected = list(groups) if len(contract.get("methods", [])) == 1 else [method]
+        value = min([value, policy["max_in_flight"]]
+                    + [groups[group]["capacity"] for group in selected])
+    return value
+
+
+def latency_comparable(sources, methods):
+    limits = {effective_concurrency(contract, method)
+              for method in methods for contract in sources.get(method, [{}])}
+    return len(limits) == 1 and None not in limits
+
+
 def execution_settings(sources, methods, labels, language):
     """Expose the collected load without treating concurrency as a ranking."""
     rows = []
@@ -1411,14 +1536,8 @@ def execution_settings(sources, methods, labels, language):
 
         def number(key, source=contract, participant=method):
             value = source.get(key)
-            policy = source.get("execution_policy", {})
-            if key == "concurrency" and type(value) is int and policy:
-                groups = policy["resources"]
-                selected = policy.get("assignments", {}).get(participant)
-                if selected is None:
-                    selected = list(groups) if len(source.get("methods", [])) == 1 else [participant]
-                value = min([value, policy["max_in_flight"]]
-                            + [groups[group]["capacity"] for group in selected])
+            if key == "concurrency":
+                value = effective_concurrency(source, participant)
             return f"{value:g}" if type(value) in (int, float) and math.isfinite(value) else "—"
 
         rows.append(
@@ -1494,10 +1613,13 @@ def check_worker_resources(output, methods, rows, labels, language):
             raise ValueError("Worker resource comparison differs from retained measurements")
 
 
-def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
+def operating_metrics(methods, rows, prices, lang, labels, *, compared=None, execution=None):
     """Home-page latency and price, with the measured population kept explicit."""
     price_table(methods, prices, lang, labels)
     compared = set(methods if compared is None else compared)
+    comparable = execution is None or latency_comparable(execution, methods)
+    if not comparable:
+        compared.clear()
     records = []
     for method in methods:
         selected = [r for r in rows if r["method"] == method]
@@ -1577,6 +1699,8 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
         + " "
         + message("pricing_scope_note", lang)
     )
+    if not comparable:
+        note += " " + message("latency_loads_differ", lang)
     return (
         "<section data-home-operations><h2>"
         + (message("latency_and_pricing", lang))
@@ -2729,7 +2853,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         )
         if not cohort:
             bodies["index"] += operating_metrics(
-                methods, rows, model.get("prices", {}), lang, names
+                methods, rows, model.get("prices", {}), lang, names, execution=configurations
             )
             bodies["accounts"] += price_table(methods, model.get("prices", {}), lang, names)
         if cohort:
@@ -2738,10 +2862,11 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             core = with_completion_columns(core, completion, methods, lang)
             bodies["index"] = (
-                model["pages"].get("index", {}).get("body", {}).get(lang, "")
-                + core
+                core
                 + report_metric_guide(lang, records=False)
-                + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
+                + operating_metrics(methods, rows, model.get("prices", {}), lang, names,
+                                    execution=configurations)
+                + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             )
             bodies["protocol"] += "<h2>" + (message("call_latency", lang)) + "</h2>" + timings
             bodies["accounts"] += (
@@ -3183,6 +3308,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         )
         for p in PAGES:
             intro = authored_intro(model, p, lang)
+            if p == "interpretation":
+                bodies[p] = bind_model_tables(
+                    output, model.get("model_comparison"), lang, bodies[p])
             rendered = page(
                 lang, p, titles[p], bodies[p], languages=languages, state=state, intro=intro
             )
@@ -3219,6 +3347,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         {
             "template": template_identity("web-extract"),
             "page_intros": page_intros,
+            "model_comparison": model.get("model_comparison"),
             "template_version": VERSION,
             "methods": methods,
             "browser_eval": build_version,
@@ -3378,6 +3507,28 @@ def check_reader_contract(output, manifest, *, release=False):
     methods = manifest.get("planned_methods") or manifest.get("methods", [])
     labels = manifest.get("method_labels", {})
     for language in manifest["languages"]:
+        home_page = BeautifulSoup(
+            (output / language / "index.html").read_text(encoding="utf-8"), "html.parser")
+        first = home_page.main.find(True, recursive=False)
+        core = home_page.select_one("[data-core-metrics]")
+        if manifest.get("mode") in {"full-cohort-progress", "field-extraction-cohort"} and (
+            core is None or (core is not first and first not in core.parents)
+        ):
+            raise ValueError("Core comparison must precede authored home-page content")
+        interpretation = BeautifulSoup(
+            (output / language / "interpretation.html").read_text(encoding="utf-8"),
+            "html.parser",
+        )
+        model_tables = model_comparison_tables(output, manifest.get("model_comparison"), language)
+        if len(interpretation.select("[data-model-validation], [data-model-screening]")) != len(
+            model_tables
+        ):
+            raise ValueError("Model comparison requires evidence-bound tables")
+        for name, markup in model_tables.items():
+            nodes = interpretation.select("[data-model-" + name + "]")
+            expected_table = BeautifulSoup(markup, "html.parser").select_one("table")
+            if len(nodes) != 1 or nodes[0].select_one("table") != expected_table:
+                raise ValueError("Model comparison table differs from scored evidence")
         check_case_comparison_controls(output, methods, labels, language)
         if manifest.get("mode") == "field-extraction-cohort":
             sources = read_json(output / "public-evidence/sources.json")
@@ -3560,7 +3711,8 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
             )
             check_worker_resources(output, methods, rows, names, lang)
             expected = BeautifulSoup(
-                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
+                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names,
+                                  execution=selected_execution_contracts(manifest["source_runs"])),
                 "html.parser",
             ).select_one("[data-operating-metrics]")
             for anchor in expected.select('a[href="accounts.html"]'):
@@ -3613,7 +3765,8 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
             rows = [r for method in methods for r in data[method].values()]
             check_worker_resources(output, methods, rows, names, lang)
             expected_home = BeautifulSoup(
-                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
+                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names,
+                                  execution=selected_execution_contracts(manifest["source_runs"])),
                 "html.parser",
             ).select_one("[data-operating-metrics]")
             for anchor in expected_home.select('a[href="accounts.html"]'):
@@ -4273,6 +4426,8 @@ def build_record_cohort(output, content, *, home, language, profile):
 
     def write(route, heading, body):
         intro = authored_intro(model, route, language) if route in PAGES else ""
+        if route == "interpretation":
+            body = bind_model_tables(output, model.get("model_comparison"), language, body)
         rendered = page(
             language, route, heading, body, detail=route not in PAGES,
             languages=("zh",), state="field-extraction-cohort",
@@ -4377,6 +4532,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         language,
         labels,
         compared=compared,
+        execution={m: [v["contract"]] for m, v in data["sources"].items()},
     )
     bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
     if audit_binding:
@@ -4398,12 +4554,12 @@ def build_record_cohort(output, content, *, home, language, profile):
     )
     bodies["protocol"] += "<p>" + message("completion_protocol", language) + "</p>"
     bodies["index"] = (
-        bodies["index"]
-        + "<section data-core-metrics>"
+        "<section data-core-metrics>"
         + core
         + "</section>"
         + report_metric_guide(language, records=True)
         + operations
+        + bodies["index"]
     )
     domains = Counter(ref["domain"] for ref in truth.values())
     sites = Counter((ref["domain"], ref["site"]) for ref in truth.values())
@@ -4907,6 +5063,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         {
             "mode": "field-extraction-cohort",
             "page_intros": page_intros,
+            "model_comparison": model.get("model_comparison"),
             **report_dependencies(),
             "local_example": bound_profile.get("local_example", False),
             "dataset_kind": "local-example"
@@ -5156,16 +5313,20 @@ def check_record_cohort(output, *, release=False, visual_receipt=None, profile=N
             "zh",
             manifest["method_labels"],
             compared=manifest["comparison_methods"],
+            execution={m: [v["contract"]] for m, v in read_json(
+                output / "public-evidence/sources.json").items()},
         ),
         "html.parser",
     )
+    for anchor in expected_operations.select('a[href="accounts.html"]'):
+        anchor["href"] = "zh/accounts.html"
     home_view = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     check_price_coverage(
         output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )
-    if [
-        row.get_text(strip=True) for row in home_view.select("[data-operating-metrics] tbody tr")
-    ] != [row.get_text(strip=True) for row in expected_operations.select("tbody tr")]:
+    if home_view.select_one("[data-operating-metrics]") != expected_operations.select_one(
+        "[data-operating-metrics]"
+    ):
         raise ValueError("Record timing or pricing differs from measured evidence")
     for route, selector in (
         ("index", "[data-core-metrics]"),

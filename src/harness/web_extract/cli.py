@@ -80,13 +80,14 @@ def main(argv=None):
     p.add_argument(
         "--concurrency",
         type=int,
-        default=4,
-        help="Maximum in-flight calls per method; freeze before collection",
+        default=1,
+        help="Maximum in-flight calls per method; opt into parallel quality collection",
     )
     p.add_argument(
         "--execution-purpose", choices=("quality", "latency", "throughput"), default="quality"
     )
-    p.add_argument("--serial-reason", default="", help="Required when selecting one in-flight call")
+    p.add_argument("--serial-reason", default="Isolated per-provider collection",
+                   help="Reason for selecting one in-flight call")
     p.add_argument(
         "--execution-assessment",
         type=Path,

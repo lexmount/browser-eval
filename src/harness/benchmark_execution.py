@@ -50,6 +50,26 @@ class ExecutionStop:
         return self.is_set() or self.event.wait(timeout)
 
 
+@contextmanager
+def _notify_inline_stop(stop):
+    """Wake inline callbacks without re-entering an event lock in a signal handler."""
+    closed = threading.Event()
+
+    def notify():
+        while not closed.wait(.1):
+            if stop.requested:
+                stop.event.set()
+                return
+
+    notifier = threading.Thread(target=notify, daemon=True)
+    notifier.start()
+    try:
+        yield
+    finally:
+        closed.set()
+        notifier.join()
+
+
 def exclusive_policy(resource, reason, *, purpose="quality"):
     """Describe a stateful environment whose full lifecycle has one owner."""
     value = {
@@ -288,6 +308,8 @@ def run_jobs(
     active = {name: 0 for name in policy.resources}
     inflight = {}
     failure = None
+    cooperative_stop = stop_event is not None
+    inline = policy.max_in_flight == 1 and policy.backend == 'thread'
     stop_event = stop_event if isinstance(stop_event, ExecutionStop) else ExecutionStop(stop_event)
     options = {"max_workers": policy.max_in_flight}
     if initialize is not None:
@@ -314,7 +336,8 @@ def run_jobs(
 
     with (
         _retain_call_ownership(record_interrupt),
-        (nullcontext(_InlineExecutor()) if policy.max_in_flight == 1 and policy.backend == 'thread'
+        (_notify_inline_stop(stop_event) if inline and cooperative_stop else nullcontext()),
+        (nullcontext(_InlineExecutor()) if inline
          else executor_class(**options)) as executor,
     ):
         if (pending and policy.max_in_flight == 1 and policy.backend == 'thread'

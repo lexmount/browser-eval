@@ -13,6 +13,29 @@ from harness.web_extract.report import build, check, cohort_metrics
 pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
 
 
+@pytest.mark.parametrize("limits,ranked", [((4, 1), False), ((1, 1), True), ((4, 4), True)])
+def test_latency_winners_require_equal_effective_capacity(limits, ranked):
+    from harness.web_extract.report import operating_metrics
+
+    methods = ["hosted", "self-hosted"]
+    contracts = {method: [{"methods": [method], "concurrency": 4,
+                           "execution_policy": {"max_in_flight": 4,
+                                                "resources": {method: {"capacity": capacity}}}}]
+                 for method, capacity in zip(methods, limits, strict=True)}
+    prices = {method: {"usd_per_1000": "$1", "terms": {"en": "Synthetic per-call pricing."},
+                       "sources": ["https://example.org/pricing"], "verified_at": "2026-01-01"}
+              for method in methods}
+    markup = operating_metrics(
+        methods, [{"method": "hosted", "elapsed_seconds": 3},
+                  {"method": "self-hosted", "elapsed_seconds": 1}],
+        prices, "en", {}, execution=contracts)
+    soup = BeautifulSoup(markup, "html.parser")
+    cells = soup.select("td[data-metric]")
+    assert [float(cell["data-sort"]) for cell in cells] == [3, 3, 3, 1, 1, 1]
+    assert len(soup.select(".comparison-winner")) == (3 if ranked else 0)
+    assert {cell["data-metric-direction"] for cell in cells} == {"min" if ranked else "neutral"}
+
+
 def test_historical_comparison_uses_only_profile_selected_methods(tmp_path):
     from copy import deepcopy
 

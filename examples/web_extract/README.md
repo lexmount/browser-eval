@@ -488,11 +488,28 @@ fields. Combining independently frozen source plans requires an explicit
 `source_cohorts` method-to-plan-hash binding; each run retains its own timing policy.
 This progress report does not certify an incomplete comparison.
 
-Use `pages.<route>.intro` for language-keyed HTML that must precede generated
+Use `pages.<route>.intro` on non-home routes for language-keyed HTML that must precede generated
 tables, such as a pipeline diagram at the start of an interpretation page. Keep
 the remaining authored material in `body`. The manifest binds the intro's
 rendered content and position; checks reject a removed, changed or moved intro.
 English builds require an English intro whenever a Chinese intro is supplied.
+Home pages keep their core comparison first and place authored `body` content afterward.
+
+Model diagnostics use `model_comparison.dataset` and `model_comparison.tables` in
+the bound content. Each stage (`screening` or `validation`) selects cohorts with
+an `archive` path/hash and a `scores` member path/hash. Optional per-model labels
+and cohort labels are language keyed. Put one matching `data-model-screening`
+or `data-model-validation` placeholder on the interpretation page. The maintained
+renderer generates these tables from the retained scoring output, using the same
+aggregation owner as `model-score`; build and release checks recompute case counts,
+field F1, schema validity, whole-page correctness and timing distributions. Tables
+with missing bindings or edited values fail release. Model-study timings collected
+in separate windows remain neutral descriptive measurements.
+
+The plan CLI defaults to one in-flight call per method. Use explicit
+`--concurrency` for quality or throughput collection. Historical calls retain their
+original concurrency; reports suppress latency winners when effective limits
+differ or are undeclared. Resource caps apply before comparing those limits.
 
 Each product or record case has one comparison page. Participant links open the
 matching detail panel through its URL fragment. Each panel keeps its own field

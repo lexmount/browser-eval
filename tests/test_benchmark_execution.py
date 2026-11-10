@@ -315,8 +315,9 @@ def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
 
 
 @pytest.mark.parametrize('wait_on', ['stop', 'event'])
+@pytest.mark.parametrize('workers', [1, 2], ids=['serial', 'threaded'])
 def test_one_terminal_interrupt_wakes_workers_and_commits_without_external_release(
-    tmp_path, wait_on
+    tmp_path, wait_on, workers
 ):
     import json
     import signal
@@ -344,9 +345,11 @@ def test_one_terminal_interrupt_wakes_workers_and_commits_without_external_relea
             target.wait()
             return value
         retained = []
+        workers = int(sys.argv[3])
         policy = scheduler.ExecutionPolicy.from_dict({
-            'purpose': 'quality', 'max_in_flight': 2,
-            'resources': {'api': {'capacity': 2}}})
+            'purpose': 'quality', 'max_in_flight': workers,
+            'serial_reason': 'Cooperative serial cancellation control',
+            'resources': {'api': {'capacity': workers, 'reason': 'Cooperative stop control'}}})
         try:
             scheduler.run_jobs(
                 [scheduler.Job(str(i), ('api',), i) for i in range(4)], execute,
@@ -356,11 +359,13 @@ def test_one_terminal_interrupt_wakes_workers_and_commits_without_external_relea
             assert stop.event.is_set()
             (root / 'retained.json').write_text(json.dumps(retained), encoding='utf-8')
     '''), encoding='utf-8')
-    process = subprocess.Popen([sys.executable, str(script), str(tmp_path), wait_on],
+    process = subprocess.Popen([sys.executable, str(script), str(tmp_path), wait_on, str(workers)],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
     try:
         deadline = time.monotonic() + 5
-        markers = ['parent-waiting', 'worker-0', 'worker-1']
+        markers = ['worker-' + str(i) for i in range(workers)]
+        if workers > 1:
+            markers.append('parent-waiting')
         while not all((tmp_path / name).exists() for name in markers):
             assert process.poll() is None, process.communicate()
             assert time.monotonic() < deadline, 'Workers never became ready'
@@ -370,8 +375,8 @@ def test_one_terminal_interrupt_wakes_workers_and_commits_without_external_relea
         stdout, stderr = process.communicate(timeout=5)
         assert process.returncode == 0, (stdout, stderr)
         assert sorted(json.loads((tmp_path / 'retained.json').read_text(encoding='utf-8'))) == [
-            ['0', 0, 'None'], ['1', 1, 'None']]
-        assert not any((tmp_path / ('worker-' + str(i))).exists() for i in [2, 3])
+            [str(i), i, 'None'] for i in range(workers)]
+        assert not any((tmp_path / ('worker-' + str(i))).exists() for i in range(workers, 4))
     finally:
         if process.poll() is None:
             process.kill()
@@ -407,6 +412,27 @@ def test_interrupt_while_cooldown_condition_is_locked_cannot_deadlock(tmp_path):
                             text=True, timeout=5)
     assert result.returncode == 0, result.stderr
     assert 'Stopped without lock reentry' in result.stdout
+
+
+def test_serial_cooperative_callbacks_keep_main_thread_signal_support_and_leave_no_notifier():
+    import signal
+
+    from harness.benchmark_execution import ExecutionStop
+
+    threads = {thread.ident for thread in threading.enumerate()}
+    retained = []
+
+    def execute(value):
+        # Registering even the unchanged handler requires Python's main thread.
+        signal.signal(signal.SIGINT, signal.getsignal(signal.SIGINT))
+        return value
+
+    run_jobs([Job('one', ('api-a',), 'answer')], execute,
+             lambda job, value, error: retained.append(value),
+             policy(max_in_flight=1, serial_reason='Main-thread signal callback'),
+             stop_event=ExecutionStop())
+    assert retained == ['answer']
+    assert {thread.ident for thread in threading.enumerate()} == threads
 
 
 def test_interrupt_during_preparation_does_not_dispatch_the_prepared_job():

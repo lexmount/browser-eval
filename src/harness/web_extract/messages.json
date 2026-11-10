@@ -475,7 +475,19 @@
       "Out-of-stock F1"
     ],
     "completion_qualified_note": "Whole-page and empty-field metrics are project-defined supplements using source-reviewed references.",
-    "completion_original_note": "Whole-page and empty-field metrics are project-defined supplements using original dataset references."
+    "completion_original_note": "Whole-page and empty-field metrics are project-defined supplements using original dataset references.",
+    "latency_loads_differ": "Effective concurrency differs or is undeclared. Timings describe each collection; no latency winner is highlighted.",
+    "model_comparison_headers": [
+      "Model configuration",
+      "Field F1 ↑",
+      "Valid schema ↑",
+      "Whole page exact ↑",
+      "First output P50 (s)",
+      "First answer P50 (s)",
+      "Complete JSON P50 (s)",
+      "Total P50 (s)",
+      "Cohort"
+    ]
   },
   "zh": {
     "stages_client_transport": "客户端连接",
@@ -953,6 +965,18 @@
       "缺货 F1"
     ],
     "completion_qualified_note": "整页和空值指标由本项目补充定义，使用按网页证据复核后的参考答案。",
-    "completion_original_note": "整页和空值指标由本项目补充定义，使用数据集原参考答案。"
+    "completion_original_note": "整页和空值指标由本项目补充定义，使用数据集原参考答案。",
+    "latency_loads_differ": "各方案的实际并发不同或没有完整记录。耗时仅描述各自采集情况，不标注速度领先者。",
+    "model_comparison_headers": [
+      "模型配置",
+      "字段 F1 ↑",
+      "格式有效 ↑",
+      "整页全对 ↑",
+      "首个输出 P50（秒）",
+      "答案首响 P50（秒）",
+      "完整 JSON P50（秒）",
+      "总耗时 P50（秒）",
+      "采集批次"
+    ]
   }
 }

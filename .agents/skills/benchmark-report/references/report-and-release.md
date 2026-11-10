@@ -14,9 +14,12 @@ Web Fetch diagnostic models, compiled reruns and diagnostic releases are in the 
 
 ## Reader-facing structure
 
-Web Extract accepts language-keyed `pages.<route>.intro` content before its
+Web Extract accepts language-keyed `pages.<route>.intro` content on non-home routes before its
 generated summaries and tables. Use this field for a leading workflow diagram;
 the renderer binds its content and position in the release checks.
+Home pages keep their core comparison first. Model diagnostics use hash-bound
+scored case artifacts through `model_comparison`; authored HTML is only a table
+placeholder. The shared scoring aggregation supplies the build and release checks.
 
 [Presentation quality](presentation-quality.md#reader-facing-structure) owns page structure, failure chapters, language passes and interpretation pages. The rules below add multilingual, review and result-page requirements.
 
