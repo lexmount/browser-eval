@@ -732,7 +732,10 @@ An optional `live_reference_policy.maximum_observation_age_seconds` (at most
 access attempt fails. Each case then freezes `qualification.source_url` and a
 timezone-aware `qualification.observed_at`. Preserve a header-only charset in
 `qualification.encoding`, such as `utf-8`; it is bound with the captured bytes
-and used when checking them. A successfully observed page with unsupported
+and used when checking them. Preparation freezes the effective charset. Declared
+charsets take precedence; undeclared valid UTF-8 stays UTF-8, with the HTML parser's
+legacy detection as a fallback. Reference checks and HTML uploads use this same rule.
+A successfully observed page with unsupported
 reference values still stops certification. Access failure alone does not
 establish that the question or answer is invalid.
 Live cohorts resume through their original certified run. The archived repair

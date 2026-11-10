@@ -14,6 +14,29 @@ from pathlib import Path
 from urllib.parse import urljoin
 
 
+def source_encoding(raw, encoding=None):
+    """Use declared charsets, valid UTF-8, then the HTML parser's legacy fallback."""
+    if encoding is not None or not raw.strip():
+        return encoding or "utf-8"
+    from lxml import html
+
+    tree = html.fromstring(raw, parser=html.HTMLParser())
+    detected = tree.getroottree().docinfo.encoding
+    declared = any(
+        node.get("charset", "").strip()
+        or (node.get("http-equiv", "").casefold() == "content-type"
+            and re.search(r"\bcharset\s*=", node.get("content", ""), re.I))
+        for node in tree.xpath("//meta")
+    )
+    if declared or raw.startswith((b"\xef\xbb\xbf", b"\xff\xfe", b"\xfe\xff")):
+        return detected
+    try:
+        raw.decode("utf-8")
+    except UnicodeDecodeError:
+        return detected
+    return "utf-8"
+
+
 class LiveSourceAccessError(ValueError):
     """The checker could not observe the page; task validity remains unresolved."""
 
@@ -103,6 +126,8 @@ def prepare(home: Path, source: Path):
             encoding = receipt.get("encoding")
             if encoding is not None and (not isinstance(encoding, str) or not encoding.strip()):
                 raise ValueError("Captured HTTP encoding must be a nonempty charset name")
+            encoding = source_encoding(raw, encoding)
+            receipt = {**receipt, "encoding": encoding}
             base = document_base_url(
                 html.fromstring(raw, parser=html.HTMLParser(encoding=encoding)),
                 case.get("final_url", case["url"]),
@@ -362,11 +387,12 @@ def qualify_live(home, case_ids, *, timeout=30):
             return unavailable(cid, attempts)
         content_type = Message()
         content_type["content-type"] = getattr(response, "headers", {}).get("content-type", "")
+        encoding = source_encoding(response.body, content_type.get_content_charset())
         missing = reference_support(
             reference,
             response.body,
             source_url=response.url,
-            encoding=content_type.get_content_charset(),
+            encoding=encoding,
         )
         if access_interstitial(response.body):
             attempts[-1]["access_interstitial"] = True
@@ -377,7 +403,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             "case_id": cid,
             "url": reference["url"],
             "http_status": response.status,
-            "encoding": content_type.get_content_charset(),
+            "encoding": encoding,
             "observed_html_sha256": digest(response.body),
             "reference_sha256": digest(json.dumps(reference["values"], sort_keys=True).encode()),
             "reference_values_verified": sum(map(len, reference["values"].values())),
@@ -448,7 +474,7 @@ def reference_support(reference, raw, *, source_url=None, encoding=None, documen
     from lxml.etree import ParserError
 
     try:
-        tree = html.fromstring(raw, parser=html.HTMLParser(encoding=encoding))
+        tree = html.fromstring(raw, parser=html.HTMLParser(encoding=source_encoding(raw, encoding)))
     except ParserError:
         return [
             {"field": field, "reason": "empty or invalid webpage"} for field in reference["values"]

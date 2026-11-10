@@ -814,6 +814,8 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
     if change in {None, "stronger-policy", "budget"}:
         result = report.record_cohort_inputs(home, model, profile=home / "profile.json")
         assert set(result["methods"]["browserbase-json"]["results"]) == {"one", "two"}
+        assert {row["case_id"] for row in result["native_rows"]} == {"one", "two"}
+        assert all("field_results" not in row for row in result["native_rows"])
         assert result["methods"]["browserbase-json"]["statistics"]["certified"]
         assert (
             result["methods"]["browserbase-json"]["statistics"]["scores"]["value_micro"]["f1"] == 1
@@ -1728,13 +1730,16 @@ def test_invalid_resource_stops_queued_snapshot_downloads(tmp_path, monkeypatch)
     assert len(called) < 21
 
 
-@pytest.mark.parametrize("encoding", ["windows-1252", "utf-8", "undeclared-latin1"])
+@pytest.mark.parametrize("encoding", [
+    "windows-1252", "utf-8", "undeclared-latin1", "undeclared-utf8",
+])
 def test_qualified_html_reaches_the_upload_provider(tmp_path, monkeypatch, encoding):
     source = definition(tmp_path, mode="snapshot")
     data = pipeline.read_json(source)
     item = data["cases"][0]
     raw = (
         b"<html><h1>Andr\xe9</h1></html>" if encoding == "undeclared-latin1"
+        else "<html><h1>André</h1></html>".encode() if encoding == "undeclared-utf8"
         else ('<html><meta charset="' + encoding + '"><h1>André</h1></html>').encode(encoding)
     )
     assert records.reference_support({"url": item["url"], "values": {"name": ["André"]}}, raw) == []
@@ -1752,6 +1757,9 @@ def test_qualified_html_reaches_the_upload_provider(tmp_path, monkeypatch, encod
     pipeline.save_json(source, data)
     home = tmp_path / "home"
     records.prepare(home, source)
+    frozen = pipeline.read_json(home / "dataset/provenance.json")["one"]["qualification"]
+    assert frozen["encoding"]
+    assert pipeline.captured_html(home, "one", raw).find("André") >= 0
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
     monkeypatch.setenv("CLOUDFLARE_ACCOUNT_ID", "synthetic")
     monkeypatch.setenv("CLOUDFLARE_API_TOKEN", "synthetic")
@@ -1966,3 +1974,19 @@ def test_empty_reference_cannot_qualify_an_access_gate_as_captured_fallback(
     )
     with pytest.raises(records.LiveSourceAccessError, match="unavailable"):
         records.qualify_live(home, ["one"])
+
+
+def test_undeclared_utf8_is_frozen_even_when_references_are_ascii(tmp_path):
+    source = definition(tmp_path, mode="snapshot")
+    model = pipeline.read_json(source)
+    item = model["cases"][0]
+    raw = '<h1>Ada</h1><p>价格 ¥24</p>'.encode()
+    Path(item["input"]).write_bytes(raw)
+    item["input_sha256"] = item["qualification"]["input_sha256"] = pipeline.digest(raw)
+    pipeline.save_json(source, model)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    assert records.reference_support({"url": item["url"], "values": item["values"]}, raw) == []
+    receipt = pipeline.read_json(home / "dataset/provenance.json")["one"]["qualification"]
+    assert receipt["encoding"] == "utf-8"
+    assert pipeline.captured_html(home, "one", raw) == raw.decode()
