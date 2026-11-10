@@ -1493,13 +1493,19 @@ def test_current_redirect_or_base_cannot_rebase_frozen_url_answers(current_base)
 
 @pytest.mark.parametrize("policy", [True, False])
 @pytest.mark.parametrize("challenge", [True, False])
+@pytest.mark.parametrize("positive_reference", [True, False])
 def test_http_200_access_gate_is_distinct_from_genuine_reference_drift(
-    tmp_path, monkeypatch, policy, challenge
+    tmp_path, monkeypatch, policy, challenge, positive_reference
 ):
     from datetime import datetime
 
     source = definition(tmp_path)
     data = pipeline.read_json(source)
+    if not positive_reference:
+        data["cases"][0]["values"] = {"name": []}
+        data["cases"][0]["qualification"]["reference_sha256"] = pipeline.digest(
+            json.dumps({"name": []}, sort_keys=True, ensure_ascii=False).encode()
+        )
     if policy:
         data["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
         data["cases"][0]["qualification"].update(
@@ -1521,6 +1527,8 @@ def test_http_200_access_gate_is_distinct_from_genuine_reference_drift(
         row = records.qualify_live(home, ["one"])[0]
         assert row["source_state"] == "access_unavailable"
         assert row["source_attempts"][0]["access_interstitial"]
+    elif not challenge and not positive_reference:
+        assert records.qualify_live(home, ["one"])[0]["http_status"] == 200
     else:
         with pytest.raises(
             records.LiveSourceAccessError if challenge else ValueError,
@@ -1720,12 +1728,16 @@ def test_invalid_resource_stops_queued_snapshot_downloads(tmp_path, monkeypatch)
     assert len(called) < 21
 
 
-@pytest.mark.parametrize("encoding", ["windows-1252", "utf-8"])
-def test_meta_declared_html_reaches_the_upload_provider(tmp_path, monkeypatch, encoding):
+@pytest.mark.parametrize("encoding", ["windows-1252", "utf-8", "undeclared-latin1"])
+def test_qualified_html_reaches_the_upload_provider(tmp_path, monkeypatch, encoding):
     source = definition(tmp_path, mode="snapshot")
     data = pipeline.read_json(source)
     item = data["cases"][0]
-    raw = ('<html><meta charset="' + encoding + '"><h1>André</h1></html>').encode(encoding)
+    raw = (
+        b"<html><h1>Andr\xe9</h1></html>" if encoding == "undeclared-latin1"
+        else ('<html><meta charset="' + encoding + '"><h1>André</h1></html>').encode(encoding)
+    )
+    assert records.reference_support({"url": item["url"], "values": {"name": ["André"]}}, raw) == []
     if encoding == "utf-8":
         raw += b"<footer>Damaged unrelated text: \xff</footer>"
     Path(item["input"]).write_bytes(raw)
@@ -1921,3 +1933,36 @@ def test_unavailable_cloudflare_confirmation_uses_bytes_but_mismatch_stops(
         home, binding, {"pages": rows[1:2], "resources": rows[2:]}
     )
     assert published["snapshot_manifest"] == receipt
+
+
+@pytest.mark.parametrize("gate", [
+    b'<title>Just a moment...</title><form id="challenge-form"></form>',
+    b'<title>Sign in</title><form><input type="password"></form>',
+])
+def test_empty_reference_cannot_qualify_an_access_gate_as_captured_fallback(
+    tmp_path, monkeypatch, gate
+):
+    from datetime import datetime
+
+    source = definition(tmp_path)
+    model = pipeline.read_json(source)
+    item = model["cases"][0]
+    Path(item["input"]).write_bytes(gate)
+    item.update(input_sha256=pipeline.digest(gate), values={"name": []})
+    item["qualification"].update(
+        input_sha256=pipeline.digest(gate), source_url=item["url"],
+        observed_at=datetime.now(UTC).isoformat(),
+        reference_sha256=pipeline.digest(
+            json.dumps(item["values"], sort_keys=True, ensure_ascii=False).encode()
+        ),
+    )
+    model["live_reference_policy"] = {"maximum_observation_age_seconds": 3600}
+    pipeline.save_json(source, model)
+    home = tmp_path / "home"
+    records.prepare(home, source)
+    monkeypatch.setattr(
+        "harness.web_fetch.providers.http_client.request",
+        lambda url, **kw: SimpleNamespace(status=200, body=gate, url=url, headers={}),
+    )
+    with pytest.raises(records.LiveSourceAccessError, match="unavailable"):
+        records.qualify_live(home, ["one"])

@@ -310,6 +310,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             not 0 <= age <= policy["maximum_observation_age_seconds"]
             or receipt["source_url"] != reference["url"]
             or digest(raw) != receipt["input_sha256"]
+            or access_interstitial(raw)
             or reference_support(
                 reference,
                 raw,
@@ -367,7 +368,7 @@ def qualify_live(home, case_ids, *, timeout=30):
             source_url=response.url,
             encoding=content_type.get_content_charset(),
         )
-        if missing and access_interstitial(response.body):
+        if access_interstitial(response.body):
             attempts[-1]["access_interstitial"] = True
             return unavailable(cid, attempts)
         if missing:
