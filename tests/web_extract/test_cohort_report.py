@@ -147,7 +147,7 @@ def test_compatibility_execution_settings_follow_selected_observations(tmp_path,
     save_json(home / "content.json", content)
     output = tmp_path / "selected"
     build(output, home / "content.json", home=home, profile=home / "profile.json")
-    check(output)
+    _check_rendered_report(output)
     soup = BeautifulSoup((output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser")
     rows = soup.select("[data-execution-settings] tbody tr")
     observed = [(r.select_one("[data-execution-method]")["data-execution-method"],
@@ -200,9 +200,9 @@ def test_result_links_open_isolated_participant_details_on_the_same_case(tmp_pat
         save_json(output / "report-manifest.json", manifest)
         expected_error = "Broken evidence anchor" if damage == "missing" else "participant detail"
         with pytest.raises(ValueError, match=expected_error):
-            check(output)
+            _check_rendered_report(output)
     else:
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_checkpoint_rejects_modified_calls_and_missing_participants(tmp_path):
@@ -703,7 +703,8 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
     }
     authored = '<section data-authored-interpretation><h2>Source evidence</h2></section>'
     _, html = audit_explanation(
-        audit, rows, methods, {}, language, reference_view=reference_view, core_html=core, authored_html=authored
+        audit, rows, methods, {}, language, reference_view=reference_view,
+        core_html=core, authored_html=authored
     )
     soup = check_presentation(html)
     reading_order = soup.select(
@@ -1243,7 +1244,9 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
         "audited_scores": scores,
         "excluded_fields": {"one": ["price"]},
     }
-    review, interpretation = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang, reference_view="source-qualified")
+    review, interpretation = audit_explanation(
+        audit, rows, ["firecrawl-json"], {}, lang, reference_view="source-qualified"
+    )
     assert "EXACT TRANSPORT ERROR" in interpretation
     assert "Fields were returned" not in interpretation
     assert "these_differences_concern" not in interpretation
@@ -1253,7 +1256,9 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
         compatibility="structured_output", native_error="", diagnosis={"cause": "STALE TLS FAILURE"}
     )
     rows[0]["field_results"]["price"].update(expected=["12"], actual="13", status="wrong")
-    _, current = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang, reference_view="source-qualified")
+    _, current = audit_explanation(
+        audit, rows, ["firecrawl-json"], {}, lang, reference_view="source-qualified"
+    )
     assert "STALE TLS FAILURE" not in current
     specimen = BeautifulSoup(current, "html.parser").select_one("[data-interpretation-example]")
     assert specimen is not None
@@ -1405,7 +1410,7 @@ def test_unknown_total_cost_requires_scoped_bound_evidence(tmp_path, mode, langu
     build(
         output, home / "content.json", home=home, profile=home / "profile.json", language=language
     )
-    check(output)
+    _check_rendered_report(output)
     manifest = read_json(output / "report-manifest.json")
     validate_release_prices(
         {**manifest, "dataset_kind": "published-upstream", "prices": {method: quote}}

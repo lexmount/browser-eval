@@ -8,7 +8,8 @@ from decimal import InvalidOperation
 from functools import lru_cache
 from pathlib import Path
 
-
+from harness.web_extract.pipeline import PRODUCT_FIELDS as FIELDS
+from harness.web_extract.pipeline import PROFILE, digest, official_scorer, valid_product_value
 
 
 def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair=None):
@@ -178,8 +179,6 @@ def summarize_model_rows(rows, models):
         }
     return groups
 
-from harness.web_extract.pipeline import PRODUCT_FIELDS as FIELDS
-from harness.web_extract.pipeline import PROFILE, digest, official_scorer, valid_product_value
 
 REFERENCE_CONTROLS = (
     ("locale-thousands-price", "price", ["24990"], "24990", "24.99"),

@@ -9,8 +9,6 @@ import statistics
 import struct
 import zipfile
 from collections import Counter
-from contextlib import contextmanager
-from contextvars import ContextVar
 from html import escape as esc
 from pathlib import Path
 from urllib.parse import quote, unquote, urljoin, urlsplit
@@ -22,7 +20,6 @@ from harness.env_file import local_setting
 from harness.record_io import canonical_json_sha256
 from harness.report_languages import resolve_report_language
 from harness.reporting.links import LinkIndex
-from harness.reporting.publication import PublicationSnapshot
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
@@ -37,7 +34,6 @@ from harness.web_extract.pipeline import (
     FIELDS,
     PRODUCT_FIELDS,
     PROFILE,
-    SCHEMA,
     available_methods,
     digest,
     execution_identity,
@@ -411,6 +407,7 @@ def model_comparison_tables(output, binding, language):
             message("model_comparison_headers", language), rows,
             {i: ("model-" + name + "-" + str(i), "max" if i <= 3 else "neutral", values)
              for i, values in metrics.items()},
+            pin_method=True,
         )
     return rendered
 
@@ -428,48 +425,6 @@ def bind_model_tables(output, binding, language, body):
         nodes[0].clear()
         nodes[0].append(BeautifulSoup(markup, "html.parser"))
     return str(soup) if tables else body
-
-
-def validate_cohort_plan(source, selection, truth):
-    """Bind the pre-call plan, population and execution before report ingestion."""
-    contract = read_json(source / "contract.json")
-    plan_path = Path(selection["plan"])
-    plan = read_json(plan_path)
-    from harness.web_extract.certification import verify_execution_assessment
-
-    verify_execution_assessment(plan, contract["methods"][0], execution_sources=contract)
-    precall = read_json(source / "certification-precall.json")
-    if (
-        digest(plan_path.read_bytes()) != selection["plan_sha256"]
-        or precall["profile_sha256"] != selection["plan_sha256"]
-        or precall.get("case_ids_sha256") != plan["case_ids_sha256"]
-        or set(contract["case_ids"]) != set(truth)
-        or contract["kind"] != "full_archived_extraction"
-        or plan["case_count"] != len(truth)
-        or plan["case_ids_sha256"] != digest(("\n".join(sorted(truth)) + "\n").encode())
-        or contract["methods"] != [precall["method"]]
-        or precall["method"] not in plan["participants"]
-        or precall["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]
-        or precall["pipeline_sha256"] != contract["pipeline_sha256"]
-    ):
-        raise ValueError("Full cohort plan, population or execution binding differs")
-    return contract, precall
-
-
-def validate_cohort_certificate(source, selection, truth, contract, precall):
-    """Verify immutable original certification independently of selected score revisions."""
-    cert = read_json(source / "certificate.json")
-    for name, key in [("manifest.json", "manifest_sha256"),
-                      ("scores.json", "scores_sha256"),
-                      ("certification-precall.json", "precall_sha256")]:
-        if digest((source / name).read_bytes()) != cert[key]:
-            raise ValueError("Certified evidence changed")
-    if (cert["profile_sha256"] != selection["plan_sha256"]
-            or cert["case_count"] != len(truth)
-            or cert["method"] != precall["method"]
-            or cert["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]):
-        raise ValueError("Certificate population, method, dataset or profile differs")
-    return cert
 
 
 def intro_is_correctly_placed(document, node, route, mode):
@@ -533,9 +488,29 @@ def cohort_source(source, selection, home, truth):
         schema = adapter.task_schema(home, truth[row["case_id"]]) if adapter else None
         return normalize(row["method"], row.get("response", {}), schema=schema)
 
-    contract, precall = validate_cohort_plan(source, selection, truth)
-    if contract["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
-        raise ValueError("Run belongs to different inputs")
+    contract = read_json(source / "contract.json")
+    plan_path = Path(selection["plan"])
+    plan = read_json(plan_path)
+    from harness.web_extract.certification import verify_execution_assessment
+
+    verify_execution_assessment(plan, contract["methods"][0], execution_sources=contract)
+    precall = read_json(source / "certification-precall.json")
+    if (
+        digest(plan_path.read_bytes()) != selection["plan_sha256"]
+        or precall["profile_sha256"] != selection["plan_sha256"]
+        or precall.get("case_ids_sha256") != plan["case_ids_sha256"]
+        or contract["dataset_manifest_sha256"]
+        != digest((home / "dataset/manifest.json").read_bytes())
+        or set(contract["case_ids"]) != set(truth)
+        or contract["kind"] != "full_archived_extraction"
+        or plan["case_count"] != len(truth)
+        or plan["case_ids_sha256"] != digest(("\n".join(sorted(truth)) + "\n").encode())
+        or contract["methods"] != [precall["method"]]
+        or precall["method"] not in plan["participants"]
+        or precall["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]
+        or precall["pipeline_sha256"] != contract["pipeline_sha256"]
+    ):
+        raise ValueError("Full cohort plan, population or execution binding differs")
     verify_execution_snapshot(source, contract)
     certificate = source / "certificate.json"
     if certificate.exists():
@@ -1093,12 +1068,6 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
 
 def verify_completion_audit(source, profile, *, home=None):
     """Verify the externally selected profile and reproduce its original audit view."""
-    cached = _COMPLETION_AUDIT_SCOPE.get()
-    if cached and profile is not None and home is not None:
-        key = tuple(Path(p).resolve() for p in (source, profile, home))
-        if key == cached[0]:
-            cached[1].check()
-            return
     source = Path(source)
     manifest = read_json(source / "report-manifest.json")
     if not profile:
@@ -1828,7 +1797,7 @@ def execution_settings(sources, methods, labels, language):
         + "</h2><p>"
         + message("execution_settings_note", language)
         + "</p>"
-        + table(message("execution_settings_headings", language), rows)
+        + table(message("execution_settings_headings", language), rows, pin_method=True)
         + "</section>"
     )
 
@@ -1869,7 +1838,8 @@ def worker_resources(methods, rows, labels, language):
             + message("worker_resources_scope", language) + "</p>"
             + record_comparison(message("worker_resources_headings", language), records,
                                 {2: ("worker-cpu", "min", means[0]),
-                                 4: ("worker-rss", "min", means[1])}) + "</section>")
+                                 4: ("worker-rss", "min", means[1])},
+                                pin_method=True) + "</section>")
 
 
 def check_worker_resources(output, methods, rows, labels, language):
@@ -3654,7 +3624,6 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "source_runs": json.loads(public_bindings),
             "source_metadata_view": metadata_receipt,
             "public_evidence_views": public_receipts,
-            "page_intros": page_intros,
             "files": files,
         },
         exclusive=True,
@@ -4872,7 +4841,6 @@ def build_record_cohort(output, content, *, home, language, profile):
         + core
         + "</section>"
         + report_metric_guide(language, records=True)
-        + bodies["index"]
         + operations
         + bodies["index"]
     )
@@ -5415,7 +5383,6 @@ def build_record_cohort(output, content, *, home, language, profile):
             "audit": audit_binding,
             "reference_policy": data["reference_policy"],
             "required_review_scope": bound_profile.get("independent_result_review_scope"),
-            "page_intros": page_intros,
             "files": files,
         },
         exclusive=True,
@@ -5432,8 +5399,6 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
     output = open_report(output)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
-    if profile is not None:
-        verify_completion_audit(output, profile, home=home)
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")

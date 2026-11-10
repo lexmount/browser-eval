@@ -33,14 +33,15 @@ def test_interpretation_intro_and_core_first_home_rules_hold_together(tmp_path, 
         "path": str(home / "content.json"), "sha256": digest((home / "content.json").read_bytes())}
     save_json(home / "profile.json", profile)
     output = tmp_path / "report"
-    if damage == "home-intro":
-        with pytest.raises(ValueError, match="Home-page content must follow"):
-            build(output, home / "content.json", home=home, profile=home / "profile.json",
-                  language="zh")
-        return
     build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
-    check(output)
+    check(output, home=home, profile=home / "profile.json")
     soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    if damage == "home-intro":
+        from harness.web_extract.report import home_comparison_end
+
+        assert soup.select_one("[data-page-intro]").find_previous_sibling() is home_comparison_end(
+            soup
+        )
     current = soup.select_one("main table[data-completion-metrics]")
     while current is not soup.main:
         assert not any(str(node).strip() for node in current.previous_siblings)
@@ -54,7 +55,7 @@ def test_interpretation_intro_and_core_first_home_rules_hold_together(tmp_path, 
             return str(page)
         rebind(output, "zh/index.html", prepend)
         with pytest.raises(ValueError, match="Core comparison must precede"):
-            check(output)
+            _check_rendered_report(output)
 
 
 def test_english_build_requires_a_translated_page_intro(tmp_path):
@@ -99,7 +100,7 @@ def test_latency_directions_are_checked_against_the_collected_contract(tmp_path,
 
     rebind(output, "zh/index.html", change_comparison)
     with pytest.raises(ValueError, match="latency/pricing|timing or pricing"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
@@ -121,7 +122,7 @@ def test_authored_page_intro_precedes_generated_tables_and_is_release_bound(tmp_
     save_json(home / "profile.json", profile)
     output = tmp_path / "report"
     build(output, content, home=home, profile=home / "profile.json", language="zh")
-    check(output)
+    _check_rendered_report(output)
     assert (output / "data/completion-metrics.json").read_bytes() == (
         initial / "data/completion-metrics.json").read_bytes()
     soup = BeautifulSoup((output / "zh/interpretation.html").read_text(encoding="utf-8"),
@@ -142,7 +143,7 @@ def test_authored_page_intro_precedes_generated_tables_and_is_release_bound(tmp_
 
     rebind(output, "zh/interpretation.html", alter)
     with pytest.raises(ValueError, match="page intro"):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path):

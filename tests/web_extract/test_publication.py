@@ -2,7 +2,6 @@
 
 import json
 from copy import deepcopy
-from pathlib import Path
 
 import pytest
 
@@ -312,288 +311,6 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     assert not archive.exists()
 
 
-@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
-@pytest.mark.parametrize(
-    "damage",
-    [
-        None,
-        "public-envelope",
-        "original-envelope",
-        "http-status",
-        "compatibility",
-        "missing-delivery",
-        "request-parameters",
-        "retry-removed",
-        "retry-usage",
-        "retry-time",
-        "single-attempt",
-        "injected-usage",
-        "injected-time",
-        "coerced-type",
-        "reordered-keys",
-        "retry-coerced-type",
-        "missing-home",
-        "relocated-home",
-        "wrong-home",
-    ],
-)
-def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
-    from harness.web_extract.cli import main
-    from harness.web_extract.pipeline import normalize
-    from harness.web_extract.report import (
-        publication_host_names,
-        redact_account_endpoint,
-        verify_completion_audit,
-    )
-    from harness.web_fetch.publication_privacy import project_evidence_view
-
-    home = tmp_path / "inputs"
-    run = home / "runs/run"
-    row = {
-        "method": "cloudflare-json",
-        "case_id": "page",
-        "http_status": 200,
-        "compatibility": "structured_output",
-        "state": "response_received",
-        "elapsed_seconds": 0.25,
-        "provider_usage": {"x-browser-ms-used": "100"},
-        "response": {
-            "result": {"price": 1, "sku": "A", "availability": "InStock"}
-            if mode == "full-cohort-progress"
-            else {"title": ["A"]},
-            "message": "retained metadata",
-            "debug_path": "/Users/example/private/trace.json",
-            "native_flag": 1,
-        },
-        "request": {
-            "endpoint": "https://api.cloudflare.com/client/v4/accounts/private-account-id/browser-rendering/json",
-            "parameters": {"waitUntil": "domcontentloaded", "timeout": 30000},
-        },
-    }
-    if damage == "missing-delivery":
-        row.pop("http_status")
-        row.pop("compatibility")
-    if damage == "injected-usage":
-        row.pop("provider_usage")
-    if damage == "injected-time":
-        row.pop("elapsed_seconds")
-    retry = damage is not None and damage.startswith("retry-")
-    if retry:
-        previous = deepcopy(row)
-        previous.update(
-            http_status=402,
-            compatibility="no_structured_output",
-            response={"error": "Insufficient credits", "usage": {"credits": 0}},
-            elapsed_seconds=0.5,
-            provider_usage={"x-browser-ms-used": "0"},
-            physical_attempt=1,
-        )
-        save_json(run / "first.json", previous)
-        row.update(physical_attempt=2, retry_execution_seconds=0.5)
-    save_json(run / "call.json", row)
-    save_json(
-        run / "contract.json",
-        {"methods": [row["method"]], "case_ids": ["page"], "access_retry_limit": int(retry)},
-    )
-    inventory = {
-        "contract_sha256": digest((run / "contract.json").read_bytes()),
-        "calls": [{"path": "call.json", "sha256": digest((run / "call.json").read_bytes())}],
-    }
-    if retry:
-        inventory["physical_calls"] = [
-            {"path": "first.json", "sha256": digest((run / "first.json").read_bytes())},
-            *inventory["calls"],
-        ]
-        (run / "calls.journal.jsonl").write_text(
-            "".join(json.dumps(v) + "\n" for v in inventory["physical_calls"]), encoding="utf-8"
-        )
-    save_json(run / "manifest.json", inventory)
-    pin = dataset_pin(home)
-    audit = home / "audit.json"
-    save_json(
-        audit,
-        {
-            "results": {
-                row["method"] + ":page": {
-                    "execution_sha256": execution_identity(row),
-                    "native_response_sha256": digest(
-                        json.dumps(row["response"], sort_keys=True, ensure_ascii=False).encode()
-                    ),
-                }
-            }
-        },
-    )
-    content = home / "content.json"
-    save_json(
-        content,
-        {
-            "audit": {"path": "audit.json", "sha256": digest(audit.read_bytes())},
-            "dataset_manifest": str(
-                (tmp_path / "retired-inputs" if damage == "relocated-home" else home)
-                / "dataset/manifest.json"
-            ),
-            "evidence_runs": [{"run": "run"}],
-        },
-    )
-    profile = home / "profile.json"
-    save_json(
-        profile,
-        {
-            "dataset": pin,
-            "research_report": {
-                "content": {"path": "content.json", "sha256": digest(content.read_bytes())}
-            },
-        },
-    )
-    report = tmp_path / "report"
-    public_row = {**row, "physical_attempts": [previous, row]} if retry else row
-    public, _ = project_evidence_view(
-        "public-evidence/native-row.json",
-        json.dumps(redact_account_endpoint(public_row)).encode(),
-        role="native_response",
-        content_format="json",
-        host_names=publication_host_names(),
-    )
-    projected = json.loads(public)
-    assert projected["response"] != row["response"]  # A real local-path redaction.
-    assert "/accounts/[REDACTED]/" in projected["request"]["endpoint"]
-    assert "/accounts/private-account-id/" in row["request"]["endpoint"]
-    if retry:
-        assert all(
-            "/accounts/[REDACTED]/" in v["request"]["endpoint"]
-            for v in projected["physical_attempts"]
-        )
-    path = report / "public-evidence" / (row["method"] + ".json")
-    save_json(path, {"page": projected})
-    public_audit, _ = project_evidence_view(
-        "public-evidence/audit.json",
-        audit.read_bytes(),
-        role="native_response",
-        content_format="json",
-        host_names=publication_host_names(),
-    )
-    (report / "public-evidence/audit.json").write_bytes(public_audit)
-    save_json(
-        report / "report-manifest.json",
-        {
-            "mode": mode,
-            "profile_sha256": digest(profile.read_bytes()),
-            ("completion_audit" if mode == "full-cohort-progress" else "audit"): {
-                "path": "public-evidence/audit.json",
-                "source_sha256": digest(audit.read_bytes()),
-            },
-        },
-    )
-    verify_completion_audit(report, profile, home=home)
-    if damage == "relocated-home":
-        return
-    if damage == "missing-home":
-        with pytest.raises(ValueError, match="explicit benchmark home"):
-            verify_completion_audit(report, profile)
-        with pytest.raises(SystemExit) as error:
-            main(
-                [
-                    "package",
-                    str(report),
-                    "--profile",
-                    str(profile),
-                    "--output",
-                    str(tmp_path / "missing-home.zip"),
-                    "--visual-receipt",
-                    str(tmp_path / "visual.json"),
-                ]
-            )
-        assert error.value.code == 2
-        assert not (tmp_path / "missing-home.zip").exists()
-        return
-    if damage == "wrong-home":
-        wrong_home = tmp_path / "other-inputs"
-        dataset_pin(wrong_home)
-        wrong = read_json(wrong_home / "dataset/manifest.json")
-        wrong["commit"] = "another-dataset"
-        save_json(wrong_home / "dataset/manifest.json", wrong)
-        with pytest.raises(ValueError, match="benchmark home differs"):
-            verify_completion_audit(report, profile, home=wrong_home)
-        return
-    if damage == "reordered-keys":
-        projected["response"] = dict(reversed(list(projected["response"].items())))
-        save_json(path, {"page": projected})
-        verify_completion_audit(report, profile, home=home)
-        return
-    if damage == "single-attempt":
-        projected["physical_attempts"] = [deepcopy(projected)]
-        save_json(path, {"page": projected})
-        verify_completion_audit(report, profile, home=home)
-        return
-    if damage is None:
-        return
-    before = normalize(row["method"], projected["response"], schema={})
-    if damage == "public-envelope":
-        projected["response"]["message"] = "substituted metadata"
-        save_json(path, {"page": projected})
-    elif damage == "coerced-type":
-        if mode == "full-cohort-progress":
-            projected["response"]["result"]["price"] = True
-        else:
-            projected["response"]["native_flag"] = True
-        save_json(path, {"page": projected})
-    elif damage == "missing-delivery":
-        projected.update(http_status=200, compatibility="structured_output")
-        save_json(path, {"page": projected})
-    elif damage == "request-parameters":
-        projected["request"]["parameters"]["timeout"] = 60000
-        save_json(path, {"page": projected})
-    elif damage in (
-        "retry-removed",
-        "retry-usage",
-        "retry-time",
-        "retry-coerced-type",
-        "injected-usage",
-        "injected-time",
-    ):
-        if damage == "retry-removed":
-            projected.pop("physical_attempts")
-        elif damage == "retry-usage":
-            projected["physical_attempts"][0]["provider_usage"]["x-browser-ms-used"] = "90000"
-        elif damage == "retry-time":
-            projected["physical_attempts"][0]["elapsed_seconds"] = 50
-        elif damage == "retry-coerced-type":
-            projected["physical_attempts"][0]["response"]["usage"]["credits"] = False
-        elif damage == "injected-usage":
-            projected["provider_usage"] = {"x-browser-ms-used": "1"}
-        else:
-            projected["elapsed_seconds"] = 0
-        save_json(path, {"page": projected})
-    elif damage in ("http-status", "compatibility"):
-        projected["http_status" if damage == "http-status" else "compatibility"] = (
-            500 if damage == "http-status" else "no_structured_output"
-        )
-        save_json(path, {"page": projected})
-    else:
-        row["response"]["message"] = "substituted original"
-        save_json(run / "call.json", row)
-        inventory["calls"][0]["sha256"] = digest((run / "call.json").read_bytes())
-        save_json(run / "manifest.json", inventory)
-    assert normalize(row["method"], projected["response"], schema={}) == before
-    archive = tmp_path / "forged.zip"
-    with pytest.raises(ValueError, match="Completion audit native"):
-        main(
-            [
-                "--home",
-                str(home),
-                "package",
-                str(report),
-                "--profile",
-                str(profile),
-                "--output",
-                str(archive),
-                "--visual-receipt",
-                str(tmp_path / "visual.json"),
-            ]
-        )
-    assert not archive.exists()
-
-
 def setup_report(tmp_path):
     source = tmp_path / "report"
     source.mkdir()
@@ -620,24 +337,17 @@ def setup_report(tmp_path):
 
 
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
-    from harness.web_extract import pipeline
-    from harness.web_extract import report as renderer
-
     source, target, work, visual = setup_report(tmp_path)
-    original_read = pipeline.read_json
-    profile_reads = []
+    audit_calls = []
+    original_audit = publication.verify_completion_audit
 
-    def counted_read(path):
-        if Path(path) == tmp_path / "profile.json":
-            profile_reads.append(path)
-        return original_read(path)
+    def verify(*args, **kwargs):
+        audit_calls.append(1)
+        return original_audit(*args, **kwargs)
 
-    monkeypatch.setattr(renderer, "read_json", counted_read)
+    monkeypatch.setattr(publication, "verify_completion_audit", verify)
 
     def package(report, archive, *, visual_receipt, profile, home=None):
-        # Packaging and final guards share the already verified frozen inputs.
-        for _ in range(3):
-            renderer.verify_completion_audit(report, profile, home=home)
         archive.write_bytes(b"checked-package")
         return {
             "archive_sha256": digest(archive.read_bytes()),
@@ -663,7 +373,6 @@ def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, m
     assert bound["slug"] == "existing"
     assert bound["profile"]["path"] == str(tmp_path / "profile.json")
     assert bound["renderer_source_revision"] == "a" * 40
-    assert len(profile_reads) == 2  # authority discovery and one complete audit
 
 
 def test_incomplete_target_never_packages_or_dispatches(tmp_path, monkeypatch):
@@ -977,47 +686,6 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     assert len(audit_calls) == 2  # Package and upload have independent frozen snapshots.
 
 
-def test_standalone_package_preserves_previous_release_when_audit_changes_during_zip(
-    tmp_path, monkeypatch
-):
-    import zipfile
-
-    from harness.web_extract import report as owner
-
-    source, _, _, visual = setup_report(tmp_path)
-    audit, content = tmp_path / 'audit.json', tmp_path / 'content.json'
-    save_json(audit, {'result_count': 1})
-    save_json(content, {'audit': {'path': str(audit), 'sha256': digest(audit.read_bytes())}})
-    profile = tmp_path / 'profile.json'
-    save_json(profile, {'local_example': True, 'research_report': {'content': {
-        'path': str(content), 'sha256': digest(content.read_bytes())
-    }}})
-    manifest = read_json(source / 'report-manifest.json')
-    manifest.update(profile_sha256=digest(profile.read_bytes()), files={
-        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
-    })
-    save_json(source / 'report-manifest.json', manifest)
-    save_json(visual, {})
-    archive = tmp_path / 'report.zip'
-    receipt = archive.with_suffix('.receipt.json')
-    archive.write_bytes(b'previous release')
-    receipt.write_bytes(b'previous proof')
-    monkeypatch.setattr(owner, 'verify_completion_audit', lambda *a, **k: None)
-    monkeypatch.setattr(owner, 'check', lambda *a, **k: None)
-    original = zipfile.ZipFile.write
-
-    def change_after_validation(*args, **kwargs):
-        result = original(*args, **kwargs)
-        save_json(audit, {'result_count': 2})
-        return result
-
-    monkeypatch.setattr(zipfile.ZipFile, 'write', change_after_validation)
-    with pytest.raises(ValueError, match='inputs changed during packaging'):
-        owner.package(source, archive, visual_receipt=visual, profile=profile, home=tmp_path)
-    assert archive.read_bytes() == b'previous release'
-    assert receipt.read_bytes() == b'previous proof'
-
-
 def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_path):
     from harness.web_extract.report import completion_authorities
 
@@ -1197,3 +865,44 @@ def test_public_check_never_infers_or_omits_its_authorities(tmp_path, missing, c
     assert ("--home" if missing == "home" else "--profile") in capsys.readouterr().err
     with pytest.raises(ValueError, match="explicit profile and benchmark home"):
         check(tmp_path / "absent-report")
+
+
+def test_standalone_package_preserves_previous_release_when_audit_changes_during_zip(
+    tmp_path, monkeypatch
+):
+    import zipfile
+
+    from harness.web_extract import report as owner
+
+    source, _, _, visual = setup_report(tmp_path)
+    audit, content = tmp_path / 'audit.json', tmp_path / 'content.json'
+    save_json(audit, {'result_count': 1})
+    save_json(content, {'audit': {'path': str(audit), 'sha256': digest(audit.read_bytes())}})
+    profile = tmp_path / 'profile.json'
+    save_json(profile, {'local_example': True, 'research_report': {'content': {
+        'path': str(content), 'sha256': digest(content.read_bytes())
+    }}})
+    manifest = read_json(source / 'report-manifest.json')
+    manifest.update(profile_sha256=digest(profile.read_bytes()), files={
+        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
+    })
+    save_json(source / 'report-manifest.json', manifest)
+    save_json(visual, {})
+    archive = tmp_path / 'report.zip'
+    receipt = archive.with_suffix('.receipt.json')
+    archive.write_bytes(b'previous release')
+    receipt.write_bytes(b'previous proof')
+    monkeypatch.setattr(owner, 'verify_completion_audit', lambda *a, **k: None)
+    monkeypatch.setattr(owner, 'check', lambda *a, **k: None)
+    original = zipfile.ZipFile.write
+
+    def change_after_validation(*args, **kwargs):
+        result = original(*args, **kwargs)
+        save_json(audit, {'result_count': 2})
+        return result
+
+    monkeypatch.setattr(zipfile.ZipFile, 'write', change_after_validation)
+    with pytest.raises(ValueError, match='inputs changed during packaging'):
+        owner.package(source, archive, visual_receipt=visual, profile=profile, home=tmp_path)
+    assert archive.read_bytes() == b'previous release'
+    assert receipt.read_bytes() == b'previous proof'

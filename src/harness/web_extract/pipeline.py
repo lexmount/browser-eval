@@ -487,7 +487,9 @@ def validate_native_options(method, native_options):
             raise ValueError("Frozen runtime does not advertise JSON keepalive")
     if native_options.get("input_route", "html") not in ("html", "url"):
         raise ValueError("Native input route must be html or url")
-    for key in ("setJavaScriptEnabled", "discussion", "use_fixture_context", "norender", "keepalive"):
+    for key in (
+        "setJavaScriptEnabled", "discussion", "use_fixture_context", "norender", "keepalive"
+    ):
         if key in native_options and type(native_options[key]) is not bool:
             raise ValueError("Native extraction switches must be Boolean")
     if "rejectResourceTypes" in native_options:
