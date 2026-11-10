@@ -115,6 +115,9 @@ def build(output, content, *, profile, language=None):
         child_content = read_json(Path(entry["content"]))
         if child_content.get("site_prefix") != entry["id"]:
             raise ValueError("Each cohort must declare its suite directory")
+        for key in ("content", "profile"):
+            if entry.get(key + "_sha256") != digest(Path(entry[key]).read_bytes()):
+                raise ValueError("Suite child input differs from its declared binding")
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use an empty suite report directory")
     output.mkdir(parents=True, exist_ok=True)
@@ -124,6 +127,14 @@ def build(output, content, *, profile, language=None):
         '<body><a href="zh/index.html">Web Extract</a></body></html>',
         encoding="utf-8",
     )
+    raw, content_view = owner.project_evidence_view(
+        "public-evidence/provenance/suite-content.json", content.read_bytes(),
+        role="native_response", content_format="json",
+        host_names=owner.publication_host_names(),
+    )
+    content_path = output / content_view["path"]
+    content_path.parent.mkdir(parents=True, exist_ok=True)
+    content_path.write_bytes(raw)
     bindings = []
     for entry in entries:
         owner.build(
@@ -176,6 +187,7 @@ def build(output, content, *, profile, language=None):
             "composition_sha256": digest(Path(__file__).read_bytes()),
             **owner.report_dependencies(),
             "input_profile": input_profile,
+            "input_content": content_view,
             "profile_sha256": digest(profile.read_bytes()),
             "content_sha256": digest(content.read_bytes()),
             "local_example": authority.get("local_example", False),
@@ -221,6 +233,22 @@ def check(output, *, release=False, visual_receipt=None):
     entries = read_json(output / "suite.json")["cohorts"]
     if entries != manifest["cohorts"]:
         raise ValueError("Suite cohort bindings changed")
+    content_view = manifest.get("input_content", {})
+    content_path = output / "public-evidence/provenance/suite-content.json"
+    authority = read_json(output / manifest["input_profile"]["path"])
+    if (
+        content_view.get("path") != content_path.relative_to(output).as_posix()
+        or digest(content_path.read_bytes()) != content_view.get("published_sha256")
+        or content_view.get("original_sha256") != manifest.get("content_sha256")
+        or authority.get("research_report", {}).get("content", {}).get("sha256")
+        != manifest.get("content_sha256")
+    ):
+        raise ValueError("Suite content differs from its bound input profile")
+    declared = read_json(content_path)["cohorts"]
+    if [{key: e.get(key, "") for key in ("id", "label", "summary_html")} for e in entries] != [
+        {key: e.get(key, "") for key in ("id", "label", "summary_html")} for e in declared
+    ]:
+        raise ValueError("Suite registry differs from its profile-authorized content")
     names = [entry["id"] for entry in entries]
     if (
         not names
@@ -233,8 +261,12 @@ def check(output, *, release=False, visual_receipt=None):
     ):
         raise ValueError("Suite cohort directories changed")
     visual = read_json(visual_receipt) if release and visual_receipt else {}
-    for entry in entries:
+    for entry, source in zip(entries, declared, strict=True):
         child = output / entry["id"]
+        child_manifest = read_json(child / "report-manifest.json")
+        if any(child_manifest.get(key + "_sha256") != source.get(key + "_sha256")
+               for key in ("content", "profile")):
+            raise ValueError("Suite child input binding changed")
         if digest((child / "report-manifest.json").read_bytes()) != entry["manifest_sha256"]:
             raise ValueError("Suite cohort manifest changed")
         receipt = visual.get("cohorts", {}).get(entry["id"], {})

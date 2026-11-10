@@ -90,6 +90,14 @@ def test_quality_exclusion_preserves_operational_comparison(tmp_path):
     authority = read_json(profile)
     authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
     save_json(profile, authority)
+    entry["content_sha256"] = digest(content.read_bytes())
+    entry["profile_sha256"] = digest(profile.read_bytes())
+    save_json(source / "content.json", suite)
+    authority = read_json(source / "profile.json")
+    authority["research_report"]["content"]["sha256"] = digest(
+        (source / "content.json").read_bytes()
+    )
+    save_json(source / "profile.json", authority)
     output = tmp_path / "report"
     report_suite.build(output, source / "content.json", profile=source / "profile.json")
     soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
@@ -113,7 +121,11 @@ def test_suite_validates_every_prefix_before_creating_output(tmp_path, position,
     for name in ["first", "second"]:
         child = tmp_path / (name + ".json")
         save_json(child, {"site_prefix": name})
-        entries.append({"id": name, "content": str(child)})
+        child_profile = tmp_path / (name + "-profile.json")
+        save_json(child_profile, {})
+        entries.append({"id": name, "content": str(child), "profile": str(child_profile),
+                        "content_sha256": digest(child.read_bytes()),
+                        "profile_sha256": digest(child_profile.read_bytes())})
     bad = read_json(tmp_path / (["first", "second"][position] + ".json"))
     if prefix is None:
         bad.pop("site_prefix")
@@ -186,4 +198,47 @@ def test_suite_summary_links_survive_owner_normalization_and_are_checked(tmp_pat
     manifest["files"]["zh/index.html"] = digest(path.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Suite comparison"):
+        check(output)
+
+
+@pytest.mark.parametrize("damage", [
+    "remove", "reorder", "label", "child-content", "child-profile", "content-authority",
+])
+def test_suite_scope_is_bound_to_approved_content_after_rehashing(tmp_path, damage):
+    import shutil
+
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    manifest = read_json(output / "report-manifest.json")
+    suite = read_json(output / "suite.json")
+    path = output / "zh/index.html"
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    if damage == "remove":
+        suite["cohorts"].pop()
+        shutil.rmtree(output / "second")
+        soup.select_one('[data-cohort="second"]').decompose()
+        soup.select_one('nav a[href="second/zh/index.html"]').decompose()
+    elif damage == "reorder":
+        suite["cohorts"].reverse()
+    elif damage == "label":
+        suite["cohorts"][0]["label"] = "Different benchmark"
+    elif damage == "content-authority":
+        manifest["content_sha256"] = "0" * 64
+        manifest["input_content"]["original_sha256"] = "0" * 64
+    else:
+        child_path = output / "first/report-manifest.json"
+        child = read_json(child_path)
+        child[damage.removeprefix("child-") + "_sha256"] = "0" * 64
+        save_json(child_path, child)
+        suite["cohorts"][0]["manifest_sha256"] = digest(child_path.read_bytes())
+    path.write_text(str(soup), encoding="utf-8")
+    save_json(output / "suite.json", suite)
+    manifest["cohorts"] = suite["cohorts"]
+    manifest["files"] = {
+        p.relative_to(output).as_posix(): digest(p.read_bytes())
+        for p in output.rglob("*")
+        if p.is_file() and p != output / "report-manifest.json"
+    }
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="profile-authorized|child input|bound input profile"):
         check(output)

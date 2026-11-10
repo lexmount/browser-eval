@@ -427,6 +427,8 @@ def create_suite(output: Path, *, language="zh"):
                 "home": str(source),
                 "content": str(content),
                 "profile": str(profile),
+                "profile_sha256": digest(profile.read_bytes()),
+                "content_sha256": digest(content.read_bytes()),
             }
         )
     content, profile = home / "content.json", home / "profile.json"
