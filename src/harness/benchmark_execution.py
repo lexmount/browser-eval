@@ -373,9 +373,12 @@ def run_jobs(
                     continue
                 break
             try:
-                wait_options = ({"timeout": max(0, next_ready - time.monotonic())}
-                           if next_ready is not None else {})
-                done, _ = wait(inflight, return_when=FIRST_COMPLETED, **wait_options)
+                # Notify cooperative workers outside the signal handler even if
+                # none of their futures can finish before the stop event is set.
+                timeout = .1
+                if next_ready is not None:
+                    timeout = min(timeout, max(0, next_ready - time.monotonic()))
+                done, _ = wait(inflight, return_when=FIRST_COMPLETED, timeout=timeout)
                 for future in done:
                     try:
                         job = inflight[future]

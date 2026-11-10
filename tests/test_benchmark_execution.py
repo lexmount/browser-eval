@@ -14,6 +14,7 @@ _INITIALIZER_PID = None
 
 def test_a_drain_interrupt_preserves_the_original_failure():
     import signal
+
     from harness import benchmark_execution
 
     release = threading.Event()
@@ -54,6 +55,7 @@ def test_a_drain_interrupt_preserves_the_original_failure():
 
 def test_second_interrupt_restores_the_previous_signal_handler():
     import signal
+
     from harness.benchmark_execution import _retain_call_ownership
 
     previous = signal.getsignal(signal.SIGINT)
@@ -309,6 +311,70 @@ def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
     finally:
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+
+
+@pytest.mark.parametrize('wait_on', ['stop', 'event'])
+def test_one_terminal_interrupt_wakes_workers_and_commits_without_external_release(
+    tmp_path, wait_on
+):
+    import json
+    import signal
+    import subprocess
+    import sys
+    import textwrap
+
+    if os.name != 'posix':
+        pytest.skip('Terminal signals require POSIX')
+    script = tmp_path / 'cooperative_stop.py'
+    script.write_text(textwrap.dedent('''
+        import json, sys
+        from pathlib import Path
+        from harness import benchmark_execution as scheduler
+        root = Path(sys.argv[1])
+        stop = scheduler.ExecutionStop()
+        original_wait = scheduler.wait
+        def observe_wait(*args, **kwargs):
+            (root / 'parent-waiting').touch()
+            return original_wait(*args, **kwargs)
+        scheduler.wait = observe_wait
+        def execute(value):
+            (root / ('worker-' + str(value))).touch()
+            target = stop if sys.argv[2] == 'stop' else stop.event
+            target.wait()
+            return value
+        retained = []
+        policy = scheduler.ExecutionPolicy.from_dict({
+            'purpose': 'quality', 'max_in_flight': 2,
+            'resources': {'api': {'capacity': 2}}})
+        try:
+            scheduler.run_jobs(
+                [scheduler.Job(str(i), ('api',), i) for i in range(4)], execute,
+                lambda job, value, error: retained.append([job.key, value, str(error)]),
+                policy, stop_event=stop)
+        except KeyboardInterrupt:
+            assert stop.event.is_set()
+            (root / 'retained.json').write_text(json.dumps(retained), encoding='utf-8')
+    '''), encoding='utf-8')
+    process = subprocess.Popen([sys.executable, str(script), str(tmp_path), wait_on],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 5
+        markers = ['parent-waiting', 'worker-0', 'worker-1']
+        while not all((tmp_path / name).exists() for name in markers):
+            assert process.poll() is None, process.communicate()
+            assert time.monotonic() < deadline, 'Workers never became ready'
+            time.sleep(.01)
+        time.sleep(.1)
+        os.kill(process.pid, signal.SIGINT)
+        stdout, stderr = process.communicate(timeout=5)
+        assert process.returncode == 0, (stdout, stderr)
+        assert sorted(json.loads((tmp_path / 'retained.json').read_text(encoding='utf-8'))) == [
+            ['0', 0, 'None'], ['1', 1, 'None']]
+        assert not any((tmp_path / ('worker-' + str(i))).exists() for i in [2, 3])
+    finally:
+        if process.poll() is None:
+            process.kill()
             process.communicate()
 
 
