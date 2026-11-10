@@ -202,7 +202,16 @@ def data_home() -> Path:
     return shared_data_home() / "web-extract"
 
 
-def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None):
+def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None,
+            dataset=None, revision=None):
+    if dataset is not None:
+        if source is not None or benchmark != "zyte" or profile != PROFILE:
+            raise ValueError("Select a registered dataset or a local benchmark source")
+        from harness.web_extract.dataset import prepare_registered
+
+        return prepare_registered(destination, dataset, revision=revision)
+    if revision is not None:
+        raise ValueError("--revision requires a registered --dataset")
     adapter = benchmark_config(name=benchmark)["adapter"]
     if adapter:
         if source is None:

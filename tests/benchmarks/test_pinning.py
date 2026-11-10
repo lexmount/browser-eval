@@ -19,6 +19,32 @@ def merged_editions(monkeypatch):
                         lambda repository: [character * 40 for character in '0123456789abcdef'])
 
 
+@pytest.mark.parametrize("size,accepted", [(2_100_000, True), (20_000_001, False)])
+def test_resource_rich_release_manifest_has_a_bounded_larger_budget(
+    tmp_path, monkeypatch, size, accepted
+):
+    fixture(tmp_path, monkeypatch)
+    original = data.urlopen
+
+    def fetch(url, timeout):
+        response = original(url, timeout)
+        if url.endswith("manifest.json"):
+            # Valid JSON with a large byte footprint; archive integrity still applies.
+            return io.BytesIO(b" " * size + response.read())
+        return response
+
+    monkeypatch.setattr(data, "urlopen", fetch)
+    lock = source_path("harness/benchmarks/data-lock.json", root=tmp_path)
+    before = lock.read_bytes()
+    if accepted:
+        pinning.pin(tmp_path, "websearch", "a" * 40)
+        assert json.loads(lock.read_bytes())["datasets"]["websearch"]["revision"] == "a" * 40
+    else:
+        with pytest.raises(ValueError, match="bounded download size"):
+            pinning.pin(tmp_path, "websearch", "a" * 40)
+        assert lock.read_bytes() == before
+
+
 def fixture(root, monkeypatch, defect=None, *, jsonl=False):
     raw_dataset = b'{"task_id":"task"}\n' if jsonl else b'{"id":"sample","cases":[{"id":"task"}]}'
     if defect == 'population':

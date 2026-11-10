@@ -21,6 +21,8 @@ from harness.benchmarks.data import (
 from harness.benchmarks.publication import CARDS, DatasetRelease
 from harness.distribution import repository_root, source_path
 
+MAX_RELEASE_MANIFEST_BYTES = 20_000_000
+
 
 def validate_binding(root: Path, name: str = "lexbench-webfetch") -> str:
     track = name.removeprefix("lexbench-")
@@ -116,7 +118,7 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
     # Pull-request refs and force-pushed commits must never become authoritative inputs.
     if revision not in main_history(repository):
         raise ValueError("REV is not on the dataset's main history: " + revision)
-    raw_manifest = read_hf_file(repository, revision, "manifest.json", 2_000_000)
+    raw_manifest = read_hf_file(repository, revision, "manifest.json", MAX_RELEASE_MANIFEST_BYTES)
     manifest = json.loads(raw_manifest)
     if manifest.get("schema") != "browser-eval-dataset-release/1" or manifest.get("track") != track:
         raise ValueError("Dataset release identity mismatch")

@@ -399,5 +399,80 @@
       ".rst"
     ],
     "language_fields": []
+  },
+  "expanded-swde": {
+    "repo_id": "Lexmount/LexBench-Expanded-SWDE",
+    "pretty_name": "Expanded SWDE",
+    "evaluation_track": "web-extract",
+    "adapter": "records",
+    "license": "other",
+    "tags": [
+      "web-extract",
+      "structured-data-extraction"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [],
+    "input_fields": [
+      "url"
+    ],
+    "family": "structured-field-extraction",
+    "subsets": {
+      "expanded-swde": "Source-qualified evaluation sample; population is fixed by the selected commit."
+    },
+    "license_name": "original-source-terms",
+    "license_link": "LICENSE"
+  },
+  "newsxlm": {
+    "repo_id": "Lexmount/LexBench-NewsXLM",
+    "pretty_name": "NewsXLM",
+    "evaluation_track": "web-extract",
+    "adapter": "records",
+    "license": "other",
+    "tags": [
+      "web-extract",
+      "structured-data-extraction"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [],
+    "input_fields": [
+      "url"
+    ],
+    "family": "structured-field-extraction",
+    "subsets": {
+      "newsxlm": "Source-qualified evaluation sample; population is fixed by the selected commit."
+    },
+    "license_name": "original-source-terms",
+    "license_link": "LICENSE"
+  },
+  "liveweb-ie": {
+    "repo_id": "Lexmount/LexBench-LiveWeb-IE",
+    "pretty_name": "LiveWeb-IE",
+    "evaluation_track": "web-extract",
+    "adapter": "records",
+    "license": "other",
+    "tags": [
+      "web-extract",
+      "structured-data-extraction"
+    ],
+    "task_categories": [
+      "other"
+    ],
+    "source_datasets": [],
+    "language_fields": [],
+    "input_fields": [
+      "url"
+    ],
+    "family": "structured-field-extraction",
+    "subsets": {
+      "liveweb-ie": "Source-qualified evaluation sample; population is fixed by the selected commit."
+    },
+    "license_name": "original-source-terms",
+    "license_link": "LICENSE"
   }
 }

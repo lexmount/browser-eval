@@ -47,7 +47,7 @@ class LiveSourceAccessError(ValueError):
         super().__init__(f"Live source unavailable: {case_id}; {attempts[-1]}")
 
 
-def prepare(home: Path, source: Path):
+def prepare(home: Path, source: Path, *, distribution=None):
     from harness.web_extract.pipeline import digest, read_json, require_external_output, save_json
 
     require_external_output(home)
@@ -185,6 +185,7 @@ def prepare(home: Path, source: Path):
             **({"live_reference_policy": live_policy} if live_policy is not None else {}),
         }
         profile = {
+            **({"source_distribution": distribution} if distribution is not None else {}),
             "name": definition["name"],
             "source_license": definition["source_license"],
             "dataset": {

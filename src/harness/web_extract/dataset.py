@@ -10,6 +10,69 @@ from pathlib import Path
 from harness.benchmarks.data import binding, canonical_source_name, definition_path
 from harness.record_io import bytes_sha256, read_json
 
+
+def _registered_sources():
+    metadata = read_json(Path(__file__).resolve().parents[1] / "benchmarks/cards/metadata.json")
+    return {name: item for name, item in metadata.items()
+            if item.get("evaluation_track") == "web-extract"}
+
+
+def registered_datasets():
+    """Discover pinned extraction sources independently of adapters and participants."""
+    result = {}
+    for name, item in _registered_sources().items():
+        try:
+            selected = binding(name)
+        except KeyError:
+            # Registration precedes publication and pinning of the first edition.
+            continue
+        result[name] = {
+            "name": item["pretty_name"],
+            "adapter": item["adapter"],
+            "repository": selected["repository"],
+            "revision": selected["revision"],
+            "datasets": selected["datasets"],
+        }
+    return result
+
+
+def prepare_registered(home, name, *, revision=None):
+    """Prepare a registered HF edition through the existing task adapter."""
+    from harness.web_extract import records
+
+    catalog = _registered_sources()
+    if name not in catalog:
+        raise ValueError("Unknown Web Extract dataset: " + name)
+    selected = binding(name, revision)
+    if catalog[name]["adapter"] != "records":
+        raise ValueError("Unsupported registered dataset adapter")
+    identity = selected.get("default_dataset")
+    if identity not in selected["datasets"]:
+        raise ValueError("Dataset edition must declare its default population")
+    descriptor = selected["datasets"][identity]
+    # Verify the whole locked archive, including resources referenced by the definition.
+    root = definition_path(name, ".", selected["revision"])
+    source = root / descriptor["path"]
+    definition = read_json(source)
+    if (bytes_sha256(source.read_bytes()) != descriptor["sha256"]
+            or len(definition["cases"]) != descriptor["count"]):
+        raise ValueError("Dataset definition differs from its pinned population")
+    for case in definition["cases"]:
+        for resource in [case, *case.get("assets", [])]:
+            relative = Path(resource["input"])
+            member_name = (Path(descriptor["path"]).parent / relative).as_posix()
+            if (relative.is_absolute() or ".." in relative.parts
+                    or "definitions/" + member_name not in selected["files"]):
+                raise ValueError("Dataset input is outside its locked archive")
+    return records.prepare(Path(home), source, distribution={
+        "dataset": name,
+        "repository": selected["repository"],
+        "revision": selected["revision"],
+        "archive_sha256": selected["archive"]["sha256"],
+        "definition_sha256": descriptor["sha256"],
+    })
+
+
 BENCHMARKS = {
     "records": {
         "profile": None,

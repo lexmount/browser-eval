@@ -1,5 +1,56 @@
 # Web Extract: structured field extraction
 
+## Published datasets
+
+Dataset selection, sample size and extraction methods are independent. The shared
+HF lock selects an immutable edition; each edition declares its own population.
+The following research distributions are public. An authorized `HF_TOKEN` is
+needed when using a private source repository.
+
+| Dataset selection | Hugging Face repository | Current pages | Provider input |
+| --- | --- | ---: | --- |
+| `expanded-swde` | [Expanded SWDE](https://huggingface.co/datasets/Lexmount/LexBench-Expanded-SWDE) | 210 | Public frozen-page URLs |
+| `newsxlm` | [NewsXLM](https://huggingface.co/datasets/Lexmount/LexBench-NewsXLM) | 189 | Public frozen-page URLs |
+| `liveweb-ie` | [LiveWeb-IE](https://huggingface.co/datasets/Lexmount/LexBench-LiveWeb-IE) | 200 | Original live URLs |
+
+```sh
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli datasets
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli \
+  --home /absolute/data/expanded-swde prepare --dataset expanded-swde
+```
+
+Preparation downloads the locked archive, verifies its complete file inventory,
+checks the task and reference qualifications, and builds inputs for the existing
+`records` adapter. It makes no provider calls. The prepared profile records the
+repository, full HF commit, archive hash and task-definition hash. The same verified
+cache works offline with `HF_HUB_OFFLINE=1`. Existing measured cohorts remain bound
+to their original inputs and execution versions.
+
+Use `make pin-dataset DATASET=newsxlm REV=FULL_HF_COMMIT` to select a new published
+edition. Previously recorded editions remain selectable with
+`prepare --dataset newsxlm --revision FULL_HF_COMMIT`. Dataset names carry no size;
+the selected commit determines the pages and references. Each distribution keeps
+the upstream name, attribution and license. LiveWeb-IE remains restricted to
+non-commercial research; NewsXLM's original website rights are not replaced by a
+project license.
+
+Select participants separately with `plan --methods METHOD_ID ...`. Any registered
+complete extraction API with arbitrary-schema support can enter these datasets;
+the pipeline rejects product-only interfaces for non-product tasks. The registry
+does not limit these datasets to the three methods used in the first comparison.
+For frozen-page datasets, use `host` below before creating the plan. LiveWeb-IE
+retains independent before/after source checks and never uses a frozen-page host.
+
+To add a source, register its repository under `cards/metadata.json` with
+`evaluation_track: web-extract` and `adapter: records`, publish a shared
+`DatasetRelease` with a portable `source-qualified-extraction-cohort/1` definition,
+its referenced files and a default population, then run `pin-dataset`. Discovery
+and preparation use that registration; no dataset-specific runner is needed.
+New participant integrations extend the existing provider registry and its
+protocol tests. A new dataset or a larger edition does not require provider code.
+
+## Zyte product extraction
+
 Evaluate complete extraction APIs on the 140 archived product pages in
 [Zyte's product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark).
 Frozen inputs are distributed through
