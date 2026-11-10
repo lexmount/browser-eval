@@ -108,15 +108,20 @@ class BoundedAnchorEvidenceTests(unittest.TestCase):
         self.assertEqual(_presentation_detail_scope(records, {'fresh'}, {}, 'new'), {'fresh', 'retained'})
 
 
-def test_stable_anchor_evidence_shows_returned_link_label():
+def test_stable_anchor_evidence_shows_only_fields_the_scorer_accepts():
     from harness.web_fetch.report import stable_anchor_evidence
 
     metrics = {'stable_anchor_results': [
         {'alternatives': ['Help center'], 'matched': ['Help center'], 'pass': True}]}
-    markup = stable_anchor_evidence(metrics, 'A news feed', {
-        'links': [{'text': 'Help center', 'href': 'https://example.test/help'}]})
-    assert 'href="#returned-fields"><code>links</code>' in markup
-    assert '<p translate="no">Help center</p>' in markup
+    metadata = {'links': [{'text': 'Help center', 'href': 'https://example.test/help'}],
+                'page_information': {'headings': ['Help center']}}
+    contract = {'version': 1, 'schema': 'body_text', 'minimum_records': 0}
+    markup = stable_anchor_evidence(metrics, 'A news feed', metadata, contract=contract)
+    assert 'href="#returned-fields"><code>page_information.headings</code>' in markup
+    assert '<code>links</code>' not in markup
+    scoped = stable_anchor_evidence(metrics, 'A news feed', metadata,
+                                    contract={**contract, 'content_scope': 'target_content'})
+    assert '<code>page_information.headings</code>' not in scoped
 
 
 def test_stable_evidence_shows_adjacent_markdown_lines():

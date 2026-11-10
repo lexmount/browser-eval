@@ -1953,7 +1953,6 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                     records.append(record)
                 else:
                     records[equivalent] = record
-                known.add(identity)
     anchor_records = records
     if exclusions and (SCHEMA_FIELDS[schema] or schema == 'table_row') and schema not in {'named_link', 'linked_product'}:
         anchor_records = _structured_record_view(non_record_content, contract, representation=representation,

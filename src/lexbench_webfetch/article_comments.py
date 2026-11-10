@@ -180,7 +180,8 @@ def _coverage_text_start(lines, contract, *, representation=None):
             if label in end_markers:
                 break
             heading = re.match(r'\s*(#{1,6})\s+', lines[index])
-            if heading and label in markers:
+            # A final heading with nothing below it is a reply form, not the discussion.
+            if heading and label in markers and any(line.strip() for line in lines[index + 1:]):
                 return index + 1, len(heading[1]), True
     for index in range(first, len(lines)):
         # A reviewed end boundary wins over a historical start label. Forms

@@ -145,3 +145,11 @@ def test_character_sliced_ending_matches_inside_full_body_tokens(ending, full_bo
     result = check(full_body + COMMENTS, contract)
     assert result['article_comments_pass']
     assert result['article_comment_count'] == 2
+
+
+def test_trailing_reply_form_heading_keeps_earlier_comments():
+    content = ('The article ends right here.\n\n**Alice**\nFirst actual reply.\n\n'
+               '**Bob**\nSecond actual reply.\n## Post your reply')
+    result = check(content)
+    assert result['article_comment_count'] == 2
+    assert result['article_comments_pass']

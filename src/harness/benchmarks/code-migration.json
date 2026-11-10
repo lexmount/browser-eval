@@ -8,7 +8,7 @@
       "changes": {
         "article_comments.py": {
           "before_sha256": "de014a9188d2b587302889cb1a25e1d77eb282bc3e0a69dcacad7a95f0a4431f",
-          "after_sha256": "86ad8153ade65253592e31963fb22f1afd1bb987d574e70a017f5f1e46c7efc7"
+          "after_sha256": "ef81d93f008aa9bd8647d33e9db3ac26b9b6ba94580cedd9d11602eab77c717c"
         },
         "article_dataset.py": {
           "before_sha256": "8d661b165fc63a6b72352ee6592a99611579e700f1633dab2c0d70824d93447b",
@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "23eae7c5d5a94dee6d3b72ac46127bffe4151a3c49ff387f06fadc6e75755a59"
+          "after_sha256": "340b6e7c8837b2c653ee591895263d82a05a94153de606b339457d31a5ef175e"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -108,7 +108,7 @@
         },
         "stable_tasks.py": {
           "before_sha256": "f12632c4ce8d0d2ed7f07a1725534f903913db7f121c5f941d071d3c47b83787",
-          "after_sha256": "4affc96f5194147875e32b4f6b941cabcaa808ae6d2123877d6c4778352d5f7c"
+          "after_sha256": "d8b970996ceb07ae034041998dbecde4c0931e3e5b9d21cc2dd7669192c94479"
         },
         "structured_tables.py": {
           "before_sha256": "16f0f9295b92fd25f43e2474be445380d85f5259b364c99c9be93154e98d8ba8",
@@ -4246,7 +4246,9 @@
             "visible-typography-word-joiner",
             "visible-typography-word-boundary",
             "returned-records-no-region-ownership",
-            "returned-page-invalid-structure"
+            "returned-page-invalid-structure",
+            "returned-records-duplicate-unique-count",
+            "plain-text-cjk-punctuated-paragraphs-fact-rejected"
           ]
         },
         {

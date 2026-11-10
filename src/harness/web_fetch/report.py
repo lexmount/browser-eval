@@ -1476,12 +1476,13 @@ def _stable_passage_excerpt(text, alternatives, schema, representation):
  return ''
 
 def stable_anchor_evidence(metrics,output,metadata=None,base_url='',contract=None):
- from lexbench_webfetch.response_input import answer_input, safe_named_links
+ from lexbench_webfetch.response_input import unscoped_page_information
  from lexbench_webfetch.stable_tasks import _stable_literal_match
  fields=_returned_answer_fields(metadata or {})
- _,links,_,_=answer_input(b'',fields)
- candidates=[('links',label) for _,label in safe_named_links(links,base_url)]
- for key,value in fields.get('page_information',{}).items():
+ # Only fields the scorer accepts for anchors can be shown as their evidence;
+ # returned link labels never count as page text.
+ candidates=[]
+ for key,value in (fields.get('page_information',{}) if unscoped_page_information(contract) else {}).items():
   if key!='section_headings':
    candidates.extend(('page_information.'+key,text) for text in (value if isinstance(value,list) else [value])
                      if isinstance(text,str))
@@ -1520,7 +1521,7 @@ def stable_anchor_evidence(metrics,output,metadata=None,base_url='',contract=Non
      actual=('<p class="source-note">'+model_text('从返回内容读取的文字','Text read from the response')
              +f'</p><p translate="no">{esc(visible_excerpt)}</p>')
      break
-  if passed and not actual:
+  if passed and not actual and not item.get('match_scope') and not item.get('visible_control'):
    field_match=next(((field,text) for field,text in candidates if any(
        _stable_literal_match(text,value,representation='plain_text') for value in item.get('matched',[]))),None)
    if field_match:

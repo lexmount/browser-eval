@@ -84353,6 +84353,64 @@
       },
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-unique-count",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Repeated returned rows were deduplicated before the duplicate-record check, so two identical reviews passed a one-record minimum. Only overlap with text-derived rows is merged.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-text-cjk-punctuated-paragraphs-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The layout fold after CJK punctuation also removed paragraph breaks in declared plain text, so separate paragraphs ending in 。 joined into one required fact.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "第一段。第二段"
+            ]
+          }
+        ]
+      },
+      "artifact": "第一段。\n\n第二段",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

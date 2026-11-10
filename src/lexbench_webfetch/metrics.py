@@ -805,7 +805,9 @@ def normalize_for_match(value: str, *, representation=None) -> str:
         value = normalize_native_markdown_layout(value)
     # Preserve the punctuation itself while folding layout gaps after CJK
     # punctuation, before NFKC turns some marks into ASCII punctuation.
-    value = re.sub(r'([，。！？、；：])\s+', r'\1', value)
+    # Plain text keeps line and paragraph breaks, so separate paragraphs never join.
+    gap = r'[ \t]+' if representation == 'plain_text' else r'\s+'
+    value = re.sub(r'([，。！？、；：])' + gap, r'\1', value)
     normalized = unicodedata.normalize("NFKC", value).casefold()
     # Web editors insert zero-width spaces/BOMs and discretionary hyphens.
     # They are layout artifacts, not required prose; preserve meaningful joiners.

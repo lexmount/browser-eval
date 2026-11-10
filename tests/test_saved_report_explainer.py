@@ -24,6 +24,9 @@ def test_saved_findings_keep_content_and_derive_counts(tmp_path):
     assert 'Saved body omitted the list. &lt;script&gt;bad&lt;/script&gt;' in page
     assert '<script>' not in page
     assert '../review/index.html' in page
+    from harness.web_fetch.report_i18n import TEXT
+    assert 'aria-label="本轮方法对比"' in page
+    assert TEXT['本轮方法对比'] == 'Method comparison for this round'
 
 
 def test_unbound_report_does_not_invent_saved_findings(tmp_path):

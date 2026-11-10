@@ -1117,7 +1117,7 @@ def render_explainer(out, cases, records, *, table=None, cell=None, link=None, a
                              str(passed), f'{passed/len(selected):.1%}'))
             context = _table([('方法', 'Method'), ('保存结果', 'Saved results'),
                               ('通过', 'Passed'), ('通过率', 'Pass rate')], rows,
-                             '本轮方法对比')
+                             t('method_comparison_for_this_round', 'Method comparison for this round'))
             context += '<h2>' + bilingual_text('结果说明与限制', 'Findings and limitations') + '</h2>'
             context += ''.join('<p>'+escape(note)+'</p>' for note in scope.get('limitations', []))
             context += '<p><a href="../review/index.html">' + bilingual_text(
