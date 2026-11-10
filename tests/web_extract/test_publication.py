@@ -391,6 +391,62 @@ def test_live_only_publication_needs_no_snapshot_content_binding(tmp_path, suite
     assert publication.audit_previews(source, {}) == ()
 
 
+@pytest.mark.parametrize("damage", [None, "content", "snapshot"])
+def test_preview_audit_cannot_adopt_inputs_changed_during_network_check(
+    tmp_path, monkeypatch, damage
+):
+    from harness.web_extract import report
+
+    source, target, work, visual = setup_report(tmp_path)
+    content, snapshot = tmp_path / "content.json", tmp_path / "snapshot.json"
+    save_json(snapshot, {"version": "original"})
+    save_json(content, {
+        "dataset_manifest": str(tmp_path / "dataset/manifest.json"),
+        "preview_snapshot": {"path": str(snapshot), "sha256": digest(snapshot.read_bytes())},
+    })
+    receipt = {"mode": "dataset_manifest", "version": "original"}
+    manifest = read_json(source / "report-manifest.json")
+    manifest.update(mode="field-extraction-cohort", preview_snapshot=receipt,
+                    content_sha256=digest(content.read_bytes()))
+    save_json(source / "report-manifest.json", manifest)
+    bound = read_json(target)
+    bound["content"] = {"path": str(content)}
+    save_json(target, bound)
+    audits, stages = [], []
+
+    def preview(*args, audit, **kwargs):
+        audits.append(audit)
+        if audit and damage:
+            save_json({"content": content, "snapshot": snapshot}[damage], {"changed": True})
+        return receipt
+
+    def package(*args, **kwargs):
+        stages.append("package")
+        return {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+
+    def update(staged, **kwargs):
+        stages.append("upload")
+        staged.guard()
+        staged.bind("ver_after")
+        return "ver_after"
+
+    monkeypatch.setattr(report, "record_preview", preview)
+    monkeypatch.setattr(publication, "package", package)
+    monkeypatch.setattr(publication, "publish_staged_update", update)
+    if damage:
+        with pytest.raises(ValueError, match="publication inputs changed"):
+            publication.publish(source, target, work, visual, home=tmp_path)
+        assert stages == []
+        assert read_json(target)["expected_version"] == "ver_before"
+    else:
+        assert (
+            publication.publish(source, target, work, visual, home=tmp_path)["versionId"]
+            == "ver_after"
+        )
+        assert stages == ["package", "upload"]
+    assert audits == [False, True]
+
+
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
     audit_calls = []

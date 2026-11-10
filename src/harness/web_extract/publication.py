@@ -4,7 +4,12 @@ import time
 from pathlib import Path
 
 from harness.record_io import json_bytes
-from harness.reporting.publication import PublicationClient, archive_inventory, atomic_write
+from harness.reporting.publication import (
+    PublicationClient,
+    PublicationSnapshot,
+    archive_inventory,
+    atomic_write,
+)
 from harness.reporting.publish import StagedUpdate, publish_staged_update
 from harness.web_extract.pipeline import (
     digest,
@@ -19,8 +24,8 @@ from harness.web_extract.report import (
 )
 
 
-def audit_previews(source, binding):
-    """Recheck public inputs using the private content bound to this release."""
+def _preview_inputs(source, binding, *, audit):
+    """Resolve the bound preview files, optionally checking their hosted bytes."""
     def archived(report):
         manifest = read_json(report / "report-manifest.json")
         if manifest.get("mode") == "field-extraction-suite":
@@ -48,13 +53,23 @@ def audit_previews(source, binding):
             from harness.web_extract.report import record_preview
 
             home = Path(model["dataset_manifest"]).parent.parent
-            receipt = record_preview(home, model, local_example=False, audit=True)
+            receipt = record_preview(home, model, local_example=False, audit=audit)
             if receipt != current["preview_snapshot"]:
                 raise ValueError("Publication preview differs from the built report")
             paths.append(Path(model["preview_snapshot"]["path"]))
 
     visit(source, Path(content["path"]))
     return tuple(paths)
+
+
+def preview_inputs(source, binding):
+    """Discover and locally validate the inputs before freezing a network audit."""
+    return _preview_inputs(source, binding, audit=False)
+
+
+def audit_previews(source, binding):
+    """Verify hosted previews against the release's frozen private content."""
+    return _preview_inputs(source, binding, audit=True)
 
 
 def publish(source, target, work, visual_receipt, *, transport=None, home=None):
@@ -98,9 +113,12 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
         if current != previous and digest(Path(next_profile).read_bytes()) != current:
             raise ValueError("Publication successor profile changed")
 
-    preview_inputs = audit_previews(source, bound)
-    authority_inputs = (*completion_authorities(next_profile, home), *preview_inputs)
+    preview_paths = preview_inputs(source, bound)
+    authority_inputs = (*completion_authorities(next_profile, home), *preview_paths)
     unchanged_profile()
+    frozen = PublicationSnapshot.for_inputs((source, target, *authority_inputs))
+    audit_previews(source, bound)
+    frozen.check()
     work.mkdir(parents=True, exist_ok=True)
     archive = work / "report.zip"
     started = time.perf_counter()
@@ -126,12 +144,14 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 
     unchanged_profile()
+    frozen.check()
 
     upload_checked = False
 
     def unchanged_target():
         nonlocal upload_checked
         unchanged_profile()
+        frozen.check()
         if not upload_checked:
             verify_completion_audit(source, next_profile, home=home)
             upload_checked = True
