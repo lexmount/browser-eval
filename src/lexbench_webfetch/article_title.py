@@ -169,7 +169,9 @@ def verify_article_title(content, contract, *, representation=None, headings=(),
     if not isinstance(headings, (list, tuple)) or any(not isinstance(x, str) for x in headings):
         raise ValueError('returned headings must be a list of text values')
     matched = next((text for text in candidates if _title_key(text, representation='plain_text') in expected), None)
-    if matched is None:
+    # Returned fields carry no page position, so they cannot prove they are
+    # outside a task's excluded regions.
+    if matched is None and not contract.get('excluded_html_selectors'):
         matched = next((text for text in headings
                         if _title_key(text, representation='plain_text') in expected), None)
         if matched is not None:

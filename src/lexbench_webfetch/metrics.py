@@ -1326,8 +1326,6 @@ def evaluate_content(
         structure = evaluate_document_structure(
             prose_content if is_html else visible_content,
             document_structure, html_document=is_html, representation=representation,
-            section_headings=(page_information or {}).get('section_headings')
-            if representation == 'plain_text' else None,
         )
         result.update(structure)
         result["content_pass"] = bool(result["content_pass"] and structure['document_structure_pass'])

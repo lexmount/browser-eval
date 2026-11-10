@@ -107,3 +107,14 @@ def test_malformed_heading_string_cannot_become_character_titles():
                      {'page_information': {'headings': 'ABC'}}):
         with pytest.raises(ValueError, match='headings must be a list'):
             score_attempt(c, b'The article was published May 2026.', ok=True, metadata=metadata)
+
+
+def test_returned_headings_respect_title_exclusions():
+    c = case()
+    c['source_benchmark'] = {'title_contract': {'version': 1,
+        'alternatives': ['A Useful Essay'], 'html_selector': 'h1'}}
+    metadata = {'answer_format': 'plain_text', 'page_structure': {'headings': ['A Useful Essay']}}
+    body = b'This is the complete synthetic essay body.'
+    assert score_attempt(c, body, ok=True, metadata=metadata)['article_title_pass'] is True
+    c['source_benchmark']['title_contract']['excluded_html_selectors'] = ['aside']
+    assert score_attempt(c, body, ok=True, metadata=metadata)['article_title_pass'] is False

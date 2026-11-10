@@ -276,28 +276,7 @@ def _definition_html_events(content):
             events.append((_local_definition_text(description), None))
     return events
 
-def _declared_section_events(content, section_headings, declared):
-    """Recover boundaries only when the returned headings locate unique, ordered spans."""
-    if not isinstance(section_headings, list) or len(section_headings) < 2:
-        return None
-    events, position = [], 0
-    for label in section_headings:
-        if not isinstance(label, str) or not label.strip():
-            return None
-        pattern = r'(?<!\w)' + re.escape(label.strip()) + r'(?!\w)'
-        matches = list(re.finditer(pattern, content))
-        if len(matches) != 1 or matches[0].start() < position:
-            return None
-        match = matches[0]
-        events.append((content[position:match.start()], None))
-        events.append((match[0], declared.get(_key(label), {}).get('level', 2)))
-        position = match.end()
-    events.append((content[position:], None))
-    return events
-
-
-def evaluate_document_structure(content, contract, *, html_document=False, representation=None,
-                                section_headings=None):
+def evaluate_document_structure(content, contract, *, html_document=False, representation=None):
     if not contract:
         return {}
     validate_document_structure(contract)
@@ -309,8 +288,6 @@ def evaluate_document_structure(content, contract, *, html_document=False, repre
     else:
         events = _text_events(content, headings, key_function, literal=representation == 'plain_text')
     declared = {key_function(h['text']): h for h in headings}
-    if not definitions and not html_document and not any(level is not None for _, level in events):
-        events = _declared_section_events(content, section_headings, declared) or events
     # Serializers may change heading levels. The declared source hierarchy
     # determines which subsequent text belongs to a registered section.
     events = [(text, declared[key_function(text)]['level']
