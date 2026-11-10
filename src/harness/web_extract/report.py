@@ -1744,10 +1744,11 @@ def usage_table(methods, rows, lang, labels=None):
 def selected_execution_contracts(bindings):
     sources = {}
     for binding in bindings:
-        contract = binding["contract"]
-        methods = binding.get("methods")
-        for method in contract["methods"] if methods is None else methods:
-            sources.setdefault(method, []).append(contract)
+        for segment in binding.get("segments", [binding]):
+            contract = segment["contract"]
+            methods = segment.get("methods")
+            for method in contract["methods"] if methods is None else methods:
+                sources.setdefault(method, []).append(contract)
     return sources
 
 
@@ -3777,7 +3778,7 @@ def check_reader_contract(output, manifest, *, release=False):
         check_case_comparison_controls(output, methods, labels, language)
         if manifest.get("mode") == "field-extraction-cohort":
             sources = read_json(output / "public-evidence/sources.json")
-            configurations = {m: [value["contract"]] for m, value in sources.items()}
+            configurations = selected_execution_contracts(sources.values())
         else:
             configurations = selected_execution_contracts(manifest["source_runs"])
         actual = BeautifulSoup(
@@ -4827,7 +4828,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         language,
         labels,
         compared=compared,
-        execution={m: [v["contract"]] for m, v in data["sources"].items()},
+        execution=selected_execution_contracts(data["sources"].values()),
     )
     bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
     if audit_binding:
@@ -4845,7 +4846,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         stats, labels
     )
     bodies["protocol"] += execution_settings(
-        {m: [value["contract"]] for m, value in data["sources"].items()}, methods, labels, language
+        selected_execution_contracts(data["sources"].values()), methods, labels, language
     )
     bodies["protocol"] += "<p>" + message("completion_protocol", language) + "</p>"
     bodies["index"] = (
@@ -5610,8 +5611,8 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
             "zh",
             manifest["method_labels"],
             compared=manifest["comparison_methods"],
-            execution={m: [v["contract"]] for m, v in read_json(
-                output / "public-evidence/sources.json").items()},
+            execution=selected_execution_contracts(read_json(
+                output / "public-evidence/sources.json").values()),
         ),
         "html.parser",
     )

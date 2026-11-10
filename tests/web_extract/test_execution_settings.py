@@ -7,6 +7,20 @@ from harness.web_extract.example import create
 from harness.web_extract.report import _check_rendered_report, execution_settings
 
 
+def test_segmented_execution_settings_preserve_each_selected_load():
+    from harness.web_extract.report import selected_execution_contracts
+
+    bindings = [{"segments": [
+        {"contract": {"methods": ["first", "unselected"], "concurrency": limit},
+         "methods": ["first"]}
+        for limit in (1, 2)
+    ]}]
+    sources = selected_execution_contracts(bindings)
+    assert set(sources) == {"first"}
+    soup = BeautifulSoup(execution_settings(sources, ["first"], {}, "en"), "html.parser")
+    assert [row.select("td")[1].get_text() for row in soup.select("tbody tr")] == ["1", "2"]
+
+
 def test_multi_method_report_uses_every_assigned_shared_limit():
     methods = ["first", "second"]
     policy = {
