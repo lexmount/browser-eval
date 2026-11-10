@@ -250,3 +250,17 @@ def test_suite_scope_is_bound_to_approved_content_after_rehashing(tmp_path, dama
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="profile-authorized|child input|bound input profile"):
         check(output)
+
+
+@pytest.mark.parametrize("mode,suffix", [
+    ("field-extraction-suite", "-suite-inputs"),
+    ("field-extraction-cohort", "-synthetic-inputs"),
+])
+def test_unsupported_example_language_leaves_output_reusable(tmp_path, mode, suffix):
+    output = tmp_path / "report"
+    with pytest.raises(ValueError, match="Chinese only|supports only zh"):
+        create(output, mode=mode, language="en")
+    assert not output.exists()
+    assert not output.with_name(output.name + suffix).exists()
+    create(output, mode=mode, language="zh")
+    check(output)

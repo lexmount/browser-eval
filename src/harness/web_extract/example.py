@@ -406,6 +406,8 @@ def create_record(output: Path, *, language="zh", input_mode="snapshot"):
 
 def create_suite(output: Path, *, language="zh"):
     """Exercise separate cohorts and shared navigation without provider calls."""
+    if language != "zh":
+        raise ValueError("The suite example currently supports Chinese only")
     require_external_output(output)
     home = output.parent / (output.name + "-suite-inputs")
     require_external_output(home)
