@@ -1133,10 +1133,13 @@ def _stable_literal_match(surface, value, registered_words=(), *, phrase_boundar
 
 def _record_field_key(value):
     """Normalize rendered field text without interpreting Markdown syntax."""
-    from .metrics import normalize_for_match
+    from .reference_quality import clean_reference_text
+    import unicodedata
     value = value.translate(str.maketrans({"’": "'", "‘": "'", "“": '"', "”": '"',
                                          "–": "-", "—": "-", "−": "-"}))
-    value = normalize_for_match(value, representation='plain_text').strip('“”"‘’ ')
+    # Frozen record hashes use literal whitespace, not evolving prose matching.
+    value = clean_reference_text(unicodedata.normalize('NFKC', value).casefold())
+    value = re.sub(r'\s+', ' ', value).strip('“”"‘’ ')
     return re.sub(r'([$£€¥]) +(?=[+-]?\d)', r'\1', value)
 
 
@@ -1761,7 +1764,7 @@ def _pattern_text_surface(text, *, representation=None):
     return text
 
 
-def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None) -> dict:
+def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligible: bool = True, links=None, *, anchor_text: str | None = None, anchors_required: bool = True, allow_closed_title_cards: bool = False, representation=None, returned_records=None, page_information=None) -> dict:
     """Validate a version-1 schema/count contract, without fetching or snapshots.
 
     Required keys: version, schema, minimum_records. Optional maximum_records
@@ -1779,6 +1782,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
     This surface belongs only to that anchor, not page identity or body coverage.
     """
     validate_acceptance_contract(contract)
+    from .response_input import page_information_texts, unscoped_page_information
+    information_texts = page_information_texts(page_information)
     if representation is None:
         from .reference_quality import normalize_native_markdown_layout
         content = normalize_native_markdown_layout(content)
@@ -1858,6 +1863,8 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
                               else representation)
     pattern_surfaces = [_pattern_text_surface(surface, representation=pattern_representation)
                         for surface in text_surfaces] if patterns else []
+    if patterns and unscoped_page_information(contract):
+        pattern_surfaces.extend(information_texts)
     page_results = [{"pattern": p, "pass": any(re.search(p, surface, re.I | re.M)
                                                for surface in pattern_surfaces)} for p in patterns]
     content_errors = (["page_identity_mismatch"] if not all(r["pass"] for r in page_results) else [])
@@ -1917,6 +1924,52 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
         source_mismatches = []
         records = _structured_record_view(content, contract, representation=representation,
             allow_closed_title_cards=allow_closed_title_cards, visible=visible)
+    # Flat structured rows prove field ownership, but cannot establish a
+    # reviewed DOM selector, table region or excluded section boundary.
+    if returned_records and SCHEMA_FIELDS[schema] and schema not in {'named_link', 'linked_product'} and not exclusions and not any(
+            contract.get(key) for key in ('entry_scope', 'table_scope')):
+        if not isinstance(returned_records, list):
+            raise ValueError('returned records must be a list')
+        names = SCHEMA_FIELDS[schema]
+        # Merge only overlap with valid text rows. API paths keep their case,
+        # as the uniqueness check does, although frozen hashes fold it.
+        def merge_key(fields):
+            return (source_record_hash(fields, names, schema),
+                    fields.get('path', '').strip() if schema == 'api_operation' else None)
+
+        # An explicit quote row can also be rendered in prose with comma
+        # separators between tags. Keep its native field boundaries.
+        def quote_identity(fields):
+            return (_record_field_key(fields['quote']), _record_field_key(fields['author']),
+                    tuple(re.findall(r'[^,\s]+', _record_field_key(fields['tags']))))
+
+        # Each text row absorbs at most one returned row, so further copies stay
+        # visible to the duplicate-record check. An equal valid row is kept; an
+        # equivalent quote or the same fields parsed as invalid text is replaced.
+        text_rows = len(records)
+        consumed = set()
+        for fields in returned_records:
+            if not isinstance(fields, dict) or not all(isinstance(fields.get(key), str) for key in names):
+                continue
+            selected = {key: fields[key] for key in names}
+            key = merge_key(selected)
+            record = _record(selected, schema)
+            open_rows = [i for i in range(text_rows) if i not in consumed]
+            match = next((i for i in open_rows if records[i]['valid']
+                          and merge_key(records[i]['fields']) == key), None)
+            if match is not None:
+                consumed.add(match)
+                continue
+            if record['valid']:
+                match = next((i for i in open_rows if (
+                    records[i]['valid'] and schema == 'quote'
+                    and quote_identity(records[i]['fields']) == quote_identity(selected))
+                    or (not records[i]['valid'] and merge_key(records[i]['fields']) == key)), None)
+            if match is None:
+                records.append(record)
+            else:
+                consumed.add(match)
+                records[match] = record
     anchor_records = records
     if exclusions and (SCHEMA_FIELDS[schema] or schema == 'table_row') and schema not in {'named_link', 'linked_product'}:
         anchor_records = _structured_record_view(non_record_content, contract, representation=representation,
@@ -1975,6 +2028,11 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if escaped_prose:
                 matched = [value for value in anchor['alternatives'] if _stable_literal_match(
                     escaped_prose, value, representation=match_representation, rendered=True, literal=True)]
+        if (not matched and information_texts and unscoped_page_information(contract)
+                and not anchor.get('match_scope') and not anchor.get('visible_control')):
+            matched = [value for value in anchor['alternatives'] if any(
+                _stable_literal_match(text, value, registered_words, representation='plain_text')
+                for text in information_texts)]
         anchors.append({**anchor, "matched": matched, "pass": bool(matched)})
     anchor_errors = ["missing_stable_anchor:" + r["id"] for r in anchors if not r["pass"]]
     if anchors_required:

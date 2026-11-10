@@ -83293,6 +83293,1048 @@
       "artifact": "Prefix<sup>1</sup>\nx<y\n<div <x> Visible sentence.</div> after",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "plain-text-typography",
+      "failure_mode": "false-negative",
+      "category": "format-normalization",
+      "root_cause": "Declared plain text skipped shared typography normalization; formatting syntax must remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "sentence",
+              "alternatives": [
+                "Current: reader's guide 中文文本"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Current : reader’s guide 中文文本",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "plain-text-missing-word",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Declared plain text skipped shared typography normalization; formatting syntax must remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "sentence",
+              "alternatives": [
+                "Current: reader's guide 中文文本"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Current : reader’s 中文 文本",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-text-literal-markup",
+      "failure_mode": "false-positive",
+      "category": "format-normalization",
+      "root_cause": "Declared plain text skipped shared typography normalization; formatting syntax must remain literal.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "sentence",
+              "alternatives": [
+                "Current: reader's guide 中文文本"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Current : **reader’s guide** 中文 文本",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-page-heading",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {
+        "page_structure": {
+          "headings": [
+            "A visible heading"
+          ]
+        }
+      },
+      "title": null,
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "returned-page-wrong-heading",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {
+        "page_structure": {
+          "headings": [
+            "Another heading"
+          ]
+        }
+      },
+      "title": null,
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-page-metadata-title",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {},
+      "title": "A visible heading",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-complete",
+      "failure_mode": "false-negative",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-02",
+            "text": "Second complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "returned-records-incomplete",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-missing-field",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-02"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-label",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A returned link list is page metadata: a label naming a link cannot supply a stable anchor the returned text lacks.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "Sign in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Page body",
+      "metadata": {
+        "links": [
+          {
+            "text": "Sign in",
+            "href": "/login"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-split-label",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Separately returned visible link labels were ignored by global page text checks; unrelated labels and bare URLs must not supply phrases.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "Sign in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Page body",
+      "metadata": {
+        "links": [
+          {
+            "text": "Sign",
+            "href": "/a"
+          },
+          {
+            "text": "in",
+            "href": "/b"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-url-only",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Separately returned visible link labels were ignored by global page text checks; unrelated labels and bare URLs must not supply phrases.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "navigation",
+              "alternatives": [
+                "Sign in"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "Page body",
+      "metadata": {
+        "links": [
+          {
+            "href": "https://example.test/Sign in"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "visible-typography-cjk-punctuation",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "编者按：日前，BBC发布消息。"
+            ]
+          }
+        ]
+      },
+      "artifact": "编者按： 日前， BBC发布消息。",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "visible-typography-cjk-wrong-word",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "编者按：日前，BBC发布消息。"
+            ]
+          }
+        ]
+      },
+      "artifact": "编者按： 日前， ABC发布消息。",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "visible-typography-word-joiner",
+      "category": "format-normalization",
+      "failure_mode": "false-negative",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "A nonbreaking phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "A non⁠breaking phrase",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "visible-typography-word-boundary",
+      "category": "format-normalization",
+      "failure_mode": "false-positive",
+      "root_cause": "Invisible word joiners and layout whitespace after CJK punctuation caused literal text mismatches; actual word changes remain significant.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "required_facts": [
+          {
+            "alternatives": [
+              "A nonbreaking phrase"
+            ]
+          }
+        ]
+      },
+      "artifact": "A non breaking phrase",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-no-region-ownership",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Explicit returned records were ignored; apply existing field, distinctness and source-membership validation.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 2,
+          "stable_text_anchors": [],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-02",
+            "text": "Second complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-page-invalid-structure",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit returned page headings were omitted from independent title verification; SEO titles cannot substitute.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A visible heading"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "The complete article body is delivered.",
+      "metadata": {
+        "page_structure": "A visible heading"
+      },
+      "title": null,
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "page_structure must be an object"
+    },
+    {
+      "id": "extracted-date-field",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "extracted-date-wrong",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2025"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-no-concatenation",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": [
+            "May",
+            "2026"
+          ]
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-no-body",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        }
+      },
+      "artifact": "",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-excluded-region",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ],
+          "content_scope": "target_content"
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-title-field",
+      "failure_mode": "false-negative",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A Useful Essay"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026",
+          "title": "A Useful Essay"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "extracted-title-wrong",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        },
+        "source_benchmark": {
+          "title_contract": {
+            "version": 1,
+            "alternatives": [
+              "A Useful Essay"
+            ],
+            "html_selector": "h1"
+          }
+        }
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026",
+          "title": "Another Essay"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "extracted-fields-explicit-body-scope",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "Explicit extracted information was omitted from unscoped checks; field boundaries and required prose/region constraints must remain intact.",
+      "case": {
+        "id": "information-example",
+        "url": "https://example.test/essay",
+        "task_kind": "body",
+        "expected_any": [],
+        "min_content_chars": 20,
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "body_text",
+          "minimum_records": 0,
+          "stable_text_anchors": [
+            {
+              "id": "date",
+              "alternatives": [
+                "May 2026"
+              ]
+            }
+          ]
+        },
+        "required_facts": [
+          {
+            "id": "date",
+            "alternatives": [
+              "May 2026"
+            ],
+            "match_scope": "body"
+          }
+        ]
+      },
+      "artifact": "This is the complete synthetic essay body.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "page_information": {
+          "published_at": "May 2026"
+        }
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-link-fact-cross-page",
+      "failure_mode": "false-positive",
+      "category": "answer-surface",
+      "root_cause": "A required body fact that appears only as the label of a returned link to another page was counted as delivered content.",
+      "case": {
+        "url": "https://example.test/guide",
+        "expected_any": [],
+        "task_kind": "body",
+        "min_content_chars": 20,
+        "required_facts": [
+          {
+            "id": "intro",
+            "alternatives": [
+              "Installing the toolkit"
+            ]
+          },
+          {
+            "id": "storage",
+            "alternatives": [
+              "Configuring remote storage backends"
+            ]
+          }
+        ]
+      },
+      "artifact": "# Installing the toolkit\nRun the installer and follow the prompts to finish setup on your machine.",
+      "metadata": {
+        "links": [
+          {
+            "text": "Configuring remote storage backends",
+            "href": "https://other.test/blog/storage"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-unique-count",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "Repeated returned rows were deduplicated before the duplicate-record check, so two identical reviews passed a one-record minimum. Only overlap with text-derived rows is merged.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "plain-text-cjk-punctuated-paragraphs-fact-rejected",
+      "category": "format-normalization",
+      "root_cause": "The layout fold after CJK punctuation also removed paragraph breaks in declared plain text, so separate paragraphs ending in 。 joined into one required fact.",
+      "failure_mode": "false-positive",
+      "case": {
+        "url": "https://example.test/",
+        "task_kind": "body",
+        "min_content_chars": 1,
+        "required_facts": [
+          {
+            "id": "fact",
+            "alternatives": [
+              "第一段。第二段"
+            ]
+          }
+        ]
+      },
+      "artifact": "第一段。\n\n第二段",
+      "metadata": {
+        "answer_format": "plain_text"
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-with-body-copy",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A returned row equal to a text-derived row was skipped every time it repeated, so duplicate returned rows evaded the duplicate-record check when the body also contained one copy. Each text row absorbs only one returned copy.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "review",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "Reviews\n2026-10-01\nFirst complete review.",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          },
+          {
+            "date": "2026-10-01",
+            "text": "First complete review."
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-quote-with-body-copy",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A body quote row could absorb two returned copies, one by exact fields and one by equivalent tags, so duplicate returned quotes evaded the duplicate-record check. Each text row absorbs only one returned copy.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“A complete quotation” by Alex Writer Tags: books reading",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "quote": "A complete quotation",
+            "author": "Alex Writer",
+            "tags": "books reading"
+          },
+          {
+            "quote": "A complete quotation",
+            "author": "Alex Writer",
+            "tags": "books reading"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

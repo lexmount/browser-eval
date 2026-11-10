@@ -1,10 +1,13 @@
 import json
+from copy import deepcopy
 from unittest.mock import patch
 
 import pytest
 
 from lexbench_webfetch.models import EvalCase
-from harness.web_fetch.native_projection import require_native_answer_projection
+from harness.web_fetch.native_projection import (
+    require_native_answer_projection, native_answer_projection, project_native_answer,
+)
 from harness.web_fetch.providers.http_client import HttpResponse
 from harness.web_fetch.providers.lexmount import LexmountProvider
 
@@ -15,6 +18,38 @@ def provider():
         'uniform_native_parameters': True})
 
 
+def test_prior_projection_keeps_its_original_answer_scope():
+    payload = {'result': {'main_text': 'Body', 'extra': {
+        'dom_summary': {'headings': ['Heading']}, 'reviews': [{'text': 'Review'}]}}}
+    old = native_answer_projection('lexmount', {}, payload, 200, policy_version=3)
+    content, fields = project_native_answer(payload, old)
+    assert content == 'Body'
+    assert fields == {}  # No returned links or images: none declared.
+    previous = native_answer_projection('lexmount', {}, payload, 200, policy_version=4)
+    assert project_native_answer(payload, previous)[1] == {
+        'answer_format': 'plain_text',
+        'page_structure': {'headings': ['Heading']}, 'records': [{'text': 'Review'}]}
+    current = native_answer_projection('lexmount', {}, payload, 200)
+    assert 'page_information' in project_native_answer(payload, current)[1]
+
+
+@pytest.mark.parametrize('extra,lead,breadcrumbs', [
+    ({'dek': 'Article introduction', 'breadcrumb': ['Home', 'Essays']},
+     'Article introduction', ['Home', 'Essays']),
+    ({'lead': 'Primary introduction', 'dek': 'Alternate introduction',
+      'breadcrumbs': ['Primary'], 'breadcrumb': ['Alternate']},
+     'Primary introduction', ['Primary']),
+    (None, None, []),
+])
+def test_extracted_field_aliases_are_selected_by_structure(extra, lead, breadcrumbs):
+    payload = {'result': {'main_text': 'Body', 'extra': extra}}
+    declaration = native_answer_projection('lexmount', {}, payload, 200)
+    content, fields = project_native_answer(payload, declaration)
+    assert content == 'Body'
+    assert fields['page_information']['lead'] == lead
+    assert fields['page_information']['breadcrumbs'] == breadcrumbs
+
+
 @pytest.mark.parametrize('track,kind', [('web', 'body'), ('dynamic', 'body'),
     ('image', 'resource'), ('video', 'file'), ('document', 'body')])
 def test_native_lexmount_keeps_uniform_request_and_replayable_answers(track, kind):
@@ -23,12 +58,17 @@ def test_native_lexmount_keeps_uniform_request_and_replayable_answers(track, kin
     payload = {'result': {'main_text': 'Actual response', 'title': 'Page',
         'final_url': 'https://example.com/final', 'engine': 'lightmount_domstable',
         'links': [{'text': 'A', 'href': 'https://example.com/a'}],
-        'images': [{'src': 'https://example.com/a.png'}]}}
+        'images': [{'src': 'https://example.com/a.png'}],
+        'extra': {'dom_summary': {'headings': ['Actual page heading']},
+                  'reviews': [{'date': '2026-10-01', 'text': 'An actual review.'}]}}}
     raw = json.dumps(payload).encode()
     with patch('harness.web_fetch.providers.lexmount.request',
                return_value=HttpResponse(200, 'https://api.lexmount.com/v1/extract', {}, raw)) as request:
         result = provider().fetch(case, 30)
     assert result.ok
+    assert result.metadata["answer_format"] == "plain_text"
+    assert result.metadata['page_structure'] == payload['result']['extra']['dom_summary']
+    assert result.metadata['records'] == payload['result']['extra']['reviews']
     assert request.call_args.kwargs['json_body'] == {
         'extract': {'url': case.url, 'options': {'engine_preference': 'lightmount_domstable'}},
         'trace': {'include_steps': True}}
@@ -38,6 +78,14 @@ def test_native_lexmount_keeps_uniform_request_and_replayable_answers(track, kin
     with pytest.raises(ValueError):
         require_native_answer_projection('invented', result.metadata, raw,
             title=result.title, final_url=result.final_url, request_url=case.url)
+    for field, replacement in [('page_structure', {'headings': ['Invented']}),
+                               ('records', []), ('answer_format', 'html'),
+                               ('page_information', {'title': 'Invented'})]:
+        changed = deepcopy(result.metadata)
+        changed[field] = replacement
+        with pytest.raises(ValueError, match='field projection'):
+            require_native_answer_projection(result.content, changed, raw,
+                title=result.title, final_url=result.final_url, request_url=case.url)
 
 
 @pytest.mark.parametrize('status,payload', [(401, {'error': {'message': 'Unauthorized'}}),
@@ -134,3 +182,12 @@ def test_native_lexmount_replays_null_resources_and_non_json_failures(status, ra
     version = native_projection_policy_version(native_projection_policy('lexmount'), 'lexmount')
     assert _expected_native_declaration(None, record, raw, {case.id: {'url': case.url}},
                                         policy_version=version) == result.metadata.get('native_answer_projection')
+
+
+def test_document_title_is_not_declared_as_extracted_page_information():
+    from harness.web_fetch.native_projection import native_answer_projection, project_native_answer
+    payload = {'result': {'main_text': 'Body', 'title': 'Document title', 'author': 'A. Writer'}}
+    declaration = native_answer_projection('lexmount', {}, payload, 200)
+    _, fields = project_native_answer(payload, declaration)
+    assert 'title' not in fields['page_information']
+    assert fields['page_information']['author'] == 'A. Writer'

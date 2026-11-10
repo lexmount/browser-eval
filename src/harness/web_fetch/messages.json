@@ -929,6 +929,7 @@
     "method_blocks_cross_site_redirects": "方法禁止跨站跳转",
     "method_capability": "方法能力",
     "method_comparison": "方法组合对比",
+    "method_comparison_for_this_round": "本轮方法对比",
     "method_content_check": "方法内容检查",
     "method_diagrams": "方法图解",
     "method_does_not_support_this_site": "方法不支持该站点",
