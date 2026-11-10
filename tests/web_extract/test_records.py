@@ -1175,6 +1175,7 @@ def test_machine_scored_record_report_accepts_only_its_declared_baseline_policy(
     from harness.web_extract import example, swde
 
     baseline = {"text_matching": "whitespace", "unavailable_reference_groups": []}
+    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
     monkeypatch.setattr(swde, "reference_policy", lambda *a: baseline, raising=False)
     output = tmp_path / "report"
     home = example.create_record(tmp_path / "seed")
@@ -1182,7 +1183,7 @@ def test_machine_scored_record_report_accepts_only_its_declared_baseline_policy(
     authority = pipeline.read_json(profile)
     authority["research_report"]["content"]["path"] = str(content)
     pipeline.save_json(profile, authority)
-    report.build(output, content, home=home, profile=profile)
+    report.build(output, content, home=home, profile=profile, language="zh")
     report.check(output, profile=profile, home=home)
     path = output / "report-manifest.json"
     manifest = pipeline.read_json(path)
