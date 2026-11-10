@@ -1,12 +1,186 @@
 """Per-field diagnostics derived through the upstream matching functions."""
 
 import json
+import math
+import statistics
+from collections import Counter
 from decimal import InvalidOperation
 from functools import lru_cache
+from pathlib import Path
 
-from harness.web_extract.pipeline import PROFILE, digest, official_scorer
+from harness.web_extract.pipeline import PROFILE, SCHEMA, digest, official_scorer
 
-FIELDS = ("price", "sku", "availability")
+FIELDS = tuple(SCHEMA["properties"])
+
+
+def score_model_comparison(plan_path, run, contract_path, home, *, stage, repair=None):
+    """Score an exact declared subset without new calls or reference leakage."""
+    from jsonschema import Draft202012Validator
+
+    from harness.record_io import canonical_json_sha256, file_sha256, read_json
+    from harness.web_extract.model_comparison import request_body, transport_replacements
+    from harness.web_extract.pipeline import normalize_extracted_fields
+
+    plan_path, run, contract_path = Path(plan_path), Path(run), Path(contract_path)
+    plan, contract = read_json(plan_path), read_json(contract_path)
+    if plan["case_contract_sha256"] != file_sha256(contract_path):
+        raise ValueError("Model case contract changed")
+    binding = read_json(run / "binding.json")
+    if binding["plan_sha256"] != file_sha256(plan_path):
+        raise ValueError("Model plan differs from its collected evidence")
+    index = read_json(run / "call-hashes.json")
+    replacements = transport_replacements(plan_path, run, repair) if repair else {}
+    selected = {c["id"] for dataset in contract["stages"].values() for c in dataset[stage]}
+    cases = {c["id"]: c for c in plan["cases"] if c["id"] in selected}
+    if not cases or set(cases) != selected:
+        raise ValueError("Model stage omits declared cases")
+    originals = {c["id"]: c for dataset in contract["stages"].values() for c in dataset[stage]}
+    if cases != originals:
+        raise ValueError("Model plan changed the authoritative reference or input")
+    models = {m["id"]: m for m in plan["models"]}
+    rows = []
+    for call in (c for c in plan["calls"] if c["phase"] == "comparison" and c["case_id"] in cases):
+        key = canonical_json_sha256(call)
+        path = run / "calls" / (key + ".json")
+        if not path.exists() or index.get(key) != file_sha256(path):
+            raise ValueError("Missing or changed model call evidence")
+        record = read_json(path)
+        case, model = cases[call["case_id"]], models[call["model_id"]]
+        expected = {
+            **binding,
+            "call": call,
+            "request_sha256": canonical_json_sha256(request_body(plan, model, case)),
+        }
+        if (
+            record["binding"] != expected
+            or canonical_json_sha256(record["request"]) != expected["request_sha256"]
+        ):
+            raise ValueError("Model response does not bind the declared request")
+        replacement = replacements.get(key)
+        if replacement:
+            record, selected_checksum, predecessor_checksum, retry_seconds = replacement
+        else:
+            selected_checksum, predecessor_checksum, retry_seconds = index[key], None, 0
+        response = record["response"]
+        data = response.get("data") if isinstance(response.get("data"), dict) else {}
+        valid = bool(
+            response.get("success")
+            and not list(Draft202012Validator(case["schema"]).iter_errors(data))
+        )
+        reference = case["reference"]
+        native = {"http_status": 200 if response.get("success") else 0}
+        if case["dataset"] == "swde":
+            policy = contract["bindings"]["swde"]["reference_policy"]
+            unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
+            native["normalized_fields"] = data
+            fields = record_field_results(
+                reference,
+                native,
+                text_matching=policy["text_matching"],
+                unavailable_fields=[
+                    field
+                    for field in reference["values"]
+                    if (reference["domain"], reference["site"], field) in unavailable
+                ],
+            )
+            complete = all(v["status"] != "unavailable" for v in fields.values())
+        else:
+            native["normalized_fields"] = normalize_extracted_fields(data) if response.get(
+                "success") else None
+            fields = field_results(Path(home), reference, native)
+            excluded = set(case.get("reference_excluded_fields", []))
+            fields = {k: v for k, v in fields.items() if k not in excluded and k != "OutOfStock"}
+            complete = not (set(case["schema"]["properties"]) & excluded)
+        counts = {
+            k: sum(v[k] for v in fields.values() if v["status"] != "unavailable")
+            for k in ("tp", "fp", "fn")
+        }
+        rows.append(
+            {
+                "model_id": call["model_id"],
+                "case_id": case["id"],
+                "dataset": case["dataset"],
+                "schema_valid": valid,
+                "fields": fields,
+                "reference_complete": complete,
+                "page_exact": (valid and all(v["status"] == "correct" for v in fields.values()))
+                if complete
+                else None,
+                "timings": {
+                    "first_any_output_seconds": response.get("first_any_output_seconds"),
+                    "first_answer_seconds": response.get("first_answer_seconds"),
+                    "elapsed_seconds": response.get(
+                        "elapsed_seconds", response.get("complete_json_seconds")
+                    ),
+                    "complete_json_seconds": response.get("complete_json_seconds")
+                    if response.get("success")
+                    else None,
+                },
+                "call_sha256": selected_checksum,
+                "superseded_call_sha256": predecessor_checksum,
+                "retry_execution_seconds": retry_seconds,
+                **counts,
+            }
+        )
+    expected = {(m, c) for m in models for c in cases}
+    if len(rows) != len(expected) or {(r["model_id"], r["case_id"]) for r in rows} != expected:
+        raise ValueError("Incomplete or duplicate model comparison population")
+
+    groups = summarize_model_rows(rows, models)
+    return {
+        "stage": stage,
+        "plan_sha256": binding["plan_sha256"],
+        "case_contract_sha256": file_sha256(contract_path),
+        "scoring_sha256": file_sha256(Path(__file__)),
+        "groups": groups,
+        "case_ids": sorted(cases),
+        "details": rows,
+        "review_scope": "automatic scoring only",
+    }
+
+
+def summarize_model_rows(rows, models):
+    """Aggregate retained model judgments and timers without generating or rescoring answers."""
+    def summarize(values):
+        totals = Counter({k: sum(r[k] for r in values) for k in ("tp", "fp", "fn")})
+        tp, fp, fn = (totals[k] for k in ("tp", "fp", "fn"))
+        timers = {}
+        for name in values[0]["timings"]:
+            durations = sorted(r["timings"][name] for r in values if r["timings"][name] is not None)
+            timers[name] = {
+                "count": len(durations),
+                "missing": len(values) - len(durations),
+                "mean": statistics.mean(durations) if durations else None,
+                "p50": statistics.median(durations) if durations else None,
+                "p95": durations[math.ceil(0.95 * len(durations)) - 1] if durations else None,
+            }
+        return {
+            "cases": len(values),
+            "schema_valid": sum(r["schema_valid"] for r in values),
+            "page_exact": sum(r["page_exact"] is True for r in values),
+            "page_exact_denominator": sum(r["reference_complete"] for r in values),
+            "precision": tp / (tp + fp) if tp + fp else None,
+            "recall": tp / (tp + fn) if tp + fn else None,
+            "f1": 2 * tp / (2 * tp + fp + fn) if 2 * tp + fp + fn else None,
+            "retry_execution_seconds": sum(r["retry_execution_seconds"] for r in values)
+            if all(r["retry_execution_seconds"] is not None for r in values) else None,
+            "timings": timers,
+            **totals,
+        }
+
+    groups = {}
+    for model in models:
+        values = [r for r in rows if r["model_id"] == model]
+        groups[model] = {
+            **summarize(values),
+            "datasets": {
+                ds: summarize([r for r in values if r["dataset"] == ds])
+                for ds in sorted({r["dataset"] for r in values})
+            },
+        }
+    return groups
+
+
 REFERENCE_CONTROLS = (
     ("locale-thousands-price", "price", ["24990"], "24990", "24.99"),
     ("current-price-excludes-list-price", "price", ["99", "990"], "990.00", "1390"),
@@ -263,7 +437,6 @@ def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
     field_counts, failures = Counter(), Counter()
     policy = reference_policy or {"text_matching": "literal", "unavailable_reference_groups": []}
     unavailable = {tuple(group) for group in policy["unavailable_reference_groups"]}
-    exact_pages = 0
     retry_seconds, retry_missing, physical_calls = 0.0, 0, 0
     for row in rows:
         reference = truth[row["case_id"]]
@@ -278,8 +451,6 @@ def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
             ],
         )
         field_counts.update(value["status"] for value in fields.values())
-        active = [value for value in fields.values() if value["status"] != "unavailable"]
-        exact_pages += bool(active) and all(value["exact"] for value in active)
         if row.get("compatibility") != "structured_output":
             failures[failure_stage(row)] += 1
         attempts = row.get("physical_attempts", [row])
@@ -317,10 +488,103 @@ def record_statistics(truth, rows, *, certified, scorer, reference_policy=None):
         "latency": latency,
         "field_outcomes": dict(field_counts),
         "failure_stages": dict(failures),
-        "exact_pages": exact_pages,
         "physical_calls": physical_calls,
         "retry_seconds": retry_seconds,
         "retry_missing_timers": retry_missing,
+    }
+
+
+def completion_metrics(rows, fields_by_case, *, records):
+    """Add delivery-aware diagnostics without changing upstream field judgments.
+
+    Whole-page accuracy excludes a page if any requested field lacks reference
+    coverage. Empty-field accuracy retains every covered negative field, including
+    failed calls in its denominator. Missing values are valid for native product
+    APIs; array-schema tasks require an explicitly delivered empty array.
+    """
+    from decimal import Decimal, InvalidOperation
+
+    from harness.web_extract.pipeline import normalize
+
+    by_case = {row["case_id"]: row for row in rows}
+    if len(by_case) != len(rows) or set(by_case) != set(fields_by_case):
+        raise ValueError("Completion metrics require the complete unique case population")
+    page_correct = page_total = empty_correct = empty_total = 0
+    cases = {}
+    for cid, fields in fields_by_case.items():
+        row = by_case[cid]
+        prediction = row.get("normalized_fields")
+        if not records and "response" in row:
+            # Inspect native types before product projection drops malformed values.
+            prediction = normalize(
+                row["method"],
+                row["response"],
+                schema={"type": "object"},
+                preserve_native_types=True,
+            )
+        delivered = (
+            row.get("http_status") == 200
+            and row.get("compatibility") == "structured_output"
+            and isinstance(prediction, dict)
+        )
+        prediction = prediction if isinstance(prediction, dict) else {}
+        covered = {f: value for f, value in fields.items() if value["status"] != "unavailable"}
+        eligible = bool(fields) and len(covered) == len(fields)
+
+        def valid(field, current=prediction):
+            value = current.get(field)
+            if records:
+                return (
+                    field in current
+                    and isinstance(value, list)
+                    and all(isinstance(item, str) for item in value)
+                )
+            if value is None:
+                return True
+            if isinstance(value, (bool, dict, list)):
+                return False
+            definition = SCHEMA["properties"].get(field, {})
+            if "number" in definition.get("type", []):
+                try:
+                    return Decimal(str(value)).is_finite()
+                except (InvalidOperation, ValueError):
+                    return False
+            if "enum" in definition:
+                return value in definition["enum"]
+            return isinstance(value, (str, int, float))
+
+        correct = {
+            f: delivered
+            and valid(f)
+            and (value["exact"] if records else value["status"] == "correct")
+            for f, value in covered.items()
+        }
+        full = (
+            eligible and all(correct.values()) and (not records or set(prediction) == set(fields))
+        )
+        negatives = [f for f, value in covered.items() if not value["expected"]]
+        negative_correct = sum(bool(correct[f]) for f in negatives)
+        page_total += eligible
+        page_correct += full
+        empty_total += len(negatives)
+        empty_correct += negative_correct
+        cases[cid] = {
+            "eligible": eligible,
+            "delivered": delivered,
+            "page_exact": bool(full) if eligible else None,
+            "empty_fields": len(negatives),
+            "empty_fields_correct": negative_correct,
+        }
+
+    def rate(correct, total):
+        return {"correct": correct, "total": total, "rate": correct / total if total else None}
+
+    return {
+        "page_exact": rate(page_correct, page_total),
+        "empty_fields": rate(empty_correct, empty_total),
+        "planned_pages": len(fields_by_case),
+        "excluded_pages": len(fields_by_case) - page_total,
+        "cases": cases,
     }
 
 

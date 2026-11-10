@@ -38,6 +38,11 @@ Use `Browser Use` for the autonomous track and `Browser Trajectory Replay` for t
 
 # Execution and evidence
 
+- Follow `docs/benchmark-execution.md` for every existing or new track. Freeze and
+  validate resource admission, concurrency, pacing, initialization and resume
+  behavior before expensive collection. Use the shared execution owner and
+  registered track adapters; global serialization needs a concrete resource or
+  measurement reason. Preserve active frozen cohorts while improving later runs.
 - For benchmark design, execution, scoring, result audit, report generation or release, read `.agents/skills/benchmark-report/SKILL.md`. Use `.agents/skills/benchmark-editorial/SKILL.md` additionally only for a new or substantially rewritten standalone interpretation article, official blog or public-account article.
 - Run repository Python only through `make` targets or `uv run --frozen [--extra ...] python`. `.python-version`, `uv.lock`, the Makefile and CI are the runtime contract; never fall back to system Python.
 - Web, dynamic, popular-site and document text use shared `score_attempt` orchestration and one task-result predicate. Task-specific requirements live in case configuration, not provider- or track-specific scoring branches. Binary acceptance and text diagnostics remain separate; missing reference coverage is unavailable, not zero or perfect.

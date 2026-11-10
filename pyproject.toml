@@ -59,9 +59,13 @@ browser-use-eval = [
   "webarena-verified @ git+https://github.com/lexmount/webarena-verified.git@da7b992eb10de78000f11a7f34fd4590c171fbd6",
 ]
 test = [
+  "fastapi==0.162.0",
+  "httpx>=0.28,<1",
+  "psutil>=7,<8",
   "pytest>=8,<10",
   "pytest-xdist>=3.8,<4",
   "ruff>=0.9,<1",
+  "uvicorn==0.54.0",
 ]
 oss-eval = [
     "crawl4ai==0.9.3",
@@ -74,9 +78,8 @@ oss-eval = [
 web-extract-eval = [
   "huggingface-hub==1.31.0",
   "jsonschema>=4.25,<5",
-  "extruct==0.18.0",
-  "price-parser==0.5.0",
   "requests>=2.32,<3",
+  "lxml>=5.3.0",
 ]
 
 [tool.pytest.ini_options]
@@ -103,6 +106,7 @@ include = [
   "src/harness/reporting/**/*.py",
   "src/harness/web_search/**/*.py",
   "src/harness/container_isolation.py",
+  "src/harness/benchmark_execution.py",
   "src/harness/data_home.py",
   "src/harness/distribution.py",
   "src/harness/env_file.py",
@@ -176,7 +180,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 [tool.setuptools.package-data]
 "harness.benchmarks" = ["data-lock.json", "code-migration.json", "scoring-regressions.json", "cards/*.md", "cards/*.json"]
 "harness.web_search" = ["messages.json", "data/*.json"]
-"harness.web_extract" = ["messages.json", "assets/*.css", "assets/*.js"]
+"harness.web_extract" = ["messages.json", "assets/*.css", "assets/*.js", "firecrawl_backend.mjs"]
 "harness" = ["licenses/*.txt"]
 "harness.trajectory_replay" = ["messages.json", "resources/fixtures/*.html"]
 "harness.browser_use" = ["messages.json"]

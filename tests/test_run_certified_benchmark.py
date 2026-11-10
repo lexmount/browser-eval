@@ -115,6 +115,12 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 self.assertEqual(dataset.read_bytes(),original)
 
     def test_frozen_contract_execution_needs_no_historical_qualification_files(self):
+        self.check_frozen_contract_workers()
+
+    def test_frozen_contract_execution_preserves_explicit_parallelism(self):
+        self.check_frozen_contract_workers(4)
+
+    def check_frozen_contract_workers(self, workers=None):
         from harness.web_fetch import reference_freeze, benchmark_runner
         from harness.web_fetch.evidence import finalize_aggregate
         from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
@@ -162,6 +168,8 @@ class CertifiedBenchmarkTests(unittest.TestCase):
                 if script == 'reference_freeze.main':
                     reference_freeze.main(arguments)
                 elif script == 'benchmark_runner.main':
+                    self.assertEqual(arguments[arguments.index('--workers') + 1],
+                                     str(workers or 1))
                     with patch.object(benchmark_runner, 'load_runtime_env'):
                         benchmark_runner.main(arguments)
                 elif script == 'reference_freeze.postcheck_main':
@@ -174,7 +182,8 @@ class CertifiedBenchmarkTests(unittest.TestCase):
             with patch('harness.web_fetch.certification.run', side_effect=execute):
                 main(['--dataset', str(dataset), '--output', str(output),
                       '--work-root', str(root / 'work'), '--providers', 'fixture',
-                      '--provider-config', str(config), '--case-ids', 'stable,fixed-answer,fixed-resource'])
+                      '--provider-config', str(config), '--case-ids', 'stable,fixed-answer,fixed-resource',
+                      *(['--workers', str(workers)] if workers else [])])
             measured = json.loads((output / 'dataset.json').read_text(encoding="utf-8"))
             self.assertEqual(measured['cases'], [case, fixed, resource])
             self.assertEqual(dataset.read_bytes(), original)

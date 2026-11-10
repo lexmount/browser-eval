@@ -29,13 +29,24 @@ from lexbench_webfetch.paths import contained_path
 
 @dataclass(frozen=True)
 class PublicationSnapshot:
-    archive: Path
-    sha256: str
+    archive: Path | None
+    sha256: str | None
     sources: dict
     signatures: dict = field(default_factory=dict)
 
+    @classmethod
+    def for_inputs(cls, inputs):
+        paths = dict.fromkeys(Path(path) for path in inputs)
+        signatures = {path: _file_signature(path) for path in paths}
+        sources = {path: _identity(path) for path in paths}
+        if any(_file_signature(path) != signatures[path] for path in paths):
+            raise ValueError('publication inputs changed during snapshot creation')
+        return cls(None, None, sources, signatures)
+
     def check(self) -> None:
-        for path, value in {**self.sources, self.archive: self.sha256}.items():
+        for path, value in {
+            **self.sources, **({self.archive: self.sha256} if self.archive else {})
+        }.items():
             signature = _file_signature(path)
             # Windows ctime is creation time, so retain byte checks there.
             if os.name != 'nt' and self.signatures.get(path) == signature:
@@ -46,7 +57,9 @@ class PublicationSnapshot:
 
     def verify(self) -> None:
         """Rehash the complete bytes at the final publication boundary."""
-        for path, value in {**self.sources, self.archive: self.sha256}.items():
+        for path, value in {
+            **self.sources, **({self.archive: self.sha256} if self.archive else {})
+        }.items():
             if _identity(path) != value:
                 raise ValueError('publication inputs changed after validation')
 
@@ -74,15 +87,13 @@ def _file_signature(path: Path):
 @contextmanager
 def snapshot_publication(archive: Path, *, inputs: Sequence[Path]):
     """Upload a private byte-exact copy while guarding the release authority."""
-    paths = dict.fromkeys((archive, *inputs))
-    signatures = {path: _file_signature(path) for path in paths}
-    sources = {path: _identity(path) for path in paths}
-    if any(_file_signature(path) != signatures[path] for path in paths):
-        raise ValueError('publication inputs changed during snapshot creation')
+    authority = PublicationSnapshot.for_inputs((archive, *inputs))
     with tempfile.TemporaryDirectory(prefix='publication-snapshot-') as work:
         frozen = Path(work) / 'archive.zip'
         shutil.copyfile(archive, frozen)
-        snapshot = PublicationSnapshot(frozen, sources[archive], sources, signatures)
+        snapshot = PublicationSnapshot(
+            frozen, authority.sources[archive], authority.sources, authority.signatures
+        )
         snapshot.check()
         yield snapshot
 

@@ -14,6 +14,167 @@ from harness.web_fetch.providers.firecrawl import FirecrawlProvider
 
 
 class BenchmarkSelectionTests(unittest.TestCase):
+    def test_provider_batches_share_the_declared_account_limit(self):
+        import threading
+        import time
+
+        active = peak = 0
+        lock = threading.Lock()
+
+        def fetch(*args, **kwargs):
+            nonlocal active, peak
+            with lock:
+                active += 1
+                peak = max(peak, active)
+            time.sleep(.03)
+            with lock:
+                active -= 1
+            return ProviderResult(True, 'content'), None
+
+        config = self.root / 'configs/providers.example.json'
+        data = json.loads(config.read_text(encoding="utf-8"))
+        for provider in data['providers'].values():
+            provider['execution_resources'] = {
+                'account': {'capacity': 1, 'reason': 'One shared account'}}
+        config.write_text(json.dumps(data), encoding="utf-8")
+        with patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch):
+            self.run_main([
+                '--dataset', str(self.root / 'evaluation/dataset.json'),
+                '--provider-config', str(config), '--track', 'web',
+                '--providers', 'fixture-one,fixture-two', '--workers', '2', '--measure-only',
+            ])
+        self.assertEqual(peak, 1)
+        rows = [json.loads(row) for row in (self.output / 'results.jsonl').read_text(encoding="utf-8").splitlines()]
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(all(row['ok'] for row in rows))
+        execution = json.loads((self.output / 'execution.json').read_text(encoding="utf-8"))
+        self.assertEqual(execution['aggregate']['execution_policy']['purpose'], 'quality')
+        for batch in execution['batches']:
+            self.assertEqual(batch['execution_context']['purpose'], 'quality')
+            self.assertEqual(batch['execution_policy']['purpose'], 'quality')
+
+    def test_final_call_quarantine_stops_other_scopes_and_shared_variants(self):
+        from harness.web_fetch.providers.base import ProcessCleanupError
+        from harness.web_fetch.runner import IncompleteEvaluationError
+
+        config = self.root / 'configs/providers.example.json'
+        data = json.loads(config.read_text(encoding='utf-8'))
+        for provider in data['providers'].values():
+            provider['execution_resources'] = {
+                'account': {'capacity': 1, 'reason': 'Shared unresolved worker'}}
+        config.write_text(json.dumps(data), encoding='utf-8')
+        with patch('harness.web_fetch.runner.fetch_with_deadline',
+                   side_effect=ProcessCleanupError('Worker remains alive')) as call:
+            with self.assertRaises(IncompleteEvaluationError):
+                self.run_main([
+                    '--dataset', str(self.root / 'evaluation/dataset.json'),
+                    '--provider-config', str(config), '--providers', 'fixture-one,fixture-two',
+                    '--workers', '2', '--measure-only',
+                ])
+        self.assertEqual(call.call_count, 1)
+        manifests = list(self.output.glob('workers/*/*/manifest.json'))
+        self.assertEqual(len(manifests), 1)
+        manifest = json.loads(manifests[0].read_text(encoding='utf-8'))
+        self.assertEqual(len(manifest['quarantined_providers']), 1)
+        self.assertEqual(manifest['attempt_count'], 1)
+        self.assertFalse((self.output / 'execution.json').exists())
+
+    def test_quarantine_reaches_other_outer_workers_before_persistence_finishes(self):
+        import threading
+        import time
+        from types import SimpleNamespace
+
+        from harness.web_fetch import runner
+        from harness.web_fetch.providers.base import ProcessCleanupError
+        from harness.web_fetch.runner import IncompleteEvaluationError
+
+        held, release = threading.Event(), threading.Event()
+        started = threading.Barrier(2, timeout=3)
+        owner = threading.local()
+        events, observed, calls = {}, [], []
+        actual = run_benchmark.run_evaluation
+
+        def evaluate(**kwargs):
+            events[kwargs['providers'][0].name] = kwargs.get('stop_event')
+            return actual(**kwargs)
+
+        def sleep(seconds):
+            if getattr(owner, 'name', None) == 'fixture-one':
+                held.set()
+                self.assertTrue(release.wait(3))
+
+        def fetch(provider, case, *args, **kwargs):
+            owner.name = provider.name
+            calls.append((provider.name, case.id))
+            started.wait()
+            if provider.name == 'fixture-one':
+                raise ProcessCleanupError('Worker remains alive')
+            try:
+                self.assertTrue(held.wait(3))
+                event = events[provider.name]
+                observed.append(event is not None and event.is_set())
+            finally:
+                release.set()
+            return ProviderResult(True, 'content'), None
+
+        clock = SimpleNamespace(monotonic=time.monotonic, perf_counter=time.perf_counter,
+                                sleep=sleep, time=time.time)
+        with patch.object(run_benchmark, 'run_evaluation', side_effect=evaluate), \
+                patch.object(runner, 'fetch_with_deadline', side_effect=fetch), \
+                patch.object(runner, 'time', clock):
+            with self.assertRaises((IncompleteEvaluationError, KeyboardInterrupt)):
+                self.run_main([
+                    '--dataset', str(self.root / 'evaluation/dataset.json'),
+                    '--provider-config', str(self.root / 'configs/providers.example.json'),
+                    '--providers', 'fixture-one,fixture-two', '--workers', '2', '--measure-only',
+                ])
+        self.assertEqual(observed, [True])
+        self.assertEqual(sorted(calls), [('fixture-one', 'web-a'), ('fixture-two', 'web-a')])
+
+    def test_mixed_worker_runtime_identities_never_form_an_aggregate(self):
+        from harness.web_fetch.runner import IncompleteEvaluationError
+
+        actual = run_benchmark.run_evaluation
+
+        def collect(**kwargs):
+            result = actual(**kwargs)
+            if kwargs['providers'][0].name == 'fixture-two':
+                path = kwargs['output_dir'] / 'manifest.json'
+                manifest = json.loads(path.read_text(encoding='utf-8'))
+                manifest['runtime_source_sha256'] = 'f' * 64
+                path.write_text(json.dumps(manifest), encoding='utf-8')
+            return result
+
+        with patch.object(run_benchmark, 'run_evaluation', side_effect=collect):
+            with self.assertRaisesRegex(IncompleteEvaluationError, 'Runtime changed'):
+                self.run_main(['--track', 'web', '--providers', 'fixture-one,fixture-two',
+                               '--workers', '2', '--measure-only'])
+        self.assertFalse((self.output / 'execution.json').exists())
+        self.assertEqual(len(list(self.output.glob('workers/*/web/results.jsonl'))), 2)
+
+    def test_runtime_change_during_the_last_call_preserves_evidence_without_certifying_it(self):
+        from harness.web_fetch import runner
+        from harness.web_fetch.runner import IncompleteEvaluationError
+
+        folder = self.root / 'runtime/harness/web_fetch'
+        folder.mkdir(parents=True)
+        source = folder / 'runner.py'
+        source.write_text('# before call', encoding='utf-8')
+        (folder.parent / 'benchmark_execution.py').write_text('# scheduler', encoding='utf-8')
+
+        def fetch(*args, **kwargs):
+            source.write_text('# changed during call', encoding='utf-8')
+            return ProviderResult(True, 'content'), None
+
+        with patch.object(runner, '__file__', str(source)), \
+                patch.object(runner, 'fetch_with_deadline', side_effect=fetch):
+            with self.assertRaisesRegex(IncompleteEvaluationError, 'Runtime changed'):
+                self.run_main(['--track', 'web', '--providers', 'fixture-one',
+                               '--workers', '1', '--measure-only'])
+        self.assertFalse((self.output / 'execution.json').exists())
+        saved = self.output / 'workers/fixture-one/web/results.jsonl'
+        self.assertEqual(len(saved.read_text(encoding='utf-8').splitlines()), 1)
+
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
         self.addCleanup(self.tmp.cleanup)

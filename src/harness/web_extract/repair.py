@@ -1,9 +1,12 @@
 """Certified failure-only collection and immutable full-population repair views."""
 
 import fcntl
+import os
 import re
 from pathlib import Path
 
+from harness.benchmark_execution import ExecutionPolicy, exclusive_policy
+from harness.reporting.publication import atomic_create
 from harness.web_extract.dataset import task_bindings
 from harness.web_extract.pipeline import (
     ACCESS_POLICY,
@@ -120,11 +123,19 @@ def create_plan(home, content, output, options, fixture_base, selected=None):
             "failed_case_ids": failures,
             "previous_repairs": previous,
             "native_options": native_options,
+            "execution_policy": inherited.get("execution_policy")
+            or exclusive_policy(
+                method, "Retain the parent's serial execution for bounded failure repairs"
+            ),
             "fixture_suffix": inherited["fixture_suffix"],
-            "minimum_call_interval_seconds": available_methods()[method][
-                "minimum_call_interval_seconds"
-            ],
-            "post_call_cooldown_seconds": available_methods()[method]["post_call_cooldown_seconds"],
+            "minimum_call_interval_seconds": inherited.get(
+                "minimum_call_interval_seconds",
+                available_methods()[method]["minimum_call_interval_seconds"],
+            ),
+            "post_call_cooldown_seconds": inherited.get(
+                "post_call_cooldown_seconds",
+                available_methods()[method]["post_call_cooldown_seconds"],
+            ),
         }
     plan = {
         "schema": "archived-extraction-repair/1",
@@ -216,6 +227,7 @@ def run(home, profile, method, destination):
         "fixture-after.json",
         "execution/pipeline.py",
         "execution/repair.py",
+        "execution/benchmark_execution.py",
     ):
         require_external_output(destination / name)
     destination.mkdir(parents=True, exist_ok=True)
@@ -274,10 +286,9 @@ def collect(home, profile, method, destination):
         raise ValueError("Unsupported repair execution budget")
     if plan["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
         raise ValueError("Repair dataset changed")
-    code = {
-        name: digest(Path(__file__).with_name(name).read_bytes())
-        for name in ("repair.py", "pipeline.py")
-    }
+    code_files = {name: Path(__file__).with_name(name) for name in ("repair.py", "pipeline.py")}
+    code_files["benchmark_execution.py"] = Path(__file__).parents[1] / "benchmark_execution.py"
+    code = {name: digest(path.read_bytes()) for name, path in code_files.items()}
     contract = {
         "schema": "failed-extraction-repair-run/2"
         if bindings
@@ -302,6 +313,11 @@ def collect(home, profile, method, destination):
         "code_snapshots": False,
         **bindings,
     }
+    if participant.get("execution_policy") is not None:
+        policy = ExecutionPolicy.from_dict(participant["execution_policy"])
+        contract.update(
+            execution_policy=participant["execution_policy"], concurrency=policy.max_in_flight
+        )
     target = destination / "contract.json"
     if not target.exists() and (
         any((destination / name).exists() for name in ("calls.journal.jsonl", "inflight.json"))
@@ -324,6 +340,17 @@ def collect(home, profile, method, destination):
     )
     if not target.exists():
         save_json(target, contract, exclusive=True)
+    snapshot = destination / "execution/benchmark_execution.py"
+    if snapshot.exists():
+        if snapshot.is_symlink() or digest(snapshot.read_bytes()) != code["benchmark_execution.py"]:
+            raise ValueError("Repair execution source changed before dispatch")
+    else:
+        atomic_create(snapshot, code_files["benchmark_execution.py"].read_bytes())
+        descriptor = os.open(snapshot.parent, os.O_RDONLY)
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
     receipt = destination / "fixture-before.json"
     if receipt.exists():
         if read_json(receipt) != before:
@@ -364,7 +391,7 @@ def collect(home, profile, method, destination):
     if digest(profile.read_bytes()) != contract["profile_sha256"]:
         raise ValueError("Repair profile changed during collection")
     verify_parent(home, participant)
-    if code != {n: digest(Path(__file__).with_name(n).read_bytes()) for n in code}:
+    if code != {name: digest(path.read_bytes()) for name, path in code_files.items()}:
         raise ValueError("Repair implementation changed during calls")
     if task_bindings(home) != bindings:
         raise ValueError("Repair task adapter or dataset profile changed during calls")
@@ -447,10 +474,10 @@ def verify_repair(home, source, repair):
     if digest((directory / "contract.json").read_bytes()) != manifest["contract_sha256"]:
         raise ValueError("Repair contract changed")
     for name, expected in contract["code_sha256"].items():
-        if name not in ("repair.py", "pipeline.py"):
+        if name not in ("repair.py", "pipeline.py", "benchmark_execution.py"):
             raise ValueError("Unexpected repair execution source")
         snapshot = directory / "execution" / name
-        if contract.get("code_snapshots", True) and (
+        if (name == "benchmark_execution.py" or contract.get("code_snapshots", True)) and (
             snapshot.is_symlink() or digest(snapshot.read_bytes()) != expected
         ):
             raise ValueError("Repair execution source changed")
@@ -482,7 +509,25 @@ def verify_repair(home, source, repair):
                 }
                 for cid in participant["case_ids"]
             ]
-        if before != expected:
+
+        def without_hosting_annotation(receipts):
+            # Hosting policy belongs to the frozen participant, not the remote
+            # manifest. Retained receipts may predate or include that annotation.
+            return [
+                {
+                    **item,
+                    "snapshot_manifest": {
+                        key: value
+                        for key, value in item["snapshot_manifest"].items()
+                        if key != "hosting_provider"
+                    },
+                }
+                if isinstance(item.get("snapshot_manifest"), dict)
+                else item
+                for item in receipts
+            ]
+
+        if without_hosting_annotation(before) != without_hosting_annotation(expected):
             raise ValueError("Repair dataset snapshot qualification differs")
     elif needs_fixture:
         if {item["case_id"] for item in before} != set(participant["case_ids"]):
@@ -565,6 +610,15 @@ def execution_configuration(contract, directory=None):
         "fixture_base": base,
         "fixture_suffix": suffix,
         "snapshot_manifest": snapshot,
+        **{
+            key: participant[key]
+            for key in (
+                "execution_policy",
+                "minimum_call_interval_seconds",
+                "post_call_cooldown_seconds",
+            )
+            if key in participant
+        },
     }
 
 

@@ -11,6 +11,27 @@ from harness.web_extract.certification import create_plan
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import read_json
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
+
+@pytest.mark.parametrize("options,expected", [([], 1), (["--concurrency", "4"], 4)])
+def test_public_plan_defaults_to_isolation_and_keeps_explicit_quality_parallelism(
+    tmp_path, monkeypatch, options, expected
+):
+    from harness.web_extract import certification, cli
+
+    received = {}
+
+    def capture(*args, **kwargs):
+        received.update(kwargs)
+
+    monkeypatch.setattr(certification, "create_plan", capture)
+    cli.main(["--home", str(tmp_path), "plan", "--methods", "firecrawl-json",
+              "--output", str(tmp_path / "plan.json"), *options])
+    assert received["concurrency"] == expected
+    assert received["serial_reason"].strip()
+    assert received["execution_purpose"] == "quality"
+
 
 def test_certified_default_keeps_webfetch_arguments():
     with patch("harness.web_fetch.certification.main", return_value="legacy") as run:

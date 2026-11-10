@@ -1,0 +1,149 @@
+services:
+  native-extraction:
+    build:
+      context: ../..
+      dockerfile: Dockerfile
+    environment:
+      EXTRACTION_API_KEY: ${EXTRACTION_API_KEY:?Set EXTRACTION_API_KEY}
+      EXTRACTION_MAX_WORKERS: ${EXTRACTION_MAX_WORKERS:-1}
+      EXTRACTION_MODEL_API_KEY: ${EXTRACTION_MODEL_API_KEY:?Set EXTRACTION_MODEL_API_KEY}
+      EXTRACTION_MODEL: ${EXTRACTION_MODEL:-deepseek-flash}
+      EXTRACTION_MODEL_BASE: ${EXTRACTION_MODEL_BASE:-https://api.deepseek.com}
+      EXTRACTION_MODEL_CONTEXT_TOKENS: ${EXTRACTION_MODEL_CONTEXT_TOKENS:-1000000}
+      OPENBLAS_NUM_THREADS: "1"
+      OMP_NUM_THREADS: "1"
+      MKL_NUM_THREADS: "1"
+      NUMEXPR_NUM_THREADS: "1"
+      SNAPSHOT_ORIGINS: ${SNAPSHOT_ORIGINS:?Set the exact Cloudflare snapshot origins}
+      FIRECRAWL_BACKEND_URL: http://firecrawl-api:3002
+      FIRECRAWL_IDENTITY_URL: http://firecrawl-api:3020/identity
+      FIRECRAWL_IMAGE: ghcr.io/firecrawl/firecrawl@sha256:4108cdc36e9ac84e59831e2b710d6f9ee489a11515099742fda31ae910ae2edb
+    ports:
+      - "127.0.0.1:${WEB_EXTRACT_PORT:-8080}:8080"
+    depends_on:
+      firecrawl-api:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, /app/.venv/bin/python, -c, "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health', timeout=5)"]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+      start_period: 30s
+    cpus: 4
+    mem_limit: 4g
+
+  firecrawl-api:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: deploy/web-extract/Dockerfile.firecrawl
+    environment:
+      HOST: 0.0.0.0
+      PORT: "3002"
+      ENV: local
+      USE_DB_AUTHENTICATION: "false"
+      REDIS_URL: redis://firecrawl-redis:6379
+      REDIS_RATE_LIMIT_URL: redis://firecrawl-redis:6379
+      PLAYWRIGHT_MICROSERVICE_URL: http://firecrawl-browser:3000/scrape
+      FIRECRAWL_BROWSER_IDENTITY_URL: http://firecrawl-browser:3020/identity
+      POSTGRES_HOST: firecrawl-postgres
+      POSTGRES_PORT: "5432"
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${WEB_EXTRACT_POSTGRES_PASSWORD:?Set WEB_EXTRACT_POSTGRES_PASSWORD}
+      NUQ_RABBITMQ_URL: amqp://extractor:${WEB_EXTRACT_QUEUE_PASSWORD:?Set WEB_EXTRACT_QUEUE_PASSWORD}@firecrawl-rabbitmq:5672
+      OPENAI_API_KEY: ${EXTRACTION_MODEL_API_KEY:?Set EXTRACTION_MODEL_API_KEY}
+      OPENAI_BASE_URL: ${EXTRACTION_MODEL_BASE:-https://api.deepseek.com}
+      MODEL_NAME: ${EXTRACTION_MODEL:-deepseek-flash}
+      NUM_WORKERS_PER_QUEUE: "1"
+      NUQ_WORKER_COUNT: "1"
+      MAX_CONCURRENT_JOBS: "1"
+      CRAWL_CONCURRENT_REQUESTS: "1"
+      BROWSER_POOL_SIZE: "1"
+    depends_on:
+      firecrawl-redis:
+        condition: service_healthy
+      firecrawl-rabbitmq:
+        condition: service_healthy
+      firecrawl-postgres:
+        condition: service_healthy
+      firecrawl-browser:
+        condition: service_healthy
+    healthcheck:
+      test: [CMD, node, -e, "Promise.all([3002,3020].map((p)=>fetch('http://127.0.0.1:'+p+(p===3020?'/identity':'/v0/health/readiness')).then(r=>{if(!r.ok)throw Error('not ready')}))).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 90s
+    cpus: 4
+    mem_limit: 4g
+
+  firecrawl-browser:
+    platform: linux/amd64
+    build:
+      context: ../..
+      dockerfile: deploy/web-extract/Dockerfile.firecrawl-browser
+    environment:
+      PORT: "3000"
+      FIRECRAWL_SERVICE_KIND: browser
+      MAX_CONCURRENT_PAGES: "1"
+      BLOCK_MEDIA: "true"
+    healthcheck:
+      test: [CMD, node, -e, "Promise.all(['/health','http://127.0.0.1:3020/identity'].map(p=>fetch(p.startsWith('http')?p:'http://127.0.0.1:3000'+p).then(r=>{if(!r.ok)throw Error('not ready')}))).catch(()=>process.exit(1))"]
+      interval: 10s
+      timeout: 30s
+      retries: 12
+      start_period: 60s
+    cpus: 1
+    mem_limit: 1g
+
+  firecrawl-redis:
+    platform: linux/amd64
+    image: docker.1ms.run/library/redis@sha256:21090af93f8324db2f0f0f4f38a7c60369d47d917e000c3423d89d2ae2883537
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    cpus: 0.25
+    mem_limit: 256m
+
+  firecrawl-rabbitmq:
+    hostname: firecrawl-rabbitmq
+    image: docker.1ms.run/library/rabbitmq@sha256:e582c0bc7766f3342496d8485efb5a1df782b5ce3886ad017e2eaae442311f69
+    environment:
+      RABBITMQ_DEFAULT_USER: extractor
+      RABBITMQ_DEFAULT_PASS: ${WEB_EXTRACT_QUEUE_PASSWORD:?Set WEB_EXTRACT_QUEUE_PASSWORD}
+    volumes:
+      - rabbitmq-data:/var/lib/rabbitmq
+    healthcheck:
+      test: [CMD, rabbitmq-diagnostics, -q, check_running]
+      interval: 10s
+      timeout: 10s
+      retries: 12
+    cpus: 0.25
+    mem_limit: 512m
+
+  firecrawl-postgres:
+    platform: linux/amd64
+    image: ghcr.io/firecrawl/nuq-postgres@sha256:d719b36160eac2fcbe16dc7e7360ddb9c82c40ea5da183d07bf4a755c6a0b2ae
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_DB: postgres
+      POSTGRES_PASSWORD: ${WEB_EXTRACT_POSTGRES_PASSWORD:?Set WEB_EXTRACT_POSTGRES_PASSWORD}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: [CMD, pg_isready, -U, postgres, -d, postgres]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+    cpus: 0.25
+    mem_limit: 512m
+
+volumes:
+  redis-data:
+  rabbitmq-data:
+  postgres-data:

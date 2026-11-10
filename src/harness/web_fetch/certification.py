@@ -224,7 +224,8 @@ def main(argv: list[str] | None = None) -> None:
     selection.add_argument("--population", type=Path,
                            help="Revision-bound population JSON; selects all declared cases in one suite")
     parser.add_argument("--population-suite", help="Suite in --population, matching the exported dataset")
-    parser.add_argument("--workers", type=int, default=1)
+    parser.add_argument("--workers", type=int, default=None,
+                        help="Bounded independent provider concurrency; paired latency needs 1")
     parser.add_argument("--timeout", type=float, default=DEFAULT_CALL_TIMEOUT_SECONDS,
                         help="Per-call deadline passed to the shared runner")
     add_failure_retry_argument(parser)
@@ -254,6 +255,8 @@ def main(argv: list[str] | None = None) -> None:
         ),
     )
     args = parser.parse_args(argv)
+    if args.workers is None:
+        args.workers = 1
     if not math.isfinite(args.timeout) or args.timeout <= 0:
         parser.error("--timeout must be positive and finite")
     if args.provider_config and not args.provider_config.is_file():

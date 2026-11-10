@@ -1,4 +1,4 @@
-"""Serial matched-query collection with frozen inputs and append-only calls."""
+"""Matched-query collection with frozen inputs and bounded provider execution."""
 
 from harness.distribution import source_path
 
@@ -9,15 +9,18 @@ import re
 import shutil
 import subprocess
 import tempfile
+import threading
 import time
 import tomllib
 from datetime import UTC, datetime
 from pathlib import Path
 
+from harness.benchmark_execution import ExecutionPolicy, ExecutionStop, Job, run_jobs
 from harness.record_io import bytes_sha256, read_completed_records
 from harness.web_fetch.config import ROOT, load_runtime_env
 from harness.web_search.adapters import adapter_for
 from harness.web_search.core import (
+    execution_resources,
     normalize_response,
     request_body,
     request_cost,
@@ -161,12 +164,16 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
         if row["request"] != request_body(method["adapter"], cases[row["case_id"]], old["protocol"], method.get("output_options")):
             raise ValueError("Interrupted request differs from the frozen contract")
         verify_bundle(output, [a["evidence"] for a in row.get("attempts", [row])])
-    retained = [r for r in rows if r["method"] not in methods]
+    partial, _ = reconcile_incomplete_results(old, output, rows)
+    retained = [r for r in rows if r["method"] not in methods and r["id"] not in partial]
+    retained_partial = {key: row for key, row in partial.items() if row["method"] not in methods}
     spent_calls = physical_call_counts(new, output)
     for mid, budget in call_budgets(new).items():
         spent = spent_calls[mid]
         pending = len(new["cases"]) * new["protocol"]["rounds"] - sum(r["method"] == mid for r in retained)
-        if spent + pending * (1 + int(bool(new["protocol"].get("retry")))) > budget:
+        remaining = pending * (1 + int(bool(new["protocol"].get("retry"))))
+        remaining -= sum(len(r["attempts"]) for r in retained_partial.values() if r["method"] == mid)
+        if spent + remaining > budget:
             raise ValueError("Execution revision exceeds the physical call budget for " + mid)
     archive = output / f"resume-{len(list(output.glob('resume-*'))) + 1}"
     archive.mkdir()
@@ -175,6 +182,7 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     (archive / "previous-results.jsonl").write_bytes(raw)
     (archive / "execution-revision.json").write_bytes(revision_bytes)
     kept = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    kept.update(a["evidence"]["path"] for r in retained_partial.values() for a in r["attempts"])
     archive_reservations(output, archive, kept)
     locations = {}
     for call in (output / "calls").glob("*.json"):
@@ -195,6 +203,13 @@ def prepare_execution_revision(profile_path, output, revision_path, *, cohort="p
     write_json(archive / "contract.json", {"schema": "web-search-execution-revision-receipt/1", "previous_profile_sha256": bytes_sha256(old_bytes), "profile_sha256": bytes_sha256(new_bytes), "previous_results_sha256": bytes_sha256(raw), "retained_result_ids": [r["id"] for r in retained], "superseded_result_ids": [r["id"] for r in rows if r["method"] in methods], "artifact_locations": locations, "resumed_at": datetime.now(UTC).isoformat()})
     (output / "profile.json").write_bytes(new_bytes)
     (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
+    for checkpoint in (output / "partial-results").glob("*.json"):
+        target = archive / "partial-results" / checkpoint.name
+        target.parent.mkdir(exist_ok=True)
+        checkpoint.rename(target)
+    for identity, row in retained_partial.items():
+        write_json(output / "partial-results" / (identity + ".json"), {
+            "profile_sha256": bytes_sha256(new_bytes), "row": row})
     write_json(output / "run-contract.json", {**contract, "profile_sha256": bytes_sha256(new_bytes), "implementation": sources, "installed_benchmark_datasets": selected_datasets, "resume_unit": "logical", "execution_revision": {"path": (archive / "execution-revision.json").relative_to(output).as_posix(), "sha256": bytes_sha256(revision_bytes)}})
     return retained
 
@@ -236,7 +251,8 @@ def http_call(url, body=None, header=None, timeout=20):
         start = time.perf_counter()
         try:
             call = subprocess.run(
-                command, input=config, text=True, capture_output=True, timeout=timeout + 5
+                command, input=config, text=True, capture_output=True, timeout=timeout + 5,
+                start_new_session=True,
             )
         except subprocess.TimeoutExpired:
             return {
@@ -313,7 +329,7 @@ def reference_available(profile, url, receipt, raw):
 def collection_implementation():
     """Freeze collection/scoring dependencies, excluding report presentation code."""
     names = (
-        "harness/web_search/runner.py", "harness/web_search/core.py",
+        "harness/web_search/runner.py", "harness/web_search/core.py", "harness/benchmark_execution.py",
         "harness/web_search/adapters.py", "harness/web_search/profiles.py",
         "harness/web_fetch/config.py", "harness/env_file.py", "harness/record_io.py", "uv.lock", "pyproject.toml",
         "harness/benchmarks/data.py", "harness/distribution.py",
@@ -386,6 +402,49 @@ def validate_resume_datasets(contract, output=None):
     return legacy_dependencies("websearch", pins[0])
 
 
+def incomplete_results(profile, output):
+    """Retain completed physical attempts whose declared retry has not run yet."""
+    found = {}
+    methods = {m["id"]: m for m in profile["methods"]}
+    cases = {c["id"]: c for c in profile["cases"]}
+    expected_hash = bytes_sha256((output / "profile.json").read_bytes())
+    for path in (output / "partial-results").glob("*.json"):
+        saved = json.loads(path.read_text(encoding="utf-8"))
+        row = saved["row"]
+        if saved["profile_sha256"] != expected_hash:
+            raise ValueError("Incomplete retry differs from the frozen profile")
+        method, case = methods[row["method"]], cases[row["case_id"]]
+        if not 0 < len(row["attempts"]) < 1 + int(bool(profile["protocol"].get("retry"))):
+            raise ValueError("Incomplete retry has no remaining declared attempt")
+        if row["request"] != request_body(method["adapter"], case, profile["protocol"], method.get("output_options")):
+            raise ValueError("Incomplete retry request changed")
+        verify_bundle(output, [a["evidence"] for a in row["attempts"]])
+        found[row["id"]] = row
+    return found
+
+
+def reconcile_incomplete_results(profile, output, rows):
+    """Prefer a verified terminal receipt over its interrupted retry predecessor."""
+    partial = incomplete_results(profile, output)
+    stale = set()
+    maximum = 1 + int(bool(profile["protocol"].get("retry")))
+    for row in rows:
+        prior = partial.get(row["id"])
+        attempts = row.get("attempts", [row])
+        terminal = (len(attempts) == maximum or row["http_status"] in {401, 402}
+                    or not (row.get("error") or row["http_status"] != 200 or row["transport_exit"]))
+        if prior and terminal:
+            if (row["request"] != prior["request"]
+                    or attempts[:len(prior["attempts"])] != prior["attempts"]):
+                raise ValueError("Completed retry differs from its partial predecessor")
+            verify_bundle(output, [a["evidence"] for a in attempts])
+            del partial[row["id"]]
+            stale.add(row["id"])
+        elif not terminal and len(attempts) < maximum:
+            partial[row["id"]] = row
+    return partial, stale
+
+
 def prepare_resume(profile_path, output, *, retain_results=False, cohort="primary", validate_only=False):
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
@@ -403,6 +462,7 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     validate_resume_implementation(output, contract)
     raw = (output / "results.jsonl").read_bytes()
     rows = read_completed_records(output / "results.jsonl")
+    partial, stale_partial = reconcile_incomplete_results(profile, output, rows)
     expected = {(m["id"], r) for m in profile["methods"] for r in range(profile["protocol"]["rounds"])}
     by_case = {c["id"]: [] for c in profile["cases"]}
     for row in rows:
@@ -418,15 +478,21 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         if len(group) == len(expected)
         and {(r["method"], r["round"]) for r in group} == expected
         and not any(r["http_status"] in {401, 402} for r in group)
+        and not any(r["id"] in partial for r in group)
     }
-    retained = [row for row in rows if (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
+    retained = [row for row in rows if row["id"] not in partial and
+                (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
     if validate_only:
         return retained, None
     number = len(list(output.glob("resume-*"))) + 1
     archive = output / f"resume-{number}"
     archive.mkdir()
     (archive / "previous-results.jsonl").write_bytes(raw)
+    for identity, row in partial.items():
+        write_json(output / "partial-results" / (identity + ".json"), {
+            "profile_sha256": bytes_sha256(profile_bytes), "row": row})
     kept_paths = {a["evidence"]["path"] for r in retained for a in r.get("attempts", [r])}
+    kept_paths.update(a["evidence"]["path"] for row in partial.values() for a in row["attempts"])
     archive_reservations(output, archive, kept_paths)
     for call in (output / "calls").glob("*.json"):
         if call.relative_to(output).as_posix() not in kept_paths:
@@ -451,6 +517,8 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         "resumed_at": datetime.now(UTC).isoformat(),
     })
     (output / "results.jsonl").write_text("".join(json.dumps(r, ensure_ascii=False) + "\n" for r in retained))
+    for identity in stale_partial:
+        (output / "partial-results" / (identity + ".json")).unlink(missing_ok=True)
     return retained, number
 
 
@@ -535,7 +603,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 diagnostic=diagnostic,
                 resume_unit=(
                     "logical" if profile["protocol"].get("order", "complete provider batches")
-                    == "complete provider batches" else "case"
+                    in {"complete provider batches", "bounded calls"} else "case"
                 ),
                 timer=(
                     "Client process wall time including curl startup, network, "
@@ -553,109 +621,183 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
     (output / "results.jsonl").touch(exist_ok=True)
     protocol = profile["protocol"]
     existing_ids = {r["id"] for r in rows}
+    partial = incomplete_results(profile, output)
+    for identity in existing_ids:
+        partial.pop(identity, None)
+        (output / "partial-results" / (identity + ".json")).unlink(missing_ok=True)
     spent_calls = physical_call_counts(profile, output)
-    for round_id, case, method in execution_schedule(profile):
-        identity = f"{case['id']}-{method['id']}-r{round_id}"
-        if identity in existing_ids:
-            continue
-        payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
-        key = os.environ[method["key_env"]]
-        header = adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix + key
-        attempts = []
-        operation_start = time.perf_counter()
-        for attempt_index in range(1 + int(bool(protocol.get("retry")))):
-            budget = budgets.get(method["id"])
-            if budget is not None:
-                spent = spent_calls[method["id"]]
-                if spent >= budget:
-                    raise ValueError("Physical call budget exhausted for " + method["id"])
-            relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
-            reserve_attempt(output, relative, payload)
-            spent_calls[method["id"]] += 1
-            receipt, raw = http_call(
-                method["endpoint"], payload, header, protocol["client_timeout_s"]
+    stopped = ExecutionStop()
+    result_lock = threading.Lock()
+
+    def run_batch(selected_task=None):
+        schedule = [selected_task] if selected_task is not None else execution_schedule(profile)
+        for round_id, case, method in schedule:
+            if stopped.is_set():
+                return
+            identity = f"{case['id']}-{method['id']}-r{round_id}"
+            if identity in existing_ids:
+                continue
+            payload = request_body(method["adapter"], case, protocol, method.get("output_options"))
+            key = os.environ[method["key_env"]]
+            header = adapter_for(method["adapter"]).authorization_header + ": " + adapter_for(method["adapter"]).authorization_prefix + key
+            prior = partial.get(identity)
+            attempts = list(prior["attempts"]) if prior else []
+            prior_elapsed_ms = prior["elapsed_ms"] if prior else 0
+            interrupted_retry = False
+            made_call = False
+            operation_start = time.perf_counter()
+            for attempt_index in range(len(attempts), 1 + int(bool(protocol.get("retry")))):
+                if stopped.is_set():
+                    if not made_call:
+                        return
+                    interrupted_retry = True
+                    break
+                with result_lock:
+                    if stopped.is_set():
+                        if not made_call:
+                            return
+                        interrupted_retry = True
+                        break
+                    budget = budgets.get(method["id"])
+                    if budget is not None:
+                        spent = spent_calls[method["id"]]
+                        if spent >= budget:
+                            raise ValueError("Physical call budget exhausted for " + method["id"])
+                    relative = f"calls/{identity}-attempt-{attempt_index + 1}.json"
+                    reserve_attempt(output, relative, payload)
+                    spent_calls[method["id"]] += 1
+                receipt, raw = http_call(
+                    method["endpoint"], payload, header, protocol["client_timeout_s"]
+                )
+                made_call = True
+                if receipt["http_status"] in {401, 402} and (
+                    profile.get("execution_policy")
+                    or attempt_index == int(bool(protocol.get("retry")))
+                ):
+                    with result_lock:
+                        stopped.set()
+                # Provider error text must never echo a credential into evidence.
+                if key.encode() in raw:
+                    raw = raw.replace(key.encode(), b"[REDACTED]")
+                receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
+                (output / "calls").mkdir(exist_ok=True)
+                (output / relative).write_bytes(raw)
+                results = []
+                decoded = {}
+                error = receipt["transport_error"]
+                try:
+                    decoded = json.loads(raw)
+                    if receipt["http_status"] == 200 and not receipt["transport_exit"]:
+                        results = normalize_response(decoded, method, protocol, payload)
+                    else:
+                        error = error or json.dumps(
+                            decoded.get("error", decoded), ensure_ascii=False
+                        )
+                except (ValueError, AttributeError, TypeError) as exc:
+                    error = error or str(exc)
+                cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
+                attempts.append({
+                    "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
+                    "http_status": receipt["http_status"],
+                    "transport_exit": receipt["transport_exit"],
+                    "elapsed_ms": receipt["elapsed_ms"],
+                    "cost": cost,
+                })
+                if (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
+                    break
+            total_elapsed_ms = max(
+                prior_elapsed_ms + (time.perf_counter() - operation_start) * 1000,
+                sum(a["elapsed_ms"] for a in attempts),
             )
-            # Provider error text must never echo a credential into evidence.
-            if key.encode() in raw:
-                raw = raw.replace(key.encode(), b"[REDACTED]")
-            receipt["transport_error"] = receipt["transport_error"].replace(key, "[REDACTED]")
-            (output / "calls").mkdir(exist_ok=True)
-            (output / relative).write_bytes(raw)
-            results = []
-            decoded = {}
-            error = receipt["transport_error"]
-            try:
-                decoded = json.loads(raw)
-                if receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                    results = normalize_response(decoded, method, protocol, payload)
-                else:
-                    error = error or json.dumps(
-                        decoded.get("error", decoded), ensure_ascii=False
-                    )
-            except (ValueError, AttributeError, TypeError) as exc:
-                error = error or str(exc)
-            cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
-            attempts.append({
-                "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
-                "http_status": receipt["http_status"],
-                "transport_exit": receipt["transport_exit"],
-                "elapsed_ms": receipt["elapsed_ms"],
-                "cost": cost,
-            })
-            if not error and receipt["http_status"] == 200 and not receipt["transport_exit"]:
-                break
-        total_elapsed_ms = max(
-            (time.perf_counter() - operation_start) * 1000,
-            sum(a["elapsed_ms"] for a in attempts),
-        )
-        total_cost = (
-            sum(a["cost"] for a in attempts)
-            if all(a["cost"] is not None for a in attempts)
-            else None
-        )
-        receipt["final_call_elapsed_ms"] = receipt["elapsed_ms"]
-        receipt["elapsed_ms"] = total_elapsed_ms
-        row = dict(
-            id=identity,
-            case_id=case["id"],
-            method=method["id"],
-            round=round_id,
-            timestamp=datetime.now(UTC).isoformat(),
-            request=payload,
-            **receipt,
-            error=error,
-            results=results,
-            cost=total_cost,
-            currency=method["currency"],
-            evidence={"path": relative, "sha256": bytes_sha256(raw)},
-            attempts=attempts,
-            metrics=evaluate(case, results),
-            server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
-            usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
-            cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
-        )
-        rows.append(row)
-        with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
-            stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-        print(
-            f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
-            f"{receipt['elapsed_ms']:.0f} ms",
-            flush=True,
-        )
-        if receipt["http_status"] in {401, 402}:
-            write_json(output / "interruption.json", {
-                "reason": "provider_account",
-                "result_id": identity,
-                "http_status": receipt["http_status"],
-                "completed_logical_results": len(rows),
-                "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
-                "stopped_at": datetime.now(UTC).isoformat(),
-            })
-            raise ValueError(
-                f"Provider account error HTTP {receipt['http_status']} at {identity}; "
-                "collection stopped with evidence preserved, not certified"
+            total_cost = (
+                sum(a["cost"] for a in attempts)
+                if all(a["cost"] is not None for a in attempts)
+                else None
             )
-        time.sleep(protocol["interval_s"])
+            receipt["final_call_elapsed_ms"] = receipt["elapsed_ms"]
+            receipt["elapsed_ms"] = total_elapsed_ms
+            row = dict(
+                id=identity,
+                case_id=case["id"],
+                method=method["id"],
+                round=round_id,
+                timestamp=datetime.now(UTC).isoformat(),
+                request=payload,
+                **receipt,
+                error=error,
+                results=results,
+                cost=total_cost,
+                currency=method["currency"],
+                evidence={"path": relative, "sha256": bytes_sha256(raw)},
+                attempts=attempts,
+                metrics=evaluate(case, results),
+                server_timing=adapter_for(method["adapter"]).timing(decoded).get("timing"),
+                usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
+                cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
+            )
+            with result_lock:
+                partial_path = output / "partial-results" / (identity + ".json")
+                if interrupted_retry:
+                    write_json(partial_path, {
+                        "profile_sha256": bytes_sha256((output / "profile.json").read_bytes()),
+                        "row": row,
+                    })
+                    return
+                rows.append(row)
+                with (output / "results.jsonl").open("a", encoding="utf-8") as stream:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                partial_path.unlink(missing_ok=True)
+            print(
+                f"{identity}: HTTP {receipt['http_status']}, {len(results)} results, "
+                f"{receipt['elapsed_ms']:.0f} ms",
+                flush=True,
+            )
+            if receipt["http_status"] in {401, 402}:
+                stopped.set()
+                write_json(output / "interruption.json", {
+                    "reason": "provider_account",
+                    "result_id": identity,
+                    "http_status": receipt["http_status"],
+                    "completed_logical_results": len(rows),
+                    "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
+                    "stopped_at": datetime.now(UTC).isoformat(),
+                })
+                raise ValueError(
+                    f"Provider account error HTTP {receipt['http_status']} at {identity}; "
+                    "collection stopped with evidence preserved, not certified"
+                )
+            time.sleep(protocol["interval_s"])
+
+    def execute_call(task):
+        try:
+            return run_batch(task)
+        except BaseException:
+            stopped.set()
+            raise
+
+    if profile.get("execution_policy"):
+        policy = ExecutionPolicy.from_dict(profile["execution_policy"])
+        resources = execution_resources(profile)
+
+        def commit_batch(job, value, error):
+            if error is not None:
+                raise error
+
+        jobs = [Job(f"{case['id']}-{method['id']}-r{round_id}", resources[method["id"]],
+                        (round_id, case, method)) for round_id, case, method in execution_schedule(profile)
+                    if f"{case['id']}-{method['id']}-r{round_id}" not in existing_ids]
+        try:
+            run_jobs(jobs, execute_call, commit_batch, policy, stop_event=stopped)
+        except BaseException:
+            interruption = output / "interruption.json"
+            if interruption.exists():
+                status = json.loads(interruption.read_text(encoding="utf-8"))
+                status.update(completed_logical_results=len(rows),
+                              results_sha256=bytes_sha256((output / "results.jsonl").read_bytes()))
+                write_json(interruption, status)
+            raise
+    else:
+        run_batch()
     after = capture_references(profile, output, "after")
     changed = reference_changes(profile, before, after)
     write_json(

@@ -1,0 +1,689 @@
+"""Execution must overlap independent work without mixing shared state."""
+
+import os
+import threading
+import time
+from unittest.mock import patch
+
+import pytest
+
+from harness.benchmark_execution import ExecutionPolicy, Job, assess_execution, run_jobs
+
+_INITIALIZER_PID = None
+
+
+def test_a_drain_interrupt_preserves_the_original_failure():
+    import signal
+
+    from harness import benchmark_execution
+
+    release = threading.Event()
+    calls = 0
+    original = benchmark_execution.wait
+
+    def wait(futures, **kwargs):
+        nonlocal calls
+        calls += 1
+        if calls == 2:
+            signal.raise_signal(signal.SIGINT)
+            release.set()
+        return original(futures, **kwargs)
+
+    def execute(value):
+        if value == 2:
+            assert release.wait(3)
+        return value
+
+    def commit(job, value, error):
+        if value == 1:
+            raise ValueError("commit failed")
+
+    try:
+        with patch.object(benchmark_execution, "wait", side_effect=wait):
+            try:
+                run_jobs([Job(str(i), ("api-a",), i) for i in (1, 2)], execute, commit,
+                         policy(max_in_flight=2))
+            except BaseException as error:
+                assert isinstance(error, ValueError), repr(error)
+                assert str(error) == "commit failed"
+                assert isinstance(error.__cause__, KeyboardInterrupt)
+            else:
+                pytest.fail("Original failure disappeared")
+    finally:
+        release.set()
+
+
+def test_second_interrupt_restores_the_previous_signal_handler():
+    import signal
+
+    from harness.benchmark_execution import _retain_call_ownership
+
+    previous = signal.getsignal(signal.SIGINT)
+    restored = False
+    with pytest.raises(KeyboardInterrupt):
+        with _retain_call_ownership():
+            signal.raise_signal(signal.SIGINT)
+            assert signal.getsignal(signal.SIGINT) != previous
+            try:
+                signal.raise_signal(signal.SIGINT)
+            except KeyboardInterrupt:
+                pass
+            restored = signal.getsignal(signal.SIGINT) == previous
+    assert restored
+
+
+def initialize_pid():
+    global _INITIALIZER_PID
+    _INITIALIZER_PID = os.getpid()
+
+
+def execute_pid(payload):
+    return os.getpid(), _INITIALIZER_PID
+
+
+def test_serial_process_policy_initializes_and_executes_in_a_child():
+    parent = os.getpid()
+    results = []
+    run_jobs(
+        [Job('one', ('host',), None)], execute_pid,
+        lambda job, value, error: results.append((value, error)),
+        policy(backend='process', max_in_flight=1, serial_reason='One model slot',
+               resources={'host': {'capacity': 1, 'reason': 'One model slot'}}),
+        initialize=initialize_pid,
+    )
+    ((execution, initialization), error), = results
+    assert error is None and execution == initialization and execution != parent
+    assert _INITIALIZER_PID is None
+
+
+def policy(**updates):
+    value = {
+        "purpose": "quality",
+        "max_in_flight": 4,
+        "resources": {"api-a": {"capacity": 2}, "api-b": {"capacity": 2}},
+    }
+    value.update(updates)
+    return ExecutionPolicy.from_dict(value)
+
+
+def test_independent_services_overlap_and_each_service_obeys_its_limit():
+    lock = threading.Lock()
+    active = {"api-a": 0, "api-b": 0}
+    peak = dict(active)
+    simultaneous_services = []
+    results = []
+
+    def execute(item):
+        with lock:
+            active[item] += 1
+            peak[item] = max(peak[item], active[item])
+            simultaneous_services.append(all(active.values()))
+        time.sleep(0.02)
+        with lock:
+            active[item] -= 1
+        return item
+
+    jobs = [Job(str(i), (group,), group) for group in active for i in range(6)]
+    # IDs are global, not only unique within a provider.
+    jobs = [Job(f"{j.payload}-{j.key}", j.resources, j.payload) for j in jobs]
+    run_jobs(
+        jobs, execute, lambda job, value, error: results.append((job.key, value, error)), policy()
+    )
+    assert len(results) == 12 and all(error is None for _, _, error in results)
+    assert peak == {"api-a": 2, "api-b": 2}
+    assert any(simultaneous_services)
+
+
+def test_shared_mutable_environment_stays_exclusive_while_other_work_runs():
+    barrier = threading.Barrier(2, timeout=2)
+    observed = []
+
+    def execute(value):
+        if value in ("stateful-1", "independent"):
+            barrier.wait()
+        observed.append(value)
+        return value
+
+    p = policy(
+        resources={
+            "site": {"capacity": 1, "reason": "Shared database reset"},
+            "other": {"capacity": 1, "reason": "Isolated latency"},
+        }
+    )
+    jobs = [
+        Job("one", ("site",), "stateful-1"),
+        Job("two", ("site",), "stateful-2"),
+        Job("other", ("other",), "independent"),
+    ]
+    run_jobs(jobs, execute, lambda *args: None, p)
+    assert observed.index("stateful-1") < observed.index("stateful-2")
+
+
+def test_stop_after_denial_drains_and_records_already_started_calls():
+    started = threading.Barrier(2, timeout=2)
+    retained = []
+    stopped = False
+
+    def execute(value):
+        started.wait()
+        return value
+
+    def commit(job, value, error):
+        nonlocal stopped
+        retained.append(value)
+        stopped = True
+
+    p = policy(max_in_flight=2)
+    run_jobs(
+        [Job(str(i), ("api-a",), i) for i in range(8)],
+        execute,
+        commit,
+        p,
+        should_stop=lambda: stopped,
+    )
+    assert sorted(retained) == [0, 1]
+
+
+def test_pacing_wait_drains_a_fast_denial_before_the_next_admission():
+    deadline = time.monotonic() + .15
+    stopped, retained, called = [], [], []
+
+    def execute(value):
+        called.append(value)
+        return value
+
+    def commit(job, value, error):
+        retained.append(value)
+        stopped.append(True)
+
+    run_jobs([Job(str(i), ("api-a",), i) for i in range(4)], execute, commit,
+             policy(), ready_at=lambda job: 0 if job.key == "0" else deadline,
+             should_stop=lambda: bool(stopped))
+    assert retained == called == [0]
+
+
+@pytest.mark.parametrize("bad", [0, -1, True, 1.5, "4", 65])
+def test_invalid_limits_fail_before_work_starts(bad):
+    with pytest.raises(ValueError):
+        policy(max_in_flight=bad)
+
+
+def test_serial_quality_execution_requires_a_concrete_reason():
+    with pytest.raises(ValueError, match="reason"):
+        policy(max_in_flight=1)
+
+
+def test_preparation_failure_drains_work_already_dispatched():
+    retained = []
+
+    def prepare(job):
+        if job.key == "second":
+            raise ValueError("No remaining physical call budget")
+        return job.payload
+
+    with pytest.raises(ValueError, match="budget"):
+        run_jobs(
+            [Job("first", ("api-a",), 1), Job("second", ("api-a",), 2)],
+            lambda value: value,
+            lambda job, value, error: retained.append(value),
+            policy(),
+            prepare=prepare,
+        )
+    assert retained == [1]
+
+
+def test_operator_interruption_drains_results_before_propagating():
+    from harness import benchmark_execution
+
+    original_wait = benchmark_execution.wait
+    interrupted = False
+    retained = []
+
+    def wait_once(futures, **kwargs):
+        nonlocal interrupted
+        if not interrupted:
+            interrupted = True
+            raise KeyboardInterrupt()
+        return original_wait(futures, **kwargs)
+
+    with patch("harness.benchmark_execution.wait", side_effect=wait_once):
+        with pytest.raises(KeyboardInterrupt):
+            run_jobs(
+                [Job(str(i), ("api-a",), i) for i in range(8)],
+                lambda value: value,
+                lambda job, value, error: retained.append(value),
+                policy(max_in_flight=2),
+            )
+    assert sorted(retained) == [0, 1]
+
+
+def test_terminal_interrupt_leaves_spawned_calls_to_drain(tmp_path):
+    import json
+    import os
+    import signal
+    import subprocess
+    import sys
+    import textwrap
+
+    if os.name != "posix":
+        pytest.skip("Foreground process-group signals require POSIX")
+    script = tmp_path / "terminal_session.py"
+    script.write_text(textwrap.dedent('''
+        import json, sys, time
+        from pathlib import Path
+        from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
+        root = Path(sys.argv[1])
+        def initialize():
+            pass
+        def execute(value):
+            (root / str(value)).touch()
+            while not (root / "release").exists():
+                time.sleep(.01)
+            return value
+        if __name__ == "__main__":
+            retained = []
+            policy = ExecutionPolicy.from_dict({
+                "purpose": "quality", "backend": "process", "max_in_flight": 2,
+                "resources": {"api": {"capacity": 2}}})
+            try:
+                run_jobs([Job(str(i), ("api",), i) for i in range(4)], execute,
+                         lambda job, value, error: retained.append([job.key, value, str(error)]),
+                         policy, initialize=initialize)
+            except KeyboardInterrupt:
+                (root / "retained.json").write_text(json.dumps(retained), encoding="utf-8")
+    '''), encoding="utf-8")
+    process = subprocess.Popen([sys.executable, str(script), str(tmp_path)],
+                               start_new_session=True, stdout=subprocess.PIPE,
+                               stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 15
+        while not all((tmp_path / str(i)).exists() for i in range(2)):
+            assert process.poll() is None, process.communicate()
+            assert time.monotonic() < deadline, "Spawned calls never became ready"
+            time.sleep(.01)
+        os.killpg(process.pid, signal.SIGINT)
+        (tmp_path / "release").touch()
+        stdout, stderr = process.communicate(timeout=15)
+        assert process.returncode == 0, (stdout, stderr)
+        assert sorted(json.loads((tmp_path / "retained.json").read_text(encoding="utf-8"))) == [
+            ["0", 0, "None"], ["1", 1, "None"]]
+        assert not (tmp_path / "2").exists()
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.communicate()
+
+
+@pytest.mark.parametrize('wait_on', ['stop', 'event'])
+@pytest.mark.parametrize('workers', [1, 2], ids=['serial', 'threaded'])
+def test_one_terminal_interrupt_wakes_workers_and_commits_without_external_release(
+    tmp_path, wait_on, workers
+):
+    import json
+    import signal
+    import subprocess
+    import sys
+    import textwrap
+
+    if os.name != 'posix':
+        pytest.skip('Terminal signals require POSIX')
+    script = tmp_path / 'cooperative_stop.py'
+    script.write_text(textwrap.dedent('''
+        import json, sys
+        from pathlib import Path
+        from harness import benchmark_execution as scheduler
+        root = Path(sys.argv[1])
+        stop = scheduler.ExecutionStop()
+        original_wait = scheduler.wait
+        def observe_wait(*args, **kwargs):
+            (root / 'parent-waiting').touch()
+            return original_wait(*args, **kwargs)
+        scheduler.wait = observe_wait
+        def execute(value):
+            (root / ('worker-' + str(value))).touch()
+            target = stop if sys.argv[2] == 'stop' else stop.event
+            target.wait()
+            return value
+        retained = []
+        workers = int(sys.argv[3])
+        policy = scheduler.ExecutionPolicy.from_dict({
+            'purpose': 'quality', 'max_in_flight': workers,
+            'serial_reason': 'Cooperative serial cancellation control',
+            'resources': {'api': {'capacity': workers, 'reason': 'Cooperative stop control'}}})
+        try:
+            scheduler.run_jobs(
+                [scheduler.Job(str(i), ('api',), i) for i in range(4)], execute,
+                lambda job, value, error: retained.append([job.key, value, str(error)]),
+                policy, stop_event=stop)
+        except KeyboardInterrupt:
+            assert stop.event.is_set()
+            (root / 'retained.json').write_text(json.dumps(retained), encoding='utf-8')
+    '''), encoding='utf-8')
+    process = subprocess.Popen([sys.executable, str(script), str(tmp_path), wait_on, str(workers)],
+                               stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
+    try:
+        deadline = time.monotonic() + 5
+        markers = ['worker-' + str(i) for i in range(workers)]
+        if workers > 1:
+            markers.append('parent-waiting')
+        while not all((tmp_path / name).exists() for name in markers):
+            assert process.poll() is None, process.communicate()
+            assert time.monotonic() < deadline, 'Workers never became ready'
+            time.sleep(.01)
+        time.sleep(.1)
+        os.kill(process.pid, signal.SIGINT)
+        stdout, stderr = process.communicate(timeout=5)
+        assert process.returncode == 0, (stdout, stderr)
+        assert sorted(json.loads((tmp_path / 'retained.json').read_text(encoding='utf-8'))) == [
+            [str(i), i, 'None'] for i in range(workers)]
+        assert not any((tmp_path / ('worker-' + str(i))).exists() for i in range(workers, 4))
+    finally:
+        if process.poll() is None:
+            process.kill()
+            process.communicate()
+
+
+def test_interrupt_while_cooldown_condition_is_locked_cannot_deadlock(tmp_path):
+    import subprocess
+    import sys
+    import textwrap
+
+    script = tmp_path/'locked_cooldown.py'
+    script.write_text(textwrap.dedent('''
+        import signal, threading, time
+        from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
+        class InterruptedWait(threading.Event):
+            def wait(self, timeout=None):
+                with self._cond:
+                    signal.raise_signal(signal.SIGINT)
+                return False
+        policy = ExecutionPolicy.from_dict({
+            'purpose': 'quality', 'max_in_flight': 1,
+            'serial_reason': 'Cooldown control',
+            'resources': {'api': {'capacity': 1, 'reason': 'Cooldown control'}}})
+        try:
+            run_jobs([Job('one', ('api',), None)], lambda value: None,
+                     lambda *args: None, policy, stop_event=InterruptedWait(),
+                     ready_at=lambda job: time.monotonic()+10)
+        except KeyboardInterrupt:
+            print('Stopped without lock reentry')
+    '''), encoding='utf-8')
+    result = subprocess.run([sys.executable, str(script)], capture_output=True,
+                            text=True, timeout=5)
+    assert result.returncode == 0, result.stderr
+    assert 'Stopped without lock reentry' in result.stdout
+
+
+def test_serial_cooperative_callbacks_keep_main_thread_signal_support_and_leave_no_notifier():
+    import signal
+
+    from harness.benchmark_execution import ExecutionStop
+
+    threads = {thread.ident for thread in threading.enumerate()}
+    retained = []
+
+    def execute(value):
+        # Registering even the unchanged handler requires Python's main thread.
+        signal.signal(signal.SIGINT, signal.getsignal(signal.SIGINT))
+        return value
+
+    run_jobs([Job('one', ('api-a',), 'answer')], execute,
+             lambda job, value, error: retained.append(value),
+             policy(max_in_flight=1, serial_reason='Main-thread signal callback'),
+             stop_event=ExecutionStop())
+    assert retained == ['answer']
+    assert {thread.ident for thread in threading.enumerate()} == threads
+
+
+def test_interrupt_during_preparation_does_not_dispatch_the_prepared_job():
+    import signal
+    from concurrent.futures import CancelledError
+
+    executed, retained, cancelled = [], [], []
+
+    def prepare(job):
+        if job.key == "second":
+            signal.raise_signal(signal.SIGINT)
+        return job.payload
+
+    def commit(job, value, error):
+        if isinstance(error, CancelledError):
+            cancelled.append(job.key)
+        else:
+            assert error is None
+            retained.append(value)
+
+    with pytest.raises(KeyboardInterrupt):
+        run_jobs([Job("first", ("api-a",), 1), Job("second", ("api-a",), 2)],
+                 lambda value: executed.append(value) or value, commit,
+                 policy(max_in_flight=2), prepare=prepare)
+    assert executed == retained == [1]
+    assert cancelled == ["second"]
+
+
+def test_interrupt_after_submission_retains_the_submitted_call():
+    import signal
+
+    from harness import benchmark_execution
+
+    retained = []
+
+    class InterruptedExecutor(benchmark_execution.ThreadPoolExecutor):
+        def submit(self, *args, **kwargs):
+            future = super().submit(*args, **kwargs)
+            signal.raise_signal(signal.SIGINT)
+            return future
+
+    with patch.object(benchmark_execution, "ThreadPoolExecutor", InterruptedExecutor):
+        with pytest.raises(KeyboardInterrupt):
+            run_jobs(
+                [Job("one", ("api-a",), 1)],
+                lambda value: value,
+                lambda job, value, error: retained.append(value),
+                policy(),
+            )
+    assert retained == [1]
+
+
+def test_interrupt_between_wait_and_commit_retains_every_submitted_call():
+    import signal
+
+    from harness import benchmark_execution
+
+    original_wait = benchmark_execution.wait
+    interrupted = False
+    retained = []
+
+    class InterruptingDone:
+        def __init__(self, done):
+            self.done = done
+
+        def __iter__(self):
+            signal.raise_signal(signal.SIGINT)
+            return iter(self.done)
+
+    def wait_once(futures, **kwargs):
+        nonlocal interrupted
+        done, pending = original_wait(futures, **kwargs)
+        if not interrupted:
+            interrupted = True
+            return InterruptingDone(done), pending
+        return done, pending
+
+    with patch.object(benchmark_execution, "wait", side_effect=wait_once):
+        with pytest.raises(KeyboardInterrupt):
+            run_jobs(
+                [Job(str(i), ("api-a",), i) for i in range(8)],
+                lambda value: value,
+                lambda job, value, error: retained.append(value),
+                policy(max_in_flight=2),
+            )
+    assert sorted(retained) == [0, 1]
+
+
+def test_stop_predicate_interruption_drains_another_running_call():
+    release = threading.Event()
+    ready = threading.Barrier(2, timeout=2)
+    retained = []
+    started = []
+
+    def execute(value):
+        started.append(value)
+        ready.wait()
+        if value == 2:
+            assert release.wait(timeout=2)
+        return value
+
+    def stop():
+        if len(started) == 2:
+            release.set()
+            raise KeyboardInterrupt()
+        return False
+
+    with pytest.raises(KeyboardInterrupt):
+        run_jobs(
+            [Job(str(i), ("api-a",), i) for i in (1, 2, 3)],
+            execute,
+            lambda job, value, error: retained.append(value),
+            policy(max_in_flight=2),
+            should_stop=stop,
+        )
+    assert sorted(retained) == [1, 2]
+
+
+def test_serial_reason_cannot_be_a_boolean():
+    with pytest.raises(ValueError, match="reason"):
+        policy(max_in_flight=1, serial_reason=True)
+
+
+def test_preflight_estimate_uses_measured_batch_time_and_checks_the_budget():
+    plan = {
+        "execution_policy": {
+            "purpose": "quality",
+            "max_in_flight": 4,
+            "resources": {"api": {"capacity": 4}},
+        },
+        "planned_calls": 800,
+        "setup_seconds": 10,
+        "wall_time_budget_seconds": 3000,
+        "preflight": {
+            "completed_calls": 4,
+            "wall_seconds": 20,
+            "max_in_flight": 4,
+            "evidence_sha256": "a" * 64,
+        },
+    }
+    with pytest.raises(ValueError, match="budget"):
+        assess_execution(plan)
+    plan["wall_time_budget_seconds"] = 5000
+    assert assess_execution(plan)["estimated_wall_seconds"] == 4010
+    plan["preflight"]["max_in_flight"] = 1
+    with pytest.raises(ValueError, match="concurrency"):
+        assess_execution(plan)
+
+
+def test_missing_preflight_is_rejected_before_an_execution_estimate():
+    with pytest.raises(ValueError, match="preflight"):
+        assess_execution(
+            {
+                "execution_policy": {
+                    "purpose": "quality",
+                    "max_in_flight": 2,
+                    "resources": {"api": {"capacity": 2}},
+                },
+                "planned_calls": 800,
+            }
+        )
+
+
+def test_latency_measurement_cannot_overlap_on_one_resource():
+    with pytest.raises(ValueError, match="latency"):
+        policy(purpose="latency")
+
+
+@pytest.mark.parametrize(
+    "jobs",
+    [[Job("same", ("api-a",), 1), Job("same", ("api-b",), 2)], [Job("bad", ("unregistered",), 1)]],
+)
+def test_invalid_inventory_fails_before_any_dispatch(jobs):
+    called = []
+    with pytest.raises(ValueError):
+        run_jobs(jobs, called.append, lambda *args: None, policy())
+    assert not called
+
+
+def test_rejected_submission_cleans_only_the_undispatched_preparation_and_drains_calls():
+    from concurrent.futures import CancelledError
+    from concurrent.futures.thread import BrokenThreadPool
+
+    from harness import benchmark_execution
+
+    reserved, retained, cancelled, dispatched = set(), [], [], []
+    release = threading.Event()
+
+    class RejectSecond(benchmark_execution.ThreadPoolExecutor):
+        submissions = 0
+
+        def submit(self, *args, **kwargs):
+            self.submissions += 1
+            if self.submissions == 2:
+                release.set()
+                raise BrokenThreadPool('Rejected before dispatch')
+            return super().submit(*args, **kwargs)
+
+    def prepare(job):
+        reserved.add(job.key)
+        return job.payload
+
+    def execute(value):
+        dispatched.append(value)
+        assert release.wait(3)
+        return value
+
+    def commit(job, value, error):
+        reserved.remove(job.key)
+        if isinstance(error, CancelledError):
+            cancelled.append(job.key)
+        else:
+            assert error is None
+            retained.append(value)
+
+    with patch.object(benchmark_execution, 'ThreadPoolExecutor', RejectSecond):
+        with pytest.raises(BrokenThreadPool):
+            run_jobs([Job(str(i), ('api-a',), i) for i in range(3)], execute, commit,
+                     policy(max_in_flight=2), prepare=prepare)
+    assert dispatched == retained == [0]
+    assert cancelled == ['1'] and reserved == set()
+
+
+@pytest.mark.parametrize('fails', [False, True])
+def test_serial_initialization_precedes_preparation_and_keeps_the_calling_thread(fails):
+    events = []
+    caller = threading.get_ident()
+
+    def initialize(value):
+        events.append(('initialize', value, threading.get_ident()))
+        if fails:
+            raise ValueError('Initialization rejected')
+
+    def prepare(job):
+        events.append(('prepare', job.key, threading.get_ident()))
+        return job.payload
+
+    def execute(value):
+        events.append(('execute', value, threading.get_ident()))
+        return value
+
+    def run():
+        run_jobs([Job('one', ('api-a',), 7)], execute, lambda *args: None,
+                 policy(max_in_flight=1, serial_reason='Main-thread native deadline'),
+                 initialize=initialize, initargs=(11,), prepare=prepare)
+
+    if fails:
+        with pytest.raises(ValueError, match='Initialization rejected'):
+            run()
+        assert events == [('initialize', 11, caller)]
+    else:
+        run()
+        assert events == [('initialize', 11, caller), ('prepare', 'one', caller),
+                          ('execute', 7, caller)]

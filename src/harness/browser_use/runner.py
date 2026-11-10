@@ -21,6 +21,7 @@ from json_repair import repair_json
 from webarena_verified import WebArenaVerified
 from webarena_verified.environments.container.manager import ContainerManager
 
+from harness.benchmark_execution import exclusive_policy
 from harness.browser_use.model import OpenAIResponsesModel
 from harness.browser_use.selection import PilotTask, load_pilot, validate_against_official
 from harness.container_isolation import require_linux_cgroup_v2
@@ -567,6 +568,10 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
     docker_info = client.info()
     physical_execution_lock_namespace = docker_daemon_lock_namespace(docker_info)
     execution_lock_path = physical_execution_lock_path(physical_execution_lock_namespace)
+    execution_policy = exclusive_policy(
+        physical_execution_lock_namespace,
+        "One Docker daemon owns the fixed-port sites, database reset and evaluator lifecycle",
+    )
     run_id = uuid.uuid4().hex[:12]
     containers: dict[str, Any] = {}
     networks: dict[str, Any] = {}
@@ -649,6 +654,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
                     "lock_namespace": physical_execution_lock_namespace,
                     "isolation_unit": "docker-daemon-and-fixed-site-ports",
                 },
+                "execution_policy": execution_policy,
                 "site_runtime_compatibility": runtime_compatibility,
             },
         )
@@ -713,6 +719,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         "selection_sha256": selection.sha256,
         "selection": resolved,
         "protocol": {
+            "execution_policy": execution_policy,
             "agent": "CowAgent",
             "browser_eval_commit": harness_commit,
             "cowagent_commit": cowagent_commit,

@@ -14,6 +14,13 @@ Web Fetch diagnostic models, compiled reruns and diagnostic releases are in the 
 
 ## Reader-facing structure
 
+Web Extract accepts language-keyed `pages.<route>.intro` content on non-home routes before its
+generated summaries and tables. Use this field for a leading workflow diagram;
+the renderer binds its content and position in the release checks.
+Home pages keep their core comparison first. Model diagnostics use hash-bound
+scored case artifacts through `model_comparison`; authored HTML is only a table
+placeholder. The shared scoring aggregation supplies the build and release checks.
+
 [Presentation quality](presentation-quality.md#reader-facing-structure) owns page structure, failure chapters, language passes and interpretation pages. The rules below add multilingual, review and result-page requirements.
 
 For a multilingual report, generate every language from one semantic report model. Keep route inventory, section order, tables, values, filters and evidence links aligned one-to-one. Localize navigation and explanatory prose for the target language instead of translating mechanically; preserve task names, IDs, URLs, references, provider outputs and other measured evidence unless the benchmark explicitly evaluates translated content. A summary-only secondary language must be labeled as a summary, not presented as the full report.
@@ -114,6 +121,11 @@ For usage-priced services, convert the declared workload with
 and source dates; validate the displayed interval against that conversion.
 A formula alone does not replace a dollar figure. Label scenario estimates and
 plan quotes separately, and keep full billing terms off the compact home table.
+When a complete workload charge cannot be observed, use the owning renderer's
+explicit unavailable state. Bind the missing population and reason to evidence;
+do not substitute software license cost, a model-only subtotal or zero for the
+complete charge. Web Extract binds its cost disclosure to the frozen source plan
+and validates that receipt at both build and release boundaries.
 
 A result detail leads with the requested fields, reference and actual values,
 and the explanation of their differences. Give developer records one secondary

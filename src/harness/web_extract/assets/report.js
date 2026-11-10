@@ -219,7 +219,7 @@ function diagnosisContent(container, row, field, technical = false) {
   const links = node("p", "");
   links.className = "case-links";
   for (const [path, label] of [
-    [`${lang}/result-${row.method}-${row.case_id}.html`, tr("full_result")],
+    [`${lang}/case-${row.case_id}.html#${row.method}`, tr("full_result")],
     [`${lang}/case-${row.case_id}.html`, tr("compare_all_methods_a24f79dd")],
     [`${lang}/source-${row.case_id}.html`, tr("source_and_annotations_cf191383")],
   ]) {
@@ -268,7 +268,7 @@ document.addEventListener("click", async (event) => {
 });
 for (const table of document.querySelectorAll("table[data-sortable]")) {
   for (const [column, th] of [...table.tHead.rows[0].cells].entries()) {
-    const note = th.querySelector("small[data-reference-population]");
+    const note = th.querySelector("small");
     const label = note
       ? [...th.childNodes].filter(child => child !== note && child.nodeName !== "BR")
           .map(child => child.textContent).join("").trim()
@@ -276,7 +276,7 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
     const button = node("button", label + " ↕");
     button.className = "sort-button";
     button.type = "button";
-    th.replaceChildren(button, ...(note ? [node("br"), note] : []));
+    th.replaceChildren(button, ...(note ? [note] : []));
     button.addEventListener("click", () => {
       const ascending = th.getAttribute("aria-sort") !== "ascending";
       const rows = [...table.tBodies[0].rows].map((row, index) => ({ row, index }));
@@ -400,6 +400,8 @@ const revealResultPanel = () => {
   if (!id) return;
   const panel = document.getElementById(id);
   if (panel?.matches?.("details[data-result-panel], details[data-method-example]")) { panel.open = true; panel.scrollIntoView(); }
+  const guide = panel?.closest?.("details[data-metric-guide]");
+  if (guide) { guide.open = true; panel.scrollIntoView(); }
 };
 if (typeof window !== "undefined") {
   window.addEventListener("hashchange", revealResultPanel);

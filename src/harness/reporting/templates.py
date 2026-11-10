@@ -46,14 +46,16 @@ def resolve_template(track, *, root=ROOT):
             "runnable example and release checks first"
         )
     result = dict(registry["tracks"][track])
-    for key in ("renderer", "entrypoint", "tests"):
+    for key in ("renderer", "entrypoint", "tests", "execution_owner", "execution_tests"):
+        if not isinstance(result.get(key), str):
+            raise ValueError("Report track needs a registered " + key)
         path = root / result[key]
-        exists = path.is_file() or (key == "tests" and path.is_dir())
+        exists = path.is_file() or (key in {"tests", "execution_tests"} and path.is_dir())
         if not exists or not path.resolve().is_relative_to(root.resolve()):
             raise ValueError("Report template has a missing or unsafe " + key)
     if not (result.get("example_version") if result.get("example_env") else result.get("example")):
         raise ValueError("Report template needs a version-pinned example")
-    if "metric_contract" in result or "presentation_contract" in result:
+    if "metric_contract" in result or "presentation_contract" in result or "execution_contract" in result:
         raise ValueError("A report track cannot replace the shared required metric contract")
     return {"track": track, **result}
 
@@ -63,6 +65,15 @@ def discover_template(track, *, root=ROOT):
     template = {
         **resolve_template(track, root=root),
         "metric_contract": metric_contract(),
+        "execution_contract": {
+            "spec": "docs/benchmark-execution.md",
+            "scheduler": "src/harness/benchmark_execution.py",
+            "planning": "Declare dependencies, shared resources, call budgets and measured preflight cost.",
+            "preflight_check": "uv run --frozen python -m harness.benchmark_execution --plan /absolute/execution-plan.json",
+            "admission": "Bound in-flight work and each shared resource; explain serial execution.",
+            "durability": "Retain every dispatched call, drain on denial, and verify resume checkpoints.",
+            "timing": "Distinguish quality collection, isolated latency and loaded throughput.",
+        },
         "presentation_contract": {
             "metric_guide": "Explain each metric, its unit, population and direction next to comparisons.",
             "highlights": "Derive directional highlights from raw values; keep missing values neutral.",

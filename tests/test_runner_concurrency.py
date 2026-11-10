@@ -77,6 +77,207 @@ class BarrierProvider(Provider):
 
 
 class RunnerConcurrencyTest(unittest.TestCase):
+    def test_serial_interrupt_retains_the_current_response_without_another_call(self):
+        import signal
+        from unittest.mock import patch
+
+        calls = []
+
+        def fetch(provider, case, *args, **kwargs):
+            calls.append(case.id)
+            if len(calls) == 1:
+                signal.raise_signal(signal.SIGINT)
+            return ProviderResult(True, 'Expected'), None
+
+        cases = [EvalCase(str(i), 'Case', 'https://example.com', 'static', ['Expected'])
+                 for i in range(3)]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch):
+            with self.assertRaises(KeyboardInterrupt):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=cases,
+                               providers=[BarrierProvider('one', threading.Barrier(1))],
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=1)
+            retained = (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()
+            manifest = json.loads((Path(tmp) / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual(manifest['attempt_count'], 1)
+            self.assertEqual(manifest['attempt_ids'], [json.loads(retained[0])['attempt_id']])
+            self.assertEqual(manifest['execution_status'], 'interrupted')
+            self.assertTrue(manifest['completed_at'])
+            self.assertEqual({r['case_id'] for r in manifest['unexecuted'] if 'case_id' in r}, {'1', '2'})
+        self.assertEqual(calls, ['0'])
+        self.assertEqual(len(retained), 1)
+        self.assertTrue(json.loads(retained[0])['ok'])
+
+    def test_operator_interrupt_stops_batches_after_current_calls(self):
+        import signal
+        from unittest.mock import patch
+
+        from harness import benchmark_execution
+
+        ready = threading.Barrier(3, timeout=3)
+        release = threading.Event()
+        calls = []
+        retained = []
+        original_wait = benchmark_execution.wait
+        interrupted = False
+
+        def fetch(provider, case, *args, **kwargs):
+            calls.append((provider.name, case.id))
+            ready.wait()
+            self.assertTrue(release.wait(timeout=3))
+            return ProviderResult(True, 'Expected'), None
+
+        def wait_once(futures, **kwargs):
+            nonlocal interrupted
+            if not interrupted:
+                interrupted = True
+                ready.wait()
+                try:
+                    signal.raise_signal(signal.SIGINT)
+                finally:
+                    release.set()
+            return original_wait(futures, **kwargs)
+
+        providers = [BarrierProvider(name, threading.Barrier(1)) for name in ('one', 'two')]
+        cases = [EvalCase(str(i), 'Case', 'https://example.com', 'static', ['Expected'])
+                 for i in range(3)]
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch('harness.web_fetch.runner.fetch_with_deadline', side_effect=fetch), \
+                    patch.object(benchmark_execution, 'wait', side_effect=wait_once):
+                with self.assertRaises(KeyboardInterrupt):
+                    run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                                   dataset_path=Path('dataset.json'), cases=cases, providers=providers,
+                                   provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                                   delay=0, provider_concurrency=2)
+            retained = (Path(tmp) / 'results.jsonl').read_text(encoding="utf-8").splitlines()
+            manifest = json.loads((Path(tmp) / 'manifest.json').read_text(encoding='utf-8'))
+            self.assertEqual(manifest['attempt_count'], 2)
+            self.assertEqual(set(manifest['attempt_ids']),
+                             {json.loads(row)['attempt_id'] for row in retained})
+            self.assertEqual(manifest['execution_status'], 'interrupted')
+            self.assertTrue(manifest['completed_at'])
+            self.assertEqual({r['case_id'] for r in manifest['unexecuted'] if 'case_id' in r}, {'1', '2'})
+        self.assertEqual(len(calls), 2)
+        self.assertEqual(len(retained), 2)
+        self.assertTrue(all(json.loads(row)['ok'] for row in retained))
+
+    def test_conflicting_shared_limits_are_rejected_before_clamping(self):
+        from unittest.mock import patch
+
+        providers = [BarrierProvider('one', threading.Barrier(1)),
+                     BarrierProvider('two', threading.Barrier(1))]
+        for provider, capacity in zip(providers, [2, 3], strict=True):
+            provider.config['execution_resources'] = {
+                'account': {'capacity': capacity, 'reason': 'Shared account'}}
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            'harness.web_fetch.runner.fetch_with_deadline'
+        ) as call:
+            with self.assertRaisesRegex(ValueError, 'Conflicting'):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=[case], providers=providers,
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=2)
+            call.assert_not_called()
+
+    def test_failed_cleanup_stops_queued_variants_of_the_shared_service(self):
+        from unittest.mock import patch
+
+        from harness.web_fetch.providers.base import ProcessCleanupError
+
+        config = {'type': 'fixture', 'execution_resources': {
+            'one-service': {'capacity': 1, 'reason': 'Shared mutable service'}}}
+        providers = [BarrierProvider('one', threading.Barrier(1)),
+                     BarrierProvider('two', threading.Barrier(1))]
+        for provider in providers:
+            provider.config.update(config)
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as tmp, patch(
+            'harness.web_fetch.runner.fetch_with_deadline',
+            side_effect=ProcessCleanupError('Worker cleanup is unresolved'),
+        ) as call:
+            with self.assertRaises(IncompleteEvaluationError):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=[case], providers=providers,
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=2)
+            self.assertEqual(call.call_count, 1)
+            rows = [json.loads(line) for line in (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+            self.assertEqual([row['provider'] for row in rows], ['one'])
+
+    def test_quarantine_stops_already_active_batches_before_their_next_call(self):
+        from unittest.mock import patch
+        from harness.web_fetch import runner
+        from harness.web_fetch.providers.base import ProcessCleanupError
+
+        ready = threading.Barrier(2, timeout=3)
+        release = threading.Event()
+        calls = []
+
+        class StopEvent(threading.Event):
+            def set(self):
+                super().set()
+                release.set()
+
+        def fetch(provider, case, *args, **kwargs):
+            calls.append((provider.name, case.id))
+            ready.wait()
+            if provider.name == 'one':
+                raise ProcessCleanupError('Worker remains alive')
+            self.assertTrue(release.wait(3))
+            return ProviderResult(True, 'Expected'), None
+
+        providers = [BarrierProvider(name, threading.Barrier(1)) for name in ('one', 'two')]
+        cases = [EvalCase(str(i), 'Case', 'https://example.com', 'static', ['Expected'])
+                 for i in range(3)]
+        with tempfile.TemporaryDirectory() as tmp, \
+                patch.object(runner, 'fetch_with_deadline', side_effect=fetch):
+            with self.assertRaises(IncompleteEvaluationError):
+                run_evaluation(output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                               dataset_path=Path('dataset.json'), cases=cases, providers=providers,
+                               provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                               delay=0, provider_concurrency=2, max_failure_retries=1, stop_event=StopEvent())
+            rows = [json.loads(line) for line in
+                    (Path(tmp) / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+        self.assertEqual(sorted(calls), [('one', '0'), ('two', '0')])
+        self.assertEqual(len(rows), 2)
+        self.assertTrue(next(row for row in rows if row['provider'] == 'two')['ok'])
+
+    def test_shared_service_capacity_prevents_overlapping_provider_variants(self):
+        import time
+
+        lock = threading.Lock()
+        active = 0
+        maximum = 0
+
+        class Shared(Provider):
+            def fetch(self, case, timeout):
+                nonlocal active, maximum
+                with lock:
+                    active += 1
+                    maximum = max(maximum, active)
+                time.sleep(0.02)
+                with lock:
+                    active -= 1
+                return ProviderResult(ok=True, content='Expected', status_code=200)
+
+        config = {'type': 'fixture', 'execution_resources': {
+            'one-service': {'capacity': 1, 'reason': 'Shared mutable service'}}}
+        providers = [Shared('one', config), Shared('two', config)]
+        case = EvalCase('case', 'Case', 'https://example.com', 'static', ['Expected'])
+        with tempfile.TemporaryDirectory() as tmp:
+            rows, _ = run_evaluation(
+                output_dir=Path(tmp), dataset_meta={'id': 'fixture', 'cases': []},
+                dataset_path=Path('dataset.json'), cases=[case], providers=providers,
+                provider_config_path=Path('providers.json'), runs=1, timeout=1,
+                delay=0, provider_concurrency=2)
+            manifest = json.loads((Path(tmp) / "manifest.json").read_text(encoding="utf-8"))
+        self.assertEqual(maximum, 1)
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(manifest['execution_policy']['resources']['shared/one-service']['capacity'], 1)
+
     def test_certificate_and_transport_errors_are_classified(self):
         certificate = ssl.SSLCertVerificationError(1, "certificate verify failed")
         for error, expected in (

@@ -10,18 +10,20 @@ import gzip
 import io
 import json
 import math
+import multiprocessing
 import os
 import re
-import runpy
 import signal
 import tempfile
 import time
 import uuid
+from concurrent.futures import CancelledError
 from datetime import UTC, datetime
 from functools import wraps
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit
 
+from harness.benchmark_execution import ExecutionPolicy, Job, run_jobs
 from harness.data_home import data_home as shared_data_home
 from harness.distribution import repository_root
 from harness.record_io import bytes_sha256 as digest
@@ -35,6 +37,7 @@ ROOT = repository_root()
 PROFILE = Path(__file__).resolve().parents[1] / "benchmarks/cards/zyte-product-extraction.json"
 FIELDS = ("price", "sku", "availability", "InStock", "OutOfStock")
 _RAW_SESSIONS = {}
+_COLLECTION_CLOCK = None
 
 
 def execution_identity(row):
@@ -229,8 +232,16 @@ def validate_dataset(home: Path, profile=None):
             or unsafe_parents(path)
         ):
             raise ValueError("Unsafe evidence path")
-        if not path.is_file() or digest(path.read_bytes()) != item["sha256"]:
+        if not path.is_file():
             raise ValueError("Dataset bytes changed: " + name)
+        raw = path.read_bytes()
+        if digest(raw) != item["sha256"]:
+            raise ValueError("Dataset bytes changed: " + name)
+        if name.startswith("html/"):
+            try:
+                raw.decode("utf-8")
+            except UnicodeDecodeError as error:
+                raise ValueError("Frozen HTML must be UTF-8: " + name) from error
     for name, expected in pin.get("files", {}).items():
         if manifest["files"].get(name, {}).get("sha256") != expected:
             raise ValueError("Pinned source binding changed")
@@ -358,27 +369,6 @@ def available_methods():
     return METHODS
 
 
-def baseline_extractor(home: Path):
-    """Execute the hash-pinned upstream baseline, without its CLI entry point."""
-    pin = read_json(PROFILE)["baseline_extractor"]
-    source = home / pin["path"]
-    bundled = home / "dataset" / pin["path"]
-    if not source.exists() and bundled.exists():
-        source = bundled
-    if not source.exists():
-        require_external_output(source)
-        response = request(pin["url"], timeout=60)
-        if response.status != 200 or digest(response.body) != pin["sha256"]:
-            raise ValueError("Baseline source does not match the pinned upstream extractor")
-        source.parent.mkdir(parents=True, exist_ok=True)
-        source.write_bytes(response.body)
-    if (
-        source.is_symlink()
-        or unsafe_parents(source)
-        or digest(source.read_bytes()) != pin["sha256"]
-    ):
-        raise ValueError("Pinned baseline source changed")
-    return runpy.run_path(str(source), run_name="pinned_extruct_baseline")["extract"]
 
 
 def redact(value):
@@ -457,9 +447,29 @@ def validate_native_options(method, native_options):
     native_options = native_options or {}
     if set(native_options) - set(METHODS[method]["options"]):
         raise ValueError("Unsupported native extraction option")
+    if METHODS[method].get("deployment") == "self-hosted-open-source":
+        identity = native_options.get("runtime_identity")
+        if not native_options.get("endpoint") or not isinstance(identity, dict):
+            raise ValueError("Self-hosted methods require an endpoint and frozen runtime identity")
+        if any(
+            not identity.get(key)
+            for key in (
+                "engine",
+                "version",
+                "model",
+                "model_base",
+                "implementation_sha256",
+                "environment_sha256",
+            )
+        ):
+            raise ValueError("Incomplete self-hosted runtime identity")
+        if native_options.get("keepalive") is True and identity.get("json_keepalive") is not True:
+            raise ValueError("Frozen runtime does not advertise JSON keepalive")
     if native_options.get("input_route", "html") not in ("html", "url"):
         raise ValueError("Native input route must be html or url")
-    for key in ("setJavaScriptEnabled", "discussion", "use_fixture_context", "norender"):
+    for key in (
+        "setJavaScriptEnabled", "discussion", "use_fixture_context", "norender", "keepalive"
+    ):
         if key in native_options and type(native_options[key]) is not bool:
             raise ValueError("Native extraction switches must be Boolean")
     if "rejectResourceTypes" in native_options:
@@ -477,22 +487,6 @@ def validate_native_options(method, native_options):
     return native_options
 
 
-def _extruct_request(method, html, source_url, fixture_url, *, timeout, home, native_options):
-    extract = baseline_extractor(home or data_home())
-    started = time.monotonic()
-    result = extract(html)
-    return {
-        "state": "response_received",
-        "http_status": 200,
-        "elapsed_seconds": time.monotonic() - started,
-        "response": {"result": result},
-        "request": {
-            "input": "html",
-            "endpoint": "local:extruct",
-            "html_sha256": digest(html.encode()),
-            "source_url": source_url,
-        },
-    }
 
 
 def _cloudflare_request(
@@ -783,7 +777,71 @@ def _raw_html_request(method, html, source_url, fixture_url, *, timeout, home, n
         }
 
 
+def _self_hosted_request(
+    method,
+    html,
+    source_url,
+    fixture_url,
+    *,
+    timeout,
+    home,
+    native_options,
+    schema=None,
+    prompt=None,
+):
+    """Invoke a version-bound native extractor deployed by the caller."""
+    if not fixture_url:
+        raise ValueError("Self-hosted extraction requires a frozen snapshot URL")
+    endpoint = native_options.get("endpoint")
+    validate_http_url(endpoint)
+    parsed = urlsplit(endpoint)
+    if parsed.username or parsed.password or parsed.query or parsed.fragment:
+        raise ValueError("Extraction endpoint must not contain credentials, query or fragment")
+    identity = native_options.get("runtime_identity")
+    engine = METHODS[method]["engine"]
+    if not isinstance(identity, dict) or identity.get("engine") != engine:
+        raise ValueError("Self-hosted extraction requires a matching frozen runtime identity")
+    return (
+        endpoint.rstrip("/") + "/extract/" + engine
+        + ("?keepalive=true" if native_options.get("keepalive") else ""),
+        {
+            "Authorization": "Bearer " + os.environ["EXTRACTION_API_KEY"],
+        },
+        {
+            "url": fixture_url,
+            "schema": schema or SCHEMA,
+            "instruction": prompt
+            or (
+                "Extract the fields defined by the schema from the main record."
+                if schema
+                else "Extract the main product current price, SKU and stock availability. "
+                "Use null for absent fields."
+            ),
+            "expected_runtime": identity,
+        },
+    )
+
+
 METHODS = {
+    **{
+        name: {
+            "keys": ["EXTRACTION_API_KEY"],
+            "input": "url",
+            "custom_schema": True,
+            "minimum_call_interval_seconds": 0,
+            "post_call_cooldown_seconds": 0,
+            "options": ["endpoint", "runtime_identity", "keepalive"],
+            "adapter": _self_hosted_request,
+            "deployment": "self-hosted-open-source",
+            "engine": engine,
+        }
+        for name, engine in {
+            "crawl4ai-json": "crawl4ai",
+            "scrapegraph-oss-json": "scrapegraph",
+            "stagehand-local-json": "stagehand",
+            "firecrawl-oss-json": "firecrawl",
+        }.items()
+    },
     "firecrawl-parse-json": {
         "keys": ["FIRECRAWL_API_KEY"],
         "input": "html",
@@ -884,17 +942,6 @@ METHODS = {
             "options": [],
         },
         "adapter": _url_json_request,
-    },
-    "extruct": {
-        "retired": True,
-        **{
-            "keys": [],
-            "input": "html",
-            "minimum_call_interval_seconds": 0,
-            "post_call_cooldown_seconds": 0,
-            "options": [],
-        },
-        "adapter": _extruct_request,
     },
     "browserbase-json": {
         "custom_schema": True,
@@ -1045,24 +1092,18 @@ def provider_call(
     }
 
 
-def normalize(method: str, payload: dict, *, schema=None):
+def normalize(method: str, payload: dict, *, schema=None, preserve_native_types=False):
     """Map exposed fields only. Never infer answers from labels or source URLs."""
     if not isinstance(payload, dict) or payload.get("success") is False:
         return None
-    if method == "extruct":
-        item = payload.get("result")
-        if not isinstance(item, dict):
-            return None
-        result = {f: str(item[f]) for f in FIELDS if item.get(f) is not None}
-        stock = [s for s in ("InStock", "OutOfStock") if item.get(s) == s]
-        if not result.get("availability") and len(stock) == 1:
-            result["availability"] = stock[0]
-        return result
-
     def mapping(value):
         return value if isinstance(value, dict) else {}
 
-    if method in ("firecrawl-json", "firecrawl-parse-json"):
+    if METHODS.get(method, {}).get("deployment") == "self-hosted-open-source":
+        if payload.get("success") is not True:
+            return None
+        item = payload.get("data")
+    elif method in ("firecrawl-json", "firecrawl-parse-json"):
         item = mapping(payload.get("data")).get("json")
     elif method == "browserbase-json":
         status = payload.get("statusCode")
@@ -1091,7 +1132,7 @@ def normalize(method: str, payload: dict, *, schema=None):
             if isinstance(price, dict):
                 price = price.get("amount")
             stock = offer.get("availability")
-            if stock is not None and not isinstance(stock, str):
+            if not preserve_native_types and stock is not None and not isinstance(stock, str):
                 stock = None
             item = {
                 "price": price,
@@ -1100,7 +1141,9 @@ def normalize(method: str, payload: dict, *, schema=None):
                     "available": "InStock",
                     "unavailable": "OutOfStock",
                     "sold_out": "OutOfStock",
-                }.get(stock, stock),
+                }.get(stock, stock)
+                if isinstance(stock, str)
+                else stock,
             }
         else:
             item = None
@@ -1129,7 +1172,14 @@ def normalize(method: str, payload: dict, *, schema=None):
             item["availability"] = "InStock" if item["availability"] else "OutOfStock"
     else:
         item = None
-    if schema is not None:
+    return normalize_extracted_fields(
+        item, schema=schema, preserve_native_types=preserve_native_types
+    )
+
+
+def normalize_extracted_fields(item, *, schema=None, preserve_native_types=False):
+    """Project an extracted object independently of its provider's response envelope."""
+    if schema is not None or preserve_native_types:
         return dict(item) if isinstance(item, dict) else None
     if not isinstance(item, dict) or not any(f in item for f in ("price", "sku", "availability")):
         return None
@@ -1187,6 +1237,7 @@ def serve_fixtures(home: Path, *, port=8767):
 
 ACCESS_POLICY = {"receipt": "access-denial/1", "consecutive_403_sites": 3}
 ACCESS_REASONS = {
+    "service_capacity",
     "authentication",
     "permission",
     "quota_or_payment",
@@ -1204,6 +1255,26 @@ def access_blocker(row):
     if row.get("state") == "credentials_missing":
         return "credentials_missing"
     status, native = row.get("http_status"), row.get("response", {})
+    failure = native.get("native_failure") if isinstance(native, dict) else None
+    method = METHODS.get(row.get("method"), {})
+    if (status == 429 and method.get("deployment") == "self-hosted-open-source"
+            and isinstance(native, dict)
+            and native.get("detail") == "Extraction worker capacity reached"):
+        return "service_capacity"
+    if (
+        method.get("deployment") == "self-hosted-open-source"
+        and isinstance(native, dict)
+        and native.get("success") is False
+        and isinstance(failure, dict)
+        and failure.get("source") == "native-extractor-error"
+        and failure.get("engine") == method.get("engine")
+    ):
+        nested = access_blocker({
+            "http_status": failure.get("http_status"),
+            "response": {"success": False, "error": failure.get("error", "")},
+        })
+        if nested:
+            return nested
     if status == 401:
         return "authentication"
     if status == 402:
@@ -1346,6 +1417,7 @@ def probe(home: Path, methods: list[str], **options):
         "execution.lock",
         "calls",
         "execution/pipeline.py",
+        "execution/benchmark_execution.py",
         "calls.journal.jsonl",
         "contract.json",
         "inflight.json",
@@ -1357,6 +1429,84 @@ def probe(home: Path, methods: list[str], **options):
     with (run / "execution.lock").open("a", encoding="utf-8") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
         return _probe_unlocked(home, methods, run_dir=run, **options)
+
+
+def _initialize_collection_clock(lock, clock, interval):
+    global _COLLECTION_CLOCK
+    _COLLECTION_CLOCK = lock, clock, interval
+
+
+def _execute_collection_call(payload):
+    (
+        method,
+        raw,
+        source_url,
+        public_url,
+        schema_options,
+        home,
+        native_options,
+        repair,
+        custom_schema,
+        row,
+    ) = payload
+    if custom_schema:
+        from jsonschema import Draft202012Validator
+    if _COLLECTION_CLOCK is not None:
+        lock, clock, interval = _COLLECTION_CLOCK
+        with lock:
+            remaining = interval - (time.monotonic() - clock.value)
+            if remaining > 0:
+                time.sleep(remaining)
+            clock.value = time.monotonic()
+    try:
+        last_call_started = time.monotonic()
+        row["started_at"] = datetime.now(UTC).isoformat()
+        row.update(
+            provider_call(
+                method,
+                raw.decode("utf-8"),
+                source_url,
+                public_url,
+                **schema_options,
+                **(
+                    {"home": home, "native_options": native_options, "timeout": 120}
+                    if repair or native_options
+                    else {}
+                ),
+            )
+        )
+        if "elapsed_seconds" not in row:
+            row["elapsed_seconds"] = time.monotonic() - last_call_started
+        normalized = normalize(
+            method,
+            row.get("response", {}),
+            **({"schema": schema_options["schema"]} if custom_schema else {}),
+        )
+        row["normalized_fields"] = normalized
+        if custom_schema:
+            errors = list(Draft202012Validator(schema_options["schema"]).iter_errors(normalized))
+            row["schema_valid"] = not errors
+            row["schema_errors"] = [e.message for e in errors]
+        row["compatibility"] = (
+            "structured_output"
+            if normalized is not None and row.get("http_status") == 200
+            else "no_structured_output"
+        )
+    except Exception as error:
+        row.update(
+            state="call_error",
+            error=redact(str(error)),
+            elapsed_seconds=time.monotonic() - last_call_started,
+            normalized_fields=None,
+            compatibility="no_structured_output",
+        )
+    row["finished_at"] = datetime.now(UTC).isoformat()
+    return row
+
+
+def _execute_admitted_call(value):
+    admitted, payload = value
+    return _execute_collection_call(payload) if admitted else payload
 
 
 def collect_calls(
@@ -1375,6 +1525,13 @@ def collect_calls(
     repair=False,
 ):
     """Own dispatch, pacing, checkpoints and retry accounting for every native run."""
+    execution_policy = contract.get("execution_policy")
+    policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
+    concurrency = policy.max_in_flight if policy else contract.get("concurrency", 1)
+    if type(concurrency) is not int or not 1 <= concurrency <= 64:
+        raise ValueError("Concurrency must be an integer between 1 and 64")
+    if concurrency > 1 and policy and policy.backend != "process":
+        raise ValueError("Native signal deadlines require the process execution backend")
     journal = run / "calls.journal.jsonl"
     if journal.is_symlink() or unsafe_parents(journal):
         raise ValueError("Symlink inputs are prohibited")
@@ -1418,18 +1575,20 @@ def collect_calls(
         raise ValueError("Uncheckpointed call exists; preserve and reconcile it before resuming")
     inflight = run / "inflight.json"
     if inflight.exists():
-        pending = read_json(inflight)
-        completed = prior.get((pending["method"], pending["case_id"]))
-        if (
-            completed is None
-            or read_json(run / completed["path"]).get("physical_attempt")
-            != pending["physical_attempt"]
-        ):
-            raise ValueError(
-                "Ambiguous repair dispatch requires reconciliation"
-                if repair
-                else "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
-            )
+        inventory = read_json(inflight)
+        reservations = inventory.get("attempts", [inventory])
+        for pending in reservations:
+            completed = prior.get((pending["method"], pending["case_id"]))
+            if (
+                completed is None
+                or read_json(run / completed["path"]).get("physical_attempt")
+                != pending["physical_attempt"]
+            ):
+                raise ValueError(
+                    "Ambiguous repair dispatch requires reconciliation"
+                    if repair
+                    else "Ambiguous in-flight attempt; reconcile retained evidence before resuming"
+                )
         inflight.unlink()
     denied_sites = {}
 
@@ -1448,6 +1607,42 @@ def collect_calls(
     # Conservatively observe the full frozen pause after a cross-process resume.
     last_call_started = time.monotonic() if prior else None
     last_call_finished = last_call_started
+    assignments = execution_policy.get("assignments") if execution_policy else None
+    if assignments is None:
+        if policy and len(methods) > 1 and set(policy.resources) != set(methods):
+            raise ValueError("Multi-method shared resources require explicit assignments")
+        assignments = {
+            method: list(policy.resources) if policy and len(methods) == 1 else [method]
+            for method in methods
+        }
+    elif (
+        not isinstance(assignments, dict)
+        or set(assignments) != set(methods)
+        or any(
+            not isinstance(resources, list)
+            or method not in resources
+            or any(not isinstance(resource, str) for resource in resources)
+            or len(resources) != len(set(resources))
+            for method, resources in assignments.items()
+        )
+        or {resource for resources in assignments.values() for resource in resources}
+        != set(policy.resources)
+    ):
+        raise ValueError("Execution assignments must bind every method and declared resource")
+    if concurrency > 1 and post_call_cooldown:
+        raise ValueError("Post-call cooldown requires serial execution")
+    pending_calls = {}
+    blocked = []
+
+    def save_pending():
+        if pending_calls:
+            values = list(pending_calls.values())
+            value = values[0] if concurrency == 1 else {"attempts": values}
+            save_json(inflight, value, exclusive=not inflight.exists())
+        elif inflight.exists():
+            inflight.unlink()
+
+    jobs = []
     for ordinal, case_id in enumerate(case_ids):
         offset = ordinal % len(methods)
         for method in methods[offset:] + methods[:offset]:
@@ -1457,170 +1652,186 @@ def collect_calls(
                 if not (full and retained_access_reason(prior_row, contract)):
                     records.append(entry)
                     continue
-                if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
-                    raise PermissionError("Access remains blocked; declared retry budget exhausted")
-            if len(physical) >= contract.get("maximum_physical_calls", float("inf")):
-                raise PermissionError("Frozen physical call budget exhausted before dispatch")
-            missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
-            raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
-            if digest(raw) != frozen_inputs["html/" + case_id + ".html"]["sha256"]:
-                raise ValueError("Frozen extraction HTML changed before dispatch")
-            schema_options = {}
-            if custom_schema:
-                schema_options = {
-                    "schema": adapter.task_schema(home, truth[case_id]),
-                    "prompt": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
-                }
-            row = {
+            resources = tuple(assignments[method])
+            jobs.append(Job(f"{method}/{case_id}", resources, (method, case_id)))
+
+    def prepare(job):
+        nonlocal last_call_started
+        method, case_id = job.payload
+        if dispatched_attempts.get((method, case_id), 0) > contract["access_retry_limit"]:
+            raise PermissionError("Access remains blocked; declared retry budget exhausted")
+        if len(physical) + len(pending_calls) >= contract.get(
+            "maximum_physical_calls", float("inf")
+        ):
+            raise PermissionError("Frozen physical call budget exhausted before dispatch")
+        missing = [key for key in registry[method]["keys"] if not os.getenv(key)]
+        raw = (home / "dataset/html" / (case_id + ".html")).read_bytes()
+        if digest(raw) != frozen_inputs["html/" + case_id + ".html"]["sha256"]:
+            raise ValueError("Frozen extraction HTML changed before dispatch")
+        schema_options = {}
+        if custom_schema:
+            schema_options = {
+                "schema": adapter.task_schema(home, truth[case_id]),
+                "prompt": contract.get("extraction_instructions", RECORD_INSTRUCTIONS),
+            }
+        row = {
+            "method": method,
+            "case_id": case_id,
+            "input_sha256": digest(raw),
+            "kind": "failure_repair"
+            if repair
+            else ("structured_extraction_attempt" if full else "compatibility_probe"),
+            "started_at": datetime.now(UTC).isoformat(),
+        }
+        if missing and full:
+            raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
+        if missing:
+            row.update(state="credentials_missing", missing_variables=missing)
+        else:
+            pending_calls[(method, case_id)] = {
                 "method": method,
                 "case_id": case_id,
+                "physical_attempt": attempts.get((method, case_id), 0) + 1,
                 "input_sha256": digest(raw),
-                "kind": "failure_repair"
-                if repair
-                else ("structured_extraction_attempt" if full else "compatibility_probe"),
-                "started_at": datetime.now(UTC).isoformat(),
+                "state": "dispatch_pending",
             }
-            if missing and full:
-                raise PermissionError("Missing credentials before dispatch: " + ", ".join(missing))
-            if missing:
-                row.update(state="credentials_missing", missing_variables=missing)
-            else:
-                if last_call_started is not None:
-                    remaining = max(
-                        min_call_interval - (time.monotonic() - last_call_started),
-                        post_call_cooldown - (time.monotonic() - last_call_finished),
-                    )
-                    while remaining > 0:
-                        time.sleep(min(remaining, 30))
-                        remaining = max(
-                            min_call_interval - (time.monotonic() - last_call_started),
-                            post_call_cooldown - (time.monotonic() - last_call_finished),
-                        )
-                save_json(
-                    inflight,
-                    {
-                        "method": method,
-                        "case_id": case_id,
-                        "physical_attempt": attempts.get((method, case_id), 0) + 1,
-                        "input_sha256": digest(raw),
-                        "state": "dispatch_pending",
-                    },
-                    exclusive=True,
-                )
-                try:
-                    last_call_started = time.monotonic()
-                    row.update(
-                        provider_call(
-                            method,
-                            raw.decode("utf-8"),
-                            truth[case_id]["url"],
-                            fixture_url(fixture_base, case_id, fixture_suffix)
-                            if fixture_base
-                            else None,
-                            **schema_options,
-                            **(
-                                {"home": home, "native_options": native_options, "timeout": 120}
-                                if repair or native_options
-                                else ({"home": home} if method == "extruct" else {})
-                            ),
-                        )
-                    )
-                    if "elapsed_seconds" not in row:
-                        row["elapsed_seconds"] = time.monotonic() - last_call_started
-                    normalized = normalize(
-                        method,
-                        row.get("response", {}),
-                        **({"schema": schema_options["schema"]} if custom_schema else {}),
-                    )
-                    row["normalized_fields"] = normalized
-                    if custom_schema:
-                        errors = list(
-                            Draft202012Validator(schema_options["schema"]).iter_errors(normalized)
-                        )
-                        row["schema_valid"] = not errors
-                        row["schema_errors"] = [e.message for e in errors]
-                    row["compatibility"] = (
-                        "structured_output"
-                        if normalized is not None and row.get("http_status") == 200
-                        else "no_structured_output"
-                    )
-                except Exception as error:
-                    row.update(
-                        state="call_error",
-                        error=redact(str(error)),
-                        elapsed_seconds=time.monotonic() - last_call_started,
-                        normalized_fields=None,
-                        compatibility="no_structured_output",
-                    )
-                last_call_finished = time.monotonic()
-            row["finished_at"] = datetime.now(UTC).isoformat()
-            row.setdefault("state", "response_received")
-            number = attempts.get((method, case_id), 0) + 1
-            row["physical_attempt"] = number
-            if number > 1:
-                prior_row = read_json(run / prior[(method, case_id)]["path"])
-                row["retry_execution_seconds"] = prior_row.get(
-                    "elapsed_seconds", 0
-                ) + prior_row.get("retry_execution_seconds", 0)
-            repeated_denial = observe_denial(row)
-            row["access_denial"] = (
-                (access_blocker(row) or ("repeated_http_403" if repeated_denial else None))
-                if full
-                else None
-            )
-            suffix = "" if number == 1 else f"-attempt{number}"
-            stem = case_id if repair else f"{method}-{case_id}"
-            path = run / "calls" / f"{stem}{suffix}.json"
-            if repair and number > 1:
-                history = [
-                    read_json(run / e["path"])
-                    for e in physical
-                    if (read_json(run / e["path"])["method"], read_json(run / e["path"])["case_id"])
-                    == (method, case_id)
-                ]
-                row["physical_attempts"] = history + [dict(row)]
-                row["retry_missing_timers"] = sum(r.get("elapsed_seconds") is None for r in history)
-            save_json(path, redact(row), exclusive=True)
-            entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
-            with journal.open("a", encoding="utf-8") as checkpoint:
-                checkpoint.write(json.dumps(entry) + "\n")
-                checkpoint.flush()
-                os.fsync(checkpoint.fileno())
-            if inflight.exists():
-                inflight.unlink()
-            records.append(entry)
-            physical.append(entry)
-            print(
+            save_pending()
+        last_call_started = time.monotonic()
+        if missing:
+            return (None, row)
+        public_url = fixture_url(fixture_base, case_id, fixture_suffix) if fixture_base else None
+        return (
+            True,
+            (
                 method,
-                case_id[:10],
-                row["state"],
-                row.get("http_status", ""),
-                row.get("compatibility", ""),
-                flush=True,
+                raw,
+                truth[case_id]["url"],
+                public_url,
+                schema_options,
+                home,
+                native_options,
+                repair,
+                custom_schema,
+                row,
+            ),
+        )
+
+    def commit(job, row, error):
+        nonlocal last_call_finished
+        if isinstance(error, CancelledError):
+            pending_calls.pop(job.payload, None)
+            save_pending()
+            return
+        if error is not None:
+            raise error
+        method, case_id = job.payload
+        last_call_finished = time.monotonic()
+        row.setdefault("finished_at", datetime.now(UTC).isoformat())
+        row.setdefault("state", "response_received")
+        number = attempts.get((method, case_id), 0) + 1
+        row["physical_attempt"] = number
+        if number > 1:
+            prior_row = read_json(run / prior[(method, case_id)]["path"])
+            row["retry_execution_seconds"] = prior_row.get("elapsed_seconds", 0) + prior_row.get(
+                "retry_execution_seconds", 0
             )
-            blocker = row["access_denial"]
-            if blocker:
-                save_json(
-                    run / "access-blocked.json",
-                    {
-                        "method": method,
-                        "case_id": case_id,
-                        "reason": blocker,
-                        **(
-                            {"source_sites": sorted(denied_sites[method])}
-                            if blocker == "repeated_http_403"
-                            else {}
-                        ),
-                        "call": entry,
-                        "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
-                    },
-                )
-                action = (
-                    "inspect access-blocked.json before resuming the same run"
-                    if blocker == "repeated_http_403"
-                    else "repair access then resume the same run"
-                )
-                raise PermissionError(f"{method}: {blocker}; calls retained; {action}")
+        repeated_denial = observe_denial(row)
+        row["access_denial"] = (
+            (access_blocker(row) or ("repeated_http_403" if repeated_denial else None))
+            if full
+            else None
+        )
+        suffix = "" if number == 1 else f"-attempt{number}"
+        stem = case_id if repair else f"{method}-{case_id}"
+        path = run / "calls" / f"{stem}{suffix}.json"
+        if repair and number > 1:
+            history = [
+                read_json(run / e["path"])
+                for e in physical
+                if (read_json(run / e["path"])["method"], read_json(run / e["path"])["case_id"])
+                == (method, case_id)
+            ]
+            row["physical_attempts"] = history + [dict(row)]
+            row["retry_missing_timers"] = sum(r.get("elapsed_seconds") is None for r in history)
+        save_json(path, redact(row), exclusive=True)
+        entry = {"path": path.relative_to(run).as_posix(), "sha256": digest(path.read_bytes())}
+        with journal.open("a", encoding="utf-8") as checkpoint:
+            checkpoint.write(json.dumps(entry) + "\n")
+            checkpoint.flush()
+            os.fsync(checkpoint.fileno())
+        pending_calls.pop((method, case_id), None)
+        save_pending()
+        records.append(entry)
+        physical.append(entry)
+        print(
+            method,
+            case_id[:10],
+            row["state"],
+            row.get("http_status", ""),
+            row.get("compatibility", ""),
+            flush=True,
+        )
+        blocker = row["access_denial"]
+        if blocker:
+            save_json(
+                run / "access-blocked.json",
+                {
+                    "method": method,
+                    "case_id": case_id,
+                    "reason": blocker,
+                    **(
+                        {"source_sites": sorted(denied_sites[method])}
+                        if blocker == "repeated_http_403"
+                        else {}
+                    ),
+                    "call": entry,
+                    "remaining_logical_cases": len(case_ids) * len(methods) - len(records),
+                },
+            )
+            action = (
+                "inspect access-blocked.json before resuming the same run"
+                if blocker == "repeated_http_403"
+                else "repair access then resume the same run"
+            )
+            blocked.append(PermissionError(f"{method}: {blocker}; calls retained; {action}"))
+
+    policy = policy or ExecutionPolicy.from_dict({
+        "purpose": "quality",
+        "max_in_flight": concurrency,
+        "resources": {m: {"capacity": concurrency,
+                          "reason": "Retain the declared provider pacing"} for m in methods},
+        "backend": "process",
+        "serial_reason": "Retain the declared serial call and cooldown policy",
+    })
+    context = multiprocessing.get_context("spawn")
+    def ready_at(_job):
+        return max(
+            last_call_started + min_call_interval if last_call_started is not None else 0,
+            last_call_finished + post_call_cooldown if last_call_finished is not None else 0,
+        )
+    run_jobs(
+        jobs, _execute_admitted_call, commit, policy,
+        prepare=prepare, should_stop=lambda: bool(blocked),
+        ready_at=ready_at,
+        initialize=_initialize_collection_clock,
+        initargs=(context.Lock(), context.Value("d", time.monotonic() - min_call_interval),
+                  min_call_interval),
+    )
+    if blocked:
+        raise blocked[0]
+    positions = {
+        (m, cid): i
+        for i, (cid, m) in enumerate(
+            (cid, m)
+            for i, cid in enumerate(case_ids)
+            for m in methods[i % len(methods) :] + methods[: i % len(methods)]
+        )
+    }
+    records.sort(
+        key=lambda entry: positions[
+            (read_json(run / entry["path"])["method"], read_json(run / entry["path"])["case_id"])
+        ]
+    )
     return records, physical
 
 
@@ -1638,7 +1849,14 @@ def _probe_unlocked(
     native_options=None,
     maximum_physical_calls=None,
     snapshot_manifest=None,
+    execution_policy=None,
+    sample_case_ids=None,
 ):
+    policy = ExecutionPolicy.from_dict(execution_policy) if execution_policy else None
+    if policy and policy.max_in_flight > 1 and policy.backend != "process":
+        raise ValueError("Native signal deadlines require the process execution backend")
+    if policy and policy.max_in_flight > 1 and post_call_cooldown:
+        raise ValueError("Post-call cooldown requires serial execution")
     if not isinstance(min_call_interval, (int, float)) or not 0 <= min_call_interval <= 3600:
         raise ValueError("Minimum call interval must be between 0 and 3600 seconds")
     if not isinstance(post_call_cooldown, (int, float)) or not 0 <= post_call_cooldown <= 3600:
@@ -1685,6 +1903,15 @@ def _probe_unlocked(
             )
         )
     )
+    if sample_case_ids is not None:
+        if (
+            not isinstance(sample_case_ids, list)
+            or not sample_case_ids
+            or len(set(sample_case_ids)) != len(sample_case_ids)
+            or any(case_id not in truth for case_id in sample_case_ids)
+        ):
+            raise ValueError("Execution preflight requires distinct frozen sample cases")
+        case_ids = sample_case_ids
 
     def verify_remote():
         def one(case_id):
@@ -1707,7 +1934,9 @@ def _probe_unlocked(
     remote_before = verify_remote()
     requested = {
         "schema_version": 1,
-        "kind": "full_archived_extraction"
+        "kind": "execution_preflight"
+        if sample_case_ids is not None
+        else "full_archived_extraction"
         if full
         else ("input_size_boundary_only" if largest else "input_compatibility_only"),
         "case_ids": case_ids,
@@ -1718,8 +1947,8 @@ def _probe_unlocked(
             "Retain every call; after repairing access, retry blocked cases once "
             "and select the final response"
         ),
-        "access_retry_limit": 1,
-        "concurrency": 1,
+        "access_retry_limit": 0 if sample_case_ids is not None else 1,
+        "concurrency": policy.max_in_flight if policy else 1,
         "api_cookie_policy": "no_inherited_api_cookies",
         "access_policy": ACCESS_POLICY,
         "minimum_call_interval_seconds": min_call_interval,
@@ -1729,14 +1958,13 @@ def _probe_unlocked(
         "fixture_suffix": fixture_suffix,
         "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
         "pipeline_sha256": digest(Path(__file__).read_bytes()),
-        "baseline_extractor": read_json(PROFILE).get("baseline_extractor")
-        if "extruct" in methods
-        else None,
         "schema": read_json(home / "dataset/schemas.json")
         if benchmark_config(home)["adapter"] is not None
         else SCHEMA,
         "remote_fixture_before": remote_before,
     }
+    if execution_policy is not None:
+        requested["execution_policy"] = execution_policy
     if benchmark_config(home)["adapter"] is not None:
         from harness.web_extract.dataset import task_bindings
 
@@ -1753,6 +1981,9 @@ def _probe_unlocked(
         requested["snapshot_manifest"] = snapshot_manifest
     if native_options is not None:
         requested["native_options"] = native_options
+    scheduler_source = Path(__file__).parents[1] / "benchmark_execution.py"
+    requested["execution_scheduler_sha256"] = digest(scheduler_source.read_bytes())
+    requested["execution_scheduler_snapshot"] = "execution/benchmark_execution.py"
     if continuing:
         contract = read_json(run / "contract.json")
         if contract.get("snapshot_manifest") != requested.get("snapshot_manifest"):
@@ -1773,22 +2004,39 @@ def _probe_unlocked(
             "kind",
             "case_ids",
             "methods",
+            "concurrency",
             "minimum_call_interval_seconds",
             "post_call_cooldown_seconds",
             "fixture_base",
             "fixture_suffix",
             "dataset_manifest_sha256",
             "pipeline_sha256",
-            "baseline_extractor",
         ):
             if contract[field] != requested[field]:
                 raise ValueError("Resume contract changed: " + field)
+        if contract.get("execution_policy") != requested.get("execution_policy"):
+            raise ValueError("Resume execution policy changed")
+        if contract.get("execution_scheduler_sha256") != requested["execution_scheduler_sha256"]:
+            raise ValueError("Resume execution scheduler changed; use the original source")
         verify_execution_snapshot(run, contract)
         if (run / "manifest.json").exists():
             load_run(run)
             return run
     else:
         contract = requested
+        for source, relative in ((scheduler_source, contract["execution_scheduler_snapshot"]),):
+            target = run / relative
+            require_external_output(target)
+            target.parent.mkdir(parents=True, exist_ok=True)
+            raw = source.read_bytes()
+            if target.exists():
+                if target.read_bytes() != raw:
+                    raise ValueError("Frozen execution source changed before initialization")
+            else:
+                with target.open("xb") as output:
+                    output.write(raw)
+                    output.flush()
+                    os.fsync(output.fileno())
         save_json(run / "contract.json", contract, exclusive=True)
     records, physical = collect_calls(
         home,
@@ -1804,11 +2052,6 @@ def _probe_unlocked(
         native_options=native_options,
     )
     validate_dataset(home)
-    if (
-        "extruct" in methods
-        and read_json(PROFILE).get("baseline_extractor") != contract["baseline_extractor"]
-    ):
-        raise ValueError("Baseline extractor binding changed during execution")
     receipt = verify_remote()
     after = run / "remote-fixture-after.json"
     if after.exists():
@@ -1836,8 +2079,15 @@ def _probe_unlocked(
 
 
 def verify_execution_snapshot(run, contract):
-    relative = contract.get("pipeline_snapshot")
-    if relative:
+    for field, identity in (
+        ("pipeline_snapshot", "pipeline_sha256"),
+        ("execution_scheduler_snapshot", "execution_scheduler_sha256"),
+    ):
+        relative = contract.get(field)
+        if not relative:
+            if identity == "execution_scheduler_sha256" and contract.get(identity):
+                raise ValueError("Frozen execution scheduler snapshot is missing")
+            continue
         path = Path(relative)
         snapshot = run / path
         if (
@@ -1845,7 +2095,8 @@ def verify_execution_snapshot(run, contract):
             or ".." in path.parts
             or snapshot.is_symlink()
             or not snapshot.is_file()
-            or digest(snapshot.read_bytes()) != contract["pipeline_sha256"]
+            or unsafe_parents(snapshot)
+            or digest(snapshot.read_bytes()) != contract[identity]
         ):
             raise ValueError("Frozen execution source changed")
 
@@ -1951,9 +2202,6 @@ PROJECTION_REGRESSIONS = (
     "scrapfly-available-is-in-stock",
     "scrapfly-sold-out-is-out-of-stock",
     "scrapfly-unknown-stock-stays-unknown",
-    "extruct-canonical-stock-indicator",
-    "extruct-conflicting-indicators-stay-unknown",
-    "extruct-explicit-stock-takes-precedence",
 )
 
 
@@ -1968,16 +2216,6 @@ def check_projection_controls():
             raise ValueError("Native stock projection regression failed")
         if native == "preorder" and any(f in actual for f in ("InStock", "OutOfStock")):
             raise ValueError("Unknown availability was promoted to known stock")
-    for native, expected in (
-        ({"InStock": "InStock"}, "InStock"),
-        ({"OutOfStock": "OutOfStock"}, "OutOfStock"),
-        ({"InStock": "InStock", "OutOfStock": "OutOfStock"}, None),
-        ({"availability": "OutOfStock", "InStock": "InStock"}, "OutOfStock"),
-        ({"InStock": True}, None),
-        ({}, None),
-    ):
-        if normalize("extruct", {"result": native}).get("availability") != expected:
-            raise ValueError("Native baseline stock indicator regression failed")
 
 
 RECORD_PROJECTION_REGRESSIONS = (
@@ -2075,9 +2313,6 @@ def score_run(
                     "Record reprojection used product-only normalization; preserve the case's "
                     "native fields and invalid value types under its own task schema"
                     if adapter
-                    else "The upstream baseline emits a canonical stock indicator but can omit "
-                    "availability; project only an unambiguous indicator"
-                    if method == "extruct"
                     else "Native sold_out stock label was not mapped to OutOfStock"
                 )
                 for method in contract["methods"]
@@ -2152,6 +2387,15 @@ def score_run(
             r"[0-9a-f]{64}", recorded_pipeline
         ):
             raise ValueError("Invalid recorded projection implementation")
+        recorded_controls = previous.get("projection_revision", {}).get("regression_ids")
+        if (
+            not isinstance(recorded_controls, list)
+            or not recorded_controls
+            or any(not isinstance(value, str) or not value for value in recorded_controls)
+            or len(set(recorded_controls)) != len(recorded_controls)
+        ):
+            raise ValueError("Invalid recorded projection regression controls")
+        result["projection_revision"]["regression_ids"] = recorded_controls
         result["projection_revision"]["pipeline_sha256"] = recorded_pipeline
     if target.exists():
         if read_json(target) != result:

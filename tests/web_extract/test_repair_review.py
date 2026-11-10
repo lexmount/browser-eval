@@ -11,6 +11,8 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.repair import compose, create_plan, run
 from harness.web_extract.review import prepare, read_packet, reconcile_citations, validate
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 
 def review_payload(packet, quote="synthetic product"):
     finding = {
@@ -151,7 +153,12 @@ def native_test_credentials(monkeypatch):
 
 
 def parent_inputs(
-    tmp_path, method="cloudflare-json", failed_overrides=None, success_count=2, native_options=None
+    tmp_path,
+    method="cloudflare-json",
+    failed_overrides=None,
+    success_count=2,
+    native_options=None,
+    execution_policy=None,
 ):
     home = create(tmp_path / "example")
     source = home / "runs/parent"
@@ -160,6 +167,8 @@ def parent_inputs(
     contract = {"methods": [method], "case_ids": cases}
     if native_options is not None:
         contract["native_options"] = native_options
+    if execution_policy is not None:
+        contract["execution_policy"] = execution_policy
     save_json(source / "contract.json", contract)
     entries, rows = [], []
     for i, cid in enumerate(cases):
@@ -356,14 +365,6 @@ def test_field_diagnostics_preserve_missing_false_positive_and_decimal_equivalen
     assert result["price"]["status"] == "unexpected"
 
 
-def test_baseline_stock_indicator_projection_preserves_unknown_and_explicit_values():
-    from harness.web_extract.pipeline import check_projection_controls, normalize
-
-    check_projection_controls()
-    assert normalize("extruct", {"result": {"InStock": "InStock"}})["availability"] == "InStock"
-    ambiguous = {"InStock": "InStock", "OutOfStock": "OutOfStock"}
-    assert "availability" not in normalize("extruct", {"result": ambiguous})
-    assert "availability" not in normalize("extruct", {"result": {"InStock": True}})
 
 
 def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_path):
@@ -441,7 +442,7 @@ def test_complete_audit_rejects_unreviewed_and_substituted_native_answers(tmp_pa
     )
     from bs4 import BeautifulSoup
 
-    english_detail = next((tmp_path / "reviewed-report/en").glob("result-*.html"))
+    english_detail = next((tmp_path / "reviewed-report/en").glob("case-*.html"))
     summaries = BeautifulSoup(english_detail.read_text(encoding="utf-8"), "html.parser").select(
         "summary"
     )
@@ -981,18 +982,6 @@ def test_repair_does_not_dispatch_a_page_changed_before_its_turn(tmp_path):
     assert not (target / "certificate.json").exists()
 
 
-def test_local_baseline_repair_uses_selected_dataset_home(tmp_path):
-    home, _, profile, _ = parent_inputs(tmp_path, method="extruct")
-    with (
-        patch("harness.web_extract.repair.validate_dataset"),
-        patch("harness.web_extract.repair.load_runtime_env"),
-        patch(
-            "harness.web_extract.pipeline.provider_call",
-            return_value={"http_status": 200, "response": {"result": {"sku": "ok"}}},
-        ) as call,
-    ):
-        run(home, profile, "extruct", tmp_path / "local-repair")
-    assert call.call_args.kwargs["home"] == home
 
 
 @pytest.mark.parametrize(
@@ -1590,7 +1579,10 @@ def test_adjudication_invalid_workers_leave_no_workspace(tmp_path, workers):
     assert not work.exists()
 
 
-def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_path):
+@pytest.mark.parametrize("raw_completed", [False, True])
+def test_limited_review_resume_advances_without_repeating_completed_packets(
+    tmp_path, raw_completed
+):
     from types import SimpleNamespace
 
     from harness.web_extract.review import run as run_audit
@@ -1599,6 +1591,9 @@ def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_
     work = tmp_path / "review"
     manifest = prepare(home, home / "content.json", work, batch_size=1)
     assert len(manifest["packets"]) == 3
+    if raw_completed:
+        packet = read_packet(work / "packets/000.json")
+        save_json(work / "raw/000.json", review_payload(packet))
     dispatched = []
 
     def start(command, **kwargs):
@@ -1616,13 +1611,16 @@ def test_limited_review_resume_advances_without_repeating_completed_packets(tmp_
             result = run_audit(work, model="synthetic", workers=1, limit=1)
             assert result["packets"] == expected
             assert result["needs_correction"] == []
-        assert dispatched == ["000.json", "001.json", "002.json"]
+        expected_calls = ["001.json", "002.json"] if raw_completed else [
+            "000.json", "001.json", "002.json"
+        ]
+        assert dispatched == expected_calls
         # Completed evidence still needs validation on a bounded resume.
         target = work / "reviews/000.json"
         save_json(target, {"cases": []})
         with pytest.raises(ValueError):
             run_audit(work, model="synthetic", workers=1, limit=1)
-        assert len(dispatched) == 3
+        assert len(dispatched) == len(expected_calls)
 
 
 @pytest.mark.parametrize("duplicate", ["same-run", "overlapping-run"])
@@ -2086,7 +2084,22 @@ def test_product_review_rejects_whitespace_evidence(tmp_path, key):
 
 
 @pytest.mark.parametrize("legacy", [False, True])
-def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path, legacy):
+@pytest.mark.parametrize("remote_has_hosting_annotation", [False, True])
+@pytest.mark.parametrize(
+    "corrupted_field",
+    [
+        None,
+        "manifest_sha256",
+        "html_inventory_sha256",
+        "case_count",
+        "fixture_base",
+        "huggingface",
+        "extra_identity_field",
+    ],
+)
+def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(
+    tmp_path, legacy, remote_has_hosting_annotation, corrupted_field
+):
     from harness.web_extract import snapshots
 
     home, source, _, rows = parent_inputs(tmp_path)
@@ -2118,6 +2131,10 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         home, tmp_path / "content.json", plan, {"cloudflare-json": {"input_route": "url"}}, base
     )
     target = tmp_path / "managed-repair"
+    remote_receipt = deepcopy(receipt)
+    if not remote_has_hosting_annotation:
+        # Real snapshot manifests omit the caller's local hosting policy.
+        remote_receipt.pop("hosting_provider")
     response = {
         "state": "response_received",
         "http_status": 200,
@@ -2127,7 +2144,7 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         patch("harness.web_extract.repair.validate_dataset"),
         patch("harness.web_extract.repair.load_runtime_env"),
         patch("harness.web_extract.snapshots.validate_dataset"),
-        patch("harness.web_extract.snapshots.check_manifest", return_value=receipt),
+        patch("harness.web_extract.snapshots.check_manifest", return_value=remote_receipt),
         patch("harness.web_extract.pipeline.provider_call", return_value=response) as provider,
     ):
         run(home, plan, "cloudflare-json", target)
@@ -2140,7 +2157,7 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
             manifest = read_json(target / "manifest.json")
             for name in ("fixture-before.json", "fixture-after.json"):
                 receipt_rows = read_json(target / name)
-                receipt_rows[0]["snapshot_manifest"].pop("hosting_provider")
+                receipt_rows[0]["snapshot_manifest"].pop("hosting_provider", None)
                 save_json(target / name, receipt_rows)
                 manifest["fixtures"][name] = digest((target / name).read_bytes())
             manifest["contract_sha256"] = digest((target / "contract.json").read_bytes())
@@ -2156,6 +2173,24 @@ def test_managed_snapshot_repair_collects_verifies_composes_and_resumes(tmp_path
         assert provider.call_count == 1
     assert composed[-1]["normalized_fields"]["sku"] == "recovered"
     assert read_json(target / "fixture-before.json")[0]["case_id"] == "dataset-snapshot"
+    if corrupted_field:
+        # A matching file inventory must not hide changed snapshot identity.
+        manifest = read_json(target / "manifest.json")
+        for name in ("fixture-before.json", "fixture-after.json"):
+            receipts = read_json(target / name)
+            receipts[0]["snapshot_manifest"][corrupted_field] = "another frozen input"
+            save_json(target / name, receipts)
+            manifest["fixtures"][name] = digest((target / name).read_bytes())
+        save_json(target / "manifest.json", manifest)
+        certificate = read_json(target / "certificate.json")
+        certificate["manifest_sha256"] = digest((target / "manifest.json").read_bytes())
+        save_json(target / "certificate.json", certificate)
+        revision["sha256"] = digest((target / "certificate.json").read_bytes())
+        with (
+            patch("harness.web_extract.snapshots.validate_dataset"),
+            pytest.raises(ValueError, match="snapshot qualification"),
+        ):
+            compose(home, source, deepcopy(rows), revision)
 
 
 @pytest.mark.parametrize(
@@ -2444,3 +2479,34 @@ def test_repair_cli_allows_an_upload_only_plan_without_fixture_argument(tmp_path
         ]
     )
     assert read_json(output)["fixture_base"] is None
+
+
+def test_repair_initialization_recovers_an_unpublished_source_write(tmp_path):
+    from harness.reporting import publication
+
+    home, _, profile, _ = parent_inputs(tmp_path)
+    destination = tmp_path / 'repaired'
+    snapshot = destination / 'execution/benchmark_execution.py'
+    original_write = publication.atomic_write
+
+    def interrupted(path, payload):
+        if path.name == 'record':
+            path.write_bytes(payload[:17])
+            raise OSError('Interrupted before snapshot publication')
+        return original_write(path, payload)
+
+    with (patch('harness.web_extract.repair.validate_dataset'),
+          patch('harness.web_extract.repair.load_runtime_env'),
+          patch('harness.web_extract.pipeline.provider_call', return_value={
+              'state': 'response_received', 'http_status': 200,
+              'response': {'result': {'sku': 'new'}}}) as provider):
+        with patch.object(publication, 'atomic_write', side_effect=interrupted):
+            with pytest.raises(OSError, match='before snapshot publication'):
+                run(home, profile, 'cloudflare-json', destination)
+        assert not snapshot.exists() and provider.call_count == 0
+        run(home, profile, 'cloudflare-json', destination)
+        assert provider.call_count == 1
+        snapshot.write_bytes(b'modified published source')
+        with pytest.raises(ValueError, match='source changed'):
+            run(home, profile, 'cloudflare-json', destination)
+        assert provider.call_count == 1

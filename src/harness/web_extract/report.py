@@ -7,16 +7,22 @@ import math
 import re
 import statistics
 import struct
+import zipfile
+from collections import Counter
+from contextlib import contextmanager
+from contextvars import ContextVar
 from html import escape as esc
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlsplit
+from urllib.parse import quote, unquote, urljoin, urlsplit
 
 from bs4 import BeautifulSoup
 
 from harness.distribution import repository_root
 from harness.env_file import local_setting
+from harness.record_io import canonical_json_sha256
 from harness.report_languages import resolve_report_language
 from harness.reporting.links import LinkIndex
+from harness.reporting.publication import PublicationSnapshot
 from harness.reporting.release_check import check_report_identity, checked_page, open_report
 from harness.reporting.templates import template_identity
 from harness.reporting.versions import bind_build_version
@@ -30,6 +36,8 @@ from harness.web_extract.messages import message, messages_sha256, validate_cata
 from harness.web_extract.pipeline import (
     FIELDS,
     PROFILE,
+    SCHEMA,
+    available_methods,
     digest,
     execution_identity,
     load_run,
@@ -40,6 +48,7 @@ from harness.web_extract.pipeline import (
     save_json,
     score_rows,
     score_run,
+    unsafe_parents,
     validate_dataset,
     verify_execution_snapshot,
     verify_retry_history,
@@ -156,6 +165,7 @@ CSS = (ASSETS / "report.css").read_text(encoding="utf-8")
 
 def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
     sort_values = sort_values or {}
+    method_table = headers[0] in ("Method", "方法")
     if any(len(values) != len(rows) for values in sort_values.values()):
         raise ValueError("Numeric sort population differs from table rows")
 
@@ -167,8 +177,9 @@ def table(headers, rows, *, inventory=False, attrs="", sort_values=None):
     return (
         '<div class="table-wrap'
         + (" inventory" if inventory else "")
-        + '"><table '
+        + '" tabindex="0"><table '
         + attrs
+        + (' data-method-column="true"' if method_table else "")
         + ' data-highlight-ties="all"><thead><tr>'
         + "".join("<th>" + h + "</th>" for h in headers)
         + "</tr></thead><tbody>"
@@ -191,7 +202,10 @@ def page(
     state="compatibility",
     navigation=None,
     notice=None,
+    intro="",
 ):
+    if intro:
+        body = '<section data-page-intro>' + intro + "</section>" + body
     labels = LABELS[language]
     if state != "compatibility":
         labels = list(labels)
@@ -272,6 +286,12 @@ def page(
     # Artifact Site injects a site-root base even on nested pages. Use the same
     # root-relative references locally, where our own base supplies that root.
     soup = BeautifulSoup(html, "html.parser")
+    for rendered_table in soup.select("table:not([data-method-column])"):
+        first_heading = rendered_table.select_one("thead th")
+        if first_heading and first_heading.get_text(strip=True) in ("Method", "方法"):
+            rendered_table["data-method-column"] = "true"
+            if "table-wrap" in rendered_table.parent.get("class", []):
+                rendered_table.parent["tabindex"] = "0"
     for anchor in soup.select("a[href]"):
         parsed = urlsplit(anchor["href"])
         if parsed.scheme in {"http", "https"} or parsed.netloc:
@@ -283,6 +303,115 @@ def page(
             if value is not None and not urlsplit(value).scheme and not urlsplit(value).netloc:
                 element[attr] = urljoin(f"/{language}/{route}.html", value).lstrip("/")
     return str(soup)
+
+
+def authored_intro(model, route, language):
+    value = model.get("pages", {}).get(route, {}).get("intro", {})
+    if not isinstance(value, dict) or not isinstance(value.get(language, ""), str):
+        raise ValueError("Report page intro must contain language-keyed HTML")
+    if route == "index" and any(value.values()):
+        raise ValueError("Home-page content must follow its core comparison; use body")
+    return value.get(language, "")
+
+
+def page_intro_hash(rendered):
+    node = BeautifulSoup(rendered, "html.parser").select_one("main > [data-page-intro]")
+    if node is None:
+        raise ValueError("Report page intro was not rendered")
+    return digest(str(node).encode())
+
+
+def model_comparison_tables(output, binding, language):
+    """Render model diagnostics from hash-bound scored cases, not authored numbers."""
+    from harness.web_extract.analysis import summarize_model_rows
+
+    if not binding:
+        return {}
+    dataset = binding["dataset"]
+    rendered = {}
+    archives = {}
+    for name, specification in binding["tables"].items():
+        if not re.fullmatch(r"[a-z]+", name):
+            raise ValueError("Unsafe model comparison table name")
+        rows, metrics, case_ids, seen = [], {i: [] for i in range(1, 8)}, None, set()
+        for cohort in specification["cohorts"]:
+            archive = cohort["archive"]
+            relative = Path(archive["path"])
+            if relative.is_absolute() or ".." in relative.parts or relative.parts[0] != "assets":
+                raise ValueError("Unsafe model comparison evidence archive")
+            path = output / relative
+            if path.is_symlink():
+                raise ValueError("Unsafe model comparison evidence archive")
+            if archive["path"] not in archives:
+                archives[archive["path"]] = digest(path.read_bytes())
+            if archives[archive["path"]] != archive["sha256"]:
+                raise ValueError("Model comparison evidence archive changed")
+            with zipfile.ZipFile(path) as bundle:
+                raw = bundle.read(cohort["scores"]["path"])
+            if digest(raw) != cohort["scores"]["sha256"]:
+                raise ValueError("Model comparison scored evidence changed")
+            scores = json.loads(raw)
+            if scores["stage"] != name:
+                raise ValueError("Model comparison stage differs from its evidence")
+            identities = [(row["model_id"], row["case_id"]) for row in scores["details"]]
+            expected = {(model_id, case_id) for model_id in scores["groups"]
+                        for case_id in scores["case_ids"]}
+            if len(identities) != len(expected) or set(identities) != expected:
+                raise ValueError("Model comparison case population is incomplete or duplicated")
+            if case_ids is not None and scores["case_ids"] != case_ids:
+                raise ValueError("Model comparison cohorts must use the same cases")
+            case_ids = scores["case_ids"]
+            groups = summarize_model_rows(scores["details"], scores["groups"])
+            if groups != scores["groups"]:
+                raise ValueError("Model comparison aggregates differ from retained case scores")
+            for model_id, group in groups.items():
+                if model_id in seen:
+                    raise ValueError("Duplicate model comparison configuration")
+                seen.add(model_id)
+                values = group["datasets"][dataset]
+                count = values["cases"]
+                timers = [values["timings"][key] for key in (
+                    "first_any_output_seconds", "first_answer_seconds",
+                    "complete_json_seconds", "elapsed_seconds")]
+                label = specification.get("labels", {}).get(model_id, model_id)
+                if isinstance(label, dict):
+                    label = label[language]
+                cohort_label = cohort.get("label", {})
+                rows.append([
+                    esc(label), record_metric(values["f1"], True),
+                    f'{values["schema_valid"]}/{count}',
+                    f'{values["page_exact"]}/{values["page_exact_denominator"]}',
+                    *[record_metric(timer["p50"]) + '<br><small>'
+                      + f'{timer["count"]}/{count}</small>' for timer in timers],
+                    esc(cohort_label.get(language, "")),
+                ])
+                raw_values = [values["f1"], values["schema_valid"] / count,
+                              values["page_exact"] / values["page_exact_denominator"]
+                              if values["page_exact_denominator"] else None,
+                              *[timer["p50"] for timer in timers]]
+                for index, value in enumerate(raw_values, 1):
+                    metrics[index].append(value)
+        rendered[name] = record_comparison(
+            message("model_comparison_headers", language), rows,
+            {i: ("model-" + name + "-" + str(i), "max" if i <= 3 else "neutral", values)
+             for i, values in metrics.items()},
+        )
+    return rendered
+
+
+def bind_model_tables(output, binding, language, body):
+    soup = BeautifulSoup(body, "html.parser")
+    tables = model_comparison_tables(output, binding, language)
+    existing = soup.select("[data-model-validation], [data-model-screening]")
+    if len(existing) != len(tables):
+        raise ValueError("Model comparison requires one evidence-bound table per stage")
+    for name, markup in tables.items():
+        nodes = soup.select("[data-model-" + name + "]")
+        if len(nodes) != 1:
+            raise ValueError("Model comparison table placeholder is missing or duplicated")
+        nodes[0].clear()
+        nodes[0].append(BeautifulSoup(markup, "html.parser"))
+    return str(soup) if tables else body
 
 
 def cohort_source(source, selection, home, truth):
@@ -298,10 +427,16 @@ def cohort_source(source, selection, home, truth):
     contract = read_json(source / "contract.json")
     plan_path = Path(selection["plan"])
     plan = read_json(plan_path)
+    from harness.web_extract.certification import verify_execution_assessment
+
+    verify_execution_assessment(plan, contract["methods"][0], execution_sources=contract)
     precall = read_json(source / "certification-precall.json")
     if (
         digest(plan_path.read_bytes()) != selection["plan_sha256"]
         or precall["profile_sha256"] != selection["plan_sha256"]
+        or precall.get("case_ids_sha256") != plan["case_ids_sha256"]
+        or contract["dataset_manifest_sha256"]
+        != digest((home / "dataset/manifest.json").read_bytes())
         or set(contract["case_ids"]) != set(truth)
         or contract["kind"] != "full_archived_extraction"
         or plan["case_count"] != len(truth)
@@ -324,8 +459,13 @@ def cohort_source(source, selection, home, truth):
         ]:
             if digest((source / name).read_bytes()) != cert[key]:
                 raise ValueError("Certified evidence changed")
-        if cert["profile_sha256"] != selection["plan_sha256"] or cert["case_count"] != len(truth):
-            raise ValueError("Certificate population or profile differs")
+        if (
+            cert["profile_sha256"] != selection["plan_sha256"]
+            or cert["case_count"] != len(truth)
+            or cert.get("method") != precall["method"]
+            or cert.get("dataset_manifest_sha256") != contract["dataset_manifest_sha256"]
+        ):
+            raise ValueError("Certificate population, profile, method or dataset differs")
         saved = read_json(source / "scores.json")
         # Recompute through the original scoring boundary, without provider calls.
         recalculated = score_run(home, source)
@@ -471,7 +611,62 @@ def reference_populations(truth):
     }
 
 
+def cost_unavailability(value, lang):
+    unavailable = value.get("cost_unavailable")
+    if unavailable is None:
+        return None
+    if not isinstance(unavailable, dict):
+        raise ValueError("Invalid cost unavailability disclosure")
+    cases = unavailable.get("population_cases")
+    missing = unavailable.get("missing_cases")
+    evidence = unavailable.get("evidence", {})
+    reason = unavailable.get("reason", {})
+    software_fee = value.get("software_fee_usd_per_1000")
+    if software_fee is not None and (
+        type(software_fee) not in (int, float)
+        or not math.isfinite(software_fee)
+        or software_fee < 0
+    ):
+        raise ValueError("Invalid software fee")
+    if (
+        type(cases) is not int
+        or type(missing) is not int
+        or not 0 < missing <= cases
+        or not isinstance(reason, dict)
+        or not isinstance(reason.get(lang), str)
+        or not reason[lang].strip()
+        or not isinstance(evidence, dict)
+        or not isinstance(evidence.get("path"), str)
+        or not isinstance(evidence.get("sha256"), str)
+        or not re.fullmatch(r"[0-9a-f]{64}", evidence.get("sha256", ""))
+        or value.get("usd_per_1000_range") is not None
+        or value.get("pricing_formula")
+    ):
+        raise ValueError("Invalid cost unavailability disclosure")
+    return unavailable
+
+
+def price_remarks(value, lang, *, summary=False):
+    text = value.get("billing_summary", {}).get(lang) if summary else None
+    text = text or value["terms"][lang]
+    unavailable = cost_unavailability(value, lang)
+    if unavailable and value.get("software_fee_usd_per_1000") is None:
+        text += " " + message(
+            "cost_unavailable_population",
+            lang,
+            missing=unavailable["missing_cases"],
+            cases=unavailable["population_cases"],
+            reason=unavailable["reason"][lang],
+        )
+    return text
+
+
 def price_quote(value, lang):
+    if cost_unavailability(value, lang):
+        software_fee = value.get("software_fee_usd_per_1000")
+        if software_fee is not None:
+            return message("software_fee_plus_model", lang, fee=f"{software_fee:g}")
+        return message("cost_total_unavailable", lang)
     bounds = value.get("usd_per_1000_range")
     if bounds is None:
         if value.get("pricing_formula"):
@@ -497,9 +692,477 @@ def price_quote(value, lang):
     return prefix + "$" + low + ("–" + high if bounds[0] != bounds[1] else "")
 
 
+def redact_account_endpoint(row):
+    """Preserve request parameters while hiding account identifiers in its URL."""
+    result = dict(row)
+    request = row.get("request")
+    if isinstance(request, dict):
+        request = dict(request)
+        endpoint = request.get("endpoint", "")
+        if isinstance(endpoint, str):
+            request["endpoint"] = re.sub(r"/accounts/[^/]+/", "/accounts/[REDACTED]/", endpoint)
+        result["request"] = request
+    if isinstance(row.get("physical_attempts"), list):
+        result["physical_attempts"] = [
+            redact_account_endpoint(v) if isinstance(v, dict) else v
+            for v in row["physical_attempts"]
+        ]
+    if isinstance(row.get("superseded_result"), dict):
+        result["superseded_result"] = redact_account_endpoint(row["superseded_result"])
+    return result
+
+
+def verify_execution_projection(original, published):
+    """Bind delivery, timing, billing and every retained physical attempt."""
+    derived = {"normalized_fields", "collected_normalized_fields", "projection_revision"}
+    required = {
+        "response",
+        "http_status",
+        "compatibility",
+        "request",
+        "state",
+        "error",
+        "elapsed_seconds",
+        "provider_usage",
+        "physical_attempt",
+        "retry_execution_seconds",
+        "retry_missing_timers",
+    }
+
+    def same_fields(expected, actual):
+        fields = (set(expected) - derived - {"physical_attempts"}) | required
+        return canonical_json_sha256(
+            {k: actual.get(k) for k in fields}, allow_nan=False
+        ) == canonical_json_sha256({k: expected.get(k) for k in fields}, allow_nan=False)
+
+    if not same_fields(original, published):
+        raise ValueError("Completion audit native execution projection changed")
+    expected = original.get("physical_attempts")
+    actual = published.get("physical_attempts")
+    if expected is None and actual is None:
+        return
+    if expected is None:
+        expected = [{k: v for k, v in original.items() if k != "physical_attempts"}]
+    if (
+        not isinstance(expected, list)
+        or not expected
+        or any(not isinstance(v, dict) for v in expected)
+    ):
+        raise ValueError("Completion audit native attempt history is invalid")
+    if actual is None:
+        if len(expected) != 1 or not same_fields(expected[0], published):
+            raise ValueError("Completion audit native attempt history is missing")
+        return
+    if not isinstance(actual, list) or any(not isinstance(v, dict) for v in actual):
+        raise ValueError("Completion audit native attempt history is invalid")
+
+    def canonical(history):
+        return [{k: v for k, v in row.items() if k not in derived} for row in history]
+
+    if canonical_json_sha256(canonical(actual), allow_nan=False) != canonical_json_sha256(
+        canonical(expected), allow_nan=False
+    ):
+        raise ValueError("Completion audit native attempt history changed")
+
+
+def completion_authorities(profile, home):
+    """Watch original evidence while the shared package validator verifies it once."""
+    if not profile or home is None:
+        raise ValueError("Publication requires its frozen profile and benchmark home")
+    profile, home = Path(profile), Path(home)
+    instance = read_json(profile)
+    paths = [profile]
+    if instance.get("dataset"):
+        paths.append(home / "dataset")
+    binding = instance.get("research_report", {}).get("content", {})
+    if not binding.get("path"):
+        return paths
+    content = profile.parent / binding["path"]
+    paths.append(content)
+    model = read_json(content)
+    if model.get("audit"):
+        paths.append(content.parent / model["audit"]["path"])
+
+    def bound_paths(value):
+        if isinstance(value, dict):
+            if isinstance(value.get("path"), str):
+                paths.append(content.parent / value["path"])
+            for nested in value.values():
+                bound_paths(nested)
+        elif isinstance(value, list):
+            for nested in value:
+                bound_paths(nested)
+
+    for selection in model.get("evidence_runs", []):
+        paths.append(resolve_run_path(home, selection["run"]))
+        bound_paths(selection)
+    return tuple(dict.fromkeys(paths))
+
+
+_COMPLETION_AUDIT_SCOPE = ContextVar("web_extract_completion_audit", default=None)
+
+
+@contextmanager
+def completion_audit_scope(source, profile, home, guard=None):
+    """Reuse a complete audit only while every original and public input is frozen."""
+    if profile is None or home is None:
+        verify_completion_audit(source, profile, home=home)
+    key = tuple(Path(p).resolve() for p in (source, profile, home))
+    cached = _COMPLETION_AUDIT_SCOPE.get()
+    if cached and cached[0] == key:
+        cached[1].check()
+        yield
+        return
+    if guard is None:
+        guard = PublicationSnapshot.for_inputs((source, *completion_authorities(profile, home)))
+    guard.check()
+    verify_completion_audit(source, profile, home=home)
+    guard.check()
+    token = _COMPLETION_AUDIT_SCOPE.set((key, guard))
+    try:
+        yield
+    finally:
+        _COMPLETION_AUDIT_SCOPE.reset(token)
+
+
+def verify_completion_audit(source, profile, *, home=None):
+    """Verify the externally selected profile and reproduce its original audit view."""
+    cached = _COMPLETION_AUDIT_SCOPE.get()
+    if cached and profile is not None and home is not None:
+        key = tuple(Path(p).resolve() for p in (source, profile, home))
+        if key == cached[0]:
+            cached[1].check()
+            return
+    source = Path(source)
+    manifest = read_json(source / "report-manifest.json")
+    if not profile:
+        raise ValueError("Completion audit requires its frozen profile")
+    profile = Path(profile)
+    if profile.is_symlink() or digest(profile.read_bytes()) != manifest["profile_sha256"]:
+        raise ValueError("Completion audit frozen profile changed")
+    instance = read_json(profile)
+    if home is None:
+        raise ValueError("Completion audit requires an explicit benchmark home")
+    home = Path(home)
+    require_external_output(home)
+    if instance.get("dataset"):
+        try:
+            validate_dataset(home, profile)
+        except (OSError, KeyError, ValueError) as error:
+            raise ValueError(
+                "Completion audit benchmark home differs from its frozen dataset"
+            ) from error
+    elif instance.get("local_example") is not True:
+        raise ValueError("Completion audit frozen profile lacks its dataset identity")
+    records = manifest.get("mode") == "field-extraction-cohort"
+    authority = manifest.get("audit" if records else "completion_audit")
+    content_binding = instance.get("research_report", {}).get("content", {})
+    if (
+        instance.get("local_example") is True
+        and not authority
+        and not content_binding.get("path")
+        and instance.get("independent_result_review_scope") != "all"
+    ):
+        return
+    if not content_binding.get("path"):
+        raise ValueError("Completion audit requires frozen content")
+    content = profile.parent / content_binding["path"]
+    if content.is_symlink() or digest(content.read_bytes()) != content_binding["sha256"]:
+        raise ValueError("Completion audit frozen content changed")
+    audit_binding = read_json(content).get("audit")
+    if not audit_binding:
+        if authority or instance.get("independent_result_review_scope") == "all":
+            raise ValueError("Completion audit requires its frozen original")
+        return
+    if not authority or authority.get("path") != "public-evidence/audit.json":
+        raise ValueError("Completion audit public authority is missing")
+    audit = content.parent / audit_binding["path"]
+    raw = audit.read_bytes()
+    if audit.is_symlink() or digest(raw) != audit_binding["sha256"]:
+        raise ValueError("Completion audit original changed")
+    projected, _ = project_evidence_view(
+        authority["path"],
+        raw,
+        role="native_response",
+        content_format="json",
+        host_names=publication_host_names(),
+    )
+    if (
+        authority["source_sha256"] != audit_binding["sha256"]
+        or (source / authority["path"]).read_bytes() != projected
+    ):
+        raise ValueError("Completion audit differs from its frozen original")
+    reviewed = json.loads(raw).get("results", {})
+    if reviewed:
+        from harness.web_extract.repair import load_selection
+
+        model = read_json(content)
+        public_rows = {}
+        seen = set()
+        for selection in model["evidence_runs"]:
+            _, originals = load_selection(home, selection)
+            for row in originals:
+                method, cid = row["method"], row["case_id"]
+                key = method + ":" + cid
+                native_hash = digest(
+                    json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+                )
+                if (
+                    key in seen
+                    or reviewed.get(key, {}).get("native_response_sha256") != native_hash
+                    or reviewed.get(key, {}).get("execution_sha256") != execution_identity(row)
+                ):
+                    raise ValueError("Completion audit native original changed")
+                seen.add(key)
+                if method not in public_rows:
+                    public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
+                view, _ = project_evidence_view(
+                    "public-evidence/native-row.json",
+                    json.dumps(redact_account_endpoint(row), ensure_ascii=False).encode(),
+                    role="native_response",
+                    content_format="json",
+                    host_names=publication_host_names(),
+                )
+                published = public_rows[method].get(cid, {})
+                verify_execution_projection(json.loads(view), published)
+        if seen != set(reviewed):
+            raise ValueError("Completion audit native response coverage changed")
+
+
+def completion_bundle(methods, rows, *, records, complete_methods, excluded_fields=None):
+    """Derive additional metrics from the same public final-response evidence."""
+    from harness.web_extract.analysis import completion_metrics
+
+    excluded_fields = excluded_fields or {}
+    results = {}
+    for method in methods:
+        selected = [r for r in rows if r["method"] == method]
+        judgments = {}
+        for row in selected:
+            fields = row["field_results"]
+            if not records:
+                fields = row.get("review", {}).get("audited_fields", fields)
+                fields = {f: fields[f] for f in SCHEMA["properties"]}
+            judgments[row["case_id"]] = {
+                f: {**v, "status": "unavailable"}
+                if f in excluded_fields.get(row["case_id"], [])
+                else v
+                for f, v in fields.items()
+            }
+        results[method] = (
+            completion_metrics(selected, judgments, records=records)
+            if method in complete_methods
+            else None
+        )
+    return {
+        "schema": "web-extract-completion-metrics/1",
+        "provider_calls_added": 0,
+        "reference_view": "source-qualified" if any(r.get("review") for r in rows) else "original",
+        "records": records,
+        "complete_methods": list(complete_methods),
+        "excluded_fields": excluded_fields,
+        "source_sha256": digest(
+            json.dumps(
+                sorted(rows, key=lambda r: (r["method"], r["case_id"])),
+                sort_keys=True,
+                ensure_ascii=False,
+            ).encode()
+        ),
+        "methods": results,
+    }
+
+
+def completion_columns(bundle, methods, language):
+    """Render only the supplementary columns through the shared comparison owner."""
+    values = bundle["methods"]
+    rows = []
+    keys = ("page_exact", "empty_fields")
+    for method in methods:
+        metrics = values[method]
+        cells = []
+        for key in keys:
+            metric = metrics[key] if metrics else None
+            cells.append(
+                message("completion_incomplete", language)
+                if metrics is None
+                else message("completion_unavailable", language)
+                if metric["rate"] is None
+                else message(
+                    "completion_rate", language, **metric, percent=f"{metric['rate'] * 100:.2f}"
+                )
+            )
+        if metrics and metrics["excluded_pages"]:
+            cells[0] += (
+                "<br><small>"
+                + message("completion_excluded", language, count=metrics["excluded_pages"])
+                + "</small>"
+            )
+        rows.append(cells)
+    headers = [esc(label) for label in message("completion_headers", language)[1:]]
+    soup = BeautifulSoup(
+        record_comparison(
+            headers,
+            rows,
+            {
+                column: (
+                    "completion-" + key,
+                    "max",
+                    [values[m][key]["rate"] if values[m] else None for m in methods],
+                )
+                for column, key in enumerate(keys)
+            },
+        ),
+        "html.parser",
+    )
+    for index, key in enumerate(keys):
+        soup.select("thead th")[index]["data-completion-metric"] = key
+        for row in soup.select("tbody tr"):
+            row.select("td")[index]["data-completion-metric"] = key
+    return soup.table
+
+
+def with_completion_columns(core, bundle, methods, language, *, before_details=False):
+    """Extend the existing participant comparison without creating another table."""
+    soup = BeautifulSoup(core, "html.parser")
+    target = soup.select_one("table")
+    columns = completion_columns(bundle, methods, language)
+    if target is None or len(target.select("tbody tr")) != len(methods):
+        raise ValueError("Completion columns require the complete core comparison")
+    header = target.select_one("thead tr")
+    before = header.select("th")[-1] if before_details else None
+    for cell in list(columns.select("thead th")):
+        before.insert_before(cell.extract()) if before is not None else header.append(
+            cell.extract()
+        )
+    for method, row, extra in zip(
+        methods, target.select("tbody tr"), columns.select("tbody tr"), strict=True
+    ):
+        row["data-method"] = method
+        before = row.select("td")[-1] if before_details else None
+        for cell in list(extra.select("td")):
+            before.insert_before(cell.extract()) if before is not None else row.append(
+                cell.extract()
+            )
+    target["data-completion-metrics"] = "true"
+    target["data-method-column"] = "true"
+    target.parent.insert_after(
+        BeautifulSoup(completion_links(language, bundle["reference_view"]), "html.parser")
+    )
+    return str(soup)
+
+
+def completion_links(language, reference_view="source-qualified"):
+    return (
+        '<p class="table-note" data-completion-links>'
+        + message(
+            "completion_qualified_note"
+            if reference_view == "source-qualified"
+            else "completion_original_note", language
+        )
+        + ' <a href="index.html#metric-completion-page_exact">'
+        + message("completion_guide_link", language)
+        + '</a> · <a href="../data/completion-metrics.json">'
+        + message("completion_receipt", language)
+        + "</a></p>"
+    )
+
+
+def check_completion_metrics(output, manifest, rows):
+    """Recompute additional scores and reject missing or inconsistent displays."""
+    bundle = read_json(output / "data/completion-metrics.json")
+    methods = manifest["planned_methods"]
+    records = manifest["mode"] == "field-extraction-cohort"
+    complete = (
+        [
+            m
+            for m in methods
+            if m in manifest["complete_methods"] and m in manifest["comparison_methods"]
+        ]
+        if records
+        else [m for b in manifest["source_runs"] if b.get("certified") for m in b["scores"]]
+    )
+    if bundle["records"] != records or bundle["complete_methods"] != complete:
+        raise ValueError("Completion metrics use a different certified population")
+    if bundle["excluded_fields"] != manifest.get("completion_reference_exclusions", {}):
+        raise ValueError("Completion metrics use different reference coverage")
+    authority = manifest.get("completion_audit")
+    if not records and authority:
+        raw = (output / authority["path"]).read_bytes()
+        receipt = next(
+            (v for v in manifest["public_evidence_views"] if v["path"] == authority["path"]), {}
+        )
+        audit = json.loads(raw)
+        if (
+            digest(raw) != authority["sha256"]
+            or receipt.get("original_sha256") != authority["source_sha256"]
+            or bundle["excluded_fields"] != audit.get("excluded_fields", {})
+            or audit.get("result_count") != manifest["observations"]
+        ):
+            raise ValueError("Completion reference coverage differs from authoritative audit")
+        for row in rows:
+            reviewed = audit.get("results", {}).get(row["method"] + ":" + row["case_id"], {})
+            if canonical_json_sha256(
+                row.get("review", {}).get("audited_fields"), allow_nan=False
+            ) != canonical_json_sha256(reviewed.get("audited_fields"), allow_nan=False):
+                raise ValueError("Completion judgments differ from authoritative audit")
+    elif not records and (manifest.get("review") or bundle["excluded_fields"]):
+        raise ValueError("Completion reference coverage lacks its authoritative audit")
+    expected = completion_bundle(
+        methods,
+        rows,
+        records=bundle["records"],
+        complete_methods=bundle["complete_methods"],
+        excluded_fields=bundle["excluded_fields"],
+    )
+    if canonical_json_sha256(bundle, allow_nan=False) != canonical_json_sha256(
+        expected, allow_nan=False
+    ):
+        raise ValueError("Completion metrics differ from retained final responses")
+    for lang in manifest["languages"]:
+        expected = completion_columns(bundle, methods, lang)
+        for route in ("index", "interpretation"):
+            document = BeautifulSoup(
+                (output / lang / (route + ".html")).read_text(encoding="utf-8"), "html.parser"
+            )
+            tables = document.select("table[data-completion-metrics]")
+            if len(tables) != 1 or document.select("section[data-completion-metrics]"):
+                raise ValueError("Completion metrics must share the core comparison")
+            note = document.select("[data-completion-links]")
+            expected_note = BeautifulSoup(
+                completion_links(lang, bundle["reference_view"]), "html.parser"
+            ).p
+            if len(note) != 1 or note[0].get_text() != expected_note.get_text():
+                raise ValueError("Completion metric source or reference explanation differs")
+            table_view = tables[0]
+            if not table_view.has_attr("data-method-column"):
+                raise ValueError("Completion comparison must keep method names pinned")
+            owner = "data-core-metrics" if route == "index" else "data-interpretation-comparison"
+            if (
+                not table_view.has_attr(owner)
+                and table_view.find_parent(attrs={owner: True}) is None
+            ):
+                raise ValueError("Completion metrics are outside the core comparison")
+            if table_view.select("th[data-completion-metric]") != expected.select("th"):
+                raise ValueError("Completion metric headers or provenance differ")
+            actual_rows = table_view.select("tbody tr")
+            if len(actual_rows) != len(methods):
+                raise ValueError("Completion comparison population differs")
+            for method, actual, wanted in zip(
+                methods, actual_rows, expected.select("tbody tr"), strict=True
+            ):
+                if actual.get("data-method") != method or actual.select(
+                    "td[data-completion-metric]"
+                ) != wanted.select("td"):
+                    raise ValueError("Completion metric comparison is missing or inconsistent")
+
+
 def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=None):
     """One full-population summary, with incomplete quality left unavailable."""
     labels = labels or {}
+    comparable = latency_comparable(
+        selected_execution_contracts([binding for binding in bindings if "contract" in binding]),
+        methods,
+    )
     scores = {m: b["scores"][m] for b in bindings if b.get("certified") for m in b["scores"]}
     fields = ("price", "sku", "availability", "OutOfStock")
     blocked = {b["contract"]["methods"][0] for b in bindings if b.get("access_blocked")}
@@ -509,16 +1172,14 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         complete = method in scores
         cells = [
             esc(labels.get(method, method)),
-            str(count),
-            str(len(subset)),
-            str(sum(r.get("compatibility") == "structured_output" for r in subset)),
-            (message("complete", lang))
-            if complete
-            else (
-                (message("access_limited", lang))
-                if method in blocked
-                else (message("incomplete", lang))
+            f'<span data-execution-count>{len(subset)} / {count}</span>'
+            + (
+                '<small class="scope-state">'
+                + message("access_limited" if method in blocked else "incomplete", lang)
+                + "</small>"
+                if not complete else ""
             ),
+            str(sum(r.get("compatibility") == "structured_output" for r in subset)),
         ]
         for field in fields:
             value = scores.get(method, {}).get(field, {}).get("f1")
@@ -526,15 +1187,18 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
         records.append(cells)
     result = BeautifulSoup(
         table(
-            (message("method_planned_pages_executed_structured_output_full_scope_price", lang)),
+            message("cohort_core_headers", lang),
             records,
             attrs='data-core-metrics="full-cohort" data-sortable',
-            sort_values={i: [int(row[i]) for row in records] for i in (1, 2, 3)},
+            sort_values={
+                1: [sum(r["method"] == method for r in rows) for method in methods],
+                2: [int(row[2]) for row in records],
+            },
         ),
         "html.parser",
     )
     if truth is not None:
-        for field, heading in zip(fields, result.select("thead th")[5:], strict=True):
+        for field, heading in zip(fields, result.select("thead th")[3:], strict=True):
             population = reference_populations(truth)[field]
             heading.append(result.new_tag("br"))
             small = result.new_tag("small", attrs={"data-reference-population": field})
@@ -544,7 +1208,7 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             heading.append(small)
     for method, row in zip(methods, result.select("tbody tr"), strict=True):
         row["data-method"] = method
-        for field, cell in zip(fields, row.select("td")[5:], strict=True):
+        for field, cell in zip(fields, row.select("td")[3:], strict=True):
             if method not in scores:
                 continue
             # F1 comes from integer counts; discard only floating arithmetic noise.
@@ -631,9 +1295,11 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             )
             name = population + "-" + metric
             cell.attrs.update(
-                {"data-metric": name, "data-metric-direction": "min", "data-sort": str(value)}
+                {"data-metric": name, "data-metric-direction": "min" if comparable else "neutral",
+                 "data-sort": str(value)}
             )
-            groups.setdefault(name, []).append((value, cell))
+            if comparable:
+                groups.setdefault(name, []).append((value, cell))
     for values in groups.values():
         lowest = min(v for v, _ in values)
         for value, cell in values:
@@ -644,6 +1310,8 @@ def cohort_metrics(methods, rows, bindings, count, lang, labels=None, *, truth=N
             span = timing.new_tag("span", attrs={"class": "comparison-winner"})
             span.string = text
             cell.append(span)
+    if not comparable:
+        note += " " + message("latency_loads_differ", lang)
     return str(result) + "<p>" + note + "</p>", str(timing)
 
 
@@ -661,11 +1329,29 @@ def price_table(methods, prices, lang, labels=None):
             or any(urlsplit(u).scheme != "https" for u in sources)
         ):
             raise ValueError("Every participant requires sourced cost/pricing terms: " + method)
+        terms = esc(price_remarks(value, lang))
+        unavailable = cost_unavailability(value, lang)
+        if unavailable:
+            separate_model = value.get("software_fee_usd_per_1000") is not None
+            if separate_model:
+                terms += "<details><summary>" + message("model_billing_records", lang) + "</summary>"
+                terms += esc(message(
+                    "cost_unavailable_population", lang,
+                    missing=unavailable["missing_cases"], cases=unavailable["population_cases"],
+                    reason=unavailable["reason"][lang],
+                ))
+            terms += '<br><a data-cost-evidence="true" href="'
+            terms += (
+                esc(quote("../" + unavailable["evidence"]["path"], safe="/"), quote=True) + '">'
+            )
+            terms += message("cost_disclosure_receipt", lang) + "</a>"
+            if separate_model:
+                terms += "</details>"
         records.append(
             [
                 esc(labels.get(method, method)),
                 esc(price_quote(value, lang)),
-                esc(value["terms"][lang]),
+                terms,
                 esc(value["verified_at"]),
                 " · ".join(
                     f'<a href="{esc(u, quote=True)}" target="_blank" rel="noopener noreferrer">{i}</a>'
@@ -680,8 +1366,58 @@ def price_table(methods, prices, lang, labels=None):
     )
 
 
+def self_hosted_usage(response):
+    """Read exposed SDK counters without counting both nodes and their total."""
+    native = response.get("native", {})
+    if not isinstance(native, dict):
+        return {}
+    calls = native.get("model_calls")
+    if isinstance(calls, list):
+        usages = [call.get("usage", {}) for call in calls if isinstance(call, dict)]
+    elif isinstance(native.get("usage"), dict):
+        usages = [native["usage"]]
+    else:
+        execution = native.get("execution", [])
+        execution = (
+            [item for item in execution if isinstance(item, dict)]
+            if isinstance(execution, list)
+            else []
+        )
+        totals = [item for item in execution if item.get("node_name") == "TOTAL RESULT"]
+        usages = (
+            totals
+            if len(totals) == 1
+            else [item for item in execution if item.get("node_name") != "TOTAL RESULT"]
+        )
+    receipts = {}
+    for usage in usages:
+        if not isinstance(usage, dict):
+            continue
+        cached = usage.get("prompt_cache_hit_tokens")
+        details = usage.get("prompt_tokens_details", {})
+        if cached is None and isinstance(details, dict):
+            cached = details.get("cached_tokens")
+        for unit, value in (
+            ("input_tokens", usage.get("prompt_tokens")),
+            ("output_tokens", usage.get("completion_tokens")),
+            ("cached_input_tokens", cached),
+        ):
+            if value is not None:
+                receipts.setdefault(unit, []).append(value)
+    data = native.get("data", {})
+    metadata = data.get("metadata", {}) if isinstance(data, dict) else {}
+    if isinstance(metadata, dict) and metadata.get("creditsUsed") is not None:
+        receipts["internal_credits"] = [metadata["creditsUsed"]]
+    return receipts
+
+
 def usage_table(methods, rows, lang, labels=None):
     labels = labels or {}
+    self_hosted = {
+        method
+        for method, config in available_methods().items()
+        if config.get("deployment") == "self-hosted-open-source"
+    }
     records = []
     for method in methods:
         subset = [r for r in rows if r["method"] == method]
@@ -717,10 +1453,13 @@ def usage_table(methods, rows, lang, labels=None):
             for key in ("x-browser-ms-used", "x-browser-time", "x-browser-usage"):
                 if key in headers:
                     receipts[key] = headers[key]
-            if receipts:
+            native_receipts = self_hosted_usage(response) if method in self_hosted else {}
+            if receipts or native_receipts:
                 observed.append(receipts)
             for unit, value in receipts.items():
                 totals.setdefault(unit, []).append(value)
+            for unit, values in native_receipts.items():
+                totals.setdefault(unit, []).extend(values)
         usages = []
         for unit, values in totals.items():
             try:
@@ -730,7 +1469,14 @@ def usage_table(methods, rows, lang, labels=None):
             except (TypeError, ValueError):
                 usages.append(unit + ": " + esc(json.dumps(values, ensure_ascii=False)))
             else:
-                label = "ms (x-browser-ms-used)" if unit == "x-browser-ms-used" else unit
+                label = (
+                    message("usage_unit_" + unit, lang)
+                    if unit
+                    in {"input_tokens", "output_tokens", "cached_input_tokens", "internal_credits"}
+                    else "ms (x-browser-ms-used)"
+                    if unit == "x-browser-ms-used"
+                    else unit
+                )
                 usages.append(f"{total:g} {label}")
         records.append(
             [
@@ -747,10 +1493,133 @@ def usage_table(methods, rows, lang, labels=None):
     )
 
 
-def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
+def selected_execution_contracts(bindings):
+    sources = {}
+    for binding in bindings:
+        contract = binding["contract"]
+        methods = binding.get("methods")
+        for method in contract["methods"] if methods is None else methods:
+            sources.setdefault(method, []).append(contract)
+    return sources
+
+
+def effective_concurrency(contract, method):
+    value = contract.get("concurrency")
+    policy = contract.get("execution_policy", {})
+    if type(value) is not int:
+        return None
+    if policy:
+        groups = policy["resources"]
+        selected = policy.get("assignments", {}).get(method)
+        if selected is None:
+            selected = list(groups) if len(contract.get("methods", [])) == 1 else [method]
+        value = min([value, policy["max_in_flight"]]
+                    + [groups[group]["capacity"] for group in selected])
+    return value
+
+
+def latency_comparable(sources, methods):
+    limits = {effective_concurrency(contract, method)
+              for method in methods for contract in sources.get(method, [{}])}
+    return len(limits) == 1 and None not in limits
+
+
+def execution_settings(sources, methods, labels, language):
+    """Expose the collected load without treating concurrency as a ranking."""
+    rows = []
+    for method, contract in (
+        (m, c) for m in methods for c in sources.get(m, [{}])
+    ):
+        purpose = contract.get("execution_policy", {}).get("purpose", "undeclared")
+        if purpose not in {"quality", "latency", "throughput", "undeclared"}:
+            raise ValueError("Unknown execution purpose in measured evidence")
+
+        def number(key, source=contract, participant=method):
+            value = source.get(key)
+            if key == "concurrency":
+                value = effective_concurrency(source, participant)
+            return f"{value:g}" if type(value) in (int, float) and math.isfinite(value) else "—"
+
+        rows.append(
+            [
+                '<span data-execution-method="'
+                + esc(method)
+                + '">'
+                + esc(labels.get(method, method))
+                + "</span>",
+                number("concurrency"),
+                message("execution_" + purpose, language),
+                number("minimum_call_interval_seconds"),
+                number("post_call_cooldown_seconds"),
+            ]
+        )
+    rows = list(dict.fromkeys(tuple(row) for row in rows))
+    return (
+        "<section data-execution-settings><h2>"
+        + message("execution_settings_title", language)
+        + "</h2><p>"
+        + message("execution_settings_note", language)
+        + "</p>"
+        + table(message("execution_settings_headings", language), rows)
+        + "</section>"
+    )
+
+
+def worker_resources(methods, rows, labels, language):
+    """Compare only native worker counters, retaining each metric's missing population."""
+    samples = {method: [[], []] for method in methods}
+    counts = Counter(row["method"] for row in rows)
+    for row in rows:
+        response = row.get("response")
+        usage = response.get("usage") if isinstance(response, dict) else None
+        if row["method"] not in samples or not isinstance(usage, dict):
+            continue
+        cpu = usage.get("process_cpu_seconds")
+        memory = usage.get("peak_rss_native_units")
+        scale = {"bytes": 1 / 1048576, "KiB": 1 / 1024}.get(usage.get("rss_unit"))
+        for index, value in enumerate((cpu, memory)):
+            if (type(value) in (int, float) and math.isfinite(value) and value >= 0
+                    and (index == 0 or scale is not None)):
+                samples[row["method"]][index].append(value if index == 0 else value * scale)
+    if not any(values for pair in samples.values() for values in pair):
+        return ""
+    means = [[statistics.mean(samples[m][i]) if samples[m][i] else None for m in methods]
+             for i in range(2)]
+    records = [[esc(labels.get(m, m)),
+                f"{len(samples[m][0])} / {counts[m] - len(samples[m][0])}",
+                record_metric(means[0][i]),
+                f"{len(samples[m][1])} / {counts[m] - len(samples[m][1])}",
+                record_metric(means[1][i])] for i, m in enumerate(methods)]
+    leaders = []
+    for metric, values in zip(("worker_cpu_lowest", "worker_memory_lowest"), means, strict=True):
+        observed = [value for value in values if value is not None]
+        names = " / ".join(labels.get(m, m) for m, value in zip(methods, values, strict=True)
+                           if observed and value == min(observed))
+        leaders.append(message(metric, language, methods=esc(names or "—")))
+    return ("<section data-worker-resources><h2>" + message("worker_resources_title", language)
+            + "</h2><p data-resource-leaders>" + "; ".join(leaders) + "</p><p>"
+            + message("worker_resources_scope", language) + "</p>"
+            + record_comparison(message("worker_resources_headings", language), records,
+                                {2: ("worker-cpu", "min", means[0]),
+                                 4: ("worker-rss", "min", means[1])}) + "</section>")
+
+
+def check_worker_resources(output, methods, rows, labels, language):
+    expected = BeautifulSoup(worker_resources(methods, rows, labels, language), "html.parser")
+    for route in ("index", "interpretation"):
+        page = BeautifulSoup((output / language / (route + ".html")).read_text(encoding="utf-8"),
+                             "html.parser")
+        if page.select("[data-worker-resources]") != expected.select("[data-worker-resources]"):
+            raise ValueError("Worker resource comparison differs from retained measurements")
+
+
+def operating_metrics(methods, rows, prices, lang, labels, *, compared=None, execution=None):
     """Home-page latency and price, with the measured population kept explicit."""
     price_table(methods, prices, lang, labels)
     compared = set(methods if compared is None else compared)
+    comparable = execution is None or latency_comparable(execution, methods)
+    if not comparable:
+        compared.clear()
     records = []
     for method in methods:
         selected = [r for r in rows if r["method"] == method]
@@ -773,11 +1642,7 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
                 str(len(selected) - len(values)),
                 *[f"{v:.3f}" if v is not None else "—" for v in stats],
                 esc(price_quote(prices[method], lang)),
-                esc(
-                    prices[method]
-                    .get("billing_summary", {})
-                    .get(lang, prices[method]["terms"][lang])
-                )
+                esc(price_remarks(prices[method], lang, summary=True))
                 + '<br><a href="accounts.html">'
                 + message("terms_and_sources", lang)
                 + "</a>",
@@ -834,6 +1699,8 @@ def operating_metrics(methods, rows, prices, lang, labels, *, compared=None):
         + " "
         + message("pricing_scope_note", lang)
     )
+    if not comparable:
+        note += " " + message("latency_loads_differ", lang)
     return (
         "<section data-home-operations><h2>"
         + (message("latency_and_pricing", lang))
@@ -1051,7 +1918,7 @@ def check_audited_quality(soup, methods, scores, total, lang):
                 raise ValueError("Audited F1 or field population differs")
 
 
-def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
+def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, authored_html=""):
     """Reader-facing review scope and source-qualified correction inventory."""
     zh = lang == "zh"
     count = audit["result_count"]
@@ -1075,7 +1942,8 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
             message(
                 "the_model_audited_frozen_sources_annotations_and_complete_native",
                 lang,
-                **dict(value0=esc(audit["reviewer"]["model"])) if zh else dict(),
+                **dict(value0=esc(" / ".join(sorted({r["model"] for r in
+                    audit.get("reviewers", [audit["reviewer"]])})))) if zh else dict(),
             )
         )
         + "</p></section>"
@@ -1207,20 +2075,25 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
         compact = BeautifulSoup(core_html, "html.parser").select_one("table")
         for row in compact.select("tr"):
             for index, cell in enumerate(list(row.find_all(["th", "td"], recursive=False))):
-                if index not in (0, 3, 5, 6, 7, 8):
+                if index not in (0, 2, 3, 4, 5, 6) and not cell.has_attr("data-completion-metric"):
                     cell.decompose()
         compact.attrs = {
             "data-interpretation-comparison": "true",
+            "data-completion-metrics": "true",
             "data-highlight-ties": "all",
+            "data-method-column": "true",
+            "data-sortable": "",
         }
         interpretation += (
             "<h2>"
-            + (message("compact_original_reference_comparison", lang))
+            + (message("compact_core_comparison", lang))
             + "</h2>"
-            + '<div class="table-wrap">'
+            + '<div class="table-wrap" tabindex="0">'
             + str(compact)
             + "</div>"
+            + completion_links(lang)
         )
+    interpretation += authored_html
     interpretation += "<h2>" + (message("scoring_checks_field_matches", lang)) + "</h2><p>"
     interpretation += (
         message("each_field_allows_multiple_accepted_reference_values_but_one_pred", lang)
@@ -1329,7 +2202,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None):
                     + "<p>"
                 )
             interpretation += (
-                f'<a href="result-{method}-{row["case_id"]}.html">'
+                f'<a href="case-{row["case_id"]}.html#{method}">'
                 + (message("representative_result_and_complete_response", lang))
                 + "</a></p>"
             )
@@ -1439,6 +2312,17 @@ def metric_definitions(language, *, records):
         )
         for i, (label, meaning) in enumerate(zip(labels, meanings, strict=True))
     ]
+    for i, key in enumerate(("page_exact", "empty_fields")):
+        result.append(
+            dict(
+                id="completion-" + key,
+                label=message("completion_headers", language)[i + 1],
+                meaning=message("guide_completion_meanings", language)[i],
+                unit=message("guide_rate_unit", language),
+                population=message("guide_completion_populations", language)[i],
+                direction=message("guide_higher", language),
+            )
+        )
     for i, (label, meaning) in enumerate(
         zip(
             message("guide_latency_labels", language),
@@ -1543,8 +2427,8 @@ def method_examples(output, binding, language="zh"):
                     ) from error
                 request = example["request"]
                 source = (
-                    request.get("fixture_url")
-                    or example.get("input_preview_url")
+                    example.get("input_preview_url")
+                    or request.get("fixture_url")
                     or request.get("source_url")
                 )
                 if "fields" in example:
@@ -1689,8 +2573,9 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     model = read_json(content)
     names = model.get("method_labels", {})
     if language == "en" and any(
-        page.get("body", {}).get("zh") and not page.get("body", {}).get("en")
+        page.get(part, {}).get("zh") and not page.get(part, {}).get("en")
         for page in model["pages"].values()
+        for part in ("body", "intro")
     ):
         raise ValueError("English content is missing; generate the English edition first")
     cohort = model.get("mode") == "full-cohort-progress"
@@ -1718,6 +2603,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
     history = read_json(home / "historical-reproduction.json")
     if history["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
         raise ValueError("Reproduction belongs to different inputs")
+    instance = read_json(profile)
+    historical_methods = instance.get(
+        "historical_f1",
+        history["scores"] if instance.get("local_example") else read_json(PROFILE)["historical_f1"],
+    )
+    history = {
+        **history,
+        "scores": {m: scores for m, scores in history["scores"].items() if m in historical_methods},
+    }
     selections = (
         model.get("evidence_runs", []) if run is None else [{"run": str(run), "methods": None}]
     )
@@ -1770,11 +2664,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
             r["review_execution_sha256"] = execution_identity(record)
             r["run_id"] = source.name
-            if "request" in r:
-                r["request"]["endpoint"] = re.sub(
-                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", r["request"]["endpoint"]
-                )
-            rows.append(r)
+            rows.append(redact_account_endpoint(r))
         bindings.append(
             {
                 "run_id": source.name,
@@ -1886,12 +2776,41 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         public_receipts.append(receipt)
         public_rows.extend(after)
     rows = public_rows
+    completion = None
+    completion_audit = None
+    if cohort:
+        if audit:
+            source = content.parent / model["audit"]["path"]
+            raw, receipt = project_evidence_view(
+                "public-evidence/audit.json",
+                source.read_bytes(),
+                role="native_response",
+                content_format="json",
+                host_names=publication_host_names(),
+            )
+            (output / "public-evidence/audit.json").write_bytes(raw)
+            public_receipts.append(receipt)
+            completion_audit = {
+                "path": "public-evidence/audit.json",
+                "sha256": digest(raw),
+                "source_sha256": model["audit"]["sha256"],
+            }
+        completion = completion_bundle(
+            list(cohort_plan["participants"]),
+            rows,
+            records=False,
+            complete_methods=[m for b in bindings if b.get("certified") for m in b["scores"]],
+            excluded_fields=audit.get("excluded_fields", {}) if audit else None,
+        )
+        save_json(output / "data/completion-metrics.json", completion)
+    page_intros = {}
     for lang in languages:
         lab = LABELS[lang]
         directory = output / lang
         directory.mkdir()
         bodies = {p: model["pages"].get(p, {}).get("body", {}).get(lang, "") for p in PAGES}
         bodies["protocol"] += method_examples(output, model.get("method_examples"), lang)
+        configurations = selected_execution_contracts(bindings)
         titles = {
             p: model["pages"]
             .get(p, {})
@@ -1903,6 +2822,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         methods = (
             list(cohort_plan["participants"]) if cohort else sorted({r["method"] for r in rows})
         )
+        bodies["protocol"] += execution_settings(configurations, methods, names, lang)
         summary = []
         for method in methods:
             subset = [r for r in rows if r["method"] == method]
@@ -1933,16 +2853,19 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         )
         if not cohort:
             bodies["index"] += operating_metrics(
-                methods, rows, model.get("prices", {}), lang, names
+                methods, rows, model.get("prices", {}), lang, names, execution=configurations
             )
             bodies["accounts"] += price_table(methods, model.get("prices", {}), lang, names)
         if cohort:
             core, timings = cohort_metrics(
                 methods, rows, bindings, len(truth), lang, names, truth=truth
             )
+            core = with_completion_columns(core, completion, methods, lang)
             bodies["index"] = (
                 core
-                + operating_metrics(methods, rows, model.get("prices", {}), lang, names)
+                + report_metric_guide(lang, records=False)
+                + operating_metrics(methods, rows, model.get("prices", {}), lang, names,
+                                    execution=configurations)
                 + model["pages"].get("index", {}).get("body", {}).get(lang, "")
             )
             bodies["protocol"] += "<h2>" + (message("call_latency", lang)) + "</h2>" + timings
@@ -1954,7 +2877,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
         if audit:
             review_body, interpretation_body = audit_explanation(
-                audit, rows, methods, names, lang, core_html=core if cohort else None
+                audit, rows, methods, names, lang, core_html=core if cohort else None,
+                authored_html=bodies["interpretation"],
             )
             bodies["review"] = review_body
             bodies["interpretation"] = interpretation_body
@@ -1965,7 +2889,15 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 + (message("inspect_complete_audit_and_reference_changes", lang))
                 + "</a></p>"
             )
+        resources = worker_resources(methods, rows, names, lang)
+        for route in ("index", "interpretation"):
+            bodies[route] += resources
         if cohort:
+            if not audit:
+                interpretation_core = BeautifulSoup(core, "html.parser")
+                interpretation_core.table["data-interpretation-comparison"] = "true"
+                bodies["interpretation"] = str(interpretation_core) + bodies["interpretation"]
+            bodies["protocol"] += "<p>" + message("completion_protocol", lang) + "</p>"
             bodies["protocol"] += (
                 "<h2>"
                 + (message("reported_usage", lang))
@@ -2015,6 +2947,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "<section><h2>" + historical_title + "</h2>" + str(soup) + "</section>"
         )
         dr = []
+        case_bodies = {}
         pin = read_json(profile)["dataset"]
         for cid, gt in sorted(truth.items()):
             url = f"https://github.com/{pin['repository']}/blob/{pin['commit']}/dataset/html/{cid}.html.gz"
@@ -2126,9 +3059,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 if row is None:
                     continue
                 case_rows.append(row)
-                cells = [
-                    f'<a href="result-{method}-{cid}.html">{esc(names.get(method, method))}</a>'
-                ]
+                cells = [f'<a href="case-{cid}.html#{method}">{esc(names.get(method, method))}</a>']
                 for field in fields:
                     result = row["field_results"][field]
                     cells.append(
@@ -2171,18 +3102,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 )
                 + "</article>"
             )
-            (directory / ("case-" + cid + ".html")).write_text(
-                page(
-                    lang,
-                    "results",
-                    (message("same_case_comparison", lang)) + cid[:12],
-                    case_body,
-                    detail=True,
-                    languages=languages,
-                    state=state,
-                ),
-                encoding="utf-8",
-            )
+            case_bodies[cid] = case_body
         bodies["dataset"] += table(
             [lab[14], message("source", lang), message("snapshot", lang), lab[19]],
             dr,
@@ -2207,7 +3127,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             key = r["method"] + "-" + cid
             ok = r.get("compatibility") == "structured_output"
             status = lab[12] if ok else lab[11]
-            url = "result-" + key + ".html"
+            url = f"case-{cid}.html#{r['method']}"
             error = (
                 ""
                 if ok
@@ -2288,23 +3208,21 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     + "</p></section>"
                 )
             if not ok:
-                detail += '<p data-failure-diagnosis>{part0}</p><details id="result-logs" open><summary>{part1}</summary><pre data-kind="error">{part2}</pre></details>'.format(
+                detail += '<p data-failure-diagnosis>{part0}</p><details data-result-logs open><summary>{part1}</summary><pre data-kind="error">{part2}</pre></details>'.format(
                     part0=message("no_scoreable_fields_returned_see_the_program_error_below", lang),
                     part1=lab[21],
                     part2=esc(error),
                 )
-            detail += f'<p><button data-call-log-open="evidence" data-src="{evidence}"{evidence_key}>{message("developer_record", lang)}</button></p><dialog id="evidence" aria-labelledby="evidence-title"><h2 id="evidence-title">{message("developer_record", lang)}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
-            (directory / url).write_text(
-                page(
-                    lang,
-                    "results",
-                    names.get(r["method"], r["method"]) + " · " + cid[:10],
-                    detail,
-                    detail=True,
-                    languages=languages,
-                    state=state,
-                ),
-                encoding="utf-8",
+            dialog_id = "evidence-" + r["method"]
+            detail += f'<p><button data-call-log-open="{dialog_id}" data-src="{evidence}"{evidence_key}>{message("developer_record", lang)}</button></p><dialog id="{dialog_id}" aria-labelledby="{dialog_id}-title"><h2 id="{dialog_id}-title">{message("developer_record", lang)}</h2><button data-call-log-close>{lab[10]}</button><pre></pre></dialog></article>'
+            case_bodies[cid] += (
+                f'<details data-result-panel id="{r["method"]}"><summary>'
+                + esc(names.get(r["method"], r["method"]))
+                + " · "
+                + status
+                + "</summary>"
+                + detail
+                + "</details>"
             )
             elapsed = f"{r['elapsed_seconds']:.2f}" if r.get("elapsed_seconds") is not None else "—"
             field_cells = ""
@@ -2332,6 +3250,19 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 + (message("full_result", lang))
                 + "</a></td></tr>"
             )
+        for cid, case_body in case_bodies.items():
+            (directory / ("case-" + cid + ".html")).write_text(
+                page(
+                    lang,
+                    "results",
+                    message("same_case_comparison", lang) + cid[:12],
+                    case_body,
+                    detail=True,
+                    languages=languages,
+                    state=state,
+                ),
+                encoding="utf-8",
+            )
         if cohort:
             observed = {(r["method"], r["case_id"]) for r in rows}
             for method in methods:
@@ -2347,7 +3278,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                             + "<td>—</td>" * 6
                             + "</tr>"
                         )
-        bodies["index"] = report_metric_guide(lang, records=False) + bodies["index"]
+        if not cohort:
+            bodies["index"] = report_metric_guide(lang, records=False) + bodies["index"]
         bodies["results"] += (
             result_controls(methods, rows, names, lang)
             + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
@@ -2375,10 +3307,19 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             + "</button><div data-diagnosis-body></div></dialog>"
         )
         for p in PAGES:
+            intro = authored_intro(model, p, lang)
+            if p == "interpretation":
+                bodies[p] = bind_model_tables(
+                    output, model.get("model_comparison"), lang, bodies[p])
+            rendered = page(
+                lang, p, titles[p], bodies[p], languages=languages, state=state, intro=intro
+            )
             (directory / (p + ".html")).write_text(
-                page(lang, p, titles[p], bodies[p], languages=languages, state=state),
+                rendered,
                 encoding="utf-8",
             )
+            if intro:
+                page_intros[lang + "/" + p + ".html"] = page_intro_hash(rendered)
     if "en" not in languages:
         (output / "en").mkdir()
         (output / "en/index.html").write_text(
@@ -2405,6 +3346,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         output / "report-manifest.json",
         {
             "template": template_identity("web-extract"),
+            "page_intros": page_intros,
+            "model_comparison": model.get("model_comparison"),
             "template_version": VERSION,
             "methods": methods,
             "browser_eval": build_version,
@@ -2434,6 +3377,8 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             else None,
             "required_review_scope": read_json(profile).get("independent_result_review_scope"),
             "audited_scores": audit.get("audited_scores") if audit else None,
+            "completion_reference_exclusions": audit.get("excluded_fields", {}) if audit else {},
+            "completion_audit": completion_audit,
             "content_sha256": digest(content.read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
             "input_profile": input_profile,
@@ -2466,10 +3411,67 @@ def report_dependencies():
 def validate_release_prices(manifest):
     if manifest.get("dataset_kind") == "published-upstream":
         for value in manifest["prices"].values():
-            if "usd_per_1000_range" not in value and not value.get("pricing_formula"):
+            if (
+                "usd_per_1000_range" not in value
+                and not value.get("pricing_formula")
+                and not value.get("cost_unavailable")
+            ):
                 raise ValueError(
                     "Formal releases require normalized price ranges or a billing formula"
                 )
+
+
+def check_cost_disclosures(output, manifest):
+    """Bind missing monetary telemetry to its population and frozen source plan."""
+    selected = {
+        method: value
+        for method, value in manifest.get("prices", {}).items()
+        if value.get("cost_unavailable") is not None
+    }
+    if not selected:
+        return
+    if manifest.get("mode") == "field-extraction-cohort":
+        sources = read_json(output / "public-evidence/sources.json")
+        plans = {method: item["plan_sha256"] for method, item in sources.items()}
+    else:
+        plans = {
+            method: item.get("source_plan_sha256")
+            for item in manifest.get("source_runs", [])
+            for method in (item.get("methods") or item.get("contract", {}).get("methods", []))
+        }
+    for method, value in selected.items():
+        disclosure = cost_unavailability(value, manifest["primary_language"])
+        for lang in manifest["languages"]:
+            cost_unavailability(value, lang)
+        evidence = disclosure["evidence"]
+        relative = Path(evidence["path"])
+        path = output / relative
+        if (
+            disclosure["population_cases"] != manifest["case_count"]
+            or relative.is_absolute()
+            or ".." in relative.parts
+            or not relative.parts
+            or relative.parts[0] != "assets"
+            or not path.is_file()
+            or path.is_symlink()
+            or unsafe_parents(path)
+            or digest(path.read_bytes()) != evidence["sha256"]
+            or manifest["files"].get(relative.as_posix()) != evidence["sha256"]
+            or not re.fullmatch(r"[0-9a-f]{64}", plans.get(method) or "")
+        ):
+            raise ValueError("Cost disclosure population or evidence differs")
+        expected = {
+            "schema": "web-extract-cost-disclosure/1",
+            "method": method,
+            "case_count": disclosure["population_cases"],
+            "total_charge_receipts": disclosure["population_cases"] - disclosure["missing_cases"],
+            "source_plan_sha256": plans[method],
+        }
+        observed = read_json(path)
+        if observed != expected or any(
+            type(observed[key]) is not type(item) for key, item in expected.items()
+        ):
+            raise ValueError("Cost disclosure does not match its frozen source")
 
 
 def check_price_coverage(output, methods, prices, language, labels):
@@ -2479,6 +3481,8 @@ def check_price_coverage(output, methods, prices, language, labels):
     expected = BeautifulSoup(
         price_table(methods, prices, language, labels), "html.parser"
     ).select_one("[data-price-table]")
+    for anchor in expected.select("[data-cost-evidence]"):
+        anchor["href"] = anchor["href"].removeprefix("../")
     actual = accounts.select("[data-price-table]")
     if len(actual) != 1 or actual[0] != expected:
         raise ValueError("Cost/pricing coverage differs from bound source")
@@ -2489,12 +3493,59 @@ def check_reader_contract(output, manifest, *, release=False):
     if any(manifest.get(key) != value for key, value in report_dependencies().items()):
         raise ValueError("Report client dependencies changed; rebuild required")
     check_input_profile(output, manifest)
+    check_cost_disclosures(output, manifest)
+    for route, checksum in manifest.get("page_intros", {}).items():
+        if route not in manifest["files"] or Path(route).is_absolute() or ".." in Path(route).parts:
+            raise ValueError("Unsafe report page intro binding")
+        soup = BeautifulSoup((output / route).read_text(encoding="utf-8"), "html.parser")
+        nodes = soup.select("main > [data-page-intro]")
+        if (len(nodes) != 1 or soup.main.find(True, recursive=False) is not nodes[0]
+                or digest(str(nodes[0]).encode()) != checksum):
+            raise ValueError("Report page intro is missing, moved or changed")
     if release:
         validate_release_prices(manifest)
     methods = manifest.get("planned_methods") or manifest.get("methods", [])
     labels = manifest.get("method_labels", {})
     for language in manifest["languages"]:
+        home_page = BeautifulSoup(
+            (output / language / "index.html").read_text(encoding="utf-8"), "html.parser")
+        first = home_page.main.find(True, recursive=False)
+        core = home_page.select_one("[data-core-metrics]")
+        if manifest.get("mode") in {"full-cohort-progress", "field-extraction-cohort"} and (
+            core is None or (core is not first and first not in core.parents)
+        ):
+            raise ValueError("Core comparison must precede authored home-page content")
+        interpretation = BeautifulSoup(
+            (output / language / "interpretation.html").read_text(encoding="utf-8"),
+            "html.parser",
+        )
+        model_tables = model_comparison_tables(output, manifest.get("model_comparison"), language)
+        if len(interpretation.select("[data-model-validation], [data-model-screening]")) != len(
+            model_tables
+        ):
+            raise ValueError("Model comparison requires evidence-bound tables")
+        for name, markup in model_tables.items():
+            nodes = interpretation.select("[data-model-" + name + "]")
+            expected_table = BeautifulSoup(markup, "html.parser").select_one("table")
+            if len(nodes) != 1 or nodes[0].select_one("table") != expected_table:
+                raise ValueError("Model comparison table differs from scored evidence")
         check_case_comparison_controls(output, methods, labels, language)
+        if manifest.get("mode") == "field-extraction-cohort":
+            sources = read_json(output / "public-evidence/sources.json")
+            configurations = {m: [value["contract"]] for m, value in sources.items()}
+        else:
+            configurations = selected_execution_contracts(manifest["source_runs"])
+        actual = BeautifulSoup(
+            (output / language / "protocol.html").read_text(encoding="utf-8"), "html.parser"
+        )
+        expected = BeautifulSoup(
+            execution_settings(configurations, methods, labels, language), "html.parser"
+        )
+        sections = actual.select("[data-execution-settings]")
+        if len(sections) != 1 or [
+            row.get_text(" ", strip=True) for row in sections[0].select("tr")
+        ] != [row.get_text(" ", strip=True) for row in expected.select("tr")]:
+            raise ValueError("Report execution settings differ from measured contracts")
     check_method_examples(output, manifest)
     from harness.reporting.presentation import check_metric_guide
 
@@ -2507,11 +3558,15 @@ def check_reader_contract(output, manifest, *, release=False):
         )
 
 
-def check(output: Path, *, release=False, visual_receipt=None):
+def check(output: Path, *, release=False, visual_receipt=None, profile=None, home=None):
     output = open_report(output)
     manifest = read_json(output / "report-manifest.json")
     if manifest.get("mode") == "field-extraction-cohort":
-        return check_record_cohort(output, release=release, visual_receipt=visual_receipt)
+        return check_record_cohort(
+            output, release=release, visual_receipt=visual_receipt, profile=profile, home=home
+        )
+    if profile is not None:
+        verify_completion_audit(output, profile, home=home)
     link_index = LinkIndex(errors="strict")
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
@@ -2654,8 +3709,10 @@ def check(output: Path, *, release=False, visual_receipt=None):
             home_view = BeautifulSoup(
                 (output / lang / "index.html").read_text(encoding="utf-8"), "html.parser"
             )
+            check_worker_resources(output, methods, rows, names, lang)
             expected = BeautifulSoup(
-                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
+                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names,
+                                  execution=selected_execution_contracts(manifest["source_runs"])),
                 "html.parser",
             ).select_one("[data-operating-metrics]")
             for anchor in expected.select('a[href="accounts.html"]'):
@@ -2675,6 +3732,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
         }
         if sum(len(v) for v in data.values()) != manifest["observations"]:
             raise ValueError("Published observations differ from evidence")
+        check_completion_metrics(output, manifest, [r for m in methods for r in data[m].values()])
         for lang in manifest["languages"]:
             soup = BeautifulSoup(
                 (output / lang / "index.html").read_text(encoding="utf-8"), "html.parser"
@@ -2683,18 +3741,19 @@ def check(output: Path, *, release=False, visual_receipt=None):
             if [r.get("data-method") for r in summary] != methods:
                 raise ValueError("Missing or reordered planned participant")
             for method, row in zip(methods, summary, strict=True):
-                cells = row.select("td")
-                expected = [
-                    manifest["case_count"],
-                    len(data[method]),
-                    sum(
-                        r.get("compatibility") == "structured_output" for r in data[method].values()
-                    ),
-                ]
-                if [c.get_text(strip=True) for c in cells[1:4]] != [str(x) for x in expected]:
+                cells = row.select("td:not([data-completion-metric])")
+                executed = cells[1].select_one("[data-execution-count]")
+                returned = sum(
+                    r.get("compatibility") == "structured_output" for r in data[method].values()
+                )
+                if (
+                    executed is None
+                    or executed.get_text() != f"{len(data[method])} / {manifest['case_count']}"
+                    or cells[2].get_text(strip=True) != str(returned)
+                ):
                     raise ValueError("Full cohort progress count differs")
                 for field, cell in zip(
-                    ("price", "sku", "availability", "OutOfStock"), cells[5:], strict=True
+                    ("price", "sku", "availability", "OutOfStock"), cells[3:], strict=True
                 ):
                     value = scores.get(method, {}).get(field, {}).get("f1")
                     if cell.get_text(strip=True) != ("—" if value is None else f"{value:.3f}"):
@@ -2704,8 +3763,10 @@ def check(output: Path, *, release=False, visual_receipt=None):
             )
             check_price_coverage(output, methods, manifest.get("prices", {}), lang, names)
             rows = [r for method in methods for r in data[method].values()]
+            check_worker_resources(output, methods, rows, names, lang)
             expected_home = BeautifulSoup(
-                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names),
+                operating_metrics(methods, rows, manifest.get("prices", {}), lang, names,
+                                  execution=selected_execution_contracts(manifest["source_runs"])),
                 "html.parser",
             ).select_one("[data-operating-metrics]")
             for anchor in expected_home.select('a[href="accounts.html"]'):
@@ -2741,7 +3802,7 @@ def check(output: Path, *, release=False, visual_receipt=None):
                 if [r.get("data-method") for r in compact_rows] != methods:
                     raise ValueError("Missing compact interpretation comparison")
                 for method, row in zip(methods, compact_rows, strict=True):
-                    if [c.get_text(strip=True) for c in row.select("td")[2:]] != [
+                    if [c.get_text(strip=True) for c in row.select("td:not([data-completion-metric])")[2:]] != [
                         f"{scores[method][field]['f1']:.3f}"
                         for field in ("price", "sku", "availability", "OutOfStock")
                     ]:
@@ -2792,12 +3853,16 @@ def check(output: Path, *, release=False, visual_receipt=None):
                     expected_methods
                 ):
                     raise ValueError("Incomplete same-case method comparison")
+                panels = comparison.select("details[data-result-panel]")
+                if len(panels) != len(expected_methods) or {
+                    panel.get("id") for panel in panels
+                } != set(expected_methods):
+                    raise ValueError("Incomplete same-case participant details")
                 for method in expected_methods:
                     row = data[method][cid]
-                    detail = BeautifulSoup(
-                        (output / lang / f"result-{method}-{cid}.html").read_text(encoding="utf-8"),
-                        "html.parser",
-                    )
+                    detail = comparison.select_one(f'details[data-result-panel][id="{method}"]')
+                    if detail is None:
+                        raise ValueError("Missing same-case participant detail")
                     expected_fields = BeautifulSoup(
                         field_table(row, lang), "html.parser"
                     ).select_one("[data-field-diagnostics]")
@@ -2825,6 +3890,8 @@ def check(output: Path, *, release=False, visual_receipt=None):
             raise ValueError("Missing English notice or stale English pages")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
+        if profile is None:
+            verify_completion_audit(output, profile, home=home)
 
     return {
         "pages_per_language": len(zh),
@@ -2865,27 +3932,30 @@ def check_visual_receipt(output, manifest, visual_receipt):
         raise ValueError("Incomplete top-level reader coverage")
 
 
-def package(output, archive, *, visual_receipt):
+def package(output, archive, *, visual_receipt, profile, home=None):
     """Package only the release-checked report inventory, with no private siblings."""
     from harness.reporting.publication import package_archive
 
     require_external_output(archive)
-    manifest = read_json(output / "report-manifest.json")
-    names = [*sorted(manifest["files"]), "report-manifest.json"]
-    return package_archive(
-        output,
-        archive,
-        archive.with_suffix(".receipt.json"),
-        inputs=(visual_receipt,),
-        validate=lambda: check(output, release=True, visual_receipt=visual_receipt),
-        attest=lambda path: {
-            "files": len(names),
-            "archive_bytes": path.stat().st_size,
-            "expanded_bytes": sum((output / name).stat().st_size for name in names),
-            "archive_sha256": digest(path.read_bytes()),
-            "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
-        },
-    )
+    with completion_audit_scope(output, profile, home):
+        manifest = read_json(output / "report-manifest.json")
+        names = [*sorted(manifest["files"]), "report-manifest.json"]
+        return package_archive(
+            output,
+            archive,
+            archive.with_suffix(".receipt.json"),
+            inputs=(visual_receipt, *completion_authorities(profile, home)),
+            validate=lambda: check(
+                output, release=True, visual_receipt=visual_receipt, profile=profile, home=home
+            ),
+            attest=lambda path: {
+                "files": len(names),
+                "archive_bytes": path.stat().st_size,
+                "expanded_bytes": sum((output / name).stat().st_size for name in names),
+                "archive_sha256": digest(path.read_bytes()),
+                "report_manifest_sha256": digest((output / "report-manifest.json").read_bytes()),
+            },
+        )
 
 
 def record_cohort_inputs(home, model, *, profile):
@@ -3120,8 +4190,8 @@ def record_comparison(headers, rows, metrics, *, sort_values=None):
             for value, cell in observed:
                 if value == extreme:
                     span = soup.new_tag("span", attrs={"class": "comparison-winner"})
-                    span.string = cell.get_text()
-                    cell.clear()
+                    for child in list(cell.contents):
+                        span.append(child.extract())
                     cell.append(span)
     return str(soup)
 
@@ -3261,10 +4331,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             row["field_labels"] = model.get("field_labels", {})
             row["result_href"] = "zh/" + record_result_href(method, cid)
             row["case_href"] = "zh/" + record_route("c", cid) + ".html"
-            if isinstance(row.get("request"), dict):
-                row["request"]["endpoint"] = re.sub(
-                    r"/accounts/[^/]+/", "/accounts/[REDACTED]/", row["request"].get("endpoint", "")
-                )
+            bucket[cid] = redact_account_endpoint(row)
         raw, receipt = project_evidence_view(
             "public-evidence/" + method + ".json",
             json.dumps(bucket, ensure_ascii=False).encode(),
@@ -3335,6 +4402,13 @@ def build_record_cohort(output, content, *, home, language, profile):
         ):
             raise ValueError("Public evidence projection changed measured verdicts or metrics")
     save_json(output / "data/metrics.json", stats)
+    completion = completion_bundle(
+        methods,
+        [r for m in methods for r in data["methods"][m]["results"].values()],
+        records=True,
+        complete_methods=[m for m in methods if m in compared and stats[m]["certified"]],
+    )
+    save_json(output / "data/completion-metrics.json", completion)
     source_raw, source_receipt = project_evidence_view(
         "public-evidence/sources.json",
         json.dumps(data["sources"], ensure_ascii=False).encode(),
@@ -3348,21 +4422,24 @@ def build_record_cohort(output, content, *, home, language, profile):
     def route_link(route, label):
         return '<a href="' + route + '.html">' + esc(label) + "</a>"
 
+    page_intros = {}
+
     def write(route, heading, body):
+        intro = authored_intro(model, route, language) if route in PAGES else ""
+        if route == "interpretation":
+            body = bind_model_tables(output, model.get("model_comparison"), language, body)
+        rendered = page(
+            language, route, heading, body, detail=route not in PAGES,
+            languages=("zh",), state="field-extraction-cohort",
+            navigation=model.get("navigation"),
+            notice=t("reviewed_notice") if audit_binding else None, intro=intro,
+        )
         (output / "zh" / (route + ".html")).write_text(
-            page(
-                language,
-                route,
-                heading,
-                body,
-                detail=route not in PAGES,
-                languages=("zh",),
-                state="field-extraction-cohort",
-                navigation=model.get("navigation"),
-                notice=t("reviewed_notice") if audit_binding else None,
-            ),
+            rendered,
             encoding="utf-8",
         )
+        if intro:
+            page_intros[language + "/" + route + ".html"] = page_intro_hash(rendered)
 
     def value(value):
         return esc(json.dumps(value, ensure_ascii=False))
@@ -3447,6 +4524,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             2: [stats[m]["structured"] for m in methods],
         },
     )
+    core = with_completion_columns(core, completion, methods, language, before_details=True)
     operations = operating_metrics(
         methods,
         [row for m in methods for row in data["methods"][m]["results"].values()],
@@ -3454,6 +4532,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         language,
         labels,
         compared=compared,
+        execution={m: [v["contract"]] for m, v in data["sources"].items()},
     )
     bodies = {route: model.get("pages", {}).get(route, {}).get("body", "") for route in PAGES}
     if audit_binding:
@@ -3470,13 +4549,17 @@ def build_record_cohort(output, content, *, home, language, profile):
     bodies["protocol"] += method_examples(output, model.get("method_examples")) + retry_summary(
         stats, labels
     )
+    bodies["protocol"] += execution_settings(
+        {m: [value["contract"]] for m, value in data["sources"].items()}, methods, labels, language
+    )
+    bodies["protocol"] += "<p>" + message("completion_protocol", language) + "</p>"
     bodies["index"] = (
         "<section data-core-metrics>"
         + core
         + "</section>"
         + report_metric_guide(language, records=True)
-        + bodies["index"]
         + operations
+        + bodies["index"]
     )
     domains = Counter(ref["domain"] for ref in truth.values())
     sites = Counter((ref["domain"], ref["site"]) for ref in truth.values())
@@ -3725,9 +4808,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                     + ' data-search="'
                     + esc(cid + " " + ref["site"])
                     + '"><td>'
-                    + esc(cid)
-                    + "</td><td>"
                     + esc(labels[method])
+                    + "</td><td>"
+                    + esc(cid)
                     + "</td><td>"
                     + esc(domain_labels.get(ref["domain"], ref["domain"]))
                     + "</td><td>"
@@ -3855,9 +4938,9 @@ def build_record_cohort(output, content, *, home, language, profile):
                 "<tr"
                 + attrs
                 + "><td>"
-                + esc(cid)
-                + "</td><td>"
                 + esc(labels[method])
+                + "</td><td>"
+                + esc(cid)
                 + "</td><td>"
                 + esc(domain_labels.get(ref["domain"], ref["domain"]))
                 + "</td><td>"
@@ -3894,7 +4977,7 @@ def build_record_cohort(output, content, *, home, language, profile):
         + '<div class="table-wrap inventory"><table data-sortable><thead><tr>'
         + "".join(
             "<th>" + t(k) + "</th>"
-            for k in ("case", "method", "domain", "outcome", "exact", "timing", "details")
+            for k in ("method", "case", "domain", "outcome", "exact", "timing", "details")
         )
         + "</tr></thead><tbody>"
         + "".join(inventory_rows)
@@ -3902,8 +4985,17 @@ def build_record_cohort(output, content, *, home, language, profile):
         + dialog
     )
     bodies["interpretation"] = (
-        "<section data-interpretation-comparison>" + core + "</section>" + bodies["interpretation"]
+        "<section data-interpretation-comparison>"
+        + core
+        + "</section>"
+        + bodies["interpretation"]
     )
+    resources = worker_resources(
+        methods, [row for m in methods for row in data["methods"][m]["results"].values()],
+        labels, language,
+    )
+    for route in ("index", "interpretation"):
+        bodies[route] += resources
     for method in methods:
         current = stats[method]
         chapter = '<section id="' + esc(method) + '"><h2>' + esc(labels[method]) + "</h2>"
@@ -3970,6 +5062,8 @@ def build_record_cohort(output, content, *, home, language, profile):
         output / "report-manifest.json",
         {
             "mode": "field-extraction-cohort",
+            "page_intros": page_intros,
+            "model_comparison": model.get("model_comparison"),
             **report_dependencies(),
             "local_example": bound_profile.get("local_example", False),
             "dataset_kind": "local-example"
@@ -4009,7 +5103,7 @@ def build_record_cohort(output, content, *, home, language, profile):
     check_record_cohort(output)
 
 
-def check_record_cohort(output, *, release=False, visual_receipt=None):
+def check_record_cohort(output, *, release=False, visual_receipt=None, profile=None, home=None):
     """Check the public record matrix and shared presentation semantics."""
     from harness.reporting.presentation import check_presentation
     from harness.web_extract.analysis import record_statistics
@@ -4018,6 +5112,8 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     output = open_report(output)
     link_index = LinkIndex(errors="strict")
     manifest = read_json(output / "report-manifest.json")
+    if profile is not None:
+        verify_completion_audit(output, profile, home=home)
     check_report_identity(output, manifest, "web-extract")
     if public_risk((output / "report-manifest.json").read_bytes()):
         raise ValueError("Report metadata has a publication privacy risk")
@@ -4148,8 +5244,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
     for method in manifest["planned_methods"]:
         bucket = read_json(output / "public-evidence" / (method + ".json"))
         if not isinstance(bucket, dict) or any(
-            not isinstance(row, dict) or cid != row.get("case_id")
-            for cid, row in bucket.items()
+            not isinstance(row, dict) or cid != row.get("case_id") for cid, row in bucket.items()
         ):
             raise ValueError("Record evidence keys differ from embedded case identities")
         rows = list(bucket.values())
@@ -4191,6 +5286,21 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
                     raise ValueError(
                         "Record report is missing a source, comparison or result detail"
                     )
+    check_worker_resources(
+        output, manifest["planned_methods"],
+        [row for method in manifest["planned_methods"]
+         for row in read_json(output / "public-evidence" / (method + ".json")).values()],
+        manifest["method_labels"], "zh",
+    )
+    check_completion_metrics(
+        output,
+        manifest,
+        [
+            r
+            for m in manifest["planned_methods"]
+            for r in read_json(output / "public-evidence" / (m + ".json")).values()
+        ],
+    )
     expected_operations = BeautifulSoup(
         operating_metrics(
             manifest["planned_methods"],
@@ -4203,16 +5313,20 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
             "zh",
             manifest["method_labels"],
             compared=manifest["comparison_methods"],
+            execution={m: [v["contract"]] for m, v in read_json(
+                output / "public-evidence/sources.json").items()},
         ),
         "html.parser",
     )
-    home = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    for anchor in expected_operations.select('a[href="accounts.html"]'):
+        anchor["href"] = "zh/accounts.html"
+    home_view = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
     check_price_coverage(
         output, manifest["planned_methods"], manifest["prices"], "zh", manifest["method_labels"]
     )
-    if [row.get_text(strip=True) for row in home.select("[data-operating-metrics] tbody tr")] != [
-        row.get_text(strip=True) for row in expected_operations.select("tbody tr")
-    ]:
+    if home_view.select_one("[data-operating-metrics]") != expected_operations.select_one(
+        "[data-operating-metrics]"
+    ):
         raise ValueError("Record timing or pricing differs from measured evidence")
     for route, selector in (
         ("index", "[data-core-metrics]"),
@@ -4263,7 +5377,7 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         inventory.select('tr[data-status="pending"]')
     ) != sum(x["unexecuted"] for x in metrics.values()):
         raise ValueError("Record inventory omits planned or pending results")
-    indexed = {(row.get("data-method"), row.select_one("td").get_text()): row for row in rows}
+    indexed = {(row.get("data-method"), row.select("td")[1].get_text()): row for row in rows}
     if set(indexed) != {(m, cid) for m in metrics for cid in truth}:
         raise ValueError("Record inventory method/case population changed")
     for method in manifest["planned_methods"]:
@@ -4375,6 +5489,8 @@ def check_record_cohort(output, *, release=False, visual_receipt=None):
         raise ValueError("Formal record release requires every comparison participant complete")
     if release:
         check_visual_receipt(output, manifest, visual_receipt)
+        if profile is None:
+            verify_completion_audit(output, profile, home=home)
         observations = read_json(visual_receipt)["observations"]
         observed = {
             (item["route_class"], item["viewport"], item.get("theme")) for item in observations

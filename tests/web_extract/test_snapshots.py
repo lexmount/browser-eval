@@ -9,6 +9,8 @@ from harness.web_extract import snapshots
 from harness.web_extract.certification import create_plan, run
 from harness.web_extract.pipeline import METHODS, SCHEMA, digest, provider_call
 
+pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
+
 HF_INVENTORY = snapshots.hf_inventory
 CHECK_MANIFEST = snapshots.check_manifest
 
@@ -177,9 +179,32 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
     source = tmp_path / "binding.json"
     source.write_text(json.dumps(value), encoding="utf-8")
     methods = [
-        name for name in METHODS if name not in {"extruct", "firecrawl-parse-json", "zyte-custom"}
+        name for name in METHODS if name not in {"firecrawl-parse-json", "zyte-custom"}
     ]
-    plan = create_plan(home, methods, tmp_path / "plan.json", snapshots=source)
+    options = {
+        method: {
+            "endpoint": "https://extract.example",
+            "runtime_identity": {
+                "engine": engine,
+                "version": "synthetic",
+                "model": "test-model",
+                "model_base": "https://model.example",
+                "implementation_sha256": "a" * 64,
+                "environment_sha256": "b" * 64,
+            },
+        }
+        for method, engine in {
+            "crawl4ai-json": "crawl4ai",
+            "scrapegraph-oss-json": "scrapegraph",
+            "stagehand-local-json": "stagehand",
+            "firecrawl-oss-json": "firecrawl",
+        }.items()
+    }
+    plan = create_plan(
+        home, methods, tmp_path / "plan.json", snapshots=source, native_options=options
+    )
+    for method, native in options.items():
+        assert plan["participants"][method]["native_options"] == native
     assert all(
         row["input"] == "url" and row["fixture_suffix"] == ""
         for row in plan["participants"].values()
@@ -195,17 +220,6 @@ def test_new_plan_freezes_one_url_for_every_participant(home, tmp_path):
         )
 
 
-@pytest.mark.parametrize("method", ["extruct"])
-def test_retired_interface_cannot_enter_url_cohort(home, tmp_path, method):
-    value = binding(home, tmp_path)
-    source = tmp_path / "binding.json"
-    source.write_text(json.dumps(value), encoding="utf-8")
-    with patch(
-        "harness.web_extract.certification.benchmark_config", return_value={"adapter": object()}
-    ):
-        with pytest.raises(ValueError):
-            create_plan(home, [method], tmp_path / "plan.json", snapshots=source)
-    assert not (tmp_path / "plan.json").exists()
 
 
 @pytest.mark.parametrize(
@@ -1132,3 +1146,26 @@ def test_existing_deployment_missing_manifest_requires_approval_not_a_network_by
                     approve_plan=output,
                 )
             deploy.assert_called_once()
+
+
+@pytest.mark.parametrize("method", ["cloudflare-json", "scrapegraph-extract", "zyte-product"])
+def test_native_options_cannot_relabel_an_upload_as_a_snapshot_call(home, tmp_path, method):
+    source = tmp_path / "binding.json"
+    source.write_text(json.dumps(binding(home, tmp_path)), encoding="utf-8")
+    with pytest.raises(ValueError, match="frozen participant input route"):
+        create_plan(
+            home,
+            [method],
+            tmp_path / "plan.json",
+            snapshots=source,
+            native_options={method: {"input_route": "html"}},
+        )
+    assert not (tmp_path / "plan.json").exists()
+    plan = create_plan(
+        home,
+        [method],
+        tmp_path / "url-plan.json",
+        snapshots=source,
+        native_options={method: {"input_route": "url"}},
+    )
+    assert plan["participants"][method]["input"] == "url"

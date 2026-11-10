@@ -11,6 +11,135 @@ from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.report import check, record_comparison, record_route
 
 
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize("damage", [None, "home-intro", "moved-home-content"])
+def test_interpretation_intro_and_core_first_home_rules_hold_together(tmp_path, mode, damage):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "initial", mode=mode)
+    model = read_json(home / "content.json")
+    pages = model.setdefault("pages", {})
+    pages.setdefault("interpretation", {})["intro"] = {"zh": "<h2>Extraction diagram</h2>"}
+    if damage == "home-intro":
+        pages.setdefault("index", {})["intro"] = {"zh": "<p>Misplaced home intro.</p>"}
+    save_json(home / "content.json", model)
+    profile = read_json(home / "profile.json")
+    profile.setdefault("research_report", {})["content"] = {
+        "path": str(home / "content.json"), "sha256": digest((home / "content.json").read_bytes())}
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    if damage == "home-intro":
+        with pytest.raises(ValueError, match="Home-page content must follow"):
+            build(output, home / "content.json", home=home, profile=home / "profile.json",
+                  language="zh")
+        return
+    build(output, home / "content.json", home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    current = soup.select_one("main table[data-completion-metrics]")
+    while current is not soup.main:
+        assert not any(str(node).strip() for node in current.previous_siblings)
+        current = current.parent
+    if damage == "moved-home-content":
+        def prepend(raw):
+            page = BeautifulSoup(raw, "html.parser")
+            node = page.new_tag("p")
+            node.string = "Secondary interpretation before the comparison"
+            page.main.insert(0, node)
+            return str(page)
+        rebind(output, "zh/index.html", prepend)
+        with pytest.raises(ValueError, match="Core comparison must precede"):
+            check(output)
+
+
+def test_english_build_requires_a_translated_page_intro(tmp_path):
+    from harness.web_extract.report import build
+
+    home = create(tmp_path / "initial")
+    content = home / "content.json"
+    model = read_json(content)
+    model["pages"]["interpretation"]["intro"] = {"zh": "<p>Source-language intro.</p>"}
+    save_json(content, model)
+    output = tmp_path / "english"
+    with pytest.raises(ValueError, match="English content is missing"):
+        build(output, content, home=home, profile=home / "profile.json", language="en")
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+def test_latency_directions_are_checked_against_the_collected_contract(tmp_path, mode):
+    output = tmp_path / "report"
+    create(output, mode=mode)
+
+    def change_comparison(raw):
+        soup = BeautifulSoup(raw, "html.parser")
+        cells = soup.select('[data-operating-metrics] [data-metric]')
+        direction = ("min" if all(c["data-metric-direction"] == "neutral" for c in cells)
+                     else "neutral")
+        for cell in cells:
+            cell["data-metric-direction"] = direction
+            for winner in cell.select(".comparison-winner"):
+                winner.unwrap()
+        if direction == "min":
+            for metric in {cell["data-metric"] for cell in cells}:
+                selected = [cell for cell in cells if cell["data-metric"] == metric]
+                minimum = min(float(cell["data-sort"]) for cell in selected)
+                for cell in selected:
+                    if float(cell["data-sort"]) == minimum:
+                        winner = soup.new_tag("span", attrs={"class": "comparison-winner"})
+                        for child in list(cell.contents):
+                            winner.append(child.extract())
+                        cell.append(winner)
+        return str(soup)
+
+    rebind(output, "zh/index.html", change_comparison)
+    with pytest.raises(ValueError, match="latency/pricing|timing or pricing"):
+        check(output)
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize("damage", ["missing", "moved", "changed"])
+def test_authored_page_intro_precedes_generated_tables_and_is_release_bound(tmp_path, mode, damage):
+    from harness.web_extract.report import build
+
+    initial = tmp_path / "initial"
+    home = create(initial, mode=mode)
+    content = home / "content.json"
+    model = read_json(content)
+    model.setdefault("pages", {}).setdefault("interpretation", {})["intro"] = {
+        "zh": "<h2>Pipeline overview</h2><p>Frozen input, extraction, structured output.</p>"
+    }
+    save_json(content, model)
+    profile = read_json(home / "profile.json")
+    profile.setdefault("research_report", {}).setdefault("content", {})["sha256"] = digest(
+        content.read_bytes())
+    save_json(home / "profile.json", profile)
+    output = tmp_path / "report"
+    build(output, content, home=home, profile=home / "profile.json", language="zh")
+    check(output)
+    assert (output / "data/completion-metrics.json").read_bytes() == (
+        initial / "data/completion-metrics.json").read_bytes()
+    soup = BeautifulSoup((output / "zh/interpretation.html").read_text(encoding="utf-8"),
+                         "html.parser")
+    intro = soup.select_one("main > [data-page-intro]")
+    assert intro is not None and soup.main.find(True, recursive=False) is intro
+
+    def alter(raw):
+        page = BeautifulSoup(raw, "html.parser")
+        node = page.select_one("[data-page-intro]")
+        if damage == "missing":
+            node.decompose()
+        elif damage == "moved":
+            page.main.append(node.extract())
+        else:
+            node.h2.string = "Wrong pipeline"
+        return str(page)
+
+    rebind(output, "zh/interpretation.html", alter)
+    with pytest.raises(ValueError, match="page intro"):
+        check(output)
+
+
 def test_reader_navigation_order_and_labels_apply_to_home_and_evidence(tmp_path):
     from harness.web_extract.report import PAGES, build
 
@@ -576,7 +705,7 @@ def test_record_inventory_sorts_exact_counts_and_missing_timers_numerically(tmp_
     build(out, home / "content.json", home=home, profile=home / "profile.json", language="zh")
     soup = BeautifulSoup((out / "zh/results.html").read_text(encoding="utf-8"), "html.parser")
     rows = soup.select('tr[data-method="scrapegraph-extract"]')
-    values = {row.select("td")[0].get_text(): row.select("td")[5].get("data-sort") for row in rows}
+    values = {row["data-case"]: row.select("td")[5].get("data-sort") for row in rows}
     assert values == {"one": "10.0", "two": "2.0", "three": ""}
     assert all(row.select("td")[4].get("data-sort").isdigit() for row in rows)
 

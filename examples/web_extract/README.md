@@ -5,7 +5,7 @@ Evaluate complete extraction APIs on the 140 archived product pages in
 Frozen inputs are distributed through
 [Product extraction benchmark (Zyte)](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction).
 The shared [data lock](../../src/harness/benchmarks/data-lock.json) selects its full
-commit and archive/file hashes. The upstream commit, original scorer and extruct baseline are pinned in
+commit and archive/file hashes. The upstream commit and original scorer are pinned in
 [`zyte-product-extraction.json`](../../src/harness/benchmarks/cards/zyte-product-extraction.json).
 The dataset contains all original compressed HTML and labels, separate source-qualified
 annotations and their correction ledger, and the unchanged upstream evaluator.
@@ -70,13 +70,13 @@ Historical predictions are separate from new measurements.
 | `zyte-product` | Product extraction, `userHtml` | Uploaded HTML with original URL as context |
 | `diffbot-product` | Product API POST | Raw uploaded HTML with original URL as context |
 | `browserbase-json` | Native JSON extraction | Frozen HTTPS URL and JSON Schema; built-in extraction |
-| `extruct` | Upstream local baseline | Archived HTML |
 
-Browser infrastructure requiring a separately connected model is outside this
-comparison. Browserbase JSON uses only the Browserbase API key. The separately
-registered Stagehand route uses its native Model Gateway and needs a project ID;
-it does not read an OpenAI key. Bright Data's site-specific extractor remains discoverable as a candidate, but
-is rejected by the full archived-page plan because it cannot parse arbitrary HTML.
+The hosted API cohort uses each provider's built-in extraction. Browserbase JSON
+uses only the Browserbase API key. The separately registered hosted Stagehand route
+uses its Model Gateway and needs a project ID; it does not read an OpenAI key.
+Self-hosted configurations use a separate model and are described below. Bright
+Data's site-specific extractor is rejected by the full archived-page plan because
+it cannot parse arbitrary archived HTML.
 
 New cohorts give every native API the same public URL for each frozen page.
 Each dataset has its own hosting service. Browser Eval can find and reuse a
@@ -145,13 +145,177 @@ page. Dataset discovery and evaluation do not depend on it. `snapshots-build`,
 `snapshots-verify` and `snapshots-index` expose the package, verification and
 navigation stages for other hosting workflows.
 
+## Compare model backends
+
+For an existing GPU host, use a separate Ollama installation and model store when
+the installed service cannot load the selected model. Take `OLLAMA_RELEASE`,
+`OLLAMA_ARCHIVE_SHA256` and exact model tags from the frozen experiment inputs.
+The following Linux setup leaves the existing service and its models in place:
+
+```sh
+MODEL_ROOT="${MODEL_ROOT:?Set a directory on the model data volume}"
+mkdir -p "$MODEL_ROOT/runtime" "$MODEL_ROOT/models"
+curl --fail --location \
+  "https://github.com/ollama/ollama/releases/download/${OLLAMA_RELEASE:?}/ollama-linux-amd64.tar.zst" \
+  --output "$MODEL_ROOT/runtime.tar.zst"
+printf '%s  %s\n' "${OLLAMA_ARCHIVE_SHA256:?}" "$MODEL_ROOT/runtime.tar.zst" | sha256sum --check
+tar --zstd --extract --file "$MODEL_ROOT/runtime.tar.zst" --directory "$MODEL_ROOT/runtime"
+OLLAMA_HOST=127.0.0.1:11435 OLLAMA_MODELS="$MODEL_ROOT/models" \
+  OLLAMA_NUM_PARALLEL=1 OLLAMA_MAX_LOADED_MODELS=1 OLLAMA_CONTEXT_LENGTH=20000 \
+  OLLAMA_LOAD_TIMEOUT="${MODEL_LOAD_TIMEOUT:-5m}" \
+  OLLAMA_FLASH_ATTENTION=1 OLLAMA_KV_CACHE_TYPE=q8_0 OLLAMA_NO_CLOUD=1 \
+  "$MODEL_ROOT/runtime/bin/ollama" serve
+```
+
+In another terminal, pull each declared tag with
+`OLLAMA_HOST=127.0.0.1:11435 "$MODEL_ROOT/runtime/bin/ollama" pull "$MODEL_TAG"`.
+Keep the listener private. For a long collection, give the SSH forward an owned
+control socket so it outlives the invoking terminal or tool session:
+
+```sh
+MODEL_SSH_SOCKET="${MODEL_SSH_SOCKET:?Set an absolute path for this run's control socket}"
+ssh -fN -M -S "$MODEL_SSH_SOCKET" -o ControlPersist=8h \
+  -o BatchMode=yes -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=15 -o ServerAliveCountMax=3 \
+  -L 19435:127.0.0.1:11435 "$MODEL_SSH_TARGET"
+ssh -S "$MODEL_SSH_SOCKET" -O check "$MODEL_SSH_TARGET"
+```
+
+After collection, close that forward with
+`ssh -S "$MODEL_SSH_SOCKET" -O exit "$MODEL_SSH_TARGET"`.
+Freeze `/api/version` and
+`/api/tags` identities before calls, and check actual GPU layer placement in the
+server log. Existing workloads remain part of the declared host conditions.
+
+Use `model-compare` for a model-only streaming diagnostic. It supplies the same
+frozen page text, instruction and JSON Schema to each configuration. Reference
+answers stay outside the request. These results describe model extraction from
+the supplied text; they do not replace native extractor scores.
+
+The external plan declares cases, text hashes, model parameters, ordered physical
+calls, deadlines, execution resources and a wall-time budget. Controlled Ollama
+configurations also bind the server version and installed model digest. Read
+credentials from the repository `.env` through each model's `key_env`.
+Auxiliary HTTP requests have total wall deadlines: 10 seconds per runtime/weight
+verification request, 180 seconds per model load, and 5 seconds per telemetry
+request. A model's `auxiliary_timeouts` mapping may override `verification`, `load`
+and `telemetry` with finite positive seconds; these settings remain bound during
+recovery. Measure cold loading on the selected model volume before freezing those
+limits. A slow disk may require both a longer `auxiliary_timeouts.load` and a
+matching `MODEL_LOAD_TIMEOUT`; these preparation limits do not extend the model's
+generation deadline. Telemetry expiry retains the completed inference and records its own
+elapsed time. Error responses retain a redacted body of at most 16 KiB so quota
+and account-permission denials stop admission.
+
+Freeze sampling parameters from each model's official guidance before collection;
+a shared temperature of zero can cause repetitive generation on some models.
+Declare the common time and output-token budgets separately from these native
+settings. Diagnose repetition or exhausted output budgets before interpreting
+latency as a hardware limitation. Preserve any corrected configuration's earlier
+calls and replace its complete declared scope rather than retrying selected cases.
+
+```sh
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase preflight
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase comparison
+uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte model-score \
+  --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
+  --contract /absolute/data/case-contract.json --stage validation \
+  --output /absolute/data/model-scores.json
+```
+
+Preflight records initialization separately and binds the shared execution-budget
+assessment. A malformed answer remains a quality failure; it is not a readiness
+exclusion. Every call retains elapsed time and raw stream events. First output,
+first answer and successful JSON completion each have their own observed counts;
+failed requests retain elapsed time without a JSON-completion milestone.
+A completed success or failure is reused on resume.
+To extend a completed model study, freeze only the additional configurations in a
+new plan and run directory. Reuse the original case contract and bind the existing
+baseline plan, call index and scores by hash; do not include baseline calls in the
+new plan. Predeclare thinking modes and sampling parameters before collection.
+Show historical and supplemental collection windows beside their latency metrics.
+Matched frozen inputs preserve the quality comparison. A contemporaneous speed
+comparison needs a fresh, authorized baseline cohort. Preserve the existing full
+SDK/API cohort when adding model-only evidence.
+An unresolved in-flight call stops collection for reconciliation. Changed inputs,
+weights, server versions or collector code require a new frozen contract.
+Offline scoring verifies the complete selected case matrix, original request
+bindings and retained response hashes. It uses the track's existing field rules,
+keeps unavailable reference fields outside quality denominators, and reports
+format validity separately from field accuracy. A validation partition remains
+separate from the screening set used to choose configurations.
+The synthetic scenarios in
+[`test_model_comparison.py`](../../tests/web_extract/test_model_comparison.py)
+exercise the request format, real streams, deadlines and independent resource lanes.
+
+The model diagnostic reports value-level micro F1 over annotated fields, using
+the same upstream field matchers as the native track. It is separate from the
+SDK/API report's per-field product scores and official SWDE page-hit F1. Its
+hash-bound contract preserves the held-out page text, reference exclusions and
+reference revision; rebuilding a report never substitutes today's dataset or
+fetches live pages. Model streams use the shared scheduler with protocol-specific
+prepare/commit callbacks, not the native SDK row or certification format.
+
+A connection outage stops admission after retaining the failed call. Resume does
+not silently repeat it. For a proven connection refusal or interrupted chunked
+stream, freeze recovery before making new calls. Run the repair's comparison
+phase only when its call list contains comparison entries; a preflight-only repair
+ends after its preflight command. Then continue the original phases before scoring:
+
+```sh
+uv run --frozen python -m harness.web_extract.cli model-repair-plan \
+  --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
+  --output /absolute/data/delivery-repair-plan.json
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/delivery-repair-plan.json --output /absolute/data/delivery-repair \
+  --phase preflight
+# Skip this command for a preflight-only repair.
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/delivery-repair-plan.json --output /absolute/data/delivery-repair \
+  --phase comparison
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase preflight \
+  --repair-plan /absolute/data/delivery-repair-plan.json --repair-run /absolute/data/delivery-repair
+uv run --frozen python -m harness.web_extract.cli model-compare \
+  --plan /absolute/data/model-plan.json --output /absolute/data/model-run --phase comparison \
+  --repair-plan /absolute/data/delivery-repair-plan.json --repair-run /absolute/data/delivery-repair
+uv run --frozen python -m harness.web_extract.cli --home /absolute/data/zyte model-score \
+  --plan /absolute/data/model-plan.json --run /absolute/data/model-run \
+  --contract /absolute/data/case-contract.json --stage validation \
+  --repair-plan /absolute/data/delivery-repair-plan.json \
+  --repair-run /absolute/data/delivery-repair --output /absolute/data/recovered-scores.json
+```
+
+Recovery retains the original run and binds every predecessor hash, request,
+configuration, timeout, execution policy and replacement. Scoring requires the
+complete declared recovery, uses its final response even if it fails, and records
+predecessor-plus-final execution time separately from final-call latency.
+Unavailable timing remains unavailable. Completed answers, malformed JSON and
+exhausted generation budgets are ineligible. A connection timeout stops collection
+but needs delivery reconciliation before any new contract.
+
+For later failures on other calls, repeat both repair flags in frozen order on
+planning, collection and scoring. Earlier final responses remain fixed; each
+logical result has at most one transport recovery.
+
 ## Freeze and run the full population
 
 ```sh
 uv run --frozen python -m harness.web_extract.cli plan \
-  --methods cloudflare-json firecrawl-json scrapegraph-extract scrapfly-product \
-  oxylabs-json zyte-product diffbot-product browserbase-json \
+  --methods firecrawl-json \
+  --concurrency 4 --execution-purpose quality \
   --snapshots /absolute/data/snapshots.json \
+  --output /absolute/data/candidate.json
+uv run --frozen python -m harness.web_extract.cli preflight \
+  --profile /absolute/data/candidate.json --method firecrawl-json \
+  --run-dir /absolute/data/preflight/firecrawl \
+  --assessment-output /absolute/data/firecrawl-execution.json
+uv run --frozen python -m harness.web_extract.cli plan \
+  --methods firecrawl-json --concurrency 4 --execution-purpose quality \
+  --snapshots /absolute/data/snapshots.json \
+  --execution-assessment /absolute/data/firecrawl-execution.json \
   --output /absolute/data/full-cohort.json
 uv run --frozen python scripts/run_certified_benchmark.py --track web-extract \
   --profile /absolute/data/full-cohort.json --method firecrawl-json \
@@ -159,13 +323,26 @@ uv run --frozen python scripts/run_certified_benchmark.py --track web-extract \
 uv run --frozen python -m harness.web_extract.cli score /absolute/data/runs/firecrawl
 ```
 
-The recommended comparison includes complete native APIs only. Upstream extruct
-code and earlier baseline predictions remain in the original distribution for
-reproduction; the baseline is excluded from new comparisons.
+The comparison includes complete native extraction APIs.
+
+The candidate plan fixes the sample's configuration. `preflight` selects frozen
+cases across domains, uses the same caller and scheduler as the full run, and
+keeps its calls outside the measured cohort. New CLI plans require the bound
+assessment before certified collection. A multi-method plan accepts repeated
+`--execution-assessment` paths; each participant needs its own matching sample.
+Reuse an assessment only when its input, route, runtime and execution policy match.
 
 Run each participant once across the complete 140-case population. The plan binds
-cases, input hashes, pacing and retry policy before calls. Calls within a provider
-are serial; Diffbot additionally waits after each response. A quota or permission
+cases, input hashes, pacing, concurrency and retry policy before calls. New CLI
+plans default to four in-flight calls per provider. A provider-mandated post-call
+cooldown selects one in-flight call and records the reason. Choose capacities
+from a measured preflight using the shared [execution contract](../../docs/benchmark-execution.md).
+Self-hosted methods share their endpoint's frozen `service_worker_capacity`,
+which caps the requested concurrency. A service-capacity 429 stops collection
+as an infrastructure rejection rather than becoming a scored engine failure.
+For isolated timing, select `--execution-purpose latency --concurrency 1` and give
+`--serial-reason`. Quality-run timings describe the declared concurrent load.
+A quota or permission
 denial pauses collection. After access is repaired, repeat the same certified
 command and directory: completed cases are retained, the blocked case may be retried
 once, and both physical responses remain inspectable. The final response is scored;
@@ -190,7 +367,7 @@ The same preparation, certified runner and scorer support SWDE. The pinned
 [SWDE card](../../src/harness/benchmarks/cards/swde.json) selects ten pages per
 website across 80 websites and eight domains before any provider calls. This is
 an 800-page subset of the original 124,291-page collection. Its
-[public input distribution](https://huggingface.co/datasets/Lexmount/LexBench-SWDE/tree/1a53107d865085d00458301abb8077dd01a2e651)
+[public input distribution, LexBench-SWDE-800](https://huggingface.co/datasets/Lexmount/LexBench-SWDE-800/tree/1a53107d865085d00458301abb8077dd01a2e651)
 contains unchanged HTML, original paths, checksums and source/license notices;
 reference answers and provider outputs are excluded. The original project
 license is Ms-RL; captured website content retains its publishers’ rights.
@@ -207,9 +384,18 @@ Use a separate data directory for this benchmark:
 uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
   prepare --benchmark swde --source /absolute/downloads/swde-source.tar.gz
 uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
-  plan --methods zyte-custom firecrawl-json scrapegraph-extract \
-  cloudflare-json browserbase-json oxylabs-json \
+  plan --methods scrapegraph-extract \
+  --concurrency 4 --execution-purpose quality \
   --snapshots /absolute/data/snapshots.json \
+  --output /absolute/data/swde/candidate.json
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
+  preflight --profile /absolute/data/swde/candidate.json --method scrapegraph-extract \
+  --run-dir /absolute/data/swde/preflight/scrapegraph \
+  --assessment-output /absolute/data/swde/scrapegraph-execution.json
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli --home /absolute/data/swde \
+  plan --methods scrapegraph-extract --concurrency 4 --execution-purpose quality \
+  --snapshots /absolute/data/snapshots.json \
+  --execution-assessment /absolute/data/swde/scrapegraph-execution.json \
   --output /absolute/data/swde/precall.json
 uv run --frozen --extra web-extract-eval python scripts/run_certified_benchmark.py --track web-extract \
   --home /absolute/data/swde --profile /absolute/data/swde/precall.json \
@@ -224,7 +410,8 @@ and rejects an override at collection. Product-specific extractors are rejected
 for SWDE. Firecrawl Parse uses HTML upload; it can share a plan with URL-based
 methods, retaining its own input route and the same frozen HTML bytes.
 
-The primary score reproduces MarkupLM’s page-hit precision, recall and F1
+The [original SWDE paper, Section 7.1.2](https://www.microsoft.com/en-us/research/wp-content/uploads/2016/02/StructedDataExtraction_SIGIR2011.pdf)
+defines page-hit precision, recall and F-score. The primary score reproduces MarkupLM’s page-hit precision, recall and F1
 arithmetic: a matching value makes a page-field hit even when other values are
 missing or extra. The subset fixes all 320 site-field groups in the macro
 population, including groups with no present values in the sample. This subset
@@ -232,6 +419,20 @@ adaptation is not a reproduction of a full SWDE leaderboard. Value-level micro
 precision/recall/F1 and exact field-set rate expose partial lists and extra values.
 Schema validity is separate from field quality. Every completed API call retains
 latency and any native usage receipt; quota denials pause collection.
+
+Both product and array-field reports also compute whole-page exact accuracy and
+empty-field accuracy from the retained final responses. Whole-page accuracy
+requires a successful response, usable field types and every requested field
+correct; pages with incomplete reference coverage are excluded from its denominator.
+Empty-field accuracy uses covered page-fields whose reference is empty. Failed
+calls remain incorrect, and array tasks must explicitly return an empty array.
+These diagnostics do not change the upstream scores or require provider calls.
+The report includes numerator/denominator counts, per-page outcomes and the input
+binding in `data/completion-metrics.json`; its release check recomputes the metrics
+and validates the overview and interpretation tables against the same evidence.
+The core table keeps these columns beside the existing field metrics. Its metric
+guide identifies their project-defined origin and gives formulas, population rules
+and worked examples; upstream metrics retain their own source explanations.
 
 Source-qualified reference corrections use the same scoring entry point:
 
@@ -287,6 +488,34 @@ fields. Combining independently frozen source plans requires an explicit
 `source_cohorts` method-to-plan-hash binding; each run retains its own timing policy.
 This progress report does not certify an incomplete comparison.
 
+Use `pages.<route>.intro` on non-home routes for language-keyed HTML that must precede generated
+tables, such as a pipeline diagram at the start of an interpretation page. Keep
+the remaining authored material in `body`. The manifest binds the intro's
+rendered content and position; checks reject a removed, changed or moved intro.
+English builds require an English intro whenever a Chinese intro is supplied.
+Home pages keep their core comparison first and place authored `body` content afterward.
+
+Model diagnostics use `model_comparison.dataset` and `model_comparison.tables` in
+the bound content. Each stage (`screening` or `validation`) selects cohorts with
+an `archive` path/hash and a `scores` member path/hash. Optional per-model labels
+and cohort labels are language keyed. Put one matching `data-model-screening`
+or `data-model-validation` placeholder on the interpretation page. The maintained
+renderer generates these tables from the retained scoring output, using the same
+aggregation owner as `model-score`; build and release checks recompute case counts,
+field F1, schema validity, whole-page correctness and timing distributions. Tables
+with missing bindings or edited values fail release. Model-study timings collected
+in separate windows remain neutral descriptive measurements.
+
+The plan CLI defaults to one in-flight call per method. Use explicit
+`--concurrency` for quality or throughput collection. Historical calls retain their
+original concurrency; reports suppress latency winners when effective limits
+differ or are undeclared. Resource caps apply before comparing those limits.
+
+Each product or record case has one comparison page. Participant links open the
+matching detail panel through its URL fragment. Each panel keeps its own field
+diagnostics, failure evidence and response dialog. Adding participants expands
+these pages without creating a separate HTML file for every method and case.
+
 Exercise this mode with the same renderer:
 
 ```sh
@@ -301,9 +530,19 @@ renderer/component checks when those owners change, rather than every release.
 Use the standalone check for local validation without publishing:
 
 ```sh
-uv run --frozen python -m harness.web_extract.cli check /absolute/report \
-  --release --visual-receipt /absolute/private/visual-receipt.json
+uv run --frozen python -m harness.web_extract.cli --home /absolute/benchmark-home \
+  check /absolute/report --release --profile /absolute/private/profile.json \
+  --visual-receipt /absolute/private/visual-receipt.json
 ```
+
+Formal checks, packaging and publication require the external frozen profile and
+an explicit `--home`. They verify that directory against the pinned dataset, its
+content and original audit, reproduce the public audit view, and bind each cached
+field judgment and native response to that audit. Public manifest edits cannot
+remove the required audit or change the completion denominator. Pass the same
+`--profile` to `package`; publication selects it from the bound target. Use the
+same global `--home` as the report build so original calls and repair chains resolve
+against the correct benchmark inputs.
 
 Building a local report does not upload it or change access permissions.
 The `publish` command runs the release check and packages the report itself;
@@ -387,6 +626,15 @@ and release. Reports retain original annotations and scores next to the qualifie
 comparison, with native outputs and timings unchanged.
 
 The report home exposes all-call mean/P50/P95 and sourced pricing for every method.
+
+When total charges are unavailable, a price entry can declare `cost_unavailable`
+with `population_cases`, `missing_cases`, localized `reason`, and an `evidence`
+path/SHA-256 binding. Materialize that JSON under `assets/` using the existing
+asset registry. The disclosure uses schema `web-extract-cost-disclosure/1`, the
+method ID, `case_count`, `total_charge_receipts` and `source_plan_sha256`.
+Build and release checks require matching populations and source-plan hashes;
+an unavailable total cannot also declare a numeric price or billing formula.
+
 Quality cells link to method/field filters; result rows open lazy evidence dialogs
 and link to full field diagnostics, same-case comparisons and safe source previews.
 Optional `source_screenshots` binds author-provided images by source path/hash;
@@ -480,6 +728,15 @@ For repaired product calls, `adjudicate --additional-prior /absolute/supplementa
 includes new reference disputes alongside the original review. Assembly requires
 adjudication of either review's disputes and rejects unrelated predecessor reviews.
 
+Product and record cohorts can combine disjoint participant reviews through
+`audit-assemble --additional-review`. To reuse completed reference adjudications,
+pass `adjudicate --resolved-adjudication /absolute/completed-adjudication`.
+Only identical status-and-value proposals are skipped; new claims still require
+adjudication. The retained packet and review hashes protect both forms of reuse.
+`adjudicate --case-ids /absolute/ready-cases.json` freezes a subset whose review is
+complete, so source adjudication can overlap the remaining result review. Use
+disjoint subsets of the new review; final assembly still requires full coverage.
+
 
 Shared record instructions are frozen in the run contract and appended to each
 field's schema description, including APIs that accept only property definitions.
@@ -489,3 +746,57 @@ A repair inherits its parent's instructions and native options unless the plan e
 overrides the native options. The instruction-delivery format is frozen too: historical
 record runs with a different format require a new cohort instead of a mixed repair. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
 resolve from `<home>`, and absolute paths retain their meaning.
+
+## Self-hosted open-source extraction
+
+The complete [deployment and reproduction guide](../../deploy/web-extract/README.md)
+includes the six-service Compose stack, Rainbond mapping, four-route smoke check,
+both dataset commands, credential names and Firecrawl's commercial-use conditions.
+
+### Candidate qualification
+
+Qualification asks whether the project's native interface accepts a page plus
+field meanings/schema and returns field values without site-specific selectors.
+A built-in HTTP server is optional: this project wraps native libraries in the
+same authenticated API. Qualification is distinct from the complete quality run.
+
+| Candidate | Native extraction path | Qualification and comparison scope |
+| --- | --- | --- |
+| Crawl4AI 0.9.5 | `LLMExtractionStrategy`, native XML-block protocol | Complete Zyte 140 and SWDE 800 cohorts. |
+| ScrapeGraphAI 2.3.1 | `SmartScraperGraph` with frozen HTML and schema | Complete cohorts. HTML input avoids the verified URL preprocessing defect. |
+| Stagehand 4.4.0 (Python) | `Stagehand.extract` over the browser's accessible content | Complete cohorts. |
+| Firecrawl, digest-pinned server | `/v2/scrape` with JSON format and schema | Complete cohorts; backend and its dependencies are separately deployed. |
+| Scrapy 2.19.0 | CSS/XPath selectors in a spider | Frozen-page fetch/title selection succeeded. Semantic fields need a supplied selector set or additional extractor. Suitable for a rule/agent-generation comparison; not an independent schema-driven extractor in this cohort. |
+| Scrapling 0.5.1 | Selectors, adaptive matching, fetchers and MCP tools | Frozen-page parsing/title selection succeeded. Its MCP integration supplies tools to an external agent; the selected library does not itself define this cohort's semantic extraction policy. A fixed agent/extractor would form a new configuration. |
+| Crawlee 3.18.2 | Cheerio/Playwright handlers; optional `StagehandCrawler` | Basic fetch/title extraction succeeded. The Stagehand integration also returned schema fields after selecting its Responses protocol. It is eligible as a Crawlee + Stagehand combination, but was not run as a fifth independent extraction method: its extractor is Stagehand. Its JavaScript 3.7.3 configuration is distinct from the Python participant; their scores are not interchangeable. |
+
+The report method pages link the actual single-page qualification records,
+the failed Chat protocol attempt, the successful Responses attempt, and the
+checked upstream source commits. Scrapy/Scrapling selector results establish
+parsing capability, not cross-site semantic accuracy. Crawlee's single-page result
+establishes compatibility, not complete Zyte/SWDE coverage. Only the four complete
+certified configurations receive benchmark scores.
+
+`crawl4ai-json`, `scrapegraph-oss-json`, `stagehand-local-json` and `firecrawl-oss-json` use the native
+Crawl4AI, ScrapeGraphAI, Stagehand and Firecrawl extractors. They accept the same frozen
+Cloudflare page URLs and field schemas as hosted participants. They require a
+separately configured model; identify both the library and model in comparisons.
+Do not label these configurations as model-free extraction.
+
+Crawl4AI uses the SDK's default XML-block output protocol. Its schema prompt asks
+for XML-wrapped records; forcing JSON mode can retain a `blocks`/`score` envelope
+instead of the requested fields. The runtime identity binds this protocol. Run
+`make test-extraction-sdk` to exercise the pinned SDK parser with deterministic
+model responses, without browser navigation or model API calls.
+
+The ScrapeGraphAI adapter fetches the immutable snapshot bytes and passes them to
+the native graph's HTML input. Its receipt retains the fetched HTML hash. This
+avoids the 2.3.1 URL path's incorrect HTML-as-base-URL conversion; no custom field
+extractor replaces the graph. The health identity declares `native_input: html`.
+All frozen HTML must be UTF-8. Dataset qualification checks every page before any
+provider call; the native HTML route also rejects invalid bytes before graph execution.
+
+The [deployment guide](../../deploy/web-extract/README.md) owns service startup,
+credentials, runtime identity capture, API examples, timeouts and the Firecrawl
+backend topology. Its six-service Compose recipe is the deployment authority;
+this guide owns dataset qualification and certified benchmark execution.

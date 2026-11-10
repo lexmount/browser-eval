@@ -14,3 +14,4 @@ recursive-include src/harness/web_fetch/templates *.css
 recursive-include src/harness/web_search/assets *.css *.js
 
 recursive-include src/harness/web_extract/assets *.css *.js
+recursive-include src/harness/web_extract *.mjs

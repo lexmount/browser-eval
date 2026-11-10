@@ -11,6 +11,13 @@ Reports are optional; `AGENTS.md` owns the build and publication authorization r
 
 Read the repository's `AGENTS.md` first. Project rules override this general skill. Before changing a benchmark, read [evaluation design](references/evaluation-design.md). Before reviewing scores or deciding whether to rerun, read [audit and revision](references/audit-and-revision.md). Before building or publishing a report, read [report and release](references/report-and-release.md) and [presentation quality](references/presentation-quality.md).
 
+Before expensive collection, follow the shared [execution contract](../../../docs/benchmark-execution.md).
+Plan dependent stages and shared resources, measure a bounded readiness/throughput
+sample, and freeze concurrency, pacing, call budgets and timing scope. Reuse the
+shared scheduler and registered adapters. Review unexplained global serialization
+or repeated initialization before a full run. New tracks must register an execution
+owner and behavior tests alongside their report template.
+
 Before writing report HTML, resolve the track through `scripts/report_template.py`. Inspect the maintained implementation and its pinned example. Reuse that implementation and its release checks; a different cohort or diagnostic evidence state calls for a data adapter or explicit mode. If no track fits, create the smallest reusable renderer with a synthetic runnable example and behavioral checks, then register it in `configs/report-templates.json`. Improve the owning template and this skill from demonstrated gaps, without embedding run-specific prose or copying old measurements. A report must carry the selected template identity and input hashes so its release check can detect a bypass.
 
 Track-specific report rules live in the guides that `AGENTS.md` lists: Web Fetch cohort, diagnostic, local-audit and oversized-report rules in the [Web Fetch guide](../../../src/harness/web_fetch/README.md#certified-cohorts-and-report-builds), Search relevance, SERP and comparison rules in the [Web Search guide](../../../src/harness/web_search/README.md).
