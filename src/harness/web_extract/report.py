@@ -15,7 +15,7 @@ from html import escape as esc
 from pathlib import Path
 from urllib.parse import quote, unquote, urljoin, urlsplit
 
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 
 from harness.distribution import repository_root
 from harness.env_file import local_setting
@@ -1066,7 +1066,9 @@ def with_completion_columns(core, bundle, methods, language, *, before_details=F
     return str(soup)
 
 
-def completion_links(language, reference_view="source-qualified"):
+def completion_links(language, reference_view):
+    if reference_view not in ("original", "source-qualified"):
+        raise ValueError("Completion note requires an explicit reference view")
     return (
         '<p class="table-note" data-completion-links>'
         + message(
@@ -1940,7 +1942,7 @@ def check_audited_quality(soup, methods, scores, total, lang):
                 raise ValueError("Audited F1 or field population differs")
 
 
-def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, authored_html=""):
+def audit_explanation(audit, rows, methods, labels, lang, *, reference_view, core_html=None, authored_html=""):
     """Reader-facing review scope and source-qualified correction inventory."""
     zh = lang == "zh"
     count = audit["result_count"]
@@ -1990,6 +1992,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, aut
                 for method in methods
             ],
             attrs='data-audited-quality="true" data-sortable',
+            pin_method=True,
         ),
         "html.parser",
     )
@@ -2113,7 +2116,7 @@ def audit_explanation(audit, rows, methods, labels, lang, *, core_html=None, aut
             + '<div class="table-wrap" tabindex="0">'
             + str(compact)
             + "</div>"
-            + completion_links(lang)
+            + completion_links(lang, reference_view)
         )
     interpretation += authored_html
     interpretation += "<h2>" + (message("scoring_checks_field_matches", lang)) + "</h2><p>"
@@ -2390,6 +2393,7 @@ def retry_summary(statistics_by_method, labels, language="zh"):
                 [esc(labels[m]), f"{v['retry_seconds']:.3f}", str(v["retry_missing_timers"])]
                 for m, v in statistics_by_method.items()
             ],
+            pin_method=True,
         )
         + "</section>"
     )
@@ -2870,6 +2874,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                 ],
                 summary,
                 attrs='data-core-metrics="compatibility"',
+                pin_method=True,
             )
             + bodies["index"]
         )
@@ -2899,7 +2904,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             )
         if audit:
             review_body, interpretation_body = audit_explanation(
-                audit, rows, methods, names, lang, core_html=core if cohort else None,
+                audit, rows, methods, names, lang, reference_view=completion["reference_view"] if completion else None, core_html=core if cohort else None,
                 authored_html=bodies["interpretation"],
             )
             bodies["review"] = review_body
@@ -2952,7 +2957,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
         ]
         if lang == "zh":
             headers = [x.replace("annotated", message("annotated", lang)) for x in headers]
-        hist = table(headers, hr, attrs='data-history-table="true"')
+        hist = table(headers, hr, attrs='data-history-table="true"', pin_method=True)
         soup = BeautifulSoup(hist, "html.parser")
         for row in soup.select("tbody tr"):
             method = row.select_one("td").get_text()
@@ -3120,6 +3125,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
                     ],
                     compared,
                     attrs='data-case-comparison="true" data-sortable',
+                    pin_method=True,
                     sort_values={5: [row.get("elapsed_seconds") for row in case_rows]},
                 )
                 + "</article>"
@@ -3575,11 +3581,18 @@ def check_reader_contract(output, manifest, *, release=False):
         home_page = (output / lang / "index.html").read_text(encoding="utf-8")
         if manifest.get("mode") in ("full-cohort-progress", "field-extraction-cohort"):
             document = BeautifulSoup(home_page, "html.parser")
-            first = document.select_one("main").find(recursive=False)
-            if first is None or not (
-                first.has_attr("data-core-metrics") or first.select_one("[data-core-metrics]")
-            ):
+            main = document.select_one("main")
+            current = document.select_one("main table[data-completion-metrics]")
+            if current is None:
                 raise ValueError("Core comparison must precede authored home-page content")
+            while current is not main:
+                if any(
+                    not isinstance(sibling, Comment)
+                    and (getattr(sibling, "name", None) is not None or str(sibling).strip())
+                    for sibling in current.previous_siblings
+                ):
+                    raise ValueError("Core comparison must precede authored home-page content")
+                current = current.parent
         check_metric_guide(
             home_page,
             metric_definitions(lang, records=manifest.get("mode") == "field-extraction-cohort"),
@@ -3976,8 +3989,16 @@ def completion_authorities(profile, home):
         model = read_json(content)
         if model.get("audit"):
             paths.append(content.parent / model["audit"]["path"])
+        for key in ("cohort_plan", "reference_revision"):
+            binding = model.get(key) or {}
+            if binding.get("path"):
+                paths.append(Path(binding["path"]))
         for selection in model.get("evidence_runs", []):
             paths.append(resolve_run_path(home, selection["run"]))
+            if selection.get("plan"):
+                paths.append(Path(selection["plan"]))
+            if selection.get("assessment"):
+                paths.append(Path(selection["assessment"]["path"]))
             paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
     return tuple(dict.fromkeys(paths))
 
@@ -4305,6 +4326,7 @@ def record_review_section(audit, original_reference, original_metrics, labels, l
             [t("method"), t("original_score"), t("reviewed_score")],
             rows,
             {1: ("original-macro-f1", "max", before), 2: ("reviewed-macro-f1", "max", after)},
+            pin_method=True,
         )
         + "</section>"
     )
@@ -5023,7 +5045,11 @@ def build_record_cohort(output, content, *, home, language, profile):
             comparison,
             cid + " · " + t("all_methods"),
             ("<p>" + t("review_scope_note") + "</p>" if audit_binding else "")
-            + table([t("method"), t("outcome"), t("exact"), t("timing"), t("details")], comparisons)
+            + table(
+                [t("method"), t("outcome"), t("exact"), t("timing"), t("details")],
+                comparisons,
+                pin_method=True,
+            )
             + route_link(data_route, t("source"))
             + "".join(panels),
         )

@@ -456,7 +456,7 @@
       "Source: defined by this project, not an upstream benchmark metric. Formula: correctly empty fields / scored fields with an explicitly empty reference. Failed calls are incorrect; array tasks must explicitly return []. Example: 4 correct empty fields and 1 failed call among 5 negative fields: 4/5 = 80%."
     ],
     "guide_completion_populations": [
-      "The same reference-complete pages for every method, including failed calls. Use the reference version named in the column: original dataset labels or source-qualified labels.",
+      "The same reference-complete pages for every method, including failed calls. The note below the comparison table identifies the reference: original dataset labels or source-qualified labels.",
       "Scored page-fields whose reference is explicitly empty, including failed calls. Each field on each page is one sample; small negative populations do not establish general capability."
     ],
     "compact_core_comparison": "Core metric comparison",
@@ -943,7 +943,7 @@
       "来源：本项目补充定义，不属于数据集官方指标。公式：正确留空的字段数 ÷ 参考明确为空的字段总数。请求失败算错；数组字段必须明确返回 []。例：5 处应为空，4 处正确留空、1 处请求失败，则为 4/5＝80%。"
     ],
     "guide_completion_populations": [
-      "所有方法使用同一批参考完整的页面；含失败请求。参考版本按表头标注：原参考来自数据集，校验参考经过网页证据复核。",
+      "所有方法使用同一批参考完整的页面，含失败请求。表下注释说明使用哪套参考：原参考来自数据集，校验参考经过网页证据复核。",
       "参考明确为空且可评分的字段，一个网页中的一个字段计一个样本；含失败请求。样本少时不据此推断整体能力。"
     ],
     "compact_core_comparison": "核心指标对照",

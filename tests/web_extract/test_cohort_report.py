@@ -670,7 +670,11 @@ def test_full_review_profile_cannot_publish_machine_only_results(tmp_path):
 
 @pytest.mark.parametrize("methods", [["alpha", "beta"], ["alpha", "beta", "gamma"]])
 @pytest.mark.parametrize("tied", [False, True])
-def test_interpretation_compares_every_registered_method_without_changing_scores(methods, tied):
+@pytest.mark.parametrize("reference_view", ["original", "source-qualified"])
+@pytest.mark.parametrize("language", ["en", "zh"])
+def test_interpretation_compares_every_registered_method_without_changing_scores(
+    methods, tied, reference_view, language
+):
     from harness.web_extract.report import audit_explanation
 
     fields = ("price", "sku", "availability", "OutOfStock")
@@ -687,7 +691,7 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
         }
         for m in methods
     ]
-    core, _ = cohort_metrics(methods, rows, [{"certified": True, "scores": scores}], 1, "en")
+    core, _ = cohort_metrics(methods, rows, [{"certified": True, "scores": scores}], 1, language)
     audit = {
         "case_count": 1,
         "result_count": len(rows),
@@ -699,7 +703,7 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
     }
     authored = '<section data-authored-interpretation><h2>Source evidence</h2></section>'
     _, html = audit_explanation(
-        audit, rows, methods, {}, "en", core_html=core, authored_html=authored
+        audit, rows, methods, {}, language, reference_view=reference_view, core_html=core, authored_html=authored
     )
     soup = check_presentation(html)
     reading_order = soup.select(
@@ -707,6 +711,10 @@ def test_interpretation_compares_every_registered_method_without_changing_scores
         '[data-method-interpretation]'
     )
     assert reading_order[1].has_attr('data-authored-interpretation')
+    from harness.web_extract.report import completion_links
+
+    expected_note = BeautifulSoup(completion_links(language, reference_view), "html.parser").p
+    assert soup.select_one("[data-completion-links]") == expected_note
     comparison = soup.select("[data-interpretation-comparison] tbody tr")
     assert soup.select_one("[data-interpretation-comparison]").parent["class"] == ["table-wrap"]
     assert [r["data-method"] for r in comparison] == methods
@@ -958,7 +966,9 @@ def test_audited_f1_exposes_each_field_population_and_exclusions():
         "audited_scores": scores,
         "excluded_fields": {"one": ["price", "availability"]},
     }
-    review, _ = audit_explanation(audit, rows, ["native"], {}, "en")
+    review, _ = audit_explanation(
+        audit, rows, ["native"], {}, "en", reference_view="source-qualified"
+    )
     soup = BeautifulSoup(review, "html.parser")
     assert [n.get_text() for n in soup.select("[data-audited-population]")] == [
         "Scored 1/2; excluded 1",
@@ -975,7 +985,9 @@ def test_audited_f1_exposes_each_field_population_and_exclusions():
     with pytest.raises(ValueError, match="field population"):
         check_audited_quality(soup, ["native"], scores, 2, "en")
     scores["native"]["price"]["cases"] = 0
-    review, _ = audit_explanation(audit, rows, ["native"], {}, "en")
+    review, _ = audit_explanation(
+        audit, rows, ["native"], {}, "en", reference_view="source-qualified"
+    )
     soup = BeautifulSoup(review, "html.parser")
     first = soup.select_one("[data-audited-quality] tbody tr td:nth-child(2)")
     check_presentation(soup)
@@ -1231,7 +1243,7 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
         "audited_scores": scores,
         "excluded_fields": {"one": ["price"]},
     }
-    review, interpretation = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang)
+    review, interpretation = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang, reference_view="source-qualified")
     assert "EXACT TRANSPORT ERROR" in interpretation
     assert "Fields were returned" not in interpretation
     assert "these_differences_concern" not in interpretation
@@ -1241,7 +1253,7 @@ def test_interpretation_uses_program_error_and_never_invents_returned_fields(lan
         compatibility="structured_output", native_error="", diagnosis={"cause": "STALE TLS FAILURE"}
     )
     rows[0]["field_results"]["price"].update(expected=["12"], actual="13", status="wrong")
-    _, current = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang)
+    _, current = audit_explanation(audit, rows, ["firecrawl-json"], {}, lang, reference_view="source-qualified")
     assert "STALE TLS FAILURE" not in current
     specimen = BeautifulSoup(current, "html.parser").select_one("[data-interpretation-example]")
     assert specimen is not None
@@ -1414,17 +1426,20 @@ def test_unknown_total_cost_requires_scoped_bound_evidence(tmp_path, mode, langu
 
 def test_core_progress_uses_two_columns_without_hiding_pending_or_failed_calls():
     rows = [
-        {'method': 'a', 'case_id': 'one', 'compatibility': 'structured_output'},
-        {'method': 'a', 'case_id': 'two', 'compatibility': 'api_error'},
+        {"method": "a", "case_id": "one", "compatibility": "structured_output"},
+        {"method": "a", "case_id": "two", "compatibility": "api_error"},
     ]
-    html, _ = cohort_metrics(['a', 'b'], rows, [], 3, 'en')
-    table_view = BeautifulSoup(html, 'html.parser').select_one('[data-core-metrics]')
-    assert [h.get_text() for h in table_view.select('th')][:3] == [
-        'Method', 'Tested / total', 'Returned objects']
-    assert len(table_view.select('th')) == 7
-    assert table_view.has_attr('data-method-column')
-    actual = table_view.select('tbody tr')
-    assert [r.select_one('[data-execution-count]').get_text() for r in actual] == ['2 / 3', '0 / 3']
-    assert [r.select('td')[2].get_text() for r in actual] == ['1', '0']
-    assert all('Incomplete' in r.select('td')[1].get_text() for r in actual)
-    assert table_view.parent.get('tabindex') == '0'
+    html, _ = cohort_metrics(["a", "b"], rows, [], 3, "en")
+    table_view = BeautifulSoup(html, "html.parser").select_one("[data-core-metrics]")
+    assert [h.get_text() for h in table_view.select("th")][:3] == [
+        "Method",
+        "Tested / total",
+        "Returned objects",
+    ]
+    assert len(table_view.select("th")) == 7
+    assert table_view.has_attr("data-method-column")
+    actual = table_view.select("tbody tr")
+    assert [r.select_one("[data-execution-count]").get_text() for r in actual] == ["2 / 3", "0 / 3"]
+    assert [r.select("td")[2].get_text() for r in actual] == ["1", "0"]
+    assert all("Incomplete" in r.select("td")[1].get_text() for r in actual)
+    assert table_view.parent.get("tabindex") == "0"

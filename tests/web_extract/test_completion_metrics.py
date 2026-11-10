@@ -443,7 +443,10 @@ def test_only_explicit_comparison_tables_pin_the_method_column(heading):
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
-def test_home_comparison_precedes_authored_content_and_gate_rejects_reordering(tmp_path, mode):
+@pytest.mark.parametrize("location", ["direct", "nested", "inside-owner"])
+def test_home_comparison_precedes_authored_content_and_gate_rejects_reordering(
+    tmp_path, mode, location
+):
     from bs4 import BeautifulSoup
 
     from harness.web_extract.example import create
@@ -459,7 +462,15 @@ def test_home_comparison_precedes_authored_content_and_gate_rejects_reordering(t
     assert first.has_attr("data-core-metrics") or first.select_one("[data-core-metrics]")
     introduction = document.new_tag("section")
     introduction.string = "A long introduction must follow the comparison."
-    document.main.insert(0, introduction)
+    if location == "direct":
+        document.main.insert(0, introduction)
+    elif location == "nested":
+        wrapper = document.new_tag("section")
+        first.wrap(wrapper)
+        wrapper.insert(0, introduction)
+    else:
+        owner = document.select_one("[data-core-metrics]")
+        (owner.parent if owner.name == "table" else owner).insert(0, introduction)
     path.write_text(str(document), encoding="utf-8")
     manifest_path = output / "report-manifest.json"
     manifest = read_json(manifest_path)
@@ -500,3 +511,46 @@ def test_completion_metrics_highlight_every_tied_best_value(rates):
     assert not soup.select('tbody tr:last-child .comparison-winner')
     with pytest.raises(ValueError, match='highlight'):
         check_presentation(html.replace('class="comparison-winner"', 'class="ordinary"', 1))
+
+
+def test_metric_guide_directs_both_languages_to_the_reference_note(tmp_path):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.example import create
+
+    output = tmp_path / 'report'
+    create(output, mode='full-cohort-progress', language='en')
+    for language, pointer, stale in [
+        ('en', 'note below the comparison table', 'named in the column'),
+        ('zh', '表下注释', '参考版本按表头'),
+    ]:
+        page = BeautifulSoup((output / language / 'index.html').read_text(encoding='utf-8'),
+                             'html.parser')
+        guide = page.select_one('#metric-completion-page_exact').get_text()
+        assert pointer in guide
+        assert stale not in guide
+        assert page.select_one('[data-completion-links]')
+
+
+@pytest.mark.parametrize('mode', [
+    'compatibility', 'full-cohort-progress', 'field-extraction-cohort',
+])
+def test_home_and_each_same_page_comparison_keep_method_names_pinned(tmp_path, mode):
+    from bs4 import BeautifulSoup
+
+    from harness.web_extract.example import create
+
+    output = tmp_path / 'report'
+    create(output, mode=mode)
+    paths = [output / 'zh/index.html', *sorted((output / 'zh').glob('case-*.html')),
+             *sorted((output / 'zh').glob('c-*.html'))]
+    assert len(paths) > 1
+    for path in paths:
+        document = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
+        comparisons = [table for table in document.select('table')
+                       if table.select_one('thead th')
+                       and table.select_one('thead th').get_text(strip=True) in ('Method', '方法')]
+        assert comparisons, path
+        for table in comparisons:
+            assert table.has_attr('data-method-column'), path
+            assert table.parent.get('tabindex') == '0', path

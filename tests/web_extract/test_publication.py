@@ -1031,8 +1031,13 @@ def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_p
         content,
         {
             "audit": {"path": "audit.json"},
+            "cohort_plan": {"path": str(home / "plan.json")},
+            "reference_revision": {"path": str(home / "reference.json")},
+            "dataset_manifest": str(tmp_path / "retired-home/dataset/manifest.json"),
             "evidence_runs": [
-                {"run": "first", "repair": [{"path": str(home / "repairs/final")}]},
+                {"run": "first", "plan": str(home / "plan.json"),
+                 "assessment": {"path": str(home / "assessment.json")},
+                 "repair": [{"path": str(home / "repairs/final")}]},
                 {"run": "runs/second"},
             ],
         },
@@ -1045,6 +1050,9 @@ def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_p
         home / "runs/first",
         home / "runs/second",
         home / "repairs/final",
+        home / "plan.json",
+        home / "reference.json",
+        home / "assessment.json",
     }
 
 
@@ -1104,7 +1112,9 @@ def test_check_verifies_original_evidence_once_for_each_cohort(tmp_path, monkeyp
     assert calls == [1]
 
 
-@pytest.mark.parametrize('changed', ['profile', 'content', 'audit', 'dataset', 'execution'])
+@pytest.mark.parametrize('changed', [
+    'profile', 'content', 'audit', 'dataset', 'execution', 'plan', 'assessment', 'reference',
+])
 def test_packaging_rejects_private_authority_changes_during_validation(
     tmp_path, monkeypatch, changed
 ):
@@ -1117,11 +1127,18 @@ def test_packaging_rejects_private_authority_changes_during_validation(
         'audit': tmp_path / 'audit.json',
         'dataset': tmp_path / 'dataset/page.html',
         'execution': tmp_path / 'runs/first/call.json',
+        'plan': tmp_path / 'plan.json',
+        'assessment': tmp_path / 'assessment.json',
+        'reference': tmp_path / 'reference.json',
     }
     for path in paths.values():
         save_json(path, {})
-    save_json(paths['content'], {'audit': {'path': 'audit.json'},
-                                'evidence_runs': [{'run': 'first'}]})
+    save_json(paths['content'], {
+        'audit': {'path': 'audit.json'},
+        'reference_revision': {'path': str(paths['reference'])},
+        'evidence_runs': [{'run': 'first', 'plan': str(paths['plan']),
+                          'assessment': {'path': str(paths['assessment'])}}],
+    })
     save_json(paths['profile'], {'dataset': {'id': 'frozen'},
                                 'research_report': {'content': {'path': 'content.json'}}})
 
