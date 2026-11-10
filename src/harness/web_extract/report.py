@@ -816,9 +816,12 @@ def verify_execution_projection(original, published):
         "physical_attempt",
         "retry_execution_seconds",
         "retry_missing_timers",
+        "review",
     }
 
     def same_fields(expected, actual):
+        if ("review" in expected) != ("review" in actual):
+            return False
         fields = (set(expected) - derived - {"physical_attempts"}) | required
         return canonical_json_sha256(
             {k: actual.get(k) for k in fields}, allow_nan=False
@@ -962,8 +965,13 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
     from harness.web_extract.repair import load_selection
 
     reviewed = audit.get("results", {}) if audit else {}
+    compatibility = read_json(source / "report-manifest.json").get("mode") == "compatibility"
     records = model.get("mode") == "field-extraction-cohort"
-    truth = read_json(home / "dataset/dataset/ground-truth.json") if cohort_rows is not None else {}
+    truth = (
+        read_json(home / "dataset/dataset/ground-truth.json")
+        if cohort_rows is not None or compatibility
+        else {}
+    )
     scoring_truth = audit["audited_reference"] if records and audit else truth
     if records:
         references = [("reference.json", scoring_truth)]
@@ -986,9 +994,21 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
                 read_json(source / "public-evidence" / relative)
             ) != canonical_json_sha256(json.loads(view)):
                 raise ValueError("Completion audit public reference differs from frozen inputs")
-    public_rows, seen = {}, set()
+    public_rows, seen, native_paths = {}, set(), set()
     for index, selection in enumerate(model.get("evidence_runs", [])):
-        if cohort_rows is None:
+        if compatibility:
+            directory = resolve_run_path(home, selection["run"])
+            contract, originals = load_run(directory)
+            if contract["dataset_manifest_sha256"] != digest(
+                (home / "dataset/manifest.json").read_bytes()
+            ):
+                raise ValueError("Compatibility executions belong to different inputs")
+            originals = [
+                row
+                for row in originals
+                if selection.get("methods") is None or row["method"] in selection["methods"]
+            ]
+        elif cohort_rows is None:
             _, originals = load_selection(home, selection)
         else:
             originals = cohort_rows[index]
@@ -1007,10 +1027,14 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
             ):
                 raise ValueError("Completion audit native original changed")
             seen.add(key)
-            if method not in public_rows:
+            if compatibility:
+                relative = f"public-evidence/{method}-{cid}.json"
+                native_paths.add(relative)
+                public_rows.setdefault(method, {})[cid] = read_json(source / relative)
+            elif method not in public_rows:
                 public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
             expected_row = row
-            if cohort_rows is not None:
+            if cohort_rows is not None or compatibility:
                 if records:
                     current = row
                     if audit:
@@ -1050,7 +1074,7 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
             expected = json.loads(view)
             published = public_rows[method].get(cid, {})
             verify_execution_projection(expected, published)
-            if cohort_rows is not None and canonical_json_sha256(
+            if (cohort_rows is not None or compatibility) and canonical_json_sha256(
                 expected.get("normalized_fields"), allow_nan=False
             ) != canonical_json_sha256(published.get("normalized_fields"), allow_nan=False):
                 raise ValueError("Completion audit scored projection changed")
@@ -1059,6 +1083,12 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
     }
     if seen != published_keys or (reviewed and seen != set(reviewed)):
         raise ValueError("Completion audit native response coverage changed")
+    if compatibility and native_paths != {
+        path.relative_to(source).as_posix()
+        for path in (source / "public-evidence").glob("*.json")
+        if path.name not in ("metadata.json", "audit.json")
+    }:
+        raise ValueError("Compatibility native response coverage changed")
 
 
 def verify_completion_audit(source, profile, *, home=None):

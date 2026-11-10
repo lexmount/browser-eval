@@ -1812,9 +1812,11 @@ def test_published_cohort_metadata_is_reproduced_from_private_authorities(
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
-@pytest.mark.parametrize("damage", ["native-response", "reference-coverage", "certified-scope"])
+@pytest.mark.parametrize(
+    "damage", ["native-response", "reference-coverage", "certified-scope", "injected-review"]
+)
 def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mode, damage):
-    from harness.web_extract.report import completion_bundle, package
+    from harness.web_extract.report import completion_bundle, completion_links, package
 
     home = create(tmp_path / "fixture", mode=mode)
     content = home / "content.json"
@@ -1829,7 +1831,7 @@ def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mod
     check(output, profile=profile, home=home)
     manifest_path = output / "report-manifest.json"
     manifest = read_json(manifest_path)
-    if damage != "native-response":
+    if damage not in ("native-response", "injected-review"):
         if damage == "reference-coverage":
             manifest["completion_reference_exclusions"] = {"synthetic-case": ["price"]}
         elif mode == "field-extraction-cohort":
@@ -1844,7 +1846,11 @@ def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mod
     relative = "public-evidence/" + method + ".json"
     path = output / relative
     bucket = read_json(path)
-    next(iter(bucket.values()))["response"]["unscored_native_metadata"] = "substituted"
+    row = next(iter(bucket.values()))
+    if damage == "injected-review":
+        row["review"] = {"audited_fields": row["field_results"]}
+    else:
+        row["response"]["unscored_native_metadata"] = "substituted"
     save_json(path, bucket)
     manifest["files"][relative] = digest(path.read_bytes())
     for receipt in manifest["public_evidence_views"]:
@@ -1870,8 +1876,23 @@ def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mod
         ),
     )
     manifest["files"]["data/completion-metrics.json"] = digest(bundle_path.read_bytes())
+    if damage == "injected-review" and mode == "full-cohort-progress":
+        for language in manifest["languages"]:
+            for route in ("index", "interpretation"):
+                relative = f"{language}/{route}.html"
+                path = output / relative
+                document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+                replacement = BeautifulSoup(
+                    completion_links(language, "source-qualified"), "html.parser"
+                ).p
+                document.select_one("[data-completion-links]").contents[0].replace_with(
+                    replacement.contents[0]
+                )
+                path.write_text(str(document), encoding="utf-8")
+                manifest["files"][relative] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
-    _check_rendered_report(output)  # All report-owned bindings remain internally consistent.
+    if mode == "full-cohort-progress" or damage == "native-response":
+        _check_rendered_report(output)  # Report-owned bindings remain internally consistent.
     visual = tmp_path / "visual.json"
     save_json(visual, {})
     for release in (False, True):
@@ -1881,3 +1902,33 @@ def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mod
     with pytest.raises(ValueError, match="execution|native|response"):
         package(output, archive, profile=profile, home=home, visual_receipt=visual)
     assert not archive.exists()
+
+
+@pytest.mark.parametrize("selected", [None, ["synthetic-success"]])
+def test_bound_compatibility_report_checks_selected_execution_files(tmp_path, selected):
+    from harness.web_extract.cli import main
+
+    home = create(tmp_path / "fixture", mode="compatibility")
+    content = home / "content.json"
+    model = read_json(content)
+    model["evidence_runs"][0]["methods"] = selected
+    save_json(content, model)
+    profile = home / "profile.json"
+    instance = read_json(profile)
+    instance["research_report"] = {
+        "content": {"path": str(content), "sha256": digest(content.read_bytes())}
+    }
+    save_json(profile, instance)
+    output = tmp_path / "report"
+    build(output, content, home=home, profile=profile, language="zh")
+    cases = len(read_json(home / "dataset/dataset/ground-truth.json"))
+    assert check(output, profile=profile, home=home)["observations"] == cases * (
+        1 if selected else 2
+    )
+    main(["--home", str(home), "check", str(output), "--profile", str(profile)])
+    path = next((output / "public-evidence").glob("synthetic-success-*.json"))
+    row = read_json(path)
+    row["response"]["unscored_native_metadata"] = "substituted"
+    save_json(path, row)
+    with pytest.raises(ValueError, match="native execution"):
+        check(output, profile=profile, home=home)
