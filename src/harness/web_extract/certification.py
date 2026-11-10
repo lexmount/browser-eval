@@ -39,10 +39,10 @@ def _preflight_configuration(plan, method):
     }
 
 
-def verify_execution_assessment(plan, method, *, execution_sources=None):
-    """Verify readiness evidence at both collection and aggregation boundaries."""
+def execution_assessment_authorities(plan, method):
+    """Resolve the bound assessment and receipt used by readiness verification."""
     if not plan.get("require_execution_assessment"):
-        return
+        return ()
     binding = plan.get("execution_assessments", {}).get(method, {})
     source = Path(binding.get("path", ""))
     if (
@@ -55,6 +55,16 @@ def verify_execution_assessment(plan, method, *, execution_sources=None):
         )
     assessment = read_json(source)
     assess_execution(assessment, evidence_root=source.parent)
+    return source, source.parent / assessment["preflight"]["evidence_path"]
+
+
+def verify_execution_assessment(plan, method, *, execution_sources=None):
+    """Verify readiness evidence at both collection and aggregation boundaries."""
+    authorities = execution_assessment_authorities(plan, method)
+    if not authorities:
+        return
+    source, receipt_path = authorities
+    assessment = read_json(source)
     participant = plan["participants"][method]
     if (
         assessment["planned_calls"] != plan["case_count"]
@@ -64,7 +74,6 @@ def verify_execution_assessment(plan, method, *, execution_sources=None):
         raise ValueError(
             "Execution assessment belongs to a different method, population or configuration"
         )
-    receipt_path = source.parent / assessment["preflight"]["evidence_path"]
     receipt = read_json(receipt_path)
     manifest = receipt_path.parent / "manifest.json"
     if not manifest.is_file() or digest(manifest.read_bytes()) != receipt.get("manifest_sha256"):

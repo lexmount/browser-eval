@@ -4,7 +4,21 @@ import pytest
 from bs4 import BeautifulSoup
 
 from harness.web_extract.example import create
-from harness.web_extract.report import check, execution_settings
+from harness.web_extract.report import _check_rendered_report, execution_settings
+
+
+def test_segmented_execution_settings_preserve_each_selected_load():
+    from harness.web_extract.report import selected_execution_contracts
+
+    bindings = [{"segments": [
+        {"contract": {"methods": ["first", "unselected"], "concurrency": limit},
+         "methods": ["first"]}
+        for limit in (1, 2)
+    ]}]
+    sources = selected_execution_contracts(bindings)
+    assert set(sources) == {"first"}
+    soup = BeautifulSoup(execution_settings(sources, ["first"], {}, "en"), "html.parser")
+    assert [row.select("td")[1].get_text() for row in soup.select("tbody tr")] == ["1", "2"]
 
 
 def test_multi_method_report_uses_every_assigned_shared_limit():
@@ -34,11 +48,12 @@ def test_multi_method_report_uses_every_assigned_shared_limit():
 def test_execution_settings_follow_measured_contracts(tmp_path, mode, language, damage):
     output = tmp_path / "report"
     create(output, mode=mode, language=language)
-    check(output)
+    _check_rendered_report(output)
     path = output / language / "protocol.html"
     soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     section = soup.select_one("[data-execution-settings]")
     assert section is not None
+    assert section.select_one("table[data-method-column]") is not None
     if damage == "missing":
         section.decompose()
     elif damage == "duplicate":
@@ -47,4 +62,4 @@ def test_execution_settings_follow_measured_contracts(tmp_path, mode, language, 
         section.select("tbody tr")[0].select("td")[1].string = "999"
     path.write_text(str(soup), encoding="utf-8")
     with pytest.raises(ValueError, match="execution settings"):
-        check(output)
+        _check_rendered_report(output)

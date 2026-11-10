@@ -19,6 +19,7 @@ import time
 import uuid
 from concurrent.futures import CancelledError
 from datetime import UTC, datetime
+from decimal import Decimal, InvalidOperation
 from functools import wraps
 from pathlib import Path
 from urllib.parse import quote, quote_plus, urlsplit
@@ -35,9 +36,28 @@ from lexbench_webfetch.paths import validate_http_url
 
 ROOT = repository_root()
 PROFILE = Path(__file__).resolve().parents[1] / "benchmarks/cards/zyte-product-extraction.json"
-FIELDS = ("price", "sku", "availability", "InStock", "OutOfStock")
+PRODUCT_FIELDS = ("price", "sku", "availability")
+FIELDS = (*PRODUCT_FIELDS, "InStock", "OutOfStock")
 _RAW_SESSIONS = {}
 _COLLECTION_CLOCK = None
+
+
+def valid_product_value(field, value):
+    """Validate native target values before normalization can discard bad types."""
+    if field not in PRODUCT_FIELDS:
+        raise ValueError("Unknown product target field: " + field)
+    if value is None:
+        return True
+    if isinstance(value, (bool, dict, list)):
+        return False
+    if field == "price":
+        try:
+            return Decimal(str(value)).is_finite()
+        except (InvalidOperation, ValueError):
+            return False
+    if field == "availability":
+        return value in ("InStock", "OutOfStock")
+    return isinstance(value, (str, int, float))
 
 
 def execution_identity(row):

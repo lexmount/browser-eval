@@ -81,7 +81,13 @@ def inputs(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(swde, "CARD", card)
     monkeypatch.setitem(
-        dataset.BENCHMARKS, "swde", {"profile": str(card), "module": "harness.web_extract.swde"}
+        dataset.BENCHMARKS,
+        "swde",
+        {
+            "profile": str(card),
+            "module": "harness.web_extract.swde",
+            "reference_coverage_archive": "source/archives/groundtruth.7z",
+        },
     )
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
     monkeypatch.setattr("harness.web_extract.repair.load_runtime_env", lambda: None)
@@ -274,7 +280,7 @@ def source_revision_run(inputs, tmp_path, monkeypatch, request):
             assert command == ["bsdtar", "-xOf", str(archive), "groundtruth/book/book-a-author.txt"]
             return SimpleNamespace(stdout=annotations)
 
-        monkeypatch.setattr(swde.subprocess, "run", original_annotations)
+        monkeypatch.setattr(swde, "subprocess", SimpleNamespace(run=original_annotations))
     pipeline.save_json(authority, revision)
     return home, run, authority, calls
 
@@ -385,13 +391,65 @@ def reviewed_record_report(record_audit_material, tmp_path, monkeypatch):
     profile = pipeline.read_json(swde.CARD)
     profile.update(
         independent_result_review_scope="all",
-        research_report={"content": {"sha256": pipeline.digest(content.read_bytes())}},
+        research_report={
+            "content": {"path": str(content), "sha256": pipeline.digest(content.read_bytes())}
+        },
     )
     profile_path = tmp_path / "report-profile.json"
     pipeline.save_json(profile_path, profile)
     output = tmp_path / "reviewed-report"
     report.build(output, content, home=home, profile=profile_path, language="zh")
     return home, content, profile_path, output, audit_path
+
+
+@pytest.mark.parametrize("damage", ["changed", "missing"])
+def test_record_reference_revision_is_required_at_check_and_package(
+    reviewed_record_report, damage, tmp_path
+):
+    from harness.web_extract.report import check, package
+
+    home, content, profile, output, _ = reviewed_record_report
+    check(output, home=home, profile=profile)
+    revision = Path(pipeline.read_json(content)["reference_revision"]["path"])
+    if damage == "missing":
+        revision.unlink()
+    else:
+        pipeline.save_json(revision, {"substituted": True})
+    visual = tmp_path / "visual.json"
+    pipeline.save_json(visual, {})
+    for release in (False, True):
+        with pytest.raises((ValueError, FileNotFoundError)):
+            check(output, home=home, profile=profile, release=release, visual_receipt=visual)
+    archive = tmp_path / "public.zip"
+    with pytest.raises((ValueError, FileNotFoundError)):
+        package(output, archive, home=home, profile=profile, visual_receipt=visual)
+    assert not archive.exists()
+
+
+@pytest.mark.parametrize("source_revision_run", [True], indirect=True)
+@pytest.mark.parametrize("changed", [None, "coverage", "archive", "card"])
+def test_reference_coverage_inputs_remain_frozen_after_formal_verification(
+    reviewed_record_report, changed
+):
+    from harness.reporting.publication import PublicationSnapshot
+    from harness.web_extract.report import check, completion_authorities
+
+    home, content, profile, output, _ = reviewed_record_report
+    model = pipeline.read_json(content)
+    revision = pipeline.read_json(Path(model["reference_revision"]["path"]))
+    snapshot = PublicationSnapshot.for_inputs(completion_authorities(profile, home))
+    check(output, profile=profile, home=home)
+    if changed:
+        path = {
+            "coverage": Path(revision["coverage_authority"]["path"]),
+            "archive": home / "source/archives/groundtruth.7z",
+            "card": swde.CARD,
+        }[changed]
+        path.write_bytes(b"changed after reference verification")
+        with pytest.raises(ValueError, match="inputs changed"):
+            snapshot.check()
+    else:
+        snapshot.check()
 
 
 @pytest.fixture
@@ -539,7 +597,7 @@ def test_record_report_reproduces_complete_review_and_preserves_original_evidenc
     from harness.web_extract import report
 
     home, content, profile, output, audit = reviewed_record_report
-    report.check(output)
+    report._check_rendered_report(output)
     manifest = pipeline.read_json(output / "report-manifest.json")
     assert manifest["required_review_scope"] == "all"
     assert manifest["audit"]["source_sha256"] == pipeline.digest(audit.read_bytes())
@@ -617,7 +675,7 @@ def test_record_release_checks_review_content_beyond_file_hashes(reviewed_record
     manifest["files"][route] = pipeline.digest(path.read_bytes())
     pipeline.save_json(manifest_path, manifest)
     with pytest.raises(ValueError, match="review summary|inventory"):
-        report.check(output)
+        report._check_rendered_report(output)
 
 
 @pytest.mark.parametrize(
@@ -2604,32 +2662,32 @@ def test_certified_report_rejects_misidentified_receipts(source_revision_run, tm
     from harness.web_extract.report import cohort_source
 
     home, run, _, calls = source_revision_run
-    plan = tmp_path / 'original-plan.json'
-    truth = pipeline.read_json(home / 'dataset/dataset/ground-truth.json')
-    if defect in {'method', 'dataset'}:
-        path = run / 'certificate.json'
+    plan = tmp_path / "original-plan.json"
+    truth = pipeline.read_json(home / "dataset/dataset/ground-truth.json")
+    if defect in {"method", "dataset"}:
+        path = run / "certificate.json"
         receipt = pipeline.read_json(path)
-        receipt['method' if defect == 'method' else 'dataset_manifest_sha256'] = 'other-cohort'
+        receipt["method" if defect == "method" else "dataset_manifest_sha256"] = "other-cohort"
         pipeline.save_json(path, receipt)
-    elif defect == 'precall_population':
-        path = run / 'certification-precall.json'
+    elif defect == "precall_population":
+        path = run / "certification-precall.json"
         receipt = pipeline.read_json(path)
-        receipt['case_ids_sha256'] = 'other-population'
+        receipt["case_ids_sha256"] = "other-population"
         pipeline.save_json(path, receipt)
-        certificate = pipeline.read_json(run / 'certificate.json')
-        certificate['precall_sha256'] = pipeline.digest(path.read_bytes())
-        pipeline.save_json(run / 'certificate.json', certificate)
-    elif defect == 'report_dataset':
-        path = home / 'dataset/manifest.json'
+        certificate = pipeline.read_json(run / "certificate.json")
+        certificate["precall_sha256"] = pipeline.digest(path.read_bytes())
+        pipeline.save_json(run / "certificate.json", certificate)
+    elif defect == "report_dataset":
+        path = home / "dataset/manifest.json"
         manifest = pipeline.read_json(path)
-        manifest['different_snapshot'] = True
+        manifest["different_snapshot"] = True
         pipeline.save_json(path, manifest)
-    selection = {'plan': str(plan), 'plan_sha256': pipeline.digest(plan.read_bytes())}
+    selection = {"plan": str(plan), "plan_sha256": pipeline.digest(plan.read_bytes())}
     if defect is None:
         _, rows, evidence = cohort_source(run, selection, home, truth)
         assert len(rows) == len(truth) == 2
-        assert evidence['certified'] is True
+        assert evidence["certified"] is True
     else:
-        with pytest.raises(ValueError, match='Certificate|population'):
+        with pytest.raises(ValueError, match="Certificate|population"):
             cohort_source(run, selection, home, truth)
     assert len(calls) == 2

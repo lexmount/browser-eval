@@ -7,7 +7,7 @@ from bs4 import BeautifulSoup
 
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import build, check, worker_resources
+from harness.web_extract.report import _check_rendered_report, build, worker_resources
 
 
 def measured_example(tmp_path, mode):
@@ -58,7 +58,7 @@ def test_resource_tables_share_scope_units_counts_and_leaders_on_both_pages(tmp_
             assert cells[1][0] in section.select_one('[data-resource-leaders]').get_text()
             assert 'Firecrawl' in section.get_text() and 'MiB' in section.get_text()
         assert sections[0] == sections[1]
-    assert check(output)
+    assert _check_rendered_report(output)
 
 
 @pytest.mark.parametrize('mode', ['full-cohort-progress', 'field-extraction-cohort'])
@@ -82,7 +82,7 @@ def test_release_boundary_rejects_resource_errors_even_with_updated_file_hash(
     manifest['files']['zh/' + path.name] = digest(path.read_bytes())
     save_json(output / 'report-manifest.json', manifest)
     with pytest.raises(ValueError, match='resource|extremum|highlight'):
-        check(output)
+        _check_rendered_report(output)
 
 
 def test_invalid_or_absent_process_counters_do_not_become_zero_measurements():
@@ -95,6 +95,7 @@ def test_invalid_or_absent_process_counters_do_not_become_zero_measurements():
         {'method': 'b', 'response': {'usage': {'process_cpu_seconds': 2}}},
     ]
     section = BeautifulSoup(worker_resources(['a', 'b'], rows, labels, 'en'), 'html.parser')
+    assert section.select_one('table[data-method-column]') is not None
     first = section.select_one('tbody tr')
     assert [cell.get_text() for cell in first.select('td')][1:] == ['0 / 2', '—', '0 / 2', '—']
     assert not first.select('.comparison-winner')

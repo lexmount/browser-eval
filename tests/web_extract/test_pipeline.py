@@ -1,3 +1,4 @@
+
 import hashlib
 import json
 import os
@@ -19,7 +20,7 @@ from harness.web_extract.pipeline import (
     probe_cases,
     read_json,
 )
-from harness.web_extract.report import check, image_width
+from harness.web_extract.report import _check_rendered_report, check, image_width
 
 pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
 
@@ -390,7 +391,7 @@ class ReportScenarios(unittest.TestCase):
         self.home = create(self.output, language="en")
 
     def test_success_failure_evidence_and_language_parity(self):
-        result = check(self.output)
+        result = _check_rendered_report(self.output)
         self.assertEqual(result["observations"], 6)
         self.assertEqual(result["pages_per_language"], 15)
         for lang in ("en", "zh"):
@@ -436,7 +437,7 @@ class ReportScenarios(unittest.TestCase):
         manifest["files"]["en/index.html"] = digest(path.read_bytes())
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "Report navigation"):
-            check(self.output)
+            _check_rendered_report(self.output)
 
     def test_chinese_only_build_keeps_an_actionable_english_notice(self):
         output = self.output.parent / "chinese-only"
@@ -452,10 +453,10 @@ class ReportScenarios(unittest.TestCase):
             (output / "zh/accounts.html").read_text(encoding="utf-8"), "html.parser"
         )
         self.assertEqual(page.find("a", string="English")["href"], "en/index.html")
-        check(output)
+        _check_rendered_report(output)
         (output / "en/stale.html").write_text("old English", encoding="utf-8")
         with self.assertRaises(ValueError):
-            check(output)
+            _check_rendered_report(output)
 
     def test_hosted_root_base_preserves_assets_navigation_and_evidence(self):
         from urllib.parse import urljoin, urlsplit
@@ -503,17 +504,17 @@ class ReportScenarios(unittest.TestCase):
         manifest["files"]["en/index.html"] = digest(path.read_bytes())
         manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, "hosted site root"):
-            check(self.output)
+            _check_rendered_report(self.output)
 
     def test_tampered_output_rejected(self):
         p = self.output / "en/index.html"
         p.write_text(p.read_text(encoding="utf-8").replace("0.800", "0.900"), encoding="utf-8")
         with self.assertRaises(ValueError):
-            check(self.output)
+            _check_rendered_report(self.output)
 
     def test_release_rejects_missing_visual_evidence(self):
         with self.assertRaisesRegex(ValueError, "actual visual coverage"):
-            check(self.output, release=True)
+            check(self.output, release=True, profile=self.home / "profile.json", home=self.home)
 
     def test_release_rejects_desktop_capture_labeled_narrow(self):
         receipt = self.home / "visual.json"
@@ -529,7 +530,13 @@ class ReportScenarios(unittest.TestCase):
             encoding="utf-8",
         )
         with self.assertRaisesRegex(ValueError, "viewport dimensions"):
-            check(self.output, release=True, visual_receipt=receipt)
+            check(
+                self.output,
+                release=True,
+                visual_receipt=receipt,
+                profile=self.home / "profile.json",
+                home=self.home,
+            )
 
     def test_negative_highlight_summary_error_and_dialog_controls(self):
         good = (self.output / "en/index.html").read_text(encoding="utf-8")

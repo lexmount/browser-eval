@@ -9,6 +9,7 @@ import pytest
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
 from harness.web_extract.repair import compose, create_plan, run
+from harness.web_extract.report import _check_rendered_report
 from harness.web_extract.review import prepare, read_packet, reconcile_citations, validate
 
 pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
@@ -1708,7 +1709,7 @@ def test_review_batch_size_is_validated_before_any_io(tmp_path, batch_size, adju
 def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(
     tmp_path, field, finding_status
 ):
-    from harness.web_extract.report import build, check
+    from harness.web_extract.report import build
     from harness.web_extract.review import assemble, prepare, prepare_adjudication
 
     home = create(tmp_path / "example")
@@ -1768,7 +1769,7 @@ def test_complete_field_exclusion_assembles_and_builds_unavailable_metrics(
     build(
         tmp_path / "audited-report", home / "content.json", home=home, profile=home / "profile.json"
     )
-    check(tmp_path / "audited-report")
+    _check_rendered_report(tmp_path / "audited-report")
 
 
 def test_adjudication_cannot_be_mixed_with_another_valid_initial_audit(tmp_path, monkeypatch):

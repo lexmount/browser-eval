@@ -9,7 +9,7 @@ from bs4 import BeautifulSoup
 from harness.web_extract.analysis import summarize_model_rows
 from harness.web_extract.example import create
 from harness.web_extract.pipeline import digest, read_json, save_json
-from harness.web_extract.report import build, check
+from harness.web_extract.report import _check_rendered_report, build
 from tests.web_extract.test_record_report import rebind
 
 pytestmark = pytest.mark.usefixtures("stubbed_serial_collection")
@@ -62,10 +62,11 @@ def model_report(tmp_path, mode):
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
 def test_model_table_is_generated_from_case_scores_in_both_report_modes(tmp_path, mode):
     output = model_report(tmp_path, mode)
-    check(output)
+    _check_rendered_report(output)
     soup = BeautifulSoup(
         (output / "zh/interpretation.html").read_text(encoding="utf-8"), "html.parser")
     rows = soup.select("[data-model-validation] tbody tr")
+    assert soup.select_one("[data-model-validation] table[data-method-column]") is not None
     assert [[c.get_text() for c in row.select("td")[:4]] for row in rows] == [
         ["accurate", "100.00%", "2/2", "2/2"], ["fast", "50.00%", "2/2", "1/2"]]
     assert [float(row.select("td")[7]["data-sort"]) for row in rows] == [3, 1]
@@ -93,7 +94,7 @@ def test_release_rejects_model_table_drift_after_file_hashes_are_updated(tmp_pat
             return str(soup)
         rebind(output, "zh/interpretation.html", alter)
     with pytest.raises(ValueError, match="Model comparison"):
-        check(output)
+        _check_rendered_report(output)
 
 
 @pytest.mark.parametrize("incorrect", [0.1, 0.9, "missing-case", "duplicate-case"])
@@ -120,4 +121,4 @@ def test_model_summary_cannot_override_case_judgments_in_either_direction(tmp_pa
     manifest["files"]["assets/model-scores.zip"] = digest(archive.read_bytes())
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="aggregates differ|case population"):
-        check(output)
+        _check_rendered_report(output)
