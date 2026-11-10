@@ -370,15 +370,16 @@ def publication_metadata(home, binding, verification):
         if row["url"].startswith(selected["fixture_base"] + "/") and row["http_status"] == 200
     ]
     snapshot = verification if verification.get("mode") == "dataset_manifest" else None
+    managed = managed_cloudflare(binding, selected["fixture_base"])
+    if (snapshot is None or not managed) and (
+        len(actual) != len(expected) or set(actual) != expected
+    ):
+        raise ValueError("Snapshot publication requires every matching verified page")
     if snapshot is None:
-        if len(actual) != len(expected) or set(actual) != expected:
-            raise ValueError("Snapshot publication requires every matching verified page")
         snapshot = binding.get("snapshot_manifest")
-    if managed_cloudflare(binding, selected["fixture_base"]):
+    if managed:
         deployment_proof(home, binding, selected["fixture_base"])
     else:
-        if len(actual) != len(expected) or set(actual) != expected:
-            raise ValueError("Snapshot publication requires every matching verified page")
         expected_resources = {
             ("resource:" + name, value, selected["fixture_base"] + "/" + quote(name, safe="/"))
             for name, value in resource_inventory(home).items()

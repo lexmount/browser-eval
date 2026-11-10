@@ -8,7 +8,7 @@ import pytest
 from harness.web_extract.pipeline import digest, prepare, read_json, save_json, validate_dataset
 
 
-def distribution(tmp_path, monkeypatch):
+def distribution(tmp_path, monkeypatch, *, html=None):
     from harness.web_extract import dataset
 
     source = tmp_path / "public"
@@ -16,7 +16,7 @@ def distribution(tmp_path, monkeypatch):
     truth = {"one": {"url": "https://example.org/product", "sku": ["SKU-1"]}}
     raw = {
         "dataset/ground-truth.json": b'{"one":{"url":"https://example.org/product","sku":["SKU-1"]}}',
-        "html/one.html": "<p>商品 SKU-1</p>".encode(),
+        "html/one.html": "<p>商品 SKU-1</p>".encode() if html is None else html,
         "evaluate.py": b"# fixed upstream evaluator\n",
     }
     manifest = {
@@ -316,10 +316,11 @@ def test_data_selection_exposes_only_the_current_track_name():
         binding(retired)
 
 
-def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(tmp_path, monkeypatch):
+@pytest.mark.parametrize("raw", ["<p>商品 SKU-1</p>".encode(), b"<p>SKU-\xff</p>"])
+def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(tmp_path, monkeypatch, raw):
     from harness.web_extract import pipeline
 
-    _, profile, _ = distribution(tmp_path, monkeypatch)
+    _, profile, _ = distribution(tmp_path, monkeypatch, html=raw)
     home = tmp_path / "home"
     prepare(home, profile)
     monkeypatch.setattr(pipeline, "selected_profile", lambda _: profile)
@@ -333,5 +334,11 @@ def test_undeclared_utf8_archive_is_uploaded_without_changing_its_text(tmp_path,
         return {"http_status": 200, "response": {"result": {"sku": "SKU-1"}}}
 
     monkeypatch.setattr(pipeline, "provider_call", provider)
-    pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
-    assert sent == ["<p>商品 SKU-1</p>"]
+    if b"\xff" in raw:
+        with pytest.raises(UnicodeDecodeError):
+            pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
+        assert sent == []
+        assert not (tmp_path / "run/inflight.json").exists()
+    else:
+        pipeline.probe(home, ["cloudflare-json"], full=True, run_dir=tmp_path / "run")
+        assert sent == [raw.decode("utf-8")]
