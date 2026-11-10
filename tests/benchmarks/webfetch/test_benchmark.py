@@ -367,6 +367,14 @@ class FrozenInputs(unittest.TestCase):
 
         inherited = export('inherited', definition)
         self.assertEqual(bench.read(inherited.parent/'annotation-review.json')['changes'], expected)
+        # A chain reuses each predecessor's complete effective review.
+        third = dict(copy.deepcopy(definition), id='source-annotation-v3',
+                     predecessor={'id': definition['id'], 'sha256': bench.digest(directory/'source-annotation-v2.json')})
+        review['revisions']['source-annotation-v3'] = {'inherits': definition['id'], 'changes': [],
+                                                       'revision_sha256': write(directory/'source-annotation-v3.json', third)}
+        write(review_path, review)
+        chained = bench.export('synthetic', self.source, self.root/'chained', revision='source-annotation-v3')
+        self.assertEqual(bench.read(chained.parent/'annotation-review.json')['changes'], expected)
         changed = copy.deepcopy(definition)
         changed['changes'][0]['set']['required_facts'][0]['id'] = 'renamed'
         for name, current, inherits in (('changed-row', changed, 'source-annotation-v1'),

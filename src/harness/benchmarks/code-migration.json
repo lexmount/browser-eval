@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "ca03fad73014c43a41f9dcfeaafe590be30b7d53926aec3944d7fdd8d26b5090"
+          "after_sha256": "cf8541781027f8df78d30d76ae705fc47d5c4d17066e6c4f7f65a32a15912a8e"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",

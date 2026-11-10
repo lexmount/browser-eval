@@ -231,22 +231,25 @@ def _inherited_reviews(definition, reviews, inherits, entries):
     previous_review = reviews.get('revisions', {}).get(inherits, {})
     if digest(path) != predecessor.get('sha256') or previous_review.get('revision_sha256') != predecessor['sha256']:
         raise ValueError('Annotation predecessor differs from its declared hash')
-    rows = {(row['suite'], row['case_id']): row for row in read(path)['changes']}
-    current = {(row['suite'], row['case_id']): row for row in definition['changes']}
+    previous = read(path)
     shared = previous_review.get('shared_reasons', {})
-    reviewed = {(item['suite'], item['case_id']) for item in entries}
-    inherited = []
+    effective = []
     for item in previous_review.get('changes', []):
-        key = (item['suite'], item['case_id'])
-        if key in reviewed or key not in current or current[key] != rows.get(key):
-            continue
         item = dict(item)
         if 'reason_ref' in item:
             if 'reason' in item or not isinstance(shared, dict) or item['reason_ref'] not in shared:
                 raise ValueError('Invalid annotation reason reference')
             item['reason'] = shared[item.pop('reason_ref')]
-        inherited.append(item)
-    return inherited
+        effective.append(item)
+    # An inheriting predecessor supplies its complete effective review.
+    if 'inherits' in previous_review:
+        effective += _inherited_reviews(previous, reviews, previous_review['inherits'], effective)
+    rows = {(row['suite'], row['case_id']): row for row in previous['changes']}
+    current = {(row['suite'], row['case_id']): row for row in definition['changes']}
+    reviewed = {(item['suite'], item['case_id']) for item in entries}
+    return [item for item in effective
+            if (key := (item['suite'], item['case_id'])) not in reviewed
+            and key in current and current[key] == rows.get(key)]
 
 
 def _review_annotation(definition, revision_path, identifier, root, changes):
