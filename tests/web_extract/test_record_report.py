@@ -876,3 +876,46 @@ def test_record_release_rejects_free_text_price_without_numeric_conversion(tmp_p
     monkeypatch.setattr("harness.web_extract.report.check_input_profile", lambda *args: None)
     with pytest.raises(ValueError, match="normalized price"):
         check(output, release=True, profile=home / "profile.json", home=home)
+
+
+@pytest.mark.parametrize("segmented", [False, True])
+def test_authority_check_reuses_record_assembly_receipts(tmp_path, monkeypatch, segmented):
+    from harness.web_extract import report
+
+    home = create(tmp_path / "seed", mode="field-extraction-cohort")
+    content, profile = home / "content.json", home / "profile.json"
+    model = read_json(content)
+    if segmented:
+        model["evidence_runs"] = [{"segments": [entry]} for entry in model["evidence_runs"]]
+    save_json(content, model)
+    authority = read_json(profile)
+    authority["research_report"]["content"] = {
+        "path": str(content), "sha256": digest(content.read_bytes())
+    }
+    save_json(profile, authority)
+    original = report.record_cohort_inputs
+
+    def assemble(home, model, **options):
+        compatible = {**model, "evidence_runs": [
+            selection.get("segments", [selection])[0] for selection in model["evidence_runs"]
+        ]}
+        data = original(home, compatible, **options)
+        for method, receipt in list(data["sources"].items()):
+            extended = {**receipt, "case_count": len(data["cases"]),
+                        "participant": {"method": method}, "scorer_sha256": "1" * 64}
+            data["sources"][method] = {"segments": [extended]} if segmented else extended
+        return data
+
+    monkeypatch.setattr(report, "record_cohort_inputs", assemble)
+    output = tmp_path / "report"
+    report.build(output, content, home=home, profile=profile, language="zh")
+    report.check(output, profile=profile, home=home)
+    published = output / "public-evidence/sources.json"
+    sources = read_json(published)
+    next(iter(sources.values()))["unmeasured"] = True
+    save_json(published, sources)
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"]["public-evidence/sources.json"] = digest(published.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="Completion audit certification binding"):
+        report.check(output, profile=profile, home=home)

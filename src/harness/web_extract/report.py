@@ -853,7 +853,7 @@ def cohort_source_binding(source, selection, contract, receipt, *, records=False
     }
 
 
-def verify_cohort_authorities(source, home, model, manifest):
+def verify_cohort_authorities(source, home, model, manifest, *, profile):
     """Revalidate private certification through the same owner used by the build."""
     mode = model.get("mode")
     if mode not in ("full-cohort-progress", "field-extraction-cohort"):
@@ -886,27 +886,38 @@ def verify_cohort_authorities(source, home, model, manifest):
         ):
             raise ValueError("Completion audit comparison scope differs from frozen inputs")
     originals, seen = [], set()
-    expected = {} if records else []
-    for selection in model["evidence_runs"]:
-        directory = resolve_run_path(home, selection["run"])
+    if records:
         try:
-            contract, rows, receipt = cohort_source(directory, selection, home, truth)
+            assembled = record_cohort_inputs(home, model, profile=profile)
         except (OSError, KeyError, TypeError, ValueError) as error:
             raise ValueError("Completion audit cohort authority differs") from error
-        method = contract["methods"][0]
-        if method in seen:
-            raise ValueError("Completion audit certified participant scope differs")
-        binding = cohort_source_binding(directory, selection, contract, receipt, records=records)
-        if records:
-            expected[method] = binding
-        else:
-            expected.append(binding)
-        seen.add(method)
-        originals.append(rows)
+        expected = assembled["sources"]
+        seen = set(expected)
+        originals = [
+            [row for row in assembled["native_rows"] if row["method"] == method]
+            for method in expected
+        ]
+    else:
+        expected = []
+        for selection in model["evidence_runs"]:
+            directory = resolve_run_path(home, selection["run"])
+            try:
+                contract, rows, receipt = cohort_source(directory, selection, home, truth)
+            except (OSError, KeyError, TypeError, ValueError) as error:
+                raise ValueError("Completion audit cohort authority differs") from error
+            method = contract["methods"][0]
+            if method in seen:
+                raise ValueError("Completion audit certified participant scope differs")
+            expected.append(cohort_source_binding(directory, selection, contract, receipt))
+            seen.add(method)
+            originals.append(rows)
     if seen != expected_methods:
         raise ValueError("Completion audit certified participant scope differs")
     if records and manifest.get("complete_methods") != [
-        method for method in method_order if expected[method]["receipt"]["certified"]
+        method for method in method_order if all(
+            segment["receipt"]["certified"]
+            for segment in expected[method].get("segments", [expected[method]])
+        )
     ]:
         raise ValueError("Completion audit certified population differs from frozen inputs")
     view, _ = project_evidence_view(
@@ -1109,7 +1120,7 @@ def verify_completion_audit(source, profile, *, home=None):
     records = model.get("mode", manifest.get("mode")) == "field-extraction-cohort"
     authority = manifest.get("audit" if records else "completion_audit")
     verify_page_intros(source, model, manifest)
-    cohort_rows = verify_cohort_authorities(source, home, model, manifest)
+    cohort_rows = verify_cohort_authorities(source, home, model, manifest, profile=profile)
     all_rows = [row for rows in (cohort_rows or []) for row in rows]
     audit_binding = model.get("audit")
     if not audit_binding:
@@ -4355,6 +4366,7 @@ def record_cohort_inputs(home, model, *, profile):
             }
     elif model.get("reference_revision"):
         verify_record_reference(home, model, truth, native_rows, None)
+    result["native_rows"] = native_rows
     return result
 
 
