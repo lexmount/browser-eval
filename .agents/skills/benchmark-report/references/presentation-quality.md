@@ -44,7 +44,7 @@ For ratios, name numerator and denominator, state whether ratios are computed pe
 
 Put a core-metrics comparison table near the start of every report home page, before secondary diagnosis or interpretation. Prefer tables over repeated cards for dense categorical summaries. Generate its rows and columns from the participant registry rather than assuming a fixed participant count.
 
-For Web Extract cohort home pages, place a bound page intro after the core comparison and its reference note. Other pages may start with the intro. Check the intro's content and position together with the core-table order on the same generated page.
+For Web Extract cohort home pages, place a bound page intro after the core comparison and its reference note. Other pages may start with the intro. Reproduce the expected intro inventory from frozen content and check its rendered HTML and position together with the core-table order on the same generated page.
 
 When a current report has CPU, memory or network evidence, show the same grouped resource comparison on the home page and interpretation page. Lead with the evidence-derived winner for every metric where lower consumption has a clear meaning, mark winning cells in the tables, and state that resource leadership is separate from task pass rate. Do not label utilization or transfer rate as "better" merely because it is lower. Release checks must fail if the winner summary, grouped tables or winner markers are missing in any generated language.
 

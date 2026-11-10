@@ -1566,19 +1566,35 @@ def test_audited_product_build_checks_official_and_completion_columns_separately
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
 @pytest.mark.parametrize(
-    "damage", [None, "before-core", "missing", "changed", "duplicate", "after-guide"]
+    "damage",
+    [
+        None,
+        "before-core",
+        "missing",
+        "changed",
+        "duplicate",
+        "after-guide",
+        "coordinated-removal",
+        "coordinated-rewrite",
+        "coordinated-reorder",
+        "coordinated-addition",
+        "undeclared-addition",
+    ],
 )
 def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mode, damage):
     from copy import deepcopy
 
-    from harness.web_extract.report import home_comparison_end, page_intro_hash
+    from harness.web_extract.report import home_comparison_end, package, page_intro_hash
 
     home = create(tmp_path / "fixture", mode=mode)
     content_path = home / "content.json"
     model = read_json(content_path)
     for route in ("index", "protocol"):
         model.setdefault("pages", {}).setdefault(route, {})["intro"] = {
-            language: "<p>Open a frozen page, extract fields, compare references.</p>"
+            language: (
+                "<p>Open a frozen page, extract fields, compare references.</p>"
+                '<a href="dataset.html">Inputs</a><a href="https://example.org/docs">Docs</a>'
+            )
             for language in ("en", "zh")
         }
     save_json(content_path, model)
@@ -1622,7 +1638,8 @@ def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mo
                 assert document.main.find(True, recursive=False) is intro
     if damage is None:
         return
-    path = output / "zh/index.html"
+    relative = "zh/dataset.html" if damage.endswith("addition") else "zh/index.html"
+    path = output / relative
     document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     intro = document.select_one("main > [data-page-intro]")
     if damage == "before-core":
@@ -1633,10 +1650,39 @@ def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mo
         intro.p.string = "Substituted workflow."
     elif damage == "duplicate":
         intro.insert_after(deepcopy(intro))
+    elif damage == "coordinated-removal":
+        intro.decompose()
+        manifest["page_intros"].pop(relative)
+    elif damage == "coordinated-rewrite":
+        intro.p.string = "Substituted workflow."
+        manifest["page_intros"][relative] = page_intro_hash(str(document))
+    elif damage == "coordinated-reorder":
+        document.main.insert(0, intro.extract())
+        manifest["mode"] = "compatibility"
+    elif damage.endswith("addition"):
+        extra = document.new_tag("section", attrs={"data-page-intro": ""})
+        extra.string = "Unrequested introduction."
+        document.main.insert(0, extra)
+        if damage == "coordinated-addition":
+            manifest["page_intros"][relative] = page_intro_hash(str(document))
     else:
         document.main.append(intro.extract())
     path.write_text(str(document), encoding="utf-8")
-    manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+    manifest["files"][relative] = digest(path.read_bytes())
     save_json(manifest_path, manifest)
+    if damage.startswith("coordinated-") or damage == "undeclared-addition":
+        visual = tmp_path / "visual.json"
+        save_json(visual, {})
+        for release in (False, True):
+            with pytest.raises(ValueError, match="Frozen page intro"):
+                check(
+                    output, profile=profile_path, home=home, release=release, visual_receipt=visual
+                )
+        archive = tmp_path / "report.zip"
+        with pytest.raises(ValueError, match="Frozen page intro"):
+            package(output, archive, profile=profile_path, home=home, visual_receipt=visual)
+        assert not archive.exists()
+        assert not archive.with_suffix(".receipt.json").exists()
+        return
     with pytest.raises(ValueError, match="intro|Core comparison"):
         check(output)

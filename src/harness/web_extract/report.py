@@ -319,7 +319,9 @@ def authored_intro(model, route, language):
 
 def home_comparison_end(document):
     core = document.select_one("[data-core-metrics]")
-    if core is None:
+    if core is None or (
+        core.name != "table" and core.select_one("table[data-completion-metrics]") is None
+    ):
         return None
     anchor = core.parent if core.name == "table" else core
     note = anchor.find_next_sibling()
@@ -468,6 +470,46 @@ def validate_cohort_certificate(source, selection, truth, contract, precall):
             or cert["dataset_manifest_sha256"] != contract["dataset_manifest_sha256"]):
         raise ValueError("Certificate population, method, dataset or profile differs")
     return cert
+
+
+def intro_is_correctly_placed(document, node, route, mode):
+    if Path(route).stem == "index" and mode in ("full-cohort-progress", "field-extraction-cohort"):
+        anchor = home_comparison_end(document)
+        return anchor is not None and node.find_previous_sibling() is anchor
+    return document.main.find(True, recursive=False) is node
+
+
+def verify_page_intros(source, model, manifest):
+    """Reproduce the complete intro inventory from the selected frozen content."""
+    expected, observed = {}, {}
+    placeholder = '<div class="table-wrap"><table data-core-metrics></table></div>'
+    for language in manifest.get("languages", []):
+        for route in PAGES:
+            relative = language + "/" + route + ".html"
+            intro = authored_intro(model, route, language)
+            if intro:
+                rendered = page(
+                    language,
+                    route,
+                    "",
+                    placeholder,
+                    languages=manifest["languages"],
+                    state=model.get("mode", "compatibility"),
+                    intro=intro,
+                )
+                expected[relative] = page_intro_hash(rendered)
+            document = BeautifulSoup((source / relative).read_text(encoding="utf-8"), "html.parser")
+            nodes = document.select("[data-page-intro]")
+            if nodes:
+                if len(nodes) != 1 or nodes[0].parent is not document.main:
+                    raise ValueError("Frozen page intro inventory differs")
+                if not intro_is_correctly_placed(
+                    document, nodes[0], route, model.get("mode", "compatibility")
+                ):
+                    raise ValueError("Frozen page intro position differs")
+                observed[relative] = digest(str(nodes[0]).encode())
+    if observed != expected or manifest.get("page_intros", {}) != expected:
+        raise ValueError("Frozen page intro inventory or content differs")
 
 
 def cohort_source(source, selection, home, truth):
@@ -899,13 +941,16 @@ def verify_completion_audit(source, profile, *, home=None):
         and not content_binding.get("path")
         and instance.get("independent_result_review_scope") != "all"
     ):
+        verify_page_intros(source, {}, manifest)
         return
     if not content_binding.get("path"):
         raise ValueError("Completion audit requires frozen content")
     content = profile.parent / content_binding["path"]
     if content.is_symlink() or digest(content.read_bytes()) != content_binding["sha256"]:
         raise ValueError("Completion audit frozen content changed")
-    audit_binding = read_json(content).get("audit")
+    model = read_json(content)
+    verify_page_intros(source, model, manifest)
+    audit_binding = model.get("audit")
     if not audit_binding:
         if authority or instance.get("independent_result_review_scope") == "all":
             raise ValueError("Completion audit requires its frozen original")
@@ -3550,15 +3595,7 @@ def check_reader_contract(output, manifest, *, release=False):
         nodes = document.select("main > [data-page-intro]")
         if len(nodes) != 1 or digest(str(nodes[0]).encode()) != checksum:
             raise ValueError("Report page intro is missing or changed")
-        after_core = Path(route).stem == "index" and manifest.get("mode") in (
-            "full-cohort-progress",
-            "field-extraction-cohort",
-        )
-        if (
-            nodes[0].find_previous_sibling() is not home_comparison_end(document)
-            if after_core
-            else document.main.find(True, recursive=False) is not nodes[0]
-        ):
+        if not intro_is_correctly_placed(document, nodes[0], route, manifest.get("mode")):
             raise ValueError("Report page intro moved from its declared position")
     if release:
         validate_release_prices(manifest)

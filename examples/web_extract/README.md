@@ -478,8 +478,9 @@ default; English navigation shows a not-generated notice with a return link.
 
 Authored HTML intros use `pages.<route>.intro` with `en` and `zh` values. Cohort
 home pages place the intro after the core comparison and its reference note;
-other pages start with it. The report manifest binds each rendered intro, and
-the reader check verifies its content and position alongside the core-table order.
+other pages start with it. Formal checks reproduce the complete intro inventory
+from the profile-bound content through the renderer, then verify its HTML, URL
+transformations and position alongside the core-table order.
 
 For a research report, pass `report --profile /absolute/report-profile.json
 --content /absolute/content.json --output /absolute/new-report`. The external profile
