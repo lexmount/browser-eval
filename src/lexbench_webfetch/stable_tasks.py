@@ -1937,7 +1937,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             return (source_record_hash(fields, names, schema),
                     fields.get('path', '').strip() if schema == 'api_operation' else None)
 
-        known = {merge_key(row['fields']) for row in records if row['valid']}
+        # Each text row absorbs one equal returned row; further copies stay
+        # visible to the duplicate-record check.
+        from collections import Counter
+        known = Counter(merge_key(row['fields']) for row in records if row['valid'])
         # A complete returned row replaces the same fields parsed as invalid text.
         invalid = {merge_key(row['fields']): i for i, row in enumerate(records) if not row['valid']}
         # An explicit quote row can also be rendered in prose with comma
@@ -1953,7 +1956,10 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             if not isinstance(fields, dict) or not all(isinstance(fields.get(key), str) for key in names):
                 continue
             selected = {key: fields[key] for key in names}
-            if merge_key(selected) not in known:
+            key = merge_key(selected)
+            if known[key]:
+                known[key] -= 1
+            else:
                 record = _record(selected, schema)
                 equivalent = text_quotes.pop(quote_identity(selected), None) if record['valid'] and text_quotes else None
                 if equivalent is None and record['valid']:
