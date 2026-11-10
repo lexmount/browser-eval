@@ -81,7 +81,13 @@ def inputs(tmp_path, monkeypatch):
     )
     monkeypatch.setattr(swde, "CARD", card)
     monkeypatch.setitem(
-        dataset.BENCHMARKS, "swde", {"profile": str(card), "module": "harness.web_extract.swde"}
+        dataset.BENCHMARKS,
+        "swde",
+        {
+            "profile": str(card),
+            "module": "harness.web_extract.swde",
+            "reference_coverage_archive": "source/archives/groundtruth.7z",
+        },
     )
     monkeypatch.setattr(pipeline, "load_runtime_env", lambda: None)
     monkeypatch.setattr("harness.web_extract.repair.load_runtime_env", lambda: None)
@@ -274,7 +280,7 @@ def source_revision_run(inputs, tmp_path, monkeypatch, request):
             assert command == ["bsdtar", "-xOf", str(archive), "groundtruth/book/book-a-author.txt"]
             return SimpleNamespace(stdout=annotations)
 
-        monkeypatch.setattr(swde.subprocess, "run", original_annotations)
+        monkeypatch.setattr(swde, "subprocess", SimpleNamespace(run=original_annotations))
     pipeline.save_json(authority, revision)
     return home, run, authority, calls
 
@@ -418,6 +424,32 @@ def test_record_reference_revision_is_required_at_check_and_package(
     with pytest.raises((ValueError, FileNotFoundError)):
         package(output, archive, home=home, profile=profile, visual_receipt=visual)
     assert not archive.exists()
+
+
+@pytest.mark.parametrize("source_revision_run", [True], indirect=True)
+@pytest.mark.parametrize("changed", [None, "coverage", "archive", "card"])
+def test_reference_coverage_inputs_remain_frozen_after_formal_verification(
+    reviewed_record_report, changed
+):
+    from harness.reporting.publication import PublicationSnapshot
+    from harness.web_extract.report import check, completion_authorities
+
+    home, content, profile, output, _ = reviewed_record_report
+    model = pipeline.read_json(content)
+    revision = pipeline.read_json(Path(model["reference_revision"]["path"]))
+    snapshot = PublicationSnapshot.for_inputs(completion_authorities(profile, home))
+    check(output, profile=profile, home=home)
+    if changed:
+        path = {
+            "coverage": Path(revision["coverage_authority"]["path"]),
+            "archive": home / "source/archives/groundtruth.7z",
+            "card": swde.CARD,
+        }[changed]
+        path.write_bytes(b"changed after reference verification")
+        with pytest.raises(ValueError, match="inputs changed"):
+            snapshot.check()
+    else:
+        snapshot.check()
 
 
 @pytest.fixture

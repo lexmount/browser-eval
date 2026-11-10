@@ -4245,7 +4245,12 @@ def completion_authorities(profile, home):
                 if key == "cohort_plan":
                     include_plan(Path(binding["path"]))
                 else:
-                    paths.append(Path(binding["path"]))
+                    path = Path(binding["path"])
+                    paths.append(path)
+                    if model.get("mode") == "field-extraction-cohort":
+                        from harness.web_extract.dataset import reference_revision_authorities
+
+                        paths.extend(reference_revision_authorities(Path(home), read_json(path)))
         for group in model.get("evidence_runs", []):
             for selection in group.get("segments", [group]):
                 paths.append(resolve_run_path(home, selection["run"]))

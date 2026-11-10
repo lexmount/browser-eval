@@ -24,6 +24,7 @@ BENCHMARKS = {
     "swde": {
         "profile": "swde.json",
         "module": "harness.web_extract.swde",
+        "reference_coverage_archive": "source/archives/groundtruth.7z",
         "snapshot_project": "browser-eval-swde800-snapshots",
         "snapshot_distribution": {
             "repository": "Lexmount/LexBench-SWDE-800",
@@ -46,7 +47,26 @@ def benchmark_config(home=None, *, name=None):
         "adapter": importlib.import_module(item["module"]) if item["module"] else None,
         "snapshot_project": item.get("snapshot_project"),
         "snapshot_distribution": item.get("snapshot_distribution"),
+        "reference_coverage_archive": item.get("reference_coverage_archive"),
     }
+
+
+def reference_revision_authorities(home, revision):
+    """External coverage inputs used by the registered reference-revision owner."""
+    from harness.web_extract.pipeline import require_external_output
+
+    if not revision.get("unavailable_reference_groups"):
+        return ()
+    config = benchmark_config(home)
+    archive = config.get("reference_coverage_archive")
+    if not archive:
+        raise ValueError("Reference coverage requires its registered annotation archive")
+    binding = revision.get("coverage_authority", {})
+    source = Path(binding.get("path", ""))
+    require_external_output(source)
+    if not source.is_file() or bytes_sha256(source.read_bytes()) != binding.get("sha256"):
+        raise ValueError("Unavailable fields need a hash-bound full-annotation authority")
+    return source, Path(home) / archive, config["profile"]
 
 
 def require_product_reference(home):
