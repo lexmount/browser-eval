@@ -172,12 +172,14 @@ class LexmountProvider(Provider):
         declaration = native_answer_projection("lexmount", case, payload, response.status)
         # A malformed envelope declares no answer and supplies no answer fields.
         answer_fields = project_native_answer(payload, declaration)[1] if parsed else {}
+        final_url = result.get("final_url") or result.get("url")
         return ProviderResult(
             ok=ok,
             content=content,
             status_code=response.status,
-            final_url=result.get("final_url") or result.get("url"),
-            title=result.get("title"),
+            # Same selection as the native result_fields declaration.
+            final_url=final_url if isinstance(final_url, str) else None,
+            title=result.get("title") if isinstance(result.get("title"), str) else None,
             error_type=None if ok else ("authentication" if response.status == 401 else "api_error"),
             error_message=None if ok else (message or f"HTTP {response.status}"),
             metadata={
