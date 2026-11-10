@@ -1599,6 +1599,7 @@ def test_audited_product_build_checks_official_and_completion_columns_separately
         "coordinated-reorder",
         "coordinated-addition",
         "undeclared-addition",
+        "omitted-edition",
     ],
 )
 def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mode, damage):
@@ -1657,6 +1658,23 @@ def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mo
             else:
                 assert document.main.find(True, recursive=False) is intro
     if damage is None:
+        return
+    if damage == "omitted-edition":
+        if mode == "field-extraction-cohort":
+            manifest["languages"] = []
+        else:
+            manifest["languages"] = ["en"]
+        for relative in list(manifest["page_intros"]):
+            if relative.startswith("zh/"):
+                path = output / relative
+                document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+                document.select_one("[data-page-intro]").decompose()
+                path.write_text(str(document), encoding="utf-8")
+                manifest["files"][relative] = digest(path.read_bytes())
+                del manifest["page_intros"][relative]
+        save_json(manifest_path, manifest)
+        with pytest.raises(ValueError, match="generated editions"):
+            check(output, profile=profile_path, home=home)
         return
     relative = "zh/dataset.html" if damage.endswith("addition") else "zh/index.html"
     path = output / relative
@@ -1791,3 +1809,63 @@ def test_published_cohort_metadata_is_reproduced_from_private_authorities(
     save_json(path, manifest)
     with pytest.raises(ValueError, match="Completion audit certification binding"):
         check(output, profile=profile, home=home)
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mode):
+    from harness.web_extract.report import completion_bundle, package
+
+    home = create(tmp_path / "fixture", mode=mode)
+    content = home / "content.json"
+    profile = home / "profile.json"
+    instance = read_json(profile)
+    instance["research_report"] = {
+        "content": {"path": str(content), "sha256": digest(content.read_bytes())}
+    }
+    save_json(profile, instance)
+    output = tmp_path / "report"
+    build(output, content, home=home, profile=profile, language="zh")
+    check(output, profile=profile, home=home)
+    manifest_path = output / "report-manifest.json"
+    manifest = read_json(manifest_path)
+    method = manifest["planned_methods"][0]
+    relative = "public-evidence/" + method + ".json"
+    path = output / relative
+    bucket = read_json(path)
+    next(iter(bucket.values()))["response"]["unscored_native_metadata"] = "substituted"
+    save_json(path, bucket)
+    manifest["files"][relative] = digest(path.read_bytes())
+    for receipt in manifest["public_evidence_views"]:
+        if receipt["path"] == relative:
+            receipt["published_sha256"] = digest(path.read_bytes())
+            receipt["published_bytes"] = len(path.read_bytes())
+    rows = [
+        row
+        for selected in manifest["planned_methods"]
+        if (output / "public-evidence" / (selected + ".json")).exists()
+        for row in read_json(output / "public-evidence" / (selected + ".json")).values()
+    ]
+    bundle_path = output / "data/completion-metrics.json"
+    bundle = read_json(bundle_path)
+    save_json(
+        bundle_path,
+        completion_bundle(
+            manifest["planned_methods"],
+            rows,
+            records=bundle["records"],
+            complete_methods=bundle["complete_methods"],
+            excluded_fields=bundle["excluded_fields"],
+        ),
+    )
+    manifest["files"]["data/completion-metrics.json"] = digest(bundle_path.read_bytes())
+    save_json(manifest_path, manifest)
+    _check_rendered_report(output)  # All report-owned bindings remain internally consistent.
+    visual = tmp_path / "visual.json"
+    save_json(visual, {})
+    for release in (False, True):
+        with pytest.raises(ValueError, match="execution|native|response"):
+            check(output, profile=profile, home=home, release=release, visual_receipt=visual)
+    archive = tmp_path / "public.zip"
+    with pytest.raises(ValueError, match="execution|native|response"):
+        package(output, archive, profile=profile, home=home, visual_receipt=visual)
+    assert not archive.exists()

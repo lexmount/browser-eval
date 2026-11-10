@@ -479,11 +479,22 @@ def intro_is_correctly_placed(document, node, route, mode):
     return document.main.find(True, recursive=False) is node
 
 
+def report_editions(manifest):
+    """The maintained renderer emits Chinese alone or English plus Chinese."""
+    primary = manifest.get("primary_language")
+    expected = {"zh": ["zh"], "en": ["en", "zh"]}.get(primary)
+    if expected is None or manifest.get("languages") != expected:
+        raise ValueError("Report generated editions differ from their primary language")
+    if manifest.get("mode") == "field-extraction-cohort" and primary != "zh":
+        raise ValueError("Record reports currently support only the Chinese edition")
+    return expected
+
+
 def verify_page_intros(source, model, manifest):
     """Reproduce the complete intro inventory from the selected frozen content."""
     expected, observed = {}, {}
     placeholder = '<div class="table-wrap"><table data-core-metrics></table></div>'
-    for language in manifest.get("languages", []):
+    for language in report_editions(manifest) if "languages" in manifest else []:
         for route in PAGES:
             relative = language + "/" + route + ".html"
             intro = authored_intro(model, route, language)
@@ -873,14 +884,29 @@ def verify_cohort_authorities(source, home, model, manifest):
     records = mode == "field-extraction-cohort"
     if records:
         published = read_json(source / "public-evidence/sources.json")
-        expected_methods = set(model["participants"])
+        method_order = list(model["participants"])
     else:
         plan = model["cohort_plan"]
         raw = Path(plan["path"]).read_bytes()
         if digest(raw) != plan["sha256"]:
             raise ValueError("Completion audit cohort plan changed")
-        expected_methods = set(json.loads(raw)["participants"])
+        method_order = list(json.loads(raw)["participants"])
         published = manifest["source_runs"]
+    expected_methods = set(method_order)
+    if not expected_methods or canonical_json_sha256(
+        {
+            "methods": manifest.get("planned_methods"),
+            "cases": manifest.get("case_count"),
+        }
+    ) != canonical_json_sha256({"methods": method_order, "cases": len(truth)}):
+        raise ValueError("Completion audit declared population differs from frozen inputs")
+    if records:
+        compared, skipped = record_comparison_scope(model["participants"])
+        if (
+            manifest.get("comparison_methods") != compared
+            or manifest.get("skipped_methods") != skipped
+        ):
+            raise ValueError("Completion audit comparison scope differs from frozen inputs")
     originals, seen = [], set()
     expected = {} if records else []
     for selection in model["evidence_runs"]:
@@ -911,6 +937,124 @@ def verify_cohort_authorities(source, home, model, manifest):
     if canonical_json_sha256(json.loads(view)) != canonical_json_sha256(published):
         raise ValueError("Completion audit certification binding changed")
     return originals
+
+
+def verify_record_reference(home, model, truth, rows, audit):
+    """Share the reference-revision and audit contract between build and check."""
+    from harness.web_extract.analysis import check_record_audit
+
+    revision = None
+    if model.get("reference_revision"):
+        binding = model["reference_revision"]
+        revision = Path(binding["path"])
+        if revision.is_symlink() or digest(revision.read_bytes()) != binding["sha256"]:
+            raise ValueError("Record reference revision differs from its report binding")
+    if audit is not None:
+        check_record_audit(home, truth, rows, audit, reference_revision=revision)
+
+
+def verify_public_executions(source, home, model, cohort_rows, audit, *, profile):
+    """Bind every execution and scored value independently of review coverage."""
+    from harness.web_extract.repair import load_selection
+
+    reviewed = audit.get("results", {}) if audit else {}
+    records = model.get("mode") == "field-extraction-cohort"
+    truth = read_json(home / "dataset/dataset/ground-truth.json") if cohort_rows is not None else {}
+    scoring_truth = audit["audited_reference"] if records and audit else truth
+    if records:
+        references = [("reference.json", scoring_truth)]
+        if audit:
+            references.append(("original-reference.json", truth))
+        for relative, reference in references:
+            raw = (
+                json.dumps(reference, ensure_ascii=False).encode()
+                if relative == "reference.json"
+                else (home / "dataset/dataset/ground-truth.json").read_bytes()
+            )
+            view, _ = project_evidence_view(
+                "public-evidence/" + relative,
+                raw,
+                role="scored_answer",
+                content_format="json",
+                host_names=publication_host_names(),
+            )
+            if canonical_json_sha256(
+                read_json(source / "public-evidence" / relative)
+            ) != canonical_json_sha256(json.loads(view)):
+                raise ValueError("Completion audit public reference differs from frozen inputs")
+    public_rows, seen = {}, set()
+    for index, selection in enumerate(model.get("evidence_runs", [])):
+        if cohort_rows is None:
+            _, originals = load_selection(home, selection)
+        else:
+            originals = cohort_rows[index]
+        for row in originals:
+            method, cid = row["method"], row["case_id"]
+            key = method + ":" + cid
+            native_hash = digest(
+                json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
+            )
+            if key in seen or (
+                reviewed
+                and (
+                    reviewed.get(key, {}).get("native_response_sha256") != native_hash
+                    or reviewed.get(key, {}).get("execution_sha256") != execution_identity(row)
+                )
+            ):
+                raise ValueError("Completion audit native original changed")
+            seen.add(key)
+            if method not in public_rows:
+                public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
+            expected_row = row
+            if cohort_rows is not None:
+                if records:
+                    current = row
+                    if audit:
+                        from harness.web_extract.dataset import benchmark_config
+
+                        current = {
+                            **row,
+                            "normalized_fields": normalize(
+                                method,
+                                row.get("response", {}),
+                                schema=benchmark_config(home)["adapter"].task_schema(
+                                    home, truth[cid]
+                                ),
+                            ),
+                        }
+                    if reviewed:
+                        current = {**current, "review": reviewed[key]}
+                    expected_row = record_result_fields(
+                        scoring_truth[cid],
+                        current,
+                        policy=audit["reference_policy"] if audit else None,
+                    )
+                else:
+                    expected_row = {
+                        **row,
+                        "field_results": field_results(home, truth[cid], row, profile=profile),
+                    }
+                if reviewed:
+                    expected_row = {**expected_row, "review": reviewed[key]}
+            view, _ = project_evidence_view(
+                "public-evidence/native-row.json",
+                json.dumps(redact_account_endpoint(expected_row), ensure_ascii=False).encode(),
+                role="native_response",
+                content_format="json",
+                host_names=publication_host_names(),
+            )
+            expected = json.loads(view)
+            published = public_rows[method].get(cid, {})
+            verify_execution_projection(expected, published)
+            if cohort_rows is not None and canonical_json_sha256(
+                expected.get("normalized_fields"), allow_nan=False
+            ) != canonical_json_sha256(published.get("normalized_fields"), allow_nan=False):
+                raise ValueError("Completion audit scored projection changed")
+    published_keys = {
+        method + ":" + cid for method, bucket in public_rows.items() for cid in bucket
+    }
+    if seen != published_keys or (reviewed and seen != set(reviewed)):
+        raise ValueError("Completion audit native response coverage changed")
 
 
 def verify_completion_audit(source, profile, *, home=None):
@@ -959,12 +1103,22 @@ def verify_completion_audit(source, profile, *, home=None):
     if content.is_symlink() or digest(content.read_bytes()) != content_binding["sha256"]:
         raise ValueError("Completion audit frozen content changed")
     model = read_json(content)
+    records = model.get("mode", manifest.get("mode")) == "field-extraction-cohort"
+    authority = manifest.get("audit" if records else "completion_audit")
     verify_page_intros(source, model, manifest)
     cohort_rows = verify_cohort_authorities(source, home, model, manifest)
+    all_rows = [row for rows in (cohort_rows or []) for row in rows]
     audit_binding = model.get("audit")
     if not audit_binding:
         if authority or instance.get("independent_result_review_scope") == "all":
             raise ValueError("Completion audit requires its frozen original")
+        if records:
+            if cohort_rows is not None and manifest.get("reference_policy") is not None:
+                raise ValueError("Completion audit reference policy differs from frozen inputs")
+            verify_record_reference(
+                home, model, read_json(home / "dataset/dataset/ground-truth.json"), all_rows, None
+            )
+        verify_public_executions(source, home, model, cohort_rows, None, profile=profile)
         return
     if not authority or authority.get("path") != "public-evidence/audit.json":
         raise ValueError("Completion audit public authority is missing")
@@ -984,43 +1138,16 @@ def verify_completion_audit(source, profile, *, home=None):
         or (source / authority["path"]).read_bytes() != projected
     ):
         raise ValueError("Completion audit differs from its frozen original")
-    reviewed = json.loads(raw).get("results", {})
-    if reviewed:
-        from harness.web_extract.repair import load_selection
-
-        public_rows = {}
-        seen = set()
-        for index, selection in enumerate(model["evidence_runs"]):
-            if cohort_rows is None:
-                _, originals = load_selection(home, selection)
-            else:
-                originals = cohort_rows[index]
-            for row in originals:
-                method, cid = row["method"], row["case_id"]
-                key = method + ":" + cid
-                native_hash = digest(
-                    json.dumps(row.get("response"), sort_keys=True, ensure_ascii=False).encode()
-                )
-                if (
-                    key in seen
-                    or reviewed.get(key, {}).get("native_response_sha256") != native_hash
-                    or reviewed.get(key, {}).get("execution_sha256") != execution_identity(row)
-                ):
-                    raise ValueError("Completion audit native original changed")
-                seen.add(key)
-                if method not in public_rows:
-                    public_rows[method] = read_json(source / "public-evidence" / (method + ".json"))
-                view, _ = project_evidence_view(
-                    "public-evidence/native-row.json",
-                    json.dumps(redact_account_endpoint(row), ensure_ascii=False).encode(),
-                    role="native_response",
-                    content_format="json",
-                    host_names=publication_host_names(),
-                )
-                published = public_rows[method].get(cid, {})
-                verify_execution_projection(json.loads(view), published)
-        if seen != set(reviewed):
-            raise ValueError("Completion audit native response coverage changed")
+    audit_data = json.loads(raw)
+    if records and cohort_rows is not None:
+        if canonical_json_sha256(manifest.get("reference_policy")) != canonical_json_sha256(
+            audit_data["reference_policy"]
+        ):
+            raise ValueError("Completion audit reference policy differs from frozen inputs")
+        verify_record_reference(
+            home, model, read_json(home / "dataset/dataset/ground-truth.json"), all_rows, audit_data
+        )
+    verify_public_executions(source, home, model, cohort_rows, audit_data, profile=profile)
 
 
 def completion_bundle(methods, rows, *, records, complete_methods, excluded_fields=None):
@@ -3585,6 +3712,7 @@ def check_price_coverage(output, methods, prices, language, labels):
 
 
 def check_reader_contract(output, manifest, *, release=False):
+    report_editions(manifest)
     validate_catalog()
     if any(manifest.get(key) != value for key, value in report_dependencies().items()):
         raise ValueError("Report client dependencies changed; rebuild required")
@@ -4110,7 +4238,7 @@ def package(output, archive, *, visual_receipt, profile, home=None):
 
 def record_cohort_inputs(home, model, *, profile):
     """Load a field-schema cohort through the existing certified/checkpoint owner."""
-    from harness.web_extract.analysis import check_record_audit, record_statistics
+    from harness.web_extract.analysis import record_statistics
     from harness.web_extract.dataset import benchmark_config
     from harness.web_extract.pipeline import selected_profile
 
@@ -4178,13 +4306,7 @@ def record_cohort_inputs(home, model, *, profile):
         if digest(raw) != binding["sha256"]:
             raise ValueError("Record audit differs from its report binding")
         audit = json.loads(raw)
-        revision = None
-        if model.get("reference_revision"):
-            source = model["reference_revision"]
-            revision = Path(source["path"])
-            if digest(revision.read_bytes()) != source["sha256"]:
-                raise ValueError("Record reference revision differs from its report binding")
-        check_record_audit(home, truth, native_rows, audit, reference_revision=revision)
+        verify_record_reference(home, model, truth, native_rows, audit)
         result.update(
             audit=audit,
             audit_raw=raw,
@@ -4222,6 +4344,8 @@ def record_cohort_inputs(home, model, *, profile):
                     for row in rows
                 },
             }
+    elif model.get("reference_revision"):
+        verify_record_reference(home, model, truth, native_rows, None)
     return result
 
 
