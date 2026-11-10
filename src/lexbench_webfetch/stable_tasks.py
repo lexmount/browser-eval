@@ -1937,37 +1937,39 @@ def evaluate_stable_task(content: str, contract: dict, base_url: str = "", eligi
             return (source_record_hash(fields, names, schema),
                     fields.get('path', '').strip() if schema == 'api_operation' else None)
 
-        # Each text row absorbs one equal returned row; further copies stay
-        # visible to the duplicate-record check.
-        from collections import Counter
-        known = Counter(merge_key(row['fields']) for row in records if row['valid'])
-        # A complete returned row replaces the same fields parsed as invalid text.
-        invalid = {merge_key(row['fields']): i for i, row in enumerate(records) if not row['valid']}
         # An explicit quote row can also be rendered in prose with comma
-        # separators between tags. Keep its native field boundaries and
-        # replace only an equivalent text-derived row.
+        # separators between tags. Keep its native field boundaries.
         def quote_identity(fields):
             return (_record_field_key(fields['quote']), _record_field_key(fields['author']),
                     tuple(re.findall(r'[^,\s]+', _record_field_key(fields['tags']))))
 
-        text_quotes = ({quote_identity(row['fields']): i for i, row in enumerate(records) if row['valid']}
-                       if schema == 'quote' else {})
+        # Each text row absorbs at most one returned row, so further copies stay
+        # visible to the duplicate-record check. An equal valid row is kept; an
+        # equivalent quote or the same fields parsed as invalid text is replaced.
+        text_rows = len(records)
+        consumed = set()
         for fields in returned_records:
             if not isinstance(fields, dict) or not all(isinstance(fields.get(key), str) for key in names):
                 continue
             selected = {key: fields[key] for key in names}
             key = merge_key(selected)
-            if known[key]:
-                known[key] -= 1
+            record = _record(selected, schema)
+            open_rows = [i for i in range(text_rows) if i not in consumed]
+            match = next((i for i in open_rows if records[i]['valid']
+                          and merge_key(records[i]['fields']) == key), None)
+            if match is not None:
+                consumed.add(match)
+                continue
+            if record['valid']:
+                match = next((i for i in open_rows if (
+                    records[i]['valid'] and schema == 'quote'
+                    and quote_identity(records[i]['fields']) == quote_identity(selected))
+                    or (not records[i]['valid'] and merge_key(records[i]['fields']) == key)), None)
+            if match is None:
+                records.append(record)
             else:
-                record = _record(selected, schema)
-                equivalent = text_quotes.pop(quote_identity(selected), None) if record['valid'] and text_quotes else None
-                if equivalent is None and record['valid']:
-                    equivalent = invalid.pop(merge_key(selected), None)
-                if equivalent is None:
-                    records.append(record)
-                else:
-                    records[equivalent] = record
+                consumed.add(match)
+                records[match] = record
     anchor_records = records
     if exclusions and (SCHEMA_FIELDS[schema] or schema == 'table_row') and schema not in {'named_link', 'linked_product'}:
         anchor_records = _structured_record_view(non_record_content, contract, representation=representation,

@@ -84300,6 +84300,41 @@
       },
       "ok": true,
       "expected_task_pass": false
+    },
+    {
+      "id": "returned-records-duplicate-quote-with-body-copy",
+      "failure_mode": "false-positive",
+      "category": "structured-extraction",
+      "root_cause": "A body quote row could absorb two returned copies, one by exact fields and one by equivalent tags, so duplicate returned quotes evaded the duplicate-record check. Each text row absorbs only one returned copy.",
+      "case": {
+        "url": "https://example.test/",
+        "expected_any": [],
+        "task_kind": "body",
+        "acceptance_contract": {
+          "version": 1,
+          "schema": "quote",
+          "minimum_records": 1,
+          "stable_text_anchors": []
+        }
+      },
+      "artifact": "“A complete quotation” by Alex Writer Tags: books reading",
+      "metadata": {
+        "answer_format": "plain_text",
+        "records": [
+          {
+            "quote": "A complete quotation",
+            "author": "Alex Writer",
+            "tags": "books reading"
+          },
+          {
+            "quote": "A complete quotation",
+            "author": "Alex Writer",
+            "tags": "books reading"
+          }
+        ]
+      },
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }
