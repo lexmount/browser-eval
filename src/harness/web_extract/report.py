@@ -932,6 +932,14 @@ def verify_cohort_authorities(source, home, model, manifest, *, profile):
     return originals
 
 
+def record_reference_policy(home):
+    """Use the dataset adapter's declared matching and reference-coverage policy."""
+    from harness.web_extract.dataset import benchmark_config
+
+    adapter = benchmark_config(home)["adapter"]
+    return adapter.reference_policy(home) if hasattr(adapter, "reference_policy") else None
+
+
 def verify_record_reference(home, model, truth, rows, audit):
     """Share the reference-revision and audit contract between build and check."""
     from harness.web_extract.analysis import check_record_audit
@@ -1041,7 +1049,7 @@ def verify_public_executions(source, home, model, cohort_rows, audit, *, profile
                     expected_row = record_result_fields(
                         scoring_truth[cid],
                         current,
-                        policy=audit["reference_policy"] if audit else None,
+                        policy=audit["reference_policy"] if audit else record_reference_policy(home),
                     )
                 else:
                     expected_row = {
@@ -1129,7 +1137,10 @@ def verify_completion_audit(source, profile, *, home=None):
         if cohort_rows is not None and manifest.get("completion_reference_exclusions", {}):
             raise ValueError("Completion audit reference coverage differs from frozen inputs")
         if records:
-            if cohort_rows is not None and manifest.get("reference_policy") is not None:
+            if (
+                cohort_rows is not None
+                and manifest.get("reference_policy") != record_reference_policy(home)
+            ):
                 raise ValueError("Completion audit reference policy differs from frozen inputs")
             verify_record_reference(
                 home, model, read_json(home / "dataset/dataset/ground-truth.json"), all_rows, None
@@ -4289,7 +4300,7 @@ def record_cohort_inputs(home, model, *, profile):
         "sources": {},
         "dataset": read_json(profile if local_example else selected_profile(home)),
         "scoring_cases": truth,
-        "reference_policy": None,
+        "reference_policy": record_reference_policy(home),
         "audit": None,
     }
     native_rows = []
@@ -4306,7 +4317,10 @@ def record_cohort_inputs(home, model, *, profile):
             (home / "dataset/manifest.json").read_bytes()
         ):
             raise ValueError("Measured source belongs to a different dataset")
-        stats = record_statistics(truth, rows, certified=receipt["certified"], scorer=adapter.score)
+        stats = record_statistics(
+            truth, rows, certified=receipt["certified"], scorer=adapter.score,
+            reference_policy=result["reference_policy"],
+        )
         if stats["certified"] and receipt["scores"][method] != stats["scores"]:
             raise ValueError("Record report scores differ from the certified scorer")
         result["methods"][method] = {"statistics": stats, "results": {}}
@@ -4315,7 +4329,7 @@ def record_cohort_inputs(home, model, *, profile):
         )
         for row in rows:
             result["methods"][method]["results"][row["case_id"]] = record_result_fields(
-                truth[row["case_id"]], row
+                truth[row["case_id"]], row, policy=result["reference_policy"]
             )
     if seen != set(methods):
         raise ValueError("Report omits a planned participant")

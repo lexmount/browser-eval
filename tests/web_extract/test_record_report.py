@@ -919,3 +919,31 @@ def test_authority_check_reuses_record_assembly_receipts(tmp_path, monkeypatch, 
     save_json(output / "report-manifest.json", manifest)
     with pytest.raises(ValueError, match="Completion audit certification binding"):
         report.check(output, profile=profile, home=home)
+
+
+@pytest.mark.parametrize("matching", ["literal", "whitespace"])
+def test_private_verifier_uses_declared_adapter_policy_and_rejects_substitution(
+    tmp_path, monkeypatch, matching
+):
+    from harness.web_extract import report
+    from harness.web_extract.dataset import benchmark_config
+
+    home = create(tmp_path / "seed", mode="field-extraction-cohort")
+    content, profile = home / "content.json", home / "profile.json"
+    authority = read_json(profile)
+    authority["research_report"]["content"]["path"] = str(content)
+    save_json(profile, authority)
+    output = tmp_path / "report"
+    report.build(output, content, home=home, profile=profile, language="zh")
+    policy = {"unavailable_reference_groups": [], "text_matching": matching}
+    adapter = benchmark_config(home)["adapter"]
+    monkeypatch.setattr(adapter, "reference_policy", lambda home: policy, raising=False)
+    path = output / "report-manifest.json"
+    manifest = read_json(path)
+    manifest["reference_policy"] = policy
+    save_json(path, manifest)
+    report.verify_completion_audit(output, profile, home=home)
+    manifest["reference_policy"] = {**policy, "text_matching": "undeclared"}
+    save_json(path, manifest)
+    with pytest.raises(ValueError, match="reference policy differs"):
+        report.verify_completion_audit(output, profile, home=home)
