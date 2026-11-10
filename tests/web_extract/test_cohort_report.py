@@ -1443,3 +1443,200 @@ def test_core_progress_uses_two_columns_without_hiding_pending_or_failed_calls()
     assert [r.select("td")[2].get_text() for r in actual] == ["1", "0"]
     assert all("Incomplete" in r.select("td")[1].get_text() for r in actual)
     assert table_view.parent.get("tabindex") == "0"
+
+
+@pytest.fixture
+def audited_product_report(tmp_path, monkeypatch):
+    import json
+
+    from harness.web_extract import pipeline
+    from harness.web_extract.review import assemble, prepare, read_packet
+    from tests.web_extract.test_repair_review import review_payload
+
+    home = create(tmp_path / "fixture", mode="full-cohort-progress")
+    profile = home / "profile.json"
+    monkeypatch.setattr(pipeline, "selected_profile", lambda _: profile)
+    scorer = pipeline.official_scorer
+    monkeypatch.setattr(pipeline, "official_scorer", lambda h, p=None: scorer(h, p or profile))
+    content_path = home / "content.json"
+    model = read_json(content_path)
+    selection = model["evidence_runs"][0]
+    source = home / "runs" / selection["run"]
+    plan_path = Path(selection["plan"])
+    plan = read_json(plan_path)
+    plan["participants"] = {"synthetic-success": plan["participants"]["synthetic-success"]}
+    save_json(plan_path, plan)
+    plan_hash = digest(plan_path.read_bytes())
+    precall = read_json(source / "certification-precall.json")
+    precall["profile_sha256"] = plan_hash
+    save_json(source / "certification-precall.json", precall)
+    calls = [
+        json.loads(line)
+        for line in (source / "calls.journal.jsonl").read_text(encoding="utf-8").splitlines()
+    ]
+    save_json(
+        source / "manifest.json",
+        {
+            "contract_sha256": digest((source / "contract.json").read_bytes()),
+            "calls": calls,
+        },
+    )
+    pipeline.score_run(home, source)
+    save_json(
+        source / "certificate.json",
+        {
+            "profile_sha256": plan_hash,
+            "case_count": plan["case_count"],
+            "method": "synthetic-success",
+            "dataset_manifest_sha256": digest((home / "dataset/manifest.json").read_bytes()),
+            **{
+                key: digest((source / name).read_bytes())
+                for key, name in [
+                    ("manifest_sha256", "manifest.json"),
+                    ("scores_sha256", "scores.json"),
+                    ("precall_sha256", "certification-precall.json"),
+                ]
+            },
+        },
+    )
+    model["cohort_plan"]["sha256"] = plan_hash
+    model["evidence_runs"] = [{**selection, "plan_sha256": plan_hash}]
+    save_json(content_path, model)
+    work = tmp_path / "review"
+    review = prepare(home, content_path, work)
+    for entry in review["packets"]:
+        packet_path = Path(entry["path"])
+        save_json(work / "reviews" / packet_path.name, review_payload(read_packet(packet_path)))
+    save_json(work / "reviewer.json", {"model": "synthetic-test"})
+    for name in ("supplemental", "adjudication"):
+        save_json(
+            tmp_path / name / "manifest.json",
+            {
+                "bindings": {},
+                "packets": [],
+                "case_count": 0,
+                "result_count": 0,
+            },
+        )
+    audit_path = tmp_path / "audit.json"
+    assemble(
+        home,
+        content_path,
+        work,
+        tmp_path / "supplemental",
+        tmp_path / "adjudication",
+        audit_path,
+        profile=profile,
+    )
+    model["audit"] = {"path": str(audit_path), "sha256": digest(audit_path.read_bytes())}
+    save_json(content_path, model)
+    output = tmp_path / "audited-report"
+    build(output, content_path, home=home, profile=profile, language="en")
+    return output
+
+
+@pytest.mark.parametrize("damage", [None, "official-score", "completion-score"])
+def test_audited_product_build_checks_official_and_completion_columns_separately(
+    audited_product_report, damage
+):
+    output = audited_product_report
+    assert check(output)["observations"] == 3
+    path = output / "en/interpretation.html"
+    document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    row = document.select_one("[data-interpretation-comparison] tbody tr")
+    assert len(row.select("td:not([data-completion-metric])")[2:]) == 4
+    assert len(row.select("td[data-completion-metric]")) == 2
+    if damage is None:
+        return
+    selector = (
+        "td:not([data-completion-metric])"
+        if damage == "official-score"
+        else "td[data-completion-metric]"
+    )
+    cell = row.select(selector)[2 if damage == "official-score" else 0]
+    (cell.select_one(".comparison-winner") or cell).string = "0.123456"
+    path.write_text(str(document), encoding="utf-8")
+    manifest_path = output / "report-manifest.json"
+    manifest = read_json(manifest_path)
+    manifest["files"]["en/interpretation.html"] = digest(path.read_bytes())
+    save_json(manifest_path, manifest)
+    with pytest.raises(ValueError, match="Interpretation scores|Completion metric comparison"):
+        check(output)
+
+
+@pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
+@pytest.mark.parametrize(
+    "damage", [None, "before-core", "missing", "changed", "duplicate", "after-guide"]
+)
+def test_bound_intro_and_core_comparison_order_are_checked_together(tmp_path, mode, damage):
+    from copy import deepcopy
+
+    from harness.web_extract.report import home_comparison_end, page_intro_hash
+
+    home = create(tmp_path / "fixture", mode=mode)
+    content_path = home / "content.json"
+    model = read_json(content_path)
+    for route in ("index", "protocol"):
+        model.setdefault("pages", {}).setdefault(route, {})["intro"] = {
+            language: "<p>Open a frozen page, extract fields, compare references.</p>"
+            for language in ("en", "zh")
+        }
+    save_json(content_path, model)
+    profile_path = home / "profile.json"
+    profile = read_json(profile_path)
+    profile["research_report"] = {
+        "content": {
+            "path": str(content_path),
+            "sha256": digest(content_path.read_bytes()),
+        }
+    }
+    save_json(profile_path, profile)
+    output = tmp_path / "report"
+    build(
+        output,
+        content_path,
+        home=home,
+        profile=profile_path,
+        language="en" if mode == "full-cohort-progress" else "zh",
+    )
+    check(output, profile=profile_path, home=home)
+    manifest_path = output / "report-manifest.json"
+    manifest = read_json(manifest_path)
+    for language in manifest["languages"]:
+        for route in ("index", "protocol"):
+            path = output / language / (route + ".html")
+            document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+            intro = document.select_one("main > [data-page-intro]")
+            assert intro is not None
+            assert (
+                page_intro_hash(str(document))
+                == manifest["page_intros"][f"{language}/{route}.html"]
+            )
+            if route == "index":
+                assert intro.find_previous_sibling() is home_comparison_end(document)
+                first = document.main.find(True, recursive=False)
+                assert first.has_attr("data-core-metrics") or first.select_one(
+                    "[data-core-metrics]"
+                )
+            else:
+                assert document.main.find(True, recursive=False) is intro
+    if damage is None:
+        return
+    path = output / "zh/index.html"
+    document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    intro = document.select_one("main > [data-page-intro]")
+    if damage == "before-core":
+        document.main.insert(0, intro.extract())
+    elif damage == "missing":
+        intro.decompose()
+    elif damage == "changed":
+        intro.p.string = "Substituted workflow."
+    elif damage == "duplicate":
+        intro.insert_after(deepcopy(intro))
+    else:
+        document.main.append(intro.extract())
+    path.write_text(str(document), encoding="utf-8")
+    manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+    save_json(manifest_path, manifest)
+    with pytest.raises(ValueError, match="intro|Core comparison"):
+        check(output)

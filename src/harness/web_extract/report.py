@@ -205,7 +205,18 @@ def page(
     intro="",
 ):
     if intro:
-        body = '<section data-page-intro>' + intro + "</section>" + body
+        fragment = BeautifulSoup(body, "html.parser")
+        introduction = BeautifulSoup(
+            "<section data-page-intro>" + intro + "</section>", "html.parser"
+        ).section
+        if route == "index" and state in ("full-cohort-progress", "field-extraction-cohort"):
+            anchor = home_comparison_end(fragment)
+            if anchor is None:
+                raise ValueError("Report home intro requires its core comparison")
+            anchor.insert_after(introduction)
+        else:
+            fragment.insert(0, introduction)
+        body = str(fragment)
     labels = LABELS[language]
     if state != "compatibility":
         labels = list(labels)
@@ -303,9 +314,18 @@ def authored_intro(model, route, language):
     value = model.get("pages", {}).get(route, {}).get("intro", {})
     if not isinstance(value, dict) or not isinstance(value.get(language, ""), str):
         raise ValueError("Report page intro must contain language-keyed HTML")
-    if route == "index" and any(value.values()):
-        raise ValueError("Home-page content must follow its core comparison; use body")
     return value.get(language, "")
+
+
+def home_comparison_end(document):
+    core = document.select_one("[data-core-metrics]")
+    if core is None:
+        return None
+    anchor = core.parent if core.name == "table" else core
+    note = anchor.find_next_sibling()
+    return note if note is not None and note.has_attr("data-completion-links") else anchor
+
+
 
 
 def page_intro_hash(rendered):
@@ -3420,6 +3440,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "source_runs": json.loads(public_bindings),
             "source_metadata_view": metadata_receipt,
             "public_evidence_views": public_receipts,
+            "page_intros": page_intros,
             "files": files,
         },
         exclusive=True,
@@ -3525,11 +3546,20 @@ def check_reader_contract(output, manifest, *, release=False):
     for route, checksum in manifest.get("page_intros", {}).items():
         if route not in manifest["files"] or Path(route).is_absolute() or ".." in Path(route).parts:
             raise ValueError("Unsafe report page intro binding")
-        soup = BeautifulSoup((output / route).read_text(encoding="utf-8"), "html.parser")
-        nodes = soup.select("main > [data-page-intro]")
-        if (len(nodes) != 1 or soup.main.find(True, recursive=False) is not nodes[0]
-                or digest(str(nodes[0]).encode()) != checksum):
-            raise ValueError("Report page intro is missing, moved or changed")
+        document = BeautifulSoup((output / route).read_text(encoding="utf-8"), "html.parser")
+        nodes = document.select("main > [data-page-intro]")
+        if len(nodes) != 1 or digest(str(nodes[0]).encode()) != checksum:
+            raise ValueError("Report page intro is missing or changed")
+        after_core = Path(route).stem == "index" and manifest.get("mode") in (
+            "full-cohort-progress",
+            "field-extraction-cohort",
+        )
+        if (
+            nodes[0].find_previous_sibling() is not home_comparison_end(document)
+            if after_core
+            else document.main.find(True, recursive=False) is not nodes[0]
+        ):
+            raise ValueError("Report page intro moved from its declared position")
     if release:
         validate_release_prices(manifest)
     methods = manifest.get("planned_methods") or manifest.get("methods", [])
@@ -3847,7 +3877,8 @@ def check(output: Path, *, release=False, visual_receipt=None, profile=None, hom
                 if [r.get("data-method") for r in compact_rows] != methods:
                     raise ValueError("Missing compact interpretation comparison")
                 for method, row in zip(methods, compact_rows, strict=True):
-                    if [c.get_text(strip=True) for c in row.select("td:not([data-completion-metric])")[2:]] != [
+                    cells = row.select("td:not([data-completion-metric])")
+                    if [c.get_text(strip=True) for c in cells[2:]] != [
                         f"{scores[method][field]['f1']:.3f}"
                         for field in ("price", "sku", "availability", "OutOfStock")
                     ]:
@@ -5180,6 +5211,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             "audit": audit_binding,
             "reference_policy": data["reference_policy"],
             "required_review_scope": bound_profile.get("independent_result_review_scope"),
+            "page_intros": page_intros,
             "files": files,
         },
         exclusive=True,

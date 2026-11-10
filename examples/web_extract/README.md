@@ -476,6 +476,11 @@ and blocked access. It downloads nothing and needs no credentials. Chinese is th
 default; English navigation shows a not-generated notice with a return link.
 `--language en` explicitly generates both editions with matching inventories.
 
+Authored HTML intros use `pages.<route>.intro` with `en` and `zh` values. Cohort
+home pages place the intro after the core comparison and its reference note;
+other pages start with it. The report manifest binds each rendered intro, and
+the reader check verifies its content and position alongside the core-table order.
+
 For a research report, pass `report --profile /absolute/report-profile.json
 --content /absolute/content.json --output /absolute/new-report`. The external profile
 binds dataset provenance and optional authored content hashes. The `full-cohort-progress` model binds a predeclared cohort plan and one source
