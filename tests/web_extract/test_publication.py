@@ -10,19 +10,24 @@ from harness.web_extract import publication
 from harness.web_extract.pipeline import digest, execution_identity, read_json, save_json
 
 
-def dataset_pin(home):
+def dataset_pin(home, case_ids=("page",)):
     root = home / "dataset"
-    save_json(root / "dataset/ground-truth.json", {"page": {"values": {"title": ["A"]}}})
+    save_json(root / "dataset/ground-truth.json", {
+        cid: {"values": {"title": ["A"]}} for cid in case_ids
+    })
     (root / "html").mkdir(parents=True)
-    (root / "html/page.html").write_text("<p>A</p>", encoding="utf-8")
+    for cid in case_ids:
+        (root / "html" / (cid + ".html")).write_text("<p>A</p>", encoding="utf-8")
     files = {
         name: {"sha256": digest((root / name).read_bytes())}
-        for name in ("dataset/ground-truth.json", "html/page.html")
+        for name in ("dataset/ground-truth.json", *("html/" + cid + ".html" for cid in case_ids))
     }
-    save_json(root / "manifest.json", {"commit": "native-fixture-v1", "cases": 1, "files": files})
+    save_json(root / "manifest.json", {
+        "commit": "native-fixture-v1", "cases": len(case_ids), "files": files
+    })
     return {
         "commit": "native-fixture-v1",
-        "cases": 1,
+        "cases": len(case_ids),
         "inventory_sha256": canonical_json_sha256(files),
         "files": {k: v["sha256"] for k, v in files.items()},
     }
@@ -53,7 +58,9 @@ def dataset_pin(home):
         "wrong-home",
     ],
 )
-def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path, damage, mode):
+def test_release_binds_native_execution_and_accepts_privacy_projection(
+    tmp_path, damage, mode, segments=False
+):
     from harness.web_extract.cli import main
     from harness.web_extract.pipeline import normalize
     from harness.web_extract.report import (
@@ -124,18 +131,40 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
             "".join(json.dumps(v) + "\n" for v in inventory["physical_calls"]), encoding="utf-8"
         )
     save_json(run / "manifest.json", inventory)
-    pin = dataset_pin(home)
+    pin = dataset_pin(home, ("page", "other") if segments else ("page",))
+    originals = [row]
+    selection = {"run": "run"}
+    if segments:
+        second_home = tmp_path / "other-inputs"
+        dataset_pin(second_home, ("other",))
+        second = deepcopy(row)
+        second["case_id"] = "other"
+        second_run = second_home / "runs/run"
+        save_json(second_run / "call.json", second)
+        save_json(second_run / "contract.json", {"methods": [row["method"]], "case_ids": ["other"]})
+        save_json(second_run / "manifest.json", {
+            "contract_sha256": digest((second_run / "contract.json").read_bytes()),
+            "calls": [{"path": "call.json", "sha256": digest(
+                (second_run / "call.json").read_bytes()
+            )}],
+        })
+        originals.append(second)
+        selection = {"segments": [
+            {"home": str(home), "run": "run"}, {"home": str(second_home), "run": "run"},
+        ]}
     audit = home / "audit.json"
     save_json(
         audit,
         {
             "results": {
-                row["method"] + ":page": {
-                    "execution_sha256": execution_identity(row),
+                original["method"] + ":" + original["case_id"]: {
+                    "execution_sha256": execution_identity(original),
                     "native_response_sha256": digest(
-                        json.dumps(row["response"], sort_keys=True, ensure_ascii=False).encode()
+                        json.dumps(
+                            original["response"], sort_keys=True, ensure_ascii=False
+                        ).encode()
                     ),
-                }
+                } for original in originals
             }
         },
     )
@@ -148,7 +177,7 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
                 (tmp_path / "retired-inputs" if damage == "relocated-home" else home)
                 / "dataset/manifest.json"
             ),
-            "evidence_runs": [{"run": "run"}],
+            "evidence_runs": [selection],
         },
     )
     profile = home / "profile.json"
@@ -180,7 +209,15 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
             for v in projected["physical_attempts"]
         )
     path = report / "public-evidence" / (row["method"] + ".json")
-    save_json(path, {"page": projected})
+    views = {"page": projected}
+    if segments:
+        second_view, _ = project_evidence_view(
+            "public-evidence/native-row.json",
+            json.dumps(redact_account_endpoint(originals[1]), ensure_ascii=False).encode(),
+            role="native_response", content_format="json", host_names=publication_host_names(),
+        )
+        views["other"] = json.loads(second_view)
+    save_json(path, views)
     public_audit, _ = project_evidence_view(
         "public-evidence/audit.json",
         audit.read_bytes(),
@@ -311,6 +348,13 @@ def test_release_binds_native_execution_and_accepts_privacy_projection(tmp_path,
     assert not archive.exists()
 
 
+@pytest.mark.parametrize("damage", [None, "public-envelope", "original-envelope"])
+def test_audited_native_results_follow_each_disjoint_segment_home(tmp_path, damage):
+    test_release_binds_native_execution_and_accepts_privacy_projection(
+        tmp_path, damage, "field-extraction-cohort", segments=True
+    )
+
+
 def setup_report(tmp_path):
     source = tmp_path / "report"
     source.mkdir()
@@ -334,6 +378,73 @@ def setup_report(tmp_path):
     )
     save_json(tmp_path / "visual.json", {})
     return source, target, tmp_path / "upload", tmp_path / "visual.json"
+
+
+@pytest.mark.parametrize("suite", [False, True])
+def test_live_only_publication_needs_no_snapshot_content_binding(tmp_path, suite):
+    source, _, _, _ = setup_report(tmp_path)
+    manifest = {"mode": "field-extraction-cohort", "preview_snapshot": {"mode": "live"}}
+    if suite:
+        save_json(source / "child/report-manifest.json", manifest)
+        manifest = {"mode": "field-extraction-suite", "cohorts": [{"id": "child"}]}
+    save_json(source / "report-manifest.json", manifest)
+    assert publication.audit_previews(source, {}) == ()
+
+
+@pytest.mark.parametrize("damage", [None, "content", "snapshot"])
+def test_preview_audit_cannot_adopt_inputs_changed_during_network_check(
+    tmp_path, monkeypatch, damage
+):
+    from harness.web_extract import report
+
+    source, target, work, visual = setup_report(tmp_path)
+    content, snapshot = tmp_path / "content.json", tmp_path / "snapshot.json"
+    save_json(snapshot, {"version": "original"})
+    save_json(content, {
+        "dataset_manifest": str(tmp_path / "dataset/manifest.json"),
+        "preview_snapshot": {"path": str(snapshot), "sha256": digest(snapshot.read_bytes())},
+    })
+    receipt = {"mode": "dataset_manifest", "version": "original"}
+    manifest = read_json(source / "report-manifest.json")
+    manifest.update(mode="field-extraction-cohort", preview_snapshot=receipt,
+                    content_sha256=digest(content.read_bytes()))
+    save_json(source / "report-manifest.json", manifest)
+    bound = read_json(target)
+    bound["content"] = {"path": str(content)}
+    save_json(target, bound)
+    audits, stages = [], []
+
+    def preview(*args, audit, **kwargs):
+        audits.append(audit)
+        if audit and damage:
+            save_json({"content": content, "snapshot": snapshot}[damage], {"changed": True})
+        return receipt
+
+    def package(*args, **kwargs):
+        stages.append("package")
+        return {"archive_sha256": "archive", "report_manifest_sha256": "manifest"}
+
+    def update(staged, **kwargs):
+        stages.append("upload")
+        staged.guard()
+        staged.bind("ver_after")
+        return "ver_after"
+
+    monkeypatch.setattr(report, "record_preview", preview)
+    monkeypatch.setattr(publication, "package", package)
+    monkeypatch.setattr(publication, "publish_staged_update", update)
+    if damage:
+        with pytest.raises(ValueError, match="publication inputs changed"):
+            publication.publish(source, target, work, visual, home=tmp_path)
+        assert stages == []
+        assert read_json(target)["expected_version"] == "ver_before"
+    else:
+        assert (
+            publication.publish(source, target, work, visual, home=tmp_path)["versionId"]
+            == "ver_after"
+        )
+        assert stages == ["package", "upload"]
+    assert audits == [False, True]
 
 
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):

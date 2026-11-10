@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.benchmark_execution import ExecutionPolicy, assess_execution
 from harness.reporting.templates import metric_contract
-from harness.web_extract.dataset import benchmark_config, task_bindings
+from harness.web_extract.dataset import benchmark_config, input_mode, task_bindings
 from harness.web_extract.pipeline import (
     RECORD_INSTRUCTIONS,
     available_methods,
@@ -17,6 +17,7 @@ from harness.web_extract.pipeline import (
     load_run,
     probe,
     read_json,
+    record_instructions,
     require_external_output,
     save_json,
     score_run,
@@ -24,6 +25,7 @@ from harness.web_extract.pipeline import (
     validate_dataset,
     validate_fixture_base,
     validate_instruction_schema,
+    validate_live_route,
     validate_native_options,
 )
 
@@ -165,6 +167,9 @@ def create_plan(
         ExecutionPolicy.from_dict(value)
         execution[method] = value
     validate_dataset(home)
+    live = input_mode(home) == "live"
+    if live and snapshots is not None:
+        raise ValueError("Live cohorts use original URLs, not a snapshot registry")
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     plan = {
         "schema": "archived-product-full-cohort/1",
@@ -204,8 +209,13 @@ def create_plan(
         plan.update(task_bindings(home))
         for participant in plan["participants"].values():
             participant["maximum_physical_calls"] = len(truth) + 20
-    if snapshots is None and any(
-        registry[m]["input"] == "url" or "input_route" in registry[m]["options"] for m in methods
+    if (
+        not live
+        and snapshots is None
+        and any(
+            registry[m]["input"] == "url" or "input_route" in registry[m]["options"]
+            for m in methods
+        )
     ):
         raise ValueError(
             "URL-capable interfaces require --snapshots; upload-only methods may omit it"
@@ -233,6 +243,14 @@ def create_plan(
         plan["resource_decision"]["memory"] = (
             "Remote memory unavailable; local client memory does not measure the provider."
         )
+    if live:
+        plan["input_mode"] = "live"
+        for method, participant in plan["participants"].items():
+            participant["input"] = "url"
+            if registry[method]["input"] != "url":
+                if "input_route" not in registry[method].get("options", []):
+                    raise ValueError("A live cohort requires native URL extraction")
+                participant["native_options"] = {"input_route": "url"}
     adapter = benchmark_config(home)["adapter"]
     for method, options in native_options.items():
         participant = plan["participants"][method]
@@ -243,8 +261,9 @@ def create_plan(
         if participant["input"] != effective_input:
             raise ValueError("Native options conflict with the frozen participant input route")
     if adapter is not None:
+        plan["extraction_instructions"] = record_instructions(home)
         for case in truth.values():
-            schema = instruction_schema(adapter.task_schema(home, case), RECORD_INSTRUCTIONS)
+            schema = instruction_schema(adapter.task_schema(home, case), record_instructions(home))
             for method in methods:
                 validate_instruction_schema(method, schema)
     if require_execution_assessment:
@@ -274,6 +293,7 @@ def run(
 ):
     require_external_output(run_dir)
     plan = read_json(profile)
+    live = plan.get("input_mode") == "live"
     if plan.get("schema") == "archived-extraction-repair/1":
         from harness.web_extract.repair import run as repair_run
 
@@ -304,16 +324,33 @@ def run(
     participant = plan["participants"][method]
     if participant.get("input") == "html" and plan.get("public_snapshots"):
         fixture_base = None
-    if available_methods()[method]["input"] == "url" and (
-        not fixture_base or not fixture_base.startswith("https://")
+    if (
+        not live
+        and available_methods()[method]["input"] == "url"
+        and (not fixture_base or not fixture_base.startswith("https://"))
     ):
         raise ValueError("URL participant requires frozen HTTPS fixtures before collection")
+    records = benchmark_config(home)["adapter"] is not None
+    if live:
+        if participant.get("input") != "url":
+            raise ValueError("Live participants must declare URL input")
+        validate_live_route(method, participant.get("native_options"))
     effective_input = participant.get("native_options", {}).get(
         "input_route", available_methods()[method]["input"]
     )
     if participant.get("input", effective_input) != effective_input:
         raise ValueError("Native options conflict with the frozen participant input route")
-    records = benchmark_config(home)["adapter"] is not None
+    # Original SWDE plans predate the explicit instruction field. Their default
+    # remains valid only with the unchanged, hash-bound dataset/task profile.
+    if records:
+        instructions = plan.get("extraction_instructions")
+        if (
+            "extraction_instructions" not in plan
+            and read_json(home / "dataset/manifest.json").get("benchmark") == "swde"
+        ):
+            instructions = RECORD_INSTRUCTIONS
+        if instructions != record_instructions(home):
+            raise ValueError("Frozen extraction instructions differ from the dataset")
     if records and plan.get("schema") != "archived-extraction-full-cohort/1":
         raise ValueError("Frozen plan schema differs from the selected record benchmark")
     if records or plan.get("task_adapter_sha256"):
@@ -321,6 +358,8 @@ def run(
         if not bindings or any(plan.get(key) != value for key, value in bindings.items()):
             raise ValueError("Frozen task adapter or dataset profile changed")
     validate_dataset(home)
+    if live != (input_mode(home) == "live"):
+        raise ValueError("Frozen input mode differs from the selected dataset")
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     case_hash = digest(("\n".join(sorted(truth)) + "\n").encode())
     if plan.get("dataset_manifest_sha256") != digest((home / "dataset/manifest.json").read_bytes()):

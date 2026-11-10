@@ -1,0 +1,445 @@
+"""Independent benchmark results share navigation, never a quality denominator."""
+
+import pytest
+from bs4 import BeautifulSoup
+
+from harness.web_extract.example import create
+from harness.web_extract.pipeline import digest, read_json, save_json
+from harness.web_extract.report import _check_rendered_report
+
+
+@pytest.mark.parametrize("damage", [None, "quality", "navigation", "child-binding"])
+def test_suite_uses_each_cohorts_results_and_bound_details(tmp_path, damage):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    manifest = _check_rendered_report(output)
+    assert [c["id"] for c in manifest["cohorts"]] == ["first", "second"]
+    path = output / "zh/index.html"
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    assert [section["data-cohort"] for section in soup.select("[data-cohort]")] == [
+        "first",
+        "second",
+    ]
+    assert len(soup.select('[data-cohort="first"] tbody tr')) == 4
+    assert not soup.select("main > table")
+    assert soup.select_one("header .report-toolbar nav")
+    assert soup.select_one(".report-tools #theme")
+    if damage is None:
+        with pytest.raises(ValueError, match="visual|Synthetic|profile"):
+            _check_rendered_report(output, release=True)
+        return
+    if damage == "quality":
+        soup.select_one('[data-cohort="first"] [data-metric="micro-f1"]').string = "0.999"
+    elif damage == "navigation":
+        soup.select_one("nav a")["href"] = "missing.html"
+    else:
+        path = output / "first/report-manifest.json"
+        child = read_json(path)
+        child["case_count"] += 1
+        save_json(path, child)
+    if damage != "child-binding":
+        path.write_text(str(soup), encoding="utf-8")
+    manifest["files"][path.relative_to(output).as_posix()] = digest(path.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="comparison|navigation|cohort manifest"):
+        _check_rendered_report(output)
+
+
+def test_suite_example_rejects_repository_output_before_creating_anything():
+    from pathlib import Path
+
+    from harness.web_extract.example import create_suite
+
+    output = Path(__file__).resolve().parents[2] / "rejected-suite-example"
+    with pytest.raises(ValueError):
+        create_suite(output)
+    assert not output.exists()
+    assert not output.with_name(output.name + "-suite-inputs").exists()
+
+
+@pytest.mark.parametrize("damage", [False, True])
+def test_suite_checks_authored_intro_links_with_the_child_prefix(tmp_path, damage):
+    from harness.web_extract import report, report_suite
+
+    home = create(tmp_path / "seed", mode="field-extraction-suite")
+    content, profile = home / "content.json", home / "profile.json"
+    model = read_json(content)
+    child = model["cohorts"][0]
+    from pathlib import Path
+
+    child_content, child_profile = Path(child["content"]), Path(child["profile"])
+    authored = read_json(child_content)
+    authored.setdefault("pages", {})["index"] = {
+        "intro": {"zh": '<p><a href="dataset.html">Dataset</a></p>'}
+    }
+    save_json(child_content, authored)
+    child_authority = read_json(child_profile)
+    child["content_sha256"] = digest(child_content.read_bytes())
+    child_authority["research_report"]["content"]["sha256"] = child["content_sha256"]
+    save_json(child_profile, child_authority)
+    child["profile_sha256"] = digest(child_profile.read_bytes())
+    save_json(content, model)
+    authority = read_json(profile)
+    authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    authority["research_report"]["cohorts"] = report_suite.cohort_registry(model["cohorts"])
+    save_json(profile, authority)
+    output = tmp_path / "report"
+    report_suite.build(output, content, profile=profile, language="zh")
+    report.check(output, profile=profile, home=home)
+    path = output / "first/zh/index.html"
+    document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    link = document.select_one("[data-page-intro] a")
+    assert link["href"] == "first/zh/dataset.html"
+    if damage:
+        link["href"] = "second/zh/dataset.html"
+        path.write_text(str(document), encoding="utf-8")
+        manifest_path = output / "first/report-manifest.json"
+        manifest = read_json(manifest_path)
+        manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+        save_json(manifest_path, manifest)
+        with pytest.raises(ValueError, match="Frozen page intro"):
+            report.check(output / "first", profile=child_profile, home=Path(child["home"]))
+
+
+@pytest.mark.parametrize("reserved", ["zh", "en", "public-evidence", "assets"])
+def test_suite_rejects_language_directory_collisions_before_writing(tmp_path, reserved):
+    from harness.web_extract import report_suite
+
+    content = tmp_path / "content.json"
+    profile = tmp_path / "profile.json"
+    save_json(content, {"cohorts": [{"id": reserved}]})
+    save_json(profile, {"research_report": {"content": {"sha256": digest(content.read_bytes())}}})
+    output = tmp_path / "output"
+    with pytest.raises(ValueError, match="distinct safe"):
+        report_suite.build(output, content, profile=profile)
+    assert not output.exists()
+
+
+def test_quality_exclusion_preserves_operational_comparison(tmp_path):
+    from pathlib import Path
+
+    from harness.web_extract import report_suite
+
+    source = create(tmp_path / "seed", mode="field-extraction-suite")
+    suite = read_json(source / "content.json")
+    entry = suite["cohorts"][0]
+    content = Path(entry["content"])
+    model = read_json(content)
+    method = next(iter(model["participants"]))
+    model["participants"][method].update(
+        include_in_comparison=False, exclusion_reason="Synthetic account quota"
+    )
+    save_json(content, model)
+    profile = Path(entry["profile"])
+    authority = read_json(profile)
+    authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    save_json(profile, authority)
+    entry["content_sha256"] = digest(content.read_bytes())
+    entry["profile_sha256"] = digest(profile.read_bytes())
+    save_json(source / "content.json", suite)
+    authority = read_json(source / "profile.json")
+    authority["research_report"]["content"]["sha256"] = digest(
+        (source / "content.json").read_bytes()
+    )
+    authority["research_report"]["cohorts"] = report_suite.cohort_registry(suite["cohorts"])
+    save_json(source / "profile.json", authority)
+    output = tmp_path / "report"
+    report_suite.build(output, source / "content.json", profile=source / "profile.json")
+    soup = BeautifulSoup((output / "zh/index.html").read_text(encoding="utf-8"), "html.parser")
+    tables = soup.select('[data-cohort="first"] table')
+    quality, operation = [table.select("tbody tr") for table in tables]
+    assert len(quality) == len(operation) == 2
+    assert "Synthetic account quota" in quality[0].get_text()
+    assert [td.get_text() for td in quality[0].select("td")[2:5]] == ["—"] * 3
+    assert model["participants"][method]["label"] in operation[0].get_text()
+    assert operation[0].select('[data-metric="mean"]')
+    assert "$" in operation[0].get_text()
+
+
+@pytest.mark.parametrize("limits,compared,winner", [
+    ([1, 2], ["scrapegraph-extract", "firecrawl-json"], None),
+    ([1, 1], ["scrapegraph-extract", "firecrawl-json"], "firecrawl-json"),
+    ([1, 1], ["scrapegraph-extract"], "scrapegraph-extract"),
+])
+def test_suite_latency_uses_execution_scope_without_hiding_measurements(
+    tmp_path, limits, compared, winner
+):
+    from harness.web_extract import report_suite
+
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    child = output / "first"
+    sources = read_json(child / "public-evidence/sources.json")
+    for method, limit in zip(sources, limits, strict=True):
+        sources[method]["contract"]["concurrency"] = limit
+    save_json(child / "public-evidence/sources.json", sources)
+    manifest = read_json(child / "report-manifest.json")
+    manifest["comparison_methods"] = compared
+    save_json(child / "report-manifest.json", manifest)
+    entry = read_json(output / "suite.json")["cohorts"][0]
+    soup = BeautifulSoup(report_suite.section(output, entry), "html.parser")
+    rows = soup.select("table")[1].select("tbody tr")
+    assert all(row.select('[data-metric="mean"]')[0].get_text() != "—" for row in rows)
+    leaders = [row.select("td")[0].get_text() for row in rows if row.select(".comparison-winner")]
+    assert leaders == ([winner] if winner else [])
+
+
+@pytest.mark.parametrize("damage", [False, True])
+def test_nested_cost_disclosure_links_use_the_same_render_and_check_scope(tmp_path, damage):
+    from harness.web_extract import report
+
+    output = tmp_path / "first"
+    (output / "zh").mkdir(parents=True)
+    save_json(output / "report-manifest.json", {"site_prefix": "first"})
+    quote = {
+        "usd_per_1000": "Unknown", "terms": {"zh": "未取得账单。"},
+        "verified_at": "2026-11-10", "sources": ["https://provider.example/pricing"],
+        "cost_unavailable": {
+            "population_cases": 3, "missing_cases": 3,
+            "reason": {"zh": "未取得账单。"},
+            "evidence": {"path": "assets/billing.json", "sha256": "a" * 64},
+        },
+    }
+    raw = report.price_table(["method"], {"method": quote}, "zh", {"method": "API"})
+    raw = report.scope_record_html(raw.replace("../", ""), "first")
+    if damage:
+        raw = raw.replace("first/assets/billing.json", "first/assets/wrong.json")
+    (output / "zh/accounts.html").write_text(raw, encoding="utf-8")
+    if damage:
+        with pytest.raises(ValueError, match="Cost/pricing coverage"):
+            report.check_price_coverage(
+                output, ["method"], {"method": quote}, "zh", {"method": "API"}
+            )
+    else:
+        report.check_price_coverage(output, ["method"], {"method": quote}, "zh", {"method": "API"})
+
+
+def test_suite_package_passes_each_childs_frozen_authority_to_release_check(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from harness.web_extract import report
+
+    output = tmp_path / "report"
+    home = create(tmp_path / "seed", mode="field-extraction-suite")
+    authority = read_json(home / "profile.json")
+    authority["local_example"] = False
+    save_json(home / "profile.json", authority)
+    report.build(output, home / "content.json", home=home, profile=home / "profile.json")
+    entries = read_json(home / "content.json")["cohorts"]
+    # Isolate suite orchestration from child visual/pricing gates, tested by their owners.
+    original = report._check_record_cohort
+    original_audit = report.verify_completion_audit
+    observed = set()
+
+    def audit(child, profile, *, home=None):
+        if child.name in {entry["id"] for entry in entries}:
+            entry = next(e for e in entries if e["id"] == child.name)
+            assert profile == Path(entry["profile"])
+            assert home == Path(entry["home"])
+            observed.add(child.name)
+        return original_audit(child, profile, home=home)
+
+    def child_check(child, *, release=False, visual_receipt=None):
+        if release:
+            assert child.name in observed
+            assert visual_receipt is not None
+        return original(child)
+
+    monkeypatch.setattr(report, "verify_completion_audit", audit)
+    monkeypatch.setattr(report, "_check_record_cohort", child_check)
+    monkeypatch.setattr(report, "check_visual_receipt", lambda *args, **kwargs: None)
+    visual = tmp_path / "visual.json"
+    receipts = {}
+    for entry in entries:
+        path = tmp_path / (entry["id"] + "-visual.json")
+        save_json(path, {})
+        receipts[entry["id"]] = {"path": str(path), "sha256": digest(path.read_bytes())}
+    save_json(visual, {"cohorts": receipts})
+    archive = tmp_path / "report.zip"
+    report.package(output, archive, visual_receipt=visual, profile=home / "profile.json", home=home)
+    assert archive.is_file()
+    assert set(observed) == {"first", "second"}
+
+
+@pytest.mark.parametrize("position", [0, 1])
+@pytest.mark.parametrize("prefix", [None, "wrong"])
+def test_suite_validates_every_prefix_before_creating_output(tmp_path, position, prefix):
+    from harness.web_extract import report_suite
+
+    content = tmp_path / "content.json"
+    entries = []
+    for name in ["first", "second"]:
+        child = tmp_path / (name + ".json")
+        save_json(child, {"site_prefix": name})
+        child_profile = tmp_path / (name + "-profile.json")
+        save_json(child_profile, {})
+        entries.append({"id": name, "content": str(child), "profile": str(child_profile),
+                        "content_sha256": digest(child.read_bytes()),
+                        "profile_sha256": digest(child_profile.read_bytes())})
+    bad = read_json(tmp_path / (["first", "second"][position] + ".json"))
+    if prefix is None:
+        bad.pop("site_prefix")
+    else:
+        bad["site_prefix"] = prefix
+    save_json(tmp_path / (["first", "second"][position] + ".json"), bad)
+    save_json(content, {"cohorts": entries})
+    profile = tmp_path / "profile.json"
+    save_json(profile, {"research_report": {"content": {"sha256": digest(content.read_bytes())}}})
+    output = tmp_path / "report"
+    with pytest.raises(ValueError, match="suite directory"):
+        report_suite.build(output, content, profile=profile)
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("flag", [False, None, 0])
+def test_suite_example_identity_cannot_be_removed_or_relabelled(tmp_path, flag):
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    path = output / "report-manifest.json"
+    manifest = read_json(path)
+    if flag is None:
+        manifest.pop("local_example")
+    else:
+        manifest["local_example"] = flag
+    save_json(path, manifest)
+    with pytest.raises(ValueError, match="example flag"):
+        _check_rendered_report(output)
+
+
+def test_suite_explicit_unsupported_language_fails_before_children_or_output(tmp_path):
+    from harness.web_extract import report_suite
+
+    with pytest.raises(ValueError, match="supports only zh"):
+        report_suite.build(tmp_path / "output", tmp_path / "unused-content.json",
+                           profile=tmp_path / "unused-profile.json", language="en")
+    assert not (tmp_path / "output").exists()
+
+
+@pytest.mark.parametrize("href,expected", [
+    ("https://example.org/source", "https://example.org/source"),
+    ("first/zh/dataset.html", "first/zh/dataset.html"),
+    ("#first", "zh/index.html#first"),
+    ("?source=first#first", "zh/index.html?source=first#first"),
+])
+def test_suite_summary_links_survive_owner_normalization_and_are_checked(tmp_path, href, expected):
+    from harness.web_extract import report_suite
+
+    source = create(tmp_path / "seed", mode="field-extraction-suite")
+    content = source / "content.json"
+    model = read_json(content)
+    model["cohorts"][0]["summary_html"] = f'<p><a href="{href}">Source</a></p>'
+    save_json(content, model)
+    profile = source / "profile.json"
+    authority = read_json(profile)
+    authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    authority["research_report"]["cohorts"] = report_suite.cohort_registry(model["cohorts"])
+    save_json(profile, authority)
+    output = tmp_path / "report"
+    report_suite.build(output, content, profile=profile, language="zh")
+    path = output / "zh/index.html"
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    link = soup.select_one('[data-cohort="first"] > p a')
+    assert link["href"] == expected
+    if href.startswith("https:"):
+        assert link["target"] == "_blank"
+        assert set(link["rel"]) == {"noopener", "noreferrer"}
+    link["href"] = "https://example.org/another-source"
+    path.write_text(str(soup), encoding="utf-8")
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="Suite comparison"):
+        _check_rendered_report(output)
+
+
+@pytest.mark.parametrize("damage", [
+    "remove", "reorder", "label", "child-content", "child-profile",
+    "content-authority", "rewrite-authority",
+])
+def test_suite_scope_is_bound_to_approved_content_after_rehashing(tmp_path, damage):
+    import shutil
+
+    output = tmp_path / "report"
+    create(output, mode="field-extraction-suite")
+    manifest = read_json(output / "report-manifest.json")
+    suite = read_json(output / "suite.json")
+    path = output / "zh/index.html"
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    if damage in {"remove", "rewrite-authority"}:
+        suite["cohorts"].pop()
+        shutil.rmtree(output / "second")
+        soup.select_one('[data-cohort="second"]').decompose()
+        soup.select_one('nav a[href="second/zh/index.html"]').decompose()
+        if damage == "rewrite-authority":
+            authority_path = output / manifest["input_profile"]["path"]
+            authority = read_json(authority_path)
+            authority["research_report"]["cohorts"].pop()
+            save_json(authority_path, authority)
+            manifest["input_profile"]["published_sha256"] = digest(authority_path.read_bytes())
+    elif damage == "reorder":
+        suite["cohorts"].reverse()
+    elif damage == "label":
+        suite["cohorts"][0]["label"] = "Different benchmark"
+    elif damage == "content-authority":
+        manifest["content_sha256"] = "0" * 64
+    else:
+        child_path = output / "first/report-manifest.json"
+        child = read_json(child_path)
+        child[damage.removeprefix("child-") + "_sha256"] = "0" * 64
+        save_json(child_path, child)
+        suite["cohorts"][0]["manifest_sha256"] = digest(child_path.read_bytes())
+    path.write_text(str(soup), encoding="utf-8")
+    save_json(output / "suite.json", suite)
+    manifest["cohorts"] = suite["cohorts"]
+    manifest["files"] = {
+        p.relative_to(output).as_posix(): digest(p.read_bytes())
+        for p in output.rglob("*")
+        if p.is_file() and p != output / "report-manifest.json"
+    }
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="profile-authorized|child input|bound input profile"):
+        _check_rendered_report(output)
+
+
+@pytest.mark.parametrize("mode,suffix", [
+    ("field-extraction-suite", "-suite-inputs"),
+    ("field-extraction-cohort", "-synthetic-inputs"),
+])
+def test_unsupported_example_language_leaves_output_reusable(tmp_path, mode, suffix):
+    output = tmp_path / "report"
+    with pytest.raises(ValueError, match="Chinese only|supports only zh"):
+        create(output, mode=mode, language="en")
+    assert not output.exists()
+    assert not output.with_name(output.name + suffix).exists()
+    create(output, mode=mode, language="zh")
+    _check_rendered_report(output)
+
+
+@pytest.mark.parametrize("child", ["first", "second"])
+def test_suite_private_authority_checks_every_child_and_freezes_native_inputs(tmp_path, child):
+    from pathlib import Path
+
+    from harness.web_extract import report
+
+    output = tmp_path / "report"
+    home = create(output, mode="field-extraction-suite")
+    profile = home / "profile.json"
+    report.check(output, profile=profile, home=home)
+    model = read_json(home / "content.json")
+    entry = next(e for e in model["cohorts"] if e["id"] == child)
+    child_home = Path(entry["home"])
+    inputs = report.completion_authorities(profile, home)
+    assert child_home / "dataset" in inputs
+    selection = read_json(Path(entry["content"]))["evidence_runs"][0]
+    assert Path(selection["plan"]) in inputs
+    from harness.reporting.publication import PublicationSnapshot
+
+    guard = PublicationSnapshot.for_inputs((output, *inputs))
+    plan = Path(selection["plan"])
+    plan.write_bytes(plan.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="changed"):
+        guard.check()
+    dataset = child_home / "dataset/dataset/ground-truth.json"
+    dataset.write_bytes(dataset.read_bytes() + b"\n")
+    with pytest.raises(ValueError, match="Completion audit.*dataset"):
+        report.check(output, profile=profile, home=home)

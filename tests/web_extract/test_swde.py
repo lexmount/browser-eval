@@ -2143,10 +2143,13 @@ def test_record_preview_binds_host_output_to_exact_local_inventory(inputs, tmp_p
         "snapshot_base": base,
         "preview_snapshot": {"path": str(saved), "sha256": pipeline.digest(saved.read_bytes())},
     }
-    monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
+    monkeypatch.setattr(
+        snapshots, "verify_bound_manifest",
+        lambda *a, **k: pytest.fail("offline build used network"),
+    )
     assert report.record_preview(home, model, local_example=False) == receipt
     model["snapshot_base"] = "https://another-dataset.example/frozen"
-    with pytest.raises(ValueError, match="changed"):
+    with pytest.raises(ValueError, match="differs"):
         report.record_preview(home, model, local_example=False)
     model["snapshot_base"] = base
     receipt["html_inventory_sha256"] = "f" * 64
@@ -2154,6 +2157,47 @@ def test_record_preview_binds_host_output_to_exact_local_inventory(inputs, tmp_p
     model["preview_snapshot"]["sha256"] = pipeline.digest(saved.read_bytes())
     with pytest.raises(ValueError, match="differs from selected inputs"):
         report.record_preview(home, model, local_example=False)
+
+
+@pytest.mark.parametrize("damage", [None, "missing-content", "changed-content", "host-changed"])
+def test_archived_publication_audits_the_bound_preview_before_upload(
+    inputs, tmp_path, monkeypatch, damage
+):
+    from harness.web_extract import publication, snapshots
+
+    home, _ = inputs
+    version, _ = snapshots.inventory(home)
+    receipt = {"mode": "dataset_manifest", "manifest_url": "https://host.example/snapshots.json",
+               "manifest_sha256": "a" * 64, "html_inventory_sha256": version,
+               "case_count": 2, "fixture_base": "https://host.example/frozen"}
+    saved = tmp_path / "preview.json"
+    pipeline.save_json(saved, {"snapshot_manifest": receipt})
+    content = tmp_path / "content.json"
+    pipeline.save_json(content, {
+        "dataset_manifest": str(home / "dataset/manifest.json"),
+        "snapshot_base": receipt["fixture_base"],
+        "preview_snapshot": {"path": str(saved), "sha256": pipeline.digest(saved.read_bytes())},
+    })
+    source = tmp_path / "report"
+    source.mkdir()
+    pipeline.save_json(source / "report-manifest.json", {
+        "mode": "field-extraction-cohort", "content_sha256": pipeline.digest(content.read_bytes()),
+        "preview_snapshot": receipt,
+    })
+    target = {"content": {"path": str(content)}}
+    audit = Mock(side_effect=ValueError("host changed") if damage == "host-changed" else None)
+    monkeypatch.setattr(snapshots, "verify_bound_manifest", audit)
+    if damage == "missing-content":
+        target.clear()
+    elif damage == "changed-content":
+        content.write_text("{}", encoding="utf-8")
+    if damage:
+        with pytest.raises(ValueError, match="content|host changed"):
+            publication.audit_previews(source, target)
+        assert audit.call_count == int(damage == "host-changed")
+    else:
+        assert publication.audit_previews(source, target) == (content, saved)
+        audit.assert_called_once_with(home, receipt, receipt["fixture_base"])
 
 
 def test_record_adjudication_accepts_hash_bound_readonly_review_projection(
@@ -2441,7 +2485,9 @@ def test_mixed_plan_keeps_parse_uploads_and_url_calls_on_the_same_frozen_html(
         certification.run(home, profile, method, tmp_path / method)
     calls = dispatch.call_args_list
     assert len(calls) == 4
-    assert calls[0].args[1] == calls[2].args[1]
+    assert calls[0].args[1] == ""  # URL routes never decode or upload unused HTML.
+    case_id = calls[0].args[3].rsplit("/", 1)[-1]
+    assert calls[2].args[1].encode() == (home / "dataset/html" / (case_id + ".html")).read_bytes()
     assert calls[0].args[3].startswith("https://")
     assert calls[2].args[3] is None
 
@@ -2509,6 +2555,26 @@ def test_frozen_legacy_url_plan_still_uses_run_fixture_base(inputs, tmp_path, mo
         for call in dispatch.call_args_list
     )
 
+
+def test_historical_swde_plan_defaults_instructions_on_run_and_resume(
+    inputs, tmp_path, monkeypatch
+):
+    home, _ = inputs
+    path = tmp_path / "old-plan.json"
+    plan = plan_for_inputs(home, ["browserbase-json"], path)
+    plan.pop("extraction_instructions")
+    pipeline.save_json(path, plan)
+    dispatch = Mock(return_value={"http_status": 200, "response": {
+        "statusCode": 200, "content": {"author": ["Ada"], "title": ["Engineer"]}
+    }})
+    monkeypatch.setenv("BROWSERBASE_API_KEY", "synthetic")
+    monkeypatch.setattr(pipeline, "provider_call", dispatch)
+    run = tmp_path / "run"
+    certification.run(home, path, "browserbase-json", run)
+    certification.run(home, path, "browserbase-json", run)
+    assert dispatch.call_count == 2
+    assert (pipeline.read_json(run / "contract.json")["extraction_instructions"]
+            == pipeline.RECORD_INSTRUCTIONS)
 
 @pytest.mark.parametrize('kind', ['identical', 'new-claim', 'conflict', 'different-rules'])
 def test_record_adjudication_scopes_compose_claims_without_whole_case_replacement(

@@ -1,5 +1,56 @@
 # Web Extract: structured field extraction
 
+## Published datasets
+
+Dataset selection, sample size and extraction methods are independent. The shared
+HF lock selects an immutable edition; each edition declares its own population.
+The following research distributions are public. An authorized `HF_TOKEN` is
+needed when using a private source repository.
+
+| Dataset selection | Hugging Face repository | Current pages | Provider input |
+| --- | --- | ---: | --- |
+| `expanded-swde` | [Expanded SWDE](https://huggingface.co/datasets/Lexmount/LexBench-Expanded-SWDE) | 210 | Public frozen-page URLs |
+| `newsxlm` | [NewsXLM](https://huggingface.co/datasets/Lexmount/LexBench-NewsXLM) | 189 | Public frozen-page URLs |
+| `liveweb-ie` | [LiveWeb-IE](https://huggingface.co/datasets/Lexmount/LexBench-LiveWeb-IE) | 200 | Original live URLs |
+
+```sh
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli datasets
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli \
+  --home /absolute/data/expanded-swde prepare --dataset expanded-swde
+```
+
+Preparation downloads the locked archive, verifies its complete file inventory,
+checks the task and reference qualifications, and builds inputs for the existing
+`records` adapter. It makes no provider calls. The prepared profile records the
+repository, full HF commit, archive hash and task-definition hash. The same verified
+cache works offline with `HF_HUB_OFFLINE=1`. Existing measured cohorts remain bound
+to their original inputs and execution versions.
+
+Use `make pin-dataset DATASET=newsxlm REV=FULL_HF_COMMIT` to select a new published
+edition. Previously recorded editions remain selectable with
+`prepare --dataset newsxlm --revision FULL_HF_COMMIT`. Dataset names carry no size;
+the selected commit determines the pages and references. Each distribution keeps
+the upstream name, attribution and license. LiveWeb-IE remains restricted to
+non-commercial research; NewsXLM's original website rights are not replaced by a
+project license.
+
+Select participants separately with `plan --methods METHOD_ID ...`. Any registered
+complete extraction API with arbitrary-schema support can enter these datasets;
+the pipeline rejects product-only interfaces for non-product tasks. The registry
+does not limit these datasets to the three methods used in the first comparison.
+For frozen-page datasets, use `host` below before creating the plan. LiveWeb-IE
+retains independent before/after source checks and never uses a frozen-page host.
+
+To add a source, register its repository under `cards/metadata.json` with
+`evaluation_track: web-extract` and `adapter: records`, publish a shared
+`DatasetRelease` with a portable `source-qualified-extraction-cohort/1` definition,
+its referenced files and a default population, then run `pin-dataset`. Discovery
+and preparation use that registration; no dataset-specific runner is needed.
+New participant integrations extend the existing provider registry and its
+protocol tests. A new dataset or a larger edition does not require provider code.
+
+## Zyte product extraction
+
 Evaluate complete extraction APIs on the 140 archived product pages in
 [Zyte's product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark).
 Frozen inputs are distributed through
@@ -14,7 +65,7 @@ shared cache, works offline after download, and preserves existing hash-bound in
 
 ## Scope and naming
 
-Web Extract measures structured field extraction from archived HTML: the caller
+Web Extract measures structured field extraction from archived pages or live URLs: the caller
 requests fields such as price, stock or author, and the service returns field values.
 Web scraping is the broader term for collecting website data; extraction is the
 part measured here. [Zyte calls it automatic extraction](https://docs.zyte.com/zyte-api/usage/extract/index.html).
@@ -75,8 +126,9 @@ The hosted API cohort uses each provider's built-in extraction. Browserbase JSON
 uses only the Browserbase API key. The separately registered hosted Stagehand route
 uses its Model Gateway and needs a project ID; it does not read an OpenAI key.
 Self-hosted configurations use a separate model and are described below. Bright
-Data's site-specific extractor is rejected by the full archived-page plan because
-it cannot parse arbitrary archived HTML.
+Data's site-specific extractor remains a candidate, but is outside arbitrary-schema
+cohorts because it requires a supported site-specific extractor. Browser infrastructure
+alone does not supply the requested field values.
 
 New cohorts give every native API the same public URL for each frozen page.
 Each dataset has its own hosting service. Browser Eval can find and reuse a
@@ -106,7 +158,11 @@ to select another HF edition; its full resolved commit is frozen in the result.
 Discovery searches historical Cloudflare deployments as well as the current one.
 Each managed snapshot has one public `snapshots.json` declaring the HF dataset
 repository, full source commit and complete HTML/file inventory hashes. Discovery
-checks this one manifest rather than downloading individual pages. The result
+uses this manifest to identify the dataset version. On first use, it also hashes
+every served page and resource. The verified deployment ID and whole-input hash
+are cached under the configured data home; later runs reuse that proof only after
+Cloudflare confirms the same immutable deployment. Concurrent first users share
+one audit, and static downloads reuse network connections. The result
 records both the selected HF commit and the snapshot's source commit; an identical
 HTML inventory allows reuse across metadata-only HF revisions. Snapshots without
 this declaration require an approved new deployment. Matching inputs are
@@ -125,6 +181,11 @@ the same case URL; upload-only interfaces receive the identical frozen HTML and
 can share the plan. A plan containing only upload-only methods can omit the binding. Before and after calls, managed Cloudflare snapshots use
 the frozen whole-dataset manifest and its hash; a changed manifest blocks certification.
 External hosts additionally have every selected page hash-checked before and after calls.
+An unconfirmed Cloudflare binding follows the same byte checks. The management API
+must confirm the immutable deployment identity, and a complete byte-verification
+proof must bind that deployment to the selected input inventory, before a
+whole-manifest check can replace HTML and resource downloads. A new deployment
+or changed inventory requires another byte check.
 Page-by-page verification remains an explicit byte-audit command and is not used
 to identify a managed snapshot version.
 Keep raw HTML, original benchmark names, sources and licenses; exclude reference
@@ -567,6 +628,12 @@ revision records `approved_profile_successor` in that target with the exact
 `from_sha256`, `to_sha256` and the verified `profile_path`; a successful update
 consumes this approval and records the new profile path and hash together.
 
+Archived report builds validate their saved snapshot receipts offline. Publication
+rechecks the hosted snapshot. Set `content.path` in the external publication target
+to the report's content file; its bytes must match the built report's content hash.
+For a suite, that file selects each child's content and snapshot receipt. Live-only
+reports need no snapshot audit or additional content binding.
+
 ## Failure repairs and field audit
 
 Select one parent run per method. Each parent must contain one method; duplicate
@@ -641,6 +708,9 @@ asset registry. The disclosure uses schema `web-extract-cost-disclosure/1`, the
 method ID, `case_count`, `total_charge_receipts` and `source_plan_sha256`.
 Build and release checks require matching populations and source-plan hashes;
 an unavailable total cannot also declare a numeric price or billing formula.
+For multiple certified source segments, use schema `web-extract-cost-disclosure/2`
+with `source_plan_sha256s` listing every segment's plan hash in source order;
+single-plan receipts retain the version 1 contract.
 
 Quality cells link to method/field filters; result rows open lazy evidence dialogs
 and link to full field diagnostics, same-case comparisons and safe source previews.
@@ -683,6 +753,75 @@ and [versioned preview URLs](https://developers.cloudflare.com/pages/configurati
 
 ## Multi-value field reports
 
+### Source-qualified external cohorts
+
+Use the `records` adapter for another benchmark with explicit field schemas and
+source-validated references. Its definition stays outside Git and binds the source
+versions, sampling rules, page hashes, schemas and reference hashes. References are
+used for local scoring and never sent to an extraction API.
+
+A definition may set `extraction_instructions` to declare its task scope. This
+text is frozen in the dataset profile, plan and request contract. List-query
+benchmarks should request all matching records; the default single-record
+instructions remain available for detail-page benchmarks. Field descriptions
+carry the original question when an API accepts a schema without a separate query.
+
+```sh
+uv run --frozen --extra web-extract-eval python -m harness.web_extract.cli \
+  --home /absolute/data/cohort prepare --benchmark records \
+  --source /absolute/data/cohort-definition.json
+```
+
+The definition declares `input_mode: snapshot` or `input_mode: live`:
+
+| Mode | URL sent to the native API | Source validation |
+| --- | --- | --- |
+| `snapshot` | The immutable hosted page URL selected by `host` | HF revision and the complete HTML/resource inventory before and after collection |
+| `live` | The original website URL in the task | Original reference values checked on the source before and after collection |
+
+Live cohorts reject snapshot bindings. Saved HTML is private source evidence;
+providers still visit the original site. Unavailable pages or references that no
+longer appear stop certification, while completed provider calls remain saved.
+An optional `live_reference_policy.maximum_observation_age_seconds` (at most
+86,400 seconds) permits a previously captured independent source when a fresh
+access attempt fails. Each case then freezes `qualification.source_url` and a
+timezone-aware `qualification.observed_at`. Preserve a header-only charset in
+`qualification.encoding`, such as `utf-8`; it is bound with the captured bytes
+and used when checking them. Preparation freezes the effective charset. Declared
+charsets take precedence; undeclared valid UTF-8 stays UTF-8, with the HTML parser's
+legacy detection as a fallback. Reference checks and HTML uploads use this same rule.
+A successfully observed page with unsupported
+reference values still stops certification. Access failure alone does not
+establish that the question or answer is invalid.
+Live cohorts resume through their original certified run. The archived repair
+entry point rejects live inputs so a retry cannot substitute a hosted page or
+HTML upload for the original URL. Explicit HTTP-200 challenge pages count as
+access failures and follow the same bounded capture policy; a changed source
+page with missing answers still fails reference qualification.
+
+Source checks run at most four origins concurrently, with serial requests and a
+one-second pause within each origin. They do not contribute to provider latency.
+Transient network errors and HTTP 408/429/5xx responses allow up to three source
+checks, with bounded backoff recorded in the receipt. Missing reference values do
+not trigger retries. This policy never retries provider extraction for a better score.
+
+Snapshots can include captured styles, images and other resources. Their hashes
+are part of the whole-snapshot version; changing an asset changes that version
+even when the main HTML is unchanged. Scripts and external resources remain
+blocked by response headers.
+
+The shared scorer reports page-hit macro F1, value-level micro F1 and exact-field
+set rate. Text matching preserves content and units while normalizing whitespace.
+Explicitly typed URL fields resolve relative links against the source URL, using
+the same matching rule in aggregate scores and result details. A cohort using
+these rules must disclose them as an adaptation unless they reproduce the
+upstream evaluator.
+
+Source-qualified record datasets pin a portable `evaluate.py`. Dataset validation
+requires its bytes to match the runtime evaluator. A scorer change needs a declared
+scoring correction, or reproduction at the original code revision; it cannot
+silently change a frozen dataset's scoring behavior.
+
 The same report owner supports registered record schemas through
 `mode: field-extraction-cohort`. The instance content binds every planned
 participant to its certified source or journal checkpoint, with source-plan
@@ -706,8 +845,10 @@ release gate requires all participants complete and a hash-bound visual receipt.
 
 An explicit report-scope omission sets `include_in_comparison: false` and supplies
 `exclusion_reason` on that participant. Its calls, progress, detail panels and
-timings remain available, while quality and speed leadership use only the declared
-comparison participants. Release checks require every compared participant to be
+timings remain available, while quality uses only the declared comparison
+participants. Timing and price tables retain every planned participant; timing
+extrema use the stated all-call population, including account rejections.
+Release checks require every compared participant to be
 complete and reject an omitted participant without a reason. Source execution
 plans and certificates are never rewritten to change this presentation scope.
 
@@ -754,6 +895,45 @@ A repair inherits its parent's instructions and native options unless the plan e
 overrides the native options. The instruction-delivery format is frozen too: historical
 record runs with a different format require a new cohort instead of a mixed repair. Bare run IDs resolve under `<home>/runs/`; explicit relative paths
 resolve from `<home>`, and absolute paths retain their meaning.
+
+## Independent benchmarks in one report
+
+Use the same renderer's `field-extraction-suite` mode to publish several cohorts
+under one entry. Each cohort keeps its own dataset, scorer, result inventory,
+timing population and denominator. The overview does not average quality scores
+across benchmarks. Run the network-free example with:
+
+```sh
+uv run --frozen python -m harness.web_extract.example --output /tmp/extract-suite --mode field-extraction-suite
+uv run --frozen python -m harness.web_extract.cli check /tmp/extract-suite
+```
+
+The suite content lists `cohorts`, each with `id`, `label`, `home`, `content`,
+`profile`, `content_sha256` and `profile_sha256`. Each child's content declares a
+matching `site_prefix`. The instance profile binds the suite content hash and a
+publication-safe `research_report.cohorts` registry containing the ordered IDs,
+labels, summaries and child input hashes. The package retains the exact profile
+bytes, so release checks verify that registry against the original profile hash
+without trusting a separately edited public projection or needing local files.
+Nested pages, evidence dialogs,
+the English notice and the return link use the same hosted-root navigation.
+The release receipt binds a visual receipt for every child under `cohorts`.
+
+A participant can reuse several disjoint certified scopes through an evidence
+selection's `segments` array. Each segment identifies its original `home`,
+`run`, `plan` and `plan_sha256`. Assembly verifies each original certificate and
+requires identical task definitions, schemas, instructions and HTML for the
+selected IDs. The scopes must cover the declared dataset exactly once. This
+allows an expanded cohort to retain earlier calls without selecting the best
+answer, changing evidence or repeating completed calls.
+
+The report lists each segment's native options, frozen participant settings and
+pipeline/scorer hashes in Methodology, linked beside the quality comparison.
+Only segments with identical native options, participant settings and pipeline/scorer
+identities can share a participant row. The total physical-call budget is scoped to
+the segment's case count and is not a method setting. Different configurations need
+separate participants or cohorts. Each certified segment's scores are checked on
+its own case population before aggregation.
 
 ## Self-hosted open-source extraction
 

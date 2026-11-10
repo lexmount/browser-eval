@@ -547,6 +547,8 @@ class DatasetRelease:
         manifest["archive"] = {"path": "definitions.tar.gz", "sha256": bytes_sha256(bundle), "size": len(bundle)}
         (output / "manifest.json").write_bytes(encoded(manifest))
         header = {key: metadata[key] for key in ("pretty_name", "license", "tags", "task_categories", "source_datasets")}
+        header.update({key: metadata[key] for key in ("license_name", "license_link")
+                       if key in metadata})
         header["language"] = sorted(languages - {"und", "zxx", "mul"}) or ["und"]
         header["configs"] = configurations
         populations = manifest["viewer"]["configurations"]

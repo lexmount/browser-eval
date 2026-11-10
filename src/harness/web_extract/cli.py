@@ -42,6 +42,9 @@ def main(argv=None):
     p = sub.add_parser("prepare")
     p.add_argument("--benchmark", choices=tuple(BENCHMARKS), default="zyte")
     p.add_argument("--source", type=Path)
+    p.add_argument("--dataset", help="Registered Hugging Face dataset; see datasets")
+    p.add_argument("--revision", help="Full dataset commit recorded by pin-dataset")
+    sub.add_parser("datasets", help="List registered datasets, editions and populations")
     sub.add_parser("reproduce")
     for command in ("snapshots-build", "snapshots-verify"):
         p = sub.add_parser(command)
@@ -271,10 +274,15 @@ def main(argv=None):
 
             save_json(args.output, result, exclusive=True)
             print({"verified_pages": result["verified_pages"]})
+    elif args.command == "datasets":
+        from harness.web_extract.dataset import registered_datasets
+
+        print(json.dumps(registered_datasets(), ensure_ascii=False, indent=2))
     elif args.command == "prepare":
         print(
             "Verified",
-            prepare(args.home, benchmark=args.benchmark, source=args.source)["cases"],
+            prepare(args.home, benchmark=args.benchmark, source=args.source,
+                    dataset=args.dataset, revision=args.revision)["cases"],
             "frozen pages",
         )
     elif args.command == "reproduce":

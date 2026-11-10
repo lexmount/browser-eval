@@ -10,7 +10,74 @@ from pathlib import Path
 from harness.benchmarks.data import binding, canonical_source_name, definition_path
 from harness.record_io import bytes_sha256, read_json
 
+
+def _registered_sources():
+    metadata = read_json(Path(__file__).resolve().parents[1] / "benchmarks/cards/metadata.json")
+    return {name: item for name, item in metadata.items()
+            if item.get("evaluation_track") == "web-extract"}
+
+
+def registered_datasets():
+    """Discover pinned extraction sources independently of adapters and participants."""
+    result = {}
+    for name, item in _registered_sources().items():
+        try:
+            selected = binding(name)
+        except KeyError:
+            # Registration precedes publication and pinning of the first edition.
+            continue
+        result[name] = {
+            "name": item["pretty_name"],
+            "adapter": item["adapter"],
+            "repository": selected["repository"],
+            "revision": selected["revision"],
+            "datasets": selected["datasets"],
+        }
+    return result
+
+
+def prepare_registered(home, name, *, revision=None):
+    """Prepare a registered HF edition through the existing task adapter."""
+    from harness.web_extract import records
+
+    catalog = _registered_sources()
+    if name not in catalog:
+        raise ValueError("Unknown Web Extract dataset: " + name)
+    selected = binding(name, revision)
+    if catalog[name]["adapter"] != "records":
+        raise ValueError("Unsupported registered dataset adapter")
+    identity = selected.get("default_dataset")
+    if identity not in selected["datasets"]:
+        raise ValueError("Dataset edition must declare its default population")
+    descriptor = selected["datasets"][identity]
+    # Verify the whole locked archive, including resources referenced by the definition.
+    root = definition_path(name, ".", selected["revision"])
+    source = root / descriptor["path"]
+    definition = read_json(source)
+    if (bytes_sha256(source.read_bytes()) != descriptor["sha256"]
+            or len(definition["cases"]) != descriptor["count"]):
+        raise ValueError("Dataset definition differs from its pinned population")
+    for case in definition["cases"]:
+        for resource in [case, *case.get("assets", [])]:
+            relative = Path(resource["input"])
+            member_name = (Path(descriptor["path"]).parent / relative).as_posix()
+            if (relative.is_absolute() or ".." in relative.parts
+                    or "definitions/" + member_name not in selected["files"]):
+                raise ValueError("Dataset input is outside its locked archive")
+    return records.prepare(Path(home), source, distribution={
+        "dataset": name,
+        "repository": selected["repository"],
+        "revision": selected["revision"],
+        "archive_sha256": selected["archive"]["sha256"],
+        "definition_sha256": descriptor["sha256"],
+    })
+
+
 BENCHMARKS = {
+    "records": {
+        "profile": None,
+        "module": "harness.web_extract.records",
+    },
     "zyte": {
         "profile": "zyte-product-extraction.json",
         "module": None,
@@ -42,13 +109,32 @@ def benchmark_config(home=None, *, name=None):
     if name not in BENCHMARKS:
         raise ValueError("Unknown extraction benchmark: " + str(name))
     item = BENCHMARKS[name]
+    distribution = item.get("snapshot_distribution")
+    if name == "records" and home is not None:
+        distribution = read_json(Path(home) / "profile.json").get("snapshot_distribution")
     return {
-        "profile": Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"],
+        "profile": (
+            Path(home) / "profile.json"
+            if item["profile"] is None and home is not None
+            else Path(__file__).resolve().parents[1] / "benchmarks/cards" / item["profile"]
+            if item["profile"] is not None
+            else None
+        ),
         "adapter": importlib.import_module(item["module"]) if item["module"] else None,
         "snapshot_project": item.get("snapshot_project"),
-        "snapshot_distribution": item.get("snapshot_distribution"),
+        "snapshot_distribution": distribution,
         "reference_coverage_archive": item.get("reference_coverage_archive"),
     }
+
+
+def input_mode(home):
+    """A live source and a hosted immutable page have distinct qualification rules."""
+    from harness.web_extract.pipeline import read_json
+
+    mode = read_json(Path(home) / "dataset/manifest.json").get("input_mode", "snapshot")
+    if mode not in {"snapshot", "live"}:
+        raise ValueError("Unknown extraction input mode")
+    return mode
 
 
 def reference_revision_authorities(home, revision):
@@ -88,11 +174,19 @@ def task_bindings(home):
     config = benchmark_config(home)
     if config["adapter"] is None:
         return {}
-    return {
+    result = {
         "task_adapter_sha256": adapter_sha256(home),
         "dataset_profile_sha256": bytes_sha256(config["profile"].read_bytes()),
         "dataset_registry_sha256": registry_sha256(),
     }
+    if hasattr(config["adapter"], "scoring_sources"):
+        result["task_scoring_dependencies_sha256"] = bytes_sha256(
+            b"\n".join(
+                bytes_sha256(path.read_bytes()).encode()
+                for path in config["adapter"].scoring_sources()
+            )
+        )
+    return result
 
 
 def distribution_identity(home: Path, pin, selection):

@@ -54,6 +54,7 @@ class PipelineScenarios(unittest.TestCase):
                 "format": "json",
                 "schema": SCHEMA,
                 "proxies": False,
+                "allowRedirects": True,
             },
         )
         self.assertEqual(normalize("browserbase-json", result["response"])["sku"], "0007")

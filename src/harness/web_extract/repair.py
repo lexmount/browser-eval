@@ -7,7 +7,7 @@ from pathlib import Path
 
 from harness.benchmark_execution import ExecutionPolicy, exclusive_policy
 from harness.reporting.publication import atomic_create
-from harness.web_extract.dataset import task_bindings
+from harness.web_extract.dataset import input_mode, task_bindings
 from harness.web_extract.pipeline import (
     ACCESS_POLICY,
     RECORD_INSTRUCTION_DELIVERY,
@@ -31,7 +31,15 @@ from harness.web_extract.pipeline import (
 from harness.web_fetch.config import load_runtime_env
 
 
+def require_archived(home):
+    if input_mode(home) == "live":
+        raise ValueError(
+            "Live URL cohorts must resume their original certified run, not an archived repair"
+        )
+
+
 def create_plan(home, content, output, options, fixture_base, selected=None):
+    require_archived(home)
     require_external_output(output)
     require_external_output(home)
     home = Path(home).resolve()
@@ -196,23 +204,24 @@ def artifact(directory, entry):
     return read_json(path)
 
 
+def fixture_identity(rows):
+    return [{k: v for k, v in row.items() if k != "qualification_fetch_attempts"} for row in rows]
+
+
 def fixture_check(home, base, cases, suffix="", snapshot_manifest=None):
     if snapshot_manifest is not None:
         from harness.web_extract.snapshots import verify_bound_manifest
 
-        receipts = verify_bound_manifest(home, snapshot_manifest, base)
-        if snapshot_manifest.get("hosting_provider") == "cloudflare":
-            return receipts
-    else:
-        receipts = []
-    return receipts + [
-        {key: item[key] for key in ("case_id", "url", "sha256")}
-        for cid in cases
-        for item in [qualify_fixture(home, base, cid, suffix=suffix, timeout=45)]
-    ]
+        return verify_bound_manifest(home, snapshot_manifest, base, case_ids=cases, suffix=suffix)
+    from harness.web_extract.snapshots import verify_resources
+
+    return [
+        qualify_fixture(home, base, cid, suffix=suffix, timeout=45) for cid in cases
+    ] + verify_resources(home, base)
 
 
 def run(home, profile, method, destination):
+    require_archived(home)
     require_external_output(destination)
     require_external_output(home)
     home = Path(home).resolve()
@@ -255,6 +264,7 @@ def run(home, profile, method, destination):
 
 
 def collect(home, profile, method, destination):
+    require_archived(home)
     validate_dataset(home)
     plan = read_json(profile)
     if plan.get("fixture_base") is not None:
@@ -309,6 +319,7 @@ def collect(home, profile, method, destination):
         ),
         "access_retry_limit": plan.get("access_retries_after_repair", 1),
         "access_policy": ACCESS_POLICY,
+        "fixture_verification": "served-bytes/1",
         "code_sha256": code,
         "code_snapshots": False,
         **bindings,
@@ -353,7 +364,7 @@ def collect(home, profile, method, destination):
             os.close(descriptor)
     receipt = destination / "fixture-before.json"
     if receipt.exists():
-        if read_json(receipt) != before:
+        if fixture_identity(read_json(receipt)) != fixture_identity(before):
             raise ValueError("Repair fixture receipt changed before dispatch")
     else:
         save_json(receipt, before, exclusive=True)
@@ -383,7 +394,7 @@ def collect(home, profile, method, destination):
         if needs_fixture
         else []
     )
-    if before != after:
+    if fixture_identity(before) != fixture_identity(after):
         raise ValueError("Repair fixtures changed")
     validate_dataset(home)
     if plan["dataset_manifest_sha256"] != digest((home / "dataset/manifest.json").read_bytes()):
@@ -424,6 +435,7 @@ def collect(home, profile, method, destination):
 
 def verify_repair(home, source, repair):
     """Overlay only declared failed calls; keep old calls and missing timers explicit."""
+    require_archived(home)
     directory = Path(repair["path"])
     certificate = read_json(directory / "certificate.json")
     if digest((directory / "certificate.json").read_bytes()) != repair["sha256"]:
@@ -488,54 +500,22 @@ def verify_repair(home, source, repair):
             raise ValueError("Repair fixture receipt changed")
     before = read_json(directory / "fixture-before.json")
     after = read_json(directory / "fixture-after.json")
-    if before != after:
+    if fixture_identity(before) != fixture_identity(after):
         raise ValueError("Repair fixture qualification differs")
     needs_fixture = requires_fixture(participant["method"], participant["native_options"])
-    if needs_fixture and participant.get("snapshot_manifest"):
-        from harness.web_extract.snapshots import manifest_receipt
+    if needs_fixture:
+        from harness.web_extract.snapshots import validate_fixture_receipts
 
-        expected = manifest_receipt(
-            home, participant["snapshot_manifest"], participant["snapshot_manifest"]["fixture_base"]
+        configuration = execution_configuration(contract, directory)
+        validate_fixture_receipts(
+            home,
+            before,
+            configuration["fixture_base"],
+            participant["case_ids"],
+            suffix=configuration["fixture_suffix"],
+            bound=configuration["snapshot_manifest"],
+            allow_legacy_manifest="fixture_verification" not in contract,
         )
-        if participant["snapshot_manifest"].get("hosting_provider") == "external":
-            expected += [
-                {
-                    "case_id": cid,
-                    "url": participant["snapshot_manifest"]["fixture_base"]
-                    + "/"
-                    + cid
-                    + participant.get("fixture_suffix", ""),
-                    "sha256": digest((home / "dataset/html" / (cid + ".html")).read_bytes()),
-                }
-                for cid in participant["case_ids"]
-            ]
-
-        def without_hosting_annotation(receipts):
-            # Hosting policy belongs to the frozen participant, not the remote
-            # manifest. Retained receipts may predate or include that annotation.
-            return [
-                {
-                    **item,
-                    "snapshot_manifest": {
-                        key: value
-                        for key, value in item["snapshot_manifest"].items()
-                        if key != "hosting_provider"
-                    },
-                }
-                if isinstance(item.get("snapshot_manifest"), dict)
-                else item
-                for item in receipts
-            ]
-
-        if without_hosting_annotation(before) != without_hosting_annotation(expected):
-            raise ValueError("Repair dataset snapshot qualification differs")
-    elif needs_fixture:
-        if {item["case_id"] for item in before} != set(participant["case_ids"]):
-            raise ValueError("Repair fixture qualification is incomplete")
-        for item in before:
-            raw = home / "dataset/html" / (item["case_id"] + ".html")
-            if item["sha256"] != digest(raw.read_bytes()):
-                raise ValueError("Repair fixture qualification source changed")
     verify_retry_history(directory, manifest, contract)
     replacements = {}
     for entry in manifest["calls"]:
@@ -600,7 +580,9 @@ def execution_configuration(contract, directory=None):
             bases = {
                 r["url"].removesuffix("/" + r["case_id"] + suffix)
                 for r in receipts
-                if "case_id" in r
+                if "url" in r
+                and not r.get("case_id", "").startswith("resource:")
+                and r.get("scope") not in {"dataset", "deployment"}
             }
             if len(bases) != 1:
                 raise ValueError("Repair fixture origin is absent or inconsistent")

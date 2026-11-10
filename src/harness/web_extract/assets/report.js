@@ -307,12 +307,16 @@ for (const table of document.querySelectorAll("table[data-sortable]")) {
   }
 }
 // Compare the complete same-page population, before row-level diagnosis filters.
+const fieldOutcome = (row, field) => {
+  const outcomes = row.dataset.fieldOutcomes === undefined ? row.dataset : JSON.parse(row.dataset.fieldOutcomes);
+  return Object.prototype.hasOwnProperty.call(outcomes, field) ? outcomes[field] : undefined;
+};
 const qualityOutcome = (row, field) => {
   if (!row || ["pending", "unavailable"].includes(row.dataset.status)) return null;
   if (!field && row.dataset.scoredFields === "0") return null;
   if (field) {
-    if (row.dataset[field] === undefined || row.dataset[field] === "unavailable") return null;
-    return (!row.dataset.stage || row.dataset.stage === "fields") && row.dataset[field] === "correct";
+    if (fieldOutcome(row, field) === undefined || fieldOutcome(row, field) === "unavailable") return null;
+    return (!row.dataset.stage || row.dataset.stage === "fields") && fieldOutcome(row, field) === "correct";
   }
   return row.dataset.status !== "fail" && row.dataset.outcome !== "wrong";
 };
@@ -361,10 +365,10 @@ if (form) {
     let shown = 0;
     for (const row of resultRows) {
       const field = controls.field || "";
-      const applicable = !field || row.dataset[field] !== undefined;
-      const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || row.dataset[field] !== "correct" : row.dataset.status === "fail" || row.dataset.outcome === "wrong";
+      const applicable = !field || fieldOutcome(row, field) !== undefined;
+      const bad = field ? (Boolean(row.dataset.stage) && row.dataset.stage !== "fields") || fieldOutcome(row, field) !== "correct" : row.dataset.status === "fail" || row.dataset.outcome === "wrong";
       const status = controls.status || "all";
-      const scored = field ? row.dataset[field] !== "unavailable" : row.dataset.status !== "unavailable";
+      const scored = field ? fieldOutcome(row, field) !== "unavailable" : row.dataset.status !== "unavailable";
       const show =
         applicable &&
         (!comparedCases || (comparedCases.has(row.dataset.case) && [baseline, ...competitors].includes(row.dataset.method))) &&

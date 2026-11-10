@@ -29,7 +29,7 @@ from harness.data_home import data_home as shared_data_home
 from harness.distribution import repository_root
 from harness.record_io import bytes_sha256 as digest
 from harness.record_io import read_json as shared_read_json
-from harness.web_extract.dataset import benchmark_config
+from harness.web_extract.dataset import benchmark_config, input_mode
 from harness.web_fetch.config import load_runtime_env
 from harness.web_fetch.providers.http_client import request
 from lexbench_webfetch.paths import validate_http_url
@@ -40,6 +40,7 @@ PRODUCT_FIELDS = ("price", "sku", "availability")
 FIELDS = (*PRODUCT_FIELDS, "InStock", "OutOfStock")
 _RAW_SESSIONS = {}
 _COLLECTION_CLOCK = None
+_CAPTURE_METADATA_UNSET = object()
 
 
 def valid_product_value(field, value):
@@ -202,7 +203,16 @@ def data_home() -> Path:
     return shared_data_home() / "web-extract"
 
 
-def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None):
+def prepare(destination: Path, profile=PROFILE, *, benchmark="zyte", source=None,
+            dataset=None, revision=None):
+    if dataset is not None:
+        if source is not None or benchmark != "zyte" or profile != PROFILE:
+            raise ValueError("Select a registered dataset or a local benchmark source")
+        from harness.web_extract.dataset import prepare_registered
+
+        return prepare_registered(destination, dataset, revision=revision)
+    if revision is not None:
+        raise ValueError("--revision requires a registered --dataset")
     adapter = benchmark_config(name=benchmark)["adapter"]
     if adapter:
         if source is None:
@@ -243,6 +253,7 @@ def validate_dataset(home: Path, profile=None):
         verify_distribution(manifest, pin)
     if manifest["commit"] != pin["commit"] or manifest["cases"] != pin["cases"]:
         raise ValueError("Dataset is not the selected pinned cohort")
+    qualifications = capture_qualifications(home, manifest)
     for name, item in manifest["files"].items():
         path = root / name
         if (
@@ -259,7 +270,7 @@ def validate_dataset(home: Path, profile=None):
             raise ValueError("Dataset bytes changed: " + name)
         if name.startswith("html/"):
             try:
-                raw.decode("utf-8")
+                captured_html(home, Path(name).stem, raw, qualifications=qualifications)
             except UnicodeDecodeError as error:
                 raise ValueError("Frozen HTML must be UTF-8: " + name) from error
     for name, expected in pin.get("files", {}).items():
@@ -269,6 +280,14 @@ def validate_dataset(home: Path, profile=None):
     expected = {"html/" + key + ".html" for key in truth}
     if len(truth) != pin["cases"] or not expected.issubset(manifest["files"]):
         raise ValueError("Incomplete HTML population")
+    if manifest.get("benchmark") == "records":
+        from harness.web_extract.records import exported_evaluator
+
+        if (root / "evaluate.py").read_bytes() != exported_evaluator():
+            raise ValueError(
+                "Pinned record evaluator differs from the runtime; use the original "
+                "revision or a declared scoring correction"
+            )
     return manifest
 
 
@@ -552,7 +571,13 @@ def _browserbase_request(
         return {"state": "input_blocked", "error": "A frozen HTTPS snapshot URL is required"}
     url = "https://api.browserbase.com/v1/fetch"
     headers = {"X-BB-API-Key": os.environ["BROWSERBASE_API_KEY"]}
-    body = {"url": fixture_url, "format": "json", "schema": schema or SCHEMA, "proxies": False}
+    body = {
+        "url": fixture_url,
+        "format": "json",
+        "schema": schema or SCHEMA,
+        "proxies": False,
+        "allowRedirects": True,
+    }
     return url, headers, body
 
 
@@ -986,6 +1011,23 @@ RECORD_INSTRUCTIONS = (
 )
 
 
+def record_instructions(home):
+    """Task scope belongs to the frozen dataset profile, with the original default."""
+    prompt = read_json(selected_profile(home)).get("extraction_instructions", RECORD_INSTRUCTIONS)
+    if not isinstance(prompt, str) or not prompt.strip():
+        raise ValueError("Extraction instructions must be a nonempty string")
+    return prompt
+
+
+def validate_live_route(method, native_options=None):
+    spec = available_methods()[method]
+    if spec["input"] != "url" and (
+        "input_route" not in spec.get("options", [])
+        or (native_options or {}).get("input_route") != "url"
+    ):
+        raise ValueError("Live cohorts require a native URL extraction route: " + method)
+
+
 def resolve_run_path(home, value):
     """Bare run IDs live under runs/; explicit relative paths start at the data home."""
     path = Path(value)
@@ -1108,6 +1150,7 @@ def provider_call(
             "fixture_url": fixture_url,
             "source_url": source_url,
             "native_options": native_options,
+            **({"follow_redirects": True} if method == "browserbase-json" else {}),
         },
     }
 
@@ -1309,7 +1352,8 @@ def access_blocker(row):
         + " "
         + (
             " ".join(
-                str(native.get(k, "")) for k in ("error", "errors", "message", "non_json_response")
+                str(native.get(k, ""))
+                for k in ("error", "errors", "message", "title", "detail", "non_json_response")
             )
             if isinstance(native, dict)
             else ""
@@ -1451,6 +1495,28 @@ def probe(home: Path, methods: list[str], **options):
         return _probe_unlocked(home, methods, run_dir=run, **options)
 
 
+def capture_qualifications(home, manifest=None):
+    """Read decoding metadata once for one validation or collection operation."""
+    provenance = home / "dataset/provenance.json"
+    if not provenance.exists():
+        return None
+    manifest = manifest if manifest is not None else read_json(home / "dataset/manifest.json")
+    return ({cid: item.get("qualification") for cid, item in read_json(provenance).items()}
+            if "provenance.json" in manifest["files"] else None)
+
+
+def captured_html(home, case_id, raw, *, qualifications=_CAPTURE_METADATA_UNSET):
+    """Decode an HTML upload with the charset frozen during source qualification."""
+    if qualifications is _CAPTURE_METADATA_UNSET:
+        qualifications = capture_qualifications(home)
+    qualification = qualifications[case_id] if qualifications is not None else None
+    if not qualification:
+        # Legacy archives promise UTF-8; replacement would alter frozen input.
+        return raw.decode("utf-8")
+    from harness.web_extract.records import source_encoding
+
+    return raw.decode(source_encoding(raw, qualification.get("encoding")), errors="replace")
+
 def _initialize_collection_clock(lock, clock, interval):
     global _COLLECTION_CLOCK
     _COLLECTION_CLOCK = lock, clock, interval
@@ -1459,7 +1525,7 @@ def _initialize_collection_clock(lock, clock, interval):
 def _execute_collection_call(payload):
     (
         method,
-        raw,
+        html_input,
         source_url,
         public_url,
         schema_options,
@@ -1484,7 +1550,7 @@ def _execute_collection_call(payload):
         row.update(
             provider_call(
                 method,
-                raw.decode("utf-8"),
+                html_input,
                 source_url,
                 public_url,
                 **schema_options,
@@ -1559,6 +1625,13 @@ def collect_calls(
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     dataset_manifest = read_json(home / "dataset/manifest.json")
     frozen_inputs = dataset_manifest["files"]
+    qualifications = capture_qualifications(home, dataset_manifest)
+    source_mode = input_mode(home)
+    if contract.get("input_mode", "snapshot") != source_mode:
+        raise ValueError("Collection input mode differs from the frozen dataset")
+    if source_mode == "live":
+        for method in methods:
+            validate_live_route(method, native_options)
     adapter = benchmark_config(home)["adapter"]
     custom_schema = adapter is not None
     if custom_schema:
@@ -1719,12 +1792,20 @@ def collect_calls(
         last_call_started = time.monotonic()
         if missing:
             return (None, row)
-        public_url = fixture_url(fixture_base, case_id, fixture_suffix) if fixture_base else None
+        html_input = (
+            "" if registry[method]["input"] == "url"
+            or (native_options or {}).get("input_route") == "url"
+            else captured_html(home, case_id, raw, qualifications=qualifications)
+        )
+        public_url = (
+            truth[case_id]["url"] if contract.get("input_mode") == "live"
+            else fixture_url(fixture_base, case_id, fixture_suffix) if fixture_base else None
+        )
         return (
             True,
             (
                 method,
-                raw,
+                html_input,
                 truth[case_id]["url"],
                 public_url,
                 schema_options,
@@ -1894,6 +1975,9 @@ def _probe_unlocked(
         raise ValueError("Selected methods require a dataset-provided custom schema")
     validate_dataset(home)
     load_runtime_env()
+    source_mode = input_mode(home)
+    if source_mode == "live" and (fixture_base is not None or snapshot_manifest is not None):
+        raise ValueError("A live cohort must use original source URLs, not hosted snapshots")
     if fixture_base is not None:
         validate_fixture_base(fixture_base)
     if fixture_suffix not in (".html", ""):
@@ -1902,6 +1986,9 @@ def _probe_unlocked(
         if len(methods) != 1:
             raise ValueError("Native controls require a single method run")
         native_options = validate_native_options(methods[0], native_options)
+    if source_mode == "live":
+        for method in methods:
+            validate_live_route(method, native_options)
     truth = read_json(home / "dataset/dataset/ground-truth.json")
     if full and largest:
         raise ValueError("Full scope and a size probe are mutually exclusive")
@@ -1937,16 +2024,22 @@ def _probe_unlocked(
         def one(case_id):
             return qualify_fixture(home, fixture_base, case_id, suffix=fixture_suffix)
 
+        if source_mode == "live":
+            adapter = benchmark_config(home)["adapter"]
+            if not hasattr(adapter, "qualify_live"):
+                raise ValueError("The selected adapter cannot qualify live references")
+            return adapter.qualify_live(home, case_ids)
         if not fixture_base:
             return []
         if snapshot_manifest is not None:
             from harness.web_extract.snapshots import verify_bound_manifest
 
-            receipts = verify_bound_manifest(home, snapshot_manifest, fixture_base)
-            if snapshot_manifest.get("hosting_provider") != "cloudflare":
-                receipts += [one(case_id) for case_id in case_ids]
-            return receipts
-        return [one(case_id) for case_id in case_ids]
+            return verify_bound_manifest(
+                home, snapshot_manifest, fixture_base, case_ids=case_ids, suffix=fixture_suffix
+            )
+        from harness.web_extract.snapshots import verify_resources
+
+        return [one(case_id) for case_id in case_ids] + verify_resources(home, fixture_base)
 
     run = Path(run_dir)
     continuing = (run / "contract.json").exists()
@@ -1983,13 +2076,16 @@ def _probe_unlocked(
         else SCHEMA,
         "remote_fixture_before": remote_before,
     }
+    if source_mode == "live":
+        requested["input_mode"] = "live"
+
     if execution_policy is not None:
         requested["execution_policy"] = execution_policy
     if benchmark_config(home)["adapter"] is not None:
         from harness.web_extract.dataset import task_bindings
 
         requested.update(task_bindings(home))
-        requested["extraction_instructions"] = RECORD_INSTRUCTIONS
+        requested["extraction_instructions"] = record_instructions(home)
         requested["extraction_instruction_delivery"] = RECORD_INSTRUCTION_DELIVERY
     if benchmark_config(home)["adapter"] is not None or maximum_physical_calls is not None:
         matrix_size = len(case_ids) * len(methods)
@@ -2008,6 +2104,8 @@ def _probe_unlocked(
         contract = read_json(run / "contract.json")
         if contract.get("snapshot_manifest") != requested.get("snapshot_manifest"):
             raise ValueError("Resume dataset snapshot manifest changed")
+        if contract.get("input_mode") != requested.get("input_mode"):
+            raise ValueError("Resume input mode changed")
         if contract.get("extraction_instructions") != requested.get("extraction_instructions"):
             raise ValueError("Resume extraction instructions changed")
         if contract.get("native_options") != requested.get("native_options"):
@@ -2018,6 +2116,10 @@ def _probe_unlocked(
             raise ValueError("Resume benchmark registry changed")
         if contract.get("task_adapter_sha256") != requested.get("task_adapter_sha256"):
             raise ValueError("Resume task adapter changed")
+        if contract.get("task_scoring_dependencies_sha256") != requested.get(
+            "task_scoring_dependencies_sha256"
+        ):
+            raise ValueError("Resume shared scoring implementation changed")
         if contract.get("dataset_profile_sha256") != requested.get("dataset_profile_sha256"):
             raise ValueError("Resume dataset profile changed")
         for field in (
@@ -2078,7 +2180,17 @@ def _probe_unlocked(
         old = read_json(after)
 
         def identity(items):
-            return [(r["case_id"], r["sha256"], r["http_status"]) for r in items]
+            return [
+                (
+                    r["case_id"],
+                    r.get("reference_sha256", r.get("sha256")),
+                    None if r.get("source_state") == "access_unavailable" else r.get("http_status"),
+                    r.get("source_state"),
+                    r.get("verification_mode"),
+                    r.get("reference_observed_at"),
+                )
+                for r in items
+            ]
 
         if identity(old) != identity(receipt):
             raise ValueError("Existing final fixture receipt differs")

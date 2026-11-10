@@ -32,6 +32,16 @@ def metadata(output):
     return yaml.safe_load((output / "README.md").read_text(encoding="utf-8").split("---", 2)[1])
 
 
+def test_original_license_terms_remain_linked_in_published_cards(tmp_path):
+    source = release("liveweb-ie", [{"id": "one", "url": "https://source.example/"}])
+    # A selected sample has its own population; the original license still applies.
+    replace(source, card_body="# LiveWeb-IE\n\nOriginal source terms apply.").build(tmp_path)
+    card = metadata(tmp_path)
+    assert card["license"] == "other"
+    assert card["license_name"] == "original-source-terms"
+    assert card["license_link"] == "LICENSE"
+
+
 def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inputs(tmp_path):
     tracks = ["web", "document", "image", "video", "challenge", "dynamic"]
     names = ["general-web", "embedded-documents", "media-information", "media-information",

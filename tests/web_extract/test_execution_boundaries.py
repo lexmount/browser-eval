@@ -1159,6 +1159,10 @@ def test_new_versioned_cohort_checks_dataset_manifest_without_page_fetches(tmp_p
     with (
         collection_context(),
         patch("harness.web_extract.snapshots.check_manifest", return_value=receipt) as manifest,
+        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=True),
+        patch(
+            "harness.web_extract.snapshots.deployment_proof", return_value={"scope": "deployment"}
+        ),
         patch("harness.web_extract.pipeline.qualify_fixture") as page,
         patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as call,
     ):
@@ -1254,14 +1258,26 @@ def test_account_status_and_target_denial_have_distinct_scope(status, text, expe
 
 
 @pytest.mark.parametrize("changed", [False, True])
-@pytest.mark.parametrize("hosting_provider", ["external", None])
+@pytest.mark.parametrize("hosting_provider", ["external", "cloudflare", None])
 def test_external_manifest_does_not_replace_page_audit_during_collection(
     tmp_path, changed, hosting_provider
 ):
+    from harness.web_extract import snapshots
     from tests.web_extract.snapshot_inputs import serve_input
 
     home = create(tmp_path / "external-inputs")
     base = "https://external.example"
+    with collection_context():
+        version, cases = snapshots.inventory(home)
+    receipt = {
+        "mode": "dataset_manifest",
+        "manifest_url": base + "/snapshots.json",
+        "manifest_sha256": "a" * 64,
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "html_inventory_sha256": version,
+        "case_count": len(cases),
+        "fixture_base": base,
+    }
     calls = []
 
     def qualify(home, base, cid, **kwargs):
@@ -1272,7 +1288,8 @@ def test_external_manifest_does_not_replace_page_audit_during_collection(
 
     with (
         collection_context(),
-        patch("harness.web_extract.snapshots.verify_bound_manifest", return_value=[]),
+        patch("harness.web_extract.snapshots.check_manifest", return_value=receipt),
+        patch("harness.web_extract.snapshots.managed_cloudflare", return_value=False),
         patch("harness.web_extract.pipeline.qualify_fixture", side_effect=qualify),
         patch("harness.web_extract.pipeline.provider_call", side_effect=accepted) as provider,
     ):
@@ -1281,7 +1298,10 @@ def test_external_manifest_does_not_replace_page_audit_during_collection(
             run_dir=tmp_path / "external-run",
             fixture_base=base,
             native_options={"input_route": "url"},
-            snapshot_manifest={"hosting_provider": hosting_provider},
+            snapshot_manifest={
+                **receipt,
+                **({"hosting_provider": hosting_provider} if hosting_provider else {}),
+            },
         )
         if changed:
             with pytest.raises(ValueError, match="Remote fixture differs"):
@@ -1556,6 +1576,35 @@ def test_account_keywords_do_not_change_the_scope_of_a_target_or_extraction_erro
 def test_permission_denial_tied_directly_to_an_entitlement_pauses(message):
     assert access_blocker({"http_status": 403, "response": {"error": message}}) == "permission"
 
+
+@pytest.mark.parametrize(
+    "title,detail,blocked",
+    [
+        (
+            "QUOTA_EXCEEDED",
+            "You have reached your plan's quota. Upgrade your plan to continue.",
+            True,
+        ),
+        ("LIMIT_REACHED", "Your subscription quota has been exhausted.", True),
+        ("RATE_LIMITED", "Too many requests. Try again later.", False),
+    ],
+)
+def test_problem_details_account_quota_stops_before_remaining_dispatch(
+    tmp_path, title, detail, blocked
+):
+    home = create(tmp_path / "cohort")
+    response = {"http_status": 429, "response": {"status": 429, "title": title, "detail": detail}}
+    with (
+        collection_context(),
+        patch("harness.web_extract.pipeline.provider_call", return_value=response) as call,
+    ):
+        if blocked:
+            with pytest.raises(PermissionError, match="quota_or_permission"):
+                probe(home, ["cloudflare-json"], full=True)
+            assert call.call_count == 1
+        else:
+            probe(home, ["cloudflare-json"], full=True)
+            assert call.call_count == 3
 
 @pytest.mark.parametrize('method,engine,native,reason', [
     ('firecrawl-oss-json', 'firecrawl',

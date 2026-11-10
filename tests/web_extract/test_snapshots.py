@@ -1,6 +1,7 @@
 """Frozen public inputs and native URL-only cohort behavior."""
 
 import json
+from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
@@ -29,6 +30,7 @@ def cf_lookup(*responses):
 
     def get(url, **kwargs):
         if url.endswith("/deployments"):
+            assert kwargs["params"]["per_page"] == 25
             response = MagicMock(status_code=200)
             response.json.return_value = {
                 "success": True,
@@ -130,6 +132,35 @@ def binding(home, tmp_path):
         "fixture_base": item["fixture_base"],
     }
     return value
+
+
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("damage", [None, "manifest_sha256", "huggingface", "cloudflare"])
+def test_historical_fixture_omits_only_the_local_hosting_annotation(home, legacy, damage):
+    from copy import deepcopy
+
+    version, cases = snapshots.inventory(home)
+    base = "https://snapshots.example"
+    bound = {
+        "mode": "dataset_manifest", "fixture_base": base,
+        "manifest_url": base + "/snapshots.json", "manifest_sha256": "a" * 64,
+        "html_inventory_sha256": version, "case_count": len(cases),
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "hosting_provider": "cloudflare",
+    }
+    rows = deepcopy(snapshots.manifest_receipt(home, bound, base))
+    rows[0]["snapshot_manifest"].pop("hosting_provider")
+    if damage:
+        rows[0]["snapshot_manifest"][damage] = "changed"
+    if legacy and damage is None:
+        snapshots.validate_fixture_receipts(
+            home, rows, base, list(cases), bound=bound, allow_legacy_manifest=True
+        )
+    else:
+        with pytest.raises(ValueError, match="snapshot qualification"):
+            snapshots.validate_fixture_receipts(
+                home, rows, base, list(cases), bound=bound, allow_legacy_manifest=legacy
+            )
 
 
 def test_public_package_contains_only_identical_html_and_source_notices(home, tmp_path):
@@ -333,6 +364,18 @@ def test_publication_requires_complete_same_version_online_verification(home, tm
     }
     metadata = snapshots.publication_metadata(home, value, receipt)
     assert snapshots.select(home, metadata)["fixture_base"] == item["fixture_base"]
+    combined = {
+        **receipt,
+        "resources": [
+            {
+                "case_id": "resource:image.png",
+                "sha256": "x",
+                "url": "https://another-dataset.example/image.png",
+                "http_status": 200,
+            }
+        ],
+    }
+    assert snapshots.publication_metadata(home, value, combined) == metadata
     assert (
         metadata["snapshot_manifest"]["manifest_url"] == value["snapshot_manifest"]["manifest_url"]
     )
@@ -357,6 +400,77 @@ def test_publication_requires_complete_same_version_online_verification(home, tm
     ]:
         with pytest.raises(ValueError, match="every matching verified page"):
             snapshots.publication_metadata(home, value, {"pages": row})
+
+
+def test_publishing_cannot_bind_a_different_hf_resource_edition(home, monkeypatch):
+    monkeypatch.setattr(
+        snapshots,
+        "publication_metadata",
+        lambda *a: {
+            "huggingface": {
+                "repository": "owner/data",
+                "input_format": "html-manifest",
+                "input_path": "manifest.json",
+            }
+        },
+    )
+    monkeypatch.setattr(snapshots, "hf_resources", lambda *a: {"assets/one/image.bin": "changed"})
+    monkeypatch.setattr(
+        "harness.benchmarks.publication.publish_snapshot_metadata",
+        lambda *a, **kw: pytest.fail("Mismatching input edition must not be published"),
+    )
+    with pytest.raises(ValueError, match="resources differ"):
+        snapshots.publish(home, {}, {}, revision="a" * 40)
+
+
+@pytest.mark.parametrize(
+    "origin,identity,remote_url,expected",
+    [
+        (
+            "https://1234abcd.example.pages.dev",
+            "1234abcd-0000-0000-0000-000000000000",
+            "https://1234abcd.example.pages.dev",
+            True,
+        ),
+        (
+            "https://external.example",
+            "1234abcd-0000-0000-0000-000000000000",
+            "https://external.example",
+            False,
+        ),
+        (
+            "https://branch.example.pages.dev",
+            "1234abcd-0000-0000-0000-000000000000",
+            "https://branch.example.pages.dev",
+            False,
+        ),
+    ],
+)
+def test_managed_resource_reuse_requires_confirmed_immutable_cloudflare_identity(
+    monkeypatch, origin, identity, remote_url, expected
+):
+    from types import SimpleNamespace
+
+    monkeypatch.setattr(
+        "harness.web_fetch.config.repository_env",
+        lambda: {"CLOUDFLARE_ACCOUNT_ID": "account", "CLOUDFLARE_API_TOKEN": "test-cf"},
+    )
+    calls = []
+
+    def lookup(url, **kwargs):
+        calls.append(url)
+        return SimpleNamespace(
+            raise_for_status=lambda: None,
+            json=lambda: {"success": True, "result": {"id": identity, "url": remote_url}},
+        )
+
+    monkeypatch.setattr("requests.get", lookup)
+    binding = {
+        "hosting_provider": "cloudflare",
+        "cloudflare": {"account_id": "account", "project": "example", "deployment_id": identity},
+    }
+    assert snapshots.managed_cloudflare(binding, origin) is expected
+    assert len(calls) == int(expected)
 
 
 def test_hf_publication_atomically_updates_only_card_and_binding():
@@ -392,6 +506,8 @@ def test_hf_publication_atomically_updates_only_card_and_binding():
     api.create_commit.assert_not_called()
 
 
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_cloudflare_discovers_and_reuses_existing_dataset_service(home, tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
@@ -549,6 +665,8 @@ def test_changed_cloudflare_snapshot_requires_approval_and_never_writes(
         deploy.assert_not_called()
 
 
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
@@ -582,7 +700,8 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
     )
 
     hosted = snapshots.read_json(tmp_path / "host.json")
-    metadata = snapshots.publication_metadata(home, hosted, hosted["verification"])
+    with patch.object(snapshots, "managed_cloudflare", return_value=True):
+        metadata = snapshots.publication_metadata(home, hosted, hosted["verification"])
     snapshots.save_json(tmp_path / "published-cloudflare.json", metadata)
     plan = create_plan(
         home,
@@ -595,8 +714,11 @@ def test_hf_bound_immutable_deployment_uses_fast_identity_check(home, tmp_path, 
 
 
 @pytest.mark.parametrize(
-    "receipt_mode", ["normal", "symlink", "unwritable", "persist-error", "broken-pipe"]
+    "receipt_mode",
+    ["normal", "symlink", "unwritable", "persist-error", "broken-pipe", "deploy-error"],
 )
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
     home, tmp_path, monkeypatch, capsys, receipt_mode
 ):
@@ -666,9 +788,27 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
         monkeypatch.setattr("builtins.print", closed)
     with (
         patch("requests.get", side_effect=cf_lookup(old, new)),
-        patch("subprocess.run", return_value=MagicMock(returncode=0)) as deploy,
+        patch(
+            "subprocess.run",
+            return_value=MagicMock(
+                returncode=1 if receipt_mode == "deploy-error" else 0,
+                stderr="ENOENT: broken cache; credential account must-not-forward",
+                stdout="",
+            ),
+        ) as deploy,
         patch("requests.post") as create_project,
     ):
+        if receipt_mode == "deploy-error":
+            with pytest.raises(RuntimeError, match="ENOENT: broken cache") as caught:
+                snapshots.host(
+                    home, output, provider="cloudflare", project="shared", approve_plan=proposal
+                )
+            assert all(
+                secret not in str(caught.value)
+                for secret in ["credential", "account", "must-not-forward"]
+            )
+            assert snapshots.read_json(output)["state"] == "pending"
+            return
         if receipt_mode != "normal":
             with pytest.raises((ValueError, PermissionError, BrokenPipeError)):
                 snapshots.host(
@@ -699,6 +839,8 @@ def test_approved_unchanged_proposal_deploys_and_checks_new_pages(
     assert result["state"] == "deployed_new_input_version"
     assert result["fixture_base"].startswith("https://new.dataset.pages.dev/")
     assert "UNRELATED_API_KEY" not in deploy.call_args.kwargs["env"]
+    assert deploy.call_args.kwargs["env"]["npm_config_registry"] == "https://registry.npmjs.org"
+    assert deploy.call_args.kwargs["env"]["npm_registry"] == "https://registry.npmjs.org"
     assert "--commit-hash" in deploy.call_args.args[0]
     assert "a" * 40 in deploy.call_args.args[0]
     assert (
@@ -717,6 +859,8 @@ def test_stale_prepared_inputs_cannot_override_hf_latest(home, tmp_path, monkeyp
         cloudflare.assert_not_called()
 
 
+@patch.object(snapshots, "managed_cloudflare", new=lambda *a: True)
+@patch.object(snapshots, "deployment_proof", new=lambda *a: None)
 def test_selected_hf_edition_finds_matching_historical_deployment(home, tmp_path, monkeypatch):
     from unittest.mock import MagicMock
 
@@ -764,7 +908,7 @@ def test_selected_hf_edition_finds_matching_historical_deployment(home, tmp_path
     ):
         result = snapshots.host(home, tmp_path / "host.json", hf_revision="v1", project="shared")
     assert result["fixture_base"].startswith("https://older.dataset.pages.dev/")
-    assert get.call_args_list[-1].kwargs["params"]["page"] == 2
+    assert get.call_args_list[-1].kwargs["params"] == {"page": 2, "per_page": 25}
     hf.dataset_info.assert_called_once_with("owner/data", revision="v1")
     full_check.assert_not_called()
     deploy.assert_not_called()
@@ -867,6 +1011,15 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     monkeypatch.setattr(snapshots, "check_manifest", CHECK_MANIFEST)
     with (
         patch("requests.get", return_value=response),
+        patch(
+            "harness.web_extract.pipeline.request",
+            side_effect=lambda url, **kwargs: SimpleNamespace(
+                status=200,
+                url=url,
+                headers={},
+                body=(home / "dataset/html/case-a.html").read_bytes(),
+            ),
+        ),
         patch.object(
             snapshots, "verify", return_value={"verified_pages": 1, "pages": []}
         ) as page_check,
@@ -887,8 +1040,18 @@ def test_external_host_manifest_output_is_usable_as_record_preview(
     assert preview == hosted["snapshot_manifest"]
     assert preview["case_count"] == 1
     assert hosted["hosting_provider"] == "external"
+    verified = {
+        "pages": [
+            {
+                "case_id": "case-a",
+                "sha256": digest((home / "dataset/html/case-a.html").read_bytes()),
+                "url": base + "/case-a",
+                "http_status": 200,
+            }
+        ]
+    }
     with patch("requests.get", return_value=response) as fetch:
-        metadata = snapshots.publication_metadata(home, hosted, preview)
+        metadata = snapshots.publication_metadata(home, hosted, verified)
     assert metadata["snapshot_manifest"] == preview
     assert metadata["hosting_provider"] == "external"
     published = tmp_path / "published-metadata.json"
@@ -1147,6 +1310,16 @@ def test_existing_deployment_missing_manifest_requires_approval_not_a_network_by
                 )
             deploy.assert_called_once()
 
+
+@pytest.mark.parametrize("hosting_provider", ["external", "cloudflare"])
+def test_unconfirmed_snapshot_manifest_cannot_replace_page_evidence_at_publication(
+    home, tmp_path, hosting_provider
+):
+    value = binding(home, tmp_path)
+    value["hosting_provider"] = hosting_provider
+    claim = {**value["snapshot_manifest"], "mode": "dataset_manifest"}
+    with pytest.raises(ValueError, match="every matching verified page"):
+        snapshots.publication_metadata(home, value, claim)
 
 @pytest.mark.parametrize("method", ["cloudflare-json", "scrapegraph-extract", "zyte-product"])
 def test_native_options_cannot_relabel_an_upload_as_a_snapshot_call(home, tmp_path, method):
