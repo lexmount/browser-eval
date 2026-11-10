@@ -1812,7 +1812,8 @@ def test_published_cohort_metadata_is_reproduced_from_private_authorities(
 
 
 @pytest.mark.parametrize("mode", ["full-cohort-progress", "field-extraction-cohort"])
-def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mode):
+@pytest.mark.parametrize("damage", ["native-response", "reference-coverage", "certified-scope"])
+def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mode, damage):
     from harness.web_extract.report import completion_bundle, package
 
     home = create(tmp_path / "fixture", mode=mode)
@@ -1828,6 +1829,17 @@ def test_unaudited_public_responses_remain_bound_to_original_calls(tmp_path, mod
     check(output, profile=profile, home=home)
     manifest_path = output / "report-manifest.json"
     manifest = read_json(manifest_path)
+    if damage != "native-response":
+        if damage == "reference-coverage":
+            manifest["completion_reference_exclusions"] = {"synthetic-case": ["price"]}
+        elif mode == "field-extraction-cohort":
+            manifest["complete_methods"] = list(manifest["planned_methods"])
+        else:
+            manifest["case_count"] += 1
+        save_json(manifest_path, manifest)
+        with pytest.raises(ValueError, match="population|coverage"):
+            check(output, profile=profile, home=home)
+        return
     method = manifest["planned_methods"][0]
     relative = "public-evidence/" + method + ".json"
     path = output / relative

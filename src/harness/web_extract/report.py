@@ -927,6 +927,10 @@ def verify_cohort_authorities(source, home, model, manifest):
         originals.append(rows)
     if seen != expected_methods:
         raise ValueError("Completion audit certified participant scope differs")
+    if records and manifest.get("complete_methods") != [
+        method for method in method_order if expected[method]["receipt"]["certified"]
+    ]:
+        raise ValueError("Completion audit certified population differs from frozen inputs")
     view, _ = project_evidence_view(
         "public-evidence/sources.json" if records else "public-evidence/metadata.json",
         json.dumps(expected, ensure_ascii=False).encode(),
@@ -1112,6 +1116,8 @@ def verify_completion_audit(source, profile, *, home=None):
     if not audit_binding:
         if authority or instance.get("independent_result_review_scope") == "all":
             raise ValueError("Completion audit requires its frozen original")
+        if cohort_rows is not None and manifest.get("completion_reference_exclusions", {}):
+            raise ValueError("Completion audit reference coverage differs from frozen inputs")
         if records:
             if cohort_rows is not None and manifest.get("reference_policy") is not None:
                 raise ValueError("Completion audit reference policy differs from frozen inputs")
@@ -1139,6 +1145,10 @@ def verify_completion_audit(source, profile, *, home=None):
     ):
         raise ValueError("Completion audit differs from its frozen original")
     audit_data = json.loads(raw)
+    if cohort_rows is not None and manifest.get("completion_reference_exclusions", {}) != (
+        {} if records else audit_data.get("excluded_fields", {})
+    ):
+        raise ValueError("Completion audit reference coverage differs from frozen inputs")
     if records and cohort_rows is not None:
         if canonical_json_sha256(manifest.get("reference_policy")) != canonical_json_sha256(
             audit_data["reference_policy"]
