@@ -422,10 +422,11 @@ _TEXT_CHECKS = {'content', 'literals', 'length', 'facts', 'patterns', 'body'}
 def _text_reference_conclusive(case, checks):
     """Whether a rejected plain-text reference proves the contract wrong.
 
-    A failed body requirement is always conclusive; any other failure counts
-    only when the contract asks for nothing beyond text.
+    A failed text check (body, facts, patterns, literals, length, content) is
+    always conclusive; any other failure counts only when the contract asks
+    for nothing beyond text.
     """
-    if checks.get('body') is False:
+    if any(checks.get(name) is False for name in _TEXT_CHECKS):
         return True
     contract = case.get('acceptance_contract') or {}
     text_contract = (contract.get('schema', 'body_text') == 'body_text'

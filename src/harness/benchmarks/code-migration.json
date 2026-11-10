@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "cf8541781027f8df78d30d76ae705fc47d5c4d17066e6c4f7f65a32a15912a8e"
+          "after_sha256": "63e59b15e8e4b319e7b1323fc8eac9f44b5ef337ba3e06a643160bdf46c8f177"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -4308,7 +4308,7 @@
             "tests/benchmarks/webfetch/test_annotation_reference_scope.py",
             "tests/benchmarks/webfetch/test_benchmark.py"
           ],
-          "reason": "Revision export scored descriptive reference text, record-task ground truth and body-only main content as full answers, so contracts that also need records, anchors, titles, comments, links or files failed the frozen-reference gate. Score dataset reference text as plain text; a rejected text that cannot carry every declared requirement and still meets its body requirement is unavailable, while body or text-only failures and accepted error pages still fail. Reviews may inherit predecessor entries for byte-identical change rows. score_attempt is unchanged."
+          "reason": "Revision export scored descriptive reference text, record-task ground truth and body-only main content as full answers, so contracts that also need records, anchors, titles, comments, links or files failed the frozen-reference gate. Score dataset reference text as plain text; a rejected text that cannot carry every declared requirement and still meets its body requirement is unavailable, while any failed text check (body, facts, patterns, literals, length, content), text-only failures and accepted error pages still fail. Reviews may inherit predecessor entries for byte-identical change rows. score_attempt is unchanged."
         }
       ]
     },

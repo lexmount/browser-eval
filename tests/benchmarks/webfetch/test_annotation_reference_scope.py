@@ -71,6 +71,22 @@ def test_plain_text_only_contract_rejects_a_reference_without_its_facts(tmp_path
     assert not result['cases'][0]['error_page_passed']
 
 
+@pytest.mark.parametrize('field, value', [
+    ('required_facts', [{'id': 'claim', 'alternatives': ['measured migration of birds']}]),
+    ('required_patterns', [{'id': 'code', 'pattern': 'zebra[0-9]+'}]),
+])
+def test_wrong_text_requirement_fails_beside_a_passing_anchor(tmp_path, field, value):
+    dataset, review = fixture()
+    case = dataset['cases'][0]
+    case['acceptance_contract']['stable_text_anchors'] = [
+        {'id': 'claim-anchor', 'alternatives': ['changing brightness']}]
+    case[field] = value
+    review['changes'][0]['changes'] = [{'path': f'/{field}/0'}]
+    result = check_revision_references(dataset, review, tmp_path)
+    assert result['cases'][0]['status'] == 'failed'
+    assert 'incomplete_reference_answers' not in result['cases'][0]
+
+
 def test_full_reference_answer_still_qualifies_page_edits(tmp_path):
     dataset, review = fixture()
     case = dataset['cases'][0]
