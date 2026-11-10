@@ -57,6 +57,50 @@ def test_suite_example_rejects_repository_output_before_creating_anything():
     assert not output.with_name(output.name + "-suite-inputs").exists()
 
 
+@pytest.mark.parametrize("damage", [False, True])
+def test_suite_checks_authored_intro_links_with_the_child_prefix(tmp_path, damage):
+    from harness.web_extract import report, report_suite
+
+    home = create(tmp_path / "seed", mode="field-extraction-suite")
+    content, profile = home / "content.json", home / "profile.json"
+    model = read_json(content)
+    child = model["cohorts"][0]
+    from pathlib import Path
+
+    child_content, child_profile = Path(child["content"]), Path(child["profile"])
+    authored = read_json(child_content)
+    authored.setdefault("pages", {})["index"] = {
+        "intro": {"zh": '<p><a href="dataset.html">Dataset</a></p>'}
+    }
+    save_json(child_content, authored)
+    child_authority = read_json(child_profile)
+    child["content_sha256"] = digest(child_content.read_bytes())
+    child_authority["research_report"]["content"]["sha256"] = child["content_sha256"]
+    save_json(child_profile, child_authority)
+    child["profile_sha256"] = digest(child_profile.read_bytes())
+    save_json(content, model)
+    authority = read_json(profile)
+    authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    authority["research_report"]["cohorts"] = report_suite.cohort_registry(model["cohorts"])
+    save_json(profile, authority)
+    output = tmp_path / "report"
+    report_suite.build(output, content, profile=profile, language="zh")
+    report.check(output, profile=profile, home=home)
+    path = output / "first/zh/index.html"
+    document = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    link = document.select_one("[data-page-intro] a")
+    assert link["href"] == "first/zh/dataset.html"
+    if damage:
+        link["href"] = "second/zh/dataset.html"
+        path.write_text(str(document), encoding="utf-8")
+        manifest_path = output / "first/report-manifest.json"
+        manifest = read_json(manifest_path)
+        manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+        save_json(manifest_path, manifest)
+        with pytest.raises(ValueError, match="Frozen page intro"):
+            report.check(output / "first", profile=child_profile, home=Path(child["home"]))
+
+
 @pytest.mark.parametrize("reserved", ["zh", "en", "public-evidence", "assets"])
 def test_suite_rejects_language_directory_collisions_before_writing(tmp_path, reserved):
     from harness.web_extract import report_suite

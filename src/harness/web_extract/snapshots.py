@@ -1080,7 +1080,17 @@ def validate_fixture_receipts(
     remaining = list(rows)
     if bound is not None:
         expected = manifest_receipt(home, bound, fixture_base)
-        if remaining[:1] != expected:
+        observed = remaining[:1]
+        if allow_legacy_manifest:
+            def identity(items):
+                return [
+                    {**row, "snapshot_manifest": {
+                        k: v for k, v in row.get("snapshot_manifest", {}).items()
+                        if k != "hosting_provider"
+                    }} for row in items
+                ]
+            observed, expected = identity(observed), identity(expected)
+        if observed != expected:
             raise ValueError("Repair dataset snapshot qualification differs")
         remaining = remaining[1:]
     if len(remaining) == 1 and remaining[0].get("scope") == "deployment":

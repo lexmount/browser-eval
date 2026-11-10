@@ -499,6 +499,7 @@ def verify_page_intros(source, model, manifest):
                     languages=manifest["languages"],
                     state=model.get("mode", "compatibility"),
                     intro=intro,
+                    site_prefix=manifest.get("site_prefix", ""),
                 )
                 expected[relative] = page_intro_hash(rendered)
             document = BeautifulSoup((source / relative).read_text(encoding="utf-8"), "html.parser")

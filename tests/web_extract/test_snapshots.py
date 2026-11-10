@@ -134,6 +134,35 @@ def binding(home, tmp_path):
     return value
 
 
+@pytest.mark.parametrize("legacy", [False, True])
+@pytest.mark.parametrize("damage", [None, "manifest_sha256", "huggingface", "cloudflare"])
+def test_historical_fixture_omits_only_the_local_hosting_annotation(home, legacy, damage):
+    from copy import deepcopy
+
+    version, cases = snapshots.inventory(home)
+    base = "https://snapshots.example"
+    bound = {
+        "mode": "dataset_manifest", "fixture_base": base,
+        "manifest_url": base + "/snapshots.json", "manifest_sha256": "a" * 64,
+        "html_inventory_sha256": version, "case_count": len(cases),
+        "huggingface": {"repository": "owner/data", "revision": "b" * 40},
+        "hosting_provider": "cloudflare",
+    }
+    rows = deepcopy(snapshots.manifest_receipt(home, bound, base))
+    rows[0]["snapshot_manifest"].pop("hosting_provider")
+    if damage:
+        rows[0]["snapshot_manifest"][damage] = "changed"
+    if legacy and damage is None:
+        snapshots.validate_fixture_receipts(
+            home, rows, base, list(cases), bound=bound, allow_legacy_manifest=True
+        )
+    else:
+        with pytest.raises(ValueError, match="snapshot qualification"):
+            snapshots.validate_fixture_receipts(
+                home, rows, base, list(cases), bound=bound, allow_legacy_manifest=legacy
+            )
+
+
 def test_public_package_contains_only_identical_html_and_source_notices(home, tmp_path):
     value = binding(home, tmp_path)
     item = value["datasets"]["example"]
