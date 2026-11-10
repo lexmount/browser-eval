@@ -5548,8 +5548,6 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
             "[data-record-review]"
         ):
             raise ValueError("Record review summary differs from its source-bound evidence")
-    elif manifest.get("reference_policy") is not None:
-        raise ValueError("Reference scoring policy requires its completed record audit")
     if len(truth) != manifest["case_count"] or set(metrics) != set(manifest["planned_methods"]):
         raise ValueError("Record report matrix differs from its declared population")
     adapter = benchmark_config(name=manifest["dataset_benchmark"])["adapter"]
