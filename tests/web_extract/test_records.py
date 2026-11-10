@@ -833,12 +833,13 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             pipeline.save_json(content, model)
             profile = pipeline.read_json(home / "profile.json")
             profile["research_report"] = {
-                "content": {"sha256": pipeline.digest(content.read_bytes())}
+                "content": {"path": str(content), "sha256": pipeline.digest(content.read_bytes())}
             }
             profile_path = home / "report-profile.json"
             pipeline.save_json(profile_path, profile)
             output = tmp_path / "segment-report"
             report.build(output, content, home=home, profile=profile_path, language="zh")
+            report.check(output, profile=profile_path, home=home)
             page = BeautifulSoup(
                 (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
             )
@@ -859,7 +860,7 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             manifest["files"]["zh/protocol.html"] = pipeline.digest(protocol.read_bytes())
             pipeline.save_json(manifest_path, manifest)
             with pytest.raises(ValueError, match="Segment configuration"):
-                report.check(output)
+                report.check(output, profile=profile_path, home=home)
     else:
         with pytest.raises(
             ValueError, match="segment|changed a task|Full cohort plan|scores do not reproduce"
