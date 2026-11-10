@@ -221,6 +221,37 @@ def review_input_files(definition, identifier):
     return manifests.get(identifier, {})
 
 
+def _inherited_reviews(definition, reviews, inherits, entries):
+    """Reuse predecessor reviews for change rows that are byte-identical to its rows."""
+    predecessor = definition.get('predecessor') or {}
+    if not isinstance(inherits, str) or inherits != predecessor.get('id'):
+        raise ValueError('Annotation review inherits from an undeclared predecessor')
+    safe_identifier(inherits)
+    path = contained_path(definitions(), f'annotation-revisions/{inherits}.json', reject_symlinks=True)
+    previous_review = reviews.get('revisions', {}).get(inherits, {})
+    if digest(path) != predecessor.get('sha256') or previous_review.get('revision_sha256') != predecessor['sha256']:
+        raise ValueError('Annotation predecessor differs from its declared hash')
+    previous = read(path)
+    shared = previous_review.get('shared_reasons', {})
+    effective = []
+    for item in previous_review.get('changes', []):
+        item = dict(item)
+        if 'reason_ref' in item:
+            if 'reason' in item or not isinstance(shared, dict) or item['reason_ref'] not in shared:
+                raise ValueError('Invalid annotation reason reference')
+            item['reason'] = shared[item.pop('reason_ref')]
+        effective.append(item)
+    # An inheriting predecessor supplies its complete effective review.
+    if 'inherits' in previous_review:
+        effective += _inherited_reviews(previous, reviews, previous_review['inherits'], effective)
+    rows = {(row['suite'], row['case_id']): row for row in previous['changes']}
+    current = {(row['suite'], row['case_id']): row for row in definition['changes']}
+    reviewed = {(item['suite'], item['case_id']) for item in entries}
+    return [item for item in effective
+            if (key := (item['suite'], item['case_id'])) not in reviewed
+            and key in current and current[key] == rows.get(key)]
+
+
 def _review_annotation(definition, revision_path, identifier, root, changes):
     from .scoring_regressions import check_scoring_regressions
     reviews_path = contained_path(definitions(), 'annotation-revisions/reviews.json', reject_symlinks=True)
@@ -237,6 +268,8 @@ def _review_annotation(definition, revision_path, identifier, root, changes):
                    for key, value in shared_reasons.items())):
         raise ValueError('Invalid shared annotation reasons')
     entries = review.get('changes', [])
+    if 'inherits' in review:
+        entries = entries + _inherited_reviews(definition, reviews, review['inherits'], entries)
     keys = [(item['suite'], item['case_id']) for item in entries]
     if len(keys) != len(set(keys)) or set(keys) != {(item['suite'], item['case_id']) for item in definition['changes']}:
         raise ValueError('Annotation review task inventory differs')
@@ -381,6 +414,27 @@ def _body_reference_additions(changes):
     return added
 
 
+# A reference text field carries body text only. Records, page anchors, titles,
+# comments, links, resources and files need evidence such a field cannot hold.
+_TEXT_CHECKS = {'content', 'literals', 'length', 'facts', 'patterns', 'body'}
+
+
+def _text_reference_conclusive(case, checks):
+    """Whether a rejected plain-text reference proves the contract wrong.
+
+    A failed text check (body, facts, patterns, literals, length, content) is
+    always conclusive; any other failure counts only when the contract asks
+    for nothing beyond text.
+    """
+    if any(checks.get(name) is False for name in _TEXT_CHECKS):
+        return True
+    contract = case.get('acceptance_contract') or {}
+    text_contract = (contract.get('schema', 'body_text') == 'body_text'
+                     and not contract.get('minimum_records') and not contract.get('stable_text_anchors'))
+    return all(name in _TEXT_CHECKS or (name == 'records_and_anchors' and text_contract)
+               for name in checks)
+
+
 def check_revision_references(dataset: dict, review: dict, source: Path, *,
                               include_review_evidence: bool = True) -> dict:
     """Run frozen reference and error-page controls without treating absent text as a pass."""
@@ -428,6 +482,7 @@ def check_revision_references(dataset: dict, review: dict, source: Path, *,
                     continue
             candidates.append((raw, {'path': binding['path'], 'sha256': binding['sha256']}))
         controls = []
+        incomplete = []
         for raw, binding in candidates:
             # An explicitly bound main body does not contain every page header,
             # title or comment. It can qualify a body-only change, not a whole
@@ -443,9 +498,15 @@ def check_revision_references(dataset: dict, review: dict, source: Path, *,
                     passed = passed and added['stable_task_pass']
                 scope = 'body_and_added_stable_text' if added_anchors else 'body_only'
             else:
-                metrics = score_attempt(case, raw, ok=True)
+                text_field = 'field' in binding
+                metrics = score_attempt(case, raw, ok=True,
+                                        metadata={'answer_format': 'plain_text'} if text_field else None)
                 passed = task_passed(True, metrics, case.get('task_kind', 'body'))
                 scope = 'full_task'
+                if (text_field and not passed
+                        and not _text_reference_conclusive(case, metrics['acceptance_checks'])):
+                    incomplete.append(binding)
+                    continue
             controls.append({'source': binding, 'answer_sha256': hashlib.sha256(raw).hexdigest(),
                              'scope': scope, 'passed': passed})
             if passed and scope == 'full_task':
@@ -461,6 +522,7 @@ def check_revision_references(dataset: dict, review: dict, source: Path, *,
                         'verification_scope': next((c['scope'] for c in reversed(controls) if c['passed']), 'unavailable'),
                         'error_page_passed': negative_pass,
                         **({'unavailable_review_sources': unavailable_sources} if unavailable_sources else {}),
+                        **({'incomplete_reference_answers': incomplete} if incomplete else {}),
                         'reason': ('Optional review evidence was not supplied; existing control results are retained.'
                                    if unavailable_sources else
                                    'The frozen inputs retain source hashes but no executable reference answer.'

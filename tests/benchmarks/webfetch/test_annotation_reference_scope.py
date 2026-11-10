@@ -41,9 +41,50 @@ def test_page_edits_cannot_use_a_body_only_reference(tmp_path):
     original = deepcopy(dataset)
     review['changes'][0]['changes'].append({'path': '/acceptance_contract/stable_text_anchors/0'})
     result = check_revision_references(dataset, review, tmp_path)
-    assert result['cases'][0]['status'] == 'failed'
+    # A body-only reference cannot carry page anchors: unverified, not rejected.
+    assert result['cases'][0]['status'] == 'unavailable'
+    assert result['cases'][0]['incomplete_reference_answers'] == [
+        {'path': 'dataset.json', 'field': 'ground_truth_main_content'}]
     assert not result['changed_rules_complete']
     assert dataset == original
+
+
+def test_wrong_reference_text_still_fails(tmp_path):
+    dataset, review = fixture()
+    dataset['cases'][0]['ground_truth_main_content'] = 'A shipping notice about unrelated parcels. ' * 20
+    review['changes'][0]['changes'].append({'path': '/acceptance_contract/stable_text_anchors/0'})
+    result = check_revision_references(dataset, review, tmp_path)
+    assert result['cases'][0]['status'] == 'failed'
+    assert 'incomplete_reference_answers' not in result['cases'][0]
+
+
+@pytest.mark.parametrize('ground_truth', [True, False])
+def test_plain_text_only_contract_rejects_a_reference_without_its_facts(tmp_path, ground_truth):
+    dataset, review = fixture()
+    case = dataset['cases'][0]
+    del case['acceptance_contract'], case['body_requirements']
+    case['required_facts'] = [{'id': 'claim', 'alternatives': [
+        'changing brightness' if ground_truth else 'measured migration']}]
+    review['changes'][0]['changes'] = [{'path': '/required_facts/0'}]
+    result = check_revision_references(dataset, review, tmp_path)
+    assert result['cases'][0]['status'] == ('passed' if ground_truth else 'failed')
+    assert not result['cases'][0]['error_page_passed']
+
+
+@pytest.mark.parametrize('field, value', [
+    ('required_facts', [{'id': 'claim', 'alternatives': ['measured migration of birds']}]),
+    ('required_patterns', [{'id': 'code', 'pattern': 'zebra[0-9]+'}]),
+])
+def test_wrong_text_requirement_fails_beside_a_passing_anchor(tmp_path, field, value):
+    dataset, review = fixture()
+    case = dataset['cases'][0]
+    case['acceptance_contract']['stable_text_anchors'] = [
+        {'id': 'claim-anchor', 'alternatives': ['changing brightness']}]
+    case[field] = value
+    review['changes'][0]['changes'] = [{'path': f'/{field}/0'}]
+    result = check_revision_references(dataset, review, tmp_path)
+    assert result['cases'][0]['status'] == 'failed'
+    assert 'incomplete_reference_answers' not in result['cases'][0]
 
 
 def test_full_reference_answer_still_qualifies_page_edits(tmp_path):
