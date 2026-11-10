@@ -344,6 +344,39 @@ class FrozenInputs(unittest.TestCase):
                     bench.export('synthetic', self.source, self.root/defect,
                                  revision=definition['id'])
 
+    def test_review_inherits_identical_predecessor_rows_only(self):
+        import copy
+        definition = self.annotation_revision()
+        directory = self.suites/'annotation-revisions'
+        review_path = directory/'reviews.json'
+        review = bench.read(review_path)
+        explicit = bench.export('synthetic', self.source, self.root/'explicit', revision=definition['id'])
+        expected = bench.read(explicit.parent/'annotation-review.json')['changes']
+        previous = copy.deepcopy(definition)
+        previous['id'] = 'source-annotation-v1'
+        entry = review['revisions'].pop(definition['id'])
+        entry['revision_sha256'] = write(directory/'source-annotation-v1.json', previous)
+        review['revisions']['source-annotation-v1'] = entry
+        definition['predecessor'] = {'id': 'source-annotation-v1', 'sha256': entry['revision_sha256']}
+
+        def export(name, current, inherits='source-annotation-v1'):
+            review['revisions'][definition['id']] = {'inherits': inherits, 'changes': [],
+                                                     'revision_sha256': write(directory/'source-annotation-v2.json', current)}
+            write(review_path, review)
+            return bench.export('synthetic', self.source, self.root/name, revision=definition['id'])
+
+        inherited = export('inherited', definition)
+        self.assertEqual(bench.read(inherited.parent/'annotation-review.json')['changes'], expected)
+        changed = copy.deepcopy(definition)
+        changed['changes'][0]['set']['required_facts'][0]['id'] = 'renamed'
+        for name, current, inherits in (('changed-row', changed, 'source-annotation-v1'),
+                                        ('undeclared', definition, 'serialization-20261021')):
+            with self.subTest(name=name), self.assertRaises(ValueError):
+                export(name, current, inherits)
+        definition['predecessor']['sha256'] = '0' * 64
+        with self.assertRaisesRegex(ValueError, 'predecessor differs'):
+            export('wrong-hash', definition)
+
     def test_revised_export_rejects_unreviewed_or_unproven_changes(self):
         import copy
         definition = self.annotation_revision()
