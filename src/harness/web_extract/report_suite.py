@@ -249,8 +249,13 @@ def check(output, *, release=False, visual_receipt=None):
     from harness.reporting.presentation import check_metric_guide, check_presentation
 
     soup = check_presentation((output / "zh/index.html").read_text(encoding="utf-8"))
+    expected = BeautifulSoup(owner.page(
+        "zh", "index", "", "".join(section(output, entry) for entry in entries),
+        languages=("zh",), state=MODE,
+        navigation=[{"route": f'{e["id"]}/zh/index', "label": e["label"]} for e in entries],
+    ), "html.parser")
     if [str(node) for node in soup.select("[data-cohort]")] != [
-        str(BeautifulSoup(section(output, entry), "html.parser").section) for entry in entries
+        str(node) for node in expected.select("[data-cohort]")
     ]:
         raise ValueError("Suite comparison differs from its independent cohort results")
     check_metric_guide(

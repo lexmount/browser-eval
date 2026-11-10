@@ -151,3 +151,39 @@ def test_suite_explicit_unsupported_language_fails_before_children_or_output(tmp
         report_suite.build(tmp_path / "output", tmp_path / "unused-content.json",
                            profile=tmp_path / "unused-profile.json", language="en")
     assert not (tmp_path / "output").exists()
+
+
+@pytest.mark.parametrize("href,expected", [
+    ("https://example.org/source", "https://example.org/source"),
+    ("first/zh/dataset.html", "first/zh/dataset.html"),
+    ("#first", "zh/index.html#first"),
+    ("?source=first#first", "zh/index.html?source=first#first"),
+])
+def test_suite_summary_links_survive_owner_normalization_and_are_checked(tmp_path, href, expected):
+    from harness.web_extract import report_suite
+
+    source = create(tmp_path / "seed", mode="field-extraction-suite")
+    content = source / "content.json"
+    model = read_json(content)
+    model["cohorts"][0]["summary_html"] = f'<p><a href="{href}">Source</a></p>'
+    save_json(content, model)
+    profile = source / "profile.json"
+    authority = read_json(profile)
+    authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    save_json(profile, authority)
+    output = tmp_path / "report"
+    report_suite.build(output, content, profile=profile, language="zh")
+    path = output / "zh/index.html"
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+    link = soup.select_one('[data-cohort="first"] > p a')
+    assert link["href"] == expected
+    if href.startswith("https:"):
+        assert link["target"] == "_blank"
+        assert set(link["rel"]) == {"noopener", "noreferrer"}
+    link["href"] = "https://example.org/another-source"
+    path.write_text(str(soup), encoding="utf-8")
+    manifest = read_json(output / "report-manifest.json")
+    manifest["files"]["zh/index.html"] = digest(path.read_bytes())
+    save_json(output / "report-manifest.json", manifest)
+    with pytest.raises(ValueError, match="Suite comparison"):
+        check(output)

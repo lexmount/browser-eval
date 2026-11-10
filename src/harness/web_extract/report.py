@@ -306,7 +306,10 @@ def page(
         for attr in ("href", "src", "data-src"):
             value = element.get(attr)
             if value is not None and not urlsplit(value).scheme and not urlsplit(value).netloc:
-                base = "/" if state == "field-extraction-suite" else f"/{language}/{route}.html"
+                base = (
+                    "/" if state == "field-extraction-suite" and urlsplit(value).path
+                    else f"/{language}/{route}.html"
+                )
                 element[attr] = urljoin(base, value).lstrip("/")
     return scope_record_html(str(soup), site_prefix)
 
@@ -4384,7 +4387,7 @@ def record_cohort_inputs(home, model, *, profile):
         segments = selection.get("segments", [selection])
         if not segments:
             raise ValueError("Record source segments must cover the declared population")
-        rows, scopes, receipts, method = [], set(), [], None
+        rows, scopes, receipts, method, configuration = [], set(), [], None, None
         for segment in segments:
             source_home = Path(segment["home"]) if "home" in segment else home
             if source_home != home:
@@ -4438,14 +4441,36 @@ def record_cohort_inputs(home, model, *, profile):
             if method is not None and method != part_method:
                 raise ValueError("Record source segments must use the same participant")
             method = part_method
+            source_plan = read_json(Path(segment["plan"]))
+            participant = source_plan["participants"][method]
+            current_configuration = {
+                "native_options": contract.get("native_options") or {},
+                "participant": {k: v for k, v in participant.items()
+                                if k != "maximum_physical_calls"},
+                "pipeline_sha256": contract["pipeline_sha256"],
+                "scorer_sha256": source_plan["scorer_sha256"],
+            }
+            if configuration is not None and current_configuration != configuration:
+                raise ValueError(
+                    "Record source segments use different runtime configurations; "
+                    "register them as separate participants"
+                )
+            configuration = current_configuration
+            if receipt["certified"]:
+                segment_scores = record_statistics(
+                    source_truth, part_rows, certified=True, scorer=adapter.score,
+                    reference_policy=result["reference_policy"],
+                )["scores"]
+                if segment_scores != receipt["scores"][method]:
+                    raise ValueError("Record segment scores differ from the certified scorer")
             scopes.update(source_truth)
             rows.extend(part_rows)
             receipts.append(
                 {
                     "run_id": source.name,
                     "case_count": len(source_truth),
-                    "participant": read_json(Path(segment["plan"]))["participants"][method],
-                    "scorer_sha256": read_json(Path(segment["plan"]))["scorer_sha256"],
+                    "participant": participant,
+                    "scorer_sha256": source_plan["scorer_sha256"],
                     "contract": contract,
                     "receipt": receipt,
                     "plan_sha256": segment["plan_sha256"],
@@ -4461,12 +4486,6 @@ def record_cohort_inputs(home, model, *, profile):
             truth, rows, certified=receipt["certified"], scorer=adapter.score,
             reference_policy=result["reference_policy"],
         )
-        if (
-            len(receipts) == 1
-            and stats["certified"]
-            and receipt["scores"][method] != stats["scores"]
-        ):
-            raise ValueError("Record report scores differ from the certified scorer")
         result["methods"][method] = {"statistics": stats, "results": {}}
         result["sources"][method] = cohort_source_binding(
             source, selection, contract, receipt, records=True

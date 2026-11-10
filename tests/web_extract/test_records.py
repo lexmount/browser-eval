@@ -638,6 +638,11 @@ def test_hf_cached_manifest_can_reference_a_content_addressed_blob(tmp_path, mon
         "checkpoint-manifest",
         "scorer",
         "settings",
+        "budget",
+        "pipeline-identity",
+        "native-options",
+        "scorer-identity",
+        "certificate-score",
     ],
 )
 def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
@@ -702,6 +707,9 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
         frozen = certification.create_plan(home, ["browserbase-json"], plan)
         if change == "settings" and home == sources[1]:
             frozen["participants"]["browserbase-json"]["minimum_call_interval_seconds"] = 0.001
+            pipeline.save_json(plan, frozen)
+        if change == "budget" and home == sources[1]:
+            frozen["participants"]["browserbase-json"]["maximum_physical_calls"] = 1
             pipeline.save_json(plan, frozen)
         certification.run(home, plan, "browserbase-json", run)
         segments.append(
@@ -776,14 +784,41 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             }
         ],
     }
-    if change in {None, "stronger-policy", "settings"}:
+    if change in {"pipeline-identity", "native-options", "scorer-identity"}:
+        original_source = report.cohort_source
+
+        def changed_configuration(source, *args):
+            contract, rows, receipt = original_source(source, *args)
+            if source == sources[1] / "run":
+                if change == "pipeline-identity":
+                    contract = {**contract, "pipeline_sha256": "0" * 64}
+                elif change == "native-options":
+                    contract = {**contract, "native_options": {"input_route": "html"}}
+                else:
+                    path = Path(args[0]["plan"])
+                    plan = pipeline.read_json(path)
+                    plan["scorer_sha256"] = "0" * 64
+                    pipeline.save_json(path, plan)
+            return contract, rows, receipt
+
+        monkeypatch.setattr(report, "cohort_source", changed_configuration)
+    if change == "certificate-score":
+        run = sources[1] / "run"
+        scores = pipeline.read_json(run / "scores.json")
+        scores["scores"]["browserbase-json"]["value_micro"]["f1"] = 0
+        pipeline.save_json(run / "scores.json", scores)
+        cert = pipeline.read_json(run / "certificate.json")
+        cert["scores_sha256"] = pipeline.digest((run / "scores.json").read_bytes())
+        pipeline.save_json(run / "certificate.json", cert)
+        original_scores.pop(run / "scores.json")
+    if change in {None, "stronger-policy", "budget"}:
         result = report.record_cohort_inputs(home, model, profile=home / "profile.json")
         assert set(result["methods"]["browserbase-json"]["results"]) == {"one", "two"}
         assert result["methods"]["browserbase-json"]["statistics"]["certified"]
         assert (
             result["methods"]["browserbase-json"]["statistics"]["scores"]["value_micro"]["f1"] == 1
         )
-        if change == "settings":
+        if change == "budget":
             from bs4 import BeautifulSoup
 
             model.update(mode="field-extraction-cohort", title="Segment configuration example",
@@ -807,7 +842,7 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             )
             rows = page.select("[data-segment-configurations] tbody tr")
             assert len(rows) == 2
-            assert '"minimum_call_interval_seconds": 0.001' in rows[1].get_text()
+            assert '"maximum_physical_calls": 1' in rows[1].get_text()
             segments = result["sources"]["browserbase-json"]["segments"]
             for row, segment in zip(rows, segments, strict=True):
                 assert segment["contract"]["pipeline_sha256"] in row.get_text()
