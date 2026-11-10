@@ -2552,7 +2552,7 @@ def copy_report_assets(output, content, model):
         target.write_bytes(source.read_bytes())
 
 
-def copy_input_profile(output, profile):
+def copy_input_profile(output, profile, *, preserve_bytes=False):
     """Retain the privacy-projected input authority for release exceptions."""
     source = profile.read_bytes()
     original = json.loads(source)
@@ -2565,6 +2565,12 @@ def copy_input_profile(output, profile):
         content_format="json",
         host_names=publication_host_names(),
     )
+    if preserve_bytes:
+        if public_risk(source):
+            raise ValueError("Input authority must be publication-safe to retain exact bytes")
+        raw = source
+        receipt["published_sha256"] = digest(raw)
+        receipt["published_bytes"] = len(raw)
     projected = json.loads(raw)
     if projected.get("local_example", False) != original.get(
         "local_example", False

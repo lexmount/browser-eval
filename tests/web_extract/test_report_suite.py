@@ -97,6 +97,7 @@ def test_quality_exclusion_preserves_operational_comparison(tmp_path):
     authority["research_report"]["content"]["sha256"] = digest(
         (source / "content.json").read_bytes()
     )
+    authority["research_report"]["cohorts"] = report_suite.cohort_registry(suite["cohorts"])
     save_json(source / "profile.json", authority)
     output = tmp_path / "report"
     report_suite.build(output, source / "content.json", profile=source / "profile.json")
@@ -182,6 +183,7 @@ def test_suite_summary_links_survive_owner_normalization_and_are_checked(tmp_pat
     profile = source / "profile.json"
     authority = read_json(profile)
     authority["research_report"]["content"]["sha256"] = digest(content.read_bytes())
+    authority["research_report"]["cohorts"] = report_suite.cohort_registry(model["cohorts"])
     save_json(profile, authority)
     output = tmp_path / "report"
     report_suite.build(output, content, profile=profile, language="zh")
@@ -202,7 +204,8 @@ def test_suite_summary_links_survive_owner_normalization_and_are_checked(tmp_pat
 
 
 @pytest.mark.parametrize("damage", [
-    "remove", "reorder", "label", "child-content", "child-profile", "content-authority",
+    "remove", "reorder", "label", "child-content", "child-profile",
+    "content-authority", "rewrite-authority",
 ])
 def test_suite_scope_is_bound_to_approved_content_after_rehashing(tmp_path, damage):
     import shutil
@@ -213,18 +216,23 @@ def test_suite_scope_is_bound_to_approved_content_after_rehashing(tmp_path, dama
     suite = read_json(output / "suite.json")
     path = output / "zh/index.html"
     soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
-    if damage == "remove":
+    if damage in {"remove", "rewrite-authority"}:
         suite["cohorts"].pop()
         shutil.rmtree(output / "second")
         soup.select_one('[data-cohort="second"]').decompose()
         soup.select_one('nav a[href="second/zh/index.html"]').decompose()
+        if damage == "rewrite-authority":
+            authority_path = output / manifest["input_profile"]["path"]
+            authority = read_json(authority_path)
+            authority["research_report"]["cohorts"].pop()
+            save_json(authority_path, authority)
+            manifest["input_profile"]["published_sha256"] = digest(authority_path.read_bytes())
     elif damage == "reorder":
         suite["cohorts"].reverse()
     elif damage == "label":
         suite["cohorts"][0]["label"] = "Different benchmark"
     elif damage == "content-authority":
         manifest["content_sha256"] = "0" * 64
-        manifest["input_content"]["original_sha256"] = "0" * 64
     else:
         child_path = output / "first/report-manifest.json"
         child = read_json(child_path)

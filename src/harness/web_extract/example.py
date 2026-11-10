@@ -431,6 +431,8 @@ def create_suite(output: Path, *, language="zh"):
                 "content_sha256": digest(content.read_bytes()),
             }
         )
+    from harness.web_extract.report_suite import cohort_registry
+
     content, profile = home / "content.json", home / "profile.json"
     save_json(
         content,
@@ -440,7 +442,10 @@ def create_suite(output: Path, *, language="zh"):
         profile,
         {
             "local_example": True,
-            "research_report": {"content": {"sha256": digest(content.read_bytes())}},
+            "research_report": {
+                "content": {"sha256": digest(content.read_bytes())},
+                "cohorts": cohort_registry(cohorts),
+            },
         },
     )
     build(output, content, home=home, profile=profile, language=language)
