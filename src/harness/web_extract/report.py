@@ -4355,6 +4355,15 @@ def package(output, archive, *, visual_receipt, profile, home=None):
     )
 
 
+def record_source_segments(home, selection):
+    """Resolve the same frozen source homes for assembly and native audit checks."""
+    segments = selection.get("segments", [selection])
+    if not segments:
+        raise ValueError("Record source segments must cover the declared population")
+    return [(Path(segment["home"]) if "home" in segment else home, segment)
+            for segment in segments]
+
+
 def record_cohort_inputs(home, model, *, profile):
     """Load a field-schema cohort through the existing certified/checkpoint owner."""
     from harness.web_extract.analysis import record_statistics
@@ -4393,12 +4402,8 @@ def record_cohort_inputs(home, model, *, profile):
     native_rows = []
     seen = set()
     for selection in selections:
-        segments = selection.get("segments", [selection])
-        if not segments:
-            raise ValueError("Record source segments must cover the declared population")
         rows, scopes, receipts, method, configuration = [], set(), [], None, None
-        for segment in segments:
-            source_home = Path(segment["home"]) if "home" in segment else home
+        for source_home, segment in record_source_segments(home, selection):
             if source_home != home:
                 validate_dataset(source_home)
             source_truth = read_json(source_home / "dataset/dataset/ground-truth.json")

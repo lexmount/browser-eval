@@ -386,6 +386,9 @@ def qualify_live(home, case_ids, *, timeout=30):
             time.sleep(delay)
         if response.status != 200:
             return unavailable(cid, attempts)
+        if access_interstitial(response.body):
+            attempts[-1]["access_interstitial"] = True
+            return unavailable(cid, attempts)
         content_type = Message()
         content_type["content-type"] = getattr(response, "headers", {}).get("content-type", "")
         from lxml import html
@@ -394,7 +397,7 @@ def qualify_live(home, case_ids, *, timeout=30):
         try:
             encoding = source_encoding(response.body, content_type.get_content_charset())
             html.fromstring(response.body, parser=html.HTMLParser(encoding=encoding))
-        except ParserError as error:
+        except (ParserError, LookupError) as error:
             attempts[-1]["error"] = type(error).__name__
             return unavailable(cid, attempts)
         missing = reference_support(
@@ -403,9 +406,6 @@ def qualify_live(home, case_ids, *, timeout=30):
             source_url=response.url,
             encoding=encoding,
         )
-        if access_interstitial(response.body):
-            attempts[-1]["access_interstitial"] = True
-            return unavailable(cid, attempts)
         if missing:
             raise ValueError("Live reference no longer supported: " + cid + "; " + str(missing[:3]))
         return {

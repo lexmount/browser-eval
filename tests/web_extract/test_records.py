@@ -105,9 +105,10 @@ def test_qualified_decoder_rejects_an_unknown_case(tmp_path):
 
 
 @pytest.mark.parametrize("policy", [False, True])
-@pytest.mark.parametrize("header", [None, "text/html; charset=utf-8"])
-def test_unparseable_live_body_retains_access_evidence_and_bounded_fallback(
-    tmp_path, monkeypatch, policy, header
+@pytest.mark.parametrize("header", [None, "text/html; charset=utf-8", "text/html; charset=unknown"])
+@pytest.mark.parametrize("gate", [False, True])
+def test_unobservable_live_body_retains_access_evidence_and_bounded_fallback(
+    tmp_path, monkeypatch, policy, header, gate
 ):
     from datetime import datetime
 
@@ -124,18 +125,24 @@ def test_unparseable_live_body_retains_access_evidence_and_bounded_fallback(
     monkeypatch.setattr(
         "harness.web_fetch.providers.http_client.request",
         lambda url, **kw: SimpleNamespace(
-            status=200, body=b"<!-- temporarily unavailable -->", url=url,
+            status=200, url=url,
+            body=(b'<title>Just a moment...</title><form id="challenge-form"></form>'
+                  if gate else b"<!-- temporarily unavailable -->"),
             headers={"content-type": header} if header else {},
         ),
     )
+    attempt = {"http_status": 200, **(
+        {"access_interstitial": True} if gate else
+        {"error": "LookupError" if header and header.endswith("unknown") else "ParserError"}
+    )}
     if policy:
         receipt = records.qualify_live(home, ["one"])[0]
         assert receipt["verification_mode"] == "independent_captured_reference"
-        assert receipt["source_attempts"] == [{"http_status": 200, "error": "ParserError"}]
+        assert receipt["source_attempts"] == [attempt]
     else:
         with pytest.raises(records.LiveSourceAccessError) as caught:
             records.qualify_live(home, ["one"])
-        assert caught.value.source_attempts == [{"http_status": 200, "error": "ParserError"}]
+        assert caught.value.source_attempts == [attempt]
 
 
 def test_runtime_scorer_must_match_the_pinned_portable_evaluator(tmp_path, monkeypatch):
