@@ -4211,9 +4211,25 @@ def check_visual_receipt(output, manifest, visual_receipt):
 
 def completion_authorities(profile, home):
     """Inputs whose bytes must stay frozen during packaging and upload."""
+    from harness.web_extract.certification import execution_assessment_authorities
+
     profile = Path(profile)
     instance = read_json(profile)
     paths = [profile]
+    plans = set()
+
+    def include_plan(path):
+        paths.append(path)
+        if path in plans:
+            return
+        plans.add(path)
+        plan = read_json(path)
+        for method in plan.get("execution_assessments", {}):
+            authorities = execution_assessment_authorities(plan, method)
+            if authorities:
+                assessment, receipt = authorities
+                paths.extend((assessment, receipt.parent))
+
     if instance.get("dataset"):
         paths.append(Path(home) / "dataset")
     binding = instance.get("research_report", {}).get("content", {})
@@ -4226,14 +4242,18 @@ def completion_authorities(profile, home):
         for key in ("cohort_plan", "reference_revision"):
             binding = model.get(key) or {}
             if binding.get("path"):
-                paths.append(Path(binding["path"]))
-        for selection in model.get("evidence_runs", []):
-            paths.append(resolve_run_path(home, selection["run"]))
-            if selection.get("plan"):
-                paths.append(Path(selection["plan"]))
-            if selection.get("assessment"):
-                paths.append(Path(selection["assessment"]["path"]))
-            paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
+                if key == "cohort_plan":
+                    include_plan(Path(binding["path"]))
+                else:
+                    paths.append(Path(binding["path"]))
+        for group in model.get("evidence_runs", []):
+            for selection in group.get("segments", [group]):
+                paths.append(resolve_run_path(home, selection["run"]))
+                if selection.get("plan"):
+                    include_plan(Path(selection["plan"]))
+                if selection.get("assessment"):
+                    paths.append(Path(selection["assessment"]["path"]))
+                paths.extend(Path(repair["path"]) for repair in selection.get("repair", []))
     return tuple(dict.fromkeys(paths))
 
 

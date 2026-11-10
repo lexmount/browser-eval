@@ -714,6 +714,7 @@ def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_p
             ],
         },
     )
+    save_json(home / "plan.json", {})
     assert set(completion_authorities(profile, home)) == {
         profile,
         content,
@@ -726,6 +727,134 @@ def test_upload_snapshot_includes_original_dataset_audit_calls_and_repairs(tmp_p
         home / "reference.json",
         home / "assessment.json",
     }
+
+
+@pytest.fixture
+def external_preflight(tmp_path, stubbed_serial_collection):
+    from unittest.mock import patch
+
+    from harness.web_extract.certification import create_plan, execution_preflight
+    from harness.web_extract.example import create
+    from tests.web_extract.snapshot_inputs import bind_inputs, serve_input
+    from tests.web_extract.test_execution_boundaries import accepted, collection_context
+
+    home = create(tmp_path / "seed")
+    candidate, plan = tmp_path / "candidate.json", tmp_path / "plan.json"
+    root = tmp_path / "outside-cohort"
+    assessment, preflight = root / "assessment.json", root / "run"
+    with (
+        patch("harness.web_extract.certification.validate_dataset"),
+        patch("harness.web_extract.snapshots.validate_dataset"),
+        collection_context(),
+        patch("harness.web_extract.pipeline.qualify_fixture", side_effect=serve_input),
+        patch("harness.web_extract.pipeline.provider_call", side_effect=accepted),
+    ):
+        snapshots = bind_inputs(home, tmp_path / "snapshots.json")
+        create_plan(
+            home,
+            ["cloudflare-json"],
+            candidate,
+            snapshots=snapshots,
+            require_execution_assessment=True,
+        )
+        execution_preflight(
+            home,
+            candidate,
+            "cloudflare-json",
+            preflight,
+            assessment,
+            sample_size=1,
+            wall_time_budget_seconds=600,
+        )
+        create_plan(
+            home,
+            ["cloudflare-json"],
+            plan,
+            snapshots=snapshots,
+            require_execution_assessment=True,
+            execution_assessments=[assessment],
+        )
+    return home, plan, assessment, preflight
+
+
+@pytest.mark.parametrize("plan_binding", ["cohort", "selection", "segment"])
+@pytest.mark.parametrize("changed", [None, "assessment", "receipt", "manifest", "contract", "call"])
+def test_upload_guards_external_preflight_after_first_verification(
+    external_preflight, tmp_path, monkeypatch, plan_binding, changed
+):
+    from harness.reporting.publication import PublicationSnapshot
+    from harness.web_extract.certification import verify_execution_assessment
+
+    home, plan, assessment, preflight = external_preflight
+    source, target, work, visual = setup_report(tmp_path)
+    measured = home / "runs/measured"
+    save_json(measured / "call.json", {})
+    content = tmp_path / "content.json"
+    model = {"evidence_runs": [{"run": str(measured)}]}
+    if plan_binding == "cohort":
+        model["cohort_plan"] = {"path": str(plan), "sha256": digest(plan.read_bytes())}
+    else:
+        model["evidence_runs"][0]["plan"] = str(plan)
+        if plan_binding == "segment":
+            model["evidence_runs"] = [{"segments": model["evidence_runs"]}]
+    save_json(content, model)
+    profile = tmp_path / "profile.json"
+    save_json(
+        profile,
+        {
+            "local_example": True,
+            "research_report": {
+                "content": {"path": str(content), "sha256": digest(content.read_bytes())}
+            },
+        },
+    )
+    bound = read_json(target)
+    bound["profile_sha256"] = digest(profile.read_bytes())
+    save_json(target, bound)
+    save_json(source / "report-manifest.json", {"profile_sha256": bound["profile_sha256"]})
+    verified = []
+
+    def verify(*args, **kwargs):
+        verify_execution_assessment(read_json(plan), "cloudflare-json")
+        verified.append(True)
+
+    def package(report, archive, **kwargs):
+        archive.write_bytes(b"checked package")
+        return {
+            "archive_sha256": digest(archive.read_bytes()),
+            "report_manifest_sha256": digest((report / "report-manifest.json").read_bytes()),
+        }
+
+    def upload(staged, **kwargs):
+        snapshot = PublicationSnapshot.for_inputs(staged.inputs)
+        staged.guard()
+        assert verified == [True]
+        if changed:
+            path = {
+                "assessment": assessment,
+                "receipt": preflight / "execution-preflight.json",
+                "manifest": preflight / "manifest.json",
+                "contract": preflight / "contract.json",
+                "call": next((preflight / "calls").glob("*.json")),
+            }[changed]
+            path.write_text("changed after upload verification", encoding="utf-8")
+        snapshot.check()
+        staged.guard()
+        assert verified == [True]  # Later requests use the shared frozen-input guard.
+        staged.bind("ver_after")
+        return "ver_after"
+
+    monkeypatch.setattr(publication, "verify_completion_audit", verify)
+    monkeypatch.setattr(publication, "package", package)
+    monkeypatch.setattr(publication, "publish_staged_update", upload)
+    if changed:
+        with pytest.raises(ValueError, match="inputs changed"):
+            publication.publish(source, target, work, visual, home=home)
+        assert read_json(target)["expected_version"] == "ver_before"
+    else:
+        assert (
+            publication.publish(source, target, work, visual, home=home)["versionId"] == "ver_after"
+        )
 
 
 def test_release_check_rejects_missing_profile_before_opening_report(tmp_path, capsys):
