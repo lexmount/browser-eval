@@ -9,6 +9,7 @@ from harness.benchmark_execution import ExecutionPolicy, assess_execution
 from harness.reporting.templates import metric_contract
 from harness.web_extract.dataset import benchmark_config, input_mode, task_bindings
 from harness.web_extract.pipeline import (
+    RECORD_INSTRUCTIONS,
     available_methods,
     data_home,
     digest,
@@ -338,8 +339,17 @@ def run(
         if participant.get("input") != "url":
             raise ValueError("Live participants must declare URL input")
         validate_live_route(method, participant.get("native_options"))
-    if records and plan.get("extraction_instructions") != record_instructions(home):
-        raise ValueError("Frozen extraction instructions differ from the dataset")
+    # Original SWDE plans predate the explicit instruction field. Their default
+    # remains valid only with the unchanged, hash-bound dataset/task profile.
+    if records:
+        instructions = plan.get("extraction_instructions")
+        if (
+            "extraction_instructions" not in plan
+            and read_json(home / "dataset/manifest.json").get("benchmark") == "swde"
+        ):
+            instructions = RECORD_INSTRUCTIONS
+        if instructions != record_instructions(home):
+            raise ValueError("Frozen extraction instructions differ from the dataset")
     if records and plan.get("schema") != "archived-extraction-full-cohort/1":
         raise ValueError("Frozen plan schema differs from the selected record benchmark")
     if records or plan.get("task_adapter_sha256"):

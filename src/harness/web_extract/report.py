@@ -241,8 +241,12 @@ def page(
         ]
     )
     if (
-        len(entries) != len(PAGES)
-        or {entry.get("route") for entry in entries} != set(PAGES)
+        (state != "field-extraction-suite" and (
+            len(entries) != len(PAGES)
+            or {entry.get("route") for entry in entries} != set(PAGES)
+        ))
+        or not entries
+        or len({entry.get("route") for entry in entries}) != len(entries)
         or any(
             not isinstance(entry.get("label"), str) or not entry["label"].strip()
             for entry in entries
@@ -302,7 +306,8 @@ def page(
         for attr in ("href", "src", "data-src"):
             value = element.get(attr)
             if value is not None and not urlsplit(value).scheme and not urlsplit(value).netloc:
-                element[attr] = urljoin(f"/{language}/{route}.html", value).lstrip("/")
+                base = "/" if state == "field-extraction-suite" else f"/{language}/{route}.html"
+                element[attr] = urljoin(base, value).lstrip("/")
     return scope_record_html(str(soup), site_prefix)
 
 
@@ -4438,6 +4443,9 @@ def record_cohort_inputs(home, model, *, profile):
             receipts.append(
                 {
                     "run_id": source.name,
+                    "case_count": len(source_truth),
+                    "participant": read_json(Path(segment["plan"]))["participants"][method],
+                    "scorer_sha256": read_json(Path(segment["plan"]))["scorer_sha256"],
                     "contract": contract,
                     "receipt": receipt,
                     "plan_sha256": segment["plan_sha256"],
@@ -4699,10 +4707,37 @@ def record_review_section(audit, original_reference, original_metrics, labels, l
     )
 
 
-def record_preview(home, model, *, local_example):
-    """Bind preview URLs to a freshly verified complete dataset snapshot."""
+def record_segment_configurations(sources, labels, language):
+    """Expose every certified segment's settings instead of implying one runtime."""
+    rows = []
+    for method, source in sources.items():
+        segments = source.get("segments", [])
+        for index, segment in enumerate(segments, 1):
+            contract = segment["contract"]
+            rows.append([
+                esc(labels[method]) + " · " + str(index),
+                str(segment["case_count"]),
+                "<pre>" + esc(json.dumps({
+                    "native_options": contract.get("native_options", {}),
+                    "participant": segment["participant"],
+                }, ensure_ascii=False, sort_keys=True)) + "</pre>",
+                "<code>" + esc(contract["pipeline_sha256"]) + "</code>",
+                "<code>" + esc(segment["scorer_sha256"]) + "</code>",
+            ])
+    if not rows:
+        return ""
+    return (
+        '<details id="segment-configurations" data-segment-configurations><summary>'
+        + message("segment_configurations", language) + "</summary><p>"
+        + message("segment_explanation", language) + "</p>"
+        + table(message("segment_headers", language), rows) + "</details>"
+    )
+
+
+def record_preview(home, model, *, local_example, audit=False):
+    """Bind retained previews offline; audit hosted bytes only at publication."""
     from harness.web_extract.dataset import input_mode
-    from harness.web_extract.snapshots import verify_bound_manifest
+    from harness.web_extract.snapshots import manifest_receipt, verify_bound_manifest
 
     if input_mode(home) == "live":
         if model.get("snapshot_base") or model.get("preview_snapshot"):
@@ -4737,7 +4772,9 @@ def record_preview(home, model, *, local_example):
             {"hosting_provider": saved["hosting_provider"]} if saved.get("hosting_provider") else {}
         ),
     }
-    verify_bound_manifest(home, verification_context, base)
+    manifest_receipt(home, verification_context, base)
+    if audit:
+        verify_bound_manifest(home, verification_context, base)
     return receipt
 
 
@@ -5620,6 +5657,15 @@ def _check_record_cohort(output, *, release=False, visual_receipt=None):
     check_reader_contract(output, manifest, release=release)
     if manifest["renderer_sha256"] != digest(Path(__file__).read_bytes()):
         raise ValueError("Record renderer changed; rebuild required")
+    expected_segments = BeautifulSoup(record_segment_configurations(
+        read_json(output / "public-evidence/sources.json"), manifest["method_labels"], "zh"
+    ), "html.parser").select_one("[data-segment-configurations]")
+    protocol = BeautifulSoup(read_html(output / "zh/protocol.html"), "html.parser")
+    if protocol.select_one("[data-segment-configurations]") != expected_segments:
+        raise ValueError("Segment configuration disclosure differs from its frozen sources")
+    home = BeautifulSoup(read_html(output / "zh/index.html"), "html.parser")
+    if bool(home.select_one("[data-segment-note]")) != bool(expected_segments):
+        raise ValueError("Segment configuration note is missing or spurious")
     actual = {p.relative_to(output).as_posix() for p in output.rglob("*") if p.is_file()}
     if actual != set(manifest["files"]) | {"report-manifest.json"}:
         raise ValueError("Record report contains missing or undeclared files")

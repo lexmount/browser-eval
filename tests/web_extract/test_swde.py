@@ -2143,10 +2143,13 @@ def test_record_preview_binds_host_output_to_exact_local_inventory(inputs, tmp_p
         "snapshot_base": base,
         "preview_snapshot": {"path": str(saved), "sha256": pipeline.digest(saved.read_bytes())},
     }
-    monkeypatch.setattr(snapshots, "check_manifest", lambda *a: receipt)
+    monkeypatch.setattr(
+        snapshots, "verify_bound_manifest",
+        lambda *a, **k: pytest.fail("offline build used network"),
+    )
     assert report.record_preview(home, model, local_example=False) == receipt
     model["snapshot_base"] = "https://another-dataset.example/frozen"
-    with pytest.raises(ValueError, match="changed"):
+    with pytest.raises(ValueError, match="differs"):
         report.record_preview(home, model, local_example=False)
     model["snapshot_base"] = base
     receipt["html_inventory_sha256"] = "f" * 64
@@ -2154,6 +2157,47 @@ def test_record_preview_binds_host_output_to_exact_local_inventory(inputs, tmp_p
     model["preview_snapshot"]["sha256"] = pipeline.digest(saved.read_bytes())
     with pytest.raises(ValueError, match="differs from selected inputs"):
         report.record_preview(home, model, local_example=False)
+
+
+@pytest.mark.parametrize("damage", [None, "missing-content", "changed-content", "host-changed"])
+def test_archived_publication_audits_the_bound_preview_before_upload(
+    inputs, tmp_path, monkeypatch, damage
+):
+    from harness.web_extract import publication, snapshots
+
+    home, _ = inputs
+    version, _ = snapshots.inventory(home)
+    receipt = {"mode": "dataset_manifest", "manifest_url": "https://host.example/snapshots.json",
+               "manifest_sha256": "a" * 64, "html_inventory_sha256": version,
+               "case_count": 2, "fixture_base": "https://host.example/frozen"}
+    saved = tmp_path / "preview.json"
+    pipeline.save_json(saved, {"snapshot_manifest": receipt})
+    content = tmp_path / "content.json"
+    pipeline.save_json(content, {
+        "dataset_manifest": str(home / "dataset/manifest.json"),
+        "snapshot_base": receipt["fixture_base"],
+        "preview_snapshot": {"path": str(saved), "sha256": pipeline.digest(saved.read_bytes())},
+    })
+    source = tmp_path / "report"
+    source.mkdir()
+    pipeline.save_json(source / "report-manifest.json", {
+        "mode": "field-extraction-cohort", "content_sha256": pipeline.digest(content.read_bytes()),
+        "preview_snapshot": receipt,
+    })
+    target = {"content": {"path": str(content)}}
+    audit = Mock(side_effect=ValueError("host changed") if damage == "host-changed" else None)
+    monkeypatch.setattr(snapshots, "verify_bound_manifest", audit)
+    if damage == "missing-content":
+        target.clear()
+    elif damage == "changed-content":
+        content.write_text("{}", encoding="utf-8")
+    if damage:
+        with pytest.raises(ValueError, match="content|host changed"):
+            publication.audit_previews(source, target)
+        assert audit.call_count == int(damage == "host-changed")
+    else:
+        assert publication.audit_previews(source, target) == (content, saved)
+        audit.assert_called_once_with(home, receipt, receipt["fixture_base"])
 
 
 def test_record_adjudication_accepts_hash_bound_readonly_review_projection(

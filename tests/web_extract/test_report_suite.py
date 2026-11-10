@@ -22,6 +22,8 @@ def test_suite_uses_each_cohorts_results_and_bound_details(tmp_path, damage):
     ]
     assert len(soup.select('[data-cohort="first"] tbody tr')) == 4
     assert not soup.select("main > table")
+    assert soup.select_one("header .report-toolbar nav")
+    assert soup.select_one(".report-tools #theme")
     if damage is None:
         with pytest.raises(ValueError, match="visual|Synthetic"):
             check(output, release=True)
@@ -140,3 +142,12 @@ def test_suite_example_identity_cannot_be_removed_or_relabelled(tmp_path, flag):
     save_json(path, manifest)
     with pytest.raises(ValueError, match="example flag"):
         check(output)
+
+
+def test_suite_explicit_unsupported_language_fails_before_children_or_output(tmp_path):
+    from harness.web_extract import report_suite
+
+    with pytest.raises(ValueError, match="supports only zh"):
+        report_suite.build(tmp_path / "output", tmp_path / "unused-content.json",
+                           profile=tmp_path / "unused-profile.json", language="en")
+    assert not (tmp_path / "output").exists()

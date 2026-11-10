@@ -243,7 +243,7 @@ def record_value_key(reference, field, value, text_matching="literal"):
             parts = urlsplit(
                 urljoin(
                     reference.get("document_base_url", reference["url"]),
-                    value.replace(" ", "%20"),
+                    value.strip().replace(" ", "%20"),
                 )
             )
         except ValueError:
@@ -717,6 +717,14 @@ def check_reference_controls():
         result = score(truth, {"one": {"engine": ["3.6L V6"], "fuel_economy": values}})
         if result["value_micro"]["false_positive"] != false_positives:
             raise ValueError("Placeholder removal discarded covered negative-page errors")
+    truth = {"one": {"domain": "profile", "site": "a", "url": "https://a.com/p/",
+                     "values": {"photo": ["https://a.com/x.jpg"]},
+                     "value_kinds": {"photo": "url"}}}
+    for value, hit in [(" \thttps://a.com/x.jpg\n", True), (" /x.jpg ", True),
+                       (" https://a.com/y.jpg ", False), (" /x .jpg ", False)]:
+        result = score(truth, {"one": {"photo": [value]}})
+        if bool(result["value_micro"]["true_positive"]) != hit:
+            raise ValueError("URL boundary whitespace changed field identity")
     return [
         "unannotated-group-is-unavailable-not-zero",
         "unannotated-prediction-does-not-select-quality-scope",
@@ -729,4 +737,6 @@ def check_reference_controls():
         "complete-rating-does-not-enable-prefix-matching",
         "source-alternatives-do-not-broaden-unrelated-value-matching",
         "placeholder-removal-retains-covered-negative-false-positives",
+        "url-boundary-whitespace-preserves-absolute-and-relative-targets",
+        "url-whitespace-does-not-collapse-distinct-paths",
     ]

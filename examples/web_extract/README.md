@@ -576,6 +576,12 @@ revision records `approved_profile_successor` in that target with the exact
 `from_sha256`, `to_sha256` and the verified `profile_path`; a successful update
 consumes this approval and records the new profile path and hash together.
 
+Archived report builds validate their saved snapshot receipts offline. Publication
+rechecks the hosted snapshot. Set `content.path` in the external publication target
+to the report's content file; its bytes must match the built report's content hash.
+For a suite, that file selects each child's content and snapshot receipt. Live-only
+reports need no snapshot audit or additional content binding.
+
 ## Failure repairs and field audit
 
 Select one parent run per method. Each parent must contain one method; duplicate
@@ -752,6 +758,11 @@ Explicitly typed URL fields resolve relative links against the source URL, using
 the same matching rule in aggregate scores and result details. A cohort using
 these rules must disclose them as an adaptation unless they reproduce the
 upstream evaluator.
+
+Source-qualified record datasets pin a portable `evaluate.py`. Dataset validation
+requires its bytes to match the runtime evaluator. A scorer change needs a declared
+scoring correction, or reproduction at the original code revision; it cannot
+silently change a frozen dataset's scoring behavior.
 
 The same report owner supports registered record schemas through
 `mode: field-extraction-cohort`. The instance content binds every planned

@@ -87,6 +87,7 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     print(f"Web Extract package ready in {time.perf_counter() - started:.1f}s", flush=True)
 
     unchanged_profile()
+    preview_inputs = audit_previews(source, bound)
 
     upload_checked = False
 

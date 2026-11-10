@@ -70,6 +70,33 @@ def prepared(tmp_path, **options):
     return home
 
 
+def test_runtime_scorer_must_match_the_pinned_portable_evaluator(tmp_path, monkeypatch):
+    home = prepared(tmp_path)
+    pipeline.validate_dataset(home)
+    original = records.exported_evaluator()
+    monkeypatch.setattr(records, "exported_evaluator", lambda: original + b"\n# another scorer\n")
+    with pytest.raises(ValueError, match="evaluator.*runtime"):
+        pipeline.validate_dataset(home)
+
+
+@pytest.mark.parametrize("prediction,hit", [
+    (" \thttps://a.com/x.jpg\n", True),
+    (" https://a.com/y.jpg ", False),
+    (" /x.jpg ", True),
+    (" /x .jpg ", False),
+])
+def test_url_boundary_whitespace_in_scores_and_details(prediction, hit):
+    reference = {"url": "https://a.com/p/", "domain": "profile", "site": "a",
+                 "values": {"photo": ["https://a.com/x.jpg"]},
+                 "value_kinds": {"photo": "url"}}
+    result = records.score({"one": reference}, {"one": {"photo": [prediction]}})
+    assert bool(result["value_micro"]["true_positive"]) == hit
+    fields = analysis.record_field_results(
+        reference, {"http_status": 200, "normalized_fields": {"photo": [prediction]}}
+    )
+    assert fields["photo"]["exact"] == hit
+
+
 def test_definition_binds_both_page_bytes_and_reference_before_preparation(tmp_path):
     source = definition(tmp_path)
     value = pipeline.read_json(source)
@@ -610,6 +637,7 @@ def test_hf_cached_manifest_can_reference_a_content_addressed_blob(tmp_path, mon
         "stronger-policy",
         "checkpoint-manifest",
         "scorer",
+        "settings",
     ],
 )
 def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
@@ -671,7 +699,10 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
     segments = []
     for home in sources:
         plan, run = home / "plan.json", home / "run"
-        certification.create_plan(home, ["browserbase-json"], plan)
+        frozen = certification.create_plan(home, ["browserbase-json"], plan)
+        if change == "settings" and home == sources[1]:
+            frozen["participants"]["browserbase-json"]["minimum_call_interval_seconds"] = 0.001
+            pipeline.save_json(plan, frozen)
         certification.run(home, plan, "browserbase-json", run)
         segments.append(
             {
@@ -745,13 +776,53 @@ def test_report_combines_disjoint_certified_scopes_without_repeating_calls(
             }
         ],
     }
-    if change in {None, "stronger-policy"}:
+    if change in {None, "stronger-policy", "settings"}:
         result = report.record_cohort_inputs(home, model, profile=home / "profile.json")
         assert set(result["methods"]["browserbase-json"]["results"]) == {"one", "two"}
         assert result["methods"]["browserbase-json"]["statistics"]["certified"]
         assert (
             result["methods"]["browserbase-json"]["statistics"]["scores"]["value_micro"]["f1"] == 1
         )
+        if change == "settings":
+            from bs4 import BeautifulSoup
+
+            model.update(mode="field-extraction-cohort", title="Segment configuration example",
+                         participants={"browserbase-json": {"label": "Browserbase"}},
+                         prices={"browserbase-json": {
+                             "usd_per_1000": "$4", "terms": {"zh": "Synthetic price"},
+                             "sources": ["https://example.org/pricing"], "verified_at": "2026-01-01"
+                         }})
+            content = home / "report-content.json"
+            pipeline.save_json(content, model)
+            profile = pipeline.read_json(home / "profile.json")
+            profile["research_report"] = {
+                "content": {"sha256": pipeline.digest(content.read_bytes())}
+            }
+            profile_path = home / "report-profile.json"
+            pipeline.save_json(profile_path, profile)
+            output = tmp_path / "segment-report"
+            report.build(output, content, home=home, profile=profile_path, language="zh")
+            page = BeautifulSoup(
+                (output / "zh/protocol.html").read_text(encoding="utf-8"), "html.parser"
+            )
+            rows = page.select("[data-segment-configurations] tbody tr")
+            assert len(rows) == 2
+            assert '"minimum_call_interval_seconds": 0.001' in rows[1].get_text()
+            segments = result["sources"]["browserbase-json"]["segments"]
+            for row, segment in zip(rows, segments, strict=True):
+                assert segment["contract"]["pipeline_sha256"] in row.get_text()
+                assert segment["scorer_sha256"] in row.get_text()
+            assert "data-segment-note" in (output / "zh/index.html").read_text(encoding="utf-8")
+            cell = rows[0].select("td")[3]
+            cell.string = "0" * 64
+            protocol = output / "zh/protocol.html"
+            protocol.write_text(str(page), encoding="utf-8")
+            manifest_path = output / "report-manifest.json"
+            manifest = pipeline.read_json(manifest_path)
+            manifest["files"]["zh/protocol.html"] = pipeline.digest(protocol.read_bytes())
+            pipeline.save_json(manifest_path, manifest)
+            with pytest.raises(ValueError, match="Segment configuration"):
+                report.check(output)
     else:
         with pytest.raises(
             ValueError, match="segment|changed a task|Full cohort plan|scores do not reproduce"

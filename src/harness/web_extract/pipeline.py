@@ -269,6 +269,14 @@ def validate_dataset(home: Path, profile=None):
     expected = {"html/" + key + ".html" for key in truth}
     if len(truth) != pin["cases"] or not expected.issubset(manifest["files"]):
         raise ValueError("Incomplete HTML population")
+    if manifest.get("benchmark") == "records":
+        from harness.web_extract.records import exported_evaluator
+
+        if (root / "evaluate.py").read_bytes() != exported_evaluator():
+            raise ValueError(
+                "Pinned record evaluator differs from the runtime; use the original "
+                "revision or a declared scoring correction"
+            )
     return manifest
 
 

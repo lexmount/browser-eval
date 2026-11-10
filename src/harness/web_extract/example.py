@@ -246,6 +246,8 @@ def create_record(output: Path, *, language="zh", input_mode="snapshot"):
         raise ValueError("The record example requires snapshot or live input")
     import json
 
+    from harness.web_extract import swde
+
     require_external_output(output)
     output = output.absolute()
     home = output.parent / (output.name + "-synthetic-inputs")
@@ -319,6 +321,7 @@ def create_record(output: Path, *, language="zh", input_mode="snapshot"):
         "case_count": len(truth),
         "case_ids_sha256": digest(("\n".join(sorted(truth)) + "\n").encode()),
         "participants": {m: {} for m in model["participants"]},
+        "scorer_sha256": digest(Path(swde.__file__).read_bytes()),
     }
     plan_path = home / "plan.json"
     save_json(plan_path, plan)

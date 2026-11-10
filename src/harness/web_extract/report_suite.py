@@ -14,11 +14,13 @@ from harness.web_extract.pipeline import digest, read_json, require_external_out
 MODE = "field-extraction-suite"
 
 
-def section(output, entry):
+def section(output, entry, language="zh"):
     child = output / entry["id"]
     manifest = read_json(child / "report-manifest.json")
     metrics = read_json(child / "data/metrics.json")
     methods = manifest["planned_methods"]
+    def t(key, **values):
+        return owner.message(key, language, **values)
 
     def score(method, family, field):
         if method not in manifest["comparison_methods"]:
@@ -42,7 +44,8 @@ def section(output, entry):
                 owner.record_metric(score(method, "value_micro", "f1")),
                 owner.record_metric(score(method, "page_hit_macro", "f1")),
                 owner.record_metric(score(method, "exact_field_sets", "rate"), True),
-                f'<a href="{entry["id"]}/zh/interpretation.html#{method}">查看结果</a>',
+                f'<a href="{entry["id"]}/{language}/interpretation.html#{method}">'
+                + t("suite_results") + "</a>",
             ]
         )
         operation.append(
@@ -50,12 +53,12 @@ def section(output, entry):
                 escape(manifest["method_labels"][method]),
                 f"{latency['timed']} / {current['planned']}",
                 *[owner.record_metric(latency[key]) for key in ("mean", "p50", "p95")],
-                escape(owner.price_quote(manifest["prices"][method], "zh")),
-                f'<a href="{entry["id"]}/zh/accounts.html">套餐与计费条件</a>',
+                escape(owner.price_quote(manifest["prices"][method], language)),
+                f'<a href="{entry["id"]}/{language}/accounts.html">{t("suite_pricing")}</a>',
             ]
         )
     quality_table = owner.record_comparison(
-        ["方法", "已执行 / 题数", "值级 F1 ↑", "页面命中 F1 ↑", "字段完全一致率 ↑", "结果解读"],
+        t("suite_quality_headers"),
         quality,
         {
             column: (key, "max", [score(m, family, field) for m in methods])
@@ -67,15 +70,7 @@ def section(output, entry):
         },
     )
     time_table = owner.record_comparison(
-        [
-            "方法",
-            "计时 / 题数",
-            "平均（秒）↓",
-            "P50（秒）↓",
-            "P95（秒）↓",
-            "美元 / 1,000 次",
-            "报价说明",
-        ],
+        t("suite_operation_headers"),
         operation,
         {
             column: (key, "min", [metrics[m]["latency"][key] for m in methods])
@@ -84,21 +79,21 @@ def section(output, entry):
     )
     return (
         f'<section data-cohort="{entry["id"]}" id="{entry["id"]}"><h2>{escape(entry["label"])} · '
-        f"{manifest['case_count']} 题</h2>"
+        + t("suite_cases", count=manifest["case_count"]) + "</h2>"
         + entry.get("summary_html", "")
         + quality_table
-        + "<h3>耗时与价格</h3>"
+        + "<h3>" + t("latency_and_pricing") + "</h3>"
         + time_table
-        + f'<p><a href="{entry["id"]}/zh/dataset.html">题目与网页</a> · '
-        f'<a href="{entry["id"]}/zh/protocol.html">方法与真实示例</a> · '
-        f'<a href="{entry["id"]}/zh/results.html">逐页结果</a></p></section>'
+        + f'<p><a href="{entry["id"]}/{language}/dataset.html">{t("suite_dataset")}</a> · '
+        f'<a href="{entry["id"]}/{language}/protocol.html">{t("suite_examples")}</a> · '
+        f'<a href="{entry["id"]}/{language}/results.html">{t("suite_case_results")}</a>'
+        "</p></section>"
     )
 
 
 def build(output, content, *, profile, language=None):
     require_external_output(output)
-    if language not in (None, "zh"):
-        raise ValueError("Generate the suite's English edition only on explicit request")
+    language = owner.resolve_report_language(output, language, supported=("zh",))
     model, authority = read_json(content), read_json(profile)
     if authority.get("research_report", {}).get("content", {}).get("sha256") != digest(
         content.read_bytes()
@@ -136,7 +131,7 @@ def build(output, content, *, profile, language=None):
             Path(entry["content"]),
             home=Path(entry["home"]),
             profile=Path(entry["profile"]),
-            language="zh",
+            language=language,
         )
         bindings.append(
             {key: entry[key] for key in ("id", "label")}
@@ -152,20 +147,17 @@ def build(output, content, *, profile, language=None):
     (output / "style.css").write_text(owner.CSS, encoding="utf-8")
     (output / "app.js").write_text(owner.JS, encoding="utf-8")
     owner.copy_report_assets(output, content, model)
-    body = model.get("intro_html", "") + "".join(section(output, entry) for entry in bindings)
-    body += owner.report_metric_guide("zh", records=True) + model.get("interpretation_html", "")
-    nav = "".join(
-        f'<a href="{entry["id"]}/zh/index.html">{escape(entry["label"])}</a>' for entry in bindings
+    body = model.get("intro_html", "") + "".join(
+        section(output, entry, language) for entry in bindings
     )
-    title = escape(model["title"])
+    body += owner.report_metric_guide(language, records=True) + model.get("interpretation_html", "")
     (output / "zh/index.html").write_text(
-        '<!doctype html><html lang="zh"><head><base href="../"><meta charset="utf-8">'
-        '<meta name="viewport" content="width=device-width,initial-scale=1">'
-        f'<title>{title}</title><link rel="stylesheet" href="style.css"></head><body>'
-        f'<header><div class="eyebrow">WEB EXTRACT</div><h1>{title}</h1><nav>{nav}'
-        '<a href="en/index.html">English</a><button id="theme">切换主题</button></nav></header>'
-        f'<main>{body}</main><footer><a href="report-manifest.json">数据与文件版本</a></footer>'
-        '<script src="app.js"></script></body></html>',
+        owner.page(
+            language, "index", model["title"], body, languages=(language,), state=MODE,
+            notice=owner.message("suite_notice", language),
+            navigation=[{"route": f'{e["id"]}/{language}/index', "label": e["label"]}
+                        for e in bindings],
+        ),
         encoding="utf-8",
     )
     (output / "en/index.html").write_text(
@@ -267,7 +259,7 @@ def check(output, *, release=False, visual_receipt=None):
         title=owner.message("guide_title", "zh"),
         headings=owner.message("guide_headings", "zh"),
     )
-    if [(a.get("href"), a.get_text()) for a in soup.select("nav a")[:-1]] != [
+    if [(a.get("href"), a.get_text()) for a in soup.select("nav a")] != [
         (entry["id"] + "/zh/index.html", entry["label"]) for entry in entries
     ]:
         raise ValueError("Suite navigation differs from its benchmark registry")

@@ -336,6 +336,17 @@ def setup_report(tmp_path):
     return source, target, tmp_path / "upload", tmp_path / "visual.json"
 
 
+@pytest.mark.parametrize("suite", [False, True])
+def test_live_only_publication_needs_no_snapshot_content_binding(tmp_path, suite):
+    source, _, _, _ = setup_report(tmp_path)
+    manifest = {"mode": "field-extraction-cohort", "preview_snapshot": {"mode": "live"}}
+    if suite:
+        save_json(source / "child/report-manifest.json", manifest)
+        manifest = {"mode": "field-extraction-suite", "cohorts": [{"id": "child"}]}
+    save_json(source / "report-manifest.json", manifest)
+    assert publication.audit_previews(source, {}) == ()
+
+
 def test_existing_target_is_preserved_and_rebound_only_after_success(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
     audit_calls = []
