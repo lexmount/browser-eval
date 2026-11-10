@@ -789,14 +789,37 @@ def publish_staged_update(update: StagedUpdate, *, transport=None) -> str:
                 extra_headers['Idempotency-Key'] = f'{update.prefix}-{phase}-{operation_hash[:32]}'
             elif path.startswith('/api/sites/') and '/versions?' in path and data is not None:
                 extra_headers['Idempotency-Key'] = commit_key
-            if transport is not None:
-                # Synthetic transports never load a real account credential.
-                headers = update.client.headers(update.base, content_type, authenticated=False,
-                                                extra_headers=extra_headers)
-                status, raw = transport(path, data, content_type, auth=auth, method=method, headers=headers)
-            else:
-                status, raw, _ = update.client.request(update.base, path, data, content_type, method=method,
-                                                       authenticated=auth, extra_headers=extra_headers)
+            read_only = data is None and method in (None, 'GET', 'HEAD')
+            for attempt in range(4):
+                try:
+                    if transport is not None:
+                        # Synthetic transports never load a real account credential.
+                        headers = update.client.headers(update.base, content_type, authenticated=False,
+                                                        extra_headers=extra_headers)
+                        status, raw = transport(path, data, content_type, auth=auth,
+                                                method=method, headers=headers)
+                        response_headers = {}
+                    else:
+                        status, raw, response_headers = update.client.request(
+                            update.base, path, data, content_type, method=method,
+                            authenticated=auth, extra_headers=extra_headers)
+                    if status == 429 and read_only:
+                        raise HTTPError(update.base + path, status, 'rate limited',
+                                        response_headers, BytesIO(raw))
+                    break
+                except HTTPError as error:
+                    if not read_only or error.code != 429 or attempt == 3:
+                        raise
+                    delay = _rate_limit_delay(error)
+                    error.close()
+                    print(f'{label} verification rate limited; retrying the same read '
+                          f'in {delay:g}s', flush=True)
+                    while delay > 0:
+                        interval = min(delay, 30)
+                        time.sleep(interval)
+                        delay -= interval
+                    release.check()
+                    update.guard()
             release.check()
             if status == 404 and path.startswith('/api/operations/'):
                 return status, raw
