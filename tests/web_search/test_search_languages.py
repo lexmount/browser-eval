@@ -162,7 +162,7 @@ def test_search_rebuild_records_builder_version_without_changing_measurements(re
     assert after["browser_eval"]["version"] == __version__
     for route in ("index.html", "en/index.html"):
         dom = BeautifulSoup((output / route).read_text(encoding="utf-8"), "html.parser")
-        assert dom.select_one('[data-browser-eval-release]').get_text() == "Browser Eval v" + __version__
+        assert dom.select_one('[data-browser-eval-release]').get_text() == "Webstone v" + __version__
     assert check(output)
 
 
@@ -179,7 +179,7 @@ def test_search_release_rejects_lost_builder_identity(report, defect):
         value = json.loads(manifest.read_text(encoding="utf-8"))
         del value["browser_eval"]
         manifest.write_text(json.dumps(value), encoding="utf-8")
-    with pytest.raises(ValueError, match="Browser Eval"):
+    with pytest.raises(ValueError, match="Webstone"):
         check(output)
 
 

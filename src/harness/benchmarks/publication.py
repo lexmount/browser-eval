@@ -476,7 +476,7 @@ class DatasetRelease:
                 metadata.get("external_datasets", {}).items() if identity in self.datasets()
             }
         if self.tooling_revision is not None:
-            manifest["tooling"] = {"repository": "https://github.com/lexmount/browser-eval",
+            manifest["tooling"] = {"repository": "https://github.com/lexmount/webstone",
                                    "revision": self.tooling_revision}
         if self.track == "headless-browser":
             manifest["upstream"] = json.loads(self.files["definitions/registry.json"])["source"]
@@ -563,8 +563,8 @@ class DatasetRelease:
                     body = body.replace("{{upstream_" + key + "}}", replacement)
         checkout = ""
         if self.tooling_revision is not None:
-            body = body.replace("https://github.com/lexmount/browser-eval/blob/main/",
-                                f"https://github.com/lexmount/browser-eval/blob/{self.tooling_revision}/")
+            body = body.replace("https://github.com/lexmount/webstone/blob/main/",
+                                f"https://github.com/lexmount/webstone/blob/{self.tooling_revision}/")
             checkout = "git checkout " + self.tooling_revision + "\n"
         body = body.replace("{{tooling_checkout}}", checkout)
         card = "---\n" + yaml.safe_dump(header, sort_keys=False, allow_unicode=True) + "---\n\n" + body.strip() + "\n"
@@ -578,7 +578,7 @@ def main() -> None:
     parser.add_argument("--track", choices=sorted(json.loads((CARDS / "metadata.json").read_bytes())), required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--tooling-revision", help="Full Browser Eval commit for executable examples and code links")
+    parser.add_argument("--tooling-revision", help="Full Webstone commit for executable examples and code links")
     parser.add_argument("--create-pr", metavar="HF_REPOSITORY", help="Open a Hugging Face pull request for the built dataset")
     args = parser.parse_args()
     release = DatasetRelease.from_git(args.checkout, args.track, args.revision)

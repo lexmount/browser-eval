@@ -42,7 +42,7 @@ uv run --frozen python -m harness.lexbench reproduce \
   --agent-browser /path/to/linux-agent-browser --mode off --phase baseline
 ```
 
-The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Browser Eval before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
+The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Webstone before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
 
 The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `/path/to/report-profile.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
 

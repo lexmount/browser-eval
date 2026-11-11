@@ -1,7 +1,7 @@
 [project]
 name = "browser-harness-eval"
 version = "0.5.0"
-description = "Evaluation harness for browsers and Web tools: Web Fetch, Web Search and Browser Trajectory Replay"
+description = "Webstone: the touchstone for your agent's web tools. Benchmark browsers and Web tools for AI agents: Web Fetch, Web Search, Web Extract and Browser Trajectory Replay"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
@@ -21,8 +21,8 @@ lexbench-webfetch = "lexbench_webfetch.cli:main"
 lexbench-websearch = "lexbench_websearch.cli:main"
 
 [project.urls]
-Repository = "https://github.com/lexmount/browser-eval"
-Issues = "https://github.com/lexmount/browser-eval/issues"
+Repository = "https://github.com/lexmount/webstone"
+Issues = "https://github.com/lexmount/webstone/issues"
 
 [project.optional-dependencies]
 dataset-publish = ["huggingface-hub==1.31.0", "pyyaml>=6,<7"]

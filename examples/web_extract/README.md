@@ -131,7 +131,7 @@ cohorts because it requires a supported site-specific extractor. Browser infrast
 alone does not supply the requested field values.
 
 New cohorts give every native API the same public URL for each frozen page.
-Each dataset has its own hosting service. Browser Eval can find and reuse a
+Each dataset has its own hosting service. Webstone can find and reuse a
 Cloudflare deployment (the default) or verify a service hosted elsewhere:
 
 ```sh
@@ -735,7 +735,7 @@ Cloudflare Pages static-file requests are free and unlimited; these snapshot
 packages do not use Functions. The documented Free-plan limits are 100 Pages
 projects per account, 20,000 files per deployment and 25 MiB per file. The Pages
 build service has 500 builds per month on Free; this is a build quota, not a limit
-on reads or a count of retained snapshot versions. Browser Eval uploads prepared
+on reads or a count of retained snapshot versions. Webstone uploads prepared
 files with Wrangler. One dataset uses one project and can have multiple immutable
 deployments. The current 140-page and 800-page editions fit these limits.
 

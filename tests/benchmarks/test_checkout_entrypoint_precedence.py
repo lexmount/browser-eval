@@ -1,4 +1,4 @@
-"""Checkout entrypoints must beat a noneditable installed Browser Eval wheel."""
+"""Checkout entrypoints must beat a noneditable installed Webstone wheel."""
 import csv
 import io
 import os

@@ -4,12 +4,12 @@ Simple is the best; reject over-design.
 
 Use the [review guidelines](docs/references/review-guidelines.md) that OCR loads. Their shared
 section is copied from `lexmount/ai-template-py` at the commit named in the first
-line; change it there and copy it here. The Browser Eval supplement at the end is
+line; change it there and copy it here. The Webstone supplement at the end is
 maintained in this repository.
 
 # Benchmark ownership
 
-Browser Eval owns benchmark scoring and input tooling as well as execution, evidence and reports. Keep the independent scorer APIs in `src/lexbench_webfetch/` and `src/lexbench_websearch/`; they must work without browsers or provider credentials. Shared dataset distribution and pinning belong in `src/harness/benchmarks/`.
+Webstone owns benchmark scoring and input tooling as well as execution, evidence and reports. Keep the independent scorer APIs in `src/lexbench_webfetch/` and `src/lexbench_websearch/`; they must work without browsers or provider credentials. Shared dataset distribution and pinning belong in `src/harness/benchmarks/`.
 
 Hugging Face owns versioned public benchmark definitions and redistributable reference inputs. `src/harness/benchmarks/data-lock.json` selects their repositories, full commits and file hashes. Change a selection through `make pin-dataset DATASET=<track> REV=<full-HF-commit>`; keep import bindings aligned and historical snapshots intact. Do not copy datasets into Git or reintroduce retired standalone scorer repositories as execution dependencies. Official upstream evaluators retain their pinned code dependencies. Full third-party references without redistribution rights remain external approved inputs.
 

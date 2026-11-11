@@ -107,7 +107,7 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
     result = replace(source, tooling_revision=revision).build(tmp_path)
     card = (tmp_path / "README.md").read_text(encoding="utf-8")
     assert "git checkout " + revision in card
-    assert f"https://github.com/lexmount/browser-eval/blob/{revision}/src/harness/benchmarks/data-lock.json" in card
+    assert f"https://github.com/lexmount/webstone/blob/{revision}/src/harness/benchmarks/data-lock.json" in card
     assert result["tooling"]["revision"] == revision
     assert "{{tooling_checkout}}" not in card
     with pytest.raises(ValueError, match="full Git commit"):
@@ -131,7 +131,7 @@ def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_
     if track == 'websearch':
         assert '(definitions/sources.json)' in text
         assert '(definitions/NOTICE.txt)' in text
-    assert "https://github.com/lexmount/browser-eval" in text
+    assert "https://github.com/lexmount/webstone" in text
     assert "{{dataset_summary}}" not in text
     # Hub promotes direct paper links into a dataset-level ArXiv association.
     # Derivatives credit upstream through its dataset/repository instead.
@@ -223,5 +223,5 @@ def test_current_dataset_cards_link_to_existing_browser_eval_code_and_guides():
 
     root = Path(__file__).resolve().parents[2]
     for card in CARDS.glob('*.md'):
-        for target in re.findall(r'https://github.com/lexmount/browser-eval/blob/main/([^\s)#]+)', card.read_text(encoding="utf-8")):
+        for target in re.findall(r'https://github.com/lexmount/webstone/blob/main/([^\s)#]+)', card.read_text(encoding="utf-8")):
             assert (root / target).exists(), (card.name, target)

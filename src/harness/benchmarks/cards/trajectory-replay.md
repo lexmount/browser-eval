@@ -2,7 +2,7 @@
 
 Short name: **LB-TR**.
 
-Browser Eval authored this public-web replay suite to compare browsers using fixed actions and deterministic checks. The tasks cover reading public pages, forms, navigation history, delayed elements, search, and scrolling. Browser Eval executes the declared actions and checks the saved outputs against explicit assertions.
+Webstone authored this public-web replay suite to compare browsers using fixed actions and deterministic checks. The tasks cover reading public pages, forms, navigation history, delayed elements, search, and scrolling. Webstone executes the declared actions and checks the saved outputs against explicit assertions.
 
 This dataset contains {{total_records}} task records with public website URLs, BrowserTool actions and exact expected outputs. The task instructions are in Chinese. Some references contain English page headings, interface text, or quotations; the source wording is preserved.
 
@@ -30,9 +30,9 @@ The task definitions cite [Headless Browser's scenario collection](https://githu
 
 No complete task is imported from [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) or [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay). Headless tasks use local fixtures or blank pages and their original CDP/driver checks; WebArena tasks use self-hosted applications and official evaluators. Shared interaction patterns, such as selecting an option, are design similarities across distinct task inputs and acceptance contracts.
 
-## Use with Browser Eval
+## Use with Webstone
 
-Get the [Browser Eval code](https://github.com/lexmount/browser-eval) and follow the [trajectory replay instructions](https://github.com/lexmount/browser-eval/blob/main/examples/trajectory_replay/README.md):
+Get the [Webstone code](https://github.com/lexmount/webstone) and follow the [trajectory replay instructions](https://github.com/lexmount/webstone/blob/main/examples/trajectory_replay/README.md):
 
 ```bash
 ./examples/trajectory_replay/run.sh
@@ -40,7 +40,7 @@ Get the [Browser Eval code](https://github.com/lexmount/browser-eval) and follow
 
 Add `--no-report` to that command to retain scores and evidence without building local HTML.
 
-The supported runner resolves its default task suite from this dataset's immutable revision recorded in Browser Eval's data lock. The first load downloads the public definition bundle; subsequent loads use the verified local cache. Reading the dataset requires no Hugging Face account or token. An explicit suite path remains available for reproducing an older input bundle.
+The supported runner resolves its default task suite from this dataset's immutable revision recorded in Webstone's data lock. The first load downloads the public definition bundle; subsequent loads use the verified local cache. Reading the dataset requires no Hugging Face account or token. An explicit suite path remains available for reproducing an older input bundle.
 
 For inspection from the checked-out project:
 
@@ -62,20 +62,20 @@ The JSON freezes actions and expected outputs, while the target websites remain 
 
 Several tasks use the same website, and simpler checks also appear inside longer workflows. The task count does not represent independent websites or unrelated scenario families.
 
-The suite measures fixed-action execution and retrieval. It does not measure an agent's planning or its ability to recover by inventing a different sequence. Browser Eval's experimental Browser Use track has a separate execution contract.
+The suite measures fixed-action execution and retrieval. It does not measure an agent's planning or its ability to recover by inventing a different sequence. Webstone's experimental Browser Use track has a separate execution contract.
 
 Optional local HTML reports turn saved evidence into results readers can inspect and rebuild. Share a report only when publication is explicitly requested and authorized. Reports support drilldown to individual results and their raw responses, action traces, logs, and scoring evidence. Optional verification and human sampling help review those results without requiring every case to be read manually.
 
 ## Citation and attribution
 
-Please cite Browser Eval when using these task definitions or the replay harness:
+Please cite Webstone when using these task definitions or the replay harness:
 
 ```bibtex
 @misc{browser_eval,
   author = {Lexmount},
-  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+  title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   year = {2026},
-  url = {https://github.com/lexmount/browser-eval}
+  url = {https://github.com/lexmount/webstone}
 }
 ```
 

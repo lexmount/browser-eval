@@ -14,8 +14,8 @@ Use the declared source for each benchmark and evaluator. The full commit in the
 
 | Dependency | Role | Version authority |
 | --- | --- | --- |
-| Web Fetch scoring (`src/lexbench_webfetch/`) | Task model, deterministic acceptance and frozen-input validation | Browser Eval source revision; [HF definitions](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
-| Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Browser Eval source revision; [Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and [SimpleQA](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) definitions selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
+| Web Fetch scoring (`src/lexbench_webfetch/`) | Task model, deterministic acceptance and frozen-input validation | Webstone source revision; [HF definitions](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
+| Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Webstone source revision; [Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and [SimpleQA](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) definitions selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
 
@@ -68,13 +68,13 @@ Choose the scorer named by the experiment's external profile and its [correction
 
 | Other inputs | Setup and version record |
 | --- | --- |
-| [Qualified WCXB inputs](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Data lock and selected source manifest; runtime/scoring in Browser Eval |
+| [Qualified WCXB inputs](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Data lock and selected source manifest; runtime/scoring in Webstone |
 | [Curated replay definitions](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Data lock and selected task/trajectory hashes |
 | [WebArena replay tasks and recordings](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Data lock and selected configuration; the pinned official evaluator remains a code dependency |
 | WebArena sites | [Deployment and replay guide](webarena-fixed-trajectory-reproduction.md) |
 | Historical source pages | Import approved copies using [reference-input validation](reference-inputs.md) |
 
-The Browser Eval checkout contains code and input bindings. Current public definitions are downloaded from the selected HF editions; complete historical input copies may require separate acquisition.
+The Webstone checkout contains code and input bindings. Current public definitions are downloaded from the selected HF editions; complete historical input copies may require separate acquisition.
 
 ## Writing skills
 

@@ -4,7 +4,7 @@ Short name: **LB-WF**.
 
 LexBench-Web-Fetch evaluates whether a browser, extraction tool or hosted fetch service returns the content an AI agent needs from a URL. Its {{total_records}} task entries cover page bodies, structured records with usable links, resource discovery and file delivery. Each task declares what the returned answer must contain, so the same acceptance rules apply to every participant.
 
-Use it to compare live-site fetching, diagnose incomplete extraction, or test a saved response after changing a parser. [Browser Eval](https://github.com/lexmount/browser-eval) provides the scorer, execution adapters, evidence storage and comparison reports. Scoring saved answers requires no browser, provider account or LLM judge.
+Use it to compare live-site fetching, diagnose incomplete extraction, or test a saved response after changing a parser. [Webstone](https://github.com/lexmount/webstone) provides the scorer, execution adapters, evidence storage and comparison reports. Scoring saved answers requires no browser, provider account or LLM judge.
 
 ## Dataset versions
 
@@ -36,7 +36,7 @@ A method receives the task URL and prompt. Its response is checked against the t
 | Resources | Returned resource URLs, permitted variants, and target-only output requirements where declared |
 | Files | Delivered bytes, declared file type and integrity requirements |
 
-Contracts can combine these checks. A successful request, nonempty answer or long response alone does not establish task completion. The scorer keeps binary acceptance separate from text-quality diagnostics. Missing reference coverage remains unavailable. Exact requirements and thresholds are in each task; the [metrics guide](https://github.com/lexmount/browser-eval/blob/main/docs/metrics.md) explains their interpretation.
+Contracts can combine these checks. A successful request, nonempty answer or long response alone does not establish task completion. The scorer keeps binary acceptance separate from text-quality diagnostics. Missing reference coverage remains unavailable. Exact requirements and thresholds are in each task; the [metrics guide](https://github.com/lexmount/webstone/blob/main/docs/metrics.md) explains their interpretation.
 
 Web Fetch runs call the tested tools directly. An agent does not choose browser actions during execution. Preserve the requested initial-load scope: clicking, logging in, expanding hidden content or paginating changes the work unless a task explicitly permits it. In the optional article extension, a qualified displayed excerpt is scored as that excerpt, and changing feeds use their own post-collection contracts.
 
@@ -70,7 +70,7 @@ Replace the revision with the full dataset commit you intend to use. Select anot
 | --- | --- |
 | `id` | Task identifier within its source suite |
 | `input` | Source URL |
-| `benchmark_category` | Task category shared with Browser Eval's report grouping |
+| `benchmark_category` | Task category shared with Webstone's report grouping |
 | `source_suite` | Original scorer suite ID, retained independently of the benchmark category |
 | `track` | Original source-group value from the task definition |
 | `category` | Original finer category, preserved exactly as authored |
@@ -84,10 +84,10 @@ The viewer supports inspection and integration. Full body references and capture
 
 ## Validate, score and run
 
-From a Browser Eval checkout with [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
+From a Webstone checkout with [uv](https://docs.astral.sh/uv/getting-started/installation/) installed:
 
 ```sh
-git clone https://github.com/lexmount/browser-eval.git
+git clone https://github.com/lexmount/webstone.git
 cd browser-eval
 {{tooling_checkout}}uv sync --frozen
 uv run --frozen python -m harness.benchmarks.data
@@ -95,7 +95,7 @@ uv run --frozen lexbench-webfetch list
 uv run --frozen lexbench-webfetch validate
 ```
 
-Browser Eval downloads the dataset revision selected by its [data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json) and verifies the archive and file hashes. Public downloads require no access token. The [benchmark integration guide](https://github.com/lexmount/browser-eval/blob/main/docs/benchmarks.md) covers revision selection and offline caching.
+Webstone downloads the dataset revision selected by its [data lock](https://github.com/lexmount/webstone/blob/main/src/harness/benchmarks/data-lock.json) and verifies the archive and file hashes. Public downloads require no access token. The [benchmark integration guide](https://github.com/lexmount/webstone/blob/main/docs/benchmarks.md) covers revision selection and offline caching.
 
 For tasks that need external reference inputs, obtain an approved matching copy and export a verified executable suite:
 
@@ -105,7 +105,7 @@ uv run --frozen lexbench-webfetch export \
   --output /absolute/path/new-input-directory
 ```
 
-The scorer's `--suite webfetch` exports the mixed 150-task suite, including 20 dynamic/challenge examples. For the 430-task edition, select its 130 general-web, document and media IDs plus the three 100-task suites. For the 550-task edition, select all 150 mixed tasks, those three suites and the 100 article tasks (`--suite articles`). Export verifies inputs before writing a new directory. See [reference inputs and access](https://github.com/lexmount/browser-eval/blob/main/docs/reference-inputs.md).
+The scorer's `--suite webfetch` exports the mixed 150-task suite, including 20 dynamic/challenge examples. For the 430-task edition, select its 130 general-web, document and media IDs plus the three 100-task suites. For the 550-task edition, select all 150 mixed tasks, those three suites and the 100 article tasks (`--suite articles`). Export verifies inputs before writing a new directory. See [reference inputs and access](https://github.com/lexmount/webstone/blob/main/docs/reference-inputs.md).
 
 Score a saved response using its complete task definition:
 
@@ -126,39 +126,39 @@ uv run --frozen browser-harness-eval run \
   --case-ids static-simple --output /absolute/path/new-evidence
 ```
 
-The HTTP baseline does not execute JavaScript. For browser setup and a report you can inspect, follow the [runnable local example](https://github.com/lexmount/browser-eval/blob/main/examples/web_fetch/README.md). Formal comparisons use the certified workflow in the [Web Fetch evaluation guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/README.md).
+The HTTP baseline does not execute JavaScript. For browser setup and a report you can inspect, follow the [runnable local example](https://github.com/lexmount/webstone/blob/main/examples/web_fetch/README.md). Formal comparisons use the certified workflow in the [Web Fetch evaluation guide](https://github.com/lexmount/webstone/blob/main/src/harness/web_fetch/README.md).
 
 ## Reporting and limitations
 
 Report passed/evaluated counts for the declared population, unavailable results and the selected benchmark and scorer revisions. Retain failed calls and timeouts. State timing boundaries, retry policy, local or remote execution, and conversion steps; keep all-call timing separate from timing conditional on success. Optional independent verification has its own disclosed scope and does not run automatically.
 
-Live sites change with location, time, session state and access policy. The suite emphasizes task-relevant stable content, but a frozen reference can still become outdated. Investigate source drift before changing a verdict. Updating task requirements or scoring code does not retroactively update an old measurement. Record the immutable dataset commit, task/reference hashes and scorer source identity with each experiment. Detailed collection, correction and reporting rules are maintained in the [Web Fetch guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/README.md).
+Live sites change with location, time, session state and access policy. The suite emphasizes task-relevant stable content, but a frozen reference can still become outdated. Investigate source drift before changing a verdict. Updating task requirements or scoring code does not retroactively update an old measurement. Record the immutable dataset commit, task/reference hashes and scorer source identity with each experiment. Detailed collection, correction and reporting rules are maintained in the [Web Fetch guide](https://github.com/lexmount/webstone/blob/main/src/harness/web_fetch/README.md).
 
 These are curated workloads, not a representative sample of every website. The article suite's initial-load scope does not measure hidden continuations or interaction-dependent content. Text and link checks do not measure visual fidelity or autonomous browser use. This dataset contains task inputs and requirements; it does not ship provider measurements or establish a standing browser ranking.
 
 ## Sources, related benchmarks and rights
 
-LexBench-Web-Fetch was developed as the Web Fetch benchmark component of [Browser Eval](https://github.com/lexmount/browser-eval). Its task definitions retain source URLs and reference bindings. Project-authored material uses Apache-2.0; original website text, documents, media and captures retain their source rights. Full captures, screenshots, private logs and measured provider outputs are excluded. A public URL or content hash is not permission to redistribute the underlying material. Read [THIRD_PARTY.md](THIRD_PARTY.md), [NOTICE](NOTICE) and the notices included with the selected snapshot.
+LexBench-Web-Fetch was developed as the Web Fetch benchmark component of [Webstone](https://github.com/lexmount/webstone). Its task definitions retain source URLs and reference bindings. Project-authored material uses Apache-2.0; original website text, documents, media and captures retain their source rights. Full captures, screenshots, private logs and measured provider outputs are excluded. A public URL or content hash is not permission to redistribute the underlying material. Read [THIRD_PARTY.md](THIRD_PARTY.md), [NOTICE](NOTICE) and the notices included with the selected snapshot.
 
 The following projects have separate populations and terms; they are not subsets of this catalog:
 
-- [WebMainBench](https://github.com/opendatalab/WebMainBench), maintained by OpenDataLab, evaluates main-content extraction from saved web pages. Browser Eval's [LexBench-WebMainBench dataset](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) records its selected corpus and corrections.
+- [WebMainBench](https://github.com/opendatalab/WebMainBench), maintained by OpenDataLab, evaluates main-content extraction from saved web pages. Webstone's [LexBench-WebMainBench dataset](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) records its selected corpus and corrections.
 - [WCXB](https://github.com/Murrough-Foley/web-content-extraction-benchmark) is the Web Content Extraction Benchmark.
 - [WebArena](https://github.com/web-arena-x/webarena) and [WebArena-Verified](https://github.com/ServiceNow/webarena-verified) supply interactive tasks and evaluators used in separate browser workflows.
 - [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) preserves the task inputs for the [upstream Headless runtime](https://github.com/lexmount/Lexbench-Headless-Browser), which evaluates browser runtime and automation capabilities.
 
-For search evaluation, use [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search). [Moli](https://github.com/lexmount/moli) is one browser that can be evaluated with Web Fetch tasks, and [WebFetch CLI](https://github.com/lexmount/webfetch-cli) is a client for a hosted fetch service. Report creation and sharing are covered by [Browser Eval's reporting documentation](https://github.com/lexmount/browser-eval/blob/main/docs/report-hosting.md).
+For search evaluation, use [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search). [Moli](https://github.com/lexmount/moli) is one browser that can be evaluated with Web Fetch tasks, and [WebFetch CLI](https://github.com/lexmount/webfetch-cli) is a client for a hosted fetch service. Report creation and sharing are covered by [Webstone's reporting documentation](https://github.com/lexmount/webstone/blob/main/docs/report-hosting.md).
 
 ## Citation
 
-Cite Browser Eval and record the exact dataset revision used in your experiment. The canonical project citation is [CITATION.cff](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
+Cite Webstone and record the exact dataset revision used in your experiment. The canonical project citation is [CITATION.cff](https://github.com/lexmount/webstone/blob/main/CITATION.cff).
 
 ```bibtex
 @software{browser_eval_2026,
-  author = {{Browser Eval contributors}},
-  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+  author = {{Webstone contributors}},
+  title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Evaluation harness},
   year = {2026},
-  url = {https://github.com/lexmount/browser-eval}
+  url = {https://github.com/lexmount/webstone}
 }
 ```

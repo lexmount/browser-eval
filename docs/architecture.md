@@ -4,7 +4,7 @@ Use this page to find the code responsible for a change. For running evaluations
 
 [Data flow](#data-flow) · [Code owners](#code-boundaries) · [Stored inputs](#repository-and-external-inputs) · [Report releases](#reports-and-publication) · [Review tools](#verification)
 
-Browser Eval owns scoring, execution, evidence handling and local report generation for Web Fetch, Web Search and trajectory replay, with an experimental autonomous Browser Use track. Versioned task definitions and reference bindings live in the [Hugging Face benchmark datasets](benchmarks.md#use-benchmark-inputs). The data lock selects those inputs; scorer and runtime code live here. Each experiment has its own evaluator binding and, when published, its own publication target.
+Webstone owns scoring, execution, evidence handling and local report generation for Web Fetch, Web Search and trajectory replay, with an experimental autonomous Browser Use track. Versioned task definitions and reference bindings live in the [Hugging Face benchmark datasets](benchmarks.md#use-benchmark-inputs). The data lock selects those inputs; scorer and runtime code live here. Each experiment has its own evaluator binding and, when published, its own publication target.
 
 | Track | Implementation | Running and reproduction |
 | --- | --- | --- |
@@ -25,7 +25,7 @@ fixtures to assess browser/driver compatibility. The upstream
 benchmark also contains individual protocol and Web-platform probes.
 [`src/harness/lexbench/`](../src/harness/lexbench/README.md) builds retained comparison reports from upstream results;
 it does not add an in-tree compatibility runner. Compatibility is an evaluation
-goal of these workloads, rather than a separate Browser Eval track.
+goal of these workloads, rather than a separate Webstone track.
 
 ## Data flow
 

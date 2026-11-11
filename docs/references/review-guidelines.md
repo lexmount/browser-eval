@@ -1,4 +1,4 @@
-<!-- Shared section copied from lexmount/ai-template-py@7add9a555281432dd8430ebfe6e8a8f5489d0b10 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Browser Eval supplement at the end is maintained in this repository. -->
+<!-- Shared section copied from lexmount/ai-template-py@7add9a555281432dd8430ebfe6e8a8f5489d0b10 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Webstone supplement at the end is maintained in this repository. -->
 
 # Review Guidelines
 
@@ -234,9 +234,9 @@ in those files. The work can close when valid in-scope findings are resolved and
 necessary verification passes. Add task requirements only when the user or
 repository maintainer explicitly changes the goal.
 
-## Browser Eval review supplement
+## Webstone review supplement
 
-Follow the repository review constraints in `AGENTS.md`, `CONTRIBUTING.md` and the guide that owns the changed area. The following requirements belong to Browser Eval and supplement the shared criteria above and OCR's built-in rules.
+Follow the repository review constraints in `AGENTS.md`, `CONTRIBUTING.md` and the guide that owns the changed area. The following requirements belong to Webstone and supplement the shared criteria above and OCR's built-in rules.
 
 | Changed area | Also apply |
 | --- | --- |

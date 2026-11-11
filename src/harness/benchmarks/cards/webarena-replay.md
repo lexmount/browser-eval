@@ -2,7 +2,7 @@
 
 Short name: **LB-WAR**.
 
-WebArena task definitions paired with fixed browser actions for Browser Eval. These inputs compare browser execution on the same sequence of work. The pinned WebArena-Verified program evaluates task completion from the browser response and the self-hosted site's state.
+WebArena task definitions paired with fixed browser actions for Webstone. These inputs compare browser execution on the same sequence of work. The pinned WebArena-Verified program evaluates task completion from the browser response and the self-hosted site's state.
 
 The viewer contains the full {{total_records}}-task population once. Human-qualified and corrected definitions remain available as reproducible variants in the archive; their overlapping task IDs do not add tasks to the viewer population.
 
@@ -33,25 +33,25 @@ The replay executes declared actions without an agent choosing the next step. Co
 
 The definition bundle contains runtime suites, a full-scope catalog, corrected input definitions, task scopes, a canonical site map, and a registry with file hashes. Auxiliary candidate inventories and a historical normalized example preserve their own source hashes for authoring, diagnostics, and report reconstruction; they are outside the scored configurations above. Dataset viewer records expose the task question and its fixed actions alongside the numeric upstream ID.
 
-The canonical site map uses reserved example origins. Bind it to your self-hosted deployment before execution. Browser Eval uses its existing origin rebinding rules and checks the resulting call hashes. The public projection checks the original and exported action views under explicit HTTP and HTTPS deployment bindings. Compiled selectors and action options are preserved. Catalog action amendments are applied once, with their source hashes retained in the publication receipt.
+The canonical site map uses reserved example origins. Bind it to your self-hosted deployment before execution. Webstone uses its existing origin rebinding rules and checks the resulting call hashes. The public projection checks the original and exported action views under explicit HTTP and HTTPS deployment bindings. Compiled selectors and action options are preserved. Catalog action amendments are applied once, with their source hashes retained in the publication receipt.
 
 Retrieval contracts retain their observation rules and projections. Their action references are rebound to the exported calls, while the receipt records both the original and public contract hashes. Cookie or response-cookie expectations in evaluator rules retain their meaning; they are benchmark checks, not captured browser sessions.
 
-`definitions/publication-input-bindings.json` records the original catalog, suite, and action hashes and the exported input hashes. Source action hashes that named private recording hosts now refer to the corrected inputs in Browser Eval, which differ only in those host values. The corrected edition retains only the declarative task type from the historical evaluator envelope. Prior response bodies, claimed success states, and retrieved answers are excluded; their original hashes remain in the publication receipt. Official task reference answers and assertions remain benchmark inputs. Raw qualification runs, HAR files, screenshots, browser sessions, measured responses, and generated results remain in separately bound evidence releases. Private deployment origins and local evidence paths are excluded from the public inputs.
+`definitions/publication-input-bindings.json` records the original catalog, suite, and action hashes and the exported input hashes. Source action hashes that named private recording hosts now refer to the corrected inputs in Webstone, which differ only in those host values. The corrected edition retains only the declarative task type from the historical evaluator envelope. Prior response bodies, claimed success states, and retrieved answers are excluded; their original hashes remain in the publication receipt. Official task reference answers and assertions remain benchmark inputs. Raw qualification runs, HAR files, screenshots, browser sessions, measured responses, and generated results remain in separately bound evidence releases. Private deployment origins and local evidence paths are excluded from the public inputs.
 
 ## Versions
 
 This dataset uses `vMAJOR.MINOR.PATCH` labels for immutable commits; record the full commit with every run. Adding or removing tasks, or changing their requests, is a major change. Correcting references or acceptance rules is a minor change. Correcting documentation or metadata without changing tasks, references or scoring is a patch.
 
-1.0.1 corrects private recording hosts in Browser Eval's source inputs and updates the hashes that bind them. Task questions, exported actions, evaluator inputs and scoring rules are unchanged.
+1.0.1 corrects private recording hosts in Webstone's source inputs and updates the hashes that bind them. Task questions, exported actions, evaluator inputs and scoring rules are unchanged.
 
-## Use with Browser Eval
+## Use with Webstone
 
-Use the [Browser Eval implementation](https://github.com/lexmount/browser-eval). The [fixed-trajectory reproduction guide](https://github.com/lexmount/browser-eval/blob/main/docs/webarena-fixed-trajectory-reproduction.md) and [human-recording replay guide](https://github.com/lexmount/browser-eval/blob/main/examples/trajectory_replay/public_webarena/README.md) explain environment setup, qualification, and execution.
+Use the [Webstone implementation](https://github.com/lexmount/webstone). The [fixed-trajectory reproduction guide](https://github.com/lexmount/webstone/blob/main/docs/webarena-fixed-trajectory-reproduction.md) and [human-recording replay guide](https://github.com/lexmount/webstone/blob/main/examples/trajectory_replay/public_webarena/README.md) explain environment setup, qualification, and execution.
 
 The replay CLI accepts `--no-report` to save scores and evidence without building local HTML. A later explicit report rebuild uses those saved files.
 
-The current default input files resolve through Browser Eval's immutable Hugging Face data lock. Downloads are public and cached locally after hash verification. An explicit historical input path continues to load its own bytes.
+The current default input files resolve through Webstone's immutable Hugging Face data lock. Downloads are public and cached locally after hash verification. An explicit historical input path continues to load its own bytes.
 
 For example, inspect the default qualified human suite from the checked-out project:
 
@@ -69,7 +69,7 @@ Optional local HTML reports let readers inspect and rebuild results from saved e
 
 ## Sources and limits
 
-The benchmark derives from [WebArena](https://github.com/web-arena-x/webarena) and [WebArena-Verified](https://github.com/ServiceNow/webarena-verified). The human-recording source is documented in [WebArena's resource collection](https://github.com/web-arena-x/webarena/tree/main/resources). The upstream task dataset is also available as [AmineHA/WebArena-Verified](https://huggingface.co/datasets/AmineHA/WebArena-Verified). Browser Eval pins its evaluator dependency in code, including the patches used by its supported releases. Source revisions and dataset checksums accompany the inputs.
+The benchmark derives from [WebArena](https://github.com/web-arena-x/webarena) and [WebArena-Verified](https://github.com/ServiceNow/webarena-verified). The human-recording source is documented in [WebArena's resource collection](https://github.com/web-arena-x/webarena/tree/main/resources). The upstream task dataset is also available as [AmineHA/WebArena-Verified](https://huggingface.co/datasets/AmineHA/WebArena-Verified). Webstone pins its evaluator dependency in code, including the patches used by its supported releases. Source revisions and dataset checksums accompany the inputs.
 
 This is a derivative replay dataset. It adds selected or corrected fixed-action inputs and their provenance. A fixed trajectory evaluates execution of that trajectory; it does not test an agent's ability to plan a solution. Site preparation, service health, application state, browser binaries, and evaluator revisions still affect reproduction and must be bound by the run contract.
 
@@ -82,9 +82,9 @@ WebArena and WebArena-Verified use Apache-2.0 licenses. The self-hosted applicat
 ```bibtex
 @misc{browser_eval,
   author = {Lexmount},
-  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+  title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   year = {2026},
-  url = {https://github.com/lexmount/browser-eval}
+  url = {https://github.com/lexmount/webstone}
 }
 ```
 

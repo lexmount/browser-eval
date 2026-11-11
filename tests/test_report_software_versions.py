@@ -22,14 +22,14 @@ def test_build_records_software_without_relabeling_saved_benchmark(tmp_path, mon
     assert len(identity['revision']) == 40
     assert len(identity['source_sha256']) == 64
     page = BeautifulSoup((first / 'index.html').read_text(encoding='utf-8'), 'html.parser')
-    assert page.select_one('[data-browser-eval-release]').get_text() == 'Browser Eval v' + __version__
+    assert page.select_one('[data-browser-eval-release]').get_text() == 'Webstone v' + __version__
     assert page.select_one('[data-benchmark-release]').get_text() == 'bench v1.0.0'
 
     # A newer builder must not change the selected tasks, scorer or saved calls.
     monkeypatch.setattr(versions, 'software_identity', lambda: {**identity, 'version': '0.3.0'})
     second = tmp_path / 'second'
     build_snapshot_audit(source, second, profile=profile)
-    assert 'Browser Eval v0.3.0' in (second / 'index.html').read_text(encoding='utf-8')
+    assert 'Webstone v0.3.0' in (second / 'index.html').read_text(encoding='utf-8')
     for file in ('benchmark-release.json', 'results.jsonl', 'dataset.json'):
         assert (first / file).read_bytes() == (second / file).read_bytes()
     assert before == {path.relative_to(source): path.read_bytes()
@@ -61,7 +61,7 @@ def test_release_gate_rejects_missing_or_conflicting_build_identity(tmp_path, de
         content = content.replace('data-browser-eval-release=', 'data-lost=') if defect == 'label' else content.replace(
             'href="browser-eval-version.json"', 'href="missing-version.json"')
         path.write_text(content, encoding='utf-8')
-    with pytest.raises(ValueError, match='Browser Eval'):
+    with pytest.raises(ValueError, match='Webstone'):
         check_snapshot_audit(output)
 
 

@@ -3067,7 +3067,7 @@ def write_support(out,records,manifests,*,authored_interpretation=True):
   else:
    provider_rows.append(('',cell(link('../providers/'+name+'.html',provider_label(name),browser_method_label(name,language='en')))+cell(esc('；'.join(versions) or t('version_not_recorded', 'Version not recorded')))+cell(esc(basis))+cell(esc('；'.join(deployments)))+cell('<br>'.join('<code class="tiny break">'+esc(x)+'</code>' for x in hashes) or '—')+cell(str(len(subset)))))
  write_review_page(out,records)
- repo='https://github.com/lexmount/browser-eval'
+ repo='https://github.com/lexmount/webstone'
  support=hero((t('report_reproduction_47f6b8', 'Reproduction')),(t('report_benchmark_code_lives_in_browser_eval_task_definitions_a_83ab02', 'Benchmark code lives in browser-eval; task definitions and reference data live on Hugging Face. This page lists the run configuration and reproduction entry points.')))
  support+=section((t('report_code_and_dataset_67a544', 'Code and dataset')),(f"<p>{link(repo, t('report_browser_eval_repository_1aa369', 'browser-eval repository'))}{t('report_contains_invocation_scoring_and_report_tools_its_data_l_8d1d7c', 'contains invocation, scoring and report tools. Its data lock selects task definitions and reference data on Hugging Face; this report provides the frozen results for this run.')}</p><p>{downloads}</p>"))
  if (out/'speed-cohort/speed-comparison.json').is_file():

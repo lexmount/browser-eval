@@ -106,7 +106,7 @@ def select_report_language(root: Path, language: str) -> Path:
         # Keep the established bilingual routes; explicit Chinese links bypass
         # the English default at the shared root homepage.
         for page in root.rglob("*.html"):
-            # Saved source HTML may itself be a Browser Eval report.
+            # Saved source HTML may itself be a Webstone report.
             if page.relative_to(root).parts[0] in {"artifacts", "references", "inputs", "sources"}:
                 continue
             text = page.read_text(encoding="utf-8")
