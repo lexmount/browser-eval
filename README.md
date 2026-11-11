@@ -187,21 +187,29 @@ Rebuild from valid saved evidence without new participant calls. Verification ad
 
 ## Datasets and code
 
+Use **LexBench-Web-Fetch (LB-WF)** on first mention and **LB-WF** in subsequent text, tables and charts. `LB` stands for LexBench. When reporting results, cite the dataset URL and revision. Credit third-party sources by their original names.
+
 <details>
 <summary>Hugging Face datasets</summary>
 
 These links provide versioned tasks, acceptance contracts and reference inputs.
 
-| Dataset | Role |
-| --- | --- |
-| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
-| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | Scenario search queries and source references; factual QA is provided by SimpleQA Verified |
-| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | Reference-corrected WebMainBench tasks and correction provenance |
-| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
-| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Source-qualified frozen extraction inputs and references |
-| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | Executable CDP, driver and web-platform tasks; scenario specifications retained as source inputs |
-| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | 30 tasks written in Browser Eval for live public websites, with fixed actions and exact checks |
-| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Full official task catalog; smaller replay editions retained as versioned source inputs |
+| Dataset | Short name | Role |
+| --- | --- | --- |
+| [LexBench-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Browser) | **LB-B** | Autonomous tasks on real websites, with the dataset's own execution harness |
+| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | **LB-WF** | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
+| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | **LB-WS** | Scenario search queries and source references; factual QA is provided by SimpleQA Verified |
+| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | **LB-WMB** | Reference-corrected WebMainBench tasks and correction provenance |
+| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | **LB-SQAV** | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
+| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | **LB-WCXB** | Source-qualified frozen extraction inputs and references |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | **LB-HB** | Executable CDP, driver and web-platform tasks; scenario specifications retained as source inputs |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | **LB-TR** | 30 tasks written in Browser Eval for live public websites, with fixed actions and exact checks |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | **LB-WAR** | Full official task catalog; smaller replay editions retained as versioned source inputs |
+| [LexBench-Zyte-Product-Extraction](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction) | **LB-ZPE** | Frozen product pages with price, SKU and stock references |
+| [LexBench-SWDE](https://huggingface.co/datasets/Lexmount/LexBench-SWDE) | **LB-SWDE** | Multi-domain frozen-page field extraction from SWDE |
+| [LexBench-Expanded-SWDE](https://huggingface.co/datasets/Lexmount/LexBench-Expanded-SWDE) | **LB-ESWDE** | Expanded SWDE field-extraction sample |
+| [LexBench-NewsXLM](https://huggingface.co/datasets/Lexmount/LexBench-NewsXLM) | **LB-NXLM** | Multilingual news-page field extraction |
+| [LexBench-LiveWeb-IE](https://huggingface.co/datasets/Lexmount/LexBench-LiveWeb-IE) | **LB-LWIE** | Record and list extraction from live websites |
 
 Browser Eval wrote the 30 public-web replay tasks. Headless scenario designs informed some interactions; its executable cases and WebArena's tasks are not included in that suite. The task JSON fixes actions and expected outputs, while the target websites remain live.
 

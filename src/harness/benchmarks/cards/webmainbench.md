@@ -1,5 +1,7 @@
 # LexBench-WebMainBench
 
+Short name: **LB-WMB**.
+
 A reference-corrected edition of [OpenDataLab WebMainBench](https://huggingface.co/datasets/opendatalab/WebMainBench) with {{total_records}} frozen extraction tasks, used by [Browser Eval](https://github.com/lexmount/browser-eval). Each task supplies frozen HTML and a reference Markdown answer, so extractors can receive the same page bytes. This edition supports comparisons of main-content extraction, HTML-to-Markdown conversion and preservation of code, formulas and tables.
 
 {{dataset_summary}}

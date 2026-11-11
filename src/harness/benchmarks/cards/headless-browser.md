@@ -1,5 +1,7 @@
 # LexBench-Headless-Browser
 
+Short name: **LB-HB**.
+
 A versioned data export of [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser/tree/{{upstream_revision}}). It preserves the original CDP compatibility tasks, web platform tests, scenario specifications, browser and driver configuration, and local fixtures.
 
 The dataset viewer contains **{{upstream_task_count}} executable task definitions** across {{upstream_subset_count}} subsets. The original source files also retain {{upstream_scenario_count}} driver-neutral scenario specifications, {{upstream_fixture_count}} fixture files and {{upstream_config_count}} configuration files. The upstream manifest declares benchmark version `{{upstream_bench_version}}`; its browser binding configuration names {{upstream_driver_count}} driver interfaces. Source commit: [`{{upstream_revision}}`](https://github.com/lexmount/Lexbench-Headless-Browser/commit/{{upstream_revision}}).

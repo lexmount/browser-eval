@@ -1,5 +1,7 @@
 # LexBench-WCXB
 
+Short name: **LB-WCXB**.
+
 WCXB (Web Content eXtraction Benchmark) evaluates main-content extraction and boilerplate removal from saved web pages. This Lexmount distribution contains {{total_records}} source-qualified pages from Murrough Foley's upstream test split, with the original compressed HTML and ground-truth JSON files preserved byte for byte.
 
 Use the same frozen HTML with each extractor, then compare its returned text with the annotated main content. This measures extraction from fixed inputs. The original URLs provide source provenance; fetching those URLs again would create a different experiment.

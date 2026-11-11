@@ -1,5 +1,7 @@
 # LexBench-SimpleQA-Verified
 
+Short name: **LB-SQAV**.
+
 A {{total_records}}-question retrieval edition of [Google SimpleQA Verified](https://huggingface.co/datasets/google/simpleqa-verified), used by [Browser Eval](https://github.com/lexmount/browser-eval) to compare search tools. It retains publisher questions, reference answers and supporting URLs so a search result list can be checked for reference-page retrieval and answer-bearing text.
 
 Google DeepMind and Google Research designed the original benchmark to measure a model's factual knowledge without search tools. This derivative changes the task to retrieval evaluation. Its retrieval metrics are not official SimpleQA Verified accuracy or evidence of a model's closed-book factual knowledge.

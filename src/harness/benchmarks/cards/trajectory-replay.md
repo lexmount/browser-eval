@@ -1,5 +1,7 @@
 # LexBench-Trajectory-Replay
 
+Short name: **LB-TR**.
+
 Browser Eval authored this public-web replay suite to compare browsers using fixed actions and deterministic checks. The tasks cover reading public pages, forms, navigation history, delayed elements, search, and scrolling. Browser Eval executes the declared actions and checks the saved outputs against explicit assertions.
 
 This dataset contains {{total_records}} task records with public website URLs, BrowserTool actions and exact expected outputs. The task instructions are in Chinese. Some references contain English page headings, interface text, or quotations; the source wording is preserved.

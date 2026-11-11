@@ -187,21 +187,29 @@ flowchart LR
 
 ## 数据集与代码
 
+首次引用写 **LexBench-Web-Fetch（LB-WF）**，后续正文、表格和图中可直接用 **LB-WF**。`LB` 代表 LexBench。引用评测结果时附上数据集链接和版本；引用第三方来源时保留上游原名。
+
 <details>
 <summary>Hugging Face 数据集</summary>
 
 下列链接提供版本化题目、验收要求和参考输入。
 
-| 数据集 | 用途 |
-| --- | --- |
-| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | Web Fetch 题目、验收要求和参考输入绑定 |
-| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | 搜索场景问题和来源要求；事实问答由 SimpleQA Verified 提供 |
-| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | 修正参考答案后的 WebMainBench 任务及修订依据 |
-| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
-| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | 已核验来源的冻结提取输入和参考答案 |
-| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
-| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | Browser Eval 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
-| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | 官方完整任务集；较小规模的 Browser Trajectory Replay 版本保留为版本化原始输入 |
+| 数据集全名 | 简称 | 用途 |
+| --- | --- | --- |
+| [LexBench-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Browser) | **LB-B** | 真实网站上的 Agent 任务，使用该数据集配套的执行框架 |
+| [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | **LB-WF** | Web Fetch 题目、验收要求和参考输入绑定 |
+| [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | **LB-WS** | 搜索场景问题和来源要求；事实问答由 SimpleQA Verified 提供 |
+| [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | **LB-WMB** | 修正参考答案后的 WebMainBench 任务及修订依据 |
+| [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | **LB-SQAV** | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
+| [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | **LB-WCXB** | 已核验来源的冻结提取输入和参考答案 |
+| [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | **LB-HB** | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | **LB-TR** | Browser Eval 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
+| [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | **LB-WAR** | 官方完整任务集；较小规模的 Browser Trajectory Replay 版本保留为版本化原始输入 |
+| [LexBench-Zyte-Product-Extraction](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction) | **LB-ZPE** | 冻结商品网页及价格、SKU、库存参考答案 |
+| [LexBench-SWDE](https://huggingface.co/datasets/Lexmount/LexBench-SWDE) | **LB-SWDE** | SWDE 多领域冻结网页字段提取 |
+| [LexBench-Expanded-SWDE](https://huggingface.co/datasets/Lexmount/LexBench-Expanded-SWDE) | **LB-ESWDE** | Expanded SWDE 字段提取样本 |
+| [LexBench-NewsXLM](https://huggingface.co/datasets/Lexmount/LexBench-NewsXLM) | **LB-NXLM** | 多语言新闻网页字段提取 |
+| [LexBench-LiveWeb-IE](https://huggingface.co/datasets/Lexmount/LexBench-LiveWeb-IE) | **LB-LWIE** | 实时网站的记录与列表提取 |
 
 这 30 个公网轨迹任务由 Browser Eval 自建，部分交互设计借鉴了 Headless 的场景规格，没有导入 Headless 或 WebArena 的完整任务。任务文件固定了动作和预期输出，线上网页仍可能变化。
 

@@ -1,5 +1,7 @@
 # LexBench-WebArena-Replay
 
+Short name: **LB-WAR**.
+
 WebArena task definitions paired with fixed browser actions for Browser Eval. These inputs compare browser execution on the same sequence of work. The pinned WebArena-Verified program evaluates task completion from the browser response and the self-hosted site's state.
 
 The viewer contains the full {{total_records}}-task population once. Human-qualified and corrected definitions remain available as reproducible variants in the archive; their overlapping task IDs do not add tasks to the viewer population.
