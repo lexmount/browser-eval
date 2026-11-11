@@ -138,7 +138,7 @@ def command_run(args: argparse.Namespace) -> int:
         raise SystemExit("Output must be a new directory; existing evidence is immutable")
     load_runtime_env(args.env_file)
     language = None if args.no_report else resolve_report_language(args.output / "report", args.language)
-    dataset_meta, cases = load_dataset(args.dataset)
+    dataset_meta, cases = load_dataset(args.dataset, content_scope=args.content_scope)
     provider_configs = load_provider_config(args.provider_config)
     selection = resolve_provider_selection(args.providers, args.provider_config)
     names = [name.strip() for name in selection.split(",") if name.strip()]
@@ -187,7 +187,7 @@ def command_report(args: argparse.Namespace) -> int:
 
 def command_rescore(args: argparse.Namespace) -> int:
     language = None if args.no_report else resolve_report_language(args.run_dir / "report", args.language)
-    dataset, cases = load_dataset(args.dataset)
+    dataset, cases = load_dataset(args.dataset, content_scope=args.content_scope)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
     if args.no_report:
         print(f"Rescored {len(records)} persisted attempts; results: {(args.run_dir / 'results.jsonl').resolve()}")
@@ -201,7 +201,7 @@ def command_rescore(args: argparse.Namespace) -> int:
 
 def command_validate(args: argparse.Namespace) -> int:
     load_runtime_env(args.env_file)
-    _, cases = load_dataset(args.dataset)
+    _, cases = load_dataset(args.dataset, content_scope=args.content_scope)
     configs = load_provider_config(args.provider_config)
     selection = resolve_provider_selection(args.providers, args.provider_config)
     names = [name.strip() for name in selection.split(",") if name.strip()]
@@ -286,6 +286,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
     add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
+    run.add_argument("--content-scope", choices=("main", "full"))
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
@@ -316,6 +317,7 @@ def build_parser() -> argparse.ArgumentParser:
     rescore = sub.add_parser("rescore", help="Recompute metrics/report from persisted artifacts and task rules")
     rescore.add_argument("run_dir", type=Path)
     rescore.add_argument("--dataset", type=Path, required=True)
+    rescore.add_argument("--content-scope", choices=("main", "full"))
     rescore.add_argument("--no-report", action="store_true",
                          help="Rescore saved data without rebuilding HTML; existing reports are unchanged")
     add_language_argument(rescore)
@@ -323,6 +325,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     validate = sub.add_parser("validate", help="Validate dataset and provider credentials without network calls")
     validate.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
+    validate.add_argument("--content-scope", choices=("main", "full"))
     validate.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     validate.add_argument("--providers", default="fixture")
     validate.add_argument("--env-file", type=Path)

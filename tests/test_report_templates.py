@@ -39,6 +39,45 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_content_scope_comparison_navigation_tables_and_highlights(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); source=root/'source';model=diagnostic_example(source)
+            model.update(comparison_mode=True,content_scope='main',scope_views=[
+                dict(id='main',label='Primary content',href='index.html'),
+                dict(id='full',label='Complete content',href='https://example.test/full')])
+            model['pages']={'guide':[dict(title='Measured comparison',paragraphs=['Two retained calls.'],
+                table=dict(headers=['Method','Passes'],rows=[['Articles',1]]))]}
+            (source/'report.json').write_text(json.dumps(model))
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            check_diagnostic_report(output)
+            home=output/'index.html';original=home.read_text()
+            for bad in [original.replace('data-content-scope="full"','data-wrong-scope="full"'),
+                        original.replace('comparison-winner good','unmarked')]:
+                home.write_text(bad)
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+            home.write_text(original)
+            guide=output/'guide/index.html';text=guide.read_text()
+            guide.write_text(text.replace('>Articles</td>','>Wrong method</td>'))
+            with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_paired_scope_requires_shared_scorer_and_monotonic_acceptance(self):
+        from harness.web_fetch.report_diagnostic import load_diagnostic
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)/'source';model=diagnostic_example(source)
+            model['paired_content_scope']=True
+            for row in model['rows']:
+                data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64),
+                          uniform_full_content=dict(passed=row['initial_pass'],metrics=dict(
+                              evaluation_content_scope='full',scoring_source_sha256='a'*64)))
+                target=source/row['log']['path'];target.write_text(json.dumps(data))
+                row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+            (source/'report.json').write_text(json.dumps(model));load_diagnostic(source)
+            row=model['rows'][1];target=source/row['log']['path'];data=json.loads(target.read_text())
+            data['uniform_full_content']['passed']=True;target.write_text(json.dumps(data))
+            row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+            (source/'report.json').write_text(json.dumps(model))
+            with self.assertRaisesRegex(ValueError,'Paired content scopes'):load_diagnostic(source)
+
     def test_new_track_requires_an_execution_owner_and_behavior_checks(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)

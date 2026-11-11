@@ -10,3 +10,5 @@
 .diagnostic-specimen pre{max-height:240px;font-size:13px}
 .section p{overflow-wrap:anywhere}
 @media(max-width:800px){.diagnostic-specimen{grid-template-columns:1fr}}
+
+.scope-switch{display:flex;gap:12px;flex-wrap:wrap;padding-block:14px}.scope-switch a{padding:8px 14px;border:1px solid var(--line);border-radius:8px}.scope-switch [aria-current="page"]{font-weight:700;background:var(--panel2)}

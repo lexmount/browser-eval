@@ -360,6 +360,16 @@ def load_diagnostic(source):
     model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
+    if model.get('scope_views'):
+        views = model['scope_views']
+        if ({view['id'] for view in views} != {'main', 'full'} or len(views) != 2
+                or model.get('content_scope') not in {'main', 'full'}):
+            raise ValueError('Content scope navigation needs main and full views')
+        for view in views:
+            if not view.get('label') or not view.get('href'):
+                raise ValueError('Content scope navigation needs labels and destinations')
+            if view['href'] != 'index.html':
+                validate_http_url(view['href'])
     groups = {g["id"]: g for g in model["cohorts"]}
     if len(groups) != len(model["cohorts"]):
         raise ValueError("Duplicate cohort")
@@ -430,6 +440,17 @@ def load_diagnostic(source):
                 raise ValueError('Published answer does not bind the scored original')
         if row["cause"] not in model["cause_labels"]:
             raise ValueError("Unknown result cause")
+        if model.get('paired_content_scope'):
+            log = json.loads(files[row['log']['path']])
+            current = log.get('metrics', {})
+            paired = log.get('uniform_full_content', {})
+            if (current.get('evaluation_content_scope') != 'main'
+                    or paired.get('metrics', {}).get('evaluation_content_scope') != 'full'
+                    or not current.get('scoring_source_sha256')
+                    or current['scoring_source_sha256'] != paired['metrics'].get('scoring_source_sha256')
+                    or type(paired.get('passed')) is not bool
+                    or (paired['passed'] and not row['initial_pass'])):
+                raise ValueError('Paired content scopes require one scorer and full-pass implies main-pass')
     audited = [r for r in rows if r.get("success_audit")]
     states = Counter(r["success_audit"]["source_state"] for r in audited)
     if len(audited) != model["success_audit"]["audited_passes"] or dict(states) != model["success_audit"]["source_state_counts"]:
@@ -463,6 +484,19 @@ def check_diagnostic_report(output, profile=None):
             "review/index.html", "guide/index.html", "reproduce/index.html", "en/index.html"]
     for route in core:
         checked_page(output / route)
+    for name, blocks in model.get('pages', {}).items():
+        route = 'index.html' if name == 'overview' else name + '/index.html'
+        page = read_page(output / route)
+        for index, block in enumerate(blocks):
+            if not block.get('table'):
+                continue
+            spec = block['table']
+            rendered = page.select_one(f'#diagnostic-table-{name}-{index}')
+            if (not rendered
+                    or [c.get_text() for c in rendered.select('thead th')][1:] != spec['headers']
+                    or [[c.get_text() for c in r.select('td')][1:] for r in rendered.select('tbody tr')]
+                    != [[str(v) for v in r] for r in spec['rows']]):
+                raise ValueError('Diagnostic explanatory table differs from evidence model')
     home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
     for route in ('index.html', 'guide/index.html'):
@@ -480,11 +514,19 @@ def check_diagnostic_report(output, profile=None):
     if len(summaries) != len(expected_summaries):
         raise ValueError('Missing cohort summary')
     for expected, rendered in zip(expected_summaries, summaries, strict=True):
-        values = [c.get('data-sort') for c in rendered.select('td')][3:]
+        values = [c.get('data-sort', '-1') for c in rendered.select('td')][3:]
         expected_values = [expected[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
         if (rendered.get('data-summary-group') != expected['id']
                 or values != [str(-1 if v is None else v) for v in expected_values]):
             raise ValueError('Summary differs from complete cohort calls')
+    if model.get('comparison_mode'):
+        from harness.reporting.presentation import check_presentation
+        for route in ('index.html', 'guide/index.html'):
+            comparison = read_page(output / route).select_one('#cohort-summary, #guide-summary')
+            if (not comparison or len(comparison.select('td[data-metric-direction]'))
+                    != 2 * len(expected_summaries)):
+                raise ValueError('Comparison summary lacks metric directions')
+            check_presentation(str(comparison))
     bars = home.select('#cohort-results .editorial-bar-row')
     if len(bars) != len(model['cohorts']):
         raise ValueError('Missing cohort result chart')
@@ -512,7 +554,7 @@ def check_diagnostic_report(output, profile=None):
     if not guide.select_one('#guide-results') or not guide.select_one('#guide-conclusions'):
         raise ValueError('Interpretation lacks outcome or conclusion')
     lead = guide.select_one('.hero .lead')
-    if not lead or not lead.get_text().startswith(f"{model['metrics']['overall'][0]} / {len(model['rows'])} "):
+    if not lead or (lead.get_text() != model['interpretation_lead'] if model.get('interpretation_lead') else not lead.get_text().startswith(f"{model['metrics']['overall'][0]} / {len(model['rows'])} ")):
         raise ValueError('Interpretation headline differs from measured outcome')
     if [r.get_text() for r in guide.select('[data-summary-group]')] != [r.get_text() for r in summaries]:
         raise ValueError('Interpretation summary differs from measured outcome')
@@ -585,6 +627,11 @@ def check_diagnostic_report(output, profile=None):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
         soup = read_page(route)
+        if model.get('scope_views'):
+            switches = soup.select('[data-content-scope]')
+            expected = [(view['id'], view['href'], view['label']) for view in model['scope_views']]
+            if [(node.get('data-content-scope'), node.get('href'), node.get_text()) for node in switches] != expected:
+                raise ValueError('Missing or wrong content scope navigation')
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue

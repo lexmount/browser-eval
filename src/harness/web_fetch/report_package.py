@@ -8,6 +8,7 @@ import html
 import json
 import mimetypes
 import os
+import posixpath
 import re
 import shutil
 import sys
@@ -15,7 +16,7 @@ import tempfile
 import zipfile
 from functools import lru_cache
 from pathlib import Path
-from urllib.parse import quote, urlencode
+from urllib.parse import quote, urlencode, urljoin, urlsplit
 
 from lexbench_webfetch.paths import contained_path
 
@@ -51,6 +52,11 @@ def _require(condition, detail):
 
 
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
+    manifest_path = source / 'report-manifest.json'
+    if manifest_path.is_file() and json.loads(manifest_path.read_text()).get('evidence_state') == 'diagnostic':
+        from harness.web_fetch.report_diagnostic import check_diagnostic_report
+        check_diagnostic_report(source)
+        return False
     dataset_path = source / "dataset.json"
     dataset = json.loads(dataset_path.read_text(encoding="utf-8")) if dataset_path.exists() else {}
     records = load_jsonl(source / "results.jsonl")
@@ -136,7 +142,8 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
     original_destination = destination
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "data").mkdir(exist_ok=True)
-    records = load_jsonl(source / "results.jsonl")
+    diagnostic = (source / 'report.json').is_file() and json.loads((source / 'report.json').read_text()).get('schema') == 'webfetch_cohort_diagnostic/1'
+    records = [] if diagnostic else load_jsonl(source / "results.jsonl")
     by_attempt = {r["attempt_id"]: (i, r) for i, r in enumerate(records)}
     scored_paths = {r["artifact_path"] for r in records}
     files = {}
@@ -187,7 +194,21 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
         if path.suffix == ".html":
             text = data.decode()
             original_html = text
-            if path.parent.name == "attempts":
+            if diagnostic:
+                base = re.search(r'<base href="([^"]+)">', text)
+                if base:
+                    document_url = 'https://report.invalid/' + name
+                    base_url = urljoin(document_url, html.unescape(base[1]))
+                    text = text[:base.start()] + text[base.end():]
+                    def relative_link(match, base_url=base_url, name=name):
+                        value = html.unescape(match[2])
+                        target = urlsplit(urljoin(base_url, value))
+                        if target.netloc != 'report.invalid':
+                            return match[0]
+                        relative = posixpath.relpath(target.path.lstrip('/'), posixpath.dirname(name) or '.')
+                        return match[1] + html.escape(relative + ('?' + target.query if target.query else '') + ('#' + target.fragment if target.fragment else ''), quote=True) + '"'
+                    text = re.sub(r'((?:href|src)=")([^"]*)"', relative_link, text)
+            if path.parent.name == "attempts" and not diagnostic:
                 idx, record = by_attempt[path.stem]
                 kinds = (
                     "reference",
@@ -290,7 +311,7 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
                         else replacements[match[1]]
                     )
                     text = text[: match.start()] + replacement + text[match.end() :]
-            elif path.parent.name == "datasets" and path.name != "index.html":
+            elif path.parent.name == "datasets" and path.name != "index.html" and not diagnostic:
                 suffix = ".md" if (source / "references" / f"{path.stem}.md").exists() else ".txt"
                 reference_file = html.escape(f"references/{path.stem}{suffix}", quote=True)
                 text = re.sub(
@@ -371,14 +392,15 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
                 "window.addEventListener('DOMContentLoaded',",
                 "window.addEventListener('report-ready',",
             )
-    js = js.replace("localStorage.getItem('webfetch-theme')", "readTheme()").replace(
-        "localStorage.setItem('webfetch-theme',t)", "saveTheme(t)"
-    )
-    js = (
-        "function readTheme(){try{return localStorage.getItem('webfetch-theme')}"
-        "catch{return 'light'}}\n"
-        "function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n" + js
-    )
+    if 'function readTheme(' not in js:
+        js = js.replace("localStorage.getItem('webfetch-theme')", "readTheme()").replace(
+            "localStorage.setItem('webfetch-theme',t)", "saveTheme(t)"
+        )
+        js = (
+            "function readTheme(){try{return localStorage.getItem('webfetch-theme')}"
+            "catch{return 'light'}}\n"
+            "function saveTheme(t){try{localStorage.setItem('webfetch-theme',t)}catch{}}\n" + js
+        )
     (destination / "report.js").write_text(js, encoding="utf-8")
     (destination / "loader.js").write_bytes(
         (Path(__file__).parent / "assets/report-loader.js").read_bytes()

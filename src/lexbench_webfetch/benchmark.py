@@ -33,6 +33,7 @@ PUBLIC_TASK_FIELDS = (
     "expected_document_language", "document_language_match",
     "expected_document_language_present", "target_language", "target_region",
     "ordered_tree_min_similarity", "ordered_tree_reference_sha256",
+    "content_scope", "content_scopes",
 )
 
 
@@ -56,6 +57,14 @@ def reference_bindings(value):
 
 def public_task(case: dict) -> dict:
     task = {key: case[key] for key in PUBLIC_TASK_FIELDS if key in case}
+    if case.get('content_scopes'):
+        from .content_scopes import select_content_scope
+        select_content_scope(case)
+        scopes = case['content_scopes']
+        task['content_scopes'] = {'version': scopes['version'], **{
+            name: {'requirements': public_task(scopes[name]['requirements']),
+                   'evidence': deepcopy(scopes[name]['evidence'])}
+            for name in ('main', 'full')}}
     if task.get('ordered_tree_min_similarity') is None:
         task.pop('ordered_tree_min_similarity', None)
     if "body_requirements" in task:

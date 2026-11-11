@@ -2348,6 +2348,7 @@
     "report_contains_invocation_scoring_and_report_tools_its_data_l_8d1d7c": "保存调用、评分和报告工具，通过数据版本锁定文件选择 Hugging Face 上的题目定义和参考数据；本报告提供本轮冻结结果供复核。",
     "report_per_task_acceptance_criteria_and_data_sources_7e4ecd": "逐题验收依据与数据来源。",
     "report_verification_scope_db68a1": "核验范围",
-    "report_per_item_reasons_original_text_and_acceptance_rules_1b0986": "逐条原因、原文与验收规则"
+    "report_per_item_reasons_original_text_and_acceptance_rules_1b0986": "逐条原因、原文与验收规则",
+    "call_inventory": "全部调用汇总"
   }
 }

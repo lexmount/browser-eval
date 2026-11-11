@@ -6,7 +6,9 @@ from .scoring import score_attempt
 
 def evaluate_response(case: dict, response: bytes, *, files=(), ok=True, metadata=None,
                       list_reference=None,
-                      status_code=None, title=None, final_url=None) -> dict:
+                      status_code=None, title=None, final_url=None, content_scope=None) -> dict:
+    from .content_scopes import select_content_scope
+    case, _ = select_content_scope(case, content_scope)
     metadata = dict(metadata or {})
     # Acceptance of delivered files can only be derived from actual bytes.
     metadata.pop('file_evaluation', None)

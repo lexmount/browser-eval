@@ -1,5 +1,24 @@
 # Web Fetch
 
+## Main and full content
+
+An annotated task may declare `content_scopes.version: 1` with `main` and
+`full` profiles. Each profile contains a complete `requirements` object and
+`evidence` with a source SHA-256 and a description of its reference scope.
+Main content retains complete body regions and core records; full content may
+also require page controls, surrounding text and comments. Media and original
+file delivery remain task requirements in either scope.
+
+Use `--content-scope main|full` with `lexbench-webfetch score`, or the Web Fetch
+`run`, `rescore` and `validate` commands. Selection happens before execution or
+scoring. Explicit selection fails for tasks without both annotations. Legacy
+tasks keep their existing behavior when no scope is selected. Scores bind the
+selected profile hash; reuse saved responses for score-only comparisons.
+
+Public definitions retain both profiles and reference hashes. Export and score
+the matching approved frozen inputs, which contain the bound reference bodies;
+public reference hashes alone are not executable body references.
+
 Browser Eval owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
 Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.

@@ -809,7 +809,7 @@ _RESEARCH_ROUTES=[
 @_scoped_render
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- token=_RENDER_CONTEXT.set(RenderContext(('<div class="wrap callout"><strong>' + t('live_page_diagnostic', 'Live page diagnostic') + f"</strong><p>{esc(model['scope_note'])}</p></div>")))
+ token=_RENDER_CONTEXT.set(RenderContext(('<div class="wrap callout"><strong>' + esc(model.get('diagnostic_label') or t('live_page_diagnostic', 'Live page diagnostic')) + f"</strong><p>{esc(model['scope_note'])}</p></div>")))
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA+asset_text('cohort-diagnostic.css'),encoding='utf-8')
  (out/'assets/report.js').write_text(JS+asset_text('cohort-diagnostic.js'),encoding='utf-8')
@@ -817,12 +817,21 @@ def generate_cohort_diagnostic(out, model):
  files={r[field]['path']:(out/r[field]['path']).read_bytes() for r in rows for field in ('log','reference')}
  findings={r['id']:diagnostic_findings(r,files) for r in rows}
  failure_types=diagnostic_failure_counts(model,files)
- def page(route,title,body):write(out,route,title,body,root_links=True)
+ scope_links=''
+ if model.get('scope_views'):
+  scope_links='<nav class="wrap scope-switch" aria-label="Content scope">'+''.join(
+   '<a data-content-scope="'+esc(view['id'])+'" href="'+esc(safe_href(view['href']))+'"'+
+   (' aria-current="page"' if view['id']==model.get('content_scope') else '')+'>'+esc(view['label'])+'</a>'
+   for view in model['scope_views'])+'</nav>'
+ def page(route,title,body):write(out,route,title,scope_links+body,root_links=True)
  def detail_link(row):return 'attempts/'+row['id']+'.html'
  def blocks(name):
   body=''
-  for block in model.get('pages',{}).get(name,[]):
+  for index,block in enumerate(model.get('pages',{}).get(name,[])):
    text=''.join('<p>'+esc(p)+'</p>' for p in block['paragraphs'])
+   if block.get('table'):
+    spec=block['table']
+    text+=table(spec['headers'],[('', ''.join(cell(esc(str(value))) for value in row)) for row in spec['rows']],f'diagnostic-table-{name}-{index}')
    if block.get('case_ids'):
     text+='<p class="actions">'+''.join(link('attempts/'+cid+'.html',cid+' →') for cid in block['case_ids'])+'</p>'
    body+=section(esc(block['title']),text)
@@ -840,16 +849,20 @@ def generate_cohort_diagnostic(out, model):
   values+=''.join(cell('—' if overall[k] is None else f'{overall[k]/1000:.2f}',-1 if overall[k] is None else overall[k]) for k in ('mean_ms','p50_ms','p95_ms'))
   overall_table=table([t('dataset', 'Dataset'),t('implementation_version', 'Implementation version'),t('tasks', 'Tasks'),t('call_success', 'Call success'),t('pass', 'Pass'),t('mean_latency_s', 'Mean latency (s)'),t('p50_latency_s', 'P50 latency (s)'),t('p95_latency_s', 'P95 latency (s)')],[(' data-summary-overall="true"',values)],'overall-summary')
   overall_section=section(t('overall_evaluation_results', 'Overall evaluation results'),(f'{overall_table}<p>' + t('all_planned_tasks_form_one_evaluation_set', 'All planned tasks form one evaluation set. A successful call does not mean a passed task; latency merges all calls including failures and does not average per-group percentiles. Latency merged across execution routes only describes this evaluation set and does not rank routes.') + '</p>'),'overall-results')
-  home+=overall_section
+  comparison_mode=model.get('comparison_mode',False)
+  if not comparison_mode:home+=overall_section
   summary_rows=[]
   for s in diagnostic_cohort_summary(model,files):
    g=groups[s['id']];n=s['total']
    values=cell(esc(g['label']))+cell(esc(g.get('version') or t('see_the_call_record', 'See the call record')))+cell(str(n),n)+cell('—' if s['delivered'] is None else str(s['delivered'])+' / '+str(n),-1 if s['delivered'] is None else s['delivered'])+cell(str(s['accepted'])+' / '+str(n),s['accepted'])
    values+=''.join(cell('—' if s[k] is None else f'{s[k]/1000:.2f}',-1 if s[k] is None else s[k]) for k in ('mean_ms','p50_ms','p95_ms'))
    summary_rows.append((' data-summary-group="'+esc(s['id'])+'"',values))
+  if comparison_mode:
+   summary_rows=comparative_rows(summary_rows,{3:('delivery','max'),4:('acceptance','max')})
   home+=section(t('results_by_task_family', 'Results by task family'),(f"{table([t('task_group', 'Task group'), t('implementation_version', 'Implementation version'), t('tasks', 'Tasks'), t('call_success', 'Call success'), t('pass', 'Pass'), t('mean_latency_s', 'Mean latency (s)'), t('p50_latency_s', 'P50 latency (s)'), t('p95_latency_s', 'P95 latency (s)')], summary_rows, 'cohort-summary', sortable=True)}{distribution([(groups[g]['label'], *model['metrics'][g]) for g in groups])}<p>" + t('a_successful_call_only_means_the_request', 'A successful call only means the request delivered; a task pass also requires the body, text and structure rules. All three latency figures cover every call in the group; P50 is the median and P95 the 95th percentile. Groups without complete timing show —.') + f"</p><p>{esc(model['metric_note'])}</p>"),'cohort-results')
   failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
   home+=blocks('overview')
+  if comparison_mode:home+='<details class="wrap"><summary>'+t('call_inventory', 'Call inventory')+'</summary>'+overall_section+'</details>'
   home+=section(t('what_failed_outputs_mostly_miss', 'What failed outputs mostly miss'),(f'{distribution([(FAILURE_TYPES[k], n, sum(failures.values())) for k, n in failure_types.most_common(3)])}<p>' + t('the_denominator_is_all_first_round_failed', 'The denominator is all {count} first-round failed tasks. One task can miss both text and records, so the counts do not add up. {link}', count=str(sum(failures.values())), link=link('analysis/index.html', t('view_failure_types_and_specific_samples', 'View failure types and specific samples →'))) + '</p>'))
   audit=model['success_audit'];counts=audit['source_state_counts']
   home+=section(t('passes_are_also_checked_against_the_source', 'Passes are also checked against the source page'),(f"{distribution([(model['source_labels'][k], n, audit['audited_passes']) for k, n in counts.items()])}<p>" + t('passing_results_have_three_way_check_records', '{audited_passes} passing results have three-way check records; comparable content and access barriers on the current page are recorded separately. {link}', audited_passes=str(audit['audited_passes']), link=link('review/index.html', t('check_scope_and_conclusions', 'Check scope and conclusions →'))) + '</p>'))
@@ -872,8 +885,11 @@ def generate_cohort_diagnostic(out, model):
   analysis+=section(t('what_independent_checks_found', 'What independent checks found'),(f"{table([t('check_leads', 'Check leads'), t('failed_tasks', 'Failed tasks')], [('', cell(esc(labels[k])) + cell(str(n))) for k, n in failures.items()])}<p>" + t('these_leads_are_counted_separately_from_the', 'These leads are counted separately from the output defects above. An independent browser also being blocked only proves this check hit an access barrier; a later fetch passing does not prove the internal cause of the first-round failure.') + '</p>'))
   analysis+=section('逐项结果',controls+table([t('site_and_sample', 'Site and sample'),t('group', 'Group'),t('first_round_result', 'First-round result'),t('failure_type', 'Failure type'),t('check_leads', 'Check leads'),'证据'],inventory,'filtered-table',sortable=True),'failure-inventory')
   page('analysis/index.html',t('analysis', 'Analysis'),analysis)
-  guide=hero(t('extraction_results_for_these_pages', 'Extraction results for these pages'),(f"{str(model['metrics']['overall'][0])} / {str(len(rows))} " + t('first_calls_met_the_full_acceptance_requirements', 'first calls met the full acceptance requirements of the time; the diagnostics below cover the designated sample.')))
-  guide+=overall_section+section(t('results_and_measurement_scope', 'Results and measurement scope'),(f"{table([t('task_group', 'Task group'), t('implementation_version', 'Implementation version'), t('tasks', 'Tasks'), t('call_success', 'Call success'), t('pass', 'Pass'), t('mean_latency_s', 'Mean latency (s)'), t('p50_latency_s', 'P50 latency (s)'), t('p95_latency_s', 'P95 latency (s)')], summary_rows, 'guide-summary', sortable=True)}<p>" + t('latency_covers_all_calls_in_each_group', '{metric_note} Latency covers all calls in each group including failures; P50 is the median. Groups without complete timing are not computed.', metric_note=esc(model['metric_note'])) + '</p>'),'guide-results')
+  guide=hero(t('extraction_results_for_these_pages', 'Extraction results for these pages'),model.get('interpretation_lead') or (f"{str(model['metrics']['overall'][0])} / {str(len(rows))} " + t('first_calls_met_the_full_acceptance_requirements', 'first calls met the full acceptance requirements of the time; the diagnostics below cover the designated sample.')))
+  guide+=('' if comparison_mode else overall_section)+section(t('results_and_measurement_scope', 'Results and measurement scope'),(f"{table([t('task_group', 'Task group'), t('implementation_version', 'Implementation version'), t('tasks', 'Tasks'), t('call_success', 'Call success'), t('pass', 'Pass'), t('mean_latency_s', 'Mean latency (s)'), t('p50_latency_s', 'P50 latency (s)'), t('p95_latency_s', 'P95 latency (s)')], summary_rows, 'guide-summary', sortable=True)}<p>" + t('latency_covers_all_calls_in_each_group', '{metric_note} Latency covers all calls in each group including failures; P50 is the median. Groups without complete timing are not computed.', metric_note=esc(model['metric_note'])) + '</p>'),'guide-results')
+  if comparison_mode:
+   guide+='<details class="wrap"><summary>'+t('call_inventory', 'Call inventory')+'</summary>'+overall_section+'</details>'
+   guide+=blocks('guide')
   guide+=section(t('requirements_failures_violate_most_often', 'Requirements failures violate most often'),(f"{table([t('output_defects', 'Output defects'), t('affected_failed_tasks', 'Affected failed tasks')], [('', cell(link('analysis/index.html#issue=' + k, FAILURE_TYPES[k])) + cell(str(n) + ' / ' + str(sum(failures.values())))) for k, n in failure_types.most_common()])}<p>" + t('one_task_can_involve_several_defects_so', "One task can involve several defects, so counts do not add up. Missing text is a fact about output against acceptance, not a finding about the tested tool's internal fault.") + '</p>'))
   guide+=section(t('failure_classes_after_checking', 'Failure classes after checking'),(f"{table([t('check_conclusion', 'Check conclusion'), t('failed_tasks', 'Failed tasks'), t('sample_evidence', 'Sample evidence')], [('', cell(esc(labels[k])) + cell(str(n) + ' / ' + str(sum(failures.values()))) + cell(link(detail_link(next((r for r in rows if not r['initial_pass'] and r['cause'] == k))), t('view_specific_requirements_output_and_source_page', 'View specific requirements, output and source page')))) for k, n in failures.most_common()])}<p>" + t('each_failed_task_belongs_to_exactly_one', 'Each failed task belongs to exactly one class, and the classes sum to all failed tasks. Access restrictions, reference-scope mismatches and output omissions are handled separately; an inaccessible current source page is not evidence of an engine fault.') + '</p>'),'guide-reviewed-causes')
   examples=model.get('interpretation_case_ids')
@@ -890,7 +906,7 @@ def generate_cohort_diagnostic(out, model):
     empty_note=('<p>' + t('output_is_empty_0_bytes', 'Output is empty (0 bytes).') + '</p>') if field=='first_answer' and not excerpt else ''
     panels+='<div data-specimen-field="'+field+'"'+(' data-sha256="'+binding['sha256']+'"' if binding else '')+'><h3>'+title+'</h3>'+empty_note+'<pre>'+esc(excerpt)+'</pre><p>'+esc(binding.get('scope','') if binding else t('independent_observation_did_not_obtain_target_body', 'Independent observation did not obtain target body text'))+'</p></div>'
    guide+=section((urlsplit(r['url']).hostname or cid)+'：'+(t('pass_2', 'Pass') if r['initial_pass'] else t('fail_2', 'Fail')),'<div data-interpretation-case="'+esc(cid)+'"><p>'+esc(r['task'])+'</p><div class="diagnostic-specimen">'+panels+'</div><p>'+esc(r['cause_detail'])+'</p><p>'+link(detail_link(r),t('view_the_complete_reference_output_live_page', 'View the complete reference, output, live page and logs →'))+'</p></div>')
-  guide+=blocks('guide')
+  if not comparison_mode:guide+=blocks('guide')
   guide+=section(t('conclusions_and_check_scope', 'Conclusions and check scope'),(f"<p>{esc(model['scope_note'])}</p><p>" + t('source_page_observations_and_output_checks_are', 'Source-page observations and output checks are kept separately. When an independent browser hits a verification page or access problem, this neither counts as a pass for the tested tool nor establishes that the tool is wrong. {link}', link=link('review/index.html', t('view_check_scope_and_handling', 'View check scope and handling →'))) + '</p>'),'guide-conclusions')
   page('guide/index.html',t('interpretation', 'Interpretation'),guide)
   dataset=[]
@@ -906,7 +922,7 @@ def generate_cohort_diagnostic(out, model):
     dialogs.append((f'<dialog class="call-log-dialog wmb-detail-dialog" id="{target}" aria-labelledby="{target}-title"><div class="call-log-shell"><header><h2 id="{target}-title">{esc(title)}</h2><button type="button" data-call-log-close aria-label="' + t('close', 'Close') + '">' + t('close', 'Close') + f'</button></header><div class="wmb-dialog-content" data-evidence-kind="{kind}">{body}</div></div></dialog>'))
     return '<button type="button" class="call-log-button" data-call-log-open="'+target+'" aria-haspopup="dialog">'+esc(title)+'</button>'
    actions=''
-   for field,title in [('reference',t('reference_and_acceptance_contract', 'Reference and acceptance contract')),('first_answer',t('first_round_actual_output', 'First-round actual output')),('answer',t('diagnostic_output', 'Diagnostic output')),('source',t('actual_browser_page', 'Actual browser page')),('log',t('errors_and_run_records', 'Errors and run records'))]:
+   for field,title in [('reference',t('reference_and_acceptance_contract', 'Reference and acceptance contract')),('first_answer',model.get('output_label') or t('first_round_actual_output', 'First-round actual output')),('answer',t('diagnostic_output', 'Diagnostic output')),('source',t('actual_browser_page', 'Actual browser page')),('log',t('errors_and_run_records', 'Errors and run records'))]:
     if field=='answer' and r[field]==r['first_answer']:continue
     binding=r.get(field)
     if binding is None:continue
@@ -915,7 +931,7 @@ def generate_cohort_diagnostic(out, model):
     lazy=' data-evidence-file="'+esc(binding['path'])+'"' if len(raw)>32768 else ''
     contents='<p>'+link(binding['path'],t('download_complete_evidence', 'Download complete evidence'))+'</p><p>'+esc(binding.get('scope',t('saved_call_evidence', 'Saved call evidence')))+'</p><pre'+kind_attr+lazy+'>'+esc(t('reading_complete_evidence', 'Reading complete evidence…') if lazy else raw)+'</pre>'
     actions+=evidence('result-logs' if field=='log' else 'evidence-'+field,title,contents,field)
-   summary=(f"""<div data-result-summary><h2>{(t('first_round_pass', 'First-round pass') if r['initial_pass'] else t('first_round_failure', 'First-round failure'))}</h2><p>{esc(labels[r['cause']])}</p><dl class="diagnostic-fields"><dt>""" + t('task_id', 'Task ID') + f"</dt><dd>{esc(r['id'])}</dd><dt>" + t('run_id', 'Run ID') + f"</dt><dd>{esc(r['run_id'])}</dd><dt>" + t('source_page_observation_time', 'Source-page observation time') + f"</dt><dd>{esc(r.get('source_checked_at') or r.get('success_audit', {}).get('source_checked_at') or t('see_the_independent_observation_record', 'See the independent observation record'))}</dd></dl></div>")
+   summary=(f"""<div data-result-summary><h2>{((model.get('pass_label') or t('first_round_pass', 'First-round pass')) if r['initial_pass'] else (model.get('fail_label') or t('first_round_failure', 'First-round failure')))}</h2><p>{esc(labels[r['cause']])}</p><dl class="diagnostic-fields"><dt>""" + t('task_id', 'Task ID') + f"</dt><dd>{esc(r['id'])}</dd><dt>" + t('run_id', 'Run ID') + f"</dt><dd>{esc(r['run_id'])}</dd><dt>" + t('source_page_observation_time', 'Source-page observation time') + f"</dt><dd>{esc(r.get('source_checked_at') or r.get('success_audit', {}).get('source_checked_at') or t('see_the_independent_observation_record', 'See the independent observation record'))}</dd></dl></div>")
    body=hero(esc(r['id']),esc(r['task']))+section(t('result', 'Result'),summary)
    if findings[r['id']]:
     check_rows=[(' data-finding-kind="'+f['kind']+'"',cell(esc(f['label']))+cell(esc(f['expected']))+cell(esc(f['actual']))) for f in findings[r['id']]]
