@@ -160,15 +160,19 @@ def test_native_cloudflare_media_has_no_answer_dependent_selectors_or_timers():
     assert "timeout" not in bodies[0]["gotoOptions"]
 
 
-def test_historical_430_cases_pass_native_hint_and_output_guard():
+def test_historical_430_cases_pass_native_hint_and_output_guard(tmp_path):
     from harness.web_fetch.config import load_dataset
+    from harness.web_fetch.retrieval_hints import native_fetch_dataset
     provider = build_provider("fixture", {"type": "fixture", "uniform_native_parameters": True})
     count = 0
     for filename in ("dataset.json", "dynamic-content-100-moli-webfetch/dataset.json",
                      "popular-sites/dataset.json", "risk-control/dataset.json"):
         path = Path(__file__).resolve().parents[1] / "evaluation" / filename
-        read_frozen_dataset_bytes(path)
-        _, cases = load_dataset(path)
+        # Native runs execute the normalized dataset, as certification does.
+        native = tmp_path / filename.replace("/", "-")
+        native.write_text(json.dumps(native_fetch_dataset(
+            json.loads(read_frozen_dataset_bytes(path)))), encoding="utf-8")
+        _, cases = load_dataset(native)
         for case in cases:
             if filename == "dataset.json" and case.track not in {"web", "document", "image", "video"}:
                 continue

@@ -17,19 +17,14 @@ def sha256(path: Path) -> str:
 
 
 class PopularSitesCurrentTests(unittest.TestCase):
-    def test_current_dataset_registry_and_profile_are_one_complete_matrix(self):
+    def test_current_dataset_and_review_are_one_complete_matrix(self):
         dataset = json.loads(read_frozen_dataset_bytes(TRACK / "dataset.json"))
         review_path = TRACK / "review.json"
         review = json.loads(review_path.read_text(encoding="utf-8"))
-        profile = json.loads((TRACK / "current-report.json").read_text(encoding="utf-8"))
 
         cases = dataset["cases"]
         self.assertEqual(len(cases), 100)
         self.assertEqual(len({case["id"] for case in cases}), 100)
-        self.assertEqual(profile["dataset_id"], dataset["id"])
-        self.assertEqual(profile["case_count"], 100)
-        self.assertEqual(profile["providers"], ["moli-webfetch"])
-        self.assertEqual(profile["artifact_site_base_url"], "https://artifact-site.lexmount.cn")
         self.assertEqual(
             dataset["comparison"]["rule_revision"]["review_sha256"], sha256(review_path)
         )

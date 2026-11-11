@@ -17,7 +17,8 @@ REQUIRED = (
 
 
 def resolve(*, missing=None):
-    if not shutil.which("docker"):
+    if not shutil.which("docker") or subprocess.run(
+            ["docker", "compose", "version"], capture_output=True, check=False).returncode:
         pytest.skip("Docker Compose CLI is required for deployment recipe validation")
     env = {**os.environ, **{name: "synthetic" for name in REQUIRED}, "WEB_EXTRACT_PORT": "18086"}
     env["SNAPSHOT_ORIGINS"] = "https://snapshot.example"
