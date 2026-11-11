@@ -192,10 +192,8 @@ def catalog_release(path: Path | None = None, *, require_current_scorer: bool = 
 
 
 def installed_version() -> dict:
-    """Identify development scorers without assigning them a published edition."""
-    release = catalog_release(require_current_scorer=False)
-    if release["scoring_source_sha256"] == SCORING_SOURCE_SHA256:
-        return release
-    return {"status": "unreleased", "version": None, "tag": None,
-            "scoring_source_sha256": SCORING_SOURCE_SHA256,
-            "published_catalog": release}
+    """Name the active scorer by the Browser Eval release that ships it."""
+    from importlib.metadata import version
+
+    return {"name": "browser-harness-eval", "version": version("browser-harness-eval"),
+            "scoring_source_sha256": SCORING_SOURCE_SHA256}

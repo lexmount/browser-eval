@@ -8,7 +8,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect and verify LexBench-Web-Fetch inputs")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="List the versioned suites")
-    sub.add_parser("version", help="Show the installed scorer and published benchmark catalog edition")
+    sub.add_parser("version", help="Show the Browser Eval version and scoring-source hash of the installed scorer")
     release = sub.add_parser("release", help="Freeze a dataset and scorer as a benchmark edition")
     release.add_argument("--dataset", type=Path, required=True)
     release.add_argument("--output", type=Path, required=True)

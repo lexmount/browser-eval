@@ -252,24 +252,13 @@ def test_list_name_rule_is_part_of_measurement_not_just_public_display_fields():
         verify_release(first, after, exact_dataset=False)
 
 
-@pytest.mark.slow
-@pytest.mark.parametrize("released", [False, True])
-def test_version_command_distinguishes_published_and_unreleased_scorers(monkeypatch, capsys, released):
-    from lexbench_webfetch import versions
-    from lexbench_webfetch.benchmark import definitions, read
+def test_version_command_names_the_browser_eval_release(monkeypatch, capsys):
+    from importlib.metadata import version
+
     from lexbench_webfetch.cli import main
-    catalog = read(definitions() / "benchmark-release.json")
-    source_hash = catalog["scoring_source_sha256"] if released else "0" * 64
-    monkeypatch.setattr(versions, "SCORING_SOURCE_SHA256", source_hash)
+    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "version"])
     main()
-    result = json.loads(capsys.readouterr().out)
-    if released:
-        assert result == catalog
-    else:
-        assert result["status"] == "unreleased"
-        assert result["version"] is None and result["tag"] is None
-        assert result["scoring_source_sha256"] == source_hash
-        assert result["published_catalog"] == catalog
-        with pytest.raises(ValueError, match="scoring source changed"):
-            versions.catalog_release()
+    assert json.loads(capsys.readouterr().out) == {
+        "name": "browser-harness-eval", "version": version("browser-harness-eval"),
+        "scoring_source_sha256": SCORING_SOURCE_SHA256}

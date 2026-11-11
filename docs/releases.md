@@ -9,8 +9,11 @@ Follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The public co
 | Change | Before 1.0.0 | From 1.0.0 onward |
 | --- | --- | --- |
 | Compatible bug fix or a documentation-only release | Patch: `0.3.0` → `0.3.1` | Patch: `1.0.0` → `1.0.1` |
+| Change a scoring rule, reference check or acceptance check, so a saved result can score differently | Minor: `0.4.0` → `0.5.0` | Minor: `1.0.1` → `1.1.0` |
 | Compatible new adapter, command, track or optional input field | Minor: `0.3.1` → `0.4.0` | Minor: `1.0.1` → `1.1.0` |
 | Remove or rename a public command, require incompatible inputs, or stop reading supported evidence without migration | Minor: `0.4.0` → `0.5.0`; describe the break | Major: `1.1.0` → `2.0.0` |
+
+Browser Eval ships the scoring rules, so its version is also the scoring-rules version. `uv run --frozen lexbench-webfetch version` prints it with the scoring-source hash. Between releases the version names the last release; the recorded commit and scoring-source hash identify the exact code. The `bench-v*` label inside a dataset is historical provenance, not the current scorer version.
 
 While the software remains `0.x`, use a minor release for new functionality or breaking changes and a patch for compatible fixes. Describe breaking changes explicitly. Release when users need an installable, reproducible checkpoint; individual commits and report rebuilds do not need new numbers. Version changes and release tags require an explicit human release request.
 
@@ -25,7 +28,7 @@ To retain a pre-migration state, use an existing release tag or record the full 
 | Identity | Owner | When it changes |
 | --- | --- | --- |
 | Browser Eval software, e.g. `v0.3.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
-| Benchmark edition | Selected HF dataset commit plus the Browser Eval scorer revision | Tasks, references or scoring change under the benchmark's compatibility rules |
+| Benchmark edition | HF dataset tag (e.g. `v2.2.0`) plus the Browser Eval version (e.g. `v0.5.0`), each pinned by full commit | The dataset tag changes when tasks or references change; the Browser Eval version changes when scoring rules change |
 | Published report build | Artifact Site or selected report host | A new report build is published |
 
 Added cases can require a major benchmark edition even when accepting that edition is a compatible software feature. The [benchmark contract](benchmarks.md#benchmark-editions) defines `direct`, `rescore` and `separate` comparisons. Pin upstream code commits and external input hashes alongside readable versions. Rebuilding presentation preserves saved calls and the selected benchmark edition.

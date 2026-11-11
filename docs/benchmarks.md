@@ -190,13 +190,12 @@ citations; those records must not follow a newer dependency selection.
 Updating the installed benchmark does not select a new dataset for an existing
 report.
 
-Input editions and scorer releases are separate. Run
-`uv run --frozen lexbench-webfetch version` to inspect the active scorer. After a
-scoring correction, it reports `status: unreleased`, the actual scoring-source
-hash and the last published catalog until an explicit release binds the corrected
-scorer. Those runs retain their source hashes; they do not inherit the published
-catalog's version. `catalog_release()` deliberately rejects that mismatch by
-default. Reviewing or fixing code does not publish a benchmark release.
+Input editions and scorer versions are separate. The dataset tag versions tasks
+and references; the Browser Eval version versions the scoring rules (see
+[version rules](releases.md#version-rules)). Run
+`uv run --frozen lexbench-webfetch version` to print the installed Browser Eval
+version and its scoring-source hash. Runs record both, plus the full commit.
+Reviewing or fixing code does not publish a release.
 
 Every run pins the full HF commit and input hashes, plus the software/scorer
 commit and scoring-source hashes. A dataset release tag is a readable label for
