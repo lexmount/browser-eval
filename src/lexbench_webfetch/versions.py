@@ -9,6 +9,11 @@ import re
 from .benchmark import public_task
 from .scoring import SCORING_SOURCE_SHA256
 
+# Scoring-source hash shipped by each Browser Eval release; a release PR adds its row.
+RELEASED_SCORERS = {
+    "0.4.0": "5c8bfec2d78a556239dd07233973c15638dec5b8cdc155d1ff0ae8f8179f8b4c",
+}
+
 
 def _digest(value) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
@@ -195,5 +200,9 @@ def installed_version() -> dict:
     """Name the active scorer by the Browser Eval release that ships it."""
     from importlib.metadata import version
 
-    return {"name": "browser-harness-eval", "version": version("browser-harness-eval"),
+    current = version("browser-harness-eval")
+    released = RELEASED_SCORERS.get(current) == SCORING_SOURCE_SHA256
+    return {"name": "browser-harness-eval",
+            "version": current if released else current + "+unreleased",
+            "status": "released" if released else "unreleased",
             "scoring_source_sha256": SCORING_SOURCE_SHA256}

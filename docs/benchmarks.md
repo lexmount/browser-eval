@@ -171,7 +171,7 @@ Use the existing owner for each selection:
 
 | Benchmark | Version authority |
 | --- | --- |
-| LexBench datasets | `src/harness/benchmarks/data-lock.json`, corresponding import bindings and the Browser Eval scorer source commit |
+| LexBench datasets | The Browser Eval version and commit: `src/harness/benchmarks/data-lock.json`, its import bindings and the scorer they ship |
 | WebMainBench | The data lock's corrected corpus, its upstream/correction provenance and the selected run profile's scorer commit |
 | WCXB | Qualified HF edition in the data lock, source manifest and unchanged HTML/reference hashes |
 | WebArena replay data | HF edition in the data lock and selected task/trajectory bindings |
@@ -190,12 +190,13 @@ citations; those records must not follow a newer dependency selection.
 Updating the installed benchmark does not select a new dataset for an existing
 report.
 
-Input editions and scorer versions are separate. The dataset tag versions tasks
-and references; the Browser Eval version versions the scoring rules (see
+The Browser Eval version names the Web Fetch benchmark edition: its data lock
+selects the dataset commit and its code holds the scoring rules (see
 [version rules](releases.md#version-rules)). Run
-`uv run --frozen lexbench-webfetch version` to print the installed Browser Eval
-version and its scoring-source hash. Runs record both, plus the full commit.
-Reviewing or fixing code does not publish a release.
+`uv run --frozen lexbench-webfetch version` to print that version and the
+scoring-source hash; unreleased scoring code prints `X.Y.Z+unreleased`. Runs
+record the scoring-source hash and full commit; report builds also record the
+Browser Eval version. Reviewing or fixing code does not publish a release.
 
 Every run pins the full HF commit and input hashes, plus the software/scorer
 commit and scoring-source hashes. A dataset release tag is a readable label for
@@ -213,14 +214,14 @@ Rebuilding with a newer Browser Eval release changes the build identity, not the
 saved call identity or benchmark edition. Custom datasets without a frozen
 edition retain their hashes rather than inheriting the installed catalog version.
 
-| Change | Edition | Result comparison |
+| Change | Browser Eval version | Result comparison |
 | --- | --- | --- |
 | Documentation or presentation only | Patch | Direct when execution controls also match |
 | Reviewed scoring/reference correction with the same task inputs | Minor | Re-score both saved cohorts under one edition |
-| Added/removed cases, changed requests, output scope or routes | Major | Separate full-population results |
+| Added/removed cases, changed requests, output scope or routes | Major (minor before 1.0, described as breaking) | Separate full-population results |
 
 The `lexbench_webfetch` module owns `lexbench-webfetch release` and `compare-releases`. Historical benchmark version contracts remain available with their original source revisions.
-Freeze `benchmark-release.json` beside the compiled inputs before calls.
+Freeze `benchmark-release.json` beside the compiled inputs before calls. Give `release --version` the installed Browser Eval version; the command rejects any other.
 The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
 the sidecar beside the selected dataset. Release creation records the full scorer
 commit alongside the independently computed source hash. The runner checks tasks and the active scorer

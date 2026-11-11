@@ -1,5 +1,6 @@
 """Release compatibility follows workload and scoring, not labels alone."""
 from copy import deepcopy
+from importlib.metadata import version
 import json
 
 import pytest
@@ -185,9 +186,10 @@ def test_public_cli_freezes_and_compares_real_files(tmp_path, capsys, monkeypatc
     frozen = tmp_path / "release.json"
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(source),
                                     "--output", str(frozen), "--benchmark", "sample-benchmark",
-                                    "--version", "1.0.0", "--scorer-revision", "a" * 40])
+                                    "--version", version("browser-harness-eval"),
+                                     "--scorer-revision", "a" * 40])
     main()
-    assert json.loads(capsys.readouterr().out)["version"] == "1.0.0"
+    assert json.loads(capsys.readouterr().out)["version"] == version("browser-harness-eval")
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "compare-releases", str(frozen), str(frozen)])
     main()
     assert json.loads(capsys.readouterr().out)["mode"] == "direct"
@@ -252,13 +254,36 @@ def test_list_name_rule_is_part_of_measurement_not_just_public_display_fields():
         verify_release(first, after, exact_dataset=False)
 
 
-def test_version_command_names_the_browser_eval_release(monkeypatch, capsys):
+@pytest.mark.parametrize("released", [True, False])
+def test_version_command_marks_scoring_code_the_release_did_not_ship(monkeypatch, capsys, released):
     from importlib.metadata import version
 
+    from lexbench_webfetch import versions
     from lexbench_webfetch.cli import main
-    from lexbench_webfetch.scoring import SCORING_SOURCE_SHA256
+    current = version("browser-harness-eval")
+    monkeypatch.setattr(versions, "SCORING_SOURCE_SHA256", "1" * 64)
+    monkeypatch.setattr(versions, "RELEASED_SCORERS", {current: "1" * 64 if released else "2" * 64})
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "version"])
     main()
     assert json.loads(capsys.readouterr().out) == {
-        "name": "browser-harness-eval", "version": version("browser-harness-eval"),
-        "scoring_source_sha256": SCORING_SOURCE_SHA256}
+        "name": "browser-harness-eval",
+        "version": current if released else current + "+unreleased",
+        "status": "released" if released else "unreleased",
+        "scoring_source_sha256": "1" * 64}
+
+
+def test_every_release_records_its_scoring_hash():
+    from importlib.metadata import version
+
+    from lexbench_webfetch.versions import RELEASED_SCORERS
+    assert version("browser-harness-eval") in RELEASED_SCORERS
+
+
+def test_release_sidecar_must_use_the_browser_eval_version(monkeypatch, tmp_path, capsys):
+    from lexbench_webfetch.cli import main
+    monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(tmp_path / "d.json"),
+                                     "--output", str(tmp_path / "r.json"), "--benchmark", "lexmount-webfetch",
+                                     "--version", "99.0.0", "--scorer-revision", "0" * 40])
+    with pytest.raises(SystemExit):
+        main()
+    assert "installed Browser Eval version" in capsys.readouterr().err
