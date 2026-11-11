@@ -8,11 +8,21 @@ Follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The public co
 
 | Change | Before 1.0.0 | From 1.0.0 onward |
 | --- | --- | --- |
-| Compatible bug fix or a documentation-only release | Patch: `0.3.0` → `0.3.1` | Patch: `1.0.0` → `1.0.1` |
-| Compatible new adapter, command, track or optional input field | Minor: `0.3.1` → `0.4.0` | Minor: `1.0.1` → `1.1.0` |
-| Remove or rename a public command, require incompatible inputs, or stop reading supported evidence without migration | Minor: `0.4.0` → `0.5.0`; describe the break | Major: `1.1.0` → `2.0.0` |
+| Bug fix or documentation that cannot change any score | Patch: `0.4.0` → `0.4.1` | Patch: `1.0.0` → `1.0.1` |
+| Change that can change a Web Fetch score with the same tasks: a scoring rule, reference check or acceptance check (including a bug fix), or a new dataset pin with corrected references | Minor: `0.4.1` → `0.5.0` | Minor: `1.0.1` → `1.1.0` |
+| Compatible new adapter, command, track or optional input field | Minor: `0.4.1` → `0.5.0` | Minor: `1.0.1` → `1.1.0` |
+| New dataset pin that adds or removes tasks, or changes their requests, output scope or routes | Minor: `0.5.0` → `0.6.0`; describe the break | Major: `1.1.0` → `2.0.0` |
+| Remove or rename a public command, require incompatible inputs, or stop reading supported evidence without migration | Minor: `0.5.0` → `0.6.0`; describe the break | Major: `1.1.0` → `2.0.0` |
 
-While the software remains `0.x`, use a minor release for new functionality or breaking changes and a patch for compatible fixes. Describe breaking changes explicitly. Release when users need an installable, reproducible checkpoint; individual commits and report rebuilds do not need new numbers. Version changes and release tags require an explicit human release request.
+### Web Fetch benchmark edition
+
+Browser Eval's [data lock](../src/harness/benchmarks/data-lock.json) selects the LexBench-Web-Fetch dataset commit, and its code holds the scoring rules. One Browser Eval version therefore names the whole Web Fetch benchmark edition. The table above decides the bump; a change that can move a score is never a patch.
+
+The dataset keeps its own HF tag (for example `v2.2.0`) for its tasks and reference data. Reference data lives in the dataset; the code that checks answers against it lives here.
+
+`uv run --frozen lexbench-webfetch version` prints the version and the scoring-source hash. When the scoring code differs from what that version shipped, it prints `X.Y.Z+unreleased` with `status: unreleased`. Each release records its shipped hash in `RELEASED_SCORERS` in `src/lexbench_webfetch/versions.py`. A `lexbench-webfetch release --benchmark lexmount-webfetch` sidecar records the same version string `X.Y.Z`; custom benchmarks keep their own numbers; `bench-v*` labels from before this rule, such as the dataset's `bench-v2.1.0`, stay as historical provenance. Web Search still labels its scorer with its own catalog edition.
+
+While the software remains `0.x`, use a minor release for new functionality, score-changing fixes or breaking changes and a patch for other compatible fixes. Describe breaking changes explicitly. Release when users need an installable, reproducible checkpoint; individual commits and report rebuilds do not need new numbers. Version changes and release tags require an explicit human release request.
 
 Software release tags use `vMAJOR.MINOR.PATCH`. The tag, GitHub release, `pyproject.toml`, `uv.lock`, wheel and installed runtime must agree on the version. Prepare the version metadata in a feature or release PR, then tag the exact main-branch commit after it lands and integrated checks pass. A merge does not itself publish a release.
 
@@ -25,10 +35,10 @@ To retain a pre-migration state, use an existing release tag or record the full 
 | Identity | Owner | When it changes |
 | --- | --- | --- |
 | Browser Eval software, e.g. `v0.3.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
-| Benchmark edition | Selected HF dataset commit plus the Browser Eval scorer revision | Tasks, references or scoring change under the benchmark's compatibility rules |
+| Web Fetch benchmark edition | The Browser Eval version: its data lock selects the dataset commit and its code holds the scoring rules | The pinned dataset or a scoring rule changes |
 | Published report build | Artifact Site or selected report host | A new report build is published |
 
-Added cases can require a major benchmark edition even when accepting that edition is a compatible software feature. The [benchmark contract](benchmarks.md#benchmark-editions) defines `direct`, `rescore` and `separate` comparisons. Pin upstream code commits and external input hashes alongside readable versions. Rebuilding presentation preserves saved calls and the selected benchmark edition.
+Pinning a dataset with added or removed cases is a breaking benchmark change even when the software interface stays compatible. The [benchmark contract](benchmarks.md#benchmark-editions) defines `direct`, `rescore` and `separate` comparisons. Pin upstream code commits and external input hashes alongside readable versions. Rebuilding presentation preserves saved calls and the selected benchmark edition.
 
 ## Stable release scope
 
@@ -41,7 +51,7 @@ Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have mai
 ## Release procedure
 
 1. Select a clean main-branch base and prepare the release in a feature or release PR. Declare supported tracks, benchmark pins and migrations. Check that pending work is not described as included.
-2. Set the release version in `pyproject.toml` and refresh `uv.lock`. Runtime code reads installed package metadata automatically. Project citations stay version-neutral. Run `uv lock` when package metadata changes, retaining immutable dependency pins. The metadata tests check the lock, installed package, runtime version and bilingual citations.
+2. Set the release version in `pyproject.toml` and refresh `uv.lock`. Runtime code reads installed package metadata automatically. Project citations stay version-neutral. Add the release's scoring-source hash to `RELEASED_SCORERS`. Run `uv lock` when package metadata changes, retaining immutable dependency pins. The metadata tests check the lock, installed package, runtime version and bilingual citations.
 3. Run `make setup-test` and `make ci` on the release candidate. After it lands on main, require the integrated checks to pass on the exact commit that will be tagged. The package gate checks installation outside the checkout. Follow each track's separate release gate when publishing benchmark reports; a software tag does not certify their measurements.
 4. Prepare release notes with supported tracks and suites, installation commands, compatible interfaces, required external inputs and migrations. Check that the source archive and wheel contain the declared version.
 5. After release approval, publish an annotated `vMAJOR.MINOR.PATCH` tag and GitHub release for that tested main-branch commit. Never move a published tag. Upload software distribution files; keep provider outputs and private report evidence outside the software release.
@@ -62,8 +72,10 @@ this table is the index.
 | [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
 
 Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
-can support several separately selected benchmarks; its version never chooses
-a report's population or changes saved results.
+can support several separately selected benchmarks. Its version never changes
+saved results or an existing report's population; for Web Fetch it also names
+the benchmark edition that new runs use (see
+[Web Fetch benchmark edition](#web-fetch-benchmark-edition)).
 
 ## Benchmark release index
 
@@ -77,12 +89,11 @@ a report's population or changes saved results.
 
 The WebArena Replay Hub tags `v1.0.0` and `v1.0.1` resolve to the previous and current editions pinned in the data lock. The lock records the full commit of each edition. The manifest of 1.0.1 records a `source_revision` that was a local build commit and was never published. That manifest is immutable, so the lock notes this beside the entry; use `revision` to identify the edition.
 
-A benchmark release uses one tag for its tasks, reference answers, scoring rules
-and evaluation code. Task suites use stable names rather than separate dataset
-release numbers. Data unchanged with updated tooling can still warrant a bench
-release: use a patch when measurement is unchanged, a minor for scoring
-corrections, and a major for changed task scope. Python requires package version metadata for installation; this is
-internal packaging information, not a separate public release line.
+The `bench-v*` releases above each used one tag for their tasks, reference answers,
+scoring rules and evaluation code. Web Search and WebArena Replay still follow
+that scheme. New Web Fetch editions use the Browser Eval version instead (see
+[Web Fetch benchmark edition](#web-fetch-benchmark-edition)); a new Web Fetch
+sidecar starts that line and does not name a `bench-v2.x` sidecar as `--previous`.
 
 ## Version source and release cadence
 

@@ -9,6 +9,11 @@ import re
 from .benchmark import public_task
 from .scoring import SCORING_SOURCE_SHA256
 
+# Scoring-source hash shipped by each Browser Eval release; a release PR adds its row.
+RELEASED_SCORERS = {
+    "0.4.0": "5c8bfec2d78a556239dd07233973c15638dec5b8cdc155d1ff0ae8f8179f8b4c",
+}
+
 
 def _digest(value) -> str:
     raw = json.dumps(value, ensure_ascii=False, sort_keys=True,
@@ -58,6 +63,11 @@ def _measurement(dataset: dict) -> dict:
             "acceptance_sha256": _digest(contracts)}
 
 
+def _breaking_line(version: tuple[int, int, int]) -> tuple[int, ...]:
+    """Versions that may differ only compatibly: same major, or same minor before 1.0."""
+    return version[:1] if version[0] >= 1 else version[:2]
+
+
 def _validate(release: dict) -> tuple[int, int, int]:
     if release.get("schema_version") != 1 or release.get("kind") != "benchmark_release":
         raise ValueError("Unsupported benchmark release")
@@ -94,17 +104,16 @@ def create_release(dataset: dict, *, benchmark: str, version: str,
         old = _validate(previous)
         if benchmark != previous["benchmark"] or new <= old:
             raise ValueError("A successor needs the same benchmark and a newer version")
-        if new[0] == old[0]:
-            if any(release[key] != previous[key] for key in (
-                "case_count", "case_ids_sha256", "input_contract_sha256",
-            )):
-                raise ValueError("Changed task population or input contract requires a major version")
-            changed = any(release[key] != previous[key] for key in (
-                "acceptance_sha256", "scoring_source_sha256",
-            ))
-            if changed and new[1] == old[1]:
+        population_changed = any(release[key] != previous[key] for key in (
+            "case_count", "case_ids_sha256", "input_contract_sha256"))
+        if population_changed and _breaking_line(new) == _breaking_line(old):
+            raise ValueError("Changed task population or input contract requires a breaking "
+                             "version: major, or minor before 1.0")
+        if not population_changed and new[0] == old[0] and any(release[key] != previous[key] for key in (
+                "acceptance_sha256", "scoring_source_sha256")):
+            if new[:2] == old[:2]:
                 raise ValueError("Changed acceptance or scoring requires a minor version")
-            if changed and (not isinstance(change_note, str) or not change_note.strip()):
+            if not isinstance(change_note, str) or not change_note.strip():
                 raise ValueError("A scoring correction requires a change note")
         release["previous_release_sha256"] = _digest(previous)
     if change_note is not None:
@@ -134,12 +143,16 @@ def compare_releases(left: dict, right: dict) -> dict:
     fields = ("case_ids_sha256", "input_contract_sha256", "acceptance_sha256",
               "scoring_source_sha256")
     differences = [key for key in fields if left[key] != right[key]]
-    if left["benchmark"] != right["benchmark"] or a[0] != b[0]:
-        mode, reason = "separate", "Different benchmark or major edition"
+    if left["benchmark"] != right["benchmark"]:
+        mode, reason = "separate", "Different benchmark"
     elif left["version"] == right["version"] and differences:
         raise ValueError("Release version reused for a different measurement contract")
     elif any(key in differences for key in ("case_ids_sha256", "input_contract_sha256")):
-        raise ValueError("Task population or inputs changed within one major version")
+        if _breaking_line(a) == _breaking_line(b):
+            raise ValueError("Task population or inputs changed without a breaking version")
+        mode, reason = "separate", "Different task population or inputs"
+    elif a[0] != b[0]:
+        mode, reason = "separate", "Different major edition"
     elif differences:
         if a[:2] == b[:2]:
             raise ValueError("Acceptance or scoring changed within one minor version")
@@ -161,7 +174,7 @@ def freeze_release(dataset_path: Path, output: Path, **options) -> dict:
 
 
 def catalog_release(path: Path | None = None, *, require_current_scorer: bool = True) -> dict:
-    """Read the published catalog edition and verify its complete suite bindings."""
+    """Verify a frozen catalog, such as the dataset's historical bench-v2.1.0 record."""
     from .benchmark import definitions, read, registry, validate
 
     selected = path if path is not None else definitions() / "benchmark-release.json"
@@ -192,10 +205,12 @@ def catalog_release(path: Path | None = None, *, require_current_scorer: bool = 
 
 
 def installed_version() -> dict:
-    """Identify development scorers without assigning them a published edition."""
-    release = catalog_release(require_current_scorer=False)
-    if release["scoring_source_sha256"] == SCORING_SOURCE_SHA256:
-        return release
-    return {"status": "unreleased", "version": None, "tag": None,
-            "scoring_source_sha256": SCORING_SOURCE_SHA256,
-            "published_catalog": release}
+    """Name the active scorer by the Browser Eval release that ships it."""
+    from importlib.metadata import version
+
+    current = version("browser-harness-eval")
+    released = RELEASED_SCORERS.get(current) == SCORING_SOURCE_SHA256
+    return {"name": "browser-harness-eval",
+            "version": current if released else current + "+unreleased",
+            "status": "released" if released else "unreleased",
+            "scoring_source_sha256": SCORING_SOURCE_SHA256}
