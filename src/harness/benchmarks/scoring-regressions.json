@@ -84785,6 +84785,342 @@
       "expected_metrics": {
         "fact_coverage_pass": false
       }
+    },
+    {
+      "id": "content-scope-main-body",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "evaluation_content_scope": "main"
+      }
+    },
+    {
+      "id": "content-scope-full-requires-footer",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "full",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "evaluation_content_scope": "full"
+      }
+    },
+    {
+      "id": "content-scope-full-complete",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "full",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body Contact publisher",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "evaluation_content_scope": "full"
+      }
+    },
+    {
+      "id": "content-scope-main-rejects-blocked",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body ACCESS BLOCKED",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "evaluation_content_scope": "main"
+      }
     }
   ]
 }

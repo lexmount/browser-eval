@@ -14,6 +14,10 @@ Use `--content-scope main|full` with `lexbench-webfetch score`, or the Web Fetch
 scoring. Explicit selection fails for tasks without both annotations. Legacy
 tasks keep their existing behavior when no scope is selected. Scores bind the
 selected profile hash; reuse saved responses for score-only comparisons.
+Rescoring retains the saved dataset and task scopes and rejects a scope switch.
+Profiles inherit the original blocked-page and navigation constraints. Tasks with
+an existing full-page ordered-tree acceptance contract require separate tree
+annotations and are rejected by this scope selector.
 
 Public definitions retain both profiles and reference hashes. Export and score
 the matching approved frozen inputs, which contain the bound reference bodies;

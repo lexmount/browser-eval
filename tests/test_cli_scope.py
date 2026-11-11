@@ -252,3 +252,23 @@ def test_cli_invalid_language_exits_with_configuration_error_before_calls(tmp_pa
     assert error.value.code == 2
     assert "BROWSER_EVAL_REPORT_LANGUAGE" in capsys.readouterr().err
     assert not (tmp_path / "unused").exists()
+
+
+@pytest.mark.parametrize('dataset_scope',[True,False])
+def test_rescore_defaults_to_the_saved_content_scope_and_rejects_switches(tmp_path,monkeypatch,dataset_scope):
+    from harness.web_fetch import cli
+    from tests.benchmarks.webfetch.test_content_scopes import annotated_case
+    run=tmp_path/'run';run.mkdir();dataset=tmp_path/'dataset.json'
+    task=annotated_case();dataset.write_text(json.dumps(dict(tool='web_fetch',cases=[task])),encoding='utf-8')
+    (run/'dataset.json').write_text(json.dumps(dict(content_scope='main') if dataset_scope else dict(cases=[dict(id=task['id'],content_scope='main')])),encoding='utf-8')
+    seen=[]
+    def rescore(**kwargs):
+        seen.append(kwargs['cases'][0].content_scope)
+        assert len(kwargs['cases'][0].required_facts)==1
+        return [],{}
+    monkeypatch.setattr(cli,'rescore_evaluation',rescore)
+    args=cli.build_parser().parse_args(['rescore',str(run),'--dataset',str(dataset),'--no-report'])
+    assert cli.command_rescore(args)==0 and seen==['main']
+    args.content_scope='full'
+    with pytest.raises(ValueError,match='saved content scope'):cli.command_rescore(args)
+    assert seen==['main']

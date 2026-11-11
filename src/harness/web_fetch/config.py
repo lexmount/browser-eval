@@ -129,10 +129,11 @@ def load_dataset(path: Path, *, content_scope: str | None = None) -> tuple[dict[
     if not isinstance(raw_cases, list) or any(not isinstance(item, dict) for item in raw_cases):
         raise ValueError("dataset.cases must be a list of task objects")
     content_scope = content_scope or payload.get('content_scope')
+    from lexbench_webfetch.content_scopes import select_content_scope
+    raw_cases = [select_content_scope(item, content_scope)[0] for item in raw_cases]
+    payload = dict(payload, cases=raw_cases)
     if content_scope is not None:
-        from lexbench_webfetch.content_scopes import select_content_scope
-        raw_cases = [select_content_scope(item, content_scope)[0] for item in raw_cases]
-        payload = dict(payload, cases=raw_cases, content_scope=content_scope)
+        payload['content_scope'] = content_scope
     for item in raw_cases:
         _validate_retrieval_hints(item)
         _validate_ground_truth_evidence(item)

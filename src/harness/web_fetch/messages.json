@@ -2364,6 +2364,7 @@
     "article_title_not_found": "返回正文中没有符合要求的文章标题",
     "no_matching_resource": "未匹配到目标资源",
     "original_file_bytes_required": "交付符合原验证规则的文件字节",
-    "original_file_validation_failed": "原文件字节校验未通过"
+    "original_file_validation_failed": "原文件字节校验未通过",
+    "document_body_too_short": "章节正文长度不足"
   }
 }

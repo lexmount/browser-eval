@@ -94,13 +94,75 @@ class ReportTemplateTests(unittest.TestCase):
                 save(broken)
                 with self.subTest(change=change),self.assertRaises(ValueError):load_diagnostic(source)
             save(model)
-            guide=output/'guide/index.html';original=guide.read_text()
+            guide=output/'guide/index.html';original=guide.read_text(encoding="utf-8")
             for old,new in [('data-diagnosis-field="fix"','data-omitted-field="fix"'),
                             ('src="issue.png"','src="absent.png"'),
                             ('attempts/challenge.html','attempts/complete.html')]:
-                guide.write_text(original.replace(old,new))
+                guide.write_text(original.replace(old,new), encoding="utf-8")
                 with self.subTest(rendered=old),self.assertRaises(ValueError):check_diagnostic_report(output)
-            guide.write_text(original)
+            guide.write_text(original, encoding="utf-8")
+            home=output/'index.html';original_home=home.read_text(encoding='utf-8')
+            for old,new in [('href="attempts/challenge.html"','href="attempts/complete.html"'),
+                            ('href="guide/index.html#access"','href="guide/index.html#wrong"'),
+                            ('href="guide/index.html#access"','data-no-link="access"')]:
+                home.write_text(original_home.replace(old,new),encoding='utf-8')
+                with self.subTest(index=old),self.assertRaises(ValueError):check_diagnostic_report(output)
+            home.write_text(original_home,encoding='utf-8')
+
+    def test_authored_labels_and_lead_are_literal_text(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model.update(interpretation_lead='A literal <main> example',pass_label='<main>pass</main>',fail_label='<main>fail</main>')
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            for cid,label in [('complete',model['pass_label']),('challenge',model['fail_label'])]:
+                page=BeautifulSoup((output/f'attempts/{cid}.html').read_text(encoding='utf-8'),'html.parser')
+                self.assertEqual(page.select_one('[data-result-summary] h2').get_text(),label)
+
+    def test_complete_headings_with_short_body_names_the_actual_failed_rule(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row=dict(initial_pass=False,log=dict(path='log.json'))
+        metrics=dict(document_structure_pass=False,document_heading_coverage=1,
+                     document_heading_results=[dict(id='a',**{'pass':True})],
+                     document_body_chars=20,document_minimum_body_chars=100)
+        findings=diagnostic_findings(row,{'log.json':json.dumps(dict(metrics=metrics)).encode()})
+        self.assertEqual([f['kind']for f in findings],['body'])
+        self.assertIn('100',findings[0]['expected']);self.assertIn('20',findings[0]['actual'])
+        row['reference']={'path':'reference.json'};metrics['document_heading_coverage']=.9
+        findings=diagnostic_findings(row,{'log.json':json.dumps(dict(metrics=metrics)).encode(),
+            'reference.json':json.dumps(dict(document_structure=dict(minimum_heading_coverage=.8))).encode()})
+        self.assertEqual([f['kind']for f in findings],['body'])
+
+    def test_normal_guides_also_require_authored_case_diagnoses(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['pages']={'guide':[dict(title='Diagnosis',paragraphs=[],examples=[dict(
+                case_id='challenge',expected='Body',actual='Challenge',cause='Access barrier',
+                fix='Return explicit blocked status',verify='Challenge stays failed',
+                evidence=[dict(field='first_answer',quote='Verify you are human')])])]}
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            guide=output/'guide/index.html';soup=BeautifulSoup(guide.read_text(encoding='utf-8'),'html.parser')
+            soup.select_one('[data-diagnosis-case]').decompose();guide.write_text(str(soup),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError,'diagnos'):check_diagnostic_report(output)
+
+    def test_comparison_highlights_rates_with_unequal_populations(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            original=model['rows'];model['rows']=[]
+            for method,total,passed in [('larger',10,8),('smaller',7,7)]:
+                for i in range(total):
+                    row=copy.deepcopy(original[0 if i<passed else 1]);row.update(id=f'{method}-{i}',cohort=method)
+                    model['rows'].append(row)
+            model.update(comparison_mode=True,cohorts=[dict(id='larger',label='Larger',case_count=10),dict(id='smaller',label='Smaller',case_count=7)],metrics=dict(larger=[8,10],smaller=[7,7],overall=[15,17]))
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            page=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
+            winner=page.select_one('[data-metric="acceptance"] .comparison-winner')
+            self.assertEqual(winner.get_text(),'7 / 7')
 
     def test_content_scope_comparison_navigation_tables_and_highlights(self):
         with tempfile.TemporaryDirectory() as temp:
@@ -110,17 +172,17 @@ class ReportTemplateTests(unittest.TestCase):
                 dict(id='full',label='Complete content',href='https://example.test/full')])
             model['pages']={'guide':[dict(title='Measured comparison',paragraphs=['Two retained calls.'],
                 table=dict(headers=['Method','Passes'],rows=[['Articles',1]]))]}
-            (source/'report.json').write_text(json.dumps(model))
+            (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
             output=root/'output';build_diagnostic_cohorts(source,output)
             check_diagnostic_report(output)
-            home=output/'index.html';original=home.read_text()
+            home=output/'index.html';original=home.read_text(encoding="utf-8")
             for bad in [original.replace('data-content-scope="full"','data-wrong-scope="full"'),
                         original.replace('comparison-winner good','unmarked')]:
-                home.write_text(bad)
+                home.write_text(bad, encoding="utf-8")
                 with self.assertRaises(ValueError):check_diagnostic_report(output)
-            home.write_text(original)
-            guide=output/'guide/index.html';text=guide.read_text()
-            guide.write_text(text.replace('>Articles</td>','>Wrong method</td>'))
+            home.write_text(original, encoding="utf-8")
+            guide=output/'guide/index.html';text=guide.read_text(encoding="utf-8")
+            guide.write_text(text.replace('>Articles</td>','>Wrong method</td>'), encoding="utf-8")
             with self.assertRaises(ValueError):check_diagnostic_report(output)
 
     def test_paired_scope_requires_shared_scorer_and_monotonic_acceptance(self):
@@ -132,13 +194,13 @@ class ReportTemplateTests(unittest.TestCase):
                 data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64),
                           uniform_full_content=dict(passed=row['initial_pass'],metrics=dict(
                               evaluation_content_scope='full',scoring_source_sha256='a'*64)))
-                target=source/row['log']['path'];target.write_text(json.dumps(data))
+                target=source/row['log']['path'];target.write_text(json.dumps(data), encoding="utf-8")
                 row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
-            (source/'report.json').write_text(json.dumps(model));load_diagnostic(source)
-            row=model['rows'][1];target=source/row['log']['path'];data=json.loads(target.read_text())
-            data['uniform_full_content']['passed']=True;target.write_text(json.dumps(data))
+            (source/'report.json').write_text(json.dumps(model), encoding="utf-8");load_diagnostic(source)
+            row=model['rows'][1];target=source/row['log']['path'];data=json.loads(target.read_text(encoding="utf-8"))
+            data['uniform_full_content']['passed']=True;target.write_text(json.dumps(data), encoding="utf-8")
             row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
-            (source/'report.json').write_text(json.dumps(model))
+            (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
             with self.assertRaisesRegex(ValueError,'Paired content scopes'):load_diagnostic(source)
 
     def test_new_track_requires_an_execution_owner_and_behavior_checks(self):

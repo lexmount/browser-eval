@@ -24,6 +24,15 @@ from harness.web_fetch.reference_lifecycle import require_verified_reference_che
 from harness.web_fetch.report_i18n import t
 
 
+def diagnostic_profile_binding(profile):
+    snapshot={'variant':profile.get('variant'),'cohort_plan':[
+        {key:group[key] for key in ('id','case_count','case_ids_sha256')}
+        for group in profile.get('cohort_plan',[])]}
+    for name,keys in [('implementation',('reported_version','binary_sha256')),('diagnostic_input',('sha256',))]:
+        if profile.get(name):snapshot[name]={key:profile[name][key] for key in keys}
+    return {'profile':snapshot,'sha256':hashlib.sha256(json.dumps(snapshot,sort_keys=True).encode()).hexdigest()}
+
+
 def require_diagnostic_scope(model, profile):
     """Compare the report with an independent planned population, not itself."""
     if profile.get('variant') != 'diagnostic-cohorts':
@@ -324,12 +333,19 @@ def diagnostic_findings(row, files):
     if metrics.get('document_structure_pass') is False:
         try:
             reference=json.loads(files[row['reference']['path']])
-            headings=[h['text'] for h in reference.get('document_structure',{}).get('headings',[])]
-        except (KeyError,ValueError,TypeError):
-            headings=[]
-        add('pattern',t('document_headings_not_preserved','Document headings not preserved'),
-            ' / '.join(headings) or t('declared_structure_requirement','Declared structure requirement'),
-            t('heading_coverage_value','Heading coverage: {value}%',value=round(100*metrics.get('document_heading_coverage',0),1)))
+            contract=reference.get('document_structure',{})
+        except (KeyError,ValueError,TypeError,AttributeError):
+            contract={}
+        coverage=metrics.get('document_heading_coverage')
+        if coverage is not None and coverage < contract.get('minimum_heading_coverage',1):
+            headings=[h['text'] for h in contract.get('headings',[])]
+            add('pattern',t('document_headings_not_preserved','Document headings not preserved'),
+                ' / '.join(headings) or t('declared_structure_requirement','Declared structure requirement'),
+                t('heading_coverage_value','Heading coverage: {value}%',value=round(100*coverage,1)))
+        if metrics.get('document_body_chars',0) < metrics.get('document_minimum_body_chars',0):
+            add('body',t('document_body_too_short','Document section body too short'),
+                t('at_least_characters_3','At least {get} characters',get=metrics['document_minimum_body_chars']),
+                t('characters_3','{get} characters',get=metrics.get('document_body_chars',0)))
     if metrics.get('article_title_pass') is False:
         add('text',t('article_title_missing','Article title missing'),
             t('article_title_in_body','Article title retained as a body component'),
@@ -401,6 +417,8 @@ def validate_diagnostic_blocks(model, files, source):
                         raise ValueError('Diagnosis table link has no matching case or issue')
             figure = block.get('figure')
             if figure:
+                if not block.get('id'):
+                    raise ValueError('Diagnosis illustration needs a section anchor')
                 if not all(isinstance(figure.get(k), str) and figure[k].strip()
                            for k in ('path', 'sha256', 'alt', 'scope')):
                     raise ValueError('Diagnosis illustration needs a hash, description and scope')
@@ -544,6 +562,16 @@ def check_diagnostic_report(output, profile=None):
         require_diagnostic_scope(model, read_json(Path(profile)))
     manifest = read_json(output / "report-manifest.json")
     check_build_version(output, manifest)
+    planned=manifest.get('diagnostic_profile')
+    if planned:
+        if planned != diagnostic_profile_binding(planned['profile']):
+            raise ValueError('Diagnostic planned profile hash differs')
+        require_diagnostic_scope(model,planned['profile'])
+        planned_input=planned['profile'].get('diagnostic_input')
+        if planned_input and manifest.get('input_sha256')!=planned_input['sha256']:
+            raise ValueError('Diagnostic input differs from its planned profile')
+        if profile is not None and planned != diagnostic_profile_binding(read_json(Path(profile))):
+            raise ValueError('Diagnostic build uses another planned profile')
     if profile is not None:
         binding = read_json(Path(profile)).get('diagnostic_input')
         if binding and manifest.get('input_sha256') != binding['sha256']:
@@ -573,6 +601,16 @@ def check_diagnostic_report(output, profile=None):
                     or [[c.get_text() for c in r.select('td')][1:] for r in rendered.select('tbody tr')]
                     != [[diagnostic_cell_text(v) for v in r] for r in spec['rows']]):
                 raise ValueError('Diagnostic explanatory table differs from evidence model')
+            for source_row, rendered_row in zip(spec['rows'],rendered.select('tbody tr'),strict=True):
+                for value,td in zip(source_row,rendered_row.select('td')[1:],strict=True):
+                    if not isinstance(value,dict):continue
+                    href=('attempts/'+value['case_id']+'.html' if 'case_id'in value
+                          else 'guide/index.html#'+value['issue_id'])
+                    anchors=td.select('a')
+                    if len(anchors)!=1 or anchors[0].get('href')!=href:
+                        raise ValueError('Diagnosis table points to different evidence')
+                    if 'issue_id'in value and not read_page(output/'guide/index.html').find(id=value['issue_id']):
+                        raise ValueError('Diagnosis issue anchor is absent')
     home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
     for route in (() if model.get('problem_focus') else ('index.html', 'guide/index.html')):
@@ -592,6 +630,8 @@ def check_diagnostic_report(output, profile=None):
     for expected, rendered in zip(expected_summaries, summaries, strict=True):
         values = [c.get('data-sort', '-1') for c in rendered.select('td')][3:]
         expected_values = [expected[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
+        if model.get('comparison_mode'):
+            expected_values[1:3]=[v/expected['total'] if v is not None else None for v in expected_values[1:3]]
         if (rendered.get('data-summary-group') != expected['id']
                 or values != [str(-1 if v is None else v) for v in expected_values]):
             raise ValueError('Summary differs from complete cohort calls')
@@ -668,11 +708,12 @@ def check_diagnostic_report(output, profile=None):
                 expected_preview = diagnostic_specimen_excerpt(row,field,files,model)
                 if panel.select_one('pre').get_text() != expected_preview:
                     raise ValueError('Interpretation specimen differs from bound evidence')
-    if model.get('problem_focus'):
-        expected_examples = [example for block in model['pages'].get('guide', [])
+    for name,page_blocks in model.get('pages',{}).items():
+        diagnosis_page=read_page(output/('index.html' if name=='overview' else name+'/index.html'))
+        expected_examples = [example for block in page_blocks
                              for example in block.get('examples', [])]
-        rendered_examples = guide.select('[data-diagnosis-case]')
-        if not expected_examples or len(expected_examples) != len(rendered_examples):
+        rendered_examples = diagnosis_page.select('[data-diagnosis-case]')
+        if (model.get('problem_focus') and name=='guide' and not expected_examples) or len(expected_examples) != len(rendered_examples):
             raise ValueError('Problem-focused guide lacks concrete case diagnoses')
         for expected, rendered in zip(expected_examples, rendered_examples, strict=True):
             if (rendered['data-diagnosis-case'] != expected['case_id']
@@ -683,10 +724,10 @@ def check_diagnostic_report(output, profile=None):
                 actual = node.select_one('p').get_text() if key in {'expected', 'actual'} and node else node.get_text() if node else None
                 if actual != expected[key]:
                     raise ValueError('Diagnosis omits or changes its evidence-backed '+key)
-        for block in model['pages'].get('guide', []):
+        for block in page_blocks:
             if not block.get('figure'):
                 continue
-            rendered = guide.select_one('#'+block['id']+' .diagnosis-figure img')
+            rendered = diagnosis_page.select_one('#'+block['id']+' .diagnosis-figure img')
             figure = block['figure']
             if (not rendered or rendered.get('src') != figure['path']
                     or rendered.get('alt') != figure['alt']):

@@ -187,7 +187,16 @@ def command_report(args: argparse.Namespace) -> int:
 
 def command_rescore(args: argparse.Namespace) -> int:
     language = None if args.no_report else resolve_report_language(args.run_dir / "report", args.language)
-    dataset, cases = load_dataset(args.dataset, content_scope=args.content_scope)
+    saved = json.loads((args.run_dir / 'dataset.json').read_text(encoding='utf-8'))
+    saved_scope = saved.get('content_scope')
+    task_scopes={case.get('content_scope') for case in saved.get('cases',[])}
+    if saved_scope is None and len(task_scopes)==1:
+        saved_scope=next(iter(task_scopes))
+    if args.content_scope is not None and args.content_scope != saved_scope:
+        raise ValueError('Rescore cannot change the saved content scope')
+    dataset, cases = load_dataset(args.dataset, content_scope=saved_scope)
+    if saved.get('content_scope') is None:
+        dataset.pop('content_scope',None)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
     if args.no_report:
         print(f"Rescored {len(records)} persisted attempts; results: {(args.run_dir / 'results.jsonl').resolve()}")

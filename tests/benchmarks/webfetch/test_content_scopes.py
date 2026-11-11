@@ -67,8 +67,8 @@ def test_main_full_keep_the_same_body(answer, main, full):
 def test_cli_scoring_accepts_explicit_scope_and_rejects_unannotated_tasks(tmp_path):
     task = tmp_path / "task.json"
     response = tmp_path / "answer.txt"
-    task.write_text(json.dumps(annotated_case()))
-    response.write_text("Complete article body")
+    task.write_text(json.dumps(annotated_case()), encoding="utf-8")
+    response.write_text("Complete article body", encoding="utf-8")
     command = [
         sys.executable,
         "-m",
@@ -86,7 +86,7 @@ def test_cli_scoring_accepts_explicit_scope_and_rejects_unannotated_tasks(tmp_pa
     assert json.loads(result.stdout)["passed"] is True
     c = annotated_case()
     del c["content_scopes"]
-    task.write_text(json.dumps(c))
+    task.write_text(json.dumps(c), encoding="utf-8")
     result = subprocess.run(command, text=True, capture_output=True)
     assert result.returncode != 0
     assert "annotated main and full" in result.stderr
@@ -194,3 +194,40 @@ def test_primary_product_controls_use_the_public_scorer(identifier):
     assert task_passed(fixture["ok"], metrics) is fixture["expected_task_pass"]
     for key, expected in fixture["expected_metrics"].items():
         assert metrics[key] == expected
+
+
+def test_case_local_and_default_scope_are_materialized_before_acquisition(tmp_path):
+    from harness.web_fetch.config import load_dataset
+    case=annotated_case()
+    for selected in ('main',None):
+        if selected:case['content_scope']=selected
+        else:case.pop('content_scope',None)
+        path=tmp_path/'dataset.json';path.write_text(json.dumps(dict(tool='web_fetch',cases=[case])),encoding='utf-8')
+        payload,cases=load_dataset(path)
+        expected=selected or 'full'
+        assert cases[0].content_scope==expected
+        assert payload['cases'][0]['required_facts']==case['content_scopes'][expected]['requirements']['required_facts']
+
+
+def test_profiles_cannot_erase_original_blocking_or_navigation_constraints():
+    case=annotated_case();case['forbidden_any']=['ACCESS BLOCKED']
+    case['source_benchmark']={'risk_control':{'navigation_contract':{'version':1}},'mode':'article'}
+    effective,_=select_content_scope(case,'main')
+    assert effective['forbidden_any']==case['forbidden_any']
+    assert effective['source_benchmark']==case['source_benchmark']
+    metrics=score_attempt(case,b'Complete article body ACCESS BLOCKED',ok=True,content_scope='main')
+    assert task_passed(True,metrics) is False
+    for name in ('main','full'):case['content_scopes'][name]['requirements']['source_benchmark']={'mode':'other'}
+    with pytest.raises(ValueError,match='identity'):select_content_scope(case,'main')
+
+
+def test_full_page_tree_cannot_silently_survive_main_selection():
+    case=annotated_case();case['ordered_tree_min_similarity']=.8
+    with pytest.raises(ValueError,match='ordered-tree'):select_content_scope(case,'main')
+
+
+def test_scope_evidence_publication_omits_unrecognized_payloads():
+    from lexbench_webfetch.benchmark import public_task
+    case=annotated_case()
+    for name in ('main','full'):case['content_scopes'][name]['evidence']['private_notes']='licensed reference body'
+    assert 'licensed reference body' not in json.dumps(public_task(case))

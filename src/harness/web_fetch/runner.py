@@ -1150,6 +1150,11 @@ def rescore_evaluation(
             raise ValueError("Output integrity failure: " + record["attempt_id"])
     manifest = json.loads(contained_path(run_dir, "manifest.json").read_text(encoding="utf-8"))
     saved_dataset = json.loads(contained_path(run_dir, "dataset.json").read_text(encoding="utf-8"))
+    if dataset_meta.get('content_scope') != saved_dataset.get('content_scope'):
+        raise ValueError('Rescore cannot change the saved content scope')
+    saved_scopes = {case['id']: case.get('content_scope') for case in saved_dataset['cases']}
+    if any(case.content_scope != saved_scopes.get(case.id) for case in cases if case.id in saved_scopes):
+        raise ValueError('Rescore cannot change a saved task content scope')
     if is_diagnostic_evidence(saved_dataset) or is_diagnostic_evidence(manifest):
         # Scoring inputs may change; the executed population and intent may not.
         selected_ids = [case['id'] for case in saved_dataset['cases']]

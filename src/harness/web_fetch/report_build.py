@@ -188,6 +188,9 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
                     "input_sha256": input_sha256,
                     "artifact_hashes": {path: hashlib.sha256(raw).hexdigest()
                                         for path, raw in files.items()}}
+        if profile is not None:
+            from harness.web_fetch.report_diagnostic import diagnostic_profile_binding
+            manifest['diagnostic_profile']=diagnostic_profile_binding(configuration)
         from harness.reporting.versions import bind_build_version
         manifest['browser_eval'] = bind_build_version(staging)
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')

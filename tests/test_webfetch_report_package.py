@@ -498,11 +498,16 @@ def test_diagnostic_package_preserves_detail_navigation_and_lazy_evidence(tmp_pa
     model = diagnostic_example(source)
     row = model['rows'][1]
     log = source / row['log']['path']
-    log.write_text('Exact failure: required body absent.\n' * 3000)
+    log.write_text('Exact failure: required body absent.\n' * 3000, encoding="utf-8")
     row['log']['sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
-    (source / 'report.json').write_text(json.dumps(model))
+    (source / 'report.json').write_text(json.dumps(model), encoding="utf-8")
     report = tmp_path / 'rendered'
-    build_diagnostic_cohorts(source, report)
+    unbound=tmp_path/'unbound';build_diagnostic_cohorts(source,unbound)
+    with pytest.raises(ValueError,match='bound planned profile'):report_package.build(unbound,tmp_path/'invalid.zip')
+    profile=tmp_path/'profile.json'
+    profile.write_text(json.dumps(dict(variant='diagnostic-cohorts',cohort_plan=[dict(
+        id='articles',case_count=2,case_ids_sha256=hashlib.sha256(b'challenge\ncomplete\n').hexdigest())])),encoding='utf-8')
+    build_diagnostic_cohorts(source,report,profile=profile)
     archive = tmp_path / 'published.zip'
     report_package.build(report, archive)
     packed = tmp_path / 'packed'

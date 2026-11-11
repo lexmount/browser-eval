@@ -53,8 +53,15 @@ def _require(condition, detail):
 
 def validate_release(source: Path, *, presentation_binding: Path | None = None, snapshot_audit=False) -> bool:
     manifest_path = source / 'report-manifest.json'
-    if manifest_path.is_file() and json.loads(manifest_path.read_text()).get('evidence_state') == 'diagnostic':
+    manifest=json.loads(manifest_path.read_text(encoding='utf-8')) if manifest_path.is_file() else {}
+    model_path=source/'report.json'
+    diagnostic_model=model_path.is_file() and json.loads(model_path.read_text(encoding='utf-8')).get('schema')=='webfetch_cohort_diagnostic/1'
+    if (manifest.get('evidence_state')=='diagnostic') != diagnostic_model:
+        raise ValueError('Diagnostic report model and manifest disagree')
+    if diagnostic_model:
         from harness.web_fetch.report_diagnostic import check_diagnostic_report
+        if not manifest.get('diagnostic_profile'):
+            raise ValueError('Diagnostic publication requires a bound planned profile')
         check_diagnostic_report(source)
         return False
     dataset_path = source / "dataset.json"
@@ -142,7 +149,7 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
     original_destination = destination
     destination.mkdir(parents=True, exist_ok=True)
     (destination / "data").mkdir(exist_ok=True)
-    diagnostic = (source / 'report.json').is_file() and json.loads((source / 'report.json').read_text()).get('schema') == 'webfetch_cohort_diagnostic/1'
+    diagnostic = (source / 'report.json').is_file() and json.loads((source / 'report.json').read_text(encoding="utf-8")).get('schema') == 'webfetch_cohort_diagnostic/1'
     records = [] if diagnostic else load_jsonl(source / "results.jsonl")
     by_attempt = {r["attempt_id"]: (i, r) for i, r in enumerate(records)}
     scored_paths = {r["artifact_path"] for r in records}

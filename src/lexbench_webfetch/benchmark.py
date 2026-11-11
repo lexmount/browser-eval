@@ -63,7 +63,8 @@ def public_task(case: dict) -> dict:
         scopes = case['content_scopes']
         task['content_scopes'] = {'version': scopes['version'], **{
             name: {'requirements': public_task(scopes[name]['requirements']),
-                   'evidence': deepcopy(scopes[name]['evidence'])}
+                   'evidence': {key: deepcopy(value) for key,value in scopes[name]['evidence'].items()
+                                if key in {'scope','source_sha256','reference_versions'}}}
             for name in ('main', 'full')}}
     if task.get('ordered_tree_min_similarity') is None:
         task.pop('ordered_tree_min_similarity', None)

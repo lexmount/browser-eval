@@ -315,3 +315,30 @@ sourceContext.fetch=async()=>({ok:true,text:async()=> 'recovered exact log'});
 await vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
 assert.equal(staticPre.textContent,'recovered exact log');
 console.log('PASS: shared lazy log dialog preserves signed-root paths, exact text, retry and existing packaged fill');
+
+// Packaged diagnostic evidence shares the same in-flight and large-text path.
+let releaseEvidence,packagedReads=0,evidenceReplacement;
+const evidenceGate=new Promise(resolve=>{releaseEvidence=resolve});
+const evidencePre={dataset:{evidenceFile:'evidence/large.txt'},textContent:'',replaceWith:node=>{evidenceReplacement=node}};
+sourceContext.logDialog={querySelectorAll:()=>[evidencePre]};
+sourceContext.document.createElement=()=>({setAttribute(){}});
+sourceContext.textFile=async path=>{assert.equal(path,'evidence/large.txt');packagedReads++;await evidenceGate;return 'exact log\n'.repeat(30000)};
+const firstRead=vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
+const duplicateRead=vm.runInContext('loadDiagnosticEvidence(logDialog)',sourceContext);
+assert.equal(packagedReads,1);releaseEvidence();await Promise.all([firstRead,duplicateRead]);
+assert.equal(evidenceReplacement.readOnly,true);assert.equal(evidenceReplacement.value,'exact log\n'.repeat(30000));
+
+const diagnosticJs=fs.readFileSync(new URL('../src/harness/web_fetch/assets/cohort-diagnostic.js',import.meta.url),'utf8');
+let issueCalls=0,scrolled=0;
+const issueSelect={dataset:{filter:'issue'},options:[{value:''},{value:'text'}],value:''};
+const resultSelect={dataset:{filter:'result'},value:'pass'};
+const issueContext=vm.createContext({URLSearchParams,location:{hash:''},
+ document:{querySelector:()=>issueSelect,querySelectorAll:()=>[issueSelect,resultSelect],getElementById:()=>({scrollIntoView(){scrolled++}}),addEventListener(){}},
+ window:{addEventListener(){}},cascadeFilters(){issueCalls++}});
+vm.runInContext(diagnosticJs,issueContext);
+for(const hash of ['#issue=text','#page=analysis%2Findex.html&anchor=issue%3Dtext']){
+ issueContext.location.hash=hash;vm.runInContext('diagnosticAnchor()',issueContext);
+ assert.equal(issueSelect.value,'text');assert.equal(resultSelect.value,'fail');
+}
+assert.equal(issueCalls,2);assert.equal(scrolled,2);
+console.log('PASS: packaged diagnostics load evidence once, bound large DOM text, and apply both issue-route forms');
