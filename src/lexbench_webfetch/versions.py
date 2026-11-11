@@ -63,6 +63,11 @@ def _measurement(dataset: dict) -> dict:
             "acceptance_sha256": _digest(contracts)}
 
 
+def _breaking_line(version: tuple[int, int, int]) -> tuple[int, ...]:
+    """Versions that may differ only compatibly: same major, or same minor before 1.0."""
+    return version[:1] if version[0] >= 1 else version[:2]
+
+
 def _validate(release: dict) -> tuple[int, int, int]:
     if release.get("schema_version") != 1 or release.get("kind") != "benchmark_release":
         raise ValueError("Unsupported benchmark release")
@@ -99,11 +104,12 @@ def create_release(dataset: dict, *, benchmark: str, version: str,
         old = _validate(previous)
         if benchmark != previous["benchmark"] or new <= old:
             raise ValueError("A successor needs the same benchmark and a newer version")
-        if new[0] == old[0]:
+        if _breaking_line(new) == _breaking_line(old):
             if any(release[key] != previous[key] for key in (
                 "case_count", "case_ids_sha256", "input_contract_sha256",
             )):
-                raise ValueError("Changed task population or input contract requires a major version")
+                raise ValueError("Changed task population or input contract requires a breaking "
+                                 "version: major, or minor before 1.0")
             changed = any(release[key] != previous[key] for key in (
                 "acceptance_sha256", "scoring_source_sha256",
             ))
@@ -139,12 +145,16 @@ def compare_releases(left: dict, right: dict) -> dict:
     fields = ("case_ids_sha256", "input_contract_sha256", "acceptance_sha256",
               "scoring_source_sha256")
     differences = [key for key in fields if left[key] != right[key]]
-    if left["benchmark"] != right["benchmark"] or a[0] != b[0]:
-        mode, reason = "separate", "Different benchmark or major edition"
+    if left["benchmark"] != right["benchmark"]:
+        mode, reason = "separate", "Different benchmark"
     elif left["version"] == right["version"] and differences:
         raise ValueError("Release version reused for a different measurement contract")
     elif any(key in differences for key in ("case_ids_sha256", "input_contract_sha256")):
-        raise ValueError("Task population or inputs changed within one major version")
+        if _breaking_line(a) == _breaking_line(b):
+            raise ValueError("Task population or inputs changed without a breaking version")
+        mode, reason = "separate", "Different task population or inputs"
+    elif a[0] != b[0]:
+        mode, reason = "separate", "Different major edition"
     elif differences:
         if a[:2] == b[:2]:
             raise ValueError("Acceptance or scoring changed within one minor version")
@@ -166,7 +176,7 @@ def freeze_release(dataset_path: Path, output: Path, **options) -> dict:
 
 
 def catalog_release(path: Path | None = None, *, require_current_scorer: bool = True) -> dict:
-    """Read the published catalog edition and verify its complete suite bindings."""
+    """Verify a frozen catalog, such as the dataset's historical bench-v2.1.0 record."""
     from .benchmark import definitions, read, registry, validate
 
     selected = path if path is not None else definitions() / "benchmark-release.json"

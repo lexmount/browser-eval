@@ -139,6 +139,19 @@ def test_same_version_cannot_name_different_contracts():
         compare_releases(first, release(after))
 
 
+def test_before_1_0_a_minor_version_may_change_the_task_population():
+    before = dataset()
+    after = deepcopy(before)
+    after["cases"].append({**deepcopy(after["cases"][0]), "id": "second"})
+    first = release(before, version="0.4.0")
+    with pytest.raises(ValueError, match="breaking version"):
+        release(after, version="0.4.1", previous=first)
+    second = release(after, version="0.5.0", previous=first)
+    assert compare_releases(first, second)["mode"] == "separate"
+    with pytest.raises(ValueError, match="without a breaking version"):
+        compare_releases(first, release(after, version="0.4.1"))
+
+
 def test_different_benchmarks_and_majors_are_separate_even_when_inputs_match():
     first = release()
     other = create_release(dataset(), benchmark="another-benchmark", version="1.0.0")

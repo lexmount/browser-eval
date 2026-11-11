@@ -170,4 +170,4 @@ Contributions use the [Apache License 2.0](LICENSE). Contributors retain copyrig
 
 ## Software releases
 
-Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Benchmark editions and report builds have separate identities. `AGENTS.md` owns when a version may change.
+Follow the [release guide](docs/releases.md) for software compatibility, version changes and release checks. Report builds have their own identities; the Browser Eval version names the Web Fetch benchmark edition. `AGENTS.md` owns when a version may change.

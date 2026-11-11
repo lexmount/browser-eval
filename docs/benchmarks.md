@@ -212,7 +212,7 @@ Report home pages link to the Browser Eval build version and the selected bench
 edition. Their JSON bindings retain code commits and source/input hashes.
 Rebuilding with a newer Browser Eval release changes the build identity, not the
 saved call identity or benchmark edition. Custom datasets without a frozen
-edition retain their hashes rather than inheriting the installed catalog version.
+edition retain their hashes rather than inheriting the installed Browser Eval version.
 
 | Change | Browser Eval version | Result comparison |
 | --- | --- | --- |

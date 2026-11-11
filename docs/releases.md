@@ -72,8 +72,10 @@ this table is the index.
 | [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
 
 Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
-can support several separately selected benchmarks; its version never chooses
-a report's population or changes saved results.
+can support several separately selected benchmarks. Its version never changes
+saved results or an existing report's population; for Web Fetch it also names
+the benchmark edition that new runs use (see
+[Web Fetch benchmark edition](#web-fetch-benchmark-edition)).
 
 ## Benchmark release index
 
@@ -87,12 +89,11 @@ a report's population or changes saved results.
 
 The WebArena Replay Hub tags `v1.0.0` and `v1.0.1` resolve to the previous and current editions pinned in the data lock. The lock records the full commit of each edition. The manifest of 1.0.1 records a `source_revision` that was a local build commit and was never published. That manifest is immutable, so the lock notes this beside the entry; use `revision` to identify the edition.
 
-A benchmark release uses one tag for its tasks, reference answers, scoring rules
-and evaluation code. Task suites use stable names rather than separate dataset
-release numbers. Data unchanged with updated tooling can still warrant a bench
-release: use a patch when measurement is unchanged, a minor for scoring
-corrections, and a major for changed task scope. Python requires package version metadata for installation; this is
-internal packaging information, not a separate public release line.
+The `bench-v*` releases above each used one tag for their tasks, reference answers,
+scoring rules and evaluation code. Web Search and WebArena Replay still follow
+that scheme. New Web Fetch editions use the Browser Eval version instead (see
+[Web Fetch benchmark edition](#web-fetch-benchmark-edition)); a new Web Fetch
+sidecar starts that line and does not name a `bench-v2.x` sidecar as `--previous`.
 
 ## Version source and release cadence
 
