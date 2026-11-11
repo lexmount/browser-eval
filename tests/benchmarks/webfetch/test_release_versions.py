@@ -139,6 +139,17 @@ def test_same_version_cannot_name_different_contracts():
         compare_releases(first, release(after))
 
 
+def test_before_1_0_a_scoring_correction_still_needs_a_change_note():
+    first = release(version="0.4.0", scoring_source_sha256="1" * 64)
+    with pytest.raises(ValueError, match="minor version"):
+        release(version="0.4.1", previous=first, scoring_source_sha256="2" * 64, change_note="Fix")
+    with pytest.raises(ValueError, match="change note"):
+        release(version="0.5.0", previous=first, scoring_source_sha256="2" * 64)
+    second = release(version="0.5.0", previous=first, scoring_source_sha256="2" * 64,
+                     change_note="Corrected heading scoring")
+    assert compare_releases(first, second)["mode"] == "rescore"
+
+
 def test_before_1_0_a_minor_version_may_change_the_task_population():
     before = dataset()
     after = deepcopy(before)
@@ -310,3 +321,16 @@ def test_release_sidecar_requires_the_released_browser_eval_scorer(monkeypatch, 
         main()
     assert "installed Browser Eval version" in capsys.readouterr().err
     assert not (tmp_path / "r.json").exists()
+
+
+def test_custom_benchmark_sidecars_keep_their_own_version(monkeypatch, tmp_path, capsys):
+    from lexbench_webfetch import versions
+    from lexbench_webfetch.cli import main
+    monkeypatch.setattr(versions, "RELEASED_SCORERS", {})
+    source = tmp_path / "dataset.json"
+    source.write_text(json.dumps(dataset()), encoding="utf-8")
+    monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(source),
+                                     "--output", str(tmp_path / "r.json"), "--benchmark", "local",
+                                     "--version", "1.0.0", "--scorer-revision", "0" * 40])
+    main()
+    assert json.loads(capsys.readouterr().out)["version"] == "1.0.0"

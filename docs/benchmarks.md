@@ -103,7 +103,8 @@ This retains the original calls and rules and applies each changed case to every
 method. The narrower certified scoring-correction command does not authorize
 arbitrary prompt changes. A local re-evaluation does not establish that old calls
 executed the revised task or make changed input contracts directly comparable:
-a formal release requires a major edition and remains a separate comparison.
+a formal release requires a breaking version (major, or minor before 1.0) and
+remains a separate comparison.
 Changed-prompt offline revisions cannot enter a saved matrix's final primary
 ranking. Keep original-contract results and revised-rule sensitivity analysis
 separate, including per-method effects and any counterfactual retry differences.
@@ -221,7 +222,7 @@ edition retain their hashes rather than inheriting the installed Browser Eval ve
 | Added/removed cases, changed requests, output scope or routes | Major (minor before 1.0, described as breaking) | Separate full-population results |
 
 The `lexbench_webfetch` module owns `lexbench-webfetch release` and `compare-releases`. Historical benchmark version contracts remain available with their original source revisions.
-Freeze `benchmark-release.json` beside the compiled inputs before calls. Give `release --version` the installed Browser Eval version; the command rejects any other.
+Freeze `benchmark-release.json` beside the compiled inputs before calls. For `--benchmark lexmount-webfetch`, give `release --version` the installed, released Browser Eval version; the command rejects any other. Custom benchmarks keep their own version numbers.
 The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
 the sidecar beside the selected dataset. Release creation records the full scorer
 commit alongside the independently computed source hash. The runner checks tasks and the active scorer
@@ -250,7 +251,7 @@ presentation rebuild; it does not run the current scorer over old results.
 
 Reuse unchanged saved outputs for a minor correction, including prior
 successes, then recompute scores under one edition. Use the existing revision
-receipts; do not overwrite the older report. Major editions may retain
+receipts; do not overwrite the older report. Breaking editions may retain
 diagnostic task-overlap analyses, but their complete throughputs/pass rates
 are separate measurements. Latency still requires matching runtime controls
 and the existing same-window comparison contract.

@@ -64,7 +64,8 @@ def main() -> None:
         elif args.command == "release":
             from .versions import freeze_release, installed_version
             scorer = installed_version()
-            if scorer["status"] != "released" or args.version != scorer["version"]:
+            if args.benchmark == "lexmount-webfetch" and (
+                    scorer["status"] != "released" or args.version != scorer["version"]):
                 raise ValueError("Release version must be the installed Browser Eval version "
                                  f"and its released scorer; installed scorer is {scorer['version']}")
             previous = json.loads(args.previous.read_text()) if args.previous else None

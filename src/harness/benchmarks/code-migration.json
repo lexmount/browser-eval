@@ -40,7 +40,7 @@
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
-          "after_sha256": "df132c3a3736998e29e27e24e5d1b2225bc77bd96d4310e13966458abd30004f"
+          "after_sha256": "13f98f36bee3d1675670dfd763accc371424c1775d225036d0ec7d060db1e731"
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
@@ -116,7 +116,7 @@
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
-          "after_sha256": "7c0d786a3bce6bd862de634e95dfe9bb0b0f7a071748353066569e1d4ae30c81"
+          "after_sha256": "e76133953fa60681fb5af53b3e6467dc7e814f9edf53e464af21c19f0a9a5f94"
         },
         "annotation_revisions.py": {
           "before_sha256": "98792092a82af477cf2b975c62e37378e75c083bf8370d75d65e08fd25f3d843",

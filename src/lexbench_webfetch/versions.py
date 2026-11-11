@@ -104,18 +104,16 @@ def create_release(dataset: dict, *, benchmark: str, version: str,
         old = _validate(previous)
         if benchmark != previous["benchmark"] or new <= old:
             raise ValueError("A successor needs the same benchmark and a newer version")
-        if _breaking_line(new) == _breaking_line(old):
-            if any(release[key] != previous[key] for key in (
-                "case_count", "case_ids_sha256", "input_contract_sha256",
-            )):
-                raise ValueError("Changed task population or input contract requires a breaking "
-                                 "version: major, or minor before 1.0")
-            changed = any(release[key] != previous[key] for key in (
-                "acceptance_sha256", "scoring_source_sha256",
-            ))
-            if changed and new[1] == old[1]:
+        population_changed = any(release[key] != previous[key] for key in (
+            "case_count", "case_ids_sha256", "input_contract_sha256"))
+        if population_changed and _breaking_line(new) == _breaking_line(old):
+            raise ValueError("Changed task population or input contract requires a breaking "
+                             "version: major, or minor before 1.0")
+        if not population_changed and new[0] == old[0] and any(release[key] != previous[key] for key in (
+                "acceptance_sha256", "scoring_source_sha256")):
+            if new[:2] == old[:2]:
                 raise ValueError("Changed acceptance or scoring requires a minor version")
-            if changed and (not isinstance(change_note, str) or not change_note.strip()):
+            if not isinstance(change_note, str) or not change_note.strip():
                 raise ValueError("A scoring correction requires a change note")
         release["previous_release_sha256"] = _digest(previous)
     if change_note is not None:
