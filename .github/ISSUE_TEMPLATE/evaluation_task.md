@@ -9,7 +9,9 @@ about: Group findings from one evaluation report
 
 ## Scope
 
-<!-- State the goal of this batch and which findings belong here. -->
+<!-- State the task objective, required output scope and fix priority. Identify deferred
+capabilities and link their batch. Extra baseline content is not an acceptance rule.
+If using a task-family subset, state its denominator and retain full-report results. -->
 
 ## Findings
 

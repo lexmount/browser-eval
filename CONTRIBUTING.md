@@ -21,7 +21,11 @@ Then provide:
    For hosted services, include the endpoint, parameters and request ID when available.
 4. Supporting evidence and a diagnosis or proposed fix, if established.
 
-For benchmark findings, identify the task and acceptance rule. Distinguish a tool
+For benchmark findings, identify the task, output scope and acceptance rule.
+A richer baseline response does not make its extra content a requirement: request
+only the main content or resources the task needs. Keep media discovery and file
+delivery separate from ordinary body extraction unless explicitly required.
+Distinguish a tool
 failure from a reference, scorer or adapter defect. Label saved-call evidence with
 its original date; it does not establish that the current service still fails.
 State which cause is demonstrated by the evidence and which explanation remains
@@ -37,6 +41,8 @@ A tracking issue should contain a short goal and links to the individual issues.
 For findings from an evaluation, use the [evaluation task template](.github/ISSUE_TEMPLATE/evaluation_task.md),
 set the issue type to Task and link the report that defines the batch. Attach each
 finding as a native sub-issue; keep different reports or releases in separate tasks.
+Order fixes by the declared task objective. Give deferred capabilities their own
+batch, and label any task-family subset without replacing the full report counts.
 Include a concise failure breakdown with denominators, representative behavior
 and related issues. State whether categories overlap, and keep observed failure
 counts separate from proven causes; examples alone do not establish prevalence.

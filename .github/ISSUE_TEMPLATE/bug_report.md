@@ -15,7 +15,8 @@ For benchmark failures, identify the task and acceptance rule. Remove credential
 
 ## Expected behavior
 
-<!-- State the observable result that would be correct. -->
+<!-- State the observable result required by the task. Do not demand unrelated content
+merely because a baseline returns it; distinguish main body, media and file delivery. -->
 
 ## Actual behavior
 
