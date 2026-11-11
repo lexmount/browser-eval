@@ -2355,6 +2355,15 @@
     "diagnosis_cause": "原因与依据",
     "diagnosis_fix": "修复建议",
     "diagnosis_verify": "修复后如何验收",
-    "diagnosis_evidence": "查看逐项检查及原始证据 →"
+    "diagnosis_evidence": "查看逐项检查及原始证据 →",
+    "original_file_not_delivered": "未交付原文件",
+    "document_headings_not_preserved": "未保留要求的章节标题",
+    "heading_coverage_value": "章节标题覆盖率：{value}%",
+    "article_title_missing": "缺少正文标题",
+    "article_title_in_body": "正文中保留文章标题组件",
+    "article_title_not_found": "返回正文中没有符合要求的文章标题",
+    "no_matching_resource": "未匹配到目标资源",
+    "original_file_bytes_required": "交付符合原验证规则的文件字节",
+    "original_file_validation_failed": "原文件字节校验未通过"
   }
 }

@@ -839,7 +839,9 @@ def generate_cohort_diagnostic(out, model):
     text+=table(spec['headers'],[('', ''.join(cell(value_html(value)) for value in row)) for row in spec['rows']],f'diagnostic-table-{name}-{index}')
    if block.get('figure'):
     figure=block['figure']
-    text+='<figure class="diagnosis-figure"><img loading="lazy" src="'+esc(figure['path'])+'" alt="'+esc(figure['alt'])+'"><figcaption>'+esc(figure['scope'])+'</figcaption></figure>'
+    png=(out/figure['path']).read_bytes()
+    width,height=int.from_bytes(png[16:20],'big'),int.from_bytes(png[20:24],'big')
+    text+='<figure class="diagnosis-figure"><a href="'+esc(figure['path'])+'"><img loading="lazy" width="'+str(width)+'" height="'+str(height)+'" src="'+esc(figure['path'])+'" alt="'+esc(figure['alt'])+'"></a><figcaption>'+esc(figure['scope'])+'</figcaption></figure>'
    for example in block.get('examples',[]):
     row=by_id[example['case_id']]
     text+='<article class="diagnosis-example" data-diagnosis-case="'+esc(row['id'])+'"><h3>'+link(detail_link(row),example.get('title')or row.get('name')or row['id'])+'</h3><p>'+esc(groups[row['cohort']]['label'])+' · '+link(row['url'],row['url'])+'</p><div class="diagnosis-contrast">'

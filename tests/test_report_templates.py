@@ -39,6 +39,26 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_saved_document_resource_and_file_failures_keep_exact_checks(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row=dict(initial_pass=False,log=dict(path='log.json'),reference=dict(path='reference.json'))
+        metrics=dict(document_structure_pass=False,document_heading_coverage=0,
+                     document_heading_results=[dict(id='section-1',**{'pass':False})],
+                     article_title_pass=False,raw_file_pass=False,
+                     resource_results=[dict(id='video',expected_urls=['https://example.com/real.mp4'],
+                                            matched_urls=[],**{'pass':False})])
+        files={'log.json':json.dumps(dict(metrics=metrics)).encode(),
+               'reference.json':json.dumps(dict(document_structure=dict(headings=[dict(text='Installation')]))).encode()}
+        findings=diagnostic_findings(row,files)
+        self.assertEqual({f['kind'] for f in findings},{'pattern','text','file','resource'})
+        self.assertTrue(any('Installation' in f['expected'] for f in findings))
+        self.assertTrue(any('https://example.com/real.mp4' in f['expected'] for f in findings))
+        self.assertEqual(diagnostic_findings({**row,'initial_pass':True},files),[])
+        metrics.update(document_structure_pass=True,article_title_pass=True,raw_file_pass=True)
+        metrics['resource_results'][0]['pass']=True
+        files['log.json']=json.dumps(dict(metrics=metrics)).encode()
+        self.assertEqual([f['kind']for f in diagnostic_findings(row,files)],['other'])
+
     def test_issue_guide_binds_case_diagnosis_figure_and_exact_evidence(self):
         import base64
         from harness.web_fetch.report_diagnostic import load_diagnostic

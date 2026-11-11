@@ -173,6 +173,8 @@ FAILURE_TYPES = {
     'body': t('insufficient_body_coverage', 'Insufficient body coverage'), 'records': t('incomplete_list_or_table', 'Incomplete list or table'),
     'encoding': t('text_encoding_damaged', 'Text encoding damaged'), 'truncated': t('output_truncated', 'Output truncated'),
     'shell': t('only_script_or_page_framework', 'Only script or page framework'), 'length': t('too_little_content_returned', 'Too little content returned'),
+    'resource': t('required_resource_missing', 'Required resource missing'),
+    'file': t('original_file_not_delivered', 'Original file not delivered'),
     'pattern': t('content_structure_mismatch', 'Content structure mismatch'), 'other': t('other_failed_checks', 'Other failed checks'),
 }
 
@@ -319,6 +321,28 @@ def diagnostic_findings(row, files):
             add('pattern', t('required_content_structure_missing', 'Required content structure missing'), check.get('pattern') or check.get('id', t('declared_structure_requirement', 'Declared structure requirement')),
                 t('this_structure_pattern_did_not_match', 'This structure pattern did not match') if 'pattern' in check else
                 t('items_at_least_required', '{get} items; at least {get2} required', get=str(check.get('count', t('not_provided_by_the_record', 'Not provided by the record'))), get2=str(check.get('minimum', t('not_provided_by_the_record', 'Not provided by the record')))))
+    if metrics.get('document_structure_pass') is False:
+        try:
+            reference=json.loads(files[row['reference']['path']])
+            headings=[h['text'] for h in reference.get('document_structure',{}).get('headings',[])]
+        except (KeyError,ValueError,TypeError):
+            headings=[]
+        add('pattern',t('document_headings_not_preserved','Document headings not preserved'),
+            ' / '.join(headings) or t('declared_structure_requirement','Declared structure requirement'),
+            t('heading_coverage_value','Heading coverage: {value}%',value=round(100*metrics.get('document_heading_coverage',0),1)))
+    if metrics.get('article_title_pass') is False:
+        add('text',t('article_title_missing','Article title missing'),
+            t('article_title_in_body','Article title retained as a body component'),
+            t('article_title_not_found','No qualifying article title in the returned body'))
+    for resource in metrics.get('resource_results') or []:
+        if resource.get('pass') is False:
+            add('resource',t('required_resource_missing','Required resource missing'),
+                ' / '.join(resource.get('expected_urls') or [resource.get('id','resource')]),
+                ' / '.join(resource.get('matched_urls') or []) or t('no_matching_resource','No matching resource'))
+    if metrics.get('raw_file_pass') is False:
+        add('file',t('original_file_not_delivered','Original file not delivered'),
+            t('original_file_bytes_required','Original file bytes matching the declared validation'),
+            t('original_file_validation_failed','Original file validation failed'))
     if not findings:
         add('other', t('other_failed_checks', 'Other failed checks'), t('meets_the_complete_task_requirements', 'Meets the complete task requirements'), row.get('failure') or t('the_saved_record_lists_no_specific_failed', 'The saved record lists no specific failed item'))
     return findings
