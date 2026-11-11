@@ -1,5 +1,7 @@
 # Product extraction benchmark (Zyte)
 
+Lexmount distribution: **LexBench-Zyte-Product-Extraction** (short name: **LB-ZPE**).
+
 [Product extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark)
 was published by Zyte in 2021. This Hub repository distributes its {{total_records}}
 archived product pages and original references. Lexmount maintains the distribution

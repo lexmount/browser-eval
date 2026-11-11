@@ -1,5 +1,7 @@
 # LexBench-Web-Search
 
+Short name: **LB-WS**.
+
 LexBench-Web-Search evaluates the pages a search API returns for fixed queries: whether useful results appear near the top, whether explicit source requirements are met, and whether known reference pages are found. The tasks cover general web search, named-site search and vertical search across English, Chinese and other languages.
 
 [Browser Eval](https://github.com/lexmount/browser-eval) maintains the scorer, provider adapters and evidence reports. This dataset supplies versioned query definitions, source attribution and qualified reference inputs. Use it to evaluate retrieval before an agent fetches pages or generates an answer. The harness can turn saved results into local HTML reports with query-level drilldown that readers can inspect, rebuild and share.
