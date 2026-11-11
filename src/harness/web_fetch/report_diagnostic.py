@@ -355,6 +355,57 @@ def diagnostic_cohort_summary(model, files):
         for group in model['cohorts']]
 
 
+def diagnostic_cell_text(value):
+    return value['label'] if isinstance(value, dict) else str(value)
+
+
+def validate_diagnostic_blocks(model, files, source):
+    """Bind authored diagnosis examples and illustrations to inspectable evidence."""
+    rows = {row['id']: row for row in model['rows']}
+    guide_ids = {block['id'] for block in model.get('pages', {}).get('guide', []) if block.get('id')}
+    for blocks in model.get('pages', {}).values():
+        for block in blocks:
+            if block.get('id'):
+                safe_identifier(block['id'])
+            for values in block.get('table', {}).get('rows', []):
+                for value in values:
+                    if not isinstance(value, dict):
+                        continue
+                    kind = 'case_id' if 'case_id' in value else 'issue_id'
+                    if (set(value) != {kind, 'label'} or not value['label']
+                            or value[kind] not in (rows if kind == 'case_id' else guide_ids)):
+                        raise ValueError('Diagnosis table link has no matching case or issue')
+            figure = block.get('figure')
+            if figure:
+                if not all(isinstance(figure.get(k), str) and figure[k].strip()
+                           for k in ('path', 'sha256', 'alt', 'scope')):
+                    raise ValueError('Diagnosis illustration needs a hash, description and scope')
+                path = contained_path(source, figure['path'], reject_symlinks=True)
+                raw = path.read_bytes()
+                if hashlib.sha256(raw).hexdigest() != figure['sha256']:
+                    raise ValueError('Diagnosis illustration hash mismatch')
+                if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+                    raise ValueError('Diagnosis illustration must be a PNG')
+                files[figure['path']] = raw
+            for example in block.get('examples', []):
+                row = rows.get(example.get('case_id'))
+                if row is None or any(not isinstance(example.get(k), str) or not example[k].strip()
+                                      for k in ('expected', 'actual', 'cause', 'fix', 'verify')):
+                    raise ValueError('Diagnosis example needs a case, discrepancy, cause and repair')
+                if not example.get('evidence'):
+                    raise ValueError('Diagnosis example needs a verbatim evidence locator')
+                for evidence in example['evidence']:
+                    binding = row.get(evidence.get('field')) if evidence.get('field') in {
+                        'reference', 'first_answer', 'answer', 'source', 'log'} else None
+                    if not binding or not evidence.get('quote'):
+                        raise ValueError('Diagnosis example evidence field is absent')
+                    raw = files.get(binding['path'])
+                    if raw is None:
+                        raw = contained_path(source, binding['path'], reject_symlinks=True).read_bytes()
+                    if evidence['quote'] not in raw.decode('utf-8'):
+                        raise ValueError('Diagnosis quotation is absent from bound case evidence')
+
+
 def load_diagnostic(source):
     source = Path(source).resolve()
     model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
@@ -451,6 +502,7 @@ def load_diagnostic(source):
                     or type(paired.get('passed')) is not bool
                     or (paired['passed'] and not row['initial_pass'])):
                 raise ValueError('Paired content scopes require one scorer and full-pass implies main-pass')
+    validate_diagnostic_blocks(model, files, source)
     audited = [r for r in rows if r.get("success_audit")]
     states = Counter(r["success_audit"]["source_state"] for r in audited)
     if len(audited) != model["success_audit"]["audited_passes"] or dict(states) != model["success_audit"]["source_state_counts"]:
@@ -495,11 +547,11 @@ def check_diagnostic_report(output, profile=None):
             if (not rendered
                     or [c.get_text() for c in rendered.select('thead th')][1:] != spec['headers']
                     or [[c.get_text() for c in r.select('td')][1:] for r in rendered.select('tbody tr')]
-                    != [[str(v) for v in r] for r in spec['rows']]):
+                    != [[diagnostic_cell_text(v) for v in r] for r in spec['rows']]):
                 raise ValueError('Diagnostic explanatory table differs from evidence model')
     home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
-    for route in ('index.html', 'guide/index.html'):
+    for route in (() if model.get('problem_focus') else ('index.html', 'guide/index.html')):
         page = read_page(output / route)
         rendered = page.select('[data-summary-overall]')
         expected_values = [overall[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
@@ -528,9 +580,9 @@ def check_diagnostic_report(output, profile=None):
                 raise ValueError('Comparison summary lacks metric directions')
             check_presentation(str(comparison))
     bars = home.select('#cohort-results .editorial-bar-row')
-    if len(bars) != len(model['cohorts']):
+    if len(bars) != (0 if model.get('problem_focus') else len(model['cohorts'])):
         raise ValueError('Missing cohort result chart')
-    for bar, group in zip(bars, model['cohorts'], strict=True):
+    for bar, group in zip(bars, [] if model.get('problem_focus') else model['cohorts'], strict=True):
         passed, total = model['metrics'][group['id']]
         label, count, fill = bar.select_one('span'), bar.select_one('b'), bar.select_one('i')
         if (not label or label.get_text() != group['label'] or not count
@@ -559,38 +611,62 @@ def check_diagnostic_report(output, profile=None):
     if [r.get_text() for r in guide.select('[data-summary-group]')] != [r.get_text() for r in summaries]:
         raise ValueError('Interpretation summary differs from measured outcome')
     causes = Counter(r['cause'] for r in model['rows'] if not r['initial_pass'])
-    cause_rows = guide.select('#guide-reviewed-causes tbody tr')
-    if len(cause_rows) != len(causes):
-        raise ValueError('Interpretation lacks reviewed failure distribution')
-    for rendered, (cause, count) in zip(cause_rows, causes.most_common(), strict=True):
-        cells = rendered.select('td')
-        expected_case=next(r for r in model['rows'] if not r['initial_pass'] and r['cause']==cause)
-        if (cells[1].get_text() != model['cause_labels'][cause]
-                or cells[2].get_text() != f'{count} / {sum(causes.values())}'
-                or not cells[3].select_one('a[href="attempts/'+expected_case['id']+'.html"]')):
-            raise ValueError('Interpretation reviewed counts differ from per-case review')
-    examples = model.get('interpretation_case_ids')
-    if examples is None:
-        examples = [next(r['id'] for r in model['rows'] if not r['initial_pass'])] if expected_counts else []
-        if any(r['initial_pass'] for r in model['rows']):
-            examples.append(next(r['id'] for r in model['rows'] if r['initial_pass']))
-    specimens = guide.select('[data-interpretation-case]')
-    if [s['data-interpretation-case'] for s in specimens] != examples or not specimens:
-        raise ValueError('Interpretation specimen inventory differs from model')
-    for cid, specimen in zip(examples, specimens, strict=True):
-        row = next(r for r in model['rows'] if r['id'] == cid)
-        if not specimen.select_one('a[href="attempts/'+cid+'.html"]'):
-            raise ValueError('Interpretation specimen lacks full evidence')
-        panels = specimen.select('[data-specimen-field]')
-        if [p['data-specimen-field'] for p in panels] != ['reference','first_answer','source']:
-            raise ValueError('Interpretation lacks reference/output/source comparison')
-        for panel in panels:
-            field = panel['data-specimen-field'];binding = row.get(field)
-            if binding and panel.get('data-sha256') != binding['sha256']:
-                raise ValueError('Interpretation specimen evidence binding differs')
-            expected_preview = diagnostic_specimen_excerpt(row,field,files,model)
-            if panel.select_one('pre').get_text() != expected_preview:
-                raise ValueError('Interpretation specimen differs from bound evidence')
+    if not model.get('problem_focus'):
+        cause_rows = guide.select('#guide-reviewed-causes tbody tr')
+        if len(cause_rows) != len(causes):
+            raise ValueError('Interpretation lacks reviewed failure distribution')
+        for rendered, (cause, count) in zip(cause_rows, causes.most_common(), strict=True):
+            cells = rendered.select('td')
+            expected_case=next(r for r in model['rows'] if not r['initial_pass'] and r['cause']==cause)
+            if (cells[1].get_text() != model['cause_labels'][cause]
+                    or cells[2].get_text() != f'{count} / {sum(causes.values())}'
+                    or not cells[3].select_one('a[href="attempts/'+expected_case['id']+'.html"]')):
+                raise ValueError('Interpretation reviewed counts differ from per-case review')
+        examples = model.get('interpretation_case_ids')
+        if examples is None:
+            examples = [next(r['id'] for r in model['rows'] if not r['initial_pass'])] if expected_counts else []
+            if any(r['initial_pass'] for r in model['rows']):
+                examples.append(next(r['id'] for r in model['rows'] if r['initial_pass']))
+        specimens = guide.select('[data-interpretation-case]')
+        if [s['data-interpretation-case'] for s in specimens] != examples or not specimens:
+            raise ValueError('Interpretation specimen inventory differs from model')
+        for cid, specimen in zip(examples, specimens, strict=True):
+            row = next(r for r in model['rows'] if r['id'] == cid)
+            if not specimen.select_one('a[href="attempts/'+cid+'.html"]'):
+                raise ValueError('Interpretation specimen lacks full evidence')
+            panels = specimen.select('[data-specimen-field]')
+            if [p['data-specimen-field'] for p in panels] != ['reference','first_answer','source']:
+                raise ValueError('Interpretation lacks reference/output/source comparison')
+            for panel in panels:
+                field = panel['data-specimen-field'];binding = row.get(field)
+                if binding and panel.get('data-sha256') != binding['sha256']:
+                    raise ValueError('Interpretation specimen evidence binding differs')
+                expected_preview = diagnostic_specimen_excerpt(row,field,files,model)
+                if panel.select_one('pre').get_text() != expected_preview:
+                    raise ValueError('Interpretation specimen differs from bound evidence')
+    if model.get('problem_focus'):
+        expected_examples = [example for block in model['pages'].get('guide', [])
+                             for example in block.get('examples', [])]
+        rendered_examples = guide.select('[data-diagnosis-case]')
+        if not expected_examples or len(expected_examples) != len(rendered_examples):
+            raise ValueError('Problem-focused guide lacks concrete case diagnoses')
+        for expected, rendered in zip(expected_examples, rendered_examples, strict=True):
+            if (rendered['data-diagnosis-case'] != expected['case_id']
+                    or not rendered.select_one('a[href="attempts/'+expected['case_id']+'.html"]')):
+                raise ValueError('Diagnosis points to a different result')
+            for key in ('expected', 'actual', 'cause', 'fix', 'verify'):
+                node = rendered.select_one('[data-diagnosis-field="'+key+'"]')
+                actual = node.select_one('p').get_text() if key in {'expected', 'actual'} and node else node.get_text() if node else None
+                if actual != expected[key]:
+                    raise ValueError('Diagnosis omits or changes its evidence-backed '+key)
+        for block in model['pages'].get('guide', []):
+            if not block.get('figure'):
+                continue
+            rendered = guide.select_one('#'+block['id']+' .diagnosis-figure img')
+            figure = block['figure']
+            if (not rendered or rendered.get('src') != figure['path']
+                    or rendered.get('alt') != figure['alt']):
+                raise ValueError('Diagnosis illustration is missing or points to different evidence')
     for row in model["rows"]:
         route = "attempts/" + row["id"] + ".html"
         soup = checked_page(output / route)

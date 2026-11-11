@@ -827,16 +827,34 @@ def generate_cohort_diagnostic(out, model):
  def detail_link(row):return 'attempts/'+row['id']+'.html'
  def blocks(name):
   body=''
+  by_id={row['id']:row for row in rows}
+  def value_html(value):
+   if not isinstance(value,dict):return esc(str(value))
+   if value.get('case_id'):return link(detail_link(by_id[value['case_id']]),value['label'])
+   return link('guide/index.html#'+value['issue_id'],value['label'])
   for index,block in enumerate(model.get('pages',{}).get(name,[])):
    text=''.join('<p>'+esc(p)+'</p>' for p in block['paragraphs'])
    if block.get('table'):
     spec=block['table']
-    text+=table(spec['headers'],[('', ''.join(cell(esc(str(value))) for value in row)) for row in spec['rows']],f'diagnostic-table-{name}-{index}')
+    text+=table(spec['headers'],[('', ''.join(cell(value_html(value)) for value in row)) for row in spec['rows']],f'diagnostic-table-{name}-{index}')
+   if block.get('figure'):
+    figure=block['figure']
+    text+='<figure class="diagnosis-figure"><img loading="lazy" src="'+esc(figure['path'])+'" alt="'+esc(figure['alt'])+'"><figcaption>'+esc(figure['scope'])+'</figcaption></figure>'
+   for example in block.get('examples',[]):
+    row=by_id[example['case_id']]
+    text+='<article class="diagnosis-example" data-diagnosis-case="'+esc(row['id'])+'"><h3>'+link(detail_link(row),example.get('title')or row.get('name')or row['id'])+'</h3><p>'+esc(groups[row['cohort']]['label'])+' · '+link(row['url'],row['url'])+'</p><div class="diagnosis-contrast">'
+    for key,label in [('expected',t('diagnosis_expected','Task requirement')),('actual',t('diagnosis_actual','Observed result'))]:
+     text+='<div data-diagnosis-field="'+key+'"><h4>'+label+'</h4><p>'+esc(example[key])+'</p></div>'
+    text+='</div><dl class="diagnosis-repair">'
+    for key,label in [('cause',t('diagnosis_cause','Cause and evidence')),('fix',t('diagnosis_fix','Recommended fix')),('verify',t('diagnosis_verify','Acceptance check'))]:
+     text+='<dt>'+label+'</dt><dd data-diagnosis-field="'+key+'">'+esc(example[key])+'</dd>'
+    text+='</dl><p>'+link(detail_link(row),t('diagnosis_evidence','Open the exact checks and original evidence →'))+'</p></article>'
    if block.get('case_ids'):
-    text+='<p class="actions">'+''.join(link('attempts/'+cid+'.html',cid+' →') for cid in block['case_ids'])+'</p>'
-   body+=section(esc(block['title']),text)
+    text+='<p class="actions">'+''.join(link('attempts/'+cid+'.html',(by_id[cid].get('name')or cid)+' →') for cid in block['case_ids'])+'</p>'
+   body+=section(esc(block['title']),text,block.get('id',''))
   return body
  def distribution(counts):
+  if model.get('problem_focus'):return ''
   return '<figure class="editorial-figure">'+''.join('<div class="editorial-bar-row"><span>'+esc(label)+'</span><div class="editorial-bar-track"><i style="width:'+str(100*n/population)+'%"></i></div><b>'+str(n)+' / '+str(population)+'</b></div>' for label,n,population in counts)+'</figure>'
  try:
   home=hero(esc(model['title']),esc(model['subtitle']))
@@ -860,6 +878,7 @@ def generate_cohort_diagnostic(out, model):
   if comparison_mode:
    summary_rows=comparative_rows(summary_rows,{3:('delivery','max'),4:('acceptance','max')})
   home+=section(t('results_by_task_family', 'Results by task family'),(f"{table([t('task_group', 'Task group'), t('implementation_version', 'Implementation version'), t('tasks', 'Tasks'), t('call_success', 'Call success'), t('pass', 'Pass'), t('mean_latency_s', 'Mean latency (s)'), t('p50_latency_s', 'P50 latency (s)'), t('p95_latency_s', 'P95 latency (s)')], summary_rows, 'cohort-summary', sortable=True)}{distribution([(groups[g]['label'], *model['metrics'][g]) for g in groups])}<p>" + t('a_successful_call_only_means_the_request', 'A successful call only means the request delivered; a task pass also requires the body, text and structure rules. All three latency figures cover every call in the group; P50 is the median and P95 the 95th percentile. Groups without complete timing show —.') + f"</p><p>{esc(model['metric_note'])}</p>"),'cohort-results')
+  core_home=home
   failures=Counter(r['cause'] for r in rows if not r['initial_pass'])
   home+=blocks('overview')
   if comparison_mode:home+='<details class="wrap"><summary>'+t('call_inventory', 'Call inventory')+'</summary>'+overall_section+'</details>'
@@ -867,13 +886,15 @@ def generate_cohort_diagnostic(out, model):
   audit=model['success_audit'];counts=audit['source_state_counts']
   home+=section(t('passes_are_also_checked_against_the_source', 'Passes are also checked against the source page'),(f"{distribution([(model['source_labels'][k], n, audit['audited_passes']) for k, n in counts.items()])}<p>" + t('passing_results_have_three_way_check_records', '{audited_passes} passing results have three-way check records; comparable content and access barriers on the current page are recorded separately. {link}', audited_passes=str(audit['audited_passes']), link=link('review/index.html', t('check_scope_and_conclusions', 'Check scope and conclusions →'))) + '</p>'))
   home+=section(t('where_to_read_next', 'Where to read next'),'<div class="guide-grid">'+''.join('<article class="guide-card"><h3>'+link(route,title)+'</h3><p>'+text+'</p></article>' for route,title,text in [('datasets/index.html',t('dataset', 'Dataset'),t('view_samples_tasks_and_independent_reference_requirements', 'View samples, tasks and independent reference requirements.')),('analysis/index.html',t('analysis', 'Analysis'),t('filter_passes_failures_and_attribution_and_open', 'Filter passes, failures and attribution, and open complete evidence.')),('guide/index.html',t('interpretation', 'Interpretation'),t('understand_access_challenges_extraction_omissions_and_evaluation', 'Understand access challenges, extraction omissions and evaluation revisions.'))])+'</div>')
+  if model.get('problem_focus'):
+   home=core_home+blocks('overview')
   page('index.html',model['title'],home)
   controls=('<div class="filters"><label>' + t('group', 'Group') + '<select data-filter="cohort"><option value="">' + t('all', 'All') + f"""</option>{''.join(('<option value="' + esc(k) + '">' + esc(g['label']) + '</option>' for k, g in groups.items()))}</select></label><label>""" + t('result', 'Result') + '<select data-filter="result"><option value="fail">' + t('fail_2', 'Fail') + '</option><option value="pass">' + t('pass_2', 'Pass') + '</option><option value="">' + t('all', 'All') + '</option></select></label><label>' + t('failure_type', 'Failure type') + '<select data-filter="issue"><option value="">' + t('all', 'All') + f"""</option>{''.join(('<option value="' + esc(k) + '">' + esc(FAILURE_TYPES[k]) + '</option>' for k in failure_types))}</select></label><label>""" + t('check_leads', 'Check leads') + '<select data-filter="cause"><option value="">' + t('all', 'All') + f"""</option>{''.join(('<option value="' + esc(k) + '">' + esc(v) + '</option>' for k, v in labels.items()))}</select></label><label>""" + t('search', 'Search') + '<input data-filter="query" aria-label="搜索样本" placeholder="编号或网址"></label></div><p id="count" role="status"></p>')
   inventory=[]
   for r in rows:
    kinds=sorted({f['kind'] for f in findings[r['id']]})
    attrs=' data-cohort="'+esc(r['cohort'])+'" data-result="'+('pass' if r['initial_pass'] else 'fail')+'" data-cause="'+esc(r['cause'])+'" data-issue="'+' '.join(kinds)+'" data-search="'+esc(r['url'])+'"'
-   values=cell(link(detail_link(r),urlsplit(r['url']).hostname or r['id'])+'<br><small>'+esc(r['id'])+'</small>')+cell(esc(groups[r['cohort']]['label']))+cell(t('pass_2', 'Pass') if r['initial_pass'] else t('fail_2', 'Fail'))+cell(esc('；'.join(FAILURE_TYPES[k] for k in kinds) or '—'))+cell(esc(labels[r['cause']]))+cell(link(detail_link(r),t('requirement_actual_and_checks', 'Requirement, actual and checks →')))
+   values=cell(link(detail_link(r),r.get('name')or urlsplit(r['url']).hostname or r['id'])+'<br><small>'+esc(r['id'])+'</small>')+cell(esc(groups[r['cohort']]['label']))+cell(t('pass_2', 'Pass') if r['initial_pass'] else t('fail_2', 'Fail'))+cell(esc('；'.join(FAILURE_TYPES[k] for k in kinds) or '—'))+cell(esc(labels[r['cause']]))+cell(link(detail_link(r),t('requirement_actual_and_checks', 'Requirement, actual and checks →')))
    inventory.append((attrs,values))
   type_rows=[]
   for kind,n in failure_types.most_common():
@@ -908,6 +929,9 @@ def generate_cohort_diagnostic(out, model):
    guide+=section((urlsplit(r['url']).hostname or cid)+'：'+(t('pass_2', 'Pass') if r['initial_pass'] else t('fail_2', 'Fail')),'<div data-interpretation-case="'+esc(cid)+'"><p>'+esc(r['task'])+'</p><div class="diagnostic-specimen">'+panels+'</div><p>'+esc(r['cause_detail'])+'</p><p>'+link(detail_link(r),t('view_the_complete_reference_output_live_page', 'View the complete reference, output, live page and logs →'))+'</p></div>')
   if not comparison_mode:guide+=blocks('guide')
   guide+=section(t('conclusions_and_check_scope', 'Conclusions and check scope'),(f"<p>{esc(model['scope_note'])}</p><p>" + t('source_page_observations_and_output_checks_are', 'Source-page observations and output checks are kept separately. When an independent browser hits a verification page or access problem, this neither counts as a pass for the tested tool nor establishes that the tool is wrong. {link}', link=link('review/index.html', t('view_check_scope_and_handling', 'View check scope and handling →'))) + '</p>'),'guide-conclusions')
+  if model.get('problem_focus'):
+   core=section(t('results_and_measurement_scope','Results and measurement scope'),table([t('task_group','Task group'),t('implementation_version','Implementation version'),t('tasks','Tasks'),t('call_success','Call success'),t('pass','Pass'),t('mean_latency_s','Mean latency (s)'),t('p50_latency_s','P50 latency (s)'),t('p95_latency_s','P95 latency (s)')],summary_rows,'guide-summary')+'<p>'+esc(model['metric_note'])+'</p>','guide-results')
+   guide=hero(esc(model.get('guide_title')or model['title']),esc(model.get('interpretation_lead')or model['subtitle']))+core+blocks('guide')+section(t('conclusions_and_check_scope','Conclusions and check scope'),''.join('<p>'+esc(value)+'</p>'for value in model.get('guide_conclusions',[model['scope_note']])),'guide-conclusions')
   page('guide/index.html',t('interpretation', 'Interpretation'),guide)
   dataset=[]
   for r in rows:
@@ -932,7 +956,7 @@ def generate_cohort_diagnostic(out, model):
     contents='<p>'+link(binding['path'],t('download_complete_evidence', 'Download complete evidence'))+'</p><p>'+esc(binding.get('scope',t('saved_call_evidence', 'Saved call evidence')))+'</p><pre'+kind_attr+lazy+'>'+esc(t('reading_complete_evidence', 'Reading complete evidence…') if lazy else raw)+'</pre>'
     actions+=evidence('result-logs' if field=='log' else 'evidence-'+field,title,contents,field)
    summary=(f"""<div data-result-summary><h2>{((model.get('pass_label') or t('first_round_pass', 'First-round pass')) if r['initial_pass'] else (model.get('fail_label') or t('first_round_failure', 'First-round failure')))}</h2><p>{esc(labels[r['cause']])}</p><dl class="diagnostic-fields"><dt>""" + t('task_id', 'Task ID') + f"</dt><dd>{esc(r['id'])}</dd><dt>" + t('run_id', 'Run ID') + f"</dt><dd>{esc(r['run_id'])}</dd><dt>" + t('source_page_observation_time', 'Source-page observation time') + f"</dt><dd>{esc(r.get('source_checked_at') or r.get('success_audit', {}).get('source_checked_at') or t('see_the_independent_observation_record', 'See the independent observation record'))}</dd></dl></div>")
-   body=hero(esc(r['id']),esc(r['task']))+section(t('result', 'Result'),summary)
+   body=hero(esc(r.get('name')or r['id']),esc(r['task']))+section(t('result', 'Result'),summary)
    if findings[r['id']]:
     check_rows=[(' data-finding-kind="'+f['kind']+'"',cell(esc(f['label']))+cell(esc(f['expected']))+cell(esc(f['actual']))) for f in findings[r['id']]]
     body+=section(t('what_the_first_round_failed_to_meet', 'What the first round failed to meet'),(f"{table([t('failed_item', 'Failed item'), t('requirement', 'Requirement'), t('actual', 'Actual')], check_rows)}<p>" + t('this_table_explains_the_saved_first_round', 'This table explains the saved first-round score and does not substitute later fetched output. The complete source text and scoring record are in the evidence below.') + '</p>'),'failed-requirements')

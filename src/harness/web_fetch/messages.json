@@ -2349,6 +2349,12 @@
     "report_per_task_acceptance_criteria_and_data_sources_7e4ecd": "逐题验收依据与数据来源。",
     "report_verification_scope_db68a1": "核验范围",
     "report_per_item_reasons_original_text_and_acceptance_rules_1b0986": "逐条原因、原文与验收规则",
-    "call_inventory": "全部调用汇总"
+    "call_inventory": "全部调用汇总",
+    "diagnosis_expected": "题目要求",
+    "diagnosis_actual": "实际返回",
+    "diagnosis_cause": "原因与依据",
+    "diagnosis_fix": "修复建议",
+    "diagnosis_verify": "修复后如何验收",
+    "diagnosis_evidence": "查看逐项检查及原始证据 →"
   }
 }

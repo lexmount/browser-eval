@@ -39,6 +39,49 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_issue_guide_binds_case_diagnosis_figure_and_exact_evidence(self):
+        import base64
+        from harness.web_fetch.report_diagnostic import load_diagnostic
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            figure=source/'issue.png'
+            figure.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='))
+            example=dict(case_id='challenge',expected='Read article body',actual='Challenge returned',
+                         cause='Target body was not reached',fix='Detect challenge before extraction',
+                         verify='A challenge must fail even with HTTP 200',
+                         evidence=[dict(field='first_answer',quote='Verify you are human')])
+            block=dict(id='access',title='Access failure',paragraphs=['A concrete diagnosis'],
+                       figure=dict(path='issue.png',sha256=hashlib.sha256(figure.read_bytes()).hexdigest(),
+                                   alt='Challenge blocks target content',scope='Synthetic observed response'),
+                       examples=[example])
+            model.update(problem_focus=True,comparison_mode=True,interpretation_lead="One of two tasks passed")
+            model['pages']={'overview':[dict(title='Issue index',paragraphs=[],table=dict(
+                headers=['Issue','Case'],rows=[[dict(issue_id='access',label='Access'),
+                                              dict(case_id='challenge',label='Challenge case')]]))],
+                            'guide':[block]}
+            def save(value): (source/'report.json').write_text(json.dumps(value),encoding='utf-8')
+            save(model);output=root/'output';build_diagnostic_cohorts(source,output)
+            check_diagnostic_report(output)
+            for field in ('expected','actual','cause','fix','verify'):
+                broken=copy.deepcopy(model);del broken['pages']['guide'][0]['examples'][0][field];save(broken)
+                with self.subTest(field=field), self.assertRaises(ValueError):load_diagnostic(source)
+            for change in ('quote','case','hash','issue'):
+                broken=copy.deepcopy(model)
+                if change=='quote':broken['pages']['guide'][0]['examples'][0]['evidence'][0]['quote']='Invented failure'
+                elif change=='case':broken['pages']['guide'][0]['examples'][0]['case_id']='absent'
+                elif change=='hash':broken['pages']['guide'][0]['figure']['sha256']='0'*64
+                else:broken['pages']['overview'][0]['table']['rows'][0][0]['issue_id']='absent'
+                save(broken)
+                with self.subTest(change=change),self.assertRaises(ValueError):load_diagnostic(source)
+            save(model)
+            guide=output/'guide/index.html';original=guide.read_text()
+            for old,new in [('data-diagnosis-field="fix"','data-omitted-field="fix"'),
+                            ('src="issue.png"','src="absent.png"'),
+                            ('attempts/challenge.html','attempts/complete.html')]:
+                guide.write_text(original.replace(old,new))
+                with self.subTest(rendered=old),self.assertRaises(ValueError):check_diagnostic_report(output)
+            guide.write_text(original)
+
     def test_content_scope_comparison_navigation_tables_and_highlights(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp); source=root/'source';model=diagnostic_example(source)
