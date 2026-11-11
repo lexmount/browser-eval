@@ -342,3 +342,10 @@ for(const hash of ['#issue=text','#page=analysis%2Findex.html&anchor=issue%3Dtex
 }
 assert.equal(issueCalls,2);assert.equal(scrolled,2);
 console.log('PASS: packaged diagnostics load evidence once, bound large DOM text, and apply both issue-route forms');
+
+// An explicit issue route wins over filters restored from a prior visit.
+issueContext.wmbInspect=()=>false;
+vm.runInContext(reportSource.split('\n').find(line=>line.startsWith('function applyReportAnchor(')),issueContext);
+issueSelect.value='';resultSelect.value='pass';
+vm.runInContext("applyReportAnchor('issue=text')",issueContext);
+assert.equal(issueSelect.value,'text');assert.equal(resultSelect.value,'fail');
