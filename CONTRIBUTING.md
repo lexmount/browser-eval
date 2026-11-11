@@ -30,11 +30,16 @@ a hypothesis. A reporter does not need to know the root cause to report a bug.
 Keep the reproduction and expected/actual results readable without opening a
 report. Put long logs, traces, offline tests and supplementary cases in linked
 files or collapsed `<details>` sections. Paste code and errors as text; diagrams
-and screenshots supplement them. Remove keys, cookies and session data.
+and screenshots supplement them. Keep a primary explanatory diagram visible near
+the opening; do not fold the visual needed to understand the failure. Remove keys,
+cookies and session data.
 A tracking issue should contain a short goal and links to the individual issues.
 For findings from an evaluation, use the [evaluation task template](.github/ISSUE_TEMPLATE/evaluation_task.md),
 set the issue type to Task and link the report that defines the batch. Attach each
 finding as a native sub-issue; keep different reports or releases in separate tasks.
+Include a concise failure breakdown with denominators, representative behavior
+and related issues. State whether categories overlap, and keep observed failure
+counts separate from proven causes; examples alone do not establish prevalence.
 Close an issue or check an item only after verifying its original failure, with
 the tested version and evidence recorded. Move a newly discovered problem to its
 own issue instead of changing what a historical issue means.

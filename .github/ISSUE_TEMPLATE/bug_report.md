@@ -5,7 +5,8 @@ about: Report incorrect behavior with a reproducible example
 
 ## Summary
 
-<!-- Describe one failure and its effect on the caller in a short paragraph. -->
+<!-- Describe one failure and its effect on the caller in a short paragraph.
+Place a primary explanatory diagram here, visibly, when it helps explain the defect. -->
 
 ## Reproduction
 

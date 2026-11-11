@@ -11,6 +11,13 @@ about: Group findings from one evaluation report
 
 <!-- State the goal of this batch and which findings belong here. -->
 
+## Findings
+
+<!-- Show the main explanatory visual without folding it. Summarize failure types,
+affected counts and denominators, representative behavior and corresponding issues.
+Declare overlaps or use one primary category per failure. Keep observed failure
+counts separate from proven causes and preserve detailed examples below the summary. -->
+
 ## Issues
 
 <!-- Set the issue type to Task and attach each finding as a native sub-issue.
