@@ -192,11 +192,10 @@ Use **LexBench-Web-Fetch (LB-WF)** on first mention and **LB-WF** in subsequent 
 <details>
 <summary>Hugging Face datasets</summary>
 
-These links provide versioned tasks, acceptance contracts and reference inputs.
+These datasets supply Browser Eval's versioned tasks, acceptance contracts and reference inputs.
 
 | Dataset | Short name | Role |
 | --- | --- | --- |
-| [LexBench-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Browser) | **LB-B** | Autonomous tasks on real websites, with the dataset's own execution harness |
 | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | **LB-WF** | Versioned Web Fetch tasks, acceptance contracts and reference bindings |
 | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | **LB-WS** | Scenario search queries and source references; factual QA is provided by SimpleQA Verified |
 | [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | **LB-WMB** | Reference-corrected WebMainBench tasks and correction provenance |

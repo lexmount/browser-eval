@@ -192,11 +192,10 @@ flowchart LR
 <details>
 <summary>Hugging Face 数据集</summary>
 
-下列链接提供版本化题目、验收要求和参考输入。
+这些数据集用于 Browser Eval 的评测，提供版本化题目、验收要求和参考输入。
 
 | 数据集全名 | 简称 | 用途 |
 | --- | --- | --- |
-| [LexBench-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Browser) | **LB-B** | 真实网站上的 Agent 任务，使用该数据集配套的执行框架 |
 | [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) | **LB-WF** | Web Fetch 题目、验收要求和参考输入绑定 |
 | [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) | **LB-WS** | 搜索场景问题和来源要求；事实问答由 SimpleQA Verified 提供 |
 | [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | **LB-WMB** | 修正参考答案后的 WebMainBench 任务及修订依据 |
