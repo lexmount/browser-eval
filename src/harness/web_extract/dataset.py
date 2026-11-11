@@ -81,7 +81,7 @@ BENCHMARKS = {
     "zyte": {
         "profile": "zyte-product-extraction.json",
         "module": None,
-        "snapshot_project": "webstone-zyte140-snapshots",
+        "snapshot_project": "browser-eval-zyte140-snapshots",
         "snapshot_distribution": {
             "repository": "Lexmount/LexBench-Zyte-Product-Extraction",
             "input_path": "definitions/runtime/manifest.json",
@@ -92,7 +92,7 @@ BENCHMARKS = {
         "profile": "swde.json",
         "module": "harness.web_extract.swde",
         "reference_coverage_archive": "source/archives/groundtruth.7z",
-        "snapshot_project": "webstone-swde800-snapshots",
+        "snapshot_project": "browser-eval-swde800-snapshots",
         "snapshot_distribution": {
             "repository": "Lexmount/LexBench-SWDE-800",
             "input_path": "inputs.jsonl",

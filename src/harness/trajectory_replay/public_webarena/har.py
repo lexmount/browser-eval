@@ -34,6 +34,8 @@ _EVALUATOR_PARSEABLE_BODY_TYPES = (
     "multipart/form-data",
 )
 HAR_CREATOR_NAME = "webstone-cdp"
+# Creator name recorded in HAR files written before the Webstone rename.
+HAR_CREATOR_NAMES = frozenset({HAR_CREATOR_NAME, "browser-eval-cdp"})
 HAR_CREATOR_VERSION = "3"
 
 

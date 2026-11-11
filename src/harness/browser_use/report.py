@@ -64,6 +64,11 @@ from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 from lexbench_webfetch.metrics import percentile
 
+
+def recorded_commit(record: dict) -> str | None:
+    """Read the harness commit, including evidence recorded before the Webstone rename."""
+    return record.get("webstone_commit") or record.get("browser_eval_commit")
+
 _ZH, _english = report_text("zh"), report_text("en")
 
 
@@ -3668,7 +3673,7 @@ def _reproduce_identity_section(inputs: ReportInputs, engine_rows: list[list[Any
         + _table(
             [t("release_details.item", "Item"), t("result_evidence_section.value", "Value")],
             [
-                ["Webstone commit", protocol.get("webstone_commit", "—")],
+                ["Webstone commit", recorded_commit(protocol) or "—"],
                 ["CowAgent commit", protocol.get("cowagent_commit", "—")],
                 [t("resource_comparison_table.model", "Model"), f"{model_names} · reasoning={protocol.get('reasoning_effort', '—')}"],
                 ["WebArena‑Verified", environment.get("webarena_verified_version", "—")],
@@ -4024,7 +4029,7 @@ def _write_public_environment(stage: Path, inputs: ReportInputs) -> None:
     public_env = {
         "schema": "lex_browser_use_public_environment/2",
         "protocol": {
-            key: protocol.get(key)
+            key: recorded_commit(protocol) if key == "webstone_commit" else protocol.get(key)
             for key in (
                 "agent",
                 "webstone_commit",
@@ -4055,7 +4060,9 @@ def _write_public_environment(stage: Path, inputs: ReportInputs) -> None:
         "cohorts": {
             bundle["model"]: {
                 "protocol": {
-                    key: (bundle["manifest"].get("protocol") or {}).get(key)
+                    key: (recorded_commit(bundle["manifest"].get("protocol") or {})
+                          if key == "webstone_commit"
+                          else (bundle["manifest"].get("protocol") or {}).get(key))
                     for key in (
                         "agent",
                         "webstone_commit",

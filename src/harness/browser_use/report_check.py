@@ -26,6 +26,7 @@ from harness.browser_use.report import (
     _logical_results,
     _public_attempt,
     _public_execution,
+    recorded_commit,
 )
 from harness.browser_use.report_i18n import report_text
 from harness.browser_use.selection import load_pilot, report_selection_path
@@ -813,9 +814,10 @@ def check(
                 raise ValueError("run configuration differs from the registered cohort")
             if run_config.get("reasoning_effort") != profile.get("reasoning_effort"):
                 raise ValueError("run configuration reasoning effort differs from the profile")
+            run_config = {**run_config, "webstone_commit": recorded_commit(run_config)}
             if not run_config.get("webstone_commit"):
                 raise ValueError("run configuration must identify the webstone commit")
-            if manifest.get("protocol", {}).get("webstone_commit") != run_config.get(
+            if recorded_commit(manifest.get("protocol", {})) != run_config.get(
                 "webstone_commit"
             ):
                 raise ValueError("manifest and run configuration disagree on webstone commit")

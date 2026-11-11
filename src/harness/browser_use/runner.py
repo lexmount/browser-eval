@@ -513,6 +513,8 @@ def _run_engine_attempts(
 def _write_or_validate_run_config(path: Path, planned: dict[str, Any]) -> None:
     if path.exists():
         existing = json.loads(path.read_text(encoding="utf-8"))
+        if "browser_eval_commit" in existing:  # recorded before the Webstone rename
+            existing["webstone_commit"] = existing.pop("browser_eval_commit")
         if existing != planned:
             raise ValueError("resume configuration differs from the existing evidence cohort")
         return

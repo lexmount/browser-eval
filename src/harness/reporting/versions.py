@@ -93,14 +93,16 @@ def bind_build_version(root):
 
 
 def check_build_version(root, manifest):
-    """Keep legacy reports readable; verify every declared build and label."""
+    """Verify every declared build and label; reports built before the rename need a rebuild."""
 
     binding = manifest.get("webstone")
     path = root / FILENAME
     pages = [(route, BeautifulSoup((root / route).read_text(encoding="utf-8"), "html.parser"))
              for route in ("index.html", "en/index.html") if (root / route).is_file()]
     if binding is None:
-        if path.exists() or any(page.select_one('[data-webstone-release]') for _, page in pages):
+        if (path.exists() or (root / "browser-eval-version.json").exists() or "browser_eval" in manifest
+                or any(page.select_one('[data-webstone-release], [data-browser-eval-release]')
+                       for _, page in pages)):
             raise ValueError("Report lost its Webstone version binding")
         return
     if path.is_symlink() or binding.get("file") != FILENAME or not path.is_file():
@@ -120,8 +122,7 @@ def check_build_version(root, manifest):
             continue
         labels = page.select('[data-webstone-release]')
         if (len(labels) != 1 or labels[0].get("data-webstone-release") != identity["version"]
-                or labels[0].get_text(" ", strip=True) not in {
-                    brand + " v" + identity["version"] for brand in ("Webstone", "Webstone")}
+                or labels[0].get_text(" ", strip=True) != "Webstone v" + identity["version"]
                 or labels[0].get("href") != _version_href(route, str(page))):
             raise ValueError("Report lost its Webstone version label: " + route)
 

@@ -248,7 +248,7 @@
       "benchmark",
       "evaluation",
       "webstone",
-      "webstoneuation",
+      "browser-evaluation",
       "browser-automation",
       "trajectory-replay",
       "playwright"
@@ -282,7 +282,7 @@
       "benchmark",
       "evaluation",
       "webstone",
-      "webstoneuation",
+      "browser-evaluation",
       "browser-automation",
       "trajectory-replay",
       "webarena",

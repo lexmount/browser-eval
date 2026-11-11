@@ -120,7 +120,7 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
     ("webmainbench", {"main-content-extraction", "html-to-markdown"}, "https://huggingface.co/datasets/opendatalab/WebMainBench"),
     ("simpleqa-verified", {"information-retrieval", "simpleqa"}, "https://huggingface.co/datasets/google/simpleqa-verified"),
     ("wcxb", {"wcxb", "web-content-extraction"}, "https://github.com/Murrough-Foley/web-content-extraction-benchmark"),
-    ("trajectory-replay", {"trajectory-replay", "webstoneuation"}, "https://github.com/lexmount/Lexbench-Headless-Browser"),
+    ("trajectory-replay", {"trajectory-replay", "browser-evaluation"}, "https://github.com/lexmount/Lexbench-Headless-Browser"),
     ("webarena-replay", {"webarena", "trajectory-replay"}, "https://huggingface.co/datasets/AmineHA/WebArena-Verified"),
 ])
 def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_path, track, tags, source):
