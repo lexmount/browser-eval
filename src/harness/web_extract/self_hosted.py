@@ -33,7 +33,7 @@ ENGINES = {
 KEEPALIVE_SECONDS = 5
 IDENTITY_TIMEOUT_SECONDS = 5
 HOST_BOOT_ID_PATH = Path("/proc/sys/kernel/random/boot_id")
-ADMISSION_DIRECTORY = Path(tempfile.gettempdir()) / "browser-eval-extraction-admission"
+ADMISSION_DIRECTORY = Path(tempfile.gettempdir()) / "webstone-extraction-admission"
 
 
 def worker_capacity():
@@ -375,7 +375,7 @@ def graph(value):
     )
     response = requests.get(
         value["url"],
-        headers={"User-Agent": "Mozilla/5.0 BrowserEval-Snapshot/1.0"},
+        headers={"User-Agent": "Mozilla/5.0 Webstone-Snapshot/1.0"},
         timeout=30,
         allow_redirects=False,
     )
@@ -575,7 +575,7 @@ def prepare_environment():
         roots, str(Path(__file__).resolve()), str(Path(sys.executable).resolve()),
         sys.implementation.cache_tag, sys.flags.optimize,
     ])
-    directory = Path(tempfile.gettempdir()) / "browser-eval-extraction-preparation"
+    directory = Path(tempfile.gettempdir()) / "webstone-extraction-preparation"
     if directory.is_symlink():
         raise ValueError("Bytecode preparation directory must not be a symlink")
     directory.mkdir(mode=0o700, exist_ok=True)

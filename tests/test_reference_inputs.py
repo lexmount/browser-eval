@@ -298,7 +298,7 @@ def inputs(tmp_path, monkeypatch):
     }
     manifest_path = checkout / "source-inputs.json"
     manifest_path.write_text(json.dumps(manifest), encoding="utf-8")
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "private-data"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "private-data"))
     return dataset, manifest_path, source, manifest
 
 
@@ -333,7 +333,7 @@ def test_frozen_import_accepts_system_aliases(inputs, alias, side, monkeypatch):
         alias_root = Path(alias) / canonical.parent.relative_to(Path("/private") / Path(alias).name)
         selected = alias_root / canonical.name if side in {"source", "both"} else canonical
         data_home = alias_root / "data" if side in {"destination", "both"} else canonical.parent / "data"
-        monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(data_home))
+        monkeypatch.setenv("WEBSTONE_DATA_HOME", str(data_home))
         main(["--manifest", str(manifest_path), "--source", str(selected)])
         main(["--manifest", str(manifest_path), "--check"])
         assert read_dataset_bytes(dataset) == original
@@ -457,7 +457,7 @@ def test_packed_snapshot_import_restores_only_hash_bound_benchmark_inputs(tmp_pa
         assert url == "https://artifact.example/release/data/0.gz?version=frozen"
         return pack
 
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "data-home"))
     output = import_packed_snapshot(
         manifest_url,
         sha(manifest),
@@ -488,7 +488,7 @@ def test_packed_snapshot_import_rejects_publication_projected_dataset(
     def fetch(url):
         return manifest if url == manifest_url else pack
 
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "data-home"))
     with pytest.raises(ValueError, match="publication projection"):
         import_packed_snapshot(
             manifest_url,
@@ -528,7 +528,7 @@ def test_packed_snapshot_import_rejects_changed_or_escaping_evidence(
     def fetch(url):
         return manifest if url == manifest_url else pack
 
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data-home"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "data-home"))
     with pytest.raises(ValueError):
         import_packed_snapshot(
             manifest_url,

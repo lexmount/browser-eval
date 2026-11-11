@@ -10,7 +10,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "web-fetch",
       "web-scraping",
       "web-content-extraction",
@@ -87,7 +87,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "web-search",
       "information-retrieval",
       "search-ranking",
@@ -135,7 +135,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "web-scraping",
       "main-content-extraction",
       "html-to-markdown",
@@ -169,7 +169,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "web-search",
       "information-retrieval",
       "retrieval-evaluation",
@@ -200,7 +200,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "web-fetch",
       "web-content-extraction",
       "main-content-extraction",
@@ -247,8 +247,8 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
-      "browser-evaluation",
+      "webstone",
+      "webstoneuation",
       "browser-automation",
       "trajectory-replay",
       "playwright"
@@ -281,8 +281,8 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
-      "browser-evaluation",
+      "webstone",
+      "webstoneuation",
       "browser-automation",
       "trajectory-replay",
       "webarena",
@@ -316,7 +316,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "headless-browser",
       "browser-compatibility",
       "cdp",
@@ -375,7 +375,7 @@
     "tags": [
       "benchmark",
       "evaluation",
-      "browser-eval",
+      "webstone",
       "web-scraping",
       "structured-data-extraction",
       "product-extraction",

@@ -14,7 +14,7 @@ from harness import env_file
 
 # Hermetic values: local credentials must not reach tests, and nothing here is real.
 os.environ["WEBARENA_RECORDING_GATEWAYS"] = "192.0.2.5"
-_credentials_directory = tempfile.TemporaryDirectory(prefix="browser-eval-test-credentials-")
+_credentials_directory = tempfile.TemporaryDirectory(prefix="webstone-test-credentials-")
 env_file._repository_credentials_file = Path(_credentials_directory.name) / ".env"
 env_file._repository_credentials_file.write_text(
     "".join(

@@ -21,7 +21,7 @@
   "frozen_dataset_sha256": "e3929e4783f9d831dfeed7cd0cc764ccf3f4375c0bfe7c800a564dfe94226a93",
   "measured_scoring_source_sha256": "36eb6897e0f8a837666506eac63c0ca56b8a8fd771f8ef587a50272c310ea90a",
   "measured_scoring_git_revision": "e3b93f7ca830594fa0921cd8c6c158d690f6868e",
-  "evidence_binding": "BROWSER_EVAL_DATA_HOME/runs/dynamic-100-fixed-native-20261009/current-local-report.json",
+  "evidence_binding": "WEBSTONE_DATA_HOME/runs/dynamic-100-fixed-native-20261009/current-local-report.json",
   "source_reverified": false,
   "review_scope": "caller and saved evidence review; passing results are not independently blind reviewed",
   "frozen_case_definition_git_revision": "e3b93f7ca830594fa0921cd8c6c158d690f6868e",
@@ -35,7 +35,7 @@
     "certified": false,
     "previous_version_id": "ver_a0c30956aaa949deb0f0efed49564dd0",
     "baseline_archive_sha256": "e3676e15e4fff6d6a207231480db15cdb0e006d8b36cccbc3cf14d0b7b245169",
-    "archive_binding": "BROWSER_EVAL_DATA_HOME/runs/dynamic-100-fixed-native-20261009/artifact-site-presentation-updated.zip",
+    "archive_binding": "WEBSTONE_DATA_HOME/runs/dynamic-100-fixed-native-20261009/artifact-site-presentation-updated.zip",
     "manifest_sha256": "3bf4c40cd4f9fc0ad9185b479c37fb513523aa8af4cceffbe0c692151adfc52c",
     "incremental_update": {
       "physical_files": [

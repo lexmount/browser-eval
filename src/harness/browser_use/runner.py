@@ -90,7 +90,7 @@ def _load_repo_env(repo_root: Path) -> dict[str, str]:
 
 def _limit_cowagent_transport_retries(executor_class: Any) -> None:
     """Limit CowAgent API errors to the initial request plus one retry."""
-    if getattr(executor_class, "_lex_browser_eval_retry_limit", False):
+    if getattr(executor_class, "_lex_webstone_retry_limit", False):
         return
     original = executor_class._call_llm_stream
 
@@ -110,7 +110,7 @@ def _limit_cowagent_transport_retries(executor_class: Any) -> None:
         )
 
     executor_class._call_llm_stream = limited
-    executor_class._lex_browser_eval_retry_limit = True
+    executor_class._lex_webstone_retry_limit = True
 
 
 def _system_prompt() -> str:
@@ -632,7 +632,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
             {
                 "schema": "lex_browser_use_run_config/1",
                 "selection_sha256": selection.sha256,
-                "browser_eval_commit": harness_commit,
+                "webstone_commit": harness_commit,
                 "cowagent_commit": cowagent_commit,
                 "browser_session_contract": browser_session_contract(),
                 "model": args.model,
@@ -721,7 +721,7 @@ def run(args: argparse.Namespace) -> Path:  # noqa: PLR0915
         "protocol": {
             "execution_policy": execution_policy,
             "agent": "CowAgent",
-            "browser_eval_commit": harness_commit,
+            "webstone_commit": harness_commit,
             "cowagent_commit": cowagent_commit,
             "model": args.model,
             "reasoning_effort": "low",

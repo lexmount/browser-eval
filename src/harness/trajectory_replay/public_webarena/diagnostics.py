@@ -1087,9 +1087,9 @@ def runtime_smoke_main(argv=None) -> None:
         client.images.get(images[engine])
         run_id = f"runtime-smoke-{uuid.uuid4().hex[:10]}"
         network = client.networks.create(
-            f"lex-browser-eval-{run_id}-{engine}",
+            f"lex-webstone-{run_id}-{engine}",
             driver="bridge",
-            labels={"lex.browser-eval.diagnostic": run_id},
+            labels={"lex.webstone.diagnostic": run_id},
         )
         containers: dict[str, Any] = {}
         browsers: dict[str, Any] = {}

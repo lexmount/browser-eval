@@ -813,12 +813,12 @@ def check(
                 raise ValueError("run configuration differs from the registered cohort")
             if run_config.get("reasoning_effort") != profile.get("reasoning_effort"):
                 raise ValueError("run configuration reasoning effort differs from the profile")
-            if not run_config.get("browser_eval_commit"):
-                raise ValueError("run configuration must identify the browser-eval commit")
-            if manifest.get("protocol", {}).get("browser_eval_commit") != run_config.get(
-                "browser_eval_commit"
+            if not run_config.get("webstone_commit"):
+                raise ValueError("run configuration must identify the webstone commit")
+            if manifest.get("protocol", {}).get("webstone_commit") != run_config.get(
+                "webstone_commit"
             ):
-                raise ValueError("manifest and run configuration disagree on browser-eval commit")
+                raise ValueError("manifest and run configuration disagree on webstone commit")
             if manifest.get("protocol", {}).get("model_transport_retries") != 1:
                 raise ValueError("pilot allows exactly one model transport retry")
             if not review_path.is_file():

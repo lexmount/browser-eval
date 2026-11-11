@@ -13,9 +13,9 @@ playwright = pytest.importorskip("playwright.sync_api")
 @pytest.fixture(scope="module")
 def browser():
     try:
-        binary = os.environ.get("BROWSER_EVAL_TEST_BROWSER_BINARY") or browser_executable()
+        binary = os.environ.get("WEBSTONE_TEST_BROWSER_BINARY") or browser_executable()
     except ValueError:
-        pytest.skip("Install Chromium or set BROWSER_EVAL_TEST_BROWSER_BINARY")
+        pytest.skip("Install Chromium or set WEBSTONE_TEST_BROWSER_BINARY")
     with playwright.sync_playwright() as engine:
         instance = engine.chromium.launch(executable_path=binary, headless=True)
         yield instance

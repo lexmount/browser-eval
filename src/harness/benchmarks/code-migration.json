@@ -1,5 +1,5 @@
 {
-  "schema": "browser-eval-code-migration/1",
+  "schema": "webstone-code-migration/1",
   "purpose": "Bind consolidated scorer code, dataset resolution and tested scoring corrections to their original sources.",
   "sources": {
     "webfetch": {
@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "63e59b15e8e4b319e7b1323fc8eac9f44b5ef337ba3e06a643160bdf46c8f177"
+          "after_sha256": "90468a9121985542ce2fb9e8d958bbf4f6647a58e80d82768aca495ee35609aa"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -40,7 +40,7 @@
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
-          "after_sha256": "13f98f36bee3d1675670dfd763accc371424c1775d225036d0ec7d060db1e731"
+          "after_sha256": "ca8d796f01609c236633c45aa7e525537402607990f23fcdd4717f044417f7c8"
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
@@ -64,7 +64,7 @@
         },
         "inputs.py": {
           "before_sha256": "d0cccd0be9ead93d40a56dcfa15ece74e96965beefb5032e0b6bbe23b5da9d44",
-          "after_sha256": "9064564b91921346ebf5bf7e5b9305ecc0e02db06b91f1fba55d71477a7435b5"
+          "after_sha256": "661fedc7d7c58ba6d73c8b8451ff5d14e4fd8c5a5f48422a6e393dd04d194006"
         },
         "list_verification.py": {
           "before_sha256": "c311bb3ef9d46f21319b7eef35e34120580ec6cad720958b6336fe59e5a24bf7",
@@ -116,7 +116,7 @@
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
-          "after_sha256": "6c91f520d210800e6d0063971ba0f65c0946331dd388cebb164706925cf5e99e"
+          "after_sha256": "1d299cadb2f2e6f9c5dd4ef0bb933c5391487146704128169573a87ea2625313"
         },
         "annotation_revisions.py": {
           "before_sha256": "98792092a82af477cf2b975c62e37378e75c083bf8370d75d65e08fd25f3d843",
@@ -4318,7 +4318,7 @@
       "changes": {
         "__init__.py": {
           "before_sha256": "59ae744164e0235b61506730b36632405944503be2dc472c56d923dcaef3183f",
-          "after_sha256": "ac4d94c16e7f3fb3b280f542e2c2645a1d0b35b9e01cdb13b140d5bbf9057a97"
+          "after_sha256": "b2ebfaf4c127a30cbeab45e22a5449b59aec72ca0d022ff0f9f87d32622a130d"
         },
         "cli.py": {
           "before_sha256": "ca67f5578d2d417a62f96189e857be8b19249882dec37d874d9713c171a6b8ca",
@@ -4381,7 +4381,8 @@
       "web-scraper-public-snapshots/2": "web-extract-public-snapshots/2",
       "web-scraper-snapshot-verification/1": "web-extract-snapshot-verification/1",
       "web-scraper-hf-snapshots/1": "web-extract-hf-snapshots/1",
-      "web-scraper-deployment-approval/1": "web-extract-deployment-approval/1"
+      "web-scraper-deployment-approval/1": "web-extract-deployment-approval/1",
+      "browser-eval-dataset-release/1": "webstone-dataset-release/1"
     },
     "repositories": {
       "Lexmount/LexBench-Web-Scraper": "Lexmount/LexBench-Zyte-Product-Extraction"

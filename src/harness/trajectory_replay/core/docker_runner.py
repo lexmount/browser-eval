@@ -208,7 +208,7 @@ def start_fixture_server(root: Path) -> tuple[ThreadingHTTPServer, threading.Thr
     server = ThreadingHTTPServer(("0.0.0.0", 0), handler)
     thread = threading.Thread(
         target=server.serve_forever,
-        name="browser-eval-fixtures",
+        name="webstone-fixtures",
         daemon=True,
     )
     thread.start()
@@ -260,11 +260,11 @@ def start_engine(
 ) -> None:
     """Start one engine on its own bridge and leave a warm, reset page in ``runtime``."""
     network = client.networks.create(
-        f"lex-browser-eval-{run_id}-{engine}",
+        f"lex-webstone-{run_id}-{engine}",
         driver="bridge",
         labels={
-            "lex.browser-eval.run": run_id,
-            "lex.browser-eval.engine": engine,
+            "lex.webstone.run": run_id,
+            "lex.webstone.engine": engine,
         },
     )
     runtime.networks[engine] = network

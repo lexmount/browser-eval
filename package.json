@@ -1,5 +1,5 @@
 {
-  "name": "browser-eval-web-fetch",
+  "name": "webstone-web-fetch",
   "private": true,
   "type": "module",
   "engines": {

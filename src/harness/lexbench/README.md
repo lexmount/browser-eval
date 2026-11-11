@@ -1,6 +1,6 @@
 # Build and verify the Moli report
 
-The Moli comparison report adapter lives in this directory, with its reader assets in `template/`. Run each stage through `uv run --frozen python -m harness.lexbench <command>`; `--help` lists the commands. Measured evidence stays outside Git under `BROWSER_EVAL_DATA_HOME` (default: `~/.browser-eval`). It does not use the Web Fetch publication target.
+The Moli comparison report adapter lives in this directory, with its reader assets in `template/`. Run each stage through `uv run --frozen python -m harness.lexbench <command>`; `--help` lists the commands. Measured evidence stays outside Git under `WEBSTONE_DATA_HOME` (default: `~/.webstone`). It does not use the Web Fetch publication target.
 
 This is a declared historical adapter. It is exempt from the new-track registration rule in `AGENTS.md`, is not listed in `configs/report-templates.json`, and has its own row in the [report language table](../../../docs/report-hosting.md#report-languages).
 

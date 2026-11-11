@@ -71,7 +71,7 @@ Optional local HTML reports turn saved evidence into results readers can inspect
 Please cite Webstone when using these task definitions or the replay harness:
 
 ```bibtex
-@misc{browser_eval,
+@misc{webstone,
   author = {Lexmount},
   title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   year = {2026},

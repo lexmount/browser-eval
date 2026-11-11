@@ -157,10 +157,10 @@ Do not commit `.env`, tokens, cookies, provider outputs, run directories, genera
 A current-source export excludes old commits that may still contain externalized material. Review development history before distributing it; deleting a current file does not remove its earlier copies.
 
 ```sh
-git archive --format=tar.gz --output=/tmp/browser-eval-source.tar.gz HEAD
+git archive --format=tar.gz --output=/tmp/webstone-source.tar.gz HEAD
 ```
 
-The archive excludes `.git`, untracked files and local installations. Extract it, follow README setup and run `make ci` with an empty `BROWSER_EVAL_DATA_HOME`. Historical certifier sources retained by manifests are read-only, hash-bound text inputs, not executable entry points or dependencies on old Git commits. See [third-party content](THIRD_PARTY.md) and [reference inputs](docs/reference-inputs.md).
+The archive excludes `.git`, untracked files and local installations. Extract it, follow README setup and run `make ci` with an empty `WEBSTONE_DATA_HOME`. Historical certifier sources retained by manifests are read-only, hash-bound text inputs, not executable entry points or dependencies on old Git commits. See [third-party content](THIRD_PARTY.md) and [reference inputs](docs/reference-inputs.md).
 
 </details>
 

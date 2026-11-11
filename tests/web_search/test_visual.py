@@ -22,12 +22,12 @@ def report_fixture(root):
 
 @pytest.mark.parametrize('primary', ['zh', 'en'])
 def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, monkeypatch, primary):
-    binary = os.environ.get('BROWSER_EVAL_TEST_BROWSER_BINARY')
+    binary = os.environ.get('WEBSTONE_TEST_BROWSER_BINARY')
     if not binary:
         try:
             binary = visual.browser_executable()
         except ValueError:
-            pytest.skip('Install Chromium or set BROWSER_EVAL_TEST_BROWSER_BINARY')
+            pytest.skip('Install Chromium or set WEBSTONE_TEST_BROWSER_BINARY')
     monkeypatch.setenv('BROWSER_USE_VISUAL_BROWSER', binary)
     root, receipt = tmp_path / 'report', tmp_path / 'reader.json'
     report_fixture(root)

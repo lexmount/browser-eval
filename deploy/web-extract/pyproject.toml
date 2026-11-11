@@ -1,5 +1,5 @@
 [project]
-name = "browser-eval-extraction-service"
+name = "webstone-extraction-service"
 version = "0.1.0"
 requires-python = ">=3.12,<3.13"
 dependencies = [

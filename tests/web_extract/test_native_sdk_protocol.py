@@ -9,7 +9,7 @@ from unittest.mock import patch
 
 
 @unittest.skipUnless(
-    os.environ.get("BROWSER_EVAL_TEST_NATIVE_SDKS") == "1", "Run make test-extraction-sdk"
+    os.environ.get("WEBSTONE_TEST_NATIVE_SDKS") == "1", "Run make test-extraction-sdk"
 )
 class NativeExtractionProtocolTests(unittest.TestCase):
     def extract(self, records, *, empty=False):

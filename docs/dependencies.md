@@ -53,7 +53,7 @@ Browser Use records its configured clean CowAgent checkout separately. It need n
 | HTML to Markdown | [node-html-markdown](https://github.com/crosstype/node-html-markdown) | [package-lock.json](../package-lock.json); install with `npm ci` |
 | LangChain loader / Crawl4AI | [LangChain Community](https://github.com/langchain-ai/langchain-community) · [Crawl4AI](https://github.com/unclecode/crawl4ai) | `oss-eval`, uv.lock and the selected method's interpreter/library pins |
 
-Prepare browser binaries, Docker images, site data, models and accounts separately. [`.env.example`](../.env.example) lists paths and credential names. `browser-harness-eval accounts` prints account setup links without making evaluation calls. Publishing uses separate [hosting credentials](report-hosting.md).
+Prepare browser binaries, Docker images, site data, models and accounts separately. [`.env.example`](../.env.example) lists paths and credential names. `webstone accounts` prints account setup links without making evaluation calls. Publishing uses separate [hosting credentials](report-hosting.md).
 
 ## Benchmark inputs and scorers
 

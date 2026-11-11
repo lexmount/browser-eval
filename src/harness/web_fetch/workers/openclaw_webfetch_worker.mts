@@ -12,7 +12,7 @@ async function createTool(request: any, signal: AbortSignal, dnsTraces: any[]) {
   if (!Number.isSafeInteger(maxBytes) || maxBytes <= 0 || !Number.isFinite(timeoutSeconds) || timeoutSeconds <= 0) throw new Error("Invalid shared fetch limits");
   const dnsMode = request.dns_mode ?? "system";
   if (!["system", "public_doh"].includes(dnsMode)) throw new Error("dns_mode must be system or public_doh");
-  const helper = dnsMode === "public_doh" ? await import(pathToFileURL(path.join(process.env.BROWSER_EVAL_HARNESS_ROOT!, "harness/web_fetch/workers/public_dns.mjs")).href) : undefined;
+  const helper = dnsMode === "public_doh" ? await import(pathToFileURL(path.join(process.env.WEBSTONE_HARNESS_ROOT!, "harness/web_fetch/workers/public_dns.mjs")).href) : undefined;
   if (request.log_level === "debug") {
     const { applyLoggingConfig } = await import(pathToFileURL(path.join(process.env.OPENCLAW_REPO!, "src/logging/logger.ts")).href);
     applyLoggingConfig({ level: "debug", consoleLevel: "silent", consoleStyle: "json", file: request.diagnostic_path + ".openclaw.log" });
@@ -47,7 +47,7 @@ for await (const line of rl) {
   try {
     const signal = AbortSignal.timeout(Math.ceil(Number(request.timeout_seconds) * 1000));
     const { tool, maxBytes, timeoutSeconds, dnsMode } = await createTool(request, signal, dnsTraces);
-    const out = await tool.execute("browser-harness-eval", {
+    const out = await tool.execute("webstone", {
       url: request.url,
       extractMode: "markdown",
       maxChars: maxBytes,

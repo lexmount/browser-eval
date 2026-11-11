@@ -55,7 +55,7 @@ def _uses_direct_document_route(case: EvalCase) -> bool:
 
 
 def _multipart_body(*, filename: str, content_type: str, data: bytes) -> tuple[bytes, str]:
-    boundary = "browser-eval-" + hashlib.sha256(data).hexdigest()[:24]
+    boundary = "webstone-" + hashlib.sha256(data).hexdigest()[:24]
     safe_filename = "".join(
         char for char in filename if char.isascii() and (char.isalnum() or char in "._-")
     ) or "document"
@@ -90,7 +90,7 @@ def _post_multipart(
         headers={
             "Authorization": f"Bearer {token}",
             "Content-Type": f"multipart/form-data; boundary={boundary}",
-            "User-Agent": "browser-harness-eval/0.1",
+            "User-Agent": "webstone/0.1",
         },
     )
     try:
@@ -158,7 +158,7 @@ def _get_document(url: str, *, timeout: float, max_bytes: int) -> HttpResponse:
                 "application/vnd.openxmlformats-officedocument.wordprocessingml.document,"
                 "application/octet-stream;q=0.9,*/*;q=0.1"
             ),
-            "User-Agent": "browser-harness-eval/0.1",
+            "User-Agent": "webstone/0.1",
         },
     )
     try:

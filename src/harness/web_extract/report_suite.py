@@ -216,7 +216,7 @@ def build(output, content, *, profile, language=None):
             "mode": MODE,
             "template": owner.template_identity("web-extract"),
             "template_version": owner.VERSION,
-            "browser_eval": owner.bind_build_version(output),
+            "webstone": owner.bind_build_version(output),
             "renderer_sha256": digest(Path(owner.__file__).read_bytes()),
             "composition_sha256": digest(Path(__file__).read_bytes()),
             **owner.report_dependencies(),

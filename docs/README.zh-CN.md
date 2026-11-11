@@ -26,8 +26,8 @@
 git clone https://github.com/lexmount/webstone.git
 cd webstone
 uv sync --frozen
-uv run --frozen browser-harness-eval validate
-uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen webstone validate
+uv run --frozen webstone run --delay 0
 ```
 
 打开终端打印的报告路径。示例包含一个预期通过和一个预期失败，无需浏览器、Docker 或 API 密钥。需要 Python 3.11 或更高版本；CI 在 3.11 上测试。
@@ -152,13 +152,13 @@ flowchart LR
 
 ## 报告
 
-结果和证据默认保存在本地 `~/.browser-eval/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。HTML 报告包含结果对比、逐题结果、完整响应和失败证据。本地评测、评分和查看 HTML 无需 Artifact Site 账号或发布授权。
+结果和证据默认保存在本地 `~/.webstone/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。HTML 报告包含结果对比、逐题结果、完整响应和失败证据。本地评测、评分和查看 HTML 无需 Artifact Site 账号或发布授权。
 
 `run` 默认生成本地报告。加 `--no-report` 可只保存结果；`rescore --no-report` 只重算评分，不重建 HTML。之后可从保存的证据生成或重建报告，无需重复调用浏览器或服务：
 
 ```sh
-uv run --frozen browser-harness-eval run --delay 0 --no-report
-uv run --frozen browser-harness-eval report /absolute/path/to/run
+uv run --frozen webstone run --delay 0 --no-report
+uv run --frozen webstone report /absolute/path/to/run
 ```
 
 默认生成英文；运行或重建时加 `--language zh` 可选中文。重建时不传该选项，会沿用已保存的语言。
@@ -268,7 +268,7 @@ make ci
 项目引用：[CITATION.cff](../CITATION.cff)。
 
 ```bibtex
-@software{browser_eval_2026,
+@software{webstone_2026,
   author = {{Webstone contributors}},
   title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Evaluation harness},

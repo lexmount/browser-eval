@@ -16,8 +16,8 @@ class ReportLanguageError(ValueError):
 
 
 SUPPORTED_REPORT_LANGUAGES = ("en", "zh")
-REPORT_PAGE_MARKER = '<meta name="browser-eval-report" content="1">'
-REPORT_LANGUAGE_ENV = "BROWSER_EVAL_REPORT_LANGUAGE"
+REPORT_PAGE_MARKER = '<meta name="webstone-report" content="1">'
+REPORT_LANGUAGE_ENV = "WEBSTONE_REPORT_LANGUAGE"
 REPORT_LANGUAGE_ENV_FILE = repository_root() / ".env"
 
 

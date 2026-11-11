@@ -80,7 +80,7 @@ WebArena and WebArena-Verified use Apache-2.0 licenses. The self-hosted applicat
 ## Citation
 
 ```bibtex
-@misc{browser_eval,
+@misc{webstone,
   author = {Lexmount},
   title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   year = {2026},

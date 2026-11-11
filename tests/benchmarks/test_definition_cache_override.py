@@ -42,7 +42,7 @@ def configured_cache(tmp_path, monkeypatch):
     for item in selected.values():
         item.update(repository="Lexmount/fixture", revision="a" * 40)
     monkeypatch.setattr(data, "binding", lambda track, revision=None: selected[track])
-    monkeypatch.setenv("BROWSER_EVAL_DATASET_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("WEBSTONE_DATASET_CACHE", str(tmp_path / "cache"))
     monkeypatch.setenv("HF_HUB_OFFLINE", "1")
     monkeypatch.setattr(article_dataset, "compile_case", lambda *args: {
         "id": "article", "url": "https://fixture.example/"})

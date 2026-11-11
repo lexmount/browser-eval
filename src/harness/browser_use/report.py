@@ -1284,7 +1284,7 @@ def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
         + f">{_e(label)}</a>"
         for href, label, key in _nav()
     )
-    return (f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + t("page.browser_use_evaluation", "{title} · Browser Use evaluation", title=_e(title)) + f'</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">' + t("page.toggle_theme", "Toggle theme") + f'</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>' + t("page.conclusions_apply_only_to_this_preregistered", "Conclusions apply only to this preregistered sample, agent, model, and runtime configuration. Presentation changes do not alter measured results.") + "</p></div></footer></body></html>")
+    return (f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + t("page.browser_use_evaluation", "{title} · Browser Use evaluation", title=_e(title)) + f'</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">' + t("page.toggle_theme", "Toggle theme") + f'</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>' + t("page.conclusions_apply_only_to_this_preregistered", "Conclusions apply only to this preregistered sample, agent, model, and runtime configuration. Presentation changes do not alter measured results.") + "</p></div></footer></body></html>")
 
 
 def _evidence_viewer_page() -> str:
@@ -3668,7 +3668,7 @@ def _reproduce_identity_section(inputs: ReportInputs, engine_rows: list[list[Any
         + _table(
             [t("release_details.item", "Item"), t("result_evidence_section.value", "Value")],
             [
-                ["Webstone commit", protocol.get("browser_eval_commit", "—")],
+                ["Webstone commit", protocol.get("webstone_commit", "—")],
                 ["CowAgent commit", protocol.get("cowagent_commit", "—")],
                 [t("resource_comparison_table.model", "Model"), f"{model_names} · reasoning={protocol.get('reasoning_effort', '—')}"],
                 ["WebArena‑Verified", environment.get("webarena_verified_version", "—")],
@@ -4027,7 +4027,7 @@ def _write_public_environment(stage: Path, inputs: ReportInputs) -> None:
             key: protocol.get(key)
             for key in (
                 "agent",
-                "browser_eval_commit",
+                "webstone_commit",
                 "cowagent_commit",
                 "reasoning_effort",
                 "evaluator",
@@ -4058,7 +4058,7 @@ def _write_public_environment(stage: Path, inputs: ReportInputs) -> None:
                     key: (bundle["manifest"].get("protocol") or {}).get(key)
                     for key in (
                         "agent",
-                        "browser_eval_commit",
+                        "webstone_commit",
                         "cowagent_commit",
                         "model",
                         "reasoning_effort",
@@ -4178,7 +4178,7 @@ def _write_english_edition(
 
 def _bind_build_version(stage: Path, audit: dict[str, Any]) -> None:
     from harness.reporting.versions import bind_build_version
-    audit['browser_eval'] = bind_build_version(stage)
+    audit['webstone'] = bind_build_version(stage)
     write_json(stage / "data/summary.json", audit, parents=True)
     write_json(stage / "report-data.json", audit, parents=True)
     (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")

@@ -198,7 +198,7 @@ def test_hub_track_identity_comes_from_committed_manifest(tmp_path, claimed):
     (root / "src/lexbench_websearch/definitions").rename(root / "definitions")
     manifest = root / "manifest.json"
     manifest.write_text(json.dumps({
-        "schema": "browser-eval-dataset-release/1", "track": "websearch",
+        "schema": "webstone-dataset-release/1", "track": "websearch",
     }), encoding="utf-8")
     git(root, "add", ".")
     git(root, "commit", "-qm", "Hub layout")
@@ -222,7 +222,7 @@ def test_hub_track_cannot_be_supplied_by_uncommitted_manifest(tmp_path):
     git(root, "commit", "-qm", "Hub without identity")
     revision = git(root, "rev-parse", "HEAD")
     (root / "manifest.json").write_text(json.dumps({
-        "schema": "browser-eval-dataset-release/1", "track": "websearch",
+        "schema": "webstone-dataset-release/1", "track": "websearch",
     }), encoding="utf-8")
     with pytest.raises(ValueError, match="manifest"):
         DatasetRelease.from_git(root, "websearch", revision)
@@ -239,7 +239,7 @@ def test_invalid_committed_population_filters_fail_before_build(tmp_path, filter
     root, _, _ = checkout(tmp_path, 'websearch')
     (root / 'src/lexbench_websearch/definitions').rename(root / 'definitions')
     (root / 'manifest.json').write_text(json.dumps({
-        'schema': 'browser-eval-dataset-release/1', 'track': 'websearch',
+        'schema': 'webstone-dataset-release/1', 'track': 'websearch',
         'viewer_filters': filters}), encoding="utf-8")
     git(root, 'add', '.')
     git(root, 'commit', '-qm', 'Invalid population selection')

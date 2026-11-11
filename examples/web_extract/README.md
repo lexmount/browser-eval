@@ -95,8 +95,8 @@ uv run --frozen python -m harness.web_extract.cli prepare
 uv run --frozen python -m harness.web_extract.cli reproduce
 ```
 
-The default data directory is `~/.browser-eval/web-extract/`, configurable through
-`BROWSER_EVAL_DATA_HOME`. Evidence, report content and report-instance profiles stay
+The default data directory is `~/.webstone/web-extract/`, configurable through
+`WEBSTONE_DATA_HOME`. Evidence, report content and report-instance profiles stay
 outside Git. Runtime API credentials come from the repository `.env`; variable names
 are documented in `.env.example`. Never include credentials in a profile or report.
 

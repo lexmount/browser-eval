@@ -25,7 +25,7 @@ def verify_dependency_metadata(source_root: Path) -> None:
     expected_webarena = next(value for value in project['project']['optional-dependencies']['browser-use-eval']
                              if value.startswith('webarena-verified '))
     if not any(value.split(';', 1)[0].strip() == expected_webarena
-               for value in requires('browser-harness-eval') or []):
+               for value in requires('webstone') or []):
         raise ValueError('Installed WebArena dependency differs from declared fork')
 
 
@@ -105,7 +105,7 @@ def verify_package_tree(source_root: Path, package_root: Path, *, package_name='
                     for path in (source_root / directory).rglob(pattern):
                         expected[path.relative_to(source).as_posix()] = path
     if package_name == 'harness':
-        for relative in project['tool'].get('browser-eval', {}).get('bundled-data', ()):
+        for relative in project['tool'].get('webstone', {}).get('bundled-data', ()):
             expected['distribution_data/' + relative] = source_root / relative
     observed = {}
     for path in package_root.rglob('*'):
@@ -132,7 +132,7 @@ def verify_bundled_data(source_root: Path, package_root: Path) -> None:
     from harness.distribution import bundled_data_path
 
     project = tomllib.loads((source_root / 'pyproject.toml').read_text(encoding='utf-8'))
-    for relative in project['tool']['browser-eval']['bundled-data']:
+    for relative in project['tool']['webstone']['bundled-data']:
         path = bundled_data_path(relative)
         if not path.resolve().is_relative_to(package_root):
             raise ValueError('Bundled data resolved outside the installed package: ' + relative)
@@ -1765,7 +1765,7 @@ def main():
         verify_wcxb_rendering(root, args.source_root)
         verify_wcxb_boundaries(root, args.source_root)
         verify_report_acceptance(root, args.source_root)
-        subprocess.run([str(Path(sys.executable).parent / 'browser-harness-eval'), 'validate'],
+        subprocess.run([str(Path(sys.executable).parent / 'webstone'), 'validate'],
                        check=True, cwd=root)
         binary = root / 'browser'
         binary.write_text('#!/bin/sh\nif [ "$1" = "--version" ]; '

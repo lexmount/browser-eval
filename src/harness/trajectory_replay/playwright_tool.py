@@ -27,9 +27,9 @@ from harness.trajectory_replay.public_webarena.executor import execute_steps
 
 SNAPSHOT_NAVIGATION_SETTLE_TIMEOUT_MS = 1_500
 SNAPSHOT_NAVIGATION_GRACE_MS = 300
-REQUEST_BODY_CAPTURE_BINDING = "__browserEvalCaptureRequestBody"
-REQUEST_BODY_CAPTURE_HEADER = "x-browser-eval-request-body-id"
-NATIVE_FORM_REDIRECT_HEADER = "x-browser-eval-native-form-location"
+REQUEST_BODY_CAPTURE_BINDING = "__webstoneCaptureRequestBody"
+REQUEST_BODY_CAPTURE_HEADER = "x-webstone-request-body-id"
+NATIVE_FORM_REDIRECT_HEADER = "x-webstone-native-form-location"
 REQUEST_BODY_CAPTURE_LIMIT_BYTES = 20_000_000
 REQUEST_BODY_CAPTURE_MAX_PENDING = 256
 REQUEST_BODY_CAPTURE_TTL_SECONDS = 120.0
@@ -156,8 +156,8 @@ def _request_body_capture_script(origins: frozenset[str]) -> str:
   const header = {json.dumps(REQUEST_BODY_CAPTURE_HEADER)};
   const nativeRedirectHeader = {json.dumps(NATIVE_FORM_REDIRECT_HEADER)};
   const limit = {REQUEST_BODY_CAPTURE_LIMIT_BYTES};
-  if (globalThis.__browserEvalRequestBodyCaptureInstalled) return;
-  globalThis.__browserEvalRequestBodyCaptureInstalled = true;
+  if (globalThis.__webstoneRequestBodyCaptureInstalled) return;
+  globalThis.__webstoneRequestBodyCaptureInstalled = true;
   const prefix = `${{Date.now().toString(36)}}-${{Math.random().toString(36).slice(2)}}`;
   let sequence = 0;
   let keepaliveBodyBytes = 0;
@@ -879,7 +879,7 @@ class PlaywrightReplayTool:
         kind = body["kind"]
         if kind == "text":
             return body["text"].encode("utf-8"), None
-        boundary = f"browser-eval-{hashlib.sha256(request_id.encode()).hexdigest()[:24]}"
+        boundary = f"webstone-{hashlib.sha256(request_id.encode()).hexdigest()[:24]}"
         chunks: list[bytes] = []
         for entry in body["entries"]:
             name = entry["name"]

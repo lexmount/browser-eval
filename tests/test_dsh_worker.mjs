@@ -73,7 +73,7 @@ const readline = {createInterface: () => ({async *[Symbol.asyncIterator]() {
 }})};
 const context = vm.createContext({
   AbortController,
-  process: {env: {BROWSER_EVAL_HARNESS_ROOT: path.resolve(path.dirname(process.argv[2]), '../../..')}, stdin: {}, stdout: {write: (line) => outputs.push(JSON.parse(line))}},
+  process: {env: {WEBSTONE_HARNESS_ROOT: path.resolve(path.dirname(process.argv[2]), '../../..')}, stdin: {}, stdout: {write: (line) => outputs.push(JSON.parse(line))}},
   setTimeout: () => {const timer = {}; timers.add(timer); return timer;},
   clearTimeout: (timer) => timers.delete(timer),
 });

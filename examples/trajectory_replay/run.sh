@@ -18,7 +18,7 @@ BUILD_IMAGES="${TRAJECTORY_REPLAY_BUILD_IMAGES:-1}"
 LLM_DIAGNOSTICS="${TRAJECTORY_REPLAY_LLM_DIAGNOSTICS:-0}"
 DIAGNOSIS_MODEL="${TRAJECTORY_REPLAY_DIAGNOSIS_MODEL:-}"
 DIAGNOSIS_EFFORT="${TRAJECTORY_REPLAY_DIAGNOSIS_REASONING_EFFORT:-low}"
-DATA_HOME="${BROWSER_EVAL_DATA_HOME:-${HOME}/.browser-eval}"
+DATA_HOME="${WEBSTONE_DATA_HOME:-${HOME}/.webstone}"
 OUTPUT="${TRAJECTORY_REPLAY_OUTPUT_DIR:-${DATA_HOME}/trajectory-replay/runs/$(date -u +%Y%m%dT%H%M%SZ)-$$}"
 if [[ "${OUTPUT}" != /* ]]; then
   OUTPUT="${PWD}/${OUTPUT}"
@@ -44,9 +44,9 @@ echo "Evidence directory: ${OUTPUT}"
 
 if [[ "${BUILD_IMAGES}" == "1" ]]; then
   docker build -f "${ROOT}/examples/trajectory_replay/docker/chromium.Dockerfile" \
-    -t lex-browser-eval-chromium:local "${ROOT}"
+    -t lex-webstone-chromium:local "${ROOT}"
   docker build -f "${ROOT}/examples/trajectory_replay/docker/moli.Dockerfile" \
-    -t lex-browser-eval-moli:local "${ROOT}"
+    -t lex-webstone-moli:local "${ROOT}"
 fi
 
 RUNNER=(uv run --frozen --extra browser-use-eval python)

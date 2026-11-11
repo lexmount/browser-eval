@@ -70,7 +70,7 @@ def test_fetch_score_cli_works_offline_with_an_empty_dataset_cache(tmp_path):
     task.write_text(json.dumps({'id': 'local', 'url': 'https://example.org',
                                'required_facts': [{'id': 'fact', 'alternatives': ['Complete answer']}]}), encoding='utf-8')
     response = tmp_path / 'response.txt';response.write_text('Complete answer', encoding='utf-8')
-    environment = {**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(tmp_path / 'empty-cache'), 'HF_HUB_OFFLINE': '1'}
+    environment = {**os.environ, 'WEBSTONE_DATASET_CACHE': str(tmp_path / 'empty-cache'), 'HF_HUB_OFFLINE': '1'}
     result = subprocess.run([sys.executable, '-m', 'lexbench_webfetch.cli', 'score', '--task', str(task),
                              '--response', str(response)], cwd=tmp_path, env=environment,
                             text=True, capture_output=True, check=True)

@@ -16,7 +16,7 @@ its native `onlyMainContent: false` option uniformly across its 100 cases.
 The shared scorer accepts equivalent Markdown list and table formats.
 
 Measured responses, logs, execution manifests, corrections and generated HTML
-stay outside Git under `BROWSER_EVAL_DATA_HOME` or `~/.browser-eval/`.
+stay outside Git under `WEBSTONE_DATA_HOME` or `~/.webstone/`.
 Only the current 1,000 logical results are selected. Superseded Moli releases,
 old Firecrawl outputs and preliminary smoke runs remain private historical
 evidence and are not part of this comparison.

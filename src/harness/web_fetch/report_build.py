@@ -189,7 +189,7 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
                     "artifact_hashes": {path: hashlib.sha256(raw).hexdigest()
                                         for path, raw in files.items()}}
         from harness.reporting.versions import bind_build_version
-        manifest['browser_eval'] = bind_build_version(staging)
+        manifest['webstone'] = bind_build_version(staging)
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
         check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
@@ -378,7 +378,7 @@ def write_frozen_presentation_manifest(output, manifest, *, show_local_status_ba
     current.update(template=resolve_template('webfetch'), languages=languages, generated_languages=languages,
                    presentation={"show_local_status_banners": show_local_status_banners,
                                  "frozen_scores": True, "authored_interpretation": authored_interpretation})
-    current['browser_eval'] = bind_build_version(output)
+    current['webstone'] = bind_build_version(output)
     (output / "report-manifest.json").write_text(json.dumps(current, ensure_ascii=False, indent=2) + "\n", encoding='utf-8')
 
 
@@ -832,7 +832,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             template_manifest.update(evidence_state='local_measurement', certified=False,
                 languages=template_manifest['generated_languages'], provider_calls_added=0)
         from harness.reporting.versions import bind_build_version
-        template_manifest['browser_eval'] = bind_build_version(staging)
+        template_manifest['webstone'] = bind_build_version(staging)
         (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n', encoding='utf-8')
         # Replace only an explicitly marked generated directory; never merge stale pages.

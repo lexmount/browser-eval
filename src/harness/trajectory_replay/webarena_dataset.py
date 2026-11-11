@@ -164,7 +164,7 @@ def _validate_qualification_receipt(
     runtime = receipt.get("runtime") or {}
     if runtime.get("resources") != expected_resources:
         raise ValueError(f"replay receipt has different runtime resources: {receipt_path}")
-    if not runtime.get("browser_eval_commit") or not runtime.get("cowagent_commit"):
+    if not runtime.get("webstone_commit") or not runtime.get("cowagent_commit"):
         raise ValueError(f"replay receipt is missing code identity: {receipt_path}")
     browser_images = runtime.get("browser_images") or {}
     if set(browser_images) != set(required_engines) or any(

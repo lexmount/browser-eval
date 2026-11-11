@@ -858,13 +858,13 @@ def test_magento_readiness_requires_non_red_elasticsearch(monkeypatch) -> None:
 def test_physical_execution_lock_path_is_user_global_not_evidence_scoped(
     monkeypatch, tmp_path: Path
 ) -> None:
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path))
     monkeypatch.setattr("harness.environments.webarena.runtime.tempfile.gettempdir", lambda: "/tmp")
     monkeypatch.setattr("harness.environments.webarena.runtime.os.getuid", lambda: 1234)
 
     assert physical_execution_lock_path() == (
         Path("/tmp")
-        / "browser-eval-1234"
+        / "webstone-1234"
         / "locks"
         / f"{PHYSICAL_EXECUTION_LOCK_NAMESPACE}.lock"
     )

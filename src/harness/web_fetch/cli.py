@@ -278,7 +278,7 @@ def diagnostic_check_main() -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="browser-harness-eval",
+        prog="webstone",
         description="Web Fetch evaluations for Webstone. Run retrieval tasks and build reports from saved evidence.",
     )
     sub = parser.add_subparsers(dest="command", required=True)

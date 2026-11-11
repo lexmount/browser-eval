@@ -464,7 +464,7 @@ def test_nested_route_links_resolve_from_page_or_base(tmp_path, monkeypatch, bas
         nested.parent.mkdir(exist_ok=True)
         prefix = '' if base else '../'
         head = '<base href="../">' if base else ''
-        disclosure = '<meta name="browser-eval-report" content="1">' + report.local_audit_banner(
+        disclosure = '<meta name="webstone-report" content="1">' + report.local_audit_banner(
             json.loads((out/'dataset.json').read_bytes()))
         nested.write_text(disclosure + head + '<a href="' + prefix + 'index.html?view=all#top">Home</a>'
                           + '<a href="https://external.invalid/missing">External</a>'
@@ -490,7 +490,7 @@ def test_nested_route_invalid_target_rejected(tmp_path, monkeypatch, markup, mes
         entry = original(out, model)
         nested = out / 'providers' / 'example.html'
         nested.parent.mkdir(exist_ok=True)
-        disclosure = '<meta name="browser-eval-report" content="1">' + report.local_audit_banner(
+        disclosure = '<meta name="webstone-report" content="1">' + report.local_audit_banner(
             json.loads((out/'dataset.json').read_bytes()))
         nested.write_text(disclosure + markup, encoding='utf-8')
         return entry

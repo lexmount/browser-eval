@@ -1513,7 +1513,7 @@ def _write_manifest(
         dict(
             schema="web-search-report/1",
             template="web-search/1",
-            browser_eval=build_version,
+            webstone=build_version,
             languages=languages,
             language_notices=_language_notice(output, languages),
             primary_language=language,

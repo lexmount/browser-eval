@@ -81,9 +81,9 @@ setup-test: ## Install every extra, Node packages and benchmark datasets
 	npm ci
 	$(TEST_PY) -m harness.benchmarks.data
 
-EXTRACTION_SDK_ENV ?= $(or $(BROWSER_EVAL_DATA_HOME),$(HOME)/.browser-eval)/environments/web-extract-sdk
+EXTRACTION_SDK_ENV ?= $(or $(WEBSTONE_DATA_HOME),$(HOME)/.webstone)/environments/web-extract-sdk
 test-extraction-sdk: ## Test native extraction protocols with the service's locked SDKs
-	BROWSER_EVAL_TEST_NATIVE_SDKS=1 LITELLM_LOCAL_MODEL_COST_MAP=True PYTHONPATH=src UV_PROJECT_ENVIRONMENT="$(EXTRACTION_SDK_ENV)" $(UV) run --frozen --project deploy/web-extract --python 3.12 python -m unittest discover -s tests/web_extract -p test_native_sdk_protocol.py
+	WEBSTONE_TEST_NATIVE_SDKS=1 LITELLM_LOCAL_MODEL_COST_MAP=True PYTHONPATH=src UV_PROJECT_ENVIRONMENT="$(EXTRACTION_SDK_ENV)" $(UV) run --frozen --project deploy/web-extract --python 3.12 python -m unittest discover -s tests/web_extract -p test_native_sdk_protocol.py
 
 help: ## List documented targets
 	@awk 'BEGIN {FS = ":.*## "} /^[a-z][a-z0-9-]*:.*## / {printf "  %-36s %s\n", $$1, $$2}' $(firstword $(MAKEFILE_LIST))
@@ -154,7 +154,7 @@ shell-check: ## Run shellcheck on deploy scripts
 
 browser-check: runtime-check ## Run the CI rendered reference and report checks
 	$(TEST_PY) -m playwright install chromium
-	BROWSER_EVAL_TEST_BROWSER_BINARY="$$($(TEST_PY) -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')" \
+	WEBSTONE_TEST_BROWSER_BINARY="$$($(TEST_PY) -c 'from playwright.sync_api import sync_playwright; p = sync_playwright().start(); print(p.chromium.executable_path); p.stop()')" \
 	  $(TEST_PY) -m pytest $(BROWSER_TEST_PATHS) -q
 
 package-check: runtime-check ## Verify sdist and wheel installation

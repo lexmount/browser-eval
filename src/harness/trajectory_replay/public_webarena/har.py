@@ -33,7 +33,7 @@ _EVALUATOR_PARSEABLE_BODY_TYPES = (
     "application/x-www-form-urlencoded",
     "multipart/form-data",
 )
-HAR_CREATOR_NAME = "browser-eval-cdp"
+HAR_CREATOR_NAME = "webstone-cdp"
 HAR_CREATOR_VERSION = "3"
 
 

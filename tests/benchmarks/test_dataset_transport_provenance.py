@@ -26,7 +26,7 @@ def _release(label):
             member.size = len(content)
             archive.addfile(member, io.BytesIO(content))
     raw = stream.getvalue()
-    manifest = {"schema": "browser-eval-dataset-release/1", "track": "websearch",
+    manifest = {"schema": "webstone-dataset-release/1", "track": "websearch",
                 "source_revision": "b" * 40, "datasets": datasets,
                 "files": {name: {"size": len(content), "sha256": hashlib.sha256(content).hexdigest()}
                           for name, content in files.items()},
@@ -75,7 +75,7 @@ def test_mirror_and_explicit_token_apply_to_both_pinning_and_installation(tmp_pa
     monkeypatch.setenv("HF_ENDPOINT", "https://mirror.example/hub/")
     monkeypatch.setenv("HF_TOKEN", "hf_fixture")
     monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
-    monkeypatch.setenv("BROWSER_EVAL_DATASET_CACHE", str(tmp_path / "cache"))
+    monkeypatch.setenv("WEBSTONE_DATASET_CACHE", str(tmp_path / "cache"))
     monkeypatch.setattr(data, "__file__", str(lock.with_name("data.py")))
     data._resolve.cache_clear()
     try:

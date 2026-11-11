@@ -64,7 +64,7 @@ class ResourceBuildContextTests(unittest.TestCase):
     def test_build_context_excludes_credentials_and_host_dependencies(self):
         excluded = {'.env', '.env.local', 'nested/.env', 'nested/.env.production',
                     'node_modules/example/package.json', 'nested/node_modules/example/package.json',
-                    'src/browser_harness_eval.egg-info/PKG-INFO'}
+                    'src/webstone.egg-info/PKG-INFO'}
         required = {'pyproject.toml', 'uv.lock', 'package.json', 'package-lock.json',
                     WORKER, 'scripts/worker.py',
                     'examples/web_fetch/docker/resource.Dockerfile'}

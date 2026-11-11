@@ -116,8 +116,8 @@ class SubprocessJsonlProvider(Provider):
         command = [self._resolve_token(part) for part in self.config["command"]]
         env = os.environ.copy()
         env.update({str(k): self._resolve_token(v) for k, v in self.config.get("env", {}).items()})
-        if self.config.get("log_level") == "debug": env["BROWSER_EVAL_LOG_LEVEL"] = "debug"
-        env["BROWSER_EVAL_HARNESS_ROOT"] = str(Path(__file__).resolve().parents[3])
+        if self.config.get("log_level") == "debug": env["WEBSTONE_LOG_LEVEL"] = "debug"
+        env["WEBSTONE_HARNESS_ROOT"] = str(Path(__file__).resolve().parents[3])
         cwd = str(Path(str(self.config.get("repo_path", "."))).expanduser().resolve())
         sink = getattr(self, "_active_diagnostics", None)
         if sink: sink.emit("caller", "worker_start", command=command, cwd=cwd)

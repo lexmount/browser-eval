@@ -190,7 +190,7 @@ class DatasetRelease:
                 raise ValueError("Hub source requires a committed dataset release manifest")
             identity = json.loads(committed.stdout)
             if (not isinstance(identity, dict)
-                    or identity.get("schema") != "browser-eval-dataset-release/1"
+                    or canonical_source_name("schemas", identity.get("schema")) != "webstone-dataset-release/1"
                     or canonical_source_name("tracks", identity.get("track")) != track):
                 raise ValueError("Hub source manifest does not match the requested benchmark track")
             prefix = "definitions/"
@@ -459,7 +459,7 @@ class DatasetRelease:
                 summary.append({"config": name, "source_suite": identity, "count": len(rows),
                                 "description": metadata["subsets"].get(name, "Registered task inputs")})
         manifest = {
-            "schema": "browser-eval-dataset-release/1", "track": self.track,
+            "schema": "webstone-dataset-release/1", "track": self.track,
             "source_repository": self.source_repository or f"https://github.com/lexmount/lexbench-{self.track}",
             "source_revision": self.revision, "datasets": self.datasets(),
             "viewer": {"configurations": summary, "language_annotations": used_annotations},

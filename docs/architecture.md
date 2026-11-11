@@ -104,7 +104,7 @@ Reuse the runner and renderer. Method names must not select special scoring rule
 
 Current public benchmark definitions, acceptance contracts and reference bindings are versioned on Hugging Face. Historical hash-bound inputs keep their original identities; new runs select a current HF edition through the data lock.
 
-External files live under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval/`) or a pinned Artifact Site release. Evaluation credentials come from `.env`; publishing uses separate authorization for its host.
+External files live under `WEBSTONE_DATA_HOME` (default `~/.webstone/`) or a pinned Artifact Site release. Evaluation credentials come from `.env`; publishing uses separate authorization for its host.
 
 External report-instance profiles, selected with `--profile`, bind a track's
 exact task population, methods, versions, evidence and publication target. None

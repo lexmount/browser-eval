@@ -80,7 +80,7 @@ def test_home_gate_requires_diagnostic_summary_and_rejects_winner_claims():
 def test_release_check_requires_visible_status_and_rank_scope(tmp_path):
     from harness.web_fetch.report_check import check_local_diagnostic_presentation
     page = tmp_path / 'index.html'
-    prefix = '<meta name="browser-eval-report" content="1">'
+    prefix = '<meta name="webstone-report" content="1">'
     page.write_text(prefix + '<p>Complete results</p>', encoding='utf-8')
     with pytest.raises(ValueError, match='disclosure missing'):
         check_local_diagnostic_presentation(tmp_path)
@@ -149,11 +149,11 @@ def test_explicit_sample_ranking_reuses_existing_ranked_table_and_keeps_scope(tm
     assert 'hidden' not in banner
     assert 'callout' not in banner
     page = tmp_path/'index.html'
-    page.write_text('<meta name="browser-eval-report" content="1">'+banner+markup, encoding='utf-8')
+    page.write_text('<meta name="webstone-report" content="1">'+banner+markup, encoding='utf-8')
     check_local_diagnostic_presentation(tmp_path, ranked=True)
     with pytest.raises(ValueError, match='Unrequested diagnostic ranking'):
         check_local_diagnostic_presentation(tmp_path)
-    page.write_text('<meta name="browser-eval-report" content="1"><div data-evidence-state="local_measurement">Uncertified</div>'+markup, encoding='utf-8')
+    page.write_text('<meta name="webstone-report" content="1"><div data-evidence-state="local_measurement">Uncertified</div>'+markup, encoding='utf-8')
     with pytest.raises(ValueError, match='scope missing'):
         check_local_diagnostic_presentation(tmp_path, ranked=True)
 
@@ -192,7 +192,7 @@ def test_contract_prose_localizes_without_full_snapshot_or_fixed_field_counts(tr
 def test_sample_ranking_rejects_invisible_scope_disclosure(tmp_path, wrapper):
     from harness.web_fetch.report_check import check_local_diagnostic_presentation
     attrs = 'data-evidence-state="local_measurement" data-ranking-scope="saved-task-pass-rate"'
-    (tmp_path/'index.html').write_text('<meta name="browser-eval-report" content="1">'+wrapper.format(attrs=attrs), encoding='utf-8')
+    (tmp_path/'index.html').write_text('<meta name="webstone-report" content="1">'+wrapper.format(attrs=attrs), encoding='utf-8')
     with pytest.raises(ValueError, match='disclosure missing'):
         check_local_diagnostic_presentation(tmp_path, ranked=True)
 
@@ -297,7 +297,7 @@ def test_ordinary_report_cannot_remove_marker_and_disclosure(tmp_path, route):
     page.parent.mkdir(parents=True, exist_ok=True)
     banner = local_audit_banner({'comparison': {'kind': 'uniform_native_local_measurement',
         'publication_state': 'local_audit_only_not_for_release'}})
-    page.write_text('<meta name="browser-eval-report" content="1">'+banner, encoding='utf-8')
+    page.write_text('<meta name="webstone-report" content="1">'+banner, encoding='utf-8')
     check_local_diagnostic_presentation(tmp_path, ranked=False)
     page.write_text('<p>Results without disclosure</p>', encoding='utf-8')
     with pytest.raises(ValueError, match='disclosure missing'):

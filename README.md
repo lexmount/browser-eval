@@ -26,8 +26,8 @@ Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run 
 git clone https://github.com/lexmount/webstone.git
 cd webstone
 uv sync --frozen
-uv run --frozen browser-harness-eval validate
-uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen webstone validate
+uv run --frozen webstone run --delay 0
 ```
 
 Open the report path printed in the terminal. The example has one expected pass and one expected failure; it needs no browser, Docker or API key. Python 3.11 or newer is required; CI tests 3.11.
@@ -152,13 +152,13 @@ See [evaluation design](docs/benchmarks.md#evaluation-design) for detailed scori
 
 ## Reports
 
-Results and evidence are saved locally under `~/.browser-eval/runs/`; use `--output /absolute/path/new-run` to choose another directory. HTML reports include comparisons, task results, full responses and failure evidence. Local evaluation, scoring and HTML inspection need no Artifact Site account or publishing authorization.
+Results and evidence are saved locally under `~/.webstone/runs/`; use `--output /absolute/path/new-run` to choose another directory. HTML reports include comparisons, task results, full responses and failure evidence. Local evaluation, scoring and HTML inspection need no Artifact Site account or publishing authorization.
 
 The `run` command builds a local report by default. Add `--no-report` to save results without HTML; `rescore --no-report` updates scores without rebuilding HTML. Build or rebuild a report later from saved evidence without repeating calls:
 
 ```sh
-uv run --frozen browser-harness-eval run --delay 0 --no-report
-uv run --frozen browser-harness-eval report /absolute/path/to/run
+uv run --frozen webstone run --delay 0 --no-report
+uv run --frozen webstone report /absolute/path/to/run
 ```
 
 English is the default; add `--language zh` when running or rebuilding for Chinese. A rebuild without that option keeps the saved language.
@@ -267,7 +267,7 @@ make ci
 Project citation: [CITATION.cff](CITATION.cff).
 
 ```bibtex
-@software{browser_eval_2026,
+@software{webstone_2026,
   author = {{Webstone contributors}},
   title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Evaluation harness},

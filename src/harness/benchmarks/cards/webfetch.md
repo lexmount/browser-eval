@@ -120,7 +120,7 @@ Add `--metadata` for saved structured answer fields and `--file` for delivered f
 After exporting `webfetch`, run one diagnostic task with the HTTP baseline:
 
 ```sh
-uv run --frozen browser-harness-eval run \
+uv run --frozen webstone run \
   --dataset /absolute/path/new-input-directory/dataset.json \
   --provider-config configs/providers.quickstart.json --providers http \
   --case-ids static-simple --output /absolute/path/new-evidence
@@ -154,7 +154,7 @@ For search evaluation, use [LexBench-Web-Search](https://huggingface.co/datasets
 Cite Webstone and record the exact dataset revision used in your experiment. The canonical project citation is [CITATION.cff](https://github.com/lexmount/webstone/blob/main/CITATION.cff).
 
 ```bibtex
-@software{browser_eval_2026,
+@software{webstone_2026,
   author = {{Webstone contributors}},
   title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Evaluation harness},

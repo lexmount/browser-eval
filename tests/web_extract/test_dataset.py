@@ -169,7 +169,7 @@ def test_shared_publisher_reads_committed_extract_inputs_and_rejects_unknown_bin
         source_track
     ]
     save_json(
-        root / "manifest.json", {"schema": "browser-eval-dataset-release/1", "track": source_name}
+        root / "manifest.json", {"schema": "webstone-dataset-release/1", "track": source_name}
     )
     for args in (
         ["init"],

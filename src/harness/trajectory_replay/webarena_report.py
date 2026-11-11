@@ -576,7 +576,7 @@ const css=document.querySelector('link[data-report-css]');
 css.href=css.dataset.src;
 })();</script>'''
     body = body.replace('<img src=', '<img data-src=')
-    return f'''<!doctype html><html lang="{lang}"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" data-report-css data-src="{asset_prefix}assets/report.css">{preview_bootstrap}</head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script type="application/x-report-app" data-report-app data-src="{asset_prefix}assets/app.js"></script><script>(function(){{document.querySelectorAll('img[data-src]').forEach(img=>img.src=img.dataset.src);const app=document.querySelector('script[data-report-app]');const loader=document.createElement('script');loader.src=app.dataset.src;app.replaceWith(loader)}})();</script></body></html>'''
+    return f'''<!doctype html><html lang="{lang}"><head><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{_e(title)}</title><link rel="stylesheet" data-report-css data-src="{asset_prefix}assets/report.css">{preview_bootstrap}</head><body>{_nav(lang, active, depth=depth, current_route=current_route)}<main>{body}</main><footer>{footer}</footer><script type="application/x-report-app" data-report-app data-src="{asset_prefix}assets/app.js"></script><script>(function(){{document.querySelectorAll('img[data-src]').forEach(img=>img.src=img.dataset.src);const app=document.querySelector('script[data-report-app]');const loader=document.createElement('script');loader.src=app.dataset.src;app.replaceWith(loader)}})();</script></body></html>'''
 
 
 def _winner(value: str, won: bool, *, lang: str) -> str:
@@ -1751,7 +1751,7 @@ def build_webarena_replay_report(
         english_root = output / "en"
         english_root.mkdir()
         (english_root / "index.html").write_text(
-            '<!doctype html><html lang="zh"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
+            '<!doctype html><html lang="zh"><head><meta name="webstone-report" content="1"><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width, initial-scale=1">'
             '<script>(function(){const b=document.querySelector("base[href]");'
             'if(b)b.href=new URL("en/",b.href).href;})();</script>'
@@ -1792,7 +1792,7 @@ def build_webarena_replay_report(
         "measurement_notes": {lang: profile["measurement_notes"][lang] for lang in languages}
         if profile.get("measurement_notes") else {},
     }
-    manifest['browser_eval'] = bind_build_version(output)
+    manifest['webstone'] = bind_build_version(output)
     _write_clean_json(output / "report-manifest.json", manifest)
     if language is not None:
         entry = select_report_language(output, language)
@@ -1822,7 +1822,7 @@ def _catalog_shell(title: str, body: str, participant: str) -> str:
         f'<a href="method.html">{t("catalog.nav.method", "Method and boundaries")}</a></nav>'
     )
     return (
-        '<!doctype html><html lang="zh-CN"><head><meta name="browser-eval-report" content="1"><meta charset="utf-8">'
+        '<!doctype html><html lang="zh-CN"><head><meta name="webstone-report" content="1"><meta charset="utf-8">'
         '<meta name="viewport" content="width=device-width, initial-scale=1"><base href="/">'
         f"<title>{html.escape(title)}</title><style>{CATALOG_REPORT_CSS}</style></head><body>{nav}{body}"
         f"<footer>{t('catalog.heading', 'WebArena-Verified full trajectory replay')} · {html.escape(participant)}</footer>"

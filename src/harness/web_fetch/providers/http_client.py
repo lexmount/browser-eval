@@ -72,7 +72,7 @@ def request(
     if body is not None and not isinstance(body, bytes):
         raise TypeError("Raw HTTP body must be bytes")
     data = body
-    final_headers = {"User-Agent": "browser-harness-eval/0.1", **(headers or {})}
+    final_headers = {"User-Agent": "webstone/0.1", **(headers or {})}
     if json_body is not None:
         data = json.dumps(json_body).encode("utf-8")
         final_headers.setdefault("Content-Type", "application/json")

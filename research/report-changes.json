@@ -199,14 +199,14 @@
       "title": "Astra 模型层、逐执行证据与环境隔离核验",
       "status": "已处理",
       "scope": "GPT-5.6 Sol 与 GPT-6 Astra 两个模型层、360 个逻辑结果、438 次物理执行、75 个最终失败，以及共享 WebArena 站点栈的执行边界。",
-      "findings": "Sol 层为 Chromium 73/90、Moli 70/90；Astra 层两者均为 71/90。Astra Task 77 的两个失败来自共享 Shopping Admin 状态在准备后被并发执行改写，不是 Agent 误读或镜像基线错误。两个模型层使用的 browser-eval 提交不同，因此跨模型变化只能作观察性比较。",
+      "findings": "Sol 层为 Chromium 73/90、Moli 70/90；Astra 层两者均为 71/90。Astra Task 77 的两个失败来自共享 Shopping Admin 状态在准备后被并发执行改写，不是 Agent 误读或镜像基线错误。两个模型层使用的 webstone 提交不同，因此跨模型变化只能作观察性比较。",
       "corrections": "所有模型、浏览器和任务仍只保留一个逻辑结果；公开包补齐每次物理执行的脱敏证据与哈希；75/75 个失败均绑定当前证据并核验根因。运行器现在用按 Docker daemon 区分的跨进程文件锁覆盖 reset、Agent、证据收尾和 evaluator；同一环境 lane 串行。",
       "remaining": "历史官方分数不以人工核验覆盖；Task 77 只有在修复后的隔离环境中形成新的完整证据批次后才能更新成绩。真正并行执行仍要求每个 worker 拥有独立的完整站点栈、端口和浏览器容器。",
       "i18n": {"en": {
         "title": "Astra model layer, per-execution evidence, and environment-isolation review",
         "status": "Resolved",
         "scope": "The GPT-5.6 Sol and GPT-6 Astra model layers, 360 logical results, 438 physical executions, 75 final failures, and the execution boundary of the shared WebArena site stack.",
-        "findings": "In the Sol layer Chromium scored 73/90 and Moli 70/90; in the Astra layer both scored 71/90. The two Astra Task 77 failures came from concurrent modification of shared Shopping Admin state after preparation, not an Agent reading error or a bad image baseline. The model layers used different browser-eval commits, so cross-model changes are observational only.",
+        "findings": "In the Sol layer Chromium scored 73/90 and Moli 70/90; in the Astra layer both scored 71/90. The two Astra Task 77 failures came from concurrent modification of shared Shopping Admin state after preparation, not an Agent reading error or a bad image baseline. The model layers used different webstone commits, so cross-model changes are observational only.",
         "corrections": "Kept one logical result per model, browser, and task; published sanitized evidence and hashes for every physical execution; and bound all 75 failures to verified root causes. The runner now holds a Docker-daemon-scoped cross-process lock across reset, Agent execution, evidence finalization, and evaluation, serializing every run within one environment lane.",
         "remaining": "Human review does not override historical official scores. Task 77 can change only after a new complete evidence cohort is produced under the corrected isolation protocol. Safe parallel execution still requires a separate full site stack, ports, and browser containers for every worker."
       }}
@@ -688,7 +688,7 @@
         ],
         [
           "跨模型解释边界",
-          "两个模型层并非同一次运行，且 browser-eval 提交不同。",
+          "两个模型层并非同一次运行，且 webstone 提交不同。",
           "报告保留各模型层的运行 ID、提交、manifest 与 attempts 哈希，并把跨模型差异标为观察性结果。",
           "不能把 Sol 与 Astra 的分数或耗时差异单独归因于模型版本。"
         ],
@@ -723,7 +723,7 @@
           ],
           [
             "Cross-model boundary",
-            "The model layers were separate runs and used different browser-eval commits.",
+            "The model layers were separate runs and used different webstone commits.",
             "The report retains each layer's run ID, commit, manifest, and attempts hashes and labels cross-model differences as observational.",
             "Sol–Astra score or latency changes cannot be attributed to the model version alone."
           ],

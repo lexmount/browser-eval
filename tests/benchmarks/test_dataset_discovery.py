@@ -120,7 +120,7 @@ def test_published_instructions_can_name_an_available_immutable_toolkit(tmp_path
     ("webmainbench", {"main-content-extraction", "html-to-markdown"}, "https://huggingface.co/datasets/opendatalab/WebMainBench"),
     ("simpleqa-verified", {"information-retrieval", "simpleqa"}, "https://huggingface.co/datasets/google/simpleqa-verified"),
     ("wcxb", {"wcxb", "web-content-extraction"}, "https://github.com/Murrough-Foley/web-content-extraction-benchmark"),
-    ("trajectory-replay", {"trajectory-replay", "browser-evaluation"}, "https://github.com/lexmount/Lexbench-Headless-Browser"),
+    ("trajectory-replay", {"trajectory-replay", "webstoneuation"}, "https://github.com/lexmount/Lexbench-Headless-Browser"),
     ("webarena-replay", {"webarena", "trajectory-replay"}, "https://huggingface.co/datasets/AmineHA/WebArena-Verified"),
 ])
 def test_cards_explain_use_and_credit_sources_with_specific_discovery_terms(tmp_path, track, tags, source):
@@ -216,7 +216,7 @@ def test_unknown_current_fetch_category_is_rejected(tmp_path):
         source.build(tmp_path)
 
 
-def test_current_dataset_cards_link_to_existing_browser_eval_code_and_guides():
+def test_current_dataset_cards_link_to_existing_webstone_code_and_guides():
     import re
     from pathlib import Path
     from harness.benchmarks.publication import CARDS
