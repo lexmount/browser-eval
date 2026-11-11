@@ -32,6 +32,12 @@ report. Put long logs, traces, offline tests and supplementary cases in linked
 files or collapsed `<details>` sections. Paste code and errors as text; diagrams
 and screenshots supplement them. Remove keys, cookies and session data.
 A tracking issue should contain a short goal and links to the individual issues.
+For findings from an evaluation, use the [evaluation task template](.github/ISSUE_TEMPLATE/evaluation_task.md),
+set the issue type to Task and link the report that defines the batch. Attach each
+finding as a native sub-issue; keep different reports or releases in separate tasks.
+Close an issue or check an item only after verifying its original failure, with
+the tested version and evidence recorded. Move a newly discovered problem to its
+own issue instead of changing what a historical issue means.
 
 When filing in another repository, follow its template and terminology. Before
 submitting, read the issue as a maintainer: can someone unfamiliar with the
