@@ -16,11 +16,15 @@ For benchmark failures, identify the task and acceptance rule. Remove credential
 ## Expected behavior
 
 <!-- State the observable result required by the task. Do not demand unrelated content
-merely because a baseline returns it; distinguish main body, media and file delivery. -->
+merely because a baseline returns it; distinguish main body, media and file delivery.
+Show the required text, fields or relationships for the same reproduction input,
+and state the pass/fail condition. Label illustrative output as an example. -->
 
 ## Actual behavior
 
-<!-- Include a short response or exact error as text, and how often it occurs. -->
+<!-- Include a literal response or exact error excerpt, not just its length or status.
+Put it beside the expected content when helpful. State the observation date and
+request/mode, and separate current output from historical or fixed-fixture evidence. -->
 
 ## Environment
 

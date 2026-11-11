@@ -16,7 +16,9 @@ Start with a short description of the failure and its effect on the caller.
 Then provide:
 
 1. A minimal, complete command or code sample, its input and any setup it needs.
-2. The expected result and the actual result, with a short response or error excerpt.
+2. Concrete expected content or fields, the literal actual response/error excerpt,
+   and a pass/fail condition for the same input. Counts alone are insufficient.
+   Label illustrative output, and separate current observations from saved evidence.
 3. The relevant version, method/provider, environment and observation date.
    For hosted services, include the endpoint, parameters and request ID when available.
 4. Supporting evidence and a diagnosis or proposed fix, if established.
