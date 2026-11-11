@@ -61,6 +61,7 @@ class ReportTemplateTests(unittest.TestCase):
 
     def test_issue_guide_binds_case_diagnosis_figure_and_exact_evidence(self):
         import base64
+        from bs4 import BeautifulSoup
         from harness.web_fetch.report_diagnostic import load_diagnostic
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source=root/'source';model=diagnostic_example(source)
@@ -73,7 +74,8 @@ class ReportTemplateTests(unittest.TestCase):
             block=dict(id='access',title='Access failure',paragraphs=['A concrete diagnosis'],
                        figure=dict(path='issue.png',sha256=hashlib.sha256(figure.read_bytes()).hexdigest(),
                                    alt='Challenge blocks target content',scope='Synthetic observed response'),
-                       examples=[example])
+                       examples=[example],table=dict(headers=['Repair'],rows=[[
+                           dict(url='https://example.test/issues/7',label='Repair issue')]]))
             model.update(problem_focus=True,comparison_mode=True,interpretation_lead="One of two tasks passed")
             model['pages']={'overview':[dict(title='Issue index',paragraphs=[],table=dict(
                 headers=['Issue','Case'],rows=[[dict(issue_id='access',label='Access'),
@@ -82,6 +84,11 @@ class ReportTemplateTests(unittest.TestCase):
             def save(value): (source/'report.json').write_text(json.dumps(value),encoding='utf-8')
             save(model);output=root/'output';build_diagnostic_cohorts(source,output)
             check_diagnostic_report(output)
+            rendered_guide=BeautifulSoup((output/'guide/index.html').read_text(encoding='utf-8'),'html.parser')
+            section=rendered_guide.find(id='access')
+            self.assertEqual(section.find('h2').find_next_sibling().name,'figure')
+            self.assertIsNone(section.select_one('.diagnosis-figure').find_parent('details'))
+            self.assertEqual(section.find('a',string='Repair issue')['href'],'https://example.test/issues/7')
             for field in ('expected','actual','cause','fix','verify'):
                 broken=copy.deepcopy(model);del broken['pages']['guide'][0]['examples'][0][field];save(broken)
                 with self.subTest(field=field), self.assertRaises(ValueError):load_diagnostic(source)
@@ -95,8 +102,21 @@ class ReportTemplateTests(unittest.TestCase):
                 with self.subTest(change=change),self.assertRaises(ValueError):load_diagnostic(source)
             save(model)
             guide=output/'guide/index.html';original=guide.read_text(encoding="utf-8")
+            for change in ('fold','late'):
+                changed=BeautifulSoup(original,'html.parser');visual=changed.find(id='access').select_one('figure')
+                if change=='fold':visual.wrap(changed.new_tag('details'))
+                else:changed.find(id='access').find('p').insert_after(visual.extract())
+                guide.write_text(str(changed),encoding='utf-8')
+                with self.subTest(figure=change),self.assertRaisesRegex(ValueError,'must lead'):
+                    check_diagnostic_report(output)
+            for url in ('javascript:alert(1)','https://user:secret@example.test/issues/7'):
+                changed=copy.deepcopy(model)
+                changed['pages']['guide'][0]['table']['rows'][0][0]['url']=url;save(changed)
+                with self.subTest(url=url),self.assertRaises(ValueError):load_diagnostic(source)
+            save(model)
             for old,new in [('data-diagnosis-field="fix"','data-omitted-field="fix"'),
                             ('src="issue.png"','src="absent.png"'),
+                            ('https://example.test/issues/7','https://example.test/issues/8'),
                             ('attempts/challenge.html','attempts/complete.html')]:
                 guide.write_text(original.replace(old,new), encoding="utf-8")
                 with self.subTest(rendered=old),self.assertRaises(ValueError):check_diagnostic_report(output)

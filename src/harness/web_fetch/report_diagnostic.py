@@ -418,6 +418,14 @@ def diagnostic_cell_text(value):
     return value['label'] if isinstance(value, dict) else str(value)
 
 
+def diagnostic_cell_href(value):
+    if 'case_id' in value:
+        return 'attempts/' + value['case_id'] + '.html'
+    if 'issue_id' in value:
+        return 'guide/index.html#' + value['issue_id']
+    return value['url']
+
+
 def validate_diagnostic_blocks(model, files, source):
     """Bind authored diagnosis examples and illustrations to inspectable evidence."""
     if model.get('problem_focus') and not any(block.get('examples') for block in model.get('pages',{}).get('guide',[])):
@@ -432,9 +440,14 @@ def validate_diagnostic_blocks(model, files, source):
                 for value in values:
                     if not isinstance(value, dict):
                         continue
-                    kind = 'case_id' if 'case_id' in value else 'issue_id'
-                    if (set(value) != {kind, 'label'} or not value['label']
-                            or value[kind] not in (rows if kind == 'case_id' else guide_ids)):
+                    kind = next((key for key in ('case_id', 'issue_id', 'url') if key in value), None)
+                    if kind is None or set(value) != {kind, 'label'} or not value['label']:
+                        raise ValueError('Diagnosis table link has no matching case or issue')
+                    if kind == 'url':
+                        validate_http_url(value[kind])
+                        if urlsplit(value[kind]).username is not None:
+                            raise ValueError('Diagnosis table links cannot contain credentials')
+                    elif value[kind] not in (rows if kind == 'case_id' else guide_ids):
                         raise ValueError('Diagnosis table link has no matching case or issue')
             figure = block.get('figure')
             if figure:
@@ -625,8 +638,7 @@ def check_diagnostic_report(output, profile=None):
             for source_row, rendered_row in zip(spec['rows'],rendered.select('tbody tr'),strict=True):
                 for value,td in zip(source_row,rendered_row.select('td')[1:],strict=True):
                     if not isinstance(value,dict):continue
-                    href=('attempts/'+value['case_id']+'.html' if 'case_id'in value
-                          else 'guide/index.html#'+value['issue_id'])
+                    href = diagnostic_cell_href(value)
                     anchors=td.select('a')
                     if len(anchors)!=1 or anchors[0].get('href')!=href:
                         raise ValueError('Diagnosis table points to different evidence')
@@ -753,6 +765,10 @@ def check_diagnostic_report(output, profile=None):
             if (not rendered or rendered.get('src') != figure['path']
                     or rendered.get('alt') != figure['alt']):
                 raise ValueError('Diagnosis illustration is missing or points to different evidence')
+            section_node = diagnosis_page.find(id=block['id'])
+            if (rendered.find_parent('details') is not None
+                    or section_node.find('h2').find_next_sibling() != rendered.find_parent('figure')):
+                raise ValueError('Diagnosis illustration must lead its section without folding')
     for row in model["rows"]:
         route = "attempts/" + row["id"] + ".html"
         soup = checked_page(output / route)

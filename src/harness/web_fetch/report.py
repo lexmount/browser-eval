@@ -830,18 +830,20 @@ def generate_cohort_diagnostic(out, model):
   by_id={row['id']:row for row in rows}
   def value_html(value):
    if not isinstance(value,dict):return esc(str(value))
+   if value.get('url'):return link(value['url'],value['label'])
    if value.get('case_id'):return link(detail_link(by_id[value['case_id']]),value['label'])
    return link('guide/index.html#'+value['issue_id'],value['label'])
   for index,block in enumerate(model.get('pages',{}).get(name,[])):
-   text=''.join('<p>'+esc(p)+'</p>' for p in block['paragraphs'])
-   if block.get('table'):
-    spec=block['table']
-    text+=table(spec['headers'],[('', ''.join(cell(value_html(value)) for value in row)) for row in spec['rows']],f'diagnostic-table-{name}-{index}')
+   text=''
    if block.get('figure'):
     figure=block['figure']
     png=(out/figure['path']).read_bytes()
     width,height=int.from_bytes(png[16:20],'big'),int.from_bytes(png[20:24],'big')
     text+='<figure class="diagnosis-figure"><a href="'+esc(figure['path'])+'"><img loading="lazy" width="'+str(width)+'" height="'+str(height)+'" src="'+esc(figure['path'])+'" alt="'+esc(figure['alt'])+'"></a><figcaption>'+esc(figure['scope'])+'</figcaption></figure>'
+   text+=''.join('<p>'+esc(p)+'</p>' for p in block['paragraphs'])
+   if block.get('table'):
+    spec=block['table']
+    text+=table(spec['headers'],[('', ''.join(cell(value_html(value)) for value in row)) for row in spec['rows']],f'diagnostic-table-{name}-{index}')
    for example in block.get('examples',[]):
     row=by_id[example['case_id']]
     text+='<article class="diagnosis-example" data-diagnosis-case="'+esc(row['id'])+'"><h3>'+link(detail_link(row),example.get('title')or row.get('name')or row['id'])+'</h3><p>'+esc(groups[row['cohort']]['label'])+' · '+link(row['url'],row['url'])+'</p><div class="diagnosis-contrast">'
