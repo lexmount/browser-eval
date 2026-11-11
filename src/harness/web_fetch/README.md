@@ -323,18 +323,17 @@ source qualification; an invalid source state or an explicitly live reference
 cannot take the frozen-input route.
 
 For declared native completion, add `--retrieval-mode native`: it preserves
-acceptance rules and rejects existing
-selector-guided retrieval hints rather than dropping them.
-Dynamic task families stay `dynamic`: the explicit
-`retrieval_hints: {"version": 3, "mode": "native"}` contract selects each
-provider's ordinary completion without injecting selectors, extraction hints or
-extra waits. A small number of independently qualified page shapes may add only
+acceptance rules and gives every dynamic case the same family marker
+`retrieval_hints: {"version": 3, "mode": "native"}`, replacing any per-case
+hints, including registered contracts. Retrieval hints on a non-dynamic case
+are rejected. The marker selects each provider's ordinary completion without
+injecting selectors, extraction hints or extra waits.
+Outside this mode, a small number of independently qualified page shapes may add only
 `"contract": "<registered-name>"`. The shared registry in
 `evaluation/native-retrieval-contracts.json` binds each name to one case and one
 hash-verified source observation. Dataset rows cannot carry selectors, counts,
 delays or answer text directly; unknown names and names used by another case fail
-closed. Selecting native mode again preserves either form unchanged, and the
-runner validates it through the same strict parser.
+closed. The runner validates either form through the same strict parser.
 Version 1/2 selector-guided contracts keep their existing meaning.
 The diagnostic report accepts a `webfetch_diagnostic_inputs/1` manifest naming
 complete runs, independently captured whole-page observations and hash-bound
