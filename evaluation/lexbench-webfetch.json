@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "huggingface_benchmark_binding",
   "repository": "https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch",
-  "revision": "4af5554ef932f8558b8c3bc74436d4d3626fdc1e",
+  "revision": "46d9107157e2682162805685e7b266557c1f9e35",
   "ownership": {
     "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
     "harness": "Execution, reference lifecycle, evidence and reports"
@@ -78,10 +78,10 @@
     "evaluation/risk-control/remaining-70-rule-review.md": "301574dddcfddf6d30ed4d882cdd40b1ae859fdc95a0a02cf9868f55e3fd1079",
     "evaluation/risk-control/rule-authoring-guide.md": "d5efff4861a3f1e5e403d29bd38f4df6354aaf4e4b2d62aa85e7b20d74839c15",
     "evaluation/risk-control/source-inputs.json": "77c5a4b62c07d59ed57154a833e85f9e7a97bc739730f51cd4ca3a698edb9258",
-    "evaluation/scoring-regressions.json": "8154a1806df1447d5ae0c2aa99aa0d2bd99ae99cbb2300a6526c0f2c8df5c2a3",
+    "evaluation/scoring-regressions.json": "c3f3ba41076852a40c87c6bbcf153c955c69544a53a611ffdf688af0281f26e8",
     "evaluation/source-inputs.json": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708",
     "annotation-revisions/serialization-20261021.json": "e0fe42179e584abb73782cbc459f521cab9cb09d3442de1ec4a6ff54d1b1235a",
     "benchmark-release.json": "c80a1e8cedc371b15c247957ebb99f4b523cf91a598c40b8d2b75086ed0492b1"
   },
-  "source_revision": "5a5b9367118dcc25f126ee16ef4de2d7c666f190"
+  "source_revision": "6b3e1e526600eb91efbb7211c409742b1274888f"
 }
