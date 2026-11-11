@@ -272,3 +272,21 @@ def test_rescore_defaults_to_the_saved_content_scope_and_rejects_switches(tmp_pa
     args.content_scope='full'
     with pytest.raises(ValueError,match='saved content scope'):cli.command_rescore(args)
     assert seen==['main']
+
+
+def test_filtered_rescore_does_not_apply_task_scope_to_unexecuted_legacy_tasks(tmp_path,monkeypatch):
+    from harness.web_fetch import cli
+    from tests.benchmarks.webfetch.test_content_scopes import annotated_case
+    task=annotated_case();legacy=dict(id='legacy',name='Legacy',category='synthetic',url='https://example.test/legacy',expected_any=['legacy'])
+    dataset=tmp_path/'dataset.json';dataset.write_text(json.dumps(dict(tool='web_fetch',cases=[task,legacy])),encoding='utf-8')
+    run=tmp_path/'run';run.mkdir();(run/'dataset.json').write_text(json.dumps(dict(cases=[dict(id=task['id'],content_scope='full')])),encoding='utf-8')
+    seen=[]
+    def rescore(**kwargs):
+        seen.append({case.id:case.content_scope for case in kwargs['cases']})
+        assert kwargs['dataset_meta'].get('content_scope') is None
+        return [],{}
+    monkeypatch.setattr(cli,'rescore_evaluation',rescore)
+    args=cli.build_parser().parse_args(['rescore',str(run),'--dataset',str(dataset),'--no-report'])
+    for explicit in (None,'full'):
+        args.content_scope=explicit;assert cli.command_rescore(args)==0
+    assert seen==[{'article':'full','legacy':None}]*2

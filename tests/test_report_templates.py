@@ -109,6 +109,44 @@ class ReportTemplateTests(unittest.TestCase):
                 with self.subTest(index=old),self.assertRaises(ValueError):check_diagnostic_report(output)
             home.write_text(original_home,encoding='utf-8')
 
+    def test_present_heading_with_insufficient_section_is_a_body_failure(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row=dict(initial_pass=False,log=dict(path='log.json'),reference=dict(path='reference.json'))
+        from lexbench_webfetch.scoring import score_attempt
+        case=dict(id='sections',url='https://example.test/sections',expected_any=[],min_content_chars=1,
+            document_structure=dict(version=1,minimum_heading_coverage=1,minimum_section_chars=20,
+                minimum_body_chars=100,headings=[dict(text='Installation',level=2)]))
+        metrics=score_attempt(case,('<p>'+('introduction '*100)+'</p><h2>Installation</h2><p>x</p>').encode(),ok=True)
+        self.assertTrue(metrics['document_heading_results'][0]['present'])
+        self.assertGreaterEqual(metrics['document_body_chars'],100)
+        files={'log.json':json.dumps(dict(metrics=metrics)).encode(),'reference.json':json.dumps(case).encode()}
+        findings=diagnostic_findings(row,files)
+        self.assertEqual([f['kind']for f in findings],['body'])
+        self.assertIn('Installation',findings[0]['expected'])
+        self.assertIn('标题存在',findings[0]['label'])
+
+    def test_problem_focus_requires_guide_cases_even_when_pages_are_absent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model.update(problem_focus=True,interpretation_lead='Explicit lead')
+            for pages in (None,{}, {'overview':[]}):
+                if pages is None:model.pop('pages',None)
+                else:model['pages']=pages
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                with self.subTest(pages=pages),self.assertRaisesRegex(ValueError,'concrete case'):
+                    build_diagnostic_cohorts(source,root/'invalid')
+
+    def test_problem_focus_without_custom_lead_uses_measured_numeric_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['problem_focus']=True
+            model['pages']={'guide':[dict(title='Diagnosis',paragraphs=[],examples=[dict(
+                case_id='challenge',expected='Body',actual='Challenge',cause='Access barrier',
+                fix='Return blocked status',verify='Challenge fails',
+                evidence=[dict(field='first_answer',quote='Verify you are human')])])]}
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output);check_diagnostic_report(output)
+
     def test_authored_labels_and_lead_are_literal_text(self):
         from bs4 import BeautifulSoup
         with tempfile.TemporaryDirectory() as temp:
@@ -461,6 +499,11 @@ class ReportTemplateTests(unittest.TestCase):
                 [('dataset_sha256',run/'dataset.json'),('results_sha256',run/'results.jsonl'),('observations_sha256',observation_path)]},rows=reviews)
             review_path=root/'review.json';review_path.write_text(json.dumps(review), encoding='utf-8')
             base['source_labels']={'rubric_visible':'参考要求可见'}
+            import base64
+            png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=')
+            (root/'diagram.png').write_bytes(png)
+            base['pages']={'guide':[dict(id='mechanism',title='Mechanism',paragraphs=[],figure=dict(
+                path='diagram.png',sha256=hashlib.sha256(png).hexdigest(),alt='Synthetic content path',scope='Synthetic diagram'))]}
             spec=root/'input.json';spec.write_text(json.dumps(dict(schema='webfetch_diagnostic_inputs/1',report=base,
                 cohorts=[dict(id='articles',label='Articles',run='run',observations='observations.json',review='review.json')])), encoding='utf-8' )
             output=root/'report';build_diagnostic_cohorts(spec,output)
@@ -468,6 +511,11 @@ class ReportTemplateTests(unittest.TestCase):
             model,files=load_diagnostic(output)
             self.assertEqual(model['metrics']['overall'],[1,2])
             self.assertEqual(model['cohorts'][0]['version'],'moli 1.1.15')
+            self.assertEqual((output/'diagram.png').read_bytes(),png)
+            (root/'diagram.png').write_bytes(png+b'changed')
+            with self.assertRaisesRegex(ValueError,'illustration differs'):
+                build_diagnostic_cohorts(spec,root/'bad-figure')
+            (root/'diagram.png').write_bytes(png)
             self.assertEqual(files[model['rows'][0]['first_answer']['path']],b'Required article body')
             self.assertNotIn('Private DOM',files[model['rows'][0]['source']['path']].decode())
             # One instance profile supplies the input, scope and implementation;

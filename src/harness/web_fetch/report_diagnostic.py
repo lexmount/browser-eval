@@ -169,6 +169,16 @@ def prepare_diagnostic_evidence(spec_path, output):
             if audit.get('independent_verdict'):
                 row['independent_verdict'] = audit['independent_verdict']
             rows.append(row)
+    for blocks in model.get('pages',{}).values():
+        for block in blocks:
+            figure=block.get('figure')
+            if not figure:continue
+            image_path=contained_path(spec_path.parent,figure['path'],reject_symlinks=True)
+            raw=image_path.read_bytes()
+            if hashlib.sha256(raw).hexdigest()!=figure['sha256'] or not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+                raise ValueError('Diagnosis illustration differs from its input binding')
+            target=contained_path(output,figure['path'],reject_symlinks=True)
+            target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
     model.update(schema='webfetch_cohort_diagnostic/1',certified=False,cohorts=cohorts,rows=rows,provenance=provenance)
     model['metrics']={g['id']:[sum(r['initial_pass'] for r in rows if r['cohort']==g['id']),g['case_count']] for g in cohorts}
     model['metrics']['overall']=[sum(r['initial_pass'] for r in rows),len(rows)]
@@ -338,10 +348,19 @@ def diagnostic_findings(row, files):
             contract={}
         coverage=metrics.get('document_heading_coverage')
         if coverage is not None and coverage < contract.get('minimum_heading_coverage',1):
-            headings=[h['text'] for h in contract.get('headings',[])]
-            add('pattern',t('document_headings_not_preserved','Document headings not preserved'),
-                ' / '.join(headings) or t('declared_structure_requirement','Declared structure requirement'),
-                t('heading_coverage_value','Heading coverage: {value}%',value=round(100*coverage,1)))
+            headings={h.get('id','section-'+str(i)):h['text'] for i,h in enumerate(contract.get('headings',[]),1)}
+            checks=[h for h in metrics.get('document_heading_results',[]) if h.get('pass') is False]
+            absent=[h for h in checks if h.get('present') is not True]
+            short=[h for h in checks if h.get('present') is True]
+            if absent or not checks:
+                names=[headings.get(h['id'],h['id']) for h in absent] or list(headings.values())
+                add('pattern',t('document_headings_not_preserved','Document headings not preserved'),
+                    ' / '.join(names) or t('declared_structure_requirement','Declared structure requirement'),
+                    t('heading_coverage_value','Heading coverage: {value}%',value=round(100*coverage,1)))
+            if short:
+                add('body',t('document_section_body_missing','Heading present but section text insufficient'),
+                    ' / '.join(headings.get(h['id'],h['id']) for h in short),
+                    t('section_body_below_requirement','Required section text did not meet its minimum'))
         if metrics.get('document_body_chars',0) < metrics.get('document_minimum_body_chars',0):
             add('body',t('document_body_too_short','Document section body too short'),
                 t('at_least_characters_3','At least {get} characters',get=metrics['document_minimum_body_chars']),
@@ -401,6 +420,8 @@ def diagnostic_cell_text(value):
 
 def validate_diagnostic_blocks(model, files, source):
     """Bind authored diagnosis examples and illustrations to inspectable evidence."""
+    if model.get('problem_focus') and not any(block.get('examples') for block in model.get('pages',{}).get('guide',[])):
+        raise ValueError('Problem-focused guide needs concrete case diagnoses')
     rows = {row['id']: row for row in model['rows']}
     guide_ids = {block['id'] for block in model.get('pages', {}).get('guide', []) if block.get('id')}
     for blocks in model.get('pages', {}).values():

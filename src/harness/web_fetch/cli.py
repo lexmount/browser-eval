@@ -189,12 +189,11 @@ def command_rescore(args: argparse.Namespace) -> int:
     language = None if args.no_report else resolve_report_language(args.run_dir / "report", args.language)
     saved = json.loads((args.run_dir / 'dataset.json').read_text(encoding='utf-8'))
     saved_scope = saved.get('content_scope')
-    task_scopes={case.get('content_scope') for case in saved.get('cases',[])}
-    if saved_scope is None and len(task_scopes)==1:
-        saved_scope=next(iter(task_scopes))
-    if args.content_scope is not None and args.content_scope != saved_scope:
+    task_scopes={case['id']:case.get('content_scope') for case in saved.get('cases',[])}
+    executed_scopes=set(task_scopes.values()) or {saved_scope}
+    if args.content_scope is not None and executed_scopes != {args.content_scope}:
         raise ValueError('Rescore cannot change the saved content scope')
-    dataset, cases = load_dataset(args.dataset, content_scope=saved_scope)
+    dataset, cases = load_dataset(args.dataset, content_scope=saved_scope,case_scopes=task_scopes)
     if saved.get('content_scope') is None:
         dataset.pop('content_scope',None)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
