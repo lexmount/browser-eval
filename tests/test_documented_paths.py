@@ -170,7 +170,7 @@ def test_skill_documents_may_name_bundled_files_relative_to_the_skill(tmp_path):
     ("Run `python /tmp/scripts/gone.py ~/docs/gone.md $HOME/tests/gone.py ../src/gone.py`.", []),
     ("```\ncurl https://example.test/docs/gone.md\n```\n", []),
     ("```text\n[not a link](gone.md)\n```\n", []),
-    ("See `~/.browser-eval/evidence/x.json` and [site](https://example.test/x).", []),
+    ("See `~/.webstone/evidence/x.json` and [site](https://example.test/x).", []),
     ("`evaluation/logical.json` resolves through the binding.", []),
 ])
 def test_path_checker_accepts_and_rejects_scenarios(tmp_path, text, expected):

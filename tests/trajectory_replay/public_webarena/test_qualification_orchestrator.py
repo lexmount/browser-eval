@@ -111,7 +111,7 @@ def test_completed_shard_validation_binds_manifest_hashes_scope_and_attempts(tmp
             evidence / "network.har",
             {
                 "log": {
-                    "creator": {"name": "browser-eval-cdp", "version": "3"},
+                    "creator": {"name": "webstone-cdp", "version": "3"},
                     "entries": [],
                 }
             },
@@ -201,7 +201,7 @@ def test_completed_shard_validation_rejects_old_har_creator(tmp_path):
     write_json(output / "summary.json", {"ok": True})
     write_json(
         evidence / "network.har",
-        {"log": {"creator": {"name": "browser-eval-cdp", "version": "1"}}},
+        {"log": {"creator": {"name": "webstone-cdp", "version": "1"}}},
     )
     write_json(
         output / "manifest.json",

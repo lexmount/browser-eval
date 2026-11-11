@@ -764,11 +764,11 @@ def test_report_defaults_and_saved_primary_use_shared_language_policy(tmp_path, 
 
     home = create(tmp_path / "first")
     monkeypatch.setattr(languages, "REPORT_LANGUAGE_ENV_FILE", tmp_path / "no-env")
-    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
+    monkeypatch.delenv("WEBSTONE_REPORT_LANGUAGE", raising=False)
     output = tmp_path / "english-default"
     build(output, home / "content.json", home=home, profile=home / "profile.json")
     assert read_json(output / "report-manifest.json")["primary_language"] == "en"
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "zh")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "zh")
     assert languages.resolve_report_language(output) == "en"
     other = tmp_path / "configured-chinese"
     build(other, home / "content.json", home=home, profile=home / "profile.json")

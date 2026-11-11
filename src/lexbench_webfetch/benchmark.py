@@ -573,7 +573,7 @@ def export(identifier: str, source: Path, output: Path, *, revision: str | None 
             (stage/'annotation-review.json').write_text(json.dumps(review, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
             dataset_path.write_text(json.dumps(revised, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
         # A materialized dataset is intentionally independent of the historical
-        # Browser Eval external-input resolver; do not copy source-inputs.json.
+        # Webstone external-input resolver; do not copy source-inputs.json.
         os.rename(stage, output)
     finally:
         if stage.exists():

@@ -400,7 +400,7 @@ class CdpHarRecorder:
                 {
                     "log": {
                         "version": "1.2",
-                        "creator": {"name": "browser-eval", "version": "1"},
+                        "creator": {"name": "webstone", "version": "1"},
                         "entries": entries,
                     }
                 },
@@ -601,7 +601,7 @@ class CdpHarRecorder:
                 {
                     "log": {
                         "version": "1.2",
-                        "creator": {"name": "browser-eval", "version": "1"},
+                        "creator": {"name": "webstone", "version": "1"},
                         "entries": entries,
                     }
                 },

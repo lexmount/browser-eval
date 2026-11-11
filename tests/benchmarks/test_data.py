@@ -29,7 +29,7 @@ def download(tmp_path, monkeypatch):
                 "archive": {"path": "definitions.tar.gz", "sha256": hashlib.sha256(raw).hexdigest(), "size": len(raw)},
                 "files": {name: {"size": len(content), "sha256": hashlib.sha256(content).hexdigest()}}}
     monkeypatch.setattr(data, "binding", lambda track, revision=None: selected)
-    monkeypatch.setenv("BROWSER_EVAL_DATASET_CACHE", str(tmp_path / "data"))
+    monkeypatch.setenv("WEBSTONE_DATASET_CACHE", str(tmp_path / "data"))
     monkeypatch.delenv("HF_HUB_OFFLINE", raising=False)
     calls = []
     def fetch(url, timeout):
@@ -243,7 +243,7 @@ def test_search_preparation_is_sufficient_for_offline_factual_loading(tmp_path, 
                                     for name, content in files.items()}}
     bindings['websearch']['dataset_sources'] = {'factual-v1': 'simpleqa-verified'}
     monkeypatch.setattr(data, 'binding', lambda track, revision=None: bindings[track])
-    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('WEBSTONE_DATASET_CACHE', str(tmp_path / 'cache'))
     monkeypatch.delenv('HF_HUB_OFFLINE', raising=False)
     monkeypatch.setattr(data, 'urlopen', lambda url, timeout: io.BytesIO(
         payloads['simpleqa-verified' if '/simpleqa-verified/' in url else 'websearch']))
@@ -407,7 +407,7 @@ def test_configured_cache_home_alias_keeps_verified_reads(download, tmp_path, mo
     root = data.snapshot('webfetch')
     alias = tmp_path / 'cache-home-alias'
     alias.symlink_to(data.cache_home(), target_is_directory=True)
-    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(alias))
+    monkeypatch.setenv('WEBSTONE_DATASET_CACHE', str(alias))
     assert data.snapshot('webfetch') == root
     lexical = alias / 'webfetch' / root.name / 'definitions/tasks.json'
     assert read(lexical) == {'cases': [{'id': 'a'}]}

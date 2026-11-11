@@ -23,7 +23,11 @@ from urllib.parse import urlparse
 from harness.environments.webarena.topology import RECORDED_PORT_SITES
 from harness.record_io import canonical_json_sha256, file_sha256, load_jsonl, same_json_record
 from harness.trajectory_replay.core.suite import TaskSuite
-from harness.trajectory_replay.public_webarena.har import HAR_CREATOR_NAME, HAR_CREATOR_VERSION
+from harness.trajectory_replay.public_webarena.har import (
+    HAR_CREATOR_NAME,
+    HAR_CREATOR_NAMES,
+    HAR_CREATOR_VERSION,
+)
 from harness.trajectory_replay.public_webarena.suite import (
     TRAJECTORY_SCHEMA,
     load_suite,
@@ -35,6 +39,7 @@ from lexbench_webfetch.paths import contained_path, safe_identifier
 
 _SHA256_RE = re.compile(r"^[0-9a-f]{64}$")
 QUALIFICATION_SCHEMA = "lex_browser_use_qualification/2"
+KNOWN_HAR_CREATORS = [{"name": name, "version": HAR_CREATOR_VERSION} for name in HAR_CREATOR_NAMES]
 _PASS_STATUS_FIELDS = (
     "process_status",
     "result_status",
@@ -261,7 +266,7 @@ def _validated_attempt(
         raise ValueError(f"{task_id}: validated attempt network HAR is missing")
     har = json.loads(har_path.read_text(encoding="utf-8"))
     expected_creator = {"name": HAR_CREATOR_NAME, "version": HAR_CREATOR_VERSION}
-    if (har.get("log") or {}).get("creator") != expected_creator:
+    if (har.get("log") or {}).get("creator") not in KNOWN_HAR_CREATORS:
         raise ValueError(f"{task_id}: validated attempt requires HAR creator {expected_creator}")
     final_evidence = row.get("final_page_evidence") or {}
     if final_evidence.get("status") != "complete":
@@ -876,7 +881,7 @@ def validate_completed_shard(
             raise ValueError(f"{shard['id']}: attempt network HAR is missing")
         _verify_attempt_projection(row)
         har = json.loads(har_path.read_text(encoding="utf-8"))
-        if (har.get("log") or {}).get("creator") != expected_creator:
+        if (har.get("log") or {}).get("creator") not in KNOWN_HAR_CREATORS:
             raise ValueError(
                 f"{shard['id']}: attempt network HAR creator must be {expected_creator}"
             )

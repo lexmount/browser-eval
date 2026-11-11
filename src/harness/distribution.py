@@ -7,7 +7,7 @@ _BUNDLED_DATA = "distribution_data"
 
 
 def bundled_data_path(relative: str) -> Path:
-    """Locate a file named by `tool.browser-eval.bundled-data` in pyproject.toml."""
+    """Locate a file named by `tool.webstone.bundled-data` in pyproject.toml."""
     requested = PurePosixPath(relative)
     if requested.is_absolute() or ".." in requested.parts or not requested.parts:
         raise ValueError("Bundled data requires a relative repository path")

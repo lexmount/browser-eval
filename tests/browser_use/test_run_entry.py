@@ -20,7 +20,7 @@ def test_wrapper_honors_cli_and_caller_directory(tmp_path, environment_model, ar
     binary.write_text('#!/bin/sh\nprintf "%s\\n" "$PWD" "$@" > "$CALL_LOG"\n', encoding='utf-8')
     binary.chmod(0o755)
     env = {**os.environ, 'PATH': str(tmp_path) + os.pathsep + os.environ['PATH'],
-           'CALL_LOG': str(log), 'BROWSER_EVAL_DATA_HOME': str(tmp_path / 'data')}
+           'CALL_LOG': str(log), 'WEBSTONE_DATA_HOME': str(tmp_path / 'data')}
     env.pop('BROWSER_USE_MODEL', None)
     if environment_model:
         env['BROWSER_USE_MODEL'] = environment_model

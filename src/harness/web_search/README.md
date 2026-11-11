@@ -1,6 +1,6 @@
 # Web Search API evaluation
 
-Browser Eval owns the independent scorer in `src/lexbench_websearch/`, collection, evidence and reports. [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and the separate [SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) on Hugging Face own versioned task definitions and source references. The [data lock](../benchmarks/data-lock.json) selects immutable snapshots. Store instance selectors, execution profiles and publication targets beside external evidence; pass the selector with `--profile`. Historical standalone profiles keep their original bytes.
+Webstone owns the independent scorer in `src/lexbench_websearch/`, collection, evidence and reports. [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and the separate [SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) on Hugging Face own versioned task definitions and source references. The [data lock](../benchmarks/data-lock.json) selects immutable snapshots. Store instance selectors, execution profiles and publication targets beside external evidence; pass the selector with `--profile`. Historical standalone profiles keep their original bytes.
 
 The collector resolves benchmark references before freezing run inputs. Keep each report's instance selector and publication target with its external evidence; there is no implicit published report or repository-default instance. Source URLs remain attribution, while the data lock and local scorer code determine current execution.
 
@@ -11,9 +11,9 @@ Put `LEXMOUNT_SEARCH_API_KEY`, `DEEPSEEK_API_KEY`, and `BOCHA_API_KEY` in the re
 ```sh
 uv run --frozen python scripts/run_certified_benchmark.py web-search \
   --profile /absolute/instance/current.json \
-  --output "$HOME/.browser-eval/web-search/new-run"
+  --output "$HOME/.webstone/web-search/new-run"
 uv run --frozen python -m harness.web_search report \
-  --source "$HOME/.browser-eval/web-search/new-run" \
+  --source "$HOME/.webstone/web-search/new-run" \
   --content /absolute/path/content.json \
   --output /absolute/path/report --language zh
 ```
@@ -307,7 +307,7 @@ responses distinct owners, and remove duplicate reading routes when consolidatin
 `uv run --frozen python -m harness.web_search publish` freezes the checked report, source receipts,
 content, visual evidence and lossless delivery archive before any upload. Pass
 `--report`, `--visual-receipt`, `--content`, each `--source COHORT=RUN` and a new
-`--output` directory inside `BROWSER_EVAL_DATA_HOME`. The next release is checked
+`--output` directory inside `WEBSTONE_DATA_HOME`. The next release is checked
 against its own frozen inputs while the existing site identity and remote version
 remain locked. `--resume` reuses the same plan and idempotent upload operation.
 The command records the activated version in this track’s publication target.

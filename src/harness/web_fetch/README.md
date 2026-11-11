@@ -1,6 +1,6 @@
 # Web Fetch
 
-Browser Eval owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
+Webstone owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
 Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.
 
@@ -41,7 +41,7 @@ Run every publishable Web Fetch provider cohort through `scripts/run_certified_b
 
 For reruns of unchanged compiled stable-contract datasets, invoke `scripts/run_certified_benchmark.py` normally. Freeze existing task definitions and acceptance rules; do not require historical qualification raw files or repeat admission review, and a missing old archive does not turn the run into a diagnostic result. Source qualification belongs to adding tasks or changing references/acceptance rules, through the matching build and revision flow; an explicit reference-answer revision still goes through the separate reference-revision entry. Preserve historical receipts without applying their evidence-file requirements to a new execution protocol. Live exact-reference cases retain pre/post reference checks. Reserve `--diagnostic` for explicitly diagnostic runs, whose outputs cannot be upgraded to certified evidence. `--retrieval-mode native` selects ordinary WebFetch completion while preserving scenario categories and every acceptance requirement; it rejects selector-guided retrieval hints instead of dropping them. Independent whole-page auditing, when requested, uses the existing browser capturer with `--observation-scope visible_page --checkpoint-dir ...`; checkpoint identities include capture inputs and observer code so observations from another protocol cannot be reused silently.
 
-Keep one Web Fetch report implementation: `src/harness/web_fetch/report_build.py` constructs a report and `src/harness/web_fetch/report.py` renders it. `scripts/build_report.py` has no default build; select a report instance with `--profile` or name another of its modes. A profile build reads `--evidence`, falling back to persistent measured evidence (`~/.browser-eval/evidence/current/` by default, or `WEB_FETCH_EVIDENCE_DIR`), and writes to `--output` or the profile's `report_output`. A profile whose `comparison_kind` is `wcxb_frozen_html_to_markdown` selects the independently bound WCXB build, which requires `--evidence` and writes `reports/wcxb/` by default; `--wcxb` only checks that the profile is a WCXB one. Do not create versioned report implementations, compatibility renderers or redirect builds.
+Keep one Web Fetch report implementation: `src/harness/web_fetch/report_build.py` constructs a report and `src/harness/web_fetch/report.py` renders it. `scripts/build_report.py` has no default build; select a report instance with `--profile` or name another of its modes. A profile build reads `--evidence`, falling back to persistent measured evidence (`~/.webstone/evidence/current/` by default, or `WEB_FETCH_EVIDENCE_DIR`), and writes to `--output` or the profile's `report_output`. A profile whose `comparison_kind` is `wcxb_frozen_html_to_markdown` selects the independently bound WCXB build, which requires `--evidence` and writes `reports/wcxb/` by default; `--wcxb` only checks that the profile is a WCXB one. Do not create versioned report implementations, compatibility renderers or redirect builds.
 
 ### Cohort-derived report content
 
@@ -106,9 +106,9 @@ runnable example and commands. Store instance evidence and prose outside Git.
 ## Report revisions and file-delivery controls
 
 Measured outputs are persistent local data, not source files. The current evidence
-bundle lives at `~/.browser-eval/evidence/current/` by default; set
+bundle lives at `~/.webstone/evidence/current/` by default; set
 `WEB_FETCH_EVIDENCE_DIR` to use another explicit bundle. Raw research reruns live
-under `~/.browser-eval/evidence/research/`; use
+under `~/.webstone/evidence/research/`; use
 `WEB_FETCH_RESEARCH_EVIDENCE_DIR` when they are stored elsewhere. Hugging Face retains current public task catalogs and acceptance contracts; Git retains scorer code, synthetic fixtures, annotations and input hash manifests. Full
 historical datasets and source captures are installed outside the checkout; see
 [frozen reference inputs](../../../docs/reference-inputs.md). Git ignores provider artifacts,
@@ -142,10 +142,10 @@ file bytes cannot be reconstructed from a URL. An independent HTTP control can
 exercise the byte pipeline without pretending to be a provider result:
 
 ```bash
-uv run --frozen browser-harness-eval run \
+uv run --frozen webstone run \
   --dataset evaluation/dataset.json \
   --provider-config configs/providers.example.json --providers http-local \
-  --task-kind file --output ~/.browser-eval/evidence/research/file-delivery-check
+  --task-kind file --output ~/.webstone/evidence/research/file-delivery-check
 ```
 
 This selects the dataset's file tasks and records HTTP calls, returned binaries,
@@ -220,7 +220,7 @@ content requirement establishes the source scope.
 
 ## WCXB scoring
 
-Current qualified inputs come from [LexBench-WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WCXB), selected by the [data lock](../benchmarks/data-lock.json). Browser Eval owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
+Current qualified inputs come from [LexBench-WCXB on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-WCXB), selected by the [data lock](../benchmarks/data-lock.json). Webstone owns the runner and scorer. Existing experiment profiles keep their original source manifests and input hashes.
 
 `wcxb_scoring.py` owns certified frozen-HTML scoring. The maintained command is
 `uv run --frozen python -m harness.web_fetch wcxb-score`; the required `--profile` argument selects an
@@ -359,7 +359,7 @@ uv run --frozen python scripts/build_report.py --profile /absolute/instance/prof
 uv run --frozen python -m harness.web_fetch diagnostic-check <new-report-directory> --profile /absolute/instance/profile.json
 ```
 
-Set `BROWSER_EVAL_DATA_HOME` when the external evidence uses a nondefault root.
+Set `WEBSTONE_DATA_HOME` when the external evidence uses a nondefault root.
 Changing a run, version, group, sample, explanation or example updates instance
 data and bindings; it does not require editing Python, HTML, skills or a private
 assembly script. Shared execution, scoring, evidence adaptation, rendering and
@@ -624,7 +624,7 @@ verify the original bytes. These routes are selected by deliverable before
 execution and do not fall back after failure. The six measured configurations
 and their document limits are defined in [HEADLESS.md](HEADLESS.md).
 
-The installed console command is `browser-harness-eval`. There is no legacy
+The installed console command is `webstone`. There is no legacy
 Python package or compatibility entrypoint.
 
 ## Independent source capture
@@ -950,7 +950,7 @@ address pinning remain active where the product provides them. CowAgent's native
 SSRF setting is preserved (the pinned implementation defaults to disabled).
 Moli on Darwin uses a process-local native resolver bridge. Build it explicitly
 outside Git with `uv run --frozen python -m harness.web_fetch native-dns
-~/.browser-eval/toolchains/native-dns/libbrowser-eval-dns.dylib`, and configure
+~/.webstone/toolchains/native-dns/libwebstone-dns.dylib`, and configure
 `native_dns_library` (or `MOLI_NATIVE_DNS_LIBRARY` in the example). The adapter
 checks the library hash, compiled C source hash and architecture before calls;
 a changed compiled source requires rebuilding. The Python coordinator remains
@@ -1111,7 +1111,7 @@ WCXB builds read profile-bound files from `<evidence>/report-assets/` and preser
 For the current WCXB report, the source-qualified manifest is the entire evaluation population for quality, delivery, and latency. Keep source-invalid cases outside the current manifest, scored evidence, public package, and future provider calls; preserve earlier physical calls only in private historical evidence. The dataset page owns frozen task inputs, source URLs and human reference scope; it must not show measured browser scores. The home page owns aggregate comparisons, the result analysis owns the filterable method-case inventory, and case result pages own full responses. Keep a direct link from each dataset row to a safe frozen-page preview and its human reference. Default result filters must show a nonempty, clearly labeled diagnostic population when one exists, and filtered tables must shrink rather than leave a large blank viewport.
 
 The WCXB command uses the shared English fallback. Set
-`BROWSER_EVAL_REPORT_LANGUAGE=zh` or use `--language zh` for a Chinese-only build; its English entry shows a not-generated
+`WEBSTONE_REPORT_LANGUAGE=zh` or use `--language zh` for a Chinese-only build; its English entry shows a not-generated
 notice. Bilingual release checks require matching routes and values. English
 repair content must be present in the bound asset set for an English build.
 See [report languages](../../../docs/report-hosting.md#report-languages) for all builders.
@@ -1166,7 +1166,7 @@ installed package with an explicit repository authority:
 ```bash
 uv run --frozen python -m harness.web_fetch wcxb-publish \
   --profile /absolute/path/current-report.json \
-  --authority-root /absolute/path/browser-eval --source /absolute/path/wcxb-report
+  --authority-root /absolute/path/webstone --source /absolute/path/wcxb-report
 ```
 
 The publisher freezes the package and profile, checks the expected remote version,
@@ -1233,7 +1233,7 @@ their frozen evidence and are restored from their pinned release.
 ### Frozen local report inputs
 
 Keep each saved report's presentation binding and publication target outside Git,
-alongside its evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`)
+alongside its evidence under `WEBSTONE_DATA_HOME` (default `~/.webstone`)
 or another explicitly selected directory. These are report instances, not reusable
 code. Use the binding supplied with that exact snapshot; do not select an older
 binding by its task count or treat a historical publication target as current.

@@ -118,7 +118,7 @@ def definition_path(relative: str) -> Path:
 
 
 def data_home() -> Path:
-    configured = os.environ.get('LEXBENCH_DATA_HOME') or os.environ.get('BROWSER_EVAL_DATA_HOME')
+    configured = os.environ.get('LEXBENCH_DATA_HOME') or os.environ.get('WEBSTONE_DATA_HOME')
     return Path(configured).expanduser().resolve() if configured else Path.home()/'.lexbench-webfetch'
 
 

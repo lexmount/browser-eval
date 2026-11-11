@@ -27,7 +27,7 @@ def test_runner_serves_packaged_pages_when_suite_is_in_an_unrelated_cache(
     definition = ('suites/curated-v1.json' if family == 'curated'
                   else 'suites/human-qualified-v1.json')
     cache = tmp_path / 'unrelated-cache'
-    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(cache))
+    monkeypatch.setenv('WEBSTONE_DATASET_CACHE', str(cache))
     revision = '1' * 40
     suite = cache / track / revision / 'definitions' / definition
     suite.parent.mkdir(parents=True)

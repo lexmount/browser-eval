@@ -121,7 +121,7 @@ def test_chinese_release_rejects_broken_notice_or_stale_english(report, damage):
 
 def test_measured_rebuild_preserves_language_and_explicit_english_generates_chinese(report, monkeypatch):
     output, source = report
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "en")
     main(["--source", str(source), "--output", str(output)])
     assert json.loads((output / "manifest.json").read_text(encoding="utf-8"))["primary_language"] == "zh"
     main(["--source", str(source), "--output", str(output), "--language", "en"])
@@ -159,10 +159,10 @@ def test_search_rebuild_records_builder_version_without_changing_measurements(re
     after = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
     assert after["rows"] == before["rows"]
     assert after["collection_profile"] == before["collection_profile"]
-    assert after["browser_eval"]["version"] == __version__
+    assert after["webstone"]["version"] == __version__
     for route in ("index.html", "en/index.html"):
         dom = BeautifulSoup((output / route).read_text(encoding="utf-8"), "html.parser")
-        assert dom.select_one('[data-browser-eval-release]').get_text() == "Browser Eval v" + __version__
+        assert dom.select_one('[data-webstone-release]').get_text() == "Webstone v" + __version__
     assert check(output)
 
 
@@ -170,16 +170,16 @@ def test_search_rebuild_records_builder_version_without_changing_measurements(re
 def test_search_release_rejects_lost_builder_identity(report, defect):
     output, _ = report
     if defect == "file":
-        (output / "browser-eval-version.json").unlink()
+        (output / "webstone-version.json").unlink()
     elif defect == "label":
         page = output / "index.html"
-        page.write_text(page.read_text(encoding="utf-8").replace("data-browser-eval-release=", "data-lost-version="), encoding="utf-8")
+        page.write_text(page.read_text(encoding="utf-8").replace("data-webstone-release=", "data-lost-version="), encoding="utf-8")
     else:
         manifest = output / "manifest.json"
         value = json.loads(manifest.read_text(encoding="utf-8"))
-        del value["browser_eval"]
+        del value["webstone"]
         manifest.write_text(json.dumps(value), encoding="utf-8")
-    with pytest.raises(ValueError, match="Browser Eval"):
+    with pytest.raises(ValueError, match="Webstone"):
         check(output)
 
 

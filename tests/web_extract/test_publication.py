@@ -362,7 +362,7 @@ def setup_report(tmp_path):
     save_json(profile, {"local_example": True})
     profile_hash = digest(profile.read_bytes())
     save_json(source / "report-manifest.json", {"profile_sha256": profile_hash})
-    save_json(source / "browser-eval-version.json", {"revision": "a" * 40})
+    save_json(source / "webstone-version.json", {"revision": "a" * 40})
     target = tmp_path / "target.json"
     save_json(
         target,
@@ -684,7 +684,7 @@ def test_self_consistent_zip_hash_cannot_replace_checked_contents(tmp_path, monk
     manifest = read_json(source / "report-manifest.json")
     manifest["files"] = {
         "index.html": digest(b"checked"),
-        "browser-eval-version.json": digest((source / "browser-eval-version.json").read_bytes()),
+        "webstone-version.json": digest((source / "webstone-version.json").read_bytes()),
     }
     save_json(source / "report-manifest.json", manifest)
     work.mkdir()
@@ -763,7 +763,7 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     source, target, work, visual = setup_report(tmp_path)
     manifest = read_json(source / "report-manifest.json")
     manifest["files"] = {
-        "browser-eval-version.json": digest((source / "browser-eval-version.json").read_bytes())
+        "webstone-version.json": digest((source / "webstone-version.json").read_bytes())
     }
     save_json(source / "report-manifest.json", manifest)
     save_json(visual, {})
@@ -785,7 +785,7 @@ def test_bound_target_profile_reaches_the_real_packager(tmp_path, monkeypatch):
     def update(staged, *, transport):
         assert set(publication.archive_inventory(staged.archive)) == {
             "report-manifest.json",
-            "browser-eval-version.json",
+            "webstone-version.json",
         }
         staged.guard()
         staged.bind("ver_packaged")
@@ -1124,7 +1124,7 @@ def test_standalone_package_preserves_previous_release_when_audit_changes_during
     }}})
     manifest = read_json(source / 'report-manifest.json')
     manifest.update(profile_sha256=digest(profile.read_bytes()), files={
-        'browser-eval-version.json': digest((source / 'browser-eval-version.json').read_bytes())
+        'webstone-version.json': digest((source / 'webstone-version.json').read_bytes())
     })
     save_json(source / 'report-manifest.json', manifest)
     save_json(visual, {})

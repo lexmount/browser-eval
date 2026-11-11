@@ -31,7 +31,7 @@ variant identities; each variant profile declares its measured source provider.
 Adding a variant changes this data, rather than adding a numbered assembler.
 Profiles that certified historical calls retain their original bytes.
 
-For a new run, use the [corrected HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) selected in the [data lock](../benchmarks/data-lock.json); the Browser Eval runner resolves that source by default. Historical sample reproduction retains the original source and hash in `evaluation/public-webmainbench-200.json`.
+For a new run, use the [corrected HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) selected in the [data lock](../benchmarks/data-lock.json); the Webstone runner resolves that source by default. Historical sample reproduction retains the original source and hash in `evaluation/public-webmainbench-200.json`.
 
 The `webmainbench-run` Make target keeps this historical selection by default: pass `SOURCE=/absolute/path/to/matching-parent.jsonl` to reproduce it. For a new run, set `WEBMAINBENCH_SAMPLE` to a manifest frozen against the selected corrected corpus. The runner checks that parent binding before loading credentials or calling a provider.
 

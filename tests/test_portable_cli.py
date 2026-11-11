@@ -24,7 +24,7 @@ def test_call_evidence_labels_a_non_moli_tool_version(tmp_path):
 
 
 def test_default_evidence_is_outside_the_checkout(tmp_path, monkeypatch):
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "data"))
     assert default_run_dir().is_relative_to(tmp_path / "data" / "runs")
 
 
@@ -39,7 +39,7 @@ class BaseInstallation(importlib.abc.MetaPathFinder):
             raise AssertionError('Base CLI loaded optional dependency: ' + fullname)
 sys.meta_path.insert(0, BaseInstallation())
 from harness.web_fetch.cli import main
-sys.argv = ['browser-harness-eval', 'validate']
+sys.argv = ['webstone', 'validate']
 main()
 '''
     root = Path(__file__).resolve().parents[1]

@@ -30,7 +30,7 @@ default; use `make ci PYTEST_ARGS='-n 4 --dist worksteal --durations=20'` for
 parallel scheduling. `TEST_PATHS` selects files or directories for focused local
 Python checks.
 
-OCR loads `docs/references/review-guidelines.md`: the shared guide copied from `lexmount/ai-template-py`, with its source commit in the first line, followed by Browser Eval's supplement. To update the shared section, copy the new upstream text in an ordinary PR and update the commit.
+OCR loads `docs/references/review-guidelines.md`: the shared guide copied from `lexmount/ai-template-py`, with its source commit in the first line, followed by Webstone's supplement. To update the shared section, copy the new upstream text in an ordinary PR and update the commit.
 
 The existing `Python 3.11` status requires successful scope selection and tests.
 Full checks require both test partitions and successful installation and browser jobs; the

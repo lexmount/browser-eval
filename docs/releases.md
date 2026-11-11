@@ -1,6 +1,6 @@
 # Software releases
 
-Browser Eval versions the execution and reporting software. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
+Webstone versions the execution and reporting software. Software tags use `vMAJOR.MINOR.PATCH` and identify one tested commit.
 
 ## Version rules
 
@@ -16,7 +16,7 @@ Follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html). The public co
 
 ### Web Fetch benchmark edition
 
-Browser Eval's [data lock](../src/harness/benchmarks/data-lock.json) selects the LexBench-Web-Fetch dataset commit, and its code holds the scoring rules. One Browser Eval version therefore names the whole Web Fetch benchmark edition. The table above decides the bump; a change that can move a score is never a patch.
+Webstone's [data lock](../src/harness/benchmarks/data-lock.json) selects the LexBench-Web-Fetch dataset commit, and its code holds the scoring rules. One Webstone version therefore names the whole Web Fetch benchmark edition. The table above decides the bump; a change that can move a score is never a patch.
 
 The dataset keeps its own HF tag (for example `v2.2.0`) for its tasks and reference data. Reference data lives in the dataset; the code that checks answers against it lives here.
 
@@ -34,8 +34,8 @@ To retain a pre-migration state, use an existing release tag or record the full 
 
 | Identity | Owner | When it changes |
 | --- | --- | --- |
-| Browser Eval software, e.g. `v0.3.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
-| Web Fetch benchmark edition | The Browser Eval version: its data lock selects the dataset commit and its code holds the scoring rules | The pinned dataset or a scoring rule changes |
+| Webstone software, e.g. `v0.3.0` | This repository | Execution, adapters, evidence handling or reporting software is released |
+| Web Fetch benchmark edition | The Webstone version: its data lock selects the dataset commit and its code holds the scoring rules | The pinned dataset or a scoring rule changes |
 | Published report build | Artifact Site or selected report host | A new report build is published |
 
 Pinning a dataset with added or removed cases is a breaking benchmark change even when the software interface stays compatible. The [benchmark contract](benchmarks.md#benchmark-editions) defines `direct`, `rescore` and `separate` comparisons. Pin upstream code commits and external input hashes alongside readable versions. Rebuilding presentation preserves saved calls and the selected benchmark edition.
@@ -44,7 +44,7 @@ Pinning a dataset with added or removed cases is a breaking benchmark change eve
 
 Choose a stable software version after all changes in its declared release scope have landed on main and the integrated release checks pass. Version `1.0.0` establishes the documented compatibility contract; release preparation alone does not assign that version or create a tag.
 
-Web Fetch includes LexBench-Web-Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses the separate HF Search and SimpleQA definitions with Browser Eval's local scorer. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
+Web Fetch includes LexBench-Web-Fetch integration and independently selected WebMainBench and WCXB workflows. Search uses the separate HF Search and SimpleQA definitions with Webstone's local scorer. Publish the exact supported dataset editions and provider configurations with the release. Browser Trajectory Replay and Browser Use can remain available as experimental tracks with their own environment requirements.
 
 Web Fetch, Web Search / SERP, Browser Trajectory Replay and Browser Use have main-branch implementations. Validate the selected tracks together on the release commit before assigning a stable version. External references, browsers, self-hosted sites and provider accounts remain separate inputs.
 
@@ -67,11 +67,11 @@ this table is the index.
 
 | Software release | Why it was published | LexBench dependencies |
 | --- | --- | --- |
-| [0.1.0](https://github.com/lexmount/browser-eval/releases/tag/v0.1.0) | Preserve the original installable Web Fetch, Replay and Browser Use checkpoint | Fetch scoring in this repository; no separate LexBench package |
-| [0.2.0](https://github.com/lexmount/browser-eval/releases/tag/v0.2.0) | Extracted Fetch dependency and shared report-build identity | Fetch benchmark 2.0.1; no Search integration |
-| [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
-| [0.4.0](https://github.com/lexmount/browser-eval/releases/tag/v0.4.0) | Move Web Fetch and Web Search scoring into this repository; public inputs on Hugging Face | Web Fetch dataset `3d8aa5cf`; Web Search dataset `76d9c2b6` |
-| [0.5.0](https://github.com/lexmount/browser-eval/releases/tag/v0.5.0) | The Browser Eval version names the Web Fetch benchmark edition; score-changing scorer fixes; corrected references | Web Fetch dataset v2.2.0 (`c12559d2`); Web Search dataset `76d9c2b6` |
+| [0.1.0](https://github.com/lexmount/webstone/releases/tag/v0.1.0) | Preserve the original installable Web Fetch, Replay and Browser Use checkpoint | Fetch scoring in this repository; no separate LexBench package |
+| [0.2.0](https://github.com/lexmount/webstone/releases/tag/v0.2.0) | Extracted Fetch dependency and shared report-build identity | Fetch benchmark 2.0.1; no Search integration |
+| [0.3.0](https://github.com/lexmount/webstone/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
+| [0.4.0](https://github.com/lexmount/webstone/releases/tag/v0.4.0) | Move Web Fetch and Web Search scoring into this repository; public inputs on Hugging Face | Web Fetch dataset `3d8aa5cf`; Web Search dataset `76d9c2b6` |
+| [0.5.0](https://github.com/lexmount/webstone/releases/tag/v0.5.0) | The Webstone version names the Web Fetch benchmark edition; score-changing scorer fixes; corrected references | Web Fetch dataset v2.2.0 (`c12559d2`); Web Search dataset `76d9c2b6` |
 
 Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
 can support several separately selected benchmarks. Its version never changes
@@ -87,13 +87,13 @@ the benchmark edition that new runs use (see
 | [Fetch 2.0.1](https://github.com/lexmount/lexbench-webfetch/releases/tag/bench-v2.0.1) | Expanded 550-entry catalog with complete compatibility fingerprints; separate population from 1.x |
 | [Search 1.0.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.0.0) | First frozen Search catalog: scenario and factual task suites |
 | [Search 1.1.0](https://github.com/lexmount/lexbench-websearch/releases/tag/bench-v1.1.0) | Correct numeric scoring and bind the catalog to its actual scorer; rescore saved cohorts before comparing |
-| [WebArena Replay 1.0.1](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay/tree/ede6b17c21cef8a496b61e81c365934db5443919) | Correct private recording hosts in the Browser Eval sources and their hash bindings. Exported task questions, actions, evaluator inputs and scoring rules are unchanged, so results from the exported tasks compare directly when execution settings match. Stored attempts for tasks 280 and 282 need re-evaluation, and runs from the Git source candidates for tasks 243, 404, 464, 590, 658 and 714 reached different hosts; see the [input correction](benchmarks.md#webarena-replay-input-correction) |
+| [WebArena Replay 1.0.1](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay/tree/ede6b17c21cef8a496b61e81c365934db5443919) | Correct private recording hosts in the Webstone sources and their hash bindings. Exported task questions, actions, evaluator inputs and scoring rules are unchanged, so results from the exported tasks compare directly when execution settings match. Stored attempts for tasks 280 and 282 need re-evaluation, and runs from the Git source candidates for tasks 243, 404, 464, 590, 658 and 714 reached different hosts; see the [input correction](benchmarks.md#webarena-replay-input-correction) |
 
 The WebArena Replay Hub tags `v1.0.0` and `v1.0.1` resolve to the previous and current editions pinned in the data lock. The lock records the full commit of each edition. The manifest of 1.0.1 records a `source_revision` that was a local build commit and was never published. That manifest is immutable, so the lock notes this beside the entry; use `revision` to identify the edition.
 
 The `bench-v*` releases above each used one tag for their tasks, reference answers,
 scoring rules and evaluation code. Web Search and WebArena Replay still follow
-that scheme. New Web Fetch editions use the Browser Eval version instead (see
+that scheme. New Web Fetch editions use the Webstone version instead (see
 [Web Fetch benchmark edition](#web-fetch-benchmark-edition)); a new Web Fetch
 sidecar starts that line and does not name a `bench-v2.x` sidecar as `--previous`.
 

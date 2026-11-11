@@ -1,7 +1,7 @@
 [project]
-name = "browser-harness-eval"
+name = "webstone"
 version = "0.5.0"
-description = "Evaluation harness for browsers and Web tools: Web Fetch, Web Search and Browser Trajectory Replay"
+description = "Webstone: the touchstone for your agent's web tools. Benchmark browsers and Web tools for AI agents: Web Fetch, Web Search, Web Extract and Browser Trajectory Replay"
 readme = "README.md"
 license = "Apache-2.0"
 license-files = ["LICENSE", "NOTICE", "THIRD_PARTY.md"]
@@ -16,13 +16,13 @@ dependencies = [
 ]
 
 [project.scripts]
-browser-harness-eval = "harness.web_fetch.cli:main"
+webstone = "harness.web_fetch.cli:main"
 lexbench-webfetch = "lexbench_webfetch.cli:main"
 lexbench-websearch = "lexbench_websearch.cli:main"
 
 [project.urls]
-Repository = "https://github.com/lexmount/browser-eval"
-Issues = "https://github.com/lexmount/browser-eval/issues"
+Repository = "https://github.com/lexmount/webstone"
+Issues = "https://github.com/lexmount/webstone/issues"
 
 [project.optional-dependencies]
 dataset-publish = ["huggingface-hub==1.31.0", "pyyaml>=6,<7"]
@@ -190,7 +190,7 @@ include = ["harness*", "lexbench_webfetch*", "lexbench_websearch*"]
 "harness.environments.webarena" = ["runtime/*.ini", "topology.json"]
 
 # Copied to harness/distribution_data/ by setup.py; MANIFEST.in keeps them in the sdist.
-[tool.browser-eval]
+[tool.webstone]
 bundled-data = [
   "pyproject.toml",
   "uv.lock",

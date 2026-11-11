@@ -54,7 +54,7 @@ class SupplementDatasetTests(unittest.TestCase):
         stack = ExitStack()
         self.addCleanup(stack.close)
         stack.enter_context(patch.object(benchmark, "ROOT", self.root))
-        stack.enter_context(patch.dict(os.environ, {"BROWSER_EVAL_DATA_HOME": str(self.root)}))
+        stack.enter_context(patch.dict(os.environ, {"WEBSTONE_DATA_HOME": str(self.root)}))
         self.env_loader = stack.enter_context(patch.object(benchmark, "load_runtime_env"))
         self.report = stack.enter_context(patch.object(benchmark, "build_report"))
         self.measure = stack.enter_context(patch.object(benchmark, "run_evaluation",

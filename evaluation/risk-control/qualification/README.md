@@ -7,7 +7,7 @@ The paths below are relative to the pinned definition directory that `definition
 - `cohort/cohort-manifest.json`: URLs, site groups, target scope, language, broad qualification classes and one reference-text binding per formal case.
 - `cohort/cohort-receipt.json`: qualification criteria, overall audit, the single replacement, external complete-audit hashes and limits.
 - `cohort-policy.json`: cohort qualification and distribution constraints.
-- `cohort/input-manifest.json`: input hashes and external evidence-root mappings. Relative paths resolve under `BROWSER_EVAL_DATA_HOME`, defaulting to `~/.browser-eval`.
+- `cohort/input-manifest.json`: input hashes and external evidence-root mappings. Relative paths resolve under `WEBSTONE_DATA_HOME`, defaulting to `~/.webstone`.
 
 Per-case rules use the compact manifest and independent page references. Original HTML, screenshots, HAR, DOM and detailed reviews proving historical restrictions remain in external storage, bound by the overall receipt. They do not enter Git or result scoring. Unused reserves remain in the original qualification workspace.
 

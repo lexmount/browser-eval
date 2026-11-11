@@ -16,7 +16,7 @@ def test_speed_selection_requires_a_positive_whole_five_case_scope(count):
 
 
 def test_speed_selection_uses_external_inputs_and_copies_only_selected_tasks(tmp_path, monkeypatch):
-    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path / 'data-home'))
+    monkeypatch.setenv('WEBSTONE_DATA_HOME', str(tmp_path / 'data-home'))
     dataset = tmp_path / 'checkout/dataset.json'
     dataset.parent.mkdir()
     cases = [{'id': f'case-{index}', 'url': f'https://h{index}.example/',

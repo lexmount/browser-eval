@@ -9,7 +9,7 @@ import re
 from .benchmark import public_task
 from .scoring import SCORING_SOURCE_SHA256
 
-# Scoring-source hash shipped by each Browser Eval release; a release PR adds its row.
+# Scoring-source hash shipped by each Webstone release; a release PR adds its row.
 RELEASED_SCORERS = {
     "0.4.0": "5c8bfec2d78a556239dd07233973c15638dec5b8cdc155d1ff0ae8f8179f8b4c",
     "0.5.0": "d0c5f12a609f622e8d97050b7d35581cd41973cd7c6a454d5267241ec2161e2b",
@@ -206,12 +206,12 @@ def catalog_release(path: Path | None = None, *, require_current_scorer: bool = 
 
 
 def installed_version() -> dict:
-    """Name the active scorer by the Browser Eval release that ships it."""
+    """Name the active scorer by the Webstone release that ships it."""
     from importlib.metadata import version
 
-    current = version("browser-harness-eval")
+    current = version("webstone")
     released = RELEASED_SCORERS.get(current) == SCORING_SOURCE_SHA256
-    return {"name": "browser-harness-eval",
+    return {"name": "webstone",
             "version": current if released else current + "+unreleased",
             "status": "released" if released else "unreleased",
             "scoring_source_sha256": SCORING_SOURCE_SHA256}

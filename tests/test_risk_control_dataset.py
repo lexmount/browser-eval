@@ -186,7 +186,7 @@ def test_every_secondary_risk_anchor_is_bound_to_independent_revision(dataset):
 
 
 def test_external_evidence_roots_honor_data_home(monkeypatch, tmp_path):
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path))
     assert all(path.is_relative_to(tmp_path) for path in evidence_roots().values())
 
 
@@ -206,7 +206,7 @@ def test_compiler_reads_explicit_definitions_without_checkout_defaults(tmp_path,
     assert compiler.parse_sections((rule,)) == expected
     manifest = tmp_path / "input-manifest.json"
     manifest.write_text('{"evidence_roots":{"reference":"independent-inputs"}}', encoding="utf-8")
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "data"))
     assert compiler.evidence_roots(manifest) == {
         "reference": tmp_path / "data/independent-inputs"
     }

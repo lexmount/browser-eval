@@ -56,7 +56,7 @@ def _request(site: str, url: str) -> tuple[str, float, int]:
     started = time.monotonic()
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": "browser-eval-rainbond-smoke/1"},
+        headers={"User-Agent": "webstone-rainbond-smoke/1"},
     )
     try:
         with urllib.request.urlopen(request, timeout=REQUEST_TIMEOUT_SECONDS) as response:

@@ -31,7 +31,7 @@ def frozen_source_html(name, content):
     if isinstance(content, bytes):
         content = content.decode('utf-8',errors='replace')
     return ('local-evidence' in Path(name).parts and not re.search(
-        r'<meta\b[^>]*name=[\'"]browser-eval-report[\'"]',content))
+        r'<meta\b[^>]*name=[\'"]webstone-report[\'"]',content))
 
 
 def validate_virtual_links(files, read):

@@ -338,7 +338,7 @@ def revise(
     """Serialize evidence revisions and make rollback ownership explicit."""
     source = source.resolve()
     lock_id = hashlib.sha256(str(source).encode()).hexdigest()[:20]
-    lock_path = Path(tempfile.gettempdir()) / f"browser-eval-scoring-revision-{lock_id}.lock"
+    lock_path = Path(tempfile.gettempdir()) / f"webstone-scoring-revision-{lock_id}.lock"
     with lock_path.open("a+", encoding="utf-8") as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         try:

@@ -1,6 +1,6 @@
 # Frozen reference inputs
 
-Self-authored Web Fetch task definitions are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). For a new integration, use the independent verifier and materialized export shipped with Browser Eval as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
+Self-authored Web Fetch task definitions are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). For a new integration, use the independent verifier and materialized export shipped with Webstone as described in [benchmark integration](benchmarks.md). The manifests below retain historical experiment bindings; changing them would change those experiments.
 
 To reproduce a historical run, you need its original input files as well as this checkout. Full datasets, pages, documents and rendered references are stored outside Git.
 
@@ -28,12 +28,12 @@ A manifest may contain only the full dataset when references are embedded; no ar
 Default storage:
 
 ```text
-~/.browser-eval/reference-inputs/<manifest-id>/dataset.json
-~/.browser-eval/reference-inputs/<manifest-id>/sources/
-~/.browser-eval/reference-inputs/<manifest-id>/list-references/
+~/.webstone/reference-inputs/<manifest-id>/dataset.json
+~/.webstone/reference-inputs/<manifest-id>/sources/
+~/.webstone/reference-inputs/<manifest-id>/list-references/
 ```
 
-Set `BROWSER_EVAL_DATA_HOME` to change the root. For a manifest-backed experiment, runners and audits use only its verified external tree. They do not fetch missing pages or use a checkout copy.
+Set `WEBSTONE_DATA_HOME` to change the root. For a manifest-backed experiment, runners and audits use only its verified external tree. They do not fetch missing pages or use a checkout copy.
 
 A historical command may still name `evaluation/dataset.json`: the reader resolves that path to the verified external original. Import it first. Custom datasets without a manifest use the supplied JSON and adjacent `sources/` and `list-references/`.
 

@@ -503,7 +503,7 @@ def _stream_download(url: str, partial: Path) -> None:
     opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(CookieJar()))
     request = urllib.request.Request(
         url,
-        headers={"User-Agent": "Mozilla/5.0 browser-eval WebArena trace fetcher"},
+        headers={"User-Agent": "Mozilla/5.0 webstone WebArena trace fetcher"},
     )
     with opener.open(request, timeout=180) as response:
         content_type = str(response.headers.get("Content-Type") or "").lower()
@@ -519,7 +519,7 @@ def _stream_download(url: str, partial: Path) -> None:
         confirmation_url = parser.action + "?" + urllib.parse.urlencode(parser.fields)
     confirmation = urllib.request.Request(
         confirmation_url,
-        headers={"User-Agent": "Mozilla/5.0 browser-eval WebArena trace fetcher"},
+        headers={"User-Agent": "Mozilla/5.0 webstone WebArena trace fetcher"},
     )
     with opener.open(confirmation, timeout=180) as response, partial.open("wb") as target:
         shutil.copyfileobj(response, target, length=1024 * 1024)
@@ -574,7 +574,7 @@ def main_fetch_traces(argv=None) -> None:
     args = parser.parse_args(argv)
     configured_home = configured_data_home()
     if args.output is None and configured_home is None:
-        parser.error("--output or BROWSER_EVAL_DATA_HOME is required")
+        parser.error("--output or WEBSTONE_DATA_HOME is required")
     output = args.output or configured_home / "evidence/current/webarena-human-traces"
     if args.jobs < 1 or args.jobs > 8:
         parser.error("--jobs must be between 1 and 8")

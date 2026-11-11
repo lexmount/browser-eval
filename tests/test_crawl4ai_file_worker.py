@@ -484,7 +484,7 @@ class NativeFileWorkerTests(unittest.TestCase):
         config, metadata = worker.dynamic_extraction_config({
             "track": "dynamic", "retrieval_plan": normalized_plan(hints),
         })
-        self.assertEqual(config["css_selector"], "[data-browser-eval-extraction-root]")
+        self.assertEqual(config["css_selector"], "[data-webstone-extraction-root]")
         self.assertIn(".slice(0, maximumCount)", config["js_code"])
         self.assertIn("clone.querySelectorAll(excluded)", config["js_code"])
         self.assertEqual(config["js_code"].count('document.createElement("br")'), 2)

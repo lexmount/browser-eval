@@ -19,7 +19,7 @@ from harness.web_fetch.browser_observations import (
 from harness.web_fetch.reference_lifecycle import resource_source_scope_identity
 
 
-@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
+@pytest.mark.skipif(not os.getenv('WEBSTONE_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
 def test_live_browser_audit_includes_visible_iframe_not_hidden_iframe():
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread
@@ -33,7 +33,7 @@ def test_live_browser_audit_includes_visible_iframe_not_hidden_iframe():
     thread=Thread(target=server.serve_forever,daemon=True);thread.start()
     try:
         case={'id':'frames','url':f'http://127.0.0.1:{server.server_port}/','task_kind':'body'}
-        row=browser_capture.capture(case,10000,os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'],observation_scope='visible_page')
+        row=browser_capture.capture(case,10000,os.environ['WEBSTONE_TEST_BROWSER_BINARY'],observation_scope='visible_page')
         assert 'Parent text' in row['content_text']
         assert 'Child visible text' in row['content_text']
         assert 'Hidden child text' not in row['content_text']
@@ -43,7 +43,7 @@ def test_live_browser_audit_includes_visible_iframe_not_hidden_iframe():
         server.shutdown();server.server_close();thread.join()
 
 
-@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
+@pytest.mark.skipif(not os.getenv('WEBSTONE_TEST_BROWSER_BINARY'), reason='explicit Chromium binary required')
 def test_live_browser_whole_page_audit_keeps_visible_chrome_but_not_hidden_text():
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread
@@ -63,7 +63,7 @@ def test_live_browser_whole_page_audit_keeps_visible_chrome_but_not_hidden_text(
     try:
         url=f'http://127.0.0.1:{server.server_port}/start'
         case={'id':'page-audit','url':url,'task_kind':'body'}
-        binary=os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY']
+        binary=os.environ['WEBSTONE_TEST_BROWSER_BINARY']
         audit=browser_capture.capture(case,10000,binary,observation_scope='visible_page')
         assert audit['content_text']=='Images\nArticle content\nTerms\n\nDelayed visible text'
         assert 'Hidden answer' not in audit['content_text']
@@ -420,7 +420,7 @@ def test_batch_writes_every_case_before_failing_closed(tmp_path, monkeypatch):
     assert rows['reachable']['status'] == 'success'
 
 
-@pytest.mark.skipif(not os.getenv('BROWSER_EVAL_TEST_BROWSER_BINARY'), reason='explicit Chromium required')
+@pytest.mark.skipif(not os.getenv('WEBSTONE_TEST_BROWSER_BINARY'), reason='explicit Chromium required')
 @pytest.mark.parametrize('missing', [None, 'text', 'image'])
 def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(tmp_path, missing):
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
@@ -455,7 +455,7 @@ def test_mixed_live_resource_capture_freezes_text_and_preserves_resource_checks(
             'state': 'valid', 'method': 'Independent browser', 'checked_at': evidence['checked_at'],
             'evidence_path': 'sources/mixed/evidence.json', 'evidence_sha256': hashlib.sha256(raw).hexdigest()}}
     def freeze():
-        row = browser_capture.capture(case, 3000, os.environ['BROWSER_EVAL_TEST_BROWSER_BINARY'])
+        row = browser_capture.capture(case, 3000, os.environ['WEBSTONE_TEST_BROWSER_BINARY'])
         frozen, _, _ = compute_reference_update({'cases': [case]}, tmp_path, {'mixed': row})
         path = tmp_path / 'dataset.json'; path.write_text(json.dumps(frozen), encoding='utf-8')
         checks = preflight_reference_checks(frozen['cases'], path)

@@ -213,7 +213,7 @@ class ReportChangesTests(unittest.TestCase):
             release_ids={row['id'] for row in data['releases']}
             self.assertIn('2026-09-04-complete-file-evaluation',release_ids)
             self.assertNotIn('2026-09-04-five-browser-fastest-markdown',release_ids)
-            self.assertNotIn('github.com/lexmount/browser-eval/pull/6', page)
+            self.assertNotIn('github.com/lexmount/webstone/pull/6', page)
 
     def test_review_round_log_is_required_and_structured(self):
         from harness.web_fetch.report_changes import require_review_rounds

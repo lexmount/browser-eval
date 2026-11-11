@@ -20,7 +20,7 @@ def test_default_profile_resolves_hf_inputs_before_external_reference_check(monk
         assert resolved.is_file()
         assert hashlib.sha256(resolved.read_bytes()).hexdigest() == binding["sha256"]
     # Qualification definitions are installed; historical reference evidence is separate.
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "empty-data-home"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "empty-data-home"))
     with pytest.raises(FileNotFoundError, match="Reference inputs are not installed"):
         risk_control.validate(risk_control.DEFAULT_PROFILE)
     assert risk_control.DEFAULT_PROFILE.read_bytes() == original

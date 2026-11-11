@@ -412,11 +412,11 @@ def main(argv: list[str] | None = None, *, certified: bool = False) -> None:
     if profile["status"] != "ready" or profile["unresolved_case_ids"]:
         parser.error("The frozen profile still has unresolved rule/evidence conflicts")
     if args.output is None:
-        parser.error("--execute requires an explicit new --output under BROWSER_EVAL_DATA_HOME")
+        parser.error("--execute requires an explicit new --output under WEBSTONE_DATA_HOME")
     output = args.output.expanduser().resolve()
     allowed = data_home().resolve()
     if output == allowed or not output.is_relative_to(allowed):
-        parser.error("Measured output must be a new directory below BROWSER_EVAL_DATA_HOME")
+        parser.error("Measured output must be a new directory below WEBSTONE_DATA_HOME")
     if output.exists():
         parser.error("Output exists; measured evidence is immutable")
     for key in PROXY_VARIABLES:

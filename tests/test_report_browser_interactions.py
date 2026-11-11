@@ -24,12 +24,12 @@ def display(request):
 
 @pytest.fixture(scope="module")
 def browser():
-    binary = os.environ.get("BROWSER_EVAL_TEST_BROWSER_BINARY")
+    binary = os.environ.get("WEBSTONE_TEST_BROWSER_BINARY")
     if not binary:
         try:
             binary = browser_executable()
         except ValueError:
-            pytest.skip("Install Chromium or set BROWSER_EVAL_TEST_BROWSER_BINARY")
+            pytest.skip("Install Chromium or set WEBSTONE_TEST_BROWSER_BINARY")
     with sync_playwright() as playwright:
         instance = playwright.chromium.launch(executable_path=binary, headless=True)
         yield instance

@@ -444,7 +444,7 @@ def validate_environment_preparation(
 
 
 def repository_root(path: Path) -> Path:
-    """Find the browser-eval checkout that owns a versioned input or entry point."""
+    """Find the webstone checkout that owns a versioned input or entry point."""
 
     start = path.resolve()
     candidates = (start, *start.parents) if start.is_dir() else start.parents
@@ -457,7 +457,7 @@ def repository_root(path: Path) -> Path:
         None,
     )
     if root is None:
-        raise ValueError("path is outside a browser-eval repository")
+        raise ValueError("path is outside a webstone repository")
     return root
 
 

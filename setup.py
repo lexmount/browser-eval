@@ -16,7 +16,7 @@ class BuildWithBundledData(build_py):
         if self.editable_mode:
             return
         project = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
-        for relative in project["tool"]["browser-eval"]["bundled-data"]:
+        for relative in project["tool"]["webstone"]["bundled-data"]:
             target = Path(self.build_lib, "harness", "distribution_data", relative)
             self.mkpath(str(target.parent))
             self.copy_file(relative, str(target))

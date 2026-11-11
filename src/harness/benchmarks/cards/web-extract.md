@@ -62,12 +62,12 @@ html = gzip.decompress((snapshot / "definitions" / task["html_path"]).read_bytes
 reference = task["reference"]
 ```
 
-Browser Eval uses the shared immutable dataset cache and
-[data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json):
+Webstone uses the shared immutable dataset cache and
+[data lock](https://github.com/lexmount/webstone/blob/main/src/harness/benchmarks/data-lock.json):
 
 ```sh
-git clone https://github.com/lexmount/browser-eval
-cd browser-eval
+git clone https://github.com/lexmount/webstone
+cd webstone
 {{tooling_checkout}}uv sync --frozen --extra web-extract-eval
 make pin-dataset DATASET=web-extract REV=YOUR_FULL_HF_COMMIT
 uv run --frozen python -m harness.benchmarks.data web-extract
@@ -90,8 +90,8 @@ field correctness.
 Record latency for every logical result, physical retry time separately, and
 native usage or actual charges where available. API tiers, input limits and
 billing units differ. This dataset defines extraction inputs and references;
-it contains no vendor ranking. Browser Eval's
-[execution guide](https://github.com/lexmount/browser-eval/blob/main/examples/web_extract/README.md)
+it contains no vendor ranking. Webstone's
+[execution guide](https://github.com/lexmount/webstone/blob/main/examples/web_extract/README.md)
 describes native HTML/URL routes and certification.
 
 ## License, attribution and revisions
@@ -110,7 +110,7 @@ for every website asset. Annotation amendments do not replace the original label
 
 Cite the upstream [product-extraction benchmark](https://github.com/scrapinghub/product-extraction-benchmark)
 and identify this dataset's full commit and reference view. For tooling, cite
-[Browser Eval](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
+[Webstone](https://github.com/lexmount/webstone/blob/main/CITATION.cff).
 [VERSIONING.md](VERSIONING.md) describes changes to inputs, references and packaging.
 No moving branch name identifies an evaluated edition.
 

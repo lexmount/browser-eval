@@ -1,6 +1,6 @@
 # Build and verify the Moli report
 
-The Moli comparison report adapter lives in this directory, with its reader assets in `template/`. Run each stage through `uv run --frozen python -m harness.lexbench <command>`; `--help` lists the commands. Measured evidence stays outside Git under `BROWSER_EVAL_DATA_HOME` (default: `~/.browser-eval`). It does not use the Web Fetch publication target.
+The Moli comparison report adapter lives in this directory, with its reader assets in `template/`. Run each stage through `uv run --frozen python -m harness.lexbench <command>`; `--help` lists the commands. Measured evidence stays outside Git under `WEBSTONE_DATA_HOME` (default: `~/.webstone`). It does not use the Web Fetch publication target.
 
 This is a declared historical adapter. It is exempt from the new-track registration rule in `AGENTS.md`, is not listed in `configs/report-templates.json`, and has its own row in the [report language table](../../../docs/report-hosting.md#report-languages).
 
@@ -42,7 +42,7 @@ uv run --frozen python -m harness.lexbench reproduce \
   --agent-browser /path/to/linux-agent-browser --mode off --phase baseline
 ```
 
-The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Browser Eval before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
+The default operation validates inputs and prints the Docker command. `--execute` starts the selected run; it preserves existing runs and rechecks frozen inputs afterward. The protocol and cohort must describe the same complete 372-case, three-attempt scope. Report bundles include this module as `reproduction/run.py`, with adjacent `cohort.json` and `protocol.json` as defaults; install Webstone before using it. Python optimization does not disable input checks. Historical source and measured-call bindings are unchanged.
 
 The four 1.1.9 resource configurations are release builds bound by `resource_builds` in `/path/to/report-profile.json`. Functional evidence binds its own binary identity. Do not relabel retained functional outcomes as a new build's measured accuracy.
 

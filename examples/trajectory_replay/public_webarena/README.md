@@ -44,10 +44,10 @@ uv run --frozen python -m harness.trajectory_replay.public_webarena.cli \
   --reports <evidence>/formal/webarena-public-trajectories/reports
 ```
 
-Each run needs a new `--output` directory; the runner refuses an existing one so saved evidence is never replaced. This suite measures Moli v1.0.6. The curated replay builds a newer Moli under the same `lex-browser-eval-moli:local` tag, so rebuild the image from this directory before a run; the runner refuses any other Moli version before it creates the output:
+Each run needs a new `--output` directory; the runner refuses an existing one so saved evidence is never replaced. This suite measures Moli v1.0.6. The curated replay builds a newer Moli under the same `lex-webstone-moli:local` tag, so rebuild the image from this directory before a run; the runner refuses any other Moli version before it creates the output:
 
 ```text
-docker build -f examples/trajectory_replay/public_webarena/docker/moli.Dockerfile -t lex-browser-eval-moli:local .
+docker build -f examples/trajectory_replay/public_webarena/docker/moli.Dockerfile -t lex-webstone-moli:local .
 ```
 
 `--env-file` selects the file for ordinary settings, and an exported variable wins over it. Site logins, the Rainbond API token and the LLM diagnostics key ignore both and read only the repository `.env`. The variable names of a login come from `credentials_env` in the runtime config.

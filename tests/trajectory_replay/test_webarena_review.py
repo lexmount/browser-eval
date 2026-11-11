@@ -271,7 +271,7 @@ def test_review_requires_exact_hash_bound_failure_coverage(tmp_path: Path) -> No
 def test_review_evidence_paths_are_portable_below_the_data_home(tmp_path, monkeypatch) -> None:
     from harness.trajectory_replay.webarena_review import review_evidence_path
 
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path))
     absolute = tmp_path / "elsewhere.json"
     assert review_evidence_path(absolute) == absolute
     assert review_evidence_path("evidence/run/a.json") == (
@@ -289,7 +289,7 @@ def test_relative_evidence_paths_load_through_the_review_and_report(tmp_path, mo
 
     home = tmp_path / "data"
     (home / "evidence/run").mkdir(parents=True)
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(home))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(home))
     row = {"participant_id": "moli", "engine": "moli", "task_id": 1,
            "status": "fail", "binary_sha256": "a" * 64}
     prior = _write(home / "evidence/run/prior.json", {"attempts": [row]})

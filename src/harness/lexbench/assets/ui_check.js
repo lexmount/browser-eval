@@ -3,8 +3,8 @@ const require = createRequire(import.meta.url);
 const path = require("path"),
   os = require("os");
 const dataHome =
-  process.env.BROWSER_EVAL_DATA_HOME ||
-  path.join(os.homedir(), ".browser-eval");
+  process.env.WEBSTONE_DATA_HOME ||
+  path.join(os.homedir(), ".webstone");
 const site = process.env.MOLI_REPORT_SITE;
 if (!site) throw new Error("MOLI_REPORT_SITE must name the built report");
 const { chromium } = require(

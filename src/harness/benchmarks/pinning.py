@@ -13,6 +13,7 @@ from pathlib import Path
 
 from harness.benchmarks.data import (
     canonical_repository,
+    canonical_source_name,
     fetch_archive,
     main_history,
     read_hf_file,
@@ -120,7 +121,7 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
         raise ValueError("REV is not on the dataset's main history: " + revision)
     raw_manifest = read_hf_file(repository, revision, "manifest.json", MAX_RELEASE_MANIFEST_BYTES)
     manifest = json.loads(raw_manifest)
-    if manifest.get("schema") != "browser-eval-dataset-release/1" or manifest.get("track") != track:
+    if canonical_source_name("schemas", manifest.get("schema")) != "webstone-dataset-release/1" or manifest.get("track") != track:
         raise ValueError("Dataset release identity mismatch")
     archive = manifest.get("archive")
     if archive is None:
@@ -162,7 +163,7 @@ def _prepare_pin(root: Path, track: str, revision: str, before: dict | None) -> 
     selected["source_editions"] = authorities
     import_path = root / "evaluation" / ("lexbench-" + track + ".json")
     updates = {}
-    with tempfile.TemporaryDirectory(prefix="browser-eval-dataset-pin-") as directory:
+    with tempfile.TemporaryDirectory(prefix="webstone-dataset-pin-") as directory:
         unpack(raw, Path(directory), selected)
         release = DatasetRelease(track, selected["source_revision"],
                                  {name: (Path(directory) / name).read_bytes() for name in selected["files"]},

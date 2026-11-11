@@ -12,15 +12,15 @@ from typing import Any
 from harness.environments.webarena.topology import CONTAINER_HOST_ALIAS
 
 DEFAULT_BROWSER_IMAGES = {
-    "chromium": "lex-browser-eval-chromium:local",
-    "moli": "lex-browser-eval-moli:local",
+    "chromium": "lex-webstone-chromium:local",
+    "moli": "lex-webstone-moli:local",
 }
 ENGINE_PORTS = {"chromium": 9223, "moli": 9222}
 
 
 def configured_browser_images() -> dict[str, str]:
     images = dict(DEFAULT_BROWSER_IMAGES)
-    images["moli"] = os.environ.get("BROWSER_EVAL_MOLI_IMAGE", images["moli"])
+    images["moli"] = os.environ.get("WEBSTONE_MOLI_IMAGE", images["moli"])
     return images
 
 
@@ -84,14 +84,14 @@ def start_browser_container(
     memory: str,
     network: str,
 ) -> Any:
-    name = f"lex-browser-eval-{run_id}-{engine}"
+    name = f"lex-webstone-{run_id}-{engine}"
     options: dict[str, Any] = {
         "name": name,
         "detach": True,
         "ports": {f"{cdp_port}/tcp": ("127.0.0.1", None)},
         "labels": {
-            "lex.browser-eval.run": run_id,
-            "lex.browser-eval.engine": engine,
+            "lex.webstone.run": run_id,
+            "lex.webstone.engine": engine,
         },
         "mem_limit": memory,
         "pids_limit": 512,
