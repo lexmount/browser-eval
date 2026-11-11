@@ -88,7 +88,7 @@ From a Webstone checkout with [uv](https://docs.astral.sh/uv/getting-started/ins
 
 ```sh
 git clone https://github.com/lexmount/webstone.git
-cd browser-eval
+cd webstone
 {{tooling_checkout}}uv sync --frozen
 uv run --frozen python -m harness.benchmarks.data
 uv run --frozen lexbench-webfetch list

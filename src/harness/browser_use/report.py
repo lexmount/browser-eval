@@ -3668,7 +3668,7 @@ def _reproduce_identity_section(inputs: ReportInputs, engine_rows: list[list[Any
         + _table(
             [t("release_details.item", "Item"), t("result_evidence_section.value", "Value")],
             [
-                ["browser-eval commit", protocol.get("browser_eval_commit", "—")],
+                ["Webstone commit", protocol.get("browser_eval_commit", "—")],
                 ["CowAgent commit", protocol.get("cowagent_commit", "—")],
                 [t("resource_comparison_table.model", "Model"), f"{model_names} · reasoning={protocol.get('reasoning_effort', '—')}"],
                 ["WebArena‑Verified", environment.get("webarena_verified_version", "—")],

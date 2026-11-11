@@ -67,7 +67,7 @@ Webstone uses the shared immutable dataset cache and
 
 ```sh
 git clone https://github.com/lexmount/webstone
-cd browser-eval
+cd webstone
 {{tooling_checkout}}uv sync --frozen --extra web-extract-eval
 make pin-dataset DATASET=web-extract REV=YOUR_FULL_HF_COMMIT
 uv run --frozen python -m harness.benchmarks.data web-extract

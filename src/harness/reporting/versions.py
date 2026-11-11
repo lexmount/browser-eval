@@ -120,7 +120,8 @@ def check_build_version(root, manifest):
             continue
         labels = page.select('[data-browser-eval-release]')
         if (len(labels) != 1 or labels[0].get("data-browser-eval-release") != identity["version"]
-                or labels[0].get_text(" ", strip=True) != "Webstone v" + identity["version"]
+                or labels[0].get_text(" ", strip=True) not in {
+                    brand + " v" + identity["version"] for brand in ("Webstone", "Browser Eval")}
                 or labels[0].get("href") != _version_href(route, str(page))):
             raise ValueError("Report lost its Webstone version label: " + route)
 

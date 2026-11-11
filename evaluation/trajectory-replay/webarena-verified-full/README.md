@@ -26,4 +26,4 @@ committed to Git.
 The evaluator and canonical WebArena task fixes live in the pinned
 `lexmount/webarena-verified` fork. Replay execution, browser adapters, evidence
 aggregation, review, report generation, and publication live in this
-`browser-eval` repository.
+Webstone repository.
