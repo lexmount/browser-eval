@@ -70,6 +70,8 @@ this table is the index.
 | [0.1.0](https://github.com/lexmount/browser-eval/releases/tag/v0.1.0) | Preserve the original installable Web Fetch, Replay and Browser Use checkpoint | Fetch scoring in this repository; no separate LexBench package |
 | [0.2.0](https://github.com/lexmount/browser-eval/releases/tag/v0.2.0) | Extracted Fetch dependency and shared report-build identity | Fetch benchmark 2.0.1; no Search integration |
 | [0.3.0](https://github.com/lexmount/browser-eval/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
+| [0.4.0](https://github.com/lexmount/browser-eval/releases/tag/v0.4.0) | Move Web Fetch and Web Search scoring into this repository; public inputs on Hugging Face | Web Fetch dataset `3d8aa5cf`; Web Search dataset `76d9c2b6` |
+| [0.5.0](https://github.com/lexmount/browser-eval/releases/tag/v0.5.0) | The Browser Eval version names the Web Fetch benchmark edition; score-changing scorer fixes; corrected references | Web Fetch dataset v2.2.0 (`c12559d2`); Web Search dataset `76d9c2b6` |
 
 Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
 can support several separately selected benchmarks. Its version never changes
