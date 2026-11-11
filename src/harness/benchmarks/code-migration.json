@@ -40,7 +40,7 @@
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
-          "after_sha256": "c4af09fe4ef91237608a4d7a0adf78869d273fa93c4df92e104912d22f16f5c3"
+          "after_sha256": "df132c3a3736998e29e27e24e5d1b2225bc77bd96d4310e13966458abd30004f"
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",

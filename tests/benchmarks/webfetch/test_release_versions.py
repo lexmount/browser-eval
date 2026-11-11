@@ -184,6 +184,9 @@ def test_public_cli_freezes_and_compares_real_files(tmp_path, capsys, monkeypatc
     source = tmp_path / "dataset.json"
     source.write_text(json.dumps(dataset()), encoding="utf-8")
     frozen = tmp_path / "release.json"
+    from lexbench_webfetch import versions
+    monkeypatch.setattr(versions, "RELEASED_SCORERS",
+                        {version("browser-harness-eval"): versions.SCORING_SOURCE_SHA256})
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(source),
                                     "--output", str(frozen), "--benchmark", "sample-benchmark",
                                     "--version", version("browser-harness-eval"),
@@ -279,11 +282,18 @@ def test_every_release_records_its_scoring_hash():
     assert version("browser-harness-eval") in RELEASED_SCORERS
 
 
-def test_release_sidecar_must_use_the_browser_eval_version(monkeypatch, tmp_path, capsys):
+@pytest.mark.parametrize("case", ["other_version", "unreleased_scorer"])
+def test_release_sidecar_requires_the_released_browser_eval_scorer(monkeypatch, tmp_path, capsys, case):
+    from lexbench_webfetch import versions
     from lexbench_webfetch.cli import main
+    current = version("browser-harness-eval")
+    shipped = versions.SCORING_SOURCE_SHA256 if case == "other_version" else "2" * 64
+    monkeypatch.setattr(versions, "RELEASED_SCORERS", {current: shipped})
+    requested = "99.0.0" if case == "other_version" else current
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(tmp_path / "d.json"),
                                      "--output", str(tmp_path / "r.json"), "--benchmark", "lexmount-webfetch",
-                                     "--version", "99.0.0", "--scorer-revision", "0" * 40])
+                                     "--version", requested, "--scorer-revision", "0" * 40])
     with pytest.raises(SystemExit):
         main()
     assert "installed Browser Eval version" in capsys.readouterr().err
+    assert not (tmp_path / "r.json").exists()

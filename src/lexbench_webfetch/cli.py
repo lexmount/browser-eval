@@ -62,11 +62,11 @@ def main() -> None:
             from .versions import installed_version
             result = installed_version()
         elif args.command == "release":
-            from importlib.metadata import version
-
-            from .versions import freeze_release
-            if args.version != version("browser-harness-eval"):
-                raise ValueError("Release version must be the installed Browser Eval version")
+            from .versions import freeze_release, installed_version
+            scorer = installed_version()
+            if scorer["status"] != "released" or args.version != scorer["version"]:
+                raise ValueError("Release version must be the installed Browser Eval version "
+                                 f"and its released scorer; installed scorer is {scorer['version']}")
             previous = json.loads(args.previous.read_text()) if args.previous else None
             result = freeze_release(args.dataset, args.output, benchmark=args.benchmark,
                                     version=args.version, previous=previous,
