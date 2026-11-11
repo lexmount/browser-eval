@@ -6,7 +6,44 @@ PRs are welcome for adapters, execution fixes, tests, documentation and translat
 
 ## Report a bug
 
-Include the task ID, method and versions, OS, command and sanitized error. Remove keys, cookies and session data.
+Use the [bug report template](.github/ISSUE_TEMPLATE/bug_report.md).
+For a new capability, use the [feature request template](.github/ISSUE_TEMPLATE/feature_request.md).
+Search existing issues first and add evidence to a matching issue.
+
+Open one issue per independently fixable problem. Give it a concrete title naming
+the affected behavior, such as "CLI exits successfully when the input file is missing."
+Start with a short description of the failure and its effect on the caller.
+Then provide:
+
+1. A minimal, complete command or code sample, its input and any setup it needs.
+2. The expected result and the actual result, with a short response or error excerpt.
+3. The relevant version, method/provider, environment and observation date.
+   For hosted services, include the endpoint, parameters and request ID when available.
+4. Supporting evidence and a diagnosis or proposed fix, if established.
+
+For benchmark findings, identify the task and acceptance rule. Distinguish a tool
+failure from a reference, scorer or adapter defect. Label saved-call evidence with
+its original date; it does not establish that the current service still fails.
+State which cause is demonstrated by the evidence and which explanation remains
+a hypothesis. A reporter does not need to know the root cause to report a bug.
+
+Keep the reproduction and expected/actual results readable without opening a
+report. Put long logs, traces, offline tests and supplementary cases in linked
+files or collapsed `<details>` sections. Paste code and errors as text; diagrams
+and screenshots supplement them. Remove keys, cookies and session data.
+A tracking issue should contain a short goal and links to the individual issues.
+
+When filing in another repository, follow its template and terminology. Before
+submitting, read the issue as a maintainer: can someone unfamiliar with the
+investigation understand the failure and reproduce it from the supplied material?
+Check the posted body, attachment links and code formatting after submission.
+For CLI submissions, inspect the installed command's help before assuming which
+creation or attachment options it supports.
+
+These templates follow the reproduction-first approach used by
+[Playwright](https://github.com/microsoft/playwright/blob/main/.github/ISSUE_TEMPLATE/bug.yml),
+[Scrapy](https://github.com/scrapy/scrapy/blob/master/.github/ISSUE_TEMPLATE/bug_report.md)
+and [Requests](https://github.com/psf/requests/blob/main/.github/ISSUE_TEMPLATE/Bug_report.md).
 
 ## Make a change
 
