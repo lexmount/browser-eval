@@ -7,7 +7,9 @@ try{
   if(node.dataset.comparisonSrc){
     const response=await fetch(node.dataset.comparisonSrc);
     if(!response.ok)throw Error('HTTP '+response.status);
-    data=await response.json();
+    data=node.dataset.comparisonSrc.endsWith('.gz')
+      ?await new Response(response.body.pipeThrough(new DecompressionStream('gzip'))).json()
+      :await response.json();
   }else data=JSON.parse(node.textContent);
 }catch(error){
   const notice=document.createElement('p');notice.setAttribute('role','alert');

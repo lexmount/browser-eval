@@ -56,8 +56,8 @@ def transform_page(text, *, packed=(), comparison_files=None):
         node.string = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c").replace("&", "\\u0026")
         if comparison_files is not None and len(node.string.encode()) >= 1024 * 1024:
             raw = node.string.encode('utf-8')
-            path = 'comparison-data/' + bytes_sha256(raw) + '.json'
-            comparison_files[path] = raw
+            path = 'comparison-data/' + bytes_sha256(raw) + '.json.gz'
+            comparison_files[path] = gzip.compress(raw, mtime=0)
             node['data-comparison-src'] = path
             node.clear()
     return str(doc)

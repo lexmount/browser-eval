@@ -121,7 +121,7 @@ def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path):
     doc = BeautifulSoup((destination / 'results.html').read_bytes(), 'html.parser')
     data_node = doc.select_one('[data-comparison-src]')
     data_file = destination / data_node['data-comparison-src']
-    assert data_file.stat().st_size > 8 * 1024 * 1024
+    assert len(gzip.decompress(data_file.read_bytes())) > 8 * 1024 * 1024
     assert not data_node.get_text()
     original = data_file.read_bytes()
     with local_report_server(destination) as origin, sync_playwright() as engine:

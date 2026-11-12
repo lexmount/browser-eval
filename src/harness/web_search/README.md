@@ -133,7 +133,7 @@ HTML inspection. Packaging and uploading verify the accepted files rather than
 repeating the full report check. Combine `--release-check RECEIPT` with
 `--export-delivery DESTINATION` to validate and export in one pass.
 
-Large comparison data is exported as content-addressed JSON beside the compact
+Large comparison data is exported as content-addressed compressed JSON beside the compact
 HTML page. The comparison loads that file before enabling its filters. Delivery
 verification checks the exact transformed data as well as the page; missing or
 changed files fail validation, and a browser load failure shows an explicit notice.
