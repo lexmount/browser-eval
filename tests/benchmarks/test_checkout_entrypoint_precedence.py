@@ -1,4 +1,4 @@
-"""Checkout entrypoints must beat a noneditable installed Browser Eval wheel."""
+"""Checkout entrypoints must beat a noneditable installed Webstone wheel."""
 import csv
 import io
 import os
@@ -17,14 +17,14 @@ SCRIPTS = sorted(path for path in (ROOT/'scripts').glob('*.py')
 
 @pytest.fixture(scope='module')
 def stale_wheel_install(tmp_path_factory):
-    root = tmp_path_factory.mktemp('stale-browser-eval-wheel')
-    wheel = root/'browser_harness_eval-0.0.1-py3-none-any.whl'
-    info = 'browser_harness_eval-0.0.1.dist-info'
+    root = tmp_path_factory.mktemp('stale-webstone-wheel')
+    wheel = root/'webstone-0.0.1-py3-none-any.whl'
+    info = 'webstone-0.0.1.dist-info'
     files = {
         'harness/distribution.py': b'STALE_INSTALLED_CODE = True\n',
         'lexbench_webfetch/__init__.py': b'STALE_INSTALLED_CODE = True\n',
         'lexbench_websearch/__init__.py': b'STALE_INSTALLED_CODE = True\n',
-        info+'/METADATA': b'Metadata-Version: 2.1\nName: browser-harness-eval\nVersion: 0.0.1\n',
+        info+'/METADATA': b'Metadata-Version: 2.1\nName: webstone\nVersion: 0.0.1\n',
         info+'/WHEEL': b'Wheel-Version: 1.0\nGenerator: test\nRoot-Is-Purelib: true\nTag: py3-none-any\n',
     }
     record = io.StringIO()

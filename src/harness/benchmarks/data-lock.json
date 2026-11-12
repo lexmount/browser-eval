@@ -1,5 +1,5 @@
 {
-  "schema": "browser-eval-dataset-lock/1",
+  "schema": "webstone-dataset-lock/1",
   "datasets": {
     "webfetch": {
       "repository": "Lexmount/LexBench-Web-Fetch",

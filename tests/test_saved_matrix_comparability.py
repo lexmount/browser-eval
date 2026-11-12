@@ -529,7 +529,7 @@ def test_saved_disclosure_is_required_on_home_and_detail_routes(tmp_path, presen
     if defect in {'remove', 'remove_marker_and_scope'}:
         scope.decompose()
         if defect == 'remove_marker_and_scope':
-            page.select_one('meta[name="browser-eval-report"]').decompose()
+            page.select_one('meta[name="webstone-report"]').decompose()
     else:
         scope['hidden'] = ''
     path.write_text(str(page), encoding='utf-8')

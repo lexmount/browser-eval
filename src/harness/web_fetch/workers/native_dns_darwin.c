@@ -36,14 +36,14 @@ static int dns_getaddrinfo(const char *node, const char *service, const struct a
     numeric.ai_flags |= AI_NUMERICHOST;
     int status = getaddrinfo(node, service, &numeric, result);
     if (status == 0) return 0;
-    const char *port = getenv("BROWSER_EVAL_DNS_PORT");
-    const char *token = getenv("BROWSER_EVAL_DNS_TOKEN");
+    const char *port = getenv("WEBSTONE_DNS_PORT");
+    const char *token = getenv("WEBSTONE_DNS_TOKEN");
     if (!port || !token || strlen(token) != 64 || strlen(node) > 253 || strpbrk(node, "\r\n\t ")) return EAI_FAIL;
     char *end; long port_number = strtol(port, &end, 10);
     if (*end || port_number < 1 || port_number > 65535) return EAI_FAIL;
     int fd = socket(AF_INET, SOCK_STREAM, 0);
     if (fd < 0) return EAI_FAIL;
-    const char *budget = getenv("BROWSER_EVAL_DNS_TIMEOUT_SECONDS");
+    const char *budget = getenv("WEBSTONE_DNS_TIMEOUT_SECONDS");
     char *budget_end; double seconds = budget ? strtod(budget, &budget_end) : 0;
     if (!budget || *budget_end || !(seconds > 0) || seconds > 3600) {close(fd); return EAI_FAIL;}
     struct timeval timeout = {.tv_sec = (long)seconds, .tv_usec = (long)((seconds - (long)seconds) * 1000000)};

@@ -89,7 +89,7 @@ jobs:
         run: |
           uv run --frozen --no-sync python -m harness.web_fetch validate --providers fixture
           output="$(mktemp -d)/run"
-          BROWSER_EVAL_REPORT_LANGUAGE=zh uv run --frozen --no-sync python -m harness.web_fetch run --providers fixture --delay 0 --output "$output"
+          WEBSTONE_REPORT_LANGUAGE=zh uv run --frozen --no-sync python -m harness.web_fetch run --providers fixture --delay 0 --output "$output"
           uv run --frozen --no-sync python -c 'import json, sys; from pathlib import Path; root = Path(sys.argv[1]); contract = json.loads((root / "report-languages.json").read_text()); assert contract["primary_language"] == "zh"; assert contract["languages"] == ["zh"]; assert (root / "en/index.html").is_file()' "$output/report"
       - run: make package-check
       - name: Verify the documented minimal Web Extract installation

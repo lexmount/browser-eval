@@ -18,7 +18,7 @@ def forbidden(*args, **kwargs):
 socket.socket.connect = forbidden
 urllib.request.urlopen = forbidden
 ''' + operation
-    env = {**os.environ, "BROWSER_EVAL_DATASET_CACHE": str(tmp_path / "empty")}
+    env = {**os.environ, "WEBSTONE_DATASET_CACHE": str(tmp_path / "empty")}
     result = subprocess.run([sys.executable, "-c", code], env=env, capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
     assert not list((tmp_path / "empty").rglob("*"))

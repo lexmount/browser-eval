@@ -1175,7 +1175,7 @@ def test_machine_scored_record_report_accepts_only_its_declared_baseline_policy(
     from harness.web_extract import example, swde
 
     baseline = {"text_matching": "whitespace", "unavailable_reference_groups": []}
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "en")
     monkeypatch.setattr(swde, "reference_policy", lambda *a: baseline, raising=False)
     output = tmp_path / "report"
     home = example.create_record(tmp_path / "seed")
@@ -1293,7 +1293,7 @@ def test_managed_manifest_requires_byte_proof_and_external_manifest_checks_resou
         "harness.web_extract.snapshots.snapshot_request",
         lambda url, **kwargs: SimpleNamespace(status=404, body=b"", url=url),
     )
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "cache"))
     with pytest.raises(ValueError, match="Remote snapshot page differs"):
         snapshots.verify_bound_manifest(
             home,
@@ -1645,7 +1645,7 @@ def test_verified_deployment_reuses_proof_only_for_the_same_inventory_and_files(
         "deployment_id": "1234abcd-0000-0000-0000-000000000000",
     }
     binding = {"hosting_provider": "cloudflare", "cloudflare": cloudflare}
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "cache"))
     raw = (home / "dataset/html/one.html").read_bytes()
     state = {"bad": True, "calls": 0}
 
@@ -1752,7 +1752,7 @@ def test_concurrent_snapshot_users_share_one_complete_initial_byte_audit(tmp_pat
     from concurrent.futures import ThreadPoolExecutor
 
     home = prepared(tmp_path, mode="snapshot", assets=True)
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "cache"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "cache"))
     base = "https://1234abcd.example.pages.dev/frozen"
     binding = {
         "cloudflare": {

@@ -27,7 +27,7 @@ class StorageTests(unittest.TestCase):
                 require_current_report_profile(root, profile)
 
     def test_explicit_data_home_and_evidence_override(self):
-        with patch.dict(os.environ, {"BROWSER_EVAL_DATA_HOME": "/tmp/browser-data"}, clear=False):
+        with patch.dict(os.environ, {"WEBSTONE_DATA_HOME": "/tmp/browser-data"}, clear=False):
             self.assertEqual(data_home(), Path("/tmp/browser-data").resolve())
         with patch.dict(os.environ, {"WEB_FETCH_EVIDENCE_DIR": "/tmp/browser-evidence"}, clear=False):
             evidence = Path("/tmp/browser-evidence").resolve()

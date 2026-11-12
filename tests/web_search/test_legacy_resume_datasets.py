@@ -11,7 +11,7 @@ from harness.benchmarks import data
 from harness.web_search import runner
 from tests.web_search.fixtures import execution_profile
 
-# The dependency recorded in the pre-migration Browser Eval pyproject and uv.lock.
+# The dependency recorded in the pre-migration Webstone pyproject and uv.lock.
 LEGACY_PIN = "f07a2e2ddf1c1c511cb3944659534301c86ff9c9"
 GIT = "https://github.com/lexmount/lexbench-websearch.git"
 

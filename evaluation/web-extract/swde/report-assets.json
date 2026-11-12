@@ -1,5 +1,5 @@
 {
-  "schema": "browser-eval-report-assets/1",
+  "schema": "webstone-report-assets/1",
   "assets": [
     {
       "role": "dataset-snapshot-version-flow",

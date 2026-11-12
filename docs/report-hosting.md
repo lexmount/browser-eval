@@ -30,11 +30,11 @@ an older report.
 
 ## Report languages
 
-The Web Fetch CLI falls back to English. `BROWSER_EVAL_REPORT_LANGUAGE=zh` changes the environment default, and `--language` overrides it. A rebuild without `--language` keeps the saved choice.
+The Web Fetch CLI falls back to English. `WEBSTONE_REPORT_LANGUAGE=zh` changes the environment default, and `--language` overrides it. A rebuild without `--language` keeps the saved choice.
 
 | Builder | Language selection |
 | --- | --- |
-| `browser-harness-eval run`, `report`, `rescore` | `--language en` or `--language zh`; fallback English, environment configurable |
+| `webstone run`, `report`, `rescore` | `--language en` or `--language zh`; fallback English, environment configurable |
 | `scripts/build_report.py`: standard Web Fetch, local audit, WCXB, WebMainBench sample, research companion | `--language en` or `--language zh`; fallback English, environment configurable |
 | `uv run --frozen python -m harness.browser_use report` | `--language en` or `--language zh`; fallback English, environment configurable |
 | `uv run --frozen python -m harness.trajectory_replay report` | `--language en` or `--language zh`; fallback English, environment configurable |
@@ -51,7 +51,7 @@ Serve the local report directory over HTTP to use evidence that loads on demand.
 
 An agent-driven new build uses the current conversation language instead of guessing from the host locale. A Chinese selection generates no English translation unless explicitly requested. Historical Chinese-only renderers must state their limitation and reject unsupported requests. Record generated editions and the selected entry in report metadata. When English is absent, its navigation opens a not-generated notice with a return link; remove stale English pages and unused assets. Validate each generated edition; require route, value and evidence-link parity only when both editions were explicitly generated.
 
-For the current trajectory report, `make trajectory-replay-report EVIDENCE=/absolute/path/results.json` uses the shared language resolution. Set `REPORT_LANGUAGE=zh|en`, `BROWSER_EVAL_REPORT_LANGUAGE=zh|en`, or the build script's `--language` when selecting a different entry. Report, visual and packaging checks use the generated manifest, so they do not regenerate an absent edition.
+For the current trajectory report, `make trajectory-replay-report EVIDENCE=/absolute/path/results.json` uses the shared language resolution. Set `REPORT_LANGUAGE=zh|en`, `WEBSTONE_REPORT_LANGUAGE=zh|en`, or the build script's `--language` when selecting a different entry. Report, visual and packaging checks use the generated manifest, so they do not regenerate an absent edition.
 
 Only `en` and `zh` are supported. Unsupported codes fail before a run starts or an existing report is replaced. Browser or operating-system language does not silently change a report. To add a language, extend the owning renderer's translation catalog and route, value and evidence-link checks; see [contributing](../CONTRIBUTING.md).
 

@@ -107,7 +107,7 @@ def test_invalid_managed_scorer_cache_gives_precise_recovery_without_deleting(tm
     target.mkdir(parents=True)
     marker = target / 'local-change.txt'
     marker.write_text('retain this change', encoding='utf-8')
-    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(tmp_path / 'cache'))
+    monkeypatch.setenv('WEBSTONE_DATASET_CACHE', str(tmp_path / 'cache'))
     monkeypatch.setattr(data, 'binding', lambda track: {'scorer': {'revision': revision}})
     monkeypatch.setattr(wmb, 'verify_scorer_checkout', lambda *args: (_ for _ in ()).throw(ValueError('dirty checkout')))
     with pytest.raises(ValueError) as error:

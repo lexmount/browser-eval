@@ -9,11 +9,11 @@ Body extraction is accepted against the declared body regions and composite reco
 ## Deterministic build and validation without calls
 
 ```sh
-uv run --frozen lexbench-webfetch compile-access-restrictions --output /tmp/risk-control-dataset --evidence-home ~/.browser-eval
+uv run --frozen lexbench-webfetch compile-access-restrictions --output /tmp/risk-control-dataset --evidence-home ~/.webstone
 uv run --frozen python scripts/run_certified_benchmark.py risk-control --env-file .env
 ```
 
-The first command rebuilds from hash-bound independent evidence under `BROWSER_EVAL_DATA_HOME` (default `~/.browser-eval`). The compiler emits the corrected stable-text roles. The historical profile and bound external dataset retain their original bytes; they must not be overwritten or treated as a certificate for the revised contract. Supply a new output path; frozen inputs cannot be overwritten. The second command validates the profile, dataset, Moli 1.1.11 version and binary hash without provider calls.
+The first command rebuilds from hash-bound independent evidence under `WEBSTONE_DATA_HOME` (default `~/.webstone`). The compiler emits the corrected stable-text roles. The historical profile and bound external dataset retain their original bytes; they must not be overwritten or treated as a certificate for the revised contract. Supply a new output path; frozen inputs cannot be overwritten. The second command validates the profile, dataset, Moli 1.1.11 version and binary hash without provider calls.
 
 The compiler is `lexbench_webfetch.risk_control_dataset`. By default it reads its rules and qualification manifests from the pinned definition directory that `definition_path("evaluation/risk-control")` resolves to. To supply them explicitly, pass `--definition-dir` with a copy of that pinned directory; this checkout directory does not hold those files. Frozen-rule hashes are still enforced.
 
@@ -22,7 +22,7 @@ The compiler is `lexbench_webfetch.risk_control_dataset`. By default it reads it
 ```sh
 uv run --frozen python scripts/run_certified_benchmark.py risk-control \
   --env-file .env --execute \
-  --output "$BROWSER_EVAL_DATA_HOME/evidence/risk-control/<new-run-id>"
+  --output "$WEBSTONE_DATA_HOME/evidence/risk-control/<new-run-id>"
 ```
 
 The output directory must be new and under the data directory. The formal entry is fixed as `scripts/run_certified_benchmark.py risk-control`; using `--execute` directly on the execution script is rejected. A new formal run of the current profile has exactly 100 logical results, with no automatic retry, and keeps complete, hash-bound debug stderr outside Git for every call. The retained historical evidence has 3 additional user-authorized calls after DNS failures, so it retains 103 physical calls; each case uses its last response, every call's duration counts, and the best response cannot be selected.

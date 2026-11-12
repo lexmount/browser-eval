@@ -144,7 +144,7 @@ def test_har_recorder_captures_new_tabs_and_evaluator_fields(tmp_path):
     summary = recorder.stop(output)
 
     payload = json.loads(output.read_text(encoding="utf-8"))
-    assert payload["log"]["creator"] == {"name": "browser-eval-cdp", "version": "3"}
+    assert payload["log"]["creator"] == {"name": "webstone-cdp", "version": "3"}
     entry = payload["log"]["entries"][0]
     assert summary == {
         "entry_count": 1,

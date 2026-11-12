@@ -1,16 +1,20 @@
 <div align="center">
 
-<img src="assets/overview.png" alt="Browser Eval：为你的 Agent 选对浏览器。" width="640">
+<img src="assets/overview.png" alt="Webstone：检验 Agent Web 工具的试金石。" width="640">
 
 [English](../README.md) · **简体中文**
 
-[![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
+[![CI](https://github.com/lexmount/webstone/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/webstone/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](../LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](../pyproject.toml)
 
 [快速开始](#快速开始) · [评测流程](#评测流程) · [设计原则](#设计原则) · [报告](#报告) · [数据集与代码](#数据集与代码) · [版本](#版本) · [参与贡献](../CONTRIBUTING.md)
 
 </div>
+
+**检验 Agent Web 工具的试金石。**
+
+古人验金，把金子在黑色的试金石上一划，看留下的痕迹便知成色。Webstone 用同样的办法检验 AI Agent 所依赖的浏览器和 Web 工具：所有工具运行同一组冻结任务，每次调用都保存为证据，报告展示每个工具留下的“痕迹”。
 
 面向 AI Agent，评测浏览器与 Web 工具，覆盖内容抓取、搜索、商品字段提取和 Browser Trajectory Replay。比较正确性、延迟、资源使用和已记录的成本，并可按需将保存的结果生成本地报告，下钻检查每一个结果，重建或分享报告。
 
@@ -19,11 +23,11 @@
 安装 [uv](https://docs.astral.sh/uv/getting-started/installation/)，运行离线示例：
 
 ```sh
-git clone https://github.com/lexmount/browser-eval.git
-cd browser-eval
+git clone https://github.com/lexmount/webstone.git
+cd webstone
 uv sync --frozen
-uv run --frozen browser-harness-eval validate
-uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen webstone validate
+uv run --frozen webstone run --delay 0
 ```
 
 打开终端打印的报告路径。示例包含一个预期通过和一个预期失败，无需浏览器、Docker 或 API 密钥。需要 Python 3.11 或更高版本；CI 在 3.11 上测试。
@@ -84,7 +88,7 @@ flowchart LR
 
 #### Headless 场景与对比报告
 
-Headless 通过在本地测试页面上回放固定场景，检查浏览器和驱动的兼容性。已有对比的任务执行与评分由上游运行器负责，Browser Eval 读取结果生成报告。原版 benchmark 还包含单项 CDP 和 Web 平台探针，并非每个任务都是多步轨迹。
+Headless 通过在本地测试页面上回放固定场景，检查浏览器和驱动的兼容性。已有对比的任务执行与评分由上游运行器负责，Webstone 读取结果生成报告。原版 benchmark 还包含单项 CDP 和 Web 平台探针，并非每个任务都是多步轨迹。
 
 ```mermaid
 flowchart LR
@@ -148,13 +152,13 @@ flowchart LR
 
 ## 报告
 
-结果和证据默认保存在本地 `~/.browser-eval/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。HTML 报告包含结果对比、逐题结果、完整响应和失败证据。本地评测、评分和查看 HTML 无需 Artifact Site 账号或发布授权。
+结果和证据默认保存在本地 `~/.webstone/runs/`，也可用 `--output /absolute/path/new-run` 指定新目录。HTML 报告包含结果对比、逐题结果、完整响应和失败证据。本地评测、评分和查看 HTML 无需 Artifact Site 账号或发布授权。
 
 `run` 默认生成本地报告。加 `--no-report` 可只保存结果；`rescore --no-report` 只重算评分，不重建 HTML。之后可从保存的证据生成或重建报告，无需重复调用浏览器或服务：
 
 ```sh
-uv run --frozen browser-harness-eval run --delay 0 --no-report
-uv run --frozen browser-harness-eval report /absolute/path/to/run
+uv run --frozen webstone run --delay 0 --no-report
+uv run --frozen webstone report /absolute/path/to/run
 ```
 
 默认生成英文；运行或重建时加 `--language zh` 可选中文。重建时不传该选项，会沿用已保存的语言。
@@ -163,7 +167,7 @@ uv run --frozen browser-harness-eval report /absolute/path/to/run
 
 明确要求分享并授权发布后，打开 Artifact Site（[全球站 .com](https://yours.lexmount.com/artifact-site) · [中国站 .cn](https://yours.lexmount.cn/artifact-site)），安装网站提供的 skill，按引导发布本地报告并设置访问权限。上传是独立操作，生成本地报告不会自动发布。
 
-评分代码随 Browser Eval 安装；数据集提交和文件哈希由[数据锁文件](../src/harness/benchmarks/data-lock.json)指定。报告记录 Browser Eval 构建版本和选定的评测版本。结果比较规则见[版本说明](benchmarks.md#benchmark-editions)，历史数据见[参考输入](reference-inputs.md)，本地构建与正式发布要求见[报告指南](report-hosting.md)。
+评分代码随 Webstone 安装；数据集提交和文件哈希由[数据锁文件](../src/harness/benchmarks/data-lock.json)指定。报告记录 Webstone 构建版本和选定的评测版本。结果比较规则见[版本说明](benchmarks.md#benchmark-editions)，历史数据见[参考输入](reference-inputs.md)，本地构建与正式发布要求见[报告指南](report-hosting.md)。
 
 <details>
 <summary>展开报告下钻、重建与分享流程</summary>
@@ -192,7 +196,7 @@ flowchart LR
 <details>
 <summary>Hugging Face 数据集</summary>
 
-这些数据集用于 Browser Eval 的评测，提供版本化题目、验收要求和参考输入。
+这些数据集用于 Webstone 的评测，提供版本化题目、验收要求和参考输入。
 
 | 数据集全名 | 简称 | 用途 |
 | --- | --- | --- |
@@ -202,7 +206,7 @@ flowchart LR
 | [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | **LB-SQAV** | 按输入长度筛选的 SimpleQA Verified 检索任务，保留原始答案 |
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | **LB-WCXB** | 已核验来源的冻结提取输入和参考答案 |
 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | **LB-HB** | CDP、自动化驱动和 Web 平台的可执行任务；场景设计规格保留在原始文件中 |
-| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | **LB-TR** | Browser Eval 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | **LB-TR** | Webstone 自建的 30 个公网任务，包含固定动作和确定性验收条件 |
 | [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | **LB-WAR** | 官方完整任务集；较小规模的 Browser Trajectory Replay 版本保留为版本化原始输入 |
 | [LexBench-Zyte-Product-Extraction](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction) | **LB-ZPE** | 冻结商品网页及价格、SKU、库存参考答案 |
 | [LexBench-SWDE](https://huggingface.co/datasets/Lexmount/LexBench-SWDE) | **LB-SWDE** | SWDE 多领域冻结网页字段提取 |
@@ -210,7 +214,7 @@ flowchart LR
 | [LexBench-NewsXLM](https://huggingface.co/datasets/Lexmount/LexBench-NewsXLM) | **LB-NXLM** | 多语言新闻网页字段提取 |
 | [LexBench-LiveWeb-IE](https://huggingface.co/datasets/Lexmount/LexBench-LiveWeb-IE) | **LB-LWIE** | 实时网站的记录与列表提取 |
 
-这 30 个公网轨迹任务由 Browser Eval 自建，部分交互设计借鉴了 Headless 的场景规格，没有导入 Headless 或 WebArena 的完整任务。任务文件固定了动作和预期输出，线上网页仍可能变化。
+这 30 个公网轨迹任务由 Webstone 自建，部分交互设计借鉴了 Headless 的场景规格，没有导入 Headless 或 WebArena 的完整任务。任务文件固定了动作和预期输出，线上网页仍可能变化。
 
 </details>
 
@@ -226,7 +230,7 @@ Web Fetch 和 Web Search 的评分代码分别位于本仓库的 [src/lexbench_w
 | WebArena-Verified | 重放和实验性 Agent 集成使用的官方评测器 | [维护分支](https://github.com/lexmount/webarena-verified/tree/lex-main) · [上游](https://github.com/ServiceNow/webarena-verified) |
 | WCXB | HF 核验版本的原始数据来源 | [上游](https://github.com/Murrough-Foley/web-content-extraction-benchmark) |
 
-Playwright、提取库和配套运行环境的固定版本见[依赖说明](dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Browser Eval 时，也请引用实际使用的评测集与上游数据。
+Playwright、提取库和配套运行环境的固定版本见[依赖说明](dependencies.md)，引用要求和数据权利见[第三方说明](../THIRD_PARTY.md)。引用 Webstone 时，也请引用实际使用的评测集与上游数据。
 
 </details>
 
@@ -245,11 +249,11 @@ Playwright、提取库和配套运行环境的固定版本见[依赖说明](depe
 
 ## 版本
 
-已发布版本、变更和依赖见[发布记录](https://github.com/lexmount/browser-eval/releases)。升版规则与报告版本绑定见[版本说明](releases.md)。
+已发布版本、变更和依赖见[发布记录](https://github.com/lexmount/webstone/releases)。升版规则与报告版本绑定见[版本说明](releases.md)。
 
 ## 参与贡献
 
-代码归属、测试和 PR 规范见 [CONTRIBUTING](../CONTRIBUTING.md)。反馈问题请[提交可复现的示例](https://github.com/lexmount/browser-eval/issues)。
+代码归属、测试和 PR 规范见 [CONTRIBUTING](../CONTRIBUTING.md)。反馈问题请[提交可复现的示例](https://github.com/lexmount/webstone/issues)。
 
 ```sh
 make setup-test
@@ -259,16 +263,16 @@ make ci
 [代码结构](architecture.md) · [安全](../SECURITY.md) · [第三方内容](../THIRD_PARTY.md) · [Apache 2.0](../LICENSE)
 
 
-## 引用 Browser Eval
+## 引用 Webstone
 
 项目引用：[CITATION.cff](../CITATION.cff)。
 
 ```bibtex
-@software{browser_eval_2026,
-  author = {{Browser Eval contributors}},
-  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+@software{webstone_2026,
+  author = {{Webstone contributors}},
+  title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Evaluation harness},
   year = {2026},
-  url = {https://github.com/lexmount/browser-eval}
+  url = {https://github.com/lexmount/webstone}
 }
 ```

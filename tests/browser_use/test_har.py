@@ -43,7 +43,7 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
         url = "http://private.example.test/save"
         headers = {
             "content-type": "application/json",
-            "x-browser-eval-request-body-id": "capture-1",
+            "x-webstone-request-body-id": "capture-1",
         }
         post_data = None
         post_data_buffer = None
@@ -150,7 +150,7 @@ def test_request_bridge_fulfillment_is_recorded_once_with_complete_json(
     assert len(entries) == 1
     assert entries[0]["request"]["postData"]["text"] == '{"enabled":true}'
     assert all(
-        header["name"].lower() != "x-browser-eval-request-body-id"
+        header["name"].lower() != "x-webstone-request-body-id"
         for header in entries[0]["request"]["headers"]
     )
     assert entries[0]["response"]["status"] == 201
@@ -169,7 +169,7 @@ def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> Non
         url = "http://shop.test/wishlist/index/add/"
         headers = {
             "content-type": "application/x-www-form-urlencoded",
-            "x-browser-eval-request-body-id": "native-1",
+            "x-webstone-request-body-id": "native-1",
         }
         post_data = None
 
@@ -181,7 +181,7 @@ def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> Non
     class Response:
         status = 200
         status_text = "OK"
-        headers = {"x-browser-eval-native-form-location": "http://shop.test/wishlist/"}
+        headers = {"x-webstone-native-form-location": "http://shop.test/wishlist/"}
 
         def all_headers(self):
             return dict(self.headers)
@@ -194,7 +194,7 @@ def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> Non
 
     def transform(method, url, headers):
         assert (method, url) == (request.method, request.url)
-        assert headers["x-browser-eval-request-body-id"] == "native-1"
+        assert headers["x-webstone-request-body-id"] == "native-1"
         return (
             {"content-type": "application/x-www-form-urlencoded"},
             "product=42",
@@ -248,7 +248,7 @@ def test_native_form_har_restores_real_redirect_and_safe_cookie(tmp_path) -> Non
         {"name": "mage-messages", "value": "product%20added"}
     ]
     serialized = json.dumps(entry)
-    assert "x-browser-eval-native-form-location" not in serialized
+    assert "x-webstone-native-form-location" not in serialized
     assert "PHPSESSID" not in serialized
 
 

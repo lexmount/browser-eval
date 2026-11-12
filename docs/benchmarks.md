@@ -1,6 +1,6 @@
 # Benchmarks and the execution harness
 
-Browser Eval owns scoring, execution adapters, saved evidence and reports. Public task definitions, source attribution and reference bindings are versioned on Hugging Face.
+Webstone owns scoring, execution adapters, saved evidence and reports. Public task definitions, source attribution and reference bindings are versioned on Hugging Face.
 
 | Responsibility | Owner |
 | --- | --- |
@@ -12,7 +12,7 @@ Browser Eval owns scoring, execution adapters, saved evidence and reports. Publi
 | Qualified WCXB inputs and curated/public replay definitions | Their HF editions; upstream projects retain source attribution |
 | WebMainBench and WebArena evaluator code | The selected scorer/evaluator dependency and its recorded source revision |
 
-The two scorer APIs and console commands ship in the Browser Eval distribution. They require no browser installation or provider credentials. Former standalone scorer repositories retain source history and attribution; current installation and scoring use Browser Eval.
+The two scorer APIs and console commands ship in the Webstone distribution. They require no browser installation or provider credentials. Former standalone scorer repositories retain source history and attribution; current installation and scoring use Webstone.
 
 ## Evaluation design
 
@@ -41,13 +41,13 @@ Current datasets are published separately:
 | [LexBench-WebMainBench](https://huggingface.co/datasets/Lexmount/LexBench-WebMainBench) | Corrected frozen-HTML extraction inputs and references |
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | Source-qualified extraction inputs, preserving selected upstream HTML and reference bytes |
 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | Executable CDP, driver and web-platform tasks; scenario specifications retained as source inputs |
-| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | 30 public-web tasks written in Browser Eval, with fixed actions and exact checks |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | 30 public-web tasks written in Webstone, with fixed actions and exact checks |
 | [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | Full official task catalog; smaller replay editions retained as versioned source inputs |
 
 Dataset cards explain scope, schema, source terms and loading. Configuration counts and selected revisions come from the dataset registry and data lock. WebArena's full task configuration retains both portable and direct-only tasks; inclusion in that configuration does not establish portable replay qualification. The official evaluator remains a separately pinned dependency.
 
 
-Install Browser Eval, then prepare its pinned public definitions:
+Install Webstone, then prepare its pinned public definitions:
 
 ```sh
 uv sync --frozen
@@ -59,7 +59,7 @@ uv run --frozen lexbench-websearch list
 
 When upgrading an existing checkout, `uv sync --frozen` removes the retired standalone scorer distributions before installing the shared distribution.
 
-Downloads use full Hugging Face commits and verify the archive and every file. Public downloads need no access key. Cached definitions work with `HF_HUB_OFFLINE=1`; `BROWSER_EVAL_DATASET_CACHE` overrides the default `~/.browser-eval/datasets/`. Changing the evidence directory does not change the selected dataset cache.
+Downloads use full Hugging Face commits and verify the archive and every file. Public downloads need no access key. Cached definitions work with `HF_HUB_OFFLINE=1`; `WEBSTONE_DATASET_CACHE` overrides the default `~/.webstone/datasets/`. Changing the evidence directory does not change the selected dataset cache.
 
 If validation reports extra, missing or corrupted cached files, run `uv run --frozen python -m harness.benchmarks.data --repair <track>` while online. Repair preserves the invalid directory beside the snapshot, then downloads and verifies the locked edition again. Offline repair leaves the existing files intact.
 
@@ -69,7 +69,7 @@ The public Fetch definitions contain compact task contracts and reference hashes
 uv run --frozen lexbench-webfetch export \
   --suite webfetch --source /absolute/path/approved-inputs \
   --output /absolute/path/new-input-directory
-uv run --frozen browser-harness-eval validate \
+uv run --frozen webstone validate \
   --dataset /absolute/path/new-input-directory/dataset.json
 ```
 
@@ -119,14 +119,14 @@ separate `make pin-dataset DATASET=webfetch REV=<full-HF-commit>` change.
 After review, merge the HF pull request and validate its merged commit. For a
 formal dataset release, assign a `vMAJOR.MINOR.PATCH` tag in that dataset repository
 and retain its exact target commit. Preserve existing historical tags and never
-move a published tag. Dataset version numbers are independent of Browser Eval's
+move a published tag. Dataset version numbers are independent of Webstone's
 software version; an ordinary commit does not require a new release number.
 Keep the dataset's version history and increment/comparison rules in its own
 `VERSIONING.md` and link it from the dataset card. The publisher preserves this
 committed policy when rebuilding a source or Hub snapshot; uncommitted edits do
 not enter the release. Web Fetch's 430-task and 550-task populations require
 separate major series; equal counts alone do not identify a historical edition.
-Update Browser Eval's data lock and import bindings in a GitHub PR using the
+Update Webstone's data lock and import bindings in a GitHub PR using the
 reviewed full HF commit. Neither a dataset merge nor a moved branch updates
 existing runs or the selected input version automatically.
 
@@ -139,13 +139,13 @@ older edition's scorer.
 
 For resource-only or raw-file tasks, declare `content_score_applicable: false` when no text answer is required; file/resource checks remain active. Fix scoring rules here and keep positive/negative controls with their scorer. Preserve prior measurements; a scoring or reference correction applies to the declared affected scope through the existing revision receipts. `src/harness/lexbench/` remains the historical headless-browser execution/report adapter, separate from the two scorer packages.
 
-Browser Eval wrote the [30 public-web replay tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay), including their actions and exact assertions. [Headless scenario designs](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) informed some interactions; its original executable cases use different fixtures, operations and acceptance checks. The replay task JSON freezes actions and expected outputs, while live target pages can still change.
+Webstone wrote the [30 public-web replay tasks](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay), including their actions and exact assertions. [Headless scenario designs](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) informed some interactions; its original executable cases use different fixtures, operations and acceptance checks. The replay task JSON freezes actions and expected outputs, while live target pages can still change.
 
 [WebArena replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) has separate official tasks, self-hosted application state and evaluator rules. Its full task catalog is the current viewer population; qualified recordings and corrected-task editions remain versioned source inputs for the [public replay runtime](../examples/trajectory_replay/public_webarena/README.md). The original Headless driver runtime remains upstream-owned. Follow each dataset card for its input format and runtime contract.
 
 ### WebArena replay input correction
 
-WebArena Replay 1.0.1 corrects the host values in Browser Eval's recorded replay inputs, which named private recording hosts. Exported task questions, actions and evaluator inputs are unchanged, so this is a patch edition. Its definitions change only the hashes that bind those corrected sources. The [release index](releases.md#benchmark-release-index) records the edition, and the data lock keeps the previous edition in `history`.
+WebArena Replay 1.0.1 corrects the host values in Webstone's recorded replay inputs, which named private recording hosts. Exported task questions, actions and evaluator inputs are unchanged, so this is a patch edition. Its definitions change only the hashes that bind those corrected sources. The [release index](releases.md#benchmark-release-index) records the edition, and the data lock keeps the previous edition in `history`.
 
 Corrected inputs use the recorded container host, so they follow the same port-based rebinding as other recorded inputs and reach the sites in your site map. Older evidence still uses the earlier hosts. To replay or redact it, list those hosts in `WEBARENA_RECORDING_GATEWAYS`.
 
@@ -172,12 +172,12 @@ Use the existing owner for each selection:
 
 | Benchmark | Version authority |
 | --- | --- |
-| LexBench datasets | The Browser Eval version and commit: `src/harness/benchmarks/data-lock.json`, its import bindings and the scorer they ship |
+| LexBench datasets | The Webstone version and commit: `src/harness/benchmarks/data-lock.json`, its import bindings and the scorer they ship |
 | WebMainBench | The data lock's corrected corpus, its upstream/correction provenance and the selected run profile's scorer commit |
 | WCXB | Qualified HF edition in the data lock, source manifest and unchanged HTML/reference hashes |
 | WebArena replay data | HF edition in the data lock and selected task/trajectory bindings |
 | WebArena evaluator for Browser Use and replay | Pinned evaluator dependency and runtime source verification |
-| Curated replay | HF edition in the data lock, Browser Eval source commit and selected task/trajectory hashes |
+| Curated replay | HF edition in the data lock, Webstone source commit and selected task/trajectory hashes |
 
 Read and validate the selected binding before execution; retain it with the run
 and report. For data distributed as files, preserve content hashes even when no
@@ -191,13 +191,13 @@ citations; those records must not follow a newer dependency selection.
 Updating the installed benchmark does not select a new dataset for an existing
 report.
 
-The Browser Eval version names the Web Fetch benchmark edition: its data lock
+The Webstone version names the Web Fetch benchmark edition: its data lock
 selects the dataset commit and its code holds the scoring rules (see
 [version rules](releases.md#version-rules)). Run
 `uv run --frozen lexbench-webfetch version` to print that version and the
 scoring-source hash; unreleased scoring code prints `X.Y.Z+unreleased`. Runs
 record the scoring-source hash and full commit; report builds also record the
-Browser Eval version. Reviewing or fixing code does not publish a release.
+Webstone version. Reviewing or fixing code does not publish a release.
 
 Every run pins the full HF commit and input hashes, plus the software/scorer
 commit and scoring-source hashes. A dataset release tag is a readable label for
@@ -205,24 +205,24 @@ that immutable commit; it never replaces the recorded commit. Intermediate
 snapshots remain reproducible without a tag. Matching version labels alone do
 not establish comparability: retain the selected task IDs, acceptance rules,
 execution controls and evidence alongside those identities.
-Browser Eval publishes software versions as `vMAJOR.MINOR.PATCH` and records the
+Webstone publishes software versions as `vMAJOR.MINOR.PATCH` and records the
 full Git commit for execution and report-building code.
 Reports reference their benchmark edition. A published build also records the hosting platform's immutable version ID.
 
-Report home pages link to the Browser Eval build version and the selected bench
+Report home pages link to the Webstone build version and the selected bench
 edition. Their JSON bindings retain code commits and source/input hashes.
-Rebuilding with a newer Browser Eval release changes the build identity, not the
+Rebuilding with a newer Webstone release changes the build identity, not the
 saved call identity or benchmark edition. Custom datasets without a frozen
-edition retain their hashes rather than inheriting the installed Browser Eval version.
+edition retain their hashes rather than inheriting the installed Webstone version.
 
-| Change | Browser Eval version | Result comparison |
+| Change | Webstone version | Result comparison |
 | --- | --- | --- |
 | Documentation or presentation only | Patch | Direct when execution controls also match |
 | Reviewed scoring/reference correction with the same task inputs | Minor | Re-score both saved cohorts under one edition |
 | Added/removed cases, changed requests, output scope or routes | Major (minor before 1.0, described as breaking) | Separate full-population results |
 
 The `lexbench_webfetch` module owns `lexbench-webfetch release` and `compare-releases`. Historical benchmark version contracts remain available with their original source revisions.
-Freeze `benchmark-release.json` beside the compiled inputs before calls. For `--benchmark lexmount-webfetch`, give `release --version` the installed, released Browser Eval version; the command rejects any other. Custom benchmarks keep their own version numbers.
+Freeze `benchmark-release.json` beside the compiled inputs before calls. For `--benchmark lexmount-webfetch`, give `release --version` the installed, released Webstone version; the command rejects any other. Custom benchmarks keep their own version numbers.
 The certified Web Fetch runner accepts `--benchmark-release`; it also discovers
 the sidecar beside the selected dataset. Release creation records the full scorer
 commit alongside the independently computed source hash. The runner checks tasks and the active scorer
@@ -419,7 +419,7 @@ or renaming a participant requires data changes, without another renderer entry.
 
 ## WCXB inputs
 
-The runtime defaults to the qualified [HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) selected by the data lock. Its source manifest records upstream identities and qualification exclusions; selected HTML and reference bytes are retained unchanged. Historical profiles keep their original manifests and input hashes. The [upstream WCXB project](https://github.com/Murrough-Foley/web-content-extraction-benchmark) remains the source attribution. Use Browser Eval's existing runner and scorer for current execution.
+The runtime defaults to the qualified [HF edition](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) selected by the data lock. Its source manifest records upstream identities and qualification exclusions; selected HTML and reference bytes are retained unchanged. Historical profiles keep their original manifests and input hashes. The [upstream WCXB project](https://github.com/Murrough-Foley/web-content-extraction-benchmark) remains the source attribution. Use Webstone's existing runner and scorer for current execution.
 
 ## WebMainBench runtime
 

@@ -97,7 +97,7 @@ def test_equivalent_historical_paths_cannot_read_or_modify_shadow_inputs(
         alias.symlink_to(checkout, target_is_directory=True)
         checkout = alias
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "missing-inputs"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "missing-inputs"))
     logical = checkout / spelling
     installed = definition_path("evaluation/source-inputs.json")
     assert benchmark_input_path(logical) == installed.parent / "dataset.json"
@@ -137,7 +137,7 @@ def test_linked_input_directory_cannot_hide_its_checkout_binding(tmp_path, monke
     (candidate / "dataset.json").write_text('{"id":"shadow","cases":[]}', encoding="utf-8")
     (checkout / "evaluation/popular-sites").symlink_to(candidate, target_is_directory=True)
     logical = checkout / "evaluation/popular-sites/dataset.json"
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "missing-inputs"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "missing-inputs"))
     assert benchmark_input_path(logical) == definition_path("evaluation/popular-sites/source-inputs.json").parent / "dataset.json"
     with pytest.raises(ValueError, match="immutable"):
         require_mutable_inputs(logical)

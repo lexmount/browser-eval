@@ -22,7 +22,7 @@ def test_local_release_and_comparison_work_with_empty_offline_cache(tmp_path, tr
                                             'query': 'Find the official manual'}]}), encoding='utf-8')
     output = tmp_path / 'release.json'
     cache = tmp_path / 'empty-cache'
-    environment = {**os.environ, 'HF_HUB_OFFLINE': '1', 'BROWSER_EVAL_DATASET_CACHE': str(cache)}
+    environment = {**os.environ, 'HF_HUB_OFFLINE': '1', 'WEBSTONE_DATASET_CACHE': str(cache)}
     def call(*args):
         result = subprocess.run([sys.executable, '-m', f'lexbench_{track}.cli', *args],
                                 cwd=tmp_path, env=environment, text=True,
@@ -43,7 +43,7 @@ def test_search_local_score_works_with_empty_offline_cache(tmp_path):
     cache = tmp_path / 'empty-cache'
     result = subprocess.run([sys.executable, '-m', 'lexbench_websearch.cli', 'score', str(source)],
                             cwd=tmp_path, env={**os.environ, 'HF_HUB_OFFLINE': '1',
-                            'BROWSER_EVAL_DATASET_CACHE': str(cache)},
+                            'WEBSTONE_DATASET_CACHE': str(cache)},
                             text=True, capture_output=True, check=True)
     assert json.loads(result.stdout)
     assert not cache.exists()

@@ -110,12 +110,12 @@ def physical_execution_lock_path(
     lock_namespace: str = PHYSICAL_EXECUTION_LOCK_NAMESPACE,
 ) -> Path:
     # The WebArena stack uses fixed host ports and is shared by every run owned
-    # by this OS user.  The lock therefore must not follow BROWSER_EVAL_DATA_HOME:
+    # by this OS user.  The lock therefore must not follow WEBSTONE_DATA_HOME:
     # two cohorts may intentionally write to different evidence directories
     # while still mutating the same containers and databases.
     return (
         Path(tempfile.gettempdir())
-        / f"browser-eval-{os.getuid()}"
+        / f"webstone-{os.getuid()}"
         / "locks"
         / f"{lock_namespace}.lock"
     )

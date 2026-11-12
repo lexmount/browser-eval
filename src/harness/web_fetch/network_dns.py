@@ -242,9 +242,9 @@ class NativeDnsBroker:
     def environment(self, library, base=None):
         env = dict(os.environ if base is None else base)
         env.update(DYLD_INSERT_LIBRARIES=str(library),
-                   BROWSER_EVAL_DNS_PORT=str(self.server.server_address[1]),
-                   BROWSER_EVAL_DNS_TOKEN=self.token,
-                   BROWSER_EVAL_DNS_TIMEOUT_SECONDS=str(max(0.001, self.deadline - time.monotonic())))
+                   WEBSTONE_DNS_PORT=str(self.server.server_address[1]),
+                   WEBSTONE_DNS_TOKEN=self.token,
+                   WEBSTONE_DNS_TIMEOUT_SECONDS=str(max(0.001, self.deadline - time.monotonic())))
         return env
 
     def close(self):

@@ -7,8 +7,8 @@ ARG MOLI_ARM64_SHA256=c64e7cfdb7ee314b0bf9eeaafcec128020a64a4cea592f576dcb8f9c12
 ARG DEBIAN_MIRROR=http://deb.debian.org/debian
 ARG DEBIAN_SECURITY_MIRROR=http://deb.debian.org/debian-security
 
-LABEL lex.browser-eval.debian-mirror="${DEBIAN_MIRROR}" \
-      lex.browser-eval.debian-security-mirror="${DEBIAN_SECURITY_MIRROR}"
+LABEL lex.webstone.debian-mirror="${DEBIAN_MIRROR}" \
+      lex.webstone.debian-security-mirror="${DEBIAN_SECURITY_MIRROR}"
 
 RUN --mount=type=bind,source=.,target=/mnt/build-context,ro \
     sed -i \

@@ -1,4 +1,4 @@
 FROM ghcr.1ms.run/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
 ENV FIRECRAWL_UPSTREAM_IMAGE=ghcr.io/firecrawl/playwright-service@sha256:637fb8c8399634b02c2179da72566ce11644435e5d93e895bdbde4b1f9b0882a
-COPY src/harness/web_extract/firecrawl_backend.mjs /opt/browser-eval/firecrawl_backend.mjs
-ENTRYPOINT ["node", "/opt/browser-eval/firecrawl_backend.mjs"]
+COPY src/harness/web_extract/firecrawl_backend.mjs /opt/webstone/firecrawl_backend.mjs
+ENTRYPOINT ["node", "/opt/webstone/firecrawl_backend.mjs"]

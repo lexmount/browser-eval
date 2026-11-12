@@ -30,7 +30,7 @@ def check_base_cli(root: Path, run: Callable = subprocess.run) -> None:
     with tempfile.TemporaryDirectory() as work:
         output = Path(work) / "run"
         run([*python, "run", "--providers", "fixture", "--delay", "0", "--output", str(output)],
-            check=True, cwd=root, env={**os.environ, "BROWSER_EVAL_REPORT_LANGUAGE": "zh"})
+            check=True, cwd=root, env={**os.environ, "WEBSTONE_REPORT_LANGUAGE": "zh"})
         report = output / "report"
         contract = json.loads((report / "report-languages.json").read_text(encoding="utf-8"))
         if contract["primary_language"] != "zh" or contract["languages"] != ["zh"]:
@@ -60,7 +60,7 @@ def check_distribution(root: Path, *, uv: str = "uv", run: Callable = subprocess
         pip_python = str(venv / "bin/python")
         call(pip_python, "-m", "pip", "install", str(sdist))
         call(pip_python, "-m", "pip", "check")
-        call(str(venv / "bin/browser-harness-eval"), "validate")
+        call(str(venv / "bin/webstone"), "validate")
         call(pip_python, "-m", "pip", "install", "--force-reinstall", "--no-deps", str(wheel))
         call(pip_python, "-m", "pip", "check")
         call(pip_python, *smoke)

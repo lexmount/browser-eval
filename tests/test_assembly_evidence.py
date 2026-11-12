@@ -584,7 +584,7 @@ def test_assembly_rejects_links_in_custom_canonical_sources(source, tmp_path):
 @pytest.mark.parametrize('damage', [False, True])
 def test_assembly_uses_verified_external_reference_trees(source, tmp_path, monkeypatch, damage):
     root, _ = source
-    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path / 'data-home'))
+    monkeypatch.setenv('WEBSTONE_DATA_HOME', str(tmp_path / 'data-home'))
     checkout = tmp_path / 'checkout'
     checkout.mkdir()
     canonical = checkout / 'dataset.json'

@@ -1030,7 +1030,7 @@ def revise_local_snapshot(source, configuration):
     """Stage and validate a complete revision before installing its write set."""
     source = Path(source).resolve()
     lock_id = hashlib.sha256(str(source).encode()).hexdigest()[:20]
-    lock_path = Path(tempfile.gettempdir()) / ('browser-eval-local-revision-' + lock_id + '.lock')
+    lock_path = Path(tempfile.gettempdir()) / ('webstone-local-revision-' + lock_id + '.lock')
     with lock_path.open('a+', encoding='utf-8') as lock:
         fcntl.flock(lock.fileno(), fcntl.LOCK_EX)
         transaction = _RevisionTransaction(source)

@@ -1,10 +1,10 @@
 cff-version: 1.2.0
-message: "If you use Browser Eval in your work, please cite this repository."
+message: "If you use Webstone in your work, please cite this repository."
 type: software
-title: "Browser Eval: Benchmarking Browsers and Web Tools for AI Agents"
+title: "Webstone: Benchmarking Browsers and Web Tools for AI Agents"
 abstract: "Evaluation harness for Web Fetch, Web Search and Browser Trajectory Replay, with task-level evidence and comparison reports."
 authors:
-  - name: Browser Eval contributors
-repository-code: "https://github.com/lexmount/browser-eval"
-url: "https://github.com/lexmount/browser-eval"
+  - name: Webstone contributors
+repository-code: "https://github.com/lexmount/webstone"
+url: "https://github.com/lexmount/webstone"
 license: Apache-2.0

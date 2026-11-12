@@ -18,14 +18,14 @@ def isolated_language_config(tmp_path, monkeypatch):
 
 def test_local_language_setting_and_process_override(tmp_path, monkeypatch):
     from harness.report_languages import configured_report_language, resolve_report_language
-    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
+    monkeypatch.delenv("WEBSTONE_REPORT_LANGUAGE", raising=False)
     assert configured_report_language() == "en"
-    (tmp_path / ".env").write_text("BROWSER_EVAL_REPORT_LANGUAGE=zh\n", encoding="utf-8")
+    (tmp_path / ".env").write_text("WEBSTONE_REPORT_LANGUAGE=zh\n", encoding="utf-8")
     assert configured_report_language() == "zh"
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "en")
     assert configured_report_language() == "en"
     assert resolve_report_language(tmp_path, "zh") == "zh"
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "invalid")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "invalid")
     assert resolve_report_language(tmp_path, "zh") == "zh"
 
 
@@ -36,7 +36,7 @@ def test_language_resolution_respects_choice_and_renderer_capability(
     tmp_path, supported, saved, requested, monkeypatch
 ):
     from harness.report_languages import resolve_report_language
-    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
+    monkeypatch.delenv("WEBSTONE_REPORT_LANGUAGE", raising=False)
     if saved:
         contract = {"languages": ["zh"]} if saved == "legacy" else {"primary_language": saved}
         (tmp_path / "report-languages.json").write_text(json.dumps(contract), encoding="utf-8")
@@ -133,7 +133,7 @@ def test_primary_english_keeps_explicit_chinese_navigation_and_evidence(tmp_path
 
 def test_rebuild_language_recognizes_older_chinese_only_reports(tmp_path, monkeypatch):
     from harness.report_languages import primary_report_language
-    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
+    monkeypatch.delenv("WEBSTONE_REPORT_LANGUAGE", raising=False)
     assert primary_report_language(tmp_path) == "en"
     write_language_contract(tmp_path, include_english=False)
     assert primary_report_language(tmp_path) == "zh"
@@ -146,17 +146,17 @@ def test_environment_changes_new_report_default_without_overriding_saved_choice(
 ):
     from harness.report_languages import primary_report_language, select_report_language
 
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "zh")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "zh")
     assert primary_report_language(tmp_path) == "zh"
     (tmp_path / "index.html").write_text(
-        '<html><head><meta name="browser-eval-report" content="1"></head></html>',
+        '<html><head><meta name="webstone-report" content="1"></head></html>',
         encoding="utf-8"
     )
     write_language_contract(tmp_path, include_english=False)
     select_report_language(tmp_path, "zh")
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "en")
     assert primary_report_language(tmp_path) == "zh"
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "invalid")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "invalid")
     from harness.report_languages import resolve_report_language
     assert resolve_report_language(tmp_path) == "zh"
 
@@ -164,8 +164,8 @@ def test_environment_changes_new_report_default_without_overriding_saved_choice(
 def test_invalid_environment_language_fails_early(tmp_path, monkeypatch):
     from harness.report_languages import primary_report_language
 
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "fr")
-    with pytest.raises(ValueError, match="BROWSER_EVAL_REPORT_LANGUAGE"):
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "fr")
+    with pytest.raises(ValueError, match="WEBSTONE_REPORT_LANGUAGE"):
         primary_report_language(tmp_path)
 
 
@@ -227,7 +227,7 @@ def test_body_contract_conclusion_is_localized(passed, anchors, expected):
 def test_saved_language_survives_environment_changes_for_every_track(tmp_path, monkeypatch, metadata_name):
     from harness.report_languages import resolve_report_language
     (tmp_path / metadata_name).write_text(json.dumps({"primary_language": "zh", "languages": ["zh"]}), encoding="utf-8")
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "en")
     assert resolve_report_language(tmp_path) == "zh"
     assert resolve_report_language(tmp_path, "en") == "en"
 
@@ -235,8 +235,8 @@ def test_saved_language_survives_environment_changes_for_every_track(tmp_path, m
 @pytest.mark.parametrize("selected", ["en", "zh"])
 def test_quoted_local_configuration_is_available_without_process_environment(tmp_path, monkeypatch, selected):
     from harness.report_languages import configured_report_language
-    monkeypatch.delenv("BROWSER_EVAL_REPORT_LANGUAGE", raising=False)
-    (tmp_path / ".env").write_text(f"export BROWSER_EVAL_REPORT_LANGUAGE='{selected}' # report language\n", encoding="utf-8")
+    monkeypatch.delenv("WEBSTONE_REPORT_LANGUAGE", raising=False)
+    (tmp_path / ".env").write_text(f"export WEBSTONE_REPORT_LANGUAGE='{selected}' # report language\n", encoding="utf-8")
     assert configured_report_language() == selected
 
 
@@ -245,7 +245,7 @@ def test_nonlanguage_manifest_is_not_selected_or_modified(tmp_path, monkeypatch)
     path = tmp_path / "manifest.json"
     original = '{"task_count":3}'
     path.write_text(original, encoding="utf-8")
-    monkeypatch.setenv("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+    monkeypatch.setenv("WEBSTONE_REPORT_LANGUAGE", "en")
     assert resolve_report_language(tmp_path) == "en"
     assert path.read_text(encoding="utf-8") == original
     assert resolve_report_language(tmp_path, supported=("zh",)) == "zh"

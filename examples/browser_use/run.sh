@@ -2,7 +2,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-DATA_HOME="${BROWSER_EVAL_DATA_HOME:-${HOME}/.browser-eval}"
+DATA_HOME="${WEBSTONE_DATA_HOME:-${HOME}/.webstone}"
 OUTPUT="${BROWSER_USE_OUTPUT_DIR:-${DATA_HOME}/browser-use/current}"
 if [[ -n "${BROWSER_USE_MODEL:-}" ]]; then
   set -- --model "${BROWSER_USE_MODEL}" "$@"

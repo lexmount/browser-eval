@@ -1,4 +1,4 @@
-# Inputs of the bundled-data build step; keep equal to tool.browser-eval.bundled-data.
+# Inputs of the bundled-data build step; keep equal to tool.webstone.bundled-data.
 include uv.lock
 include configs/providers.headless.json
 include evaluation/webmainbench-full/scoring-regressions.json

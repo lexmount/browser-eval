@@ -64,6 +64,11 @@ from harness.reporting.templates import template_identity
 from harness.web_fetch.report_style import STYLE as SHARED_STYLE
 from lexbench_webfetch.metrics import percentile
 
+
+def recorded_commit(record: dict) -> str | None:
+    """Read the harness commit, including evidence recorded before the Webstone rename."""
+    return record.get("webstone_commit") or record.get("browser_eval_commit")
+
 _ZH, _english = report_text("zh"), report_text("en")
 
 
@@ -1284,7 +1289,7 @@ def _page(*, title: str, active: str, body: str, depth: int = 0) -> str:
         + f">{_e(label)}</a>"
         for href, label, key in _nav()
     )
-    return (f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="browser-eval-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + t("page.browser_use_evaluation", "{title} · Browser Use evaluation", title=_e(title)) + f'</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">' + t("page.toggle_theme", "Toggle theme") + f'</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>' + t("page.conclusions_apply_only_to_this_preregistered", "Conclusions apply only to this preregistered sample, agent, model, and runtime configuration. Presentation changes do not alter measured results.") + "</p></div></footer></body></html>")
+    return (f'<!doctype html><html lang="zh-CN"><head><base href="{local_base}"><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>' + t("page.browser_use_evaluation", "{title} · Browser Use evaluation", title=_e(title)) + f'</title><link rel="stylesheet" href="assets/style.css"><script defer src="assets/report.js"></script></head><body><header class="top"><nav class="wrap">{links}<button class="theme-toggle" onclick="theme()">' + t("page.toggle_theme", "Toggle theme") + f'</button></nav></header><main class="page-main">{body}</main><footer class="footer"><div class="wrap"><p>' + t("page.conclusions_apply_only_to_this_preregistered", "Conclusions apply only to this preregistered sample, agent, model, and runtime configuration. Presentation changes do not alter measured results.") + "</p></div></footer></body></html>")
 
 
 def _evidence_viewer_page() -> str:
@@ -2519,7 +2524,7 @@ def _release_history(releases: list[dict[str, Any]], history_scope: str) -> str:
         )
     body += _section(
         t("release_history.scope_and_downloads", "Scope and downloads"),
-        (f'<p>{_e(history_scope)}</p><p class="page-links"><a href="report-changes.json" download>' + t("release_history.download_structured_release_history", "Download structured release history") + '</a><a href="https://github.com/lexmount/browser-eval/commits/main">' + t("release_history.view_repository_changes", "View repository changes") + "</a></p>"),
+        (f'<p>{_e(history_scope)}</p><p class="page-links"><a href="report-changes.json" download>' + t("release_history.download_structured_release_history", "Download structured release history") + '</a><a href="https://github.com/lexmount/webstone/commits/main">' + t("release_history.view_repository_changes", "View repository changes") + "</a></p>"),
     )
     return body
 
@@ -3668,7 +3673,7 @@ def _reproduce_identity_section(inputs: ReportInputs, engine_rows: list[list[Any
         + _table(
             [t("release_details.item", "Item"), t("result_evidence_section.value", "Value")],
             [
-                ["browser-eval commit", protocol.get("browser_eval_commit", "—")],
+                ["Webstone commit", recorded_commit(protocol) or "—"],
                 ["CowAgent commit", protocol.get("cowagent_commit", "—")],
                 [t("resource_comparison_table.model", "Model"), f"{model_names} · reasoning={protocol.get('reasoning_effort', '—')}"],
                 ["WebArena‑Verified", environment.get("webarena_verified_version", "—")],
@@ -3775,7 +3780,7 @@ def _write_reproduce_page(stage: Path, inputs: ReportInputs, engine_rows: list[l
     reproduce += _reproduce_isolation_section(inputs.participants)
     reproduce += _section(
         t("reproduce_page.public_reproduction_entry_points", "Public reproduction entry points"),
-        ('<p><a href="https://github.com/lexmount/browser-eval">lexmount/browser-eval</a> ' + t("reproduce_page.is_the_canonical_source_for_code", "is the canonical source for code, task definitions, and lockfiles.") + '</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">' + t("reproduce_page.the_sanitized_answer_evaluator_output_events", "The sanitized answer, evaluator output, events, and trajectory for each physical execution are located under") + " <code>artifacts/&lt;result-id&gt;/executions/&lt;n&gt;/</code>；<code>evidence-index.json</code> " + t("reproduce_page.lists_all_logical_results_their_physical", "lists all {result_count} logical results, their physical executions, download paths, and public-file hashes.", result_count=result_count) + "</p>"),
+        ('<p><a href="https://github.com/lexmount/webstone">lexmount/webstone</a> ' + t("reproduce_page.is_the_canonical_source_for_code", "is the canonical source for code, task definitions, and lockfiles.") + '</p><pre><code>./examples/browser_use/run.sh\nmake browser-use-review EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report EVIDENCE="$BROWSER_USE_EVIDENCE"\nmake browser-use-report-check EVIDENCE="$BROWSER_USE_EVIDENCE"</code></pre><div class="page-links"><a href="data/selection.json">selection.json</a><a href="data/results.jsonl">results.jsonl</a><a href="data/evidence-index.json">evidence-index.json</a><a href="data/failure-cause-review.json">failure-cause-review.json</a><a href="data/summary.json">summary.json</a><a href="data/environment.json">environment.json</a><a href="data/review.json">review.json</a><a href="data/publication-privacy.json">publication-privacy.json</a></div><p class="fine">' + t("reproduce_page.the_sanitized_answer_evaluator_output_events", "The sanitized answer, evaluator output, events, and trajectory for each physical execution are located under") + " <code>artifacts/&lt;result-id&gt;/executions/&lt;n&gt;/</code>；<code>evidence-index.json</code> " + t("reproduce_page.lists_all_logical_results_their_physical", "lists all {result_count} logical results, their physical executions, download paths, and public-file hashes.", result_count=result_count) + "</p>"),
     )
     (stage / "reproduce/index.html").write_text(
         _page(title=t("nav.environment_and_reproduction", "Environment and reproduction"), active="reproduce", body=reproduce, depth=1), encoding="utf-8"
@@ -4024,10 +4029,10 @@ def _write_public_environment(stage: Path, inputs: ReportInputs) -> None:
     public_env = {
         "schema": "lex_browser_use_public_environment/2",
         "protocol": {
-            key: protocol.get(key)
+            key: recorded_commit(protocol) if key == "webstone_commit" else protocol.get(key)
             for key in (
                 "agent",
-                "browser_eval_commit",
+                "webstone_commit",
                 "cowagent_commit",
                 "reasoning_effort",
                 "evaluator",
@@ -4055,10 +4060,12 @@ def _write_public_environment(stage: Path, inputs: ReportInputs) -> None:
         "cohorts": {
             bundle["model"]: {
                 "protocol": {
-                    key: (bundle["manifest"].get("protocol") or {}).get(key)
+                    key: (recorded_commit(bundle["manifest"].get("protocol") or {})
+                          if key == "webstone_commit"
+                          else (bundle["manifest"].get("protocol") or {}).get(key))
                     for key in (
                         "agent",
-                        "browser_eval_commit",
+                        "webstone_commit",
                         "cowagent_commit",
                         "model",
                         "reasoning_effort",
@@ -4178,7 +4185,7 @@ def _write_english_edition(
 
 def _bind_build_version(stage: Path, audit: dict[str, Any]) -> None:
     from harness.reporting.versions import bind_build_version
-    audit['browser_eval'] = bind_build_version(stage)
+    audit['webstone'] = bind_build_version(stage)
     write_json(stage / "data/summary.json", audit, parents=True)
     write_json(stage / "report-data.json", audit, parents=True)
     (stage / ".generated-report").write_text("browser-use-report/2\n", encoding="utf-8")

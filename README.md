@@ -1,16 +1,20 @@
 <div align="center">
 
-<img src="docs/assets/overview.png" alt="Browser Eval: Find the right browser for your agent." width="640">
+<img src="docs/assets/overview.png" alt="Webstone: the touchstone for your agent's web tools." width="640">
 
 **English** · [简体中文](docs/README.zh-CN.md)
 
-[![CI](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/browser-eval/actions/workflows/ci.yml)
+[![CI](https://github.com/lexmount/webstone/actions/workflows/ci.yml/badge.svg)](https://github.com/lexmount/webstone/actions/workflows/ci.yml)
 [![License: Apache 2.0](https://img.shields.io/badge/code-Apache--2.0-51735b)](LICENSE)
 [![Python 3.11+](https://img.shields.io/badge/Python-3.11%2B-356a91)](pyproject.toml)
 
 [Quickstart](#quickstart) · [Tracks](#evaluation-tracks) · [Approach](#evaluation-approach) · [Reports](#reports) · [Datasets and code](#datasets-and-code) · [Versions](#versions) · [Contributing](CONTRIBUTING.md)
 
 </div>
+
+**The touchstone for your agent's web tools.**
+
+Assayers tested gold on a touchstone: rub the metal on the dark stone and the streak shows what it is. Webstone does the same for the browsers and web tools that AI agents rely on. Every tool runs the same frozen tasks, every call is kept as evidence, and the report shows what each one left behind.
 
 Benchmark browsers and Web tools for AI agents through Web Fetch, Web Search, Web Extract and Browser Trajectory Replay. Compare correctness, latency, resource use and recorded cost. Optionally turn saved results into local reports you can inspect, rebuild and share, with drilldown to every individual result.
 
@@ -19,11 +23,11 @@ Benchmark browsers and Web tools for AI agents through Web Fetch, Web Search, We
 Install [uv](https://docs.astral.sh/uv/getting-started/installation/), then run the offline example:
 
 ```sh
-git clone https://github.com/lexmount/browser-eval.git
-cd browser-eval
+git clone https://github.com/lexmount/webstone.git
+cd webstone
 uv sync --frozen
-uv run --frozen browser-harness-eval validate
-uv run --frozen browser-harness-eval run --delay 0
+uv run --frozen webstone validate
+uv run --frozen webstone run --delay 0
 ```
 
 Open the report path printed in the terminal. The example has one expected pass and one expected failure; it needs no browser, Docker or API key. Python 3.11 or newer is required; CI tests 3.11.
@@ -84,7 +88,7 @@ Relevance grading is scoring; optional verification reviews the resulting eviden
 
 #### Headless scenarios and comparison reports
 
-Headless scenario replay checks browser/driver compatibility on local fixtures. For retained Headless comparisons, the upstream runner owns execution and grading; Browser Eval builds reports from its results. The original benchmark also contains individual CDP and Web-platform probes, so not every task is a multi-step trajectory.
+Headless scenario replay checks browser/driver compatibility on local fixtures. For retained Headless comparisons, the upstream runner owns execution and grading; Webstone builds reports from its results. The original benchmark also contains individual CDP and Web-platform probes, so not every task is a multi-step trajectory.
 
 ```mermaid
 flowchart LR
@@ -130,7 +134,7 @@ flowchart LR
 
 ## Evaluation approach
 
-Browser Eval aims for stable, reproducible results and a controlled, trustworthy evaluation process. Three principles guide the evaluation.
+Webstone aims for stable, reproducible results and a controlled, trustworthy evaluation process. Three principles guide the evaluation.
 
 1. **Prefer definite answers and programmatic scoring wherever possible, with minimal reliance on LLMs as judges**
 
@@ -148,13 +152,13 @@ See [evaluation design](docs/benchmarks.md#evaluation-design) for detailed scori
 
 ## Reports
 
-Results and evidence are saved locally under `~/.browser-eval/runs/`; use `--output /absolute/path/new-run` to choose another directory. HTML reports include comparisons, task results, full responses and failure evidence. Local evaluation, scoring and HTML inspection need no Artifact Site account or publishing authorization.
+Results and evidence are saved locally under `~/.webstone/runs/`; use `--output /absolute/path/new-run` to choose another directory. HTML reports include comparisons, task results, full responses and failure evidence. Local evaluation, scoring and HTML inspection need no Artifact Site account or publishing authorization.
 
 The `run` command builds a local report by default. Add `--no-report` to save results without HTML; `rescore --no-report` updates scores without rebuilding HTML. Build or rebuild a report later from saved evidence without repeating calls:
 
 ```sh
-uv run --frozen browser-harness-eval run --delay 0 --no-report
-uv run --frozen browser-harness-eval report /absolute/path/to/run
+uv run --frozen webstone run --delay 0 --no-report
+uv run --frozen webstone report /absolute/path/to/run
 ```
 
 English is the default; add `--language zh` when running or rebuilding for Chinese. A rebuild without that option keeps the saved language.
@@ -163,7 +167,7 @@ English is the default; add `--language zh` when running or rebuilding for Chine
 
 When sharing is requested and publication is authorized, open Artifact Site ([Global .com](https://yours.lexmount.com/artifact-site) · [China .cn](https://yours.lexmount.cn/artifact-site)), install the skill offered there, and follow it to publish the local report and choose who can access it. Uploading is a separate action; creating a local report does not publish it.
 
-Scoring code ships with Browser Eval; dataset commits and file hashes are selected in [the data lock](src/harness/benchmarks/data-lock.json). Each report records its Browser Eval build and selected benchmark edition. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules, [reference inputs](docs/reference-inputs.md) for historical data, and the [report guide](docs/report-hosting.md) for local builds and formal releases.
+Scoring code ships with Webstone; dataset commits and file hashes are selected in [the data lock](src/harness/benchmarks/data-lock.json). Each report records its Webstone build and selected benchmark edition. See [versioning](docs/benchmarks.md#benchmark-editions) for comparison rules, [reference inputs](docs/reference-inputs.md) for historical data, and the [report guide](docs/report-hosting.md) for local builds and formal releases.
 
 <details>
 <summary>Report drilldown, rebuilding and sharing</summary>
@@ -192,7 +196,7 @@ Use **LexBench-Web-Fetch (LB-WF)** on first mention and **LB-WF** in subsequent 
 <details>
 <summary>Hugging Face datasets</summary>
 
-These datasets supply Browser Eval's versioned tasks, acceptance contracts and reference inputs.
+These datasets supply Webstone's versioned tasks, acceptance contracts and reference inputs.
 
 | Dataset | Short name | Role |
 | --- | --- | --- |
@@ -202,7 +206,7 @@ These datasets supply Browser Eval's versioned tasks, acceptance contracts and r
 | [LexBench-SimpleQA-Verified](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) | **LB-SQAV** | Length-qualified SimpleQA Verified retrieval tasks, with original answers |
 | [LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB) | **LB-WCXB** | Source-qualified frozen extraction inputs and references |
 | [LexBench-Headless-Browser](https://huggingface.co/datasets/Lexmount/LexBench-Headless-Browser) | **LB-HB** | Executable CDP, driver and web-platform tasks; scenario specifications retained as source inputs |
-| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | **LB-TR** | 30 tasks written in Browser Eval for live public websites, with fixed actions and exact checks |
+| [LexBench-Trajectory-Replay](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) | **LB-TR** | 30 tasks written in Webstone for live public websites, with fixed actions and exact checks |
 | [LexBench-WebArena-Replay](https://huggingface.co/datasets/Lexmount/LexBench-WebArena-Replay) | **LB-WAR** | Full official task catalog; smaller replay editions retained as versioned source inputs |
 | [LexBench-Zyte-Product-Extraction](https://huggingface.co/datasets/Lexmount/LexBench-Zyte-Product-Extraction) | **LB-ZPE** | Frozen product pages with price, SKU and stock references |
 | [LexBench-SWDE](https://huggingface.co/datasets/Lexmount/LexBench-SWDE) | **LB-SWDE** | Multi-domain frozen-page field extraction from SWDE |
@@ -210,7 +214,7 @@ These datasets supply Browser Eval's versioned tasks, acceptance contracts and r
 | [LexBench-NewsXLM](https://huggingface.co/datasets/Lexmount/LexBench-NewsXLM) | **LB-NXLM** | Multilingual news-page field extraction |
 | [LexBench-LiveWeb-IE](https://huggingface.co/datasets/Lexmount/LexBench-LiveWeb-IE) | **LB-LWIE** | Record and list extraction from live websites |
 
-Browser Eval wrote the 30 public-web replay tasks. Headless scenario designs informed some interactions; its executable cases and WebArena's tasks are not included in that suite. The task JSON fixes actions and expected outputs, while the target websites remain live.
+Webstone wrote the 30 public-web replay tasks. Headless scenario designs informed some interactions; its executable cases and WebArena's tasks are not included in that suite. The task JSON fixes actions and expected outputs, while the target websites remain live.
 
 </details>
 
@@ -226,7 +230,7 @@ Web Fetch and Web Search scoring code lives in this repository under [src/lexben
 | WebArena-Verified | Official evaluator for replay and experimental Agent integration | [Maintained fork](https://github.com/lexmount/webarena-verified/tree/lex-main) · [Upstream](https://github.com/ServiceNow/webarena-verified) |
 | WCXB | Original data source for the qualified HF edition | [Upstream](https://github.com/Murrough-Foley/web-content-extraction-benchmark) |
 
-[Dependency sources and pins](docs/dependencies.md) cover Playwright, extraction libraries and supporting runtimes. [Third-party notices](THIRD_PARTY.md) cover attribution and data rights. Cite the benchmark and upstream data used alongside Browser Eval.
+[Dependency sources and pins](docs/dependencies.md) cover Playwright, extraction libraries and supporting runtimes. [Third-party notices](THIRD_PARTY.md) cover attribution and data rights. Cite the benchmark and upstream data used alongside Webstone.
 
 </details>
 
@@ -245,11 +249,11 @@ Web Fetch and Web Search scoring code lives in this repository under [src/lexben
 
 ## Versions
 
-Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/browser-eval/releases). See [version rules](docs/releases.md) for release policy and report provenance.
+Published versions, changes and dependency snapshots are listed in [GitHub Releases](https://github.com/lexmount/webstone/releases). See [version rules](docs/releases.md) for release policy and report provenance.
 
 ## Contribute
 
-Read [CONTRIBUTING](CONTRIBUTING.md) for code ownership, tests and PR conventions, or [open an issue](https://github.com/lexmount/browser-eval/issues) with a reproducible example.
+Read [CONTRIBUTING](CONTRIBUTING.md) for code ownership, tests and PR conventions, or [open an issue](https://github.com/lexmount/webstone/issues) with a reproducible example.
 
 ```sh
 make setup-test
@@ -258,16 +262,16 @@ make ci
 
 [Architecture](docs/architecture.md) · [Security](SECURITY.md) · [Third-party content](THIRD_PARTY.md) · [Apache 2.0](LICENSE)
 
-## Cite Browser Eval
+## Cite Webstone
 
 Project citation: [CITATION.cff](CITATION.cff).
 
 ```bibtex
-@software{browser_eval_2026,
-  author = {{Browser Eval contributors}},
-  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+@software{webstone_2026,
+  author = {{Webstone contributors}},
+  title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Evaluation harness},
   year = {2026},
-  url = {https://github.com/lexmount/browser-eval}
+  url = {https://github.com/lexmount/webstone}
 }
 ```

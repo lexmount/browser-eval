@@ -130,7 +130,7 @@ export function createWebFetchTool(options) {
     (fixture_root / 'web-fetch.ts').write_text(f'export {{ createWebFetchTool }} from {json.dumps(stub.as_uri())};', encoding="utf-8")
     open_worker = tmp_path / 'openclaw.mts'
     open_worker.write_text(source, encoding="utf-8")
-    env = dict(os.environ, OPENCLAW_REPO=str(tmp_path / 'openclaw'), BROWSER_EVAL_HARNESS_ROOT=str(source_path('harness', root=ROOT).parent))
+    env = dict(os.environ, OPENCLAW_REPO=str(tmp_path / 'openclaw'), WEBSTONE_HARNESS_ROOT=str(source_path('harness', root=ROOT).parent))
     request = json.dumps(REQUEST) + '\n'
     result = subprocess.run([node, str(open_worker)], input=request, text=True, capture_output=True, env=env, timeout=5, check=True)
     answer = json.loads(result.stdout)

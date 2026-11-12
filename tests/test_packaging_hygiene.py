@@ -25,7 +25,7 @@ def make(*arguments, cwd=ROOT):
 
 
 def bundled():
-    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["browser-eval"]["bundled-data"]
+    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["tool"]["webstone"]["bundled-data"]
 
 
 def test_bundled_data_exists_and_reaches_the_source_archive():
@@ -96,7 +96,7 @@ def test_package_tree_requires_exact_bundled_data(tmp_path, damage):
     (source / "uv.lock").write_text("lock", encoding="utf-8")
     (source / "pyproject.toml").write_text(
         '[tool.setuptools.package-dir]\n"" = "src"\n'
-        '[tool.browser-eval]\nbundled-data = ["uv.lock"]\n', encoding="utf-8")
+        '[tool.webstone]\nbundled-data = ["uv.lock"]\n', encoding="utf-8")
     (installed / "distribution_data").mkdir(parents=True)
     (installed / "__init__.py").write_text("", encoding="utf-8")
     copy = installed / "distribution_data/uv.lock"
@@ -179,7 +179,7 @@ def test_distribution_gate_stops_at_the_first_failed_install():
 def test_base_cli_check_requires_the_explicit_language_contract(contract, notice, accepted):
     def run(command, **kwargs):
         if "run" in command:
-            assert kwargs["env"]["BROWSER_EVAL_REPORT_LANGUAGE"] == "zh"
+            assert kwargs["env"]["WEBSTONE_REPORT_LANGUAGE"] == "zh"
             report = Path(command[command.index("--output") + 1]) / "report"
             (report / "en").mkdir(parents=True)
             (report / "report-languages.json").write_text(json.dumps(contract), encoding="utf-8")

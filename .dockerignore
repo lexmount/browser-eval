@@ -12,7 +12,7 @@ configs
 .agents
 .github
 .pytest_cache
-**/browser_harness_eval.egg-info
+**/webstone.egg-info
 **/__pycache__
 **/*.pyc
 .env
