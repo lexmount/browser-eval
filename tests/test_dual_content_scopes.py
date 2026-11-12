@@ -315,3 +315,56 @@ def test_scope_download_keeps_its_own_title_assessment(tmp_path, full_schema):
         coverage = soup.select_one('#ranking-challenge-titles tbody tr td:last-child')
         assert coverage.get_text(strip=True).startswith(f'{count}/{count}')
     assert saved.read_bytes() == original
+
+
+def test_scope_report_validates_active_edition_and_retains_acquisition_edition(tmp_path):
+    from copy import deepcopy
+    from harness.record_io import file_sha256
+    from harness.web_fetch.report_build import build_report
+    from harness.web_fetch.report_version import check_release
+    from lexbench_webfetch.content_scopes import select_content_scope
+    from lexbench_webfetch.versions import freeze_release
+    dataset = tmp_path/'dataset.json'
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset.write_text(json.dumps({'tool':'web_fetch','id':'paired','content_scope':'main','cases':[case]}))
+    env = tmp_path/'empty.env'
+    env.write_text('')
+    run = tmp_path/'run'
+    result = invoke(tmp_path,'run','--dataset',dataset,'--output',run,'--env-file',env,
+                    '--delay','0','--max-failure-retries','0','--no-report',language='zh')
+    assert result.returncode == 0, result.stdout+result.stderr
+    original_results = (run/'results.jsonl').read_bytes()
+    original_dataset = (run/'dataset.json').read_bytes()
+    acquisition = run/'benchmark-input-release.json'
+    freeze_release(run/'dataset.json',acquisition,benchmark='scope-fixture',version='1.0.0')
+    (run/'benchmark-release.json').write_bytes(acquisition.read_bytes())
+    binding = {'path':acquisition.name,'sha256':file_sha256(acquisition)}
+    (run/'execution.json').write_text(json.dumps({'batches':[json.loads((run/'manifest.json').read_text())],
+                                                 'aggregate':{'benchmark_release':binding}}))
+    result = invoke(tmp_path,'report',run,'--content-scope','main',language='zh')
+    assert result.returncode == 0, result.stdout+result.stderr
+    previous = (run/'report/index.html').read_bytes()
+    result = invoke(tmp_path,'report',run,language='zh')
+    assert result.returncode != 0
+    assert 'measurement contract changed' in result.stderr
+    assert (run/'report/index.html').read_bytes() == previous
+    # A separately bound full-content edition is valid; its input edition stays main.
+    full = deepcopy(json.loads(original_dataset))
+    full['content_scope'] = 'full'
+    full['cases'] = [select_content_scope(c,'full')[0] for c in full['cases']]
+    full_dataset = tmp_path/'full-dataset.json'
+    full_dataset.write_text(json.dumps(full))
+    full_release = tmp_path/'full-release.json'
+    freeze_release(full_dataset,full_release,benchmark='scope-fixture-full',version='1.0.0')
+    profile = tmp_path/'profile.json'
+    profile.write_text(json.dumps({'benchmark_release':{'path':full_release.name,'sha256':file_sha256(full_release)}}))
+    report = tmp_path/'full-report'
+    build_report(run,report,diagnostic_preview=True,language='zh',profile_path=profile)
+    selected = json.loads((report/'dataset.json').read_text())
+    rows = [json.loads(line) for line in (report/'results.jsonl').read_text().splitlines()]
+    check_release(report,selected,rows,profile=profile)
+    assert (report/acquisition.name).read_bytes() == acquisition.read_bytes()
+    assert (report/'benchmark-release.json').read_bytes() == full_release.read_bytes()
+    assert (run/'results.jsonl').read_bytes() == original_results
+    assert (run/'dataset.json').read_bytes() == original_dataset

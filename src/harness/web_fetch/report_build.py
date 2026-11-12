@@ -889,9 +889,9 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         from harness.web_fetch.report_reading import copy_archived_reading
         copy_archived_reading(source,staging)
         from harness.web_fetch.report_version import bind_release
-        release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
         original_scope = dataset.get('content_scope')
         dataset, records = _select_report_scope(staging, dataset, records, content_scope)
+        release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
         generate(staging, dataset, records, manifests, include_english=include_english,
                  authored_interpretation=authored_interpretation if dataset.get('content_scope') == original_scope else False,
                  show_local_status_banners=show_local_status_banners)
