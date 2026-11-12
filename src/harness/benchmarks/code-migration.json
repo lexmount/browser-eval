@@ -4316,11 +4316,13 @@
           "modules": [
             "metrics.py",
             "scoring.py",
-            "versions.py"
+            "versions.py",
+            "content_scopes.py"
           ],
           "behavior": "Score and aggregate both annotated acceptance scopes over the same invocation population without adding provider calls or elapsed time.",
           "tests": [
             "tests/test_dual_content_scopes.py::test_scope_summary_reuses_deadline_evidence_for_both_verdicts",
+            "tests/test_dual_content_scopes.py::test_scope_views_share_population_exclusions",
             "tests/test_dual_content_scopes.py::test_one_live_call_builds_switchable_report_and_rescores_offline",
             "tests/benchmarks/webfetch/test_release_versions.py::test_catalog_still_validates_extra_suites"
           ]

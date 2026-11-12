@@ -515,7 +515,7 @@ def _scope_report_pages(view):
 
 def _wire_content_scope_views(output):
     from posixpath import relpath
-    from lexbench_webfetch.metrics import task_passed
+    from lexbench_webfetch.metrics import task_measured, task_passed
     from harness.report_languages import primary_report_language
     import re
     binding = output/'content-scope-views.json'
@@ -526,7 +526,7 @@ def _wire_content_scope_views(output):
         view = output/relative
         view_records = load_jsonl(view/'results.jsonl')
         passed = sum(task_passed(row['ok'], row['metrics']) for row in view_records)
-        count = len(view_records)
+        count = sum(task_measured(row['metrics']) for row in view_records)
         for page in _scope_report_pages(view):
             raw = page.read_text(encoding='utf-8')
             if 'name="webstone-report"' not in raw or not re.search(r'<main[\s>]', raw):

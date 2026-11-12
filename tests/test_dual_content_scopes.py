@@ -90,7 +90,7 @@ def test_scope_summary_reuses_deadline_evidence_for_both_verdicts():
 @pytest.mark.parametrize('defect', ['missing-view', 'metrics', 'latency', 'requirements', 'summary',
                                   'missing-toggle', 'wrong-target', 'wrong-total', 'missing-failure-evidence',
                                   'stripped-structure', 'missing-main', 'unexpected-english',
-                                  'absolute-switch', 'protocol-relative-switch', 'usage-changed', 'usage-removed'])
+                                  'absolute-switch', 'protocol-relative-switch', 'usage-changed', 'usage-removed', 'optional-article'])
 def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
     from harness.web_fetch.report_check import check_content_scope_views
     case = annotated_case()
@@ -111,8 +111,19 @@ def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
             row = json.loads(path.read_text(encoding='utf-8'))
             row['provider_metadata'].update(credits_used=2, browser_ms_used=250)
             path.write_text(json.dumps(row)+'\n', encoding='utf-8')
+    if defect == 'optional-article':
+        from harness.web_fetch.report_build import _wire_content_scope_views
+        for view in (root, full):
+            (view/'guide/article.html').write_bytes((view/'guide/index.html').read_bytes())
+        _wire_content_scope_views(root)
     check_content_scope_views(root)
-    if defect == 'missing-view':
+    if defect == 'optional-article':
+        path = full/'guide/article.html'
+        soup = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
+        soup.select_one('meta[name="webstone-report"]').decompose()
+        soup.select_one('[data-content-scope-switch]').decompose()
+        path.write_text(str(soup), encoding='utf-8')
+    elif defect == 'missing-view':
         (root / 'content-scope-views.json').unlink()
     elif defect in {'metrics', 'latency', 'usage-changed', 'usage-removed'}:
         path = full / 'results.jsonl'
@@ -317,3 +328,46 @@ def test_each_failed_scope_displays_its_own_missing_requirements(tmp_path):
                            if any(td.get_text() == '判定依据' for td in tr.select('td')))
         assert 'body' in explanation
         assert ('footer' in explanation) is (relative != '.')
+
+
+@pytest.mark.parametrize('excluded', [True, False])
+def test_scope_views_share_population_exclusions(excluded):
+    from lexbench_webfetch.content_scopes import metrics_for_scope
+    from lexbench_webfetch.metrics import task_measured
+    metrics = score_attempt(annotated_case(), b'Complete article body Contact publisher', ok=True)
+    if excluded:
+        metrics.update(evaluation_excluded=True, evaluation_exclusion_reason='Unavailable reference')
+    else:
+        for selected in metrics['content_scope_metrics'].values():
+            selected.update(evaluation_excluded=True, evaluation_exclusion_reason='Superseded exclusion')
+    for scope in ('main', 'full'):
+        selected = metrics_for_scope(metrics, scope)
+        assert task_measured(selected) is not excluded
+        assert selected.get('evaluation_exclusion_reason') == metrics.get('evaluation_exclusion_reason')
+    row = dict(provider='fixture', provider_type='fixture', case_id='article', case_name='Article',
+               category='synthetic', ok=True, elapsed_ms=100, metrics=metrics)
+    summary = summarize([row])
+    for scope in ('main', 'full'):
+        assert summary['content_scopes'][scope]['providers']['fixture']['task_evaluated_attempts'] == int(not excluded)
+
+
+def test_scope_controls_use_evaluated_population(tmp_path):
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'paired', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', '--no-report', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    path = run/'results.jsonl'
+    row = json.loads(path.read_text(encoding='utf-8'))
+    row['metrics'].update(evaluation_excluded=True, evaluation_exclusion_reason='Unavailable reference')
+    path.write_text(json.dumps(row)+'\n', encoding='utf-8')
+    result = invoke(tmp_path, 'report', run, language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    for view in (run/'report', run/'report/content-scopes/full'):
+        soup = BeautifulSoup((view/'index.html').read_text(encoding='utf-8'), 'html.parser')
+        assert soup.select_one('[data-scope-pass-count]').get_text(strip=True) == '通过: 0/0'

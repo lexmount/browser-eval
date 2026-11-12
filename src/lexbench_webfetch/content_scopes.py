@@ -137,7 +137,10 @@ def metrics_for_scope(metrics: dict, scope: str) -> dict:
             or selected.get('scoring_source_sha256') != metrics.get('scoring_source_sha256')
             or 'content_scope_metrics' in selected):
         raise ValueError('Content scope metrics do not bind the same answer and requirements')
-    for name in ('deadline_overrun', 'deadline_budget_ms', 'reference_sha256'):
+    for name in ('deadline_overrun', 'deadline_budget_ms', 'reference_sha256',
+                 'evaluation_excluded', 'evaluation_exclusion_reason'):
         if name in metrics:
             selected[name] = metrics[name]
+        else:
+            selected.pop(name, None)
     return selected

@@ -508,13 +508,12 @@ def check_content_scope_views(root: Path):
         if read_json(view/'summary.json') != _report_summary(cases, rows):
             raise ValueError('Content-scope report summary disagrees with its metrics')
         passed = sum(task_passed(row['ok'], row['metrics']) for row in rows)
+        evaluated = sum(task_measured(row['metrics']) for row in rows)
         for page in _scope_report_pages(view):
             soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
             route = page.relative_to(view)
-            canonical_route = Path(*route.parts[1:]) if route.parts[0] == 'en' else route
             if not soup.select_one('meta[name="webstone-report"]') or soup.main is None:
-                if canonical_route.as_posix() in required_routes and not (
-                        route.as_posix() == 'en/index.html' and 'en' not in generated_languages(view)):
+                if not (route.as_posix() == 'en/index.html' and 'en' not in generated_languages(view)):
                     raise ValueError('Content-scope report lost required page structure: '+str(route))
                 continue
             toggle = soup.select_one('[data-content-scope-switch]')
@@ -542,8 +541,8 @@ def check_content_scope_views(root: Path):
                     raise ValueError('Content-scope switch changed the reader language')
             count = toggle.select_one('[data-scope-pass-count]')
             if (count is None or count.get('data-scope-pass-count') != str(passed)
-                    or count.get('data-scope-attempt-count') != str(len(rows))
-                    or count.get_text(strip=True) != f'{"Passed" if soup.html.get("lang", "").startswith("en") else "通过"}: {passed}/{len(rows)}'):
+                    or count.get('data-scope-attempt-count') != str(evaluated)
+                    or count.get_text(strip=True) != f'{"Passed" if soup.html.get("lang", "").startswith("en") else "通过"}: {passed}/{evaluated}'):
                 raise ValueError('Content-scope report has incorrect displayed totals')
             if page.parent.name == 'attempts':
                 attempt = next((row for row in rows if row['attempt_id'] == page.stem), None)
