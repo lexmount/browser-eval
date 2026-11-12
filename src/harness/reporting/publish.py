@@ -19,6 +19,7 @@ from __future__ import annotations
 import hashlib
 import json
 import math
+import re
 import time
 import urllib.parse
 import zipfile
@@ -150,6 +151,8 @@ def upload_large_archive(request, archive, slug=None, expected=None, title=None,
         names = [info.filename for info in files]
         query = '?expected_version=' + quote(expected, safe='') if expected else ''
         payload = {'slug': slug} if slug else {'title': title}
+        if slug and title is not None:
+            payload['title'] = title
         _, raw = request('/api/uploads' + query, json.dumps(payload).encode(), 'application/json')
         session = json.loads(raw)['versionId']
         endpoint = '/api/uploads/' + quote(session, safe='')
@@ -347,34 +350,35 @@ def publish_receipt_release(config: ReceiptRelease, *, transport=None):
 
     def finish(value):
         version = activated_version(value)
-        if config.visibility is not None:
-            slug = quote(value["slug"], safe="")
-            path = "/api/sites/" + slug + "/sharing"
-            status, raw = send(path)
-            sharing = response_json(status, raw, operation="sharing inspection")
-            if sharing.get("visibility") != config.visibility:
-                status, raw = send(path, json_bytes({"visibility": config.visibility}),
-                                   "application/json", method="PUT")
-                sharing = response_json(status, raw, operation="sharing update")
-            if sharing.get("visibility") != config.visibility or sharing.get("moderation"):
-                raise ValueError("Requested sharing is not active; inspect the saved publication")
-            value.update(share_url=base + "/s/" + slug, visibility=config.visibility,
-                         publication_pending=False)
-            save(value)
-            return {"slug": value["slug"], "versionId": version,
-                    "url": value["share_url"], "visibility": config.visibility}
-        had_share = bool(value.get("share_url"))
-        if not value.get("share_url"):
-            slug = quote(value["slug"], safe="")
-            status, raw = send(
-                "/api/sites/" + slug + "/shares", b'{"policy":"public"}', "application/json"
-            )
-            value["share_url"] = response_json(status, raw, operation="share creation")["url"]
-        public_share_context(base, value["share_url"])
-        if config.mode != "reuse" or not had_share:
-            value["publication_pending"] = False
-            save(value)
-        return {"slug": value["slug"], "versionId": version, "url": value["share_url"]}
+        if config.mode == 'reuse' and config.visibility is None and value.get('share_url'):
+            target = urllib.parse.urlsplit(value['share_url'])
+            authority = urllib.parse.urlsplit(base)
+            prefix = authority.path.rstrip('/')
+            canonical = prefix+'/s/'+quote(value['slug'], safe='')
+            legacy = re.fullmatch(re.escape(prefix+'/v/')+r'[A-Za-z0-9_-]+', target.path)
+            if (target.scheme != authority.scheme or target.netloc != authority.netloc
+                    or target.query or target.fragment or not (target.path == canonical or legacy)):
+                raise ValueError('Saved report URL differs from the configured service')
+            return {'slug': value['slug'], 'versionId': version, 'url': value['share_url'],
+                    **({'visibility': value['visibility']} if value.get('visibility') else {})}
+        slug = quote(value['slug'], safe='')
+        path = '/api/sites/'+slug+'/sharing'
+        status, raw = send(path)
+        sharing = response_json(status, raw, operation='sharing inspection')
+        visibility = config.visibility or sharing.get('visibility')
+        if visibility not in {'private', 'unlisted', 'public'}:
+            raise ValueError('Publication did not return its current access state')
+        if config.visibility is not None and sharing.get('visibility') != visibility:
+            status, raw = send(path, json_bytes({'visibility': visibility}),
+                               'application/json', method='PUT')
+            sharing = response_json(status, raw, operation='sharing update')
+        if sharing.get('visibility') != visibility or sharing.get('moderation'):
+            raise ValueError('Requested sharing is not active; inspect the saved publication')
+        value.update(share_url=base+'/s/'+slug, visibility=visibility,
+                     publication_pending=False)
+        save(value)
+        return {'slug': value['slug'], 'versionId': version,
+                'url': value['share_url'], 'visibility': visibility}
 
     if config.mode == "reuse":
         if not config.check_reuse:

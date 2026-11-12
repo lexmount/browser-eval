@@ -74,6 +74,9 @@ class Service:
             value = {}
         elif path == "/api/sites/site-one" and data is None:
             value = {"currentVersionId": self.current}
+        elif path.endswith("/sharing"):
+            self.interrupt("share")
+            value = {"visibility": "private"}
         elif path.endswith("/shares"):
             self.interrupt("share")
             value = {"url": "https://reports.example/v/token"}
@@ -185,7 +188,8 @@ def test_interruption_resumes_one_activation(tmp_path, monkeypatch, mode, staged
     assert summary == {
         "slug": "site-one",
         "versionId": "ver_new",
-        "url": "https://reports.example/v/token",
+        "url": "https://reports.example/s/site-one",
+        "visibility": "private",
     }
     assert len(service.uploads) == 1 and not config.journal.exists()
     receipt = json.loads(config.receipt.read_bytes())
@@ -466,3 +470,23 @@ def test_bound_diagnostic_publish_rejects_invalid_binding_before_network(tmp_pat
         raise AssertionError("Invalid evidence must fail before network access")
     with pytest.raises(ValueError, match="bound diagnostic snapshot"):
         report_publish.publish(config, transport=forbidden)
+
+
+@pytest.mark.parametrize('mode', ['create', 'update'])
+@pytest.mark.parametrize('visibility', ['private', 'unlisted', 'public'])
+def test_default_publication_preserves_main_access_without_creating_a_share(tmp_path, mode, visibility):
+    config = fixture(tmp_path, mode=mode)
+
+    class ExistingAccess(Service):
+        def __call__(self, path, data=None, content_type=None, *, method=None, extra_headers=None):
+            if path.endswith('/sharing'):
+                assert data is None and method is None, 'Default publication changed access'
+                self.requests.append(path)
+                return 200, json.dumps({'visibility': visibility}).encode()
+            return super().__call__(path, data, content_type, method=method, extra_headers=extra_headers)
+
+    service = ExistingAccess()
+    result = report_publish.publish(config, transport=service)
+    assert result['url'] == 'https://reports.example/s/site-one'
+    assert result['visibility'] == visibility
+    assert not any(path.endswith('/shares') for path in service.requests)
