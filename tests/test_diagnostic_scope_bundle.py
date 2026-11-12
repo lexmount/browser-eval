@@ -93,3 +93,21 @@ def test_scope_bundle_rejects_independently_rebound_inconsistent_evidence(tmp_pa
     (child/'report.json').write_text(json.dumps(model), encoding='utf-8')
     with pytest.raises(ValueError, match='scope changed'):
         build_diagnostic_cohorts(source, tmp_path/'report')
+
+
+def test_diagnostic_bundle_uses_the_normal_package_publication_gate(tmp_path):
+    from harness.web_fetch.report_package import build as package
+    from harness.web_fetch.publication_check import check
+    source = tmp_path/'input'
+    paired_input(source)
+    profile = tmp_path/'profile.json'
+    profile.write_text(json.dumps({'variant': 'diagnostic-cohorts', 'cohort_plan': [
+        {'id': 'articles', 'case_count': 2, 'case_ids_sha256': hashlib.sha256(b'challenge\ncomplete\n').hexdigest()}]}), encoding='utf-8')
+    output = tmp_path/'report'
+    build_diagnostic_cohorts(source, output, profile=profile)
+    archive = tmp_path/'report.zip'
+    package(output, archive)
+    check(archive, output)
+    (output/'content-scopes/full/analysis/index.html').write_text('Changed report', encoding='utf-8')
+    with pytest.raises(ValueError):
+        check(archive, output)

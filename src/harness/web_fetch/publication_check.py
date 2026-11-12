@@ -43,6 +43,22 @@ def scored_output_hash(row: dict) -> str:
     return expected
 
 
+def diagnostic_scored_views(source: Path) -> list[dict]:
+    """Read scored first-answer bindings from the validated diagnostic views."""
+    model = json.loads((source/'report.json').read_text(encoding='utf-8'))
+    views = (model.get('scope_bundle') or {}).get('views', {'current': '.'})
+    records = []
+    for relative in views.values():
+        view = source/relative
+        current = json.loads((view/'report.json').read_text(encoding='utf-8'))
+        for row in current['rows']:
+            binding = row['first_answer']
+            records.append({'artifact_path': (Path(relative)/binding['path']).as_posix(),
+                            'output_sha256': binding['sha256'],
+                            'retained_public_view': bool(binding.get('publication_projection'))})
+    return records
+
+
 def check(archive, source, overlay=None, *, presentation_binding=None, external_archives=None, allow_pending_external=False, snapshot_audit=False):
     validate_release(source, presentation_binding=presentation_binding, snapshot_audit=snapshot_audit)
     source_files = evidence_tree_identity(source)
@@ -167,82 +183,89 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
         footprint_by_path = {
             row["path"]: row for row in privacy.get("footprint_projections", [])
         }
-        results_raw = data("results.jsonl")
-        source_results = (source / "results.jsonl").read_bytes()
-        privacy_results = project_file("results.jsonl", source_results)[0]
-        expected_results, expected_footprint = project_redundant_result_streams(
-            "results.jsonl", privacy_results
-        )
-        if results_raw != expected_results:
-            raise ValueError("Published results differ from the current source evidence")
-        if bool(expected_footprint) != bool(footprint_by_path):
-            raise ValueError("Publication footprint disclosure differs from the public projection")
-        if expected_footprint:
-            receipt = footprint_by_path.get("results.jsonl")
-            if (
-                len(footprint_by_path) != 1
-                or not receipt
-                or receipt.get("original_sha256") != hashlib.sha256(source_results).hexdigest()
-                or receipt.get("published_sha256") != hashlib.sha256(results_raw).hexdigest()
-                or receipt.get("original_bytes") != len(source_results)
-                or receipt.get("published_bytes") != len(results_raw)
-                or receipt.get("omitted_fields") != expected_footprint.get("omitted_fields")
-                or receipt.get("omitted_payload_bytes")
-                != expected_footprint.get("omitted_payload_bytes")
-            ):
-                raise ValueError("Invalid publication footprint disclosure")
-        rows = parse_jsonl(results_raw)
-        require_valid_teds_for_release(rows)
-        latency_receipt = validate_latency_correction(source)
-        if latency_receipt is not None:
-            for name in ("latency-corrections.json", "prior-latency-results.jsonl"):
-                if name not in manifest["files"] or (
-                    data(name) != (source / name).read_bytes() and name not in privacy_by_path
+        diagnostic = (source/'report.json').is_file() and json.loads(
+            (source/'report.json').read_text(encoding='utf-8')).get('schema') == 'webfetch_cohort_diagnostic/1'
+        if diagnostic:
+            if footprint_by_path:
+                raise ValueError('Diagnostic publication has unexpected result-stream projections')
+            rows = diagnostic_scored_views(source)
+        else:
+            results_raw = data("results.jsonl")
+            source_results = (source / "results.jsonl").read_bytes()
+            privacy_results = project_file("results.jsonl", source_results)[0]
+            expected_results, expected_footprint = project_redundant_result_streams(
+                "results.jsonl", privacy_results
+            )
+            if results_raw != expected_results:
+                raise ValueError("Published results differ from the current source evidence")
+            if bool(expected_footprint) != bool(footprint_by_path):
+                raise ValueError("Publication footprint disclosure differs from the public projection")
+            if expected_footprint:
+                receipt = footprint_by_path.get("results.jsonl")
+                if (
+                    len(footprint_by_path) != 1
+                    or not receipt
+                    or receipt.get("original_sha256") != hashlib.sha256(source_results).hexdigest()
+                    or receipt.get("published_sha256") != hashlib.sha256(results_raw).hexdigest()
+                    or receipt.get("original_bytes") != len(source_results)
+                    or receipt.get("published_bytes") != len(results_raw)
+                    or receipt.get("omitted_fields") != expected_footprint.get("omitted_fields")
+                    or receipt.get("omitted_payload_bytes")
+                    != expected_footprint.get("omitted_payload_bytes")
                 ):
-                    raise ValueError(
-                        "Published latency correction history is missing or changed: " + name
-                    )
-        revision = validate_teds_revision_if_present(source, rows)
-        if revision is not None:
-            for name, label in (
-                ("index.html", "修正后复算"),
-                ("en/index.html", "recomputed after correction"),
-            ):
-                if name not in manifest["files"] or label not in BeautifulSoup(
-                    data(name), "html.parser"
-                ).get_text(" ", strip=True):
-                    raise ValueError(
-                        "Published corrected scores lack a localized correction label: " + name
-                    )
-            bound_files = [
-                "teds-correction.json",
-                "teds-correction-review.json",
-                "original-results.jsonl",
-            ]
-            bound_files += [
-                "correction-source/" + name for name in revision[0]["source_code_sha256"]
-            ]
-            for name in bound_files:
-                if name not in manifest["files"]:
-                    raise ValueError("Published scoring correction evidence missing: " + name)
-                if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
-                    raise ValueError("Undisclosed scoring correction evidence projection: " + name)
-        if (source / "scoring-correction.json").is_file():
-            bound_files = [
-                "scoring-correction.json",
-            ]
-            bound_files += [
-                path.relative_to(source).as_posix()
-                for path in sorted((source / "scoring-correction-source").rglob("*"))
-                if path.is_file()
-            ]
-            for name in bound_files:
-                if name not in manifest["files"]:
-                    raise ValueError(
-                        "Published shared-population correction evidence missing: " + name
-                    )
-                if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
-                    raise ValueError("Undisclosed shared-population correction projection: " + name)
+                    raise ValueError("Invalid publication footprint disclosure")
+            rows = parse_jsonl(results_raw)
+            require_valid_teds_for_release(rows)
+            latency_receipt = validate_latency_correction(source)
+            if latency_receipt is not None:
+                for name in ("latency-corrections.json", "prior-latency-results.jsonl"):
+                    if name not in manifest["files"] or (
+                        data(name) != (source / name).read_bytes() and name not in privacy_by_path
+                    ):
+                        raise ValueError(
+                            "Published latency correction history is missing or changed: " + name
+                        )
+            revision = validate_teds_revision_if_present(source, rows)
+            if revision is not None:
+                for name, label in (
+                    ("index.html", "修正后复算"),
+                    ("en/index.html", "recomputed after correction"),
+                ):
+                    if name not in manifest["files"] or label not in BeautifulSoup(
+                        data(name), "html.parser"
+                    ).get_text(" ", strip=True):
+                        raise ValueError(
+                            "Published corrected scores lack a localized correction label: " + name
+                        )
+                bound_files = [
+                    "teds-correction.json",
+                    "teds-correction-review.json",
+                    "original-results.jsonl",
+                ]
+                bound_files += [
+                    "correction-source/" + name for name in revision[0]["source_code_sha256"]
+                ]
+                for name in bound_files:
+                    if name not in manifest["files"]:
+                        raise ValueError("Published scoring correction evidence missing: " + name)
+                    if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
+                        raise ValueError("Undisclosed scoring correction evidence projection: " + name)
+            if (source / "scoring-correction.json").is_file():
+                bound_files = [
+                    "scoring-correction.json",
+                ]
+                bound_files += [
+                    path.relative_to(source).as_posix()
+                    for path in sorted((source / "scoring-correction-source").rglob("*"))
+                    if path.is_file()
+                ]
+                for name in bound_files:
+                    if name not in manifest["files"]:
+                        raise ValueError(
+                            "Published shared-population correction evidence missing: " + name
+                        )
+                    if data(name) != (source / name).read_bytes() and name not in privacy_by_path:
+                        raise ValueError("Undisclosed shared-population correction projection: " + name)
         projected_scored = 0
         retained_public_views = 0
         for row in rows:
@@ -262,6 +285,9 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
                 if (public is None or public[1]['role'] != 'scored_answer'
                     or public[1]['published_sha256'] != hashlib.sha256(original).hexdigest()):
                     raise ValueError("Original scored output hash differs")
+                retained_view = True
+                retained_public_views += 1
+            if row.get('retained_public_view') and not retained_view:
                 retained_view = True
                 retained_public_views += 1
             disclosure = privacy_by_path.get(row["artifact_path"])
