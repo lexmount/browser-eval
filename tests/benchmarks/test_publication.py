@@ -283,6 +283,69 @@ def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tm
     assert rebuilt['default_dataset'] == 'sample'
 
 
+def test_hub_rebuild_keeps_committed_edition_and_dataset_tools(tmp_path):
+    root, revision, _ = checkout(tmp_path, 'websearch')
+    plain = DatasetRelease.from_git(root, 'websearch', revision).build(tmp_path / 'published')
+    output = tmp_path / 'published'
+    # A hub built without edition metadata or tools gains neither on rebuild.
+    git(output, 'init', '-q')
+    git(output, 'add', '.')
+    git(output, 'commit', '-qm', 'Hub without edition')
+    rebuilt = DatasetRelease.from_git(output, 'websearch', git(output, 'rev-parse', 'HEAD')).build(tmp_path / 'bare')
+    assert 'edition' not in plain and 'edition' not in rebuilt
+    assert not (tmp_path / 'bare/tools').exists() and not (tmp_path / 'bare/Makefile').exists()
+    assert ({p.relative_to(tmp_path / 'bare') for p in (tmp_path / 'bare').rglob('*')}
+            == {p.relative_to(output) for p in output.rglob('*') if '.git' not in p.parts})
+
+    edition = {'tag': 'v3.0.0', 'version': '3.0.0', 'task_count': 1, 'population_sha256': 'd' * 64}
+    manifest = json.loads((output / 'manifest.json').read_bytes())
+    (output / 'manifest.json').write_text(json.dumps({**manifest, 'edition': edition}), encoding='utf-8')
+    tools = {'tools/rebuild_publication.py': b'raise SystemExit(0)\n',
+             'tools/test_population.py': b'# kept\r\n', 'Makefile': b'check:\n\ttrue\n'}
+    for name, raw in tools.items():
+        (output / name).parent.mkdir(exist_ok=True)
+        (output / name).write_bytes(raw)
+    git(output, 'add', '.')
+    git(output, 'commit', '-qm', 'Hub edition with tools')
+    hub_revision = git(output, 'rev-parse', 'HEAD')
+    (output / 'tools/rebuild_publication.py').write_bytes(b'uncommitted\n')
+    result = DatasetRelease.from_git(output, 'websearch', hub_revision).build(tmp_path / 'rebuilt')
+    rebuilt = tmp_path / 'rebuilt'
+    assert result['edition'] == edition
+    assert json.loads((rebuilt / 'manifest.json').read_bytes())['edition'] == edition
+    assert {name: (rebuilt / name).read_bytes() for name in tools} == tools
+    assert not set(tools) & set(result['files'])
+    with tarfile.open(rebuilt / 'definitions.tar.gz') as archive:
+        assert not set(tools) & set(archive.getnames())
+
+
+def test_committed_paths_cannot_leave_the_release(tmp_path):
+    source, revision, _ = checkout(tmp_path, 'websearch')
+    root = tmp_path / 'hub'
+    DatasetRelease.from_git(source, 'websearch', revision).build(root)
+    git(root, 'init', '-q')
+    git(root, 'add', '.')
+    git(root, 'commit', '-qm', 'Hub')
+    # Git stores a crafted "tools/../../escaped" tree that ls-tree prints verbatim.
+    def tree(entries):
+        return subprocess.run(['git', '-C', str(root), 'mktree'], check=True, text=True,
+                              capture_output=True, input=''.join(entries)).stdout.strip()
+    blob = subprocess.run(['git', '-C', str(root), 'hash-object', '-w', '--stdin'], check=True,
+                          text=True, capture_output=True, input='escaped\n').stdout.strip()
+    inner = tree([f'100644 blob {blob}\tescaped\n'])
+    middle = tree([f'040000 tree {inner}\t..\n'])
+    tools = tree([f'040000 tree {middle}\t..\n'])
+    base = git(root, 'rev-parse', 'HEAD^{tree}')
+    entries = subprocess.run(['git', '-C', str(root), 'ls-tree', base], check=True, text=True,
+                             capture_output=True).stdout
+    top = tree([entries, f'040000 tree {tools}\ttools\n'])
+    revision = git(root, 'commit-tree', top, '-m', 'crafted', '-p', 'HEAD')
+    output = tmp_path / 'nested/out'
+    with pytest.raises(ValueError, match='leaves the release'):
+        DatasetRelease.from_git(root, 'websearch', revision).build(output)
+    assert not (tmp_path / 'escaped').exists() and not (tmp_path / 'nested/escaped').exists()
+
+
 @pytest.mark.parametrize('settings', [
     {'default_dataset': 'missing'},
     {'scorer': {'repository': 'https://github.com/example/scorer', 'revision': 'main'}},

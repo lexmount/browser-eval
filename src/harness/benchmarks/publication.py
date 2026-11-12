@@ -68,6 +68,9 @@ def _git_blobs(checkout: Path, revision: str, paths: tuple[str, ...]) -> dict[st
         name = raw_name.decode("utf-8")
         if kind != b"blob" or mode not in {b"100644", b"100755"}:
             raise ValueError("Public definitions cannot contain links or special files: " + name)
+        # A crafted tree can name "..": committed paths must stay inside the release.
+        if name.startswith("/") or {".", ".."} & set(name.split("/")):
+            raise ValueError("Committed path leaves the release: " + name)
         entries.append((name, object_id))
     raw = subprocess.run(["git", "cat-file", "--batch"], cwd=checkout, check=True,
                          input=b"\n".join(oid for _, oid in entries) + b"\n",
@@ -166,6 +169,8 @@ class DatasetRelease:
     scorer: dict | None = None
     default_dataset: str | None = None
     viewer_filters: dict | None = None
+    edition: dict | None = None
+    hub_tools: dict[str, bytes] | None = None
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
@@ -238,7 +243,8 @@ class DatasetRelease:
         return cls(track, revision, files, repository,
                    external_sources=identity.get("external_sources") if hub else None,
                    scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'),
-                   viewer_filters=filters)
+                   viewer_filters=filters, edition=identity.get('edition') if hub else None,
+                   hub_tools=_git_blobs(checkout, revision, ('tools', 'Makefile')) if hub else None)
 
     def runtime_settings(self) -> dict:
         """Publish the execution choices bound to this dataset edition."""
@@ -478,11 +484,14 @@ class DatasetRelease:
         if self.tooling_revision is not None:
             manifest["tooling"] = {"repository": "https://github.com/lexmount/webstone",
                                    "revision": self.tooling_revision}
+        if self.edition is not None:
+            manifest['edition'] = self.edition
         if self.track == "headless-browser":
             manifest["upstream"] = json.loads(self.files["definitions/registry.json"])["source"]
         files["manifest.json"] = encoded(manifest)
         output.mkdir(parents=True, exist_ok=True)
-        for name, raw in files.items():
+        # Hub-only tooling is carried unchanged so a dataset pull request keeps it.
+        for name, raw in {**(self.hub_tools or {}), **files}.items():
             path = output / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
