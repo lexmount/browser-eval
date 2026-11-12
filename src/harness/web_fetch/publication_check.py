@@ -44,18 +44,14 @@ def scored_output_hash(row: dict) -> str:
 
 
 def diagnostic_scored_views(source: Path) -> list[dict]:
-    """Read scored first-answer bindings from the validated diagnostic views."""
+    """Read scored first-answer bindings from a validated diagnostic report."""
     model = json.loads((source/'report.json').read_text(encoding='utf-8'))
-    views = (model.get('scope_bundle') or {}).get('views', {'current': '.'})
     records = []
-    for relative in views.values():
-        view = source/relative
-        current = json.loads((view/'report.json').read_text(encoding='utf-8'))
-        for row in current['rows']:
-            binding = row['first_answer']
-            records.append({'artifact_path': (Path(relative)/binding['path']).as_posix(),
-                            'output_sha256': binding['sha256'],
-                            'retained_public_view': bool(binding.get('publication_projection'))})
+    for row in model['rows']:
+        binding = row['first_answer']
+        records.append({'artifact_path': binding['path'],
+                        'output_sha256': binding['sha256'],
+                        'retained_public_view': bool(binding.get('publication_projection'))})
     return records
 
 

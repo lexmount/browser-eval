@@ -439,7 +439,7 @@ def test_webfetch_shared_ranks_survive_sorting(tmp_path, browser, display):
 
 
 @pytest.mark.parametrize('language', ['zh', 'en'])
-def test_webfetch_scope_switch_keeps_call_and_case_context(tmp_path, browser, display, language):
+def test_webfetch_single_scope_report_keeps_contestants_and_evidence(tmp_path, browser, display, language):
     from tests.benchmarks.webfetch.test_content_scopes import annotated_case
     from tests.test_optional_reports import invoke
     case = annotated_case()
@@ -461,30 +461,13 @@ def test_webfetch_scope_switch_keeps_call_and_case_context(tmp_path, browser, di
         page = local_page(browser, origin, **display)
         try:
             page.goto(origin)
-            expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '4')
+            expect(page.locator('[data-content-scope-switch], a[data-content-scope]')).to_have_count(0)
             expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
-            identities = page.locator('#ranking-web a[href*="providers/"]').evaluate_all('(links) => links.map(a => a.getAttribute("href").split("/").pop()).sort()')
             labels = page.locator('#ranking-web a[href*="providers/"]').all_text_contents()
             assert len(set(labels)) == 4
-            page.locator('a[data-content-scope="full"]').click()
-            expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '0')
-            expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
-            assert page.locator('#ranking-web a[href*="providers/"]').evaluate_all('(links) => links.map(a => a.getAttribute("href").split("/").pop()).sort()') == identities
-            assert page.locator('#ranking-web a[href*="providers/"]').all_text_contents() == labels
-            if language == 'en':
-                page.goto(origin.rstrip('/')+'/index.html?report-language=zh')
-                page.locator('a[data-content-scope="full"]').click()
-                expect(page.locator('html')).to_have_attribute('lang', 'zh-CN')
-                assert 'report-language=zh' in page.url
-                page.locator('a[data-content-scope="full"]').click()
-                expect(page.locator('html')).to_have_attribute('lang', 'zh-CN')
-            page.locator('header a[href="analysis/index.html"]').click()
-            expect(page.locator('[data-content-scope-switch]')).to_have_attribute('data-active-scope', 'full')
-            page.goto(origin.rstrip('/')+'/content-scopes/full/attempts/'+row['attempt_id']+'.html')
+            page.goto(origin.rstrip('/')+'/attempts/'+row['attempt_id']+'.html')
             expect(page.locator('#evidence-reference')).to_contain_text('Contact publisher')
-            page.locator('a[data-content-scope="main"]').click()
-            expect(page.locator('[data-content-scope-switch]')).to_have_attribute('data-active-scope', 'main')
-            expect(page.locator('#evidence-reference')).not_to_contain_text('Contact publisher')
+            expect(page.locator('[data-content-scope-switch], a[data-content-scope]')).to_have_count(0)
         finally:
             page.close()
     assert len(list((run/'call-logs').rglob('*.json'))) == 4

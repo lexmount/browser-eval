@@ -297,21 +297,20 @@ class ReportTemplateTests(unittest.TestCase):
             output=root/'output';build_diagnostic_cohorts(source,output)
             page=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
             winner=page.select_one('[data-metric="acceptance"] .comparison-winner')
-            self.assertEqual(winner.get_text(),'7 / 7')
+            self.assertEqual(winner.get_text(' ',strip=True),'100.0% (7 / 7)')
 
-    def test_content_scope_comparison_navigation_tables_and_highlights(self):
+    def test_comparison_rates_tables_and_highlights(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp); source=root/'source';model=diagnostic_example(source)
-            model.update(comparison_mode=True,content_scope='main',scope_views=[
-                dict(id='main',label='Primary content',href='index.html'),
-                dict(id='full',label='Complete content',href='https://example.test/full')])
+            model.update(comparison_mode=True,content_scope='full')
             model['pages']={'guide':[dict(title='Measured comparison',paragraphs=['Two retained calls.'],
                 table=dict(headers=['Method','Passes'],rows=[['Articles',1]]))]}
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
             output=root/'output';build_diagnostic_cohorts(source,output)
             check_diagnostic_report(output)
             home=output/'index.html';original=home.read_text(encoding="utf-8")
-            for bad in [original.replace('data-content-scope="full"','data-wrong-scope="full"'),
+            for bad in [original.replace('50.0%', '49.0%'),
+                        original.replace('50.0%', ''),
                         original.replace('comparison-winner good','unmarked')]:
                 home.write_text(bad, encoding="utf-8")
                 with self.assertRaises(ValueError):check_diagnostic_report(output)
@@ -707,7 +706,7 @@ class ReportTemplateTests(unittest.TestCase):
                 output=root/'report';build_diagnostic_cohorts(source,output)
                 home=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
                 cells=home.select_one('[data-summary-group]').select('td')
-                self.assertEqual([c['data-sort'] for c in cells[3:6]],['2','1','1'])
+                self.assertEqual([c['data-sort'] for c in cells[3:6]],['2','0.5','0.5'])
                 self.assertEqual([float(c['data-sort']) for c in cells[6:]],
                                  [-1,-1,-1] if missing else [5000,5000,9000])
                 target=output/'index.html'

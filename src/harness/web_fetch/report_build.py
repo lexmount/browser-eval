@@ -194,15 +194,7 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
         from harness.reporting.versions import bind_build_version
         manifest['webstone'] = bind_build_version(staging)
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
-        from harness.web_fetch.report_diagnostic import diagnostic_scope_bundle
-        scope_bundle = diagnostic_scope_bundle(model)
-        if scope_bundle and model['content_scope'] == scope_bundle['default_scope']:
-            for relative in scope_bundle['views'].values():
-                if relative != '.':
-                    build_diagnostic_cohorts(contained_path(source, relative, reject_symlinks=True),
-                                             staging/relative)
-        check_diagnostic_report(staging, profile=profile,
-                                _bundle_checked=bool(scope_bundle and model['content_scope'] != scope_bundle['default_scope']))
+        check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
     except Exception:
         shutil.rmtree(staging)
@@ -446,144 +438,64 @@ def _report_summary(dataset, records):
     return summary
 
 
-def _render_content_scope_views(output, dataset, records, manifests, *, include_english, language, **options):
-    """Render the existing report for each saved score set; never acquire answers."""
+def _select_report_scope(output, dataset, records, scope=None):
+    """Project one saved score set without acquiring or modifying source evidence."""
     from copy import deepcopy
-    from lexbench_webfetch.content_scopes import select_content_scope, metrics_for_scope
-    paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
-    single_scope = {case.get('scoring_scope') for case in dataset['cases']}
-    if (not all(case.get('content_scopes') for case in dataset['cases'])
-            or (len(single_scope) == 1 and single_scope <= {'main', 'full'} and not any(paired))):
-        generate(output, dataset, records, manifests, include_english=include_english, **options)
-        return
-    if not all(paired):
-        raise ValueError('A switchable content-scope report requires paired annotations and scores for every task')
-    active = {row['metrics'].get('evaluation_content_scope') for row in records}
-    if len(active) != 1 or not active <= {'main', 'full'}:
-        raise ValueError('A content-scope report needs one default scoring scope')
-    default = active.pop()
-    other = 'full' if default == 'main' else 'main'
-    relative = 'content-scopes/' + other
-    view = output / relative
-    # Retain the verified support inventory, then render each score view through the same owner.
-    support = [path for path in output.rglob('*') if path.is_file()]
-    generate(output, dataset, records, manifests, include_english=include_english, **options)
-    if language is not None:
-        select_report_language(output, language)
-    for path in support:
-        name = path.relative_to(output)
-        if name.as_posix() in {'result-review.json', 'certification.json', 'report-manifest.json',
-                              'archived-reading.json', 'benchmark-release.json'}:
+    from lexbench_webfetch.content_scopes import metrics_for_scope, select_content_scope
+    annotated = [bool(case.get('content_scopes')) for case in dataset['cases']]
+    if not any(annotated):
+        if scope is not None:
+            raise ValueError('Report scope selection requires annotated tasks')
+        return dataset, records
+    single = {case.get('scoring_scope') for case in dataset['cases']}
+    scope = scope or (next(iter(single)) if len(single) == 1 and single <= {'main', 'full'} else 'full')
+    if all(not row['metrics'].get('evaluation_content_scope') or row['metrics']['evaluation_content_scope'] == scope for row in records):
+        return dataset, records
+    selected = deepcopy(dataset)
+    selected['cases'] = [select_content_scope(case, scope)[0] if case.get('content_scopes') else deepcopy(case)
+                         for case in dataset['cases']]
+    selected['content_scope'] = scope
+    rows = deepcopy(records)
+    cases = {case['id']: case for case in selected['cases']}
+    changed = False
+    for row in rows:
+        if not cases[row['case_id']].get('content_scopes'):
             continue
-        target = view / name
-        target.parent.mkdir(parents=True, exist_ok=True)
-        shutil.copy2(path, target)
-    scoped_dataset = deepcopy(dataset)
-    scoped_dataset['cases'] = [select_content_scope(case, other)[0] for case in dataset['cases']]
-    scoped_dataset['content_scope'] = other
-    comparison = scoped_dataset.setdefault('comparison', {})
-    for key in ('report_interpretation', 'score_audit'):
-        comparison.pop(key, None)
-    comparison.update(kind='web_fetch_diagnostic', publication_state='diagnostic_not_for_release')
-    scoped_records = []
-    scoped_cases = {case['id']: case for case in scoped_dataset['cases']}
-    for original in records:
-        row = deepcopy(original)
-        row['metrics'] = metrics_for_scope(original['metrics'], other)
-        for key in ('diagnosis', 'failure_category', 'title_quality', 'review', 'agent_verdict', 'final_verdict', 'adjudication'):
-            row.pop(key, None)
-        case = scoped_cases[row['case_id']]
-        text = contained_path(view, row['artifact_path']).read_text(encoding='utf-8', errors='replace')
-        row['diagnosis'] = diagnose(row, case, text)
-        row['failure_category'] = failure_category(row, case)
-        scoped_records.append(row)
-    from harness.web_fetch.title_quality import add_title_quality
-    for row in scoped_records:
-        add_title_quality(row, scoped_cases[row['case_id']], view)
-    (view/'dataset.json').write_text(json.dumps(scoped_dataset, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    (view/'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=True)+'\n' for row in scoped_records), encoding='utf-8')
-    (view/'summary.json').write_text(json.dumps(_report_summary(scoped_dataset, scoped_records), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    generate(view, scoped_dataset, scoped_records, manifests, include_english=include_english,
-             **dict(options, authored_interpretation=False))
-    if language is not None:
-        select_report_language(view, language)
-    (output/'content-scope-views.json').write_text(json.dumps({
-        'schema_version': 1, 'default_scope': default, 'provider_calls_added': 0,
-        'views': {default: '.', other: relative},
-        'acquisition': [manifest.get('acquisition', {
-            'content_scope': dataset.get('content_scope'),
-            'task_content_scopes': {case['id']: case.get('content_scope') for case in dataset['cases']},
-            'max_failure_retries': manifest.get('parameters', {}).get('max_failure_retries', 0),
-        }) for manifest in manifests],
-    }, indent=2)+'\n', encoding='utf-8')
-    return True
-
-
-def _scope_report_pages(view):
-    for page in view.rglob('*.html'):
-        parts = page.relative_to(view).parts
-        if parts[0] in {'en', 'zh'}:
-            parts = parts[1:]
-        if parts and parts[0] not in {'content-scopes', 'artifacts', 'call-logs', 'local-evidence', 'references'}:
-            yield page
-
-
-def _wire_content_scope_views(output):
-    from posixpath import relpath
-    from lexbench_webfetch.metrics import task_measured, task_passed
-    from harness.report_languages import primary_report_language
-    import re
-    binding = output/'content-scope-views.json'
-    if not binding.exists():
-        return
-    scope_binding = json.loads(binding.read_text(encoding='utf-8'))
-    views = scope_binding['views']
-    for scope, relative in views.items():
-        view = output/relative
-        view_records = load_jsonl(view/'results.jsonl')
-        passed = sum(task_passed(row['ok'], row['metrics']) for row in view_records)
-        count = sum(task_measured(row['metrics']) for row in view_records)
-        for page in _scope_report_pages(view):
-            raw = page.read_text(encoding='utf-8')
-            if 'name="webstone-report"' not in raw or not re.search(r'<main[\s>]', raw):
-                continue
-            path = page.relative_to(view)
-            locale = re.search(r'<html[^>]*lang="([^"]+)"', raw)
-            english = bool(locale and locale[1].startswith('en'))
-            labels = {'main': 'Main content' if english else '主要内容',
-                      'full': 'Full content' if english else '完整内容'}
-            links = []
-            for target_scope, target_root in views.items():
-                target = output/target_root/path
-                if not target.is_file():
-                    target = output/target_root/'index.html'
-                href = relpath(target, page.parent)
-                if (not english and target == output/target_root/'index.html'
-                        and primary_report_language(output/target_root) == 'en'):
-                    href += '?report-language=zh'
-                links.append(f'<a data-content-scope="{target_scope}" href="{href}"'
-                             + (' aria-current="page"' if scope == target_scope else '')
-                             + f'>{labels[target_scope]}</a>')
-            links = [f'<strong>{link}</strong>' if 'aria-current=' in link else link for link in links]
-            note = 'Same saved calls; switch scoring requirements.' if english else '同一份抓取结果，切换评分要求。'
-            acquisition = scope_binding.get('acquisition') or []
-            if any(item.get('max_failure_retries', 0) > 0 for item in acquisition):
-                scopes = {scope for item in acquisition for scope in item['task_content_scopes'].values()}
-                decision = ('/'.join(labels[scope] for scope in sorted(scopes))
-                            if scopes <= {'main', 'full'} else ('original task rules' if english else '各题原定规则'))
-                note += (f' Retry decisions used {decision}; both views reuse the resulting calls.' if english
-                         else f' 重试按{decision}结果决定，两种评分共用最终输出。')
-            verdict_label = 'Passed' if english else '通过'
-            nav = f'<nav class="wrap callout" data-content-scope-switch data-active-scope="{scope}" aria-label="Scoring scope">'+ ' · '.join(links)+f'<span> {note}</span><span data-scope-pass-count="{passed}" data-scope-attempt-count="{count}"> {verdict_label}: {passed}/{count}</span></nav>'
-            # Keep the renderer's bytes intact outside this presentation control.
-            page.write_text(re.sub(r'(<main(?:\s[^>]*)?>)', lambda match, control=nav: match[1]+control, raw, count=1), encoding='utf-8')
+        metrics = row['metrics']
+        if metrics.get('content_scope_metrics'):
+            row['metrics'] = metrics_for_scope(metrics, scope)
+        elif metrics.get('evaluation_content_scope') != scope:
+            raise ValueError('Requested report scores are unavailable; rescore saved outputs first')
+        if metrics.get('evaluation_content_scope') != scope:
+            changed = True
+            for key in ('diagnosis', 'failure_category', 'title_quality', 'review', 'agent_verdict', 'final_verdict', 'adjudication'):
+                row.pop(key, None)
+            case = cases[row['case_id']]
+            text = contained_path(output, row['artifact_path']).read_text(encoding='utf-8', errors='replace')
+            row['diagnosis'] = diagnose(row, case, text)
+            row['failure_category'] = failure_category(row, case)
+            from harness.web_fetch.title_quality import add_title_quality
+            add_title_quality(row, case, output)
+    if changed:
+        comparison = selected.setdefault('comparison', {})
+        for key in ('report_interpretation', 'score_audit'):
+            comparison.pop(key, None)
+        comparison.update(kind='web_fetch_diagnostic', publication_state='diagnostic_not_for_release')
+    materialize_task_references(output, {name: output/name for name in ('sources', 'list-references')}, cases)
+    (output/'reliability.json').write_text(json.dumps(assess_reliability(selected, rows), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    (output/'result-review.json').unlink(missing_ok=True)
+    (output/'dataset.json').write_text(json.dumps(selected, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    (output/'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=True)+'\n' for row in rows), encoding='utf-8')
+    (output/'summary.json').write_text(json.dumps(_report_summary(selected, rows), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    return selected, rows
 
 
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool | None = None,
                  diagnostic_preview: bool = False, language: str | None = None,
                  show_local_status_banners: bool = True,
-                 presentation_binding: Path | None = None, profile_path: Path | None = None) -> Path:
+                 presentation_binding: Path | None = None, profile_path: Path | None = None,
+                 content_scope: str | None = None) -> Path:
     include_english = includes_english(language, include_english)
     source, output = source.resolve(), output.resolve()
     manifest_path = contained_path(source, 'manifest.json')
@@ -966,15 +878,13 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         copy_archived_reading(source,staging)
         from harness.web_fetch.report_version import bind_release
         release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
-        paired_views = _render_content_scope_views(staging,dataset,records,manifests,include_english=include_english,language=language,
-                 authored_interpretation=authored_interpretation,
+        original_scope = dataset.get('content_scope')
+        dataset, records = _select_report_scope(staging, dataset, records, content_scope)
+        generate(staging, dataset, records, manifests, include_english=include_english,
+                 authored_interpretation=authored_interpretation if dataset.get('content_scope') == original_scope else False,
                  show_local_status_banners=show_local_status_banners)
-        if language is not None and not paired_views:
+        if language is not None:
             select_report_language(staging, language)
-        if paired_views:
-            _wire_content_scope_views(staging)
-        from harness.web_fetch.report_check import check_content_scope_views
-        check_content_scope_views(staging)
         from harness.report_languages import generated_languages
         template_manifest = {'schema_version': 1, 'template': None if diagnostic_preview else resolve_template('webfetch'),
             'dataset_sha256': file_sha256(staging/'dataset.json'),

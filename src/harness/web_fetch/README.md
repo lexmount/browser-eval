@@ -29,7 +29,7 @@ webstone validate --dataset <new-directory>/dataset.json --content-scope main
 Use `--score-scope main`, `--score-scope full` or `--score-scope both` with
 `webstone run`, `webstone rescore` or `lexbench-webfetch score`. A single scope
 computes only that rule set and builds a single-view report. When omitted,
-annotated tasks default to both; `--content-scope` selects the primary view.
+annotated tasks default to both; `--content-scope` selects the acquisition and retry rules.
 
 Tasks scored with both profiles receive two score sets from the same
 persisted output. `results.jsonl` stores them in `metrics.content_scope_metrics`;
@@ -38,30 +38,16 @@ retry attempts. Request latency, usage and cost remain evidence from the origina
 calls; conditional successful-call statistics use each view's own passing subset.
 The run manifest preserves the acquisition scope and retry limit. Retries use
 the acquisition scope's verdict; alternate scores reuse the resulting output
-and do not represent a separate run with a different retry policy. The report
-states this when retries are enabled. Offline scoring selections preserve this
+and do not represent a separate run with a different retry policy. Offline scoring selections preserve this
 acquisition record, including when switching back to the original scope.
 
-The report exposes **Main content / Full content** controls on every page.
-Switching changes the overview, categories, failures and per-task requirements
-and verdicts together. Each view keeps its downloadable scores and a link back
-to the same call evidence. Saved interpretation prose and independent review
-judgments are specific to their original scope and are not reused as judgments
-of the second view. Old outputs gain both score sets through `rescore`, without
-calling providers. A two-view report requires paired annotations and scores for
-every included task; unannotated legacy inputs retain their original behavior.
-
-Cohort diagnostic models can bind both views through `scope_bundle.views`.
-Their input subdirectories use the declared view paths. The diagnostic builder
-uses the same renderer for each view and checks matching calls, response bytes,
-acceptance contracts and saved scores across the bundle.
-
-Choose `main` or `full` as the initial report view and acquisition/retry policy. An explicit option overrides the saved
-dataset or task scope. The approved input bound by `content-scopes-530` declares
-`main`; annotated tasks without a saved scope fall back to `full`. The original
-suites keep their existing acceptance rules. The approved input
-directory must contain the hash-bound `dataset.json` named by the suite's
-`source-inputs.json`. Public reference hashes do not replace the frozen inputs.
+Each report presents one acceptance scope. Paired scores default to a full-content
+report. Use `webstone report <run-directory> --content-scope main` to build a
+main-content report instead. A run explicitly scored with only one scope reports
+that scope. Reports contain no scope switch or second set of pages. Rebuilding
+uses saved scores and does not modify the acquisition or add provider calls.
+Scope-specific interpretation and independent review judgments are retained only
+for their original scope. Legacy tasks keep their existing acceptance rules.
 
 Webstone owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
@@ -153,7 +139,7 @@ The same model accepts the fields below; they do not select a second renderer or
 | `examples[]` | `case_id`, `expected`, `actual`, `cause`, `fix`, `verify` and `evidence[]` containing a bound `field` and verbatim `quote`. |
 | `problem_focus` | Requires at least one concrete guide diagnosis; statistics, reviewed causes and three-way specimens remain mandatory. |
 | `comparison_mode` | Highlights delivery/acceptance rates and keeps the combined call inventory in a disclosure. It does not change scores or populations. |
-| `content_scope`, `scope_views` | Select `main` or `full`; navigation declares both IDs with a `label` and `href`. |
+| `content_scope` | Select one independently scored scope: `main` or `full`. |
 | `paired_content_scope` | Main results carry `uniform_full_content` in each bound log, with the same scorer hash; a full pass must imply a main pass. |
 | `interpretation_case_ids`, `interpretation_focus` | Choose specimen cases and verbatim excerpt anchors. A missing/empty case list selects representative failures and passes when available. |
 | `guide_title`, `interpretation_lead`, `guide_conclusions` | Reader-facing heading, lead and conclusion paragraphs. |

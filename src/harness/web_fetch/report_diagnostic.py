@@ -493,104 +493,11 @@ def validate_diagnostic_blocks(model, files, source):
                         raise ValueError('Diagnosis quotation is absent from bound case evidence')
 
 
-def diagnostic_scope_bundle(model):
-    """Paired diagnostic views share one package and an explicit route map."""
-    bundle = model.get('scope_bundle')
-    if bundle is None:
-        return None
-    default = bundle.get('default_scope')
-    other = 'full' if default == 'main' else 'main'
-    if (default not in {'main', 'full'} or model.get('content_scope') not in {'main', 'full'}
-            or bundle.get('views') != {default: '.', other: 'content-scopes/'+other}):
-        raise ValueError('Invalid diagnostic scope bundle')
-    return bundle
-
-
-def diagnostic_bundle_root(output, model):
-    bundle = diagnostic_scope_bundle(model)
-    relative = bundle['views'][model['content_scope']] if bundle else '.'
-    return output if relative == '.' else output.parents[1]
-
-
-def check_diagnostic_scope_bundle(output, model):
-    bundle = diagnostic_scope_bundle(model)
-    if not bundle:
-        return
-    if model['content_scope'] != bundle['default_scope']:
-        root = diagnostic_bundle_root(output, model)
-        primary, _ = load_diagnostic(root)
-        if primary.get('scope_bundle') != bundle or primary['content_scope'] != bundle['default_scope']:
-            raise ValueError('Diagnostic scope view has wrong primary binding')
-        check_diagnostic_scope_bundle(root, primary)
-        return
-    current = {row['id']: row for row in model['rows']}
-    for scope, relative in bundle['views'].items():
-        if relative == '.':
-            continue
-        view = contained_path(output, relative, reject_symlinks=True)
-        child, _ = load_diagnostic(view)
-        if child.get('scope_bundle') != bundle or child['content_scope'] != scope:
-            raise ValueError('Diagnostic scope view has wrong scope binding')
-        if child['cohorts'] != model['cohorts']:
-            raise ValueError('Diagnostic scope changed contestant identities or labels')
-        if child.get('provenance') != model.get('provenance'):
-            raise ValueError('Diagnostic scope changed implementation provenance')
-        check_diagnostic_report(view, _bundle_checked=True)
-        rows = {row['id']: row for row in child['rows']}
-        if rows.keys() != current.keys():
-            raise ValueError('Diagnostic scope view changed the invocation population')
-        for identifier, row in current.items():
-            alternate = rows[identifier]
-            for key in ('cohort', 'run_id', 'url'):
-                if row[key] != alternate[key]:
-                    raise ValueError('Diagnostic scope changed invocation identity')
-            if any(row[field]['sha256'] != alternate[field]['sha256']
-                   for field in ('answer', 'first_answer')):
-                raise ValueError('Diagnostic scope changed the returned bytes')
-            from lexbench_webfetch.content_scopes import select_content_scope
-            original_case = read_json(contained_path(output, row['reference']['path']))
-            selected_case = read_json(contained_path(view, alternate['reference']['path']))
-            if selected_case != select_content_scope(original_case, scope)[0]:
-                raise ValueError('Diagnostic scope changed its declared acceptance contract')
-            original = read_json(contained_path(output, row['log']['path']))
-            selected = read_json(contained_path(view, alternate['log']['path']))
-            for key in ('attempt_id', 'provider', 'case_id', 'url', 'started_at', 'completed_at',
-                        'elapsed_ms', 'ok', 'status_code', 'final_url', 'error_type', 'error_message',
-                        'selected_runtime', 'request_signatures', 'saved_call_log', 'provider_metadata',
-                        'provider_identity', 'process', 'request', 'call_error'):
-                if original.get(key) != selected.get(key):
-                    raise ValueError('Diagnostic scope changed saved invocation evidence: '+key)
-            other = 'uniform_'+scope+'_content'
-            if selected['metrics'] != original[other]['metrics']:
-                raise ValueError('Diagnostic scope disagrees with its saved independent score')
-            if alternate['initial_pass'] != original[other]['passed']:
-                raise ValueError('Diagnostic scope changed its saved verdict')
-
-
 def load_diagnostic(source):
     source = Path(source).resolve()
     model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
-    bundle = diagnostic_scope_bundle(model)
-    if bundle and not model.get('scope_views'):
-        raise ValueError('Content scope navigation is required for a scope bundle')
-    if model.get('scope_views'):
-        views = model['scope_views']
-        if ({view['id'] for view in views} != {'main', 'full'} or len(views) != 2
-                or model.get('content_scope') not in {'main', 'full'}):
-            raise ValueError('Content scope navigation needs main and full views')
-        for view in views:
-            if not view.get('label') or not view.get('href'):
-                raise ValueError('Content scope navigation needs labels and destinations')
-            if bundle:
-                import posixpath
-                expected = posixpath.relpath(bundle['views'][view['id']]+'/index.html',
-                                             bundle['views'][model['content_scope']])
-                if view['href'] != expected:
-                    raise ValueError('Diagnostic scope navigation escapes its paired package')
-            elif view['href'] != 'index.html':
-                validate_http_url(view['href'])
     groups = {g["id"]: g for g in model["cohorts"]}
     if len(groups) != len(model["cohorts"]):
         raise ValueError("Duplicate cohort")
@@ -686,7 +593,7 @@ def load_diagnostic(source):
     return model, files
 
 
-def check_diagnostic_report(output, profile=None, *, _bundle_checked=False):
+def check_diagnostic_report(output, profile=None):
     """Enforce the shared reader structure and evidence dialogs at release."""
 
 
@@ -763,11 +670,18 @@ def check_diagnostic_report(output, profile=None, *, _bundle_checked=False):
     for expected, rendered in zip(expected_summaries, summaries, strict=True):
         values = [c.get('data-sort', '-1') for c in rendered.select('td')][3:]
         expected_values = [expected[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
-        if model.get('comparison_mode'):
-            expected_values[1:3]=[v/expected['total'] if v is not None else None for v in expected_values[1:3]]
+        expected_values[1:3]=[v/expected['total'] if v is not None else None for v in expected_values[1:3]]
         if (rendered.get('data-summary-group') != expected['id']
                 or values != [str(-1 if v is None else v) for v in expected_values]):
             raise ValueError('Summary differs from complete cohort calls')
+        for route, selector in [('index.html', '#cohort-summary'), ('guide/index.html', '#guide-summary')]:
+            row = read_page(output/route).select_one(selector+f' [data-summary-group="{expected["id"]}"]')
+            for index, key in [(4, 'delivered'), (5, 'accepted')]:
+                value = expected[key]
+                text = row.select('td')[index].get_text(' ', strip=True) if row else ''
+                wanted = '—' if value is None else f'{100*value/expected["total"]:.1f}% ({value} / {expected["total"]})'
+                if text != wanted:
+                    raise ValueError('Summary omits or changes the visible rate and population')
     if model.get('comparison_mode'):
         from harness.reporting.presentation import check_presentation
         for route in ('index.html', 'guide/index.html'):
@@ -905,25 +819,14 @@ def check_diagnostic_report(output, profile=None, *, _bundle_checked=False):
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
-        bundle = diagnostic_scope_bundle(model)
-        if (bundle and model['content_scope'] == bundle['default_scope']
-                and any(route.is_relative_to(output/relative)
-                        for relative in bundle['views'].values() if relative != '.')):
-            continue
         soup = read_page(route)
-        if model.get('scope_views'):
-            switches = soup.select('[data-content-scope]')
-            expected = [(view['id'], view['href'], view['label']) for view in model['scope_views']]
-            if [(node.get('data-content-scope'), node.get('href'), node.get_text()) for node in switches] != expected:
-                raise ValueError('Missing or wrong content scope navigation')
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue
             value = node.get("href") or node.get("src") or node.get('data-evidence-file')
             if value.startswith(("http:", "https:", "#", "data:")):
                 continue
-            boundary = diagnostic_bundle_root(output, model) if node.has_attr('data-content-scope') else output
-            target = _local_target(boundary, route, soup, value)
+            target = _local_target(output, route, soup, value)
             if not target.is_file():
                 raise ValueError("Broken report target: " + value)
     for path in output.rglob('*'):
@@ -931,8 +834,6 @@ def check_diagnostic_report(output, profile=None, *, _bundle_checked=False):
             raise ValueError('Public report must not contain symlinks')
         if path.is_file() and (risk := publication_risk(path.read_bytes())):
             raise ValueError('Public report privacy scan: ' + path.relative_to(output).as_posix() + ': ' + risk)
-    if not _bundle_checked:
-        check_diagnostic_scope_bundle(output, model)
     return {"cases": len(model["rows"]), "core_routes": len(core), "status": "passed"}
 
 

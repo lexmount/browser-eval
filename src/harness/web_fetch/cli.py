@@ -180,7 +180,7 @@ def command_run(args: argparse.Namespace) -> int:
 def command_report(args: argparse.Namespace) -> int:
     language = resolve_report_language(args.run_dir / 'report', args.language)
     report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
-                               language=language)
+                               language=language, content_scope=args.content_scope)
     print(f"Report: {report_path.resolve()}")
     return 0
 
@@ -301,7 +301,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
     add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
-    run.add_argument("--content-scope", choices=("main", "full"), help="Primary view when scoring both scopes")
+    run.add_argument("--content-scope", choices=("main", "full"), help="Acceptance scope for acquisition and retries when scoring both scopes")
     run.add_argument("--score-scope", choices=("main", "full", "both"), help="Compute only one scope or both (default for annotated tasks)")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")
@@ -327,6 +327,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="Rebuild HTML from an existing run directory")
     report.add_argument("run_dir", type=Path)
+    report.add_argument("--content-scope", choices=("main", "full"), help="Report one saved score set (default: full; main-only runs retain main)")
     add_language_argument(report)
     report.set_defaults(handler=command_report)
 

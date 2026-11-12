@@ -817,13 +817,7 @@ def generate_cohort_diagnostic(out, model):
  files={r[field]['path']:(out/r[field]['path']).read_bytes() for r in rows for field in ('log','reference')}
  findings={r['id']:diagnostic_findings(r,files) for r in rows}
  failure_types=diagnostic_failure_counts(model,files)
- scope_links=''
- if model.get('scope_views'):
-  scope_links='<nav class="wrap scope-switch" aria-label="Content scope">'+''.join(
-   '<a data-content-scope="'+esc(view['id'])+'" href="'+esc(safe_href(view['href']))+'"'+
-   (' aria-current="page"' if view['id']==model.get('content_scope') else '')+'>'+esc(view['label'])+'</a>'
-   for view in model['scope_views'])+'</nav>'
- def page(route,title,body):write(out,route,title,scope_links+body,root_links=True,show_language=False)
+ def page(route,title,body):write(out,route,title,body,root_links=True,show_language=False)
  def detail_link(row):return 'attempts/'+row['id']+'.html'
  def blocks(name):
   body=''
@@ -866,7 +860,7 @@ def generate_cohort_diagnostic(out, model):
   values=cell(t('all_tasks', 'All tasks'))+cell(esc(next(iter(versions)) if len(versions)==1 else t('several_versions_see_groups', 'Several versions; see groups')))+cell(str(n),n)
   for key in ('delivered','accepted'):
    value=overall[key]
-   values+=cell('—' if value is None else f'{value} / {n}（{100*value/n:.1f}%）',-1 if value is None else value)
+   values+=cell('—' if value is None else f'{100*value/n:.1f}% <small>({value} / {n})</small>',-1 if value is None else value)
   values+=''.join(cell('—' if overall[k] is None else f'{overall[k]/1000:.2f}',-1 if overall[k] is None else overall[k]) for k in ('mean_ms','p50_ms','p95_ms'))
   overall_table=table([t('dataset', 'Dataset'),t('implementation_version', 'Implementation version'),t('tasks', 'Tasks'),t('call_success', 'Call success'),t('pass', 'Pass'),t('mean_latency_s', 'Mean latency (s)'),t('p50_latency_s', 'P50 latency (s)'),t('p95_latency_s', 'P95 latency (s)')],[(' data-summary-overall="true"',values)],'overall-summary')
   overall_section=section(t('overall_evaluation_results', 'Overall evaluation results'),(f'{overall_table}<p>' + t('all_planned_tasks_form_one_evaluation_set', 'All planned tasks form one evaluation set. A successful call does not mean a passed task; latency merges all calls including failures and does not average per-group percentiles. Latency merged across execution routes only describes this evaluation set and does not rank routes.') + '</p>'),'overall-results')
@@ -875,7 +869,7 @@ def generate_cohort_diagnostic(out, model):
   summary_rows=[]
   for s in diagnostic_cohort_summary(model,files):
    g=groups[s['id']];n=s['total']
-   values=cell(esc(g['label']))+cell(esc(g.get('version') or t('see_the_call_record', 'See the call record')))+cell(str(n),n)+cell('—' if s['delivered'] is None else str(s['delivered'])+' / '+str(n),-1 if s['delivered'] is None else s['delivered']/n if comparison_mode else s['delivered'])+cell(str(s['accepted'])+' / '+str(n),s['accepted']/n if comparison_mode else s['accepted'])
+   values=cell(esc(g['label']))+cell(esc(g.get('version') or t('see_the_call_record', 'See the call record')))+cell(str(n),n)+cell('—' if s['delivered'] is None else f"{100*s['delivered']/n:.1f}% <small>({s['delivered']} / {n})</small>",-1 if s['delivered'] is None else s['delivered']/n)+cell(f"{100*s['accepted']/n:.1f}% <small>({s['accepted']} / {n})</small>",s['accepted']/n)
    values+=''.join(cell('—' if s[k] is None else f'{s[k]/1000:.2f}',-1 if s[k] is None else s[k]) for k in ('mean_ms','p50_ms','p95_ms'))
    summary_rows.append((' data-summary-group="'+esc(s['id'])+'"',values))
   if comparison_mode:
