@@ -121,13 +121,13 @@ class YuanbaoSearchTests(unittest.TestCase):
             )
             imported, missing = import_credentials(source, target, keys=("TENCENT_WSA_API_KEY",))
             self.assertEqual((imported, missing), (["TENCENT_WSA_API_KEY"], []))
-            self.assertNotIn("UNRELATED_SECRET", target.read_text())
+            self.assertNotIn("UNRELATED_SECRET", target.read_text(encoding="utf-8"))
             self.assertEqual(target.stat().st_mode & 0o777, 0o600)
             target.write_text("TENCENT_WSA_API_KEY=existing\n", encoding="utf-8")
             self.assertEqual(
                 import_credentials(source, target, keys=("TENCENT_WSA_API_KEY",)), ([], [])
             )
-            self.assertEqual(target.read_text(), "TENCENT_WSA_API_KEY=existing\n")
+            self.assertEqual(target.read_text(encoding="utf-8"), "TENCENT_WSA_API_KEY=existing\n")
 
     def test_http_200_account_error_stops_before_other_tasks_or_retries(self):
         from harness.web_search.example import synthetic_profile
@@ -203,7 +203,9 @@ class YuanbaoSearchTests(unittest.TestCase):
                     run(path, root / "run", certified=True, resume=True)
                 self.assertEqual(len(requests), 3)
                 self.assertTrue(json.loads((root / "run/receipt.json").read_bytes())["certified"])
-                archived = (root / "run/resume-1/previous-results.jsonl").read_text()
+                archived = (root / "run/resume-1/previous-results.jsonl").read_text(
+                    encoding="utf-8"
+                )
                 self.assertIn(code, archived)
 
     def test_five_result_comparison_requests_smallest_native_page(self):

@@ -24,9 +24,14 @@ def split_runs(root):
             as_of=f"2026-11-{index + 1:02d}", order="complete provider batches"
         )
         write_json(source / "profile.json", profile)
-        rows = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+        rows = [
+            json.loads(line)
+            for line in (source / "results.jsonl").read_text(encoding="utf-8").splitlines()
+        ]
         rows = [r for r in rows if r["method"] == profile["methods"][0]["id"]]
-        (source / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        (source / "results.jsonl").write_text(
+            "".join(json.dumps(r) + "\n" for r in rows), encoding="utf-8"
+        )
         receipt = json.loads((source / "receipt.json").read_bytes())
         receipt.update(
             call_count=len(rows),
@@ -53,19 +58,23 @@ def test_add_provider_reuses_old_calls_and_keeps_exact_task_population(tmp_path)
     assert len(manifest["receipt"]["separate_collections"]) == 2
     assert (old / "results.jsonl").read_bytes() == frozen
     for prefix in ("", "en/"):
-        text = (output / (prefix + "research.html")).read_text()
+        text = (output / (prefix + "research.html")).read_text(encoding="utf-8")
         assert "2026-11-01" in text and "2026-11-02" in text
-        dataset = BeautifulSoup((output / (prefix + "dataset.html")).read_text(), "html.parser")
+        dataset = BeautifulSoup(
+            (output / (prefix + "dataset.html")).read_text(encoding="utf-8"), "html.parser"
+        )
         assert len(dataset.select("[data-row]")) == 2
     # Release checks bind the collection-window disclosure as well as the numbers.
     home_path = output / "index.html"
-    home = home_path.read_text()
-    home_path.write_text(home.replace("data-method-collection-notice", "removed"))
+    home = home_path.read_text(encoding="utf-8")
+    home_path.write_text(home.replace("data-method-collection-notice", "removed"), encoding="utf-8")
     with pytest.raises(ValueError, match="window disclosure"):
         check(output)
-    home_path.write_text(home)
+    home_path.write_text(home, encoding="utf-8")
     path = output / "research.html"
-    path.write_text(path.read_text().replace("2026-11-02", "2026-11-01"))
+    path.write_text(
+        path.read_text(encoding="utf-8").replace("2026-11-02", "2026-11-01"), encoding="utf-8"
+    )
     with pytest.raises(ValueError, match="Execution settings"):
         check(output)
 
@@ -192,7 +201,9 @@ def test_native_response_links_resolve_in_both_language_editions(tmp_path):
     build(output, source=source, content=content, include_english=True)
     assert check(output)
     for language in ("", "en/"):
-        page = BeautifulSoup((output / (language + "capabilities.html")).read_text(), "html.parser")
+        page = BeautifulSoup(
+            (output / (language + "capabilities.html")).read_text(encoding="utf-8"), "html.parser"
+        )
         links = page.select("[data-interface-case] [data-evidence]")
         assert len(links) == len(profile["methods"])
         assert all((output / link["data-evidence"]).is_file() for link in links)
