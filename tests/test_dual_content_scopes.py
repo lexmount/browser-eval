@@ -485,3 +485,40 @@ def test_explicit_both_rejects_missing_annotations_instead_of_silently_scoring_o
     with pytest.raises(ValueError, match='paired task annotations'):
         score_attempt(case, b'Complete article body', ok=True, scoring_scope='both')
     assert 'content_scope_metrics' not in score_attempt(case, b'Complete article body', ok=True)
+
+
+def test_all_contestants_switch_scoring_together_without_adding_scope_rows(tmp_path):
+    names = ['method-a', 'method-b', 'method-c', 'method-d']
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'multi-contestant', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    config = tmp_path/'providers.json'
+    config.write_text(json.dumps({'providers': {name: {'type': 'fixture', 'fail_cases': ['article'] if name == 'method-d' else []} for name in names}}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--provider-config', config,
+                    '--providers', ','.join(names), '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    for scope, relative in [('main', '.'), ('full', 'content-scopes/full')]:
+        view = run/'report'/relative
+        soup = BeautifulSoup((view/'index.html').read_text(encoding='utf-8'), 'html.parser')
+        table = soup.select_one('#ranking-web')
+        headers = [cell.get_text(strip=True) for cell in table.select('thead th')]
+        column = next(i for i, label in enumerate(headers) if label.startswith('任务通过率'))
+        rows = table.select('tbody tr')
+        assert len(rows) == len(names)
+        actual = {}
+        for row in rows:
+            link = row.select_one('a[href*="providers/"]')
+            name = link['href'].rsplit('/', 1)[-1].removesuffix('.html')
+            actual[name] = float(row.select('td')[column]['data-sort'])
+        assert set(actual) == set(names)
+        assert actual == {name: int(scope == 'main' and name != 'method-d') for name in names}
+        assert soup.select_one('[data-content-scope-switch]')['data-active-scope'] == scope
+        saved = [json.loads(line) for line in (view/'results.jsonl').read_text(encoding='utf-8').splitlines()]
+        assert len(saved) == len(names)
+        assert {row['provider'] for row in saved} == set(names)
+    assert len(list((run/'call-logs').rglob('*.json'))) == len(names)

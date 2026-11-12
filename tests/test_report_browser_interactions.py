@@ -449,17 +449,25 @@ def test_webfetch_scope_switch_keeps_call_and_case_context(tmp_path, browser, di
     env = tmp_path/'empty.env'
     env.write_text('', encoding='utf-8')
     run = tmp_path/'run'
+    names = ['method-a', 'method-b', 'method-c', 'method-d']
+    config = tmp_path/'providers.json'
+    config.write_text(json.dumps({'providers': {name: {'type': 'fixture'} for name in names}}), encoding='utf-8')
     result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--provider-config', config, '--providers', ','.join(names),
                     '--delay', '0', '--max-failure-retries', '0', language=language)
     assert result.returncode == 0, result.stdout + result.stderr
-    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8').splitlines()[0])
     with local_report_server(run/'report') as origin:
         page = local_page(browser, origin, **display)
         try:
             page.goto(origin)
-            expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '1')
+            expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '4')
+            expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
+            identities = page.locator('#ranking-web a[href*="providers/"]').evaluate_all('(links) => links.map(a => a.getAttribute("href").split("/").pop()).sort()')
             page.locator('a[data-content-scope="full"]').click()
             expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '0')
+            expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
+            assert page.locator('#ranking-web a[href*="providers/"]').evaluate_all('(links) => links.map(a => a.getAttribute("href").split("/").pop()).sort()') == identities
             if language == 'en':
                 page.goto(origin.rstrip('/')+'/index.html?report-language=zh')
                 page.locator('a[data-content-scope="full"]').click()
@@ -476,4 +484,4 @@ def test_webfetch_scope_switch_keeps_call_and_case_context(tmp_path, browser, di
             expect(page.locator('#evidence-reference')).not_to_contain_text('Contact publisher')
         finally:
             page.close()
-    assert len(list((run/'call-logs').rglob('*.json'))) == 1
+    assert len(list((run/'call-logs').rglob('*.json'))) == 4

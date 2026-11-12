@@ -128,3 +128,14 @@ def test_pair_cannot_bind_two_matching_hashes_to_a_different_response(tmp_path):
     (source/'report.json').write_text(json.dumps(model), encoding='utf-8')
     with pytest.raises(ValueError, match='saved response bytes'):
         load_diagnostic(source)
+
+
+def test_scope_switch_keeps_contestant_names_and_configuration_fixed(tmp_path):
+    source = tmp_path/'input'
+    paired_input(source)
+    path = source/'content-scopes/full/report.json'
+    model = json.loads(path.read_text(encoding='utf-8'))
+    model['cohorts'][0]['label'] += ' (full content)'
+    path.write_text(json.dumps(model), encoding='utf-8')
+    with pytest.raises(ValueError, match='contestant identities or labels'):
+        build_diagnostic_cohorts(source, tmp_path/'report')

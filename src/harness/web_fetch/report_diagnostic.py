@@ -524,6 +524,8 @@ def check_diagnostic_scope_bundle(output, model):
         child, _ = load_diagnostic(view)
         if child.get('scope_bundle') != bundle or child['content_scope'] != scope:
             raise ValueError('Diagnostic scope view has wrong scope binding')
+        if child['cohorts'] != model['cohorts']:
+            raise ValueError('Diagnostic scope changed contestant identities or labels')
         check_diagnostic_report(view)
         rows = {row['id']: row for row in child['rows']}
         if rows.keys() != current.keys():
