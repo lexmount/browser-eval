@@ -2367,6 +2367,11 @@
     "original_file_validation_failed": "原文件字节校验未通过",
     "document_body_too_short": "章节正文长度不足",
     "document_section_body_missing": "章节标题存在，但节内正文不足",
-    "section_body_below_requirement": "对应章节正文未达到要求"
+    "section_body_below_requirement": "对应章节正文未达到要求",
+    "report_scope_main": "评分范围：主要内容",
+    "report_scope_full": "评分范围：完整内容",
+    "report_retries_main": "重试按主要内容要求决定；本报告对保存输出评分。",
+    "report_retries_full": "重试按完整内容要求决定；本报告对保存输出评分。",
+    "report_retries_original": "重试按各题原定要求决定；本报告对保存输出评分。"
   }
 }

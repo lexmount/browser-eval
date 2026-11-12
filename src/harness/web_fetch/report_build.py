@@ -538,6 +538,17 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
     if not local_audit:
         require_selection_history(source)
     dataset = json.loads(contained_path(source,'dataset.json').read_text(encoding='utf-8'))
+    if content_scope is None and output.exists() and any(case.get('content_scopes') for case in dataset['cases']):
+        saved_manifest = output/'report-manifest.json'
+        saved_scope = (json.loads(saved_manifest.read_text(encoding='utf-8')).get('content_scope')
+                       if saved_manifest.is_file() else None)
+        if saved_scope is None and (output/'dataset.json').is_file():
+            saved_scope = json.loads((output/'dataset.json').read_text(encoding='utf-8')).get('content_scope')
+        modes = {case.get('scoring_scope') for case in dataset['cases']}
+        if len(modes) == 1 and modes <= {'main', 'full'}:
+            content_scope = next(iter(modes))
+        elif saved_scope in {'main', 'full'}:
+            content_scope = saved_scope
     if authored_interpretation is None:
         authored_interpretation = bool(dataset.get('comparison', {}).get('report_interpretation'))
     records = load_jsonl(contained_path(source,'results.jsonl'))
@@ -904,6 +915,11 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             'dataset_sha256': file_sha256(staging/'dataset.json'),
             'results_sha256': file_sha256(staging/'results.jsonl'),
             'generated_languages': generated_languages(staging)}
+        from harness.web_fetch.report_version import content_scope_presentation, check_content_scope_presentation
+        scope_state = content_scope_presentation(dataset, records, manifests)
+        if scope_state:
+            template_manifest['content_scope'] = scope_state['scope']
+            template_manifest['retry_acceptance_scopes'] = scope_state['retry_scopes']
         if release_binding:
             template_manifest['benchmark_release'] = release_binding
         if dataset.get('comparison', {}).get('kind') == 'uniform_native_local_measurement':
@@ -912,6 +928,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         from harness.reporting.versions import bind_build_version
         template_manifest['webstone'] = bind_build_version(staging)
         (staging/'report-manifest.json').write_text(json.dumps(template_manifest, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+        check_content_scope_presentation(staging, scope_state)
         (staging/marker).write_text('Generated from persisted evidence. Rebuild; do not edit.\n', encoding='utf-8')
         # Replace only an explicitly marked generated directory; never merge stale pages.
         _install_report_tree(staging, output)

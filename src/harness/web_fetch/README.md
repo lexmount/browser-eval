@@ -2,6 +2,8 @@
 
 ## Main and full content
 
+The [evaluation skill](../../../.agents/skills/benchmark-report/SKILL.md#web-fetch-scope-selection) asks for Full content (default) or Main content before new collection.
+
 An annotated task may declare `content_scopes.version: 1` with `main` and
 `full` profiles. Each profile contains a complete `requirements` object and
 `evidence` with a source SHA-256 and a description of its reference scope.
@@ -19,13 +21,6 @@ Profiles inherit the original blocked-page and navigation constraints. They requ
 an existing full-page ordered-tree acceptance contract require separate tree
 annotations and are rejected by this scope selector.
 
-Select `content-scopes-530` when exporting the paired annotations:
-
-```bash
-lexbench-webfetch export --suite content-scopes-530 --source <approved-input-directory> --output <new-directory>
-webstone validate --dataset <new-directory>/dataset.json --content-scope main
-```
-
 Use `--score-scope main`, `--score-scope full` or `--score-scope both` with
 `webstone run`, `webstone rescore` or `lexbench-webfetch score`. A single scope
 computes only that rule set and builds a single-view report. When omitted,
@@ -41,11 +36,12 @@ the acquisition scope's verdict; alternate scores reuse the resulting output
 and do not represent a separate run with a different retry policy. Offline scoring selections preserve this
 acquisition record, including when switching back to the original scope.
 
-Each report presents one acceptance scope. Paired scores default to a full-content
-report. Use `webstone report <run-directory> --content-scope main` to build a
+Each report presents one acceptance scope. A new paired-score report defaults
+to full content. Rebuilds keep the previously selected report scope. Use `webstone report <run-directory> --content-scope main` to build a
 main-content report instead. A run explicitly scored with only one scope reports
 that scope. Reports contain no scope switch or second set of pages. Rebuilding
 uses saved scores and does not modify the acquisition or add provider calls.
+Each page names its scoring scope and discloses different acquisition retry rules.
 Scope-specific interpretation and independent review judgments are retained only
 for their original scope. Legacy tasks keep their existing acceptance rules.
 

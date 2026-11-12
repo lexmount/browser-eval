@@ -22,6 +22,22 @@ Before writing report HTML, resolve the track through `scripts/report_template.p
 
 Track-specific report rules live in the guides that `AGENTS.md` lists: Web Fetch cohort, diagnostic, local-audit and oversized-report rules in the [Web Fetch guide](../../../src/harness/web_fetch/README.md#certified-cohorts-and-report-builds), Search relevance, SERP and comparison rules in the [Web Search guide](../../../src/harness/web_search/README.md).
 
+## Web Fetch scope selection
+
+Before a new Web Fetch evaluation, explicitly present **Full content (default)**
+and **Main content** and ask the user to select one. Full content checks the
+complete task contract; main content checks its independently annotated body and
+core records. Do not collect new calls while this choice is pending. If the user
+already selected a scope, or is resuming a frozen run, use that selection without
+asking again. Non-interactive skill invocations select full content unless explicitly configured.
+
+For scope-annotated inputs, pass the choice explicitly: `--content-scope full --score-scope full` or
+`--content-scope main --score-scope main`. Compute both only when requested with
+`--score-scope both`, retaining the chosen acquisition scope for retry decisions.
+Legacy inputs keep their original complete task contract without scope flags; main
+or both requires independent scope annotations. Record the choice in the run and report. A report shows one scope; rebuilding an
+existing report retains its explicit selection unless the user changes it.
+
 An explicitly requested diagnostic report may be delivered separately from a certified benchmark release. Use the diagnostic build/check entry, label its evidence state and certification gaps on every page, preserve saved scores and outputs, and do not upgrade certification. When the user requests ranks, explicitly select ranked presentation. Require complete shared task populations and one recorded scorer identity per ranked table; otherwise retain scores with a visible explanation and no ranks or winner highlights. Equal scores share ranks. Show descriptive ranks with the recorded acceptance rules and configuration-selection limits; do not imply an untuned controlled comparison. It does not waive any certified-release reference or review gate. Presentation fixes add no provider calls. Update only the owning code, relevant instructions and demonstrated regression scenarios; do not mechanically modify every skill or copy report-specific conclusions into instructions.
 
 ## Working contract

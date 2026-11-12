@@ -351,7 +351,7 @@ def test_scope_report_validates_active_edition_and_retains_acquisition_edition(t
     result = invoke(tmp_path,'report',run,'--content-scope','main',language='zh')
     assert result.returncode == 0, result.stdout+result.stderr
     previous = (run/'report/index.html').read_bytes()
-    result = invoke(tmp_path,'report',run,language='zh')
+    result = invoke(tmp_path,'report',run,'--content-scope','full',language='zh')
     assert result.returncode != 0
     assert 'measurement contract changed' in result.stderr
     assert (run/'report/index.html').read_bytes() == previous
@@ -398,3 +398,50 @@ def test_explicit_run_scope_selects_one_report_and_both_scores(tmp_path, scope):
     assert result.returncode == 0, result.stdout+result.stderr
     assert json.loads((run/'report/dataset.json').read_text(encoding='utf-8'))['content_scope'] == scope
     assert len(list((run/'call-logs').rglob('*.json'))) == 1
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_report_rebuild_keeps_scope_and_discloses_original_retry_policy(tmp_path, language):
+    from harness.web_fetch.report_version import check_release
+    dataset = tmp_path/'dataset.json'
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset.write_text(json.dumps({'tool':'web_fetch','id':'paired','cases':[case]}),encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('',encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path,'run','--dataset',dataset,'--output',run,'--env-file',env,
+                    '--delay','0','--max-failure-retries','1','--content-scope','full',language=language)
+    assert result.returncode == 0, result.stdout+result.stderr
+    result = invoke(tmp_path,'report',run,'--content-scope','main',language=language)
+    assert result.returncode == 0, result.stdout+result.stderr
+    before = (run/'results.jsonl').read_bytes()
+    calls = {p:p.read_bytes() for p in (run/'call-logs').rglob('*.json')}
+    result = invoke(tmp_path,'report',run,language=language)
+    assert result.returncode == 0, result.stdout+result.stderr
+    report = run/'report'
+    selected = json.loads((report/'dataset.json').read_text(encoding='utf-8'))
+    rows = [json.loads(line) for line in (report/'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    manifest = json.loads((report/'report-manifest.json').read_text(encoding='utf-8'))
+    assert manifest['content_scope'] == selected['content_scope'] == 'main'
+    assert manifest['retry_acceptance_scopes'] == ['full']
+    check_release(report,selected,rows)
+    edition = report/'en' if language == 'en' else report
+    for path in [edition/'index.html', edition/'attempts'/f'{rows[0]["attempt_id"]}.html']:
+        original = path.read_text(encoding='utf-8')
+        soup = BeautifulSoup(original,'html.parser')
+        assert soup.select_one('[data-report-content-scope="main"]')
+        assert soup.select_one('[data-retry-acceptance-scopes="full"]')
+        label = 'Scoring: main content' if language == 'en' else '评分范围：主要内容'
+        assert label in original
+        for bad in [original.replace(label, 'Wrong visible scoring scope'),
+                    original.replace('data-report-content-scope="main"','data-report-content-scope="full"'),
+                    original.replace('data-report-content-scope="main"','data-wrong-scope="main"'),
+                    original.replace('data-retry-acceptance-scopes="full"','data-retry-acceptance-scopes="main"')]:
+            path.write_text(bad,encoding='utf-8')
+            with pytest.raises(ValueError,match='scope|retry policy'):
+                check_release(report,selected,rows)
+        path.write_text(original,encoding='utf-8')
+    assert (run/'results.jsonl').read_bytes() == before
+    assert {p:p.read_bytes() for p in (run/'call-logs').rglob('*.json')} == calls
+    assert not (report/'content-scopes').exists()

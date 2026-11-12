@@ -599,6 +599,9 @@ def check_diagnostic_report(output, profile=None):
 
     output = open_report(output)
     model, files = load_diagnostic(output)
+    from harness.web_fetch.report_version import check_content_scope_presentation
+    if model.get('content_scope') in {'main', 'full'}:
+        check_content_scope_presentation(output, {'scope':model['content_scope'], 'retry_scopes':[]})
     if profile is not None:
         require_diagnostic_scope(model, read_json(Path(profile)))
     manifest = read_json(output / "report-manifest.json")

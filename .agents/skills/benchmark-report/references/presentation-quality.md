@@ -80,12 +80,17 @@ Choose checks from the changed surface:
 Automate deterministic invariants in code. Keep visual judgment conditional on relevant layout or style changes. A release gate should fail with the missing invariant, not merely recommend that someone “review the report.”
 
 
-## Paired acceptance views
+## Acceptance scopes
 
-When the same calls support two independently annotated acceptance scopes, keep
-one invocation population and expose the active scoring scope on every report
-page. Switch summaries, failures, requirements and verdicts together. Keep
-latency, usage, cost and answer hashes tied to the original calls. Verify both
-views through the shared renderer and release checks; missing scope controls,
-wrong totals, broken counterpart links and missing failure evidence must fail.
-Scope-specific prose and independent review judgments need their own evidence.
+One report presents one acceptance scope. New reports default to full content;
+an explicit main-content selection is retained on rebuilds. Name the selected
+scope on each report page. When retry decisions used different requirements,
+state those requirements alongside the scope. Summaries, failures, task
+requirements and verdicts must all use the selected score set.
+
+Keep latency, usage, cost and answer hashes tied to the original calls. Main and
+full scores remain independent and may be computed separately or together.
+Reports contain no scope switch, counterpart links or duplicate page tree.
+Release checks reject missing or wrong scope labels, hidden retry provenance,
+wrong totals and missing failure evidence. Scope-specific interpretation and
+independent review judgments require their own evidence.

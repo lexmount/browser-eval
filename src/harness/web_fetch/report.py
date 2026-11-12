@@ -760,6 +760,7 @@ class RenderContext:
  english_generated: bool = False
  score_audit: dict | None = None
  coverage_plan: dict | None = None
+ scope_presentation: dict | None = None
 
 
 _RENDER_CONTEXT=ContextVar('webfetch_render_context',default=RenderContext())
@@ -791,7 +792,16 @@ def write(out,path,title,body,*,root_links=False,show_language=True):
  evidence_attr=' data-evidence-state="published_snapshot_score_audit"' if context.score_audit else ''
  if context.score_audit:footer=link(base+'methodology/index.html',t('methodology', 'Methodology'))+' · '+link(base+'changes/index.html',t('version_records', 'Version records'))
  banner=context.banner.replace('href="audit/index.html"','href="'+base+'audit/index.html"')
- page=(f'''<!doctype html><html lang="zh-CN"><head><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE + EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{''.join((link(base + url, label) for url, label in nav))}{language}<button class="theme-toggle" onclick="theme()">''' + t('toggle_theme', 'Toggle theme') + f'</button></nav></header><main{evidence_attr}>{banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>')
+ scope_note=''
+ if context.scope_presentation:
+  from harness.web_fetch.report_version import SCOPE_TEXT, scope_retry_text
+  state=context.scope_presentation
+  scope_note='<p class="wrap source-note" data-report-content-scope="'+esc(state['scope'])+'"><strong>'+esc(t(*SCOPE_TEXT[state['scope']]))+'</strong>'
+  retry=scope_retry_text(state)
+  if retry:
+   scope_note+=' <span data-retry-acceptance-scopes="'+esc(','.join(state['retry_scopes']))+'">'+esc(t(*retry))+'</span>'
+  scope_note+='</p>'
+ page=(f'''<!doctype html><html lang="zh-CN"><head><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE + EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{''.join((link(base + url, label) for url, label in nav))}{language}<button class="theme-toggle" onclick="theme()">''' + t('toggle_theme', 'Toggle theme') + f'</button></nav></header><main{evidence_attr}>{banner}{scope_note}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>')
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -809,7 +819,7 @@ _RESEARCH_ROUTES=[
 @_scoped_render
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- token=_RENDER_CONTEXT.set(RenderContext(('<div class="wrap callout"><strong>' + esc(model.get('diagnostic_label') or t('live_page_diagnostic', 'Live page diagnostic')) + f"</strong><p>{esc(model['scope_note'])}</p></div>")))
+ token=_RENDER_CONTEXT.set(RenderContext(('<div class="wrap callout"><strong>' + esc(model.get('diagnostic_label') or t('live_page_diagnostic', 'Live page diagnostic')) + f"</strong><p>{esc(model['scope_note'])}</p></div>"),scope_presentation={'scope':model['content_scope'],'retry_scopes':[]} if model.get('content_scope') in {'main','full'} else None))
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA+asset_text('cohort-diagnostic.css'),encoding='utf-8')
  (out/'assets/report.js').write_text(JS+asset_text('cohort-diagnostic.js'),encoding='utf-8')
@@ -2226,7 +2236,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   reliability_banner += ('<div class="wrap callout" role="status"><strong>' + t('synthetic_example_not_a_formal_benchmark', 'Synthetic example · not a formal benchmark') + '</strong><p>' + t('content_and_failures_are_predefined_scenarios_for', 'Content and failures are predefined scenarios for checking installation and report functionality, not browser measurements.') + '</p></div>')
  elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
   reliability_banner += ('<div class="wrap callout" role="status"><strong>' + t('diagnostic_run_not_a_formal_benchmark', 'Diagnostic run · not a formal benchmark') + '</strong><p>' + t('these_calls_check_the_selected_tasks_and', 'These calls check the selected tasks and methods without the cohort certification required for a formal benchmark.') + '</p></div>')
- _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit,dataset.get('coverage_plan')))
+ from harness.web_fetch.report_version import content_scope_presentation
+ _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit,dataset.get('coverage_plan'),content_scope_presentation(dataset,records,manifests)))
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)

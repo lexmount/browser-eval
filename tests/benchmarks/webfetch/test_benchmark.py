@@ -19,12 +19,9 @@ def write(path, value):
 class PublicDefinitions(unittest.TestCase):
     @pytest.mark.slow
     def test_all_shipped_suites_are_consistent(self):
-        entries = bench.registry()['suites']
-        rows = {row['id']: bench.validate(row['id']) for row in entries}
-        base = [rows[row['id']] for row in entries if row.get('kind') != 'annotation_cohort']
-        self.assertEqual(len(base), 5)
-        self.assertEqual(sum(row['case_count'] for row in base), 550)
-        self.assertEqual(rows['content-scopes-530']['case_count'], 530)
+        rows = [bench.validate(row['id']) for row in bench.registry()['suites']]
+        self.assertEqual(len(rows), 5)
+        self.assertEqual(sum(row['case_count'] for row in rows), 550)
 
     def test_nested_reference_bodies_are_bound_without_being_distributed(self):
         body = 'Third-party reference paragraph. ' * 400

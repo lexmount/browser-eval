@@ -2,7 +2,7 @@
   "schema_version": 1,
   "kind": "huggingface_benchmark_binding",
   "repository": "https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch",
-  "revision": "a71b0b0fea2f935fa4217c8a2eb066707687c0f9",
+  "revision": "c12559d2af7db8ae6e84562ef187a5309811122e",
   "ownership": {
     "benchmark": "Task populations, task model, acceptance scoring, file checks, compiler and frozen definitions",
     "harness": "Execution, reference lifecycle, evidence and reports"
@@ -18,8 +18,7 @@
         "source-inputs.json": "c202abc4624811b938a837402bbaf0ecbe716e375fbca70567346d2edb3b1708"
       },
       "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation",
-      "historical_directory": "evaluation",
-      "directory": "evaluation"
+      "historical_directory": "evaluation"
     },
     {
       "id": "popular-sites",
@@ -31,8 +30,7 @@
         "source-inputs.json": "32c31cfd5458a1dfe06d370fc2411a1eea5d1a05da8ef88e0dcd4fd3b0f3c810"
       },
       "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/popular-sites",
-      "historical_directory": "evaluation/popular-sites",
-      "directory": "evaluation/popular-sites"
+      "historical_directory": "evaluation/popular-sites"
     },
     {
       "id": "dynamic-content",
@@ -44,8 +42,7 @@
         "source-inputs.json": "710f9c91705b29bb9e4aa15af97dcc856e64e406baa4b9966446408d7e3d26a8"
       },
       "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/dynamic-content-100-moli-webfetch",
-      "historical_directory": "evaluation/dynamic-content-100-moli-webfetch",
-      "directory": "evaluation/dynamic-content-100-moli-webfetch"
+      "historical_directory": "evaluation/dynamic-content-100-moli-webfetch"
     },
     {
       "id": "access-restrictions",
@@ -57,43 +54,7 @@
         "source-inputs.json": "c61d6825abbff2a92098592f83055347cd0b0101374794023046c0fd0323dd5f"
       },
       "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/risk-control/current",
-      "historical_directory": "evaluation/risk-control/current",
-      "directory": "evaluation/risk-control/current"
-    },
-    {
-      "id": "articles",
-      "dataset_id": "articles-v11",
-      "case_count": 100,
-      "directory": "evaluation/articles",
-      "files": {
-        "tasks.json": "171241ea0bf3cb3f9482de14a7201885733fa717af56d7ea2b28d86a4516a3bb",
-        "dataset-catalog.json": "8e413e683c309674abf3d297df3f378e76d65ead1e2aa343828e4b0e1d90764a",
-        "source-inputs.json": "0d9c729f14dae8abb3323a2cf4734736c4733957c9d74d5484033d204642b91b"
-      },
-      "historical_directory": "evaluation/articles",
-      "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/articles"
-    },
-    {
-      "id": "content-scopes-530",
-      "dataset_id": "webfetch-content-scopes-530",
-      "case_count": 530,
-      "directory": "evaluation/content-scopes-530",
-      "files": {
-        "annotation-provenance.json": "1d414d610700e737f492cf192b2202a1d9f5eeffc17904007e0aac0c644b3a20",
-        "dataset-catalog.json": "f3874d8508e4c2d0986c04bc631e17ffd53c1d9385dad1d8b4765e510410644b",
-        "source-inputs.json": "c76b829b994e8f9cc15cbc1a05018f2cb5135dee6e6f9144e5e3b014434fdbbc",
-        "tasks.json": "6ae76832f1594e410ab36371c7841a5bd6b4fa65dab39bd6496a8f07c5b22b85"
-      },
-      "kind": "annotation_cohort",
-      "source_population": "primary-content-20261103",
-      "implementation": {
-        "pull_request": 268,
-        "repository": "https://github.com/lexmount/webstone",
-        "revision": "1287fdf859aaac56129933024abdf1246afbcfb7",
-        "state": "merged"
-      },
-      "historical_directory": "evaluation/content-scopes-530",
-      "benchmark_directory": "src/lexbench_webfetch/definitions/evaluation/content-scopes-530"
+      "historical_directory": "evaluation/risk-control/current"
     }
   ],
   "definition_files": {
@@ -122,5 +83,5 @@
     "annotation-revisions/serialization-20261021.json": "e0fe42179e584abb73782cbc459f521cab9cb09d3442de1ec4a6ff54d1b1235a",
     "benchmark-release.json": "c80a1e8cedc371b15c247957ebb99f4b523cf91a598c40b8d2b75086ed0492b1"
   },
-  "source_revision": "6ae0fc167a4f3c6228703e7ab75c574bd1accb34"
+  "source_revision": "6b3e1e526600eb91efbb7211c409742b1274888f"
 }
