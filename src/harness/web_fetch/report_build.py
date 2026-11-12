@@ -480,19 +480,19 @@ def _render_content_scope_views(output, dataset, records, manifests, *, include_
     for original in records:
         row = deepcopy(original)
         row['metrics'] = metrics_for_scope(original['metrics'], other)
-        for key in ('diagnosis', 'failure_category', 'review', 'agent_verdict', 'final_verdict', 'adjudication'):
+        for key in ('diagnosis', 'failure_category', 'title_quality', 'review', 'agent_verdict', 'final_verdict', 'adjudication'):
             row.pop(key, None)
         case = scoped_cases[row['case_id']]
         text = contained_path(view, row['artifact_path']).read_text(encoding='utf-8', errors='replace')
         row['diagnosis'] = diagnose(row, case, text)
         row['failure_category'] = failure_category(row, case)
         scoped_records.append(row)
-    (view/'dataset.json').write_text(json.dumps(scoped_dataset, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
-    (view/'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=True)+'\n' for row in scoped_records), encoding='utf-8')
-    (view/'summary.json').write_text(json.dumps(_report_summary(scoped_dataset, scoped_records), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     from harness.web_fetch.title_quality import add_title_quality
     for row in scoped_records:
         add_title_quality(row, scoped_cases[row['case_id']], view)
+    (view/'dataset.json').write_text(json.dumps(scoped_dataset, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    (view/'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=True)+'\n' for row in scoped_records), encoding='utf-8')
+    (view/'summary.json').write_text(json.dumps(_report_summary(scoped_dataset, scoped_records), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     generate(view, scoped_dataset, scoped_records, manifests, include_english=include_english,
              **dict(options, authored_interpretation=False))
     if language is not None:

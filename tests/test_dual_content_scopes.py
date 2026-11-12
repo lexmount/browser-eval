@@ -371,3 +371,56 @@ def test_scope_controls_use_evaluated_population(tmp_path):
     for view in (run/'report', run/'report/content-scopes/full'):
         soup = BeautifulSoup((view/'index.html').read_text(encoding='utf-8'), 'html.parser')
         assert soup.select_one('[data-scope-pass-count]').get_text(strip=True) == '通过: 0/0'
+
+
+@pytest.mark.parametrize('full_schema', ['named_link', 'body_text'])
+def test_scope_download_keeps_its_own_title_assessment(tmp_path, full_schema):
+    from harness.web_fetch.title_quality import evaluate_titles
+    case = annotated_case()
+    case.update(name='[Alpha title](https://example.test/item/1)\n[Beta title](https://example.test/item/2)',
+                track='challenge', task_kind='structure')
+    for scope in ('main', 'full'):
+        case['content_scopes'][scope]['requirements'] = {
+            'task_prompt': 'Return the required item titles and links.',
+            'acceptance_contract': {'version': 1, 'schema': 'named_link', 'minimum_records': 1,
+                                    'hosts': ['example.test'], 'entry_path': r'/item/\d+',
+                                    'record_name_exclusions': ['Beta title'] if scope == 'main' else []}}
+    if full_schema == 'body_text':
+        case['content_scopes']['full']['requirements']['acceptance_contract'] = {
+            'version': 1, 'schema': 'body_text', 'minimum_records': 0,
+            'stable_text_anchors': [{'id': 'body', 'alternatives': ['Alpha title']}]}
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'paired', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', '--no-report', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    reference = {'case_id': 'article', 'items': [
+        {'title': 'Alpha title', 'url': 'https://example.test/item/1'},
+        {'title': 'Beta title', 'url': 'https://example.test/item/2'}]}
+    (run/'list-references').mkdir(exist_ok=True)
+    (run/'list-references/article.json').write_text(json.dumps(reference), encoding='utf-8')
+    from harness.web_fetch.title_quality import add_title_quality
+    from lexbench_webfetch.content_scopes import select_content_scope
+    saved = run/'results.jsonl'
+    row = json.loads(saved.read_text(encoding='utf-8'))
+    add_title_quality(row, select_content_scope(case, 'main')[0], run)
+    saved.write_text(json.dumps(row)+'\n', encoding='utf-8')
+    result = invoke(tmp_path, 'report', run, language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    for scope, relative, count in [('main', '.', 1), ('full', 'content-scopes/full', 2)]:
+        view = run/'report'/relative
+        row = json.loads((view/'results.jsonl').read_text(encoding='utf-8'))
+        if scope == 'full' and full_schema == 'body_text':
+            assert 'title_quality' not in row
+            continue
+        expected = evaluate_titles(row['metrics']['stable_records'], reference)
+        assert expected['returned_titles'] == count, scope
+        assert row['title_quality']['checks'] == expected['checks']
+        assert row['title_quality']['returned_titles'] == count
+        soup = BeautifulSoup((view/'index.html').read_text(encoding='utf-8'), 'html.parser')
+        coverage = soup.select_one('#ranking-challenge-titles tbody tr td:last-child')
+        assert coverage.get_text(strip=True).startswith(f'{count}/{count}')
+    assert (run/'report/results.jsonl').read_bytes() == saved.read_bytes()
