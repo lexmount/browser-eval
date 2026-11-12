@@ -11,7 +11,7 @@ _STANDARD = (
     ("method", "research.html", "Method & market", True),
 )
 _COMPARISON = (
-    ("home", "index.html", "Decisions", True),
+    ("home", "index.html", "Evaluation overview", True),
     ("capabilities", "capabilities.html", "API outputs", True),
     ("quality", "quality.html", "Retrieval quality", True),
     ("performance", "performance.html", "Speed and cost", True),

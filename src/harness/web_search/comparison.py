@@ -200,7 +200,8 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "siteItem": t("Matches required website"),
         "grade": t("Relevance grade"),
         "gradeNames": [t("0 · Irrelevant"), t("1 · Topic only"), t("2 · Partly useful"), t("3 · Directly useful")],
-        "qualityScore": t("Ranking quality"), "usefulCount": t("Useful results"),
+        "qualityScore": t("Ranking quality · nDCG@{cutoff}", cutoff=cutoff), "usefulCount": t("Useful results"),
+        "outputScroll": t("Scrollable comparison outputs"),
         "calculation": t("Inspect score calculation"),
         "notReturned": t("Not returned"), "duplicate": t("Duplicate: no extra credit"),
         "zeroPool": t("No relevant candidate in the pool: score zero."),
@@ -266,7 +267,7 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         + '<h2>' + t("Compare methods on the same tasks") + '</h2><p class="compare-notice">'
         + ' '.join(descriptions)
         + '</p><div class="compare-controls"><label>' + t("Check", context="item") + '<select data-compare-metric>' + options([(key, label) for key, label in metric_options if key in available_metrics]) + '</select></label><label>' + t("Baseline") + '<select data-compare-baseline>' + options(methods) + '</select></label></div><fieldset><legend>' + t("Compare with") + '</legend><div class="compare-checks">'
-        + ''.join('<label><input type="checkbox" data-compare-method checked value="' + e(k) + '">' + e(v) + '</label>' for k,v in methods)
+        + ''.join('<label><input type="checkbox" data-compare-method' + (' checked' if i < 2 else '') + ' value="' + e(k) + '">' + e(v) + '</label>' for i,(k,v) in enumerate(methods))
         + '</div></fieldset><div class="compare-counts" data-comparison-counts aria-live="polite"></div><label>' + t("Show tasks where") + '<select data-compare-relation>' + options([('all', t("All outcome relations"))] + list(labels['relations'].items())) + '</select></label><div class="compare-relations" data-relation-tasks></div><div class="compare-pager"><button data-relation-prev>' + t("Previous") + '</button><span data-relation-page aria-live="polite"></span><button data-relation-next>' + t("Next") + '</button></div>'
-        + '<h2>' + t("Actual outputs, side by side") + '</h2><p class="compare-notice">' + t("The filters above also control this view. ") + delivered_fields + t(" Green marks identify the matched fields or useful results. Relevance grades and expandable score calculations are shown where available.") + '</p><div data-output-pages></div><div class="compare-pager"><button data-output-prev>' + t("Previous") + '</button><span data-output-page aria-live="polite"></span><button data-output-next>' + t("Next") + '</button></div>'
+        + '<h2>' + t("Actual outputs, side by side") + '</h2><p class="compare-notice">' + t("Choose methods above; this view scrolls horizontally and vertically. ") + delivered_fields + t(" Green marks identify the matched fields or useful results. Relevance grades and expandable score calculations are shown where available.") + '</p><div data-output-pages></div><div class="compare-pager"><button data-output-prev>' + t("Previous") + '</button><span data-output-page aria-live="polite"></span><button data-output-next>' + t("Next") + '</button></div>'
         + '<script type="application/json" data-comparison-data>' + json.dumps(data, ensure_ascii=False).replace('<', '\\u003c').replace('&', '\\u0026') + '</script></section><script>' + SCRIPT + '</script>')

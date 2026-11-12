@@ -219,14 +219,46 @@ def test_one_query_per_output_page_preserves_all_providers_and_full_text(zh):
             page.set_content(render_comparison(profile, rows, zh))
             assert page.locator('.compare-task').count() == 1
             assert page.locator('.compare-task h3').inner_text() == 'Find a page'
+            assert page.locator('.compare-task .compare-method').count() == 2
+            page.locator('[data-compare-method][value="c"]').check()
             assert page.locator('.compare-task .compare-method').count() == 3
+            page.locator('[data-compare-method][value="b"]').uncheck()
+            assert page.locator('.compare-task .compare-method h4').all_text_contents() == ['Provider a', 'Provider c']
             assert 's' * 10000 in page.locator('.compare-task').text_content()
             page.locator('[data-output-next]').click()
             assert page.locator('.compare-task').count() == 1
             assert page.locator('.compare-task h3').inner_text() == 'Explore'
-            assert page.locator('.compare-task .compare-method').count() == 3
+            assert page.locator('.compare-task .compare-method').count() == 2
             page.locator('[data-output-prev]').click()
             assert page.locator('.compare-task h3').inner_text() == 'Find a page'
+        finally:
+            browser.close()
+
+
+def test_selected_outputs_remain_readable_and_keyboard_scroll_both_axes():
+    import copy
+    from harness.reporting.visual import browser_executable
+    from playwright.sync_api import sync_playwright
+    profile, rows = matrix()
+    for row in rows:
+        row['results'] = [copy.deepcopy(row['results'][0]) for _ in range(5)]
+        for item in row['results']:
+            item['snippet'] = 'Long measured snippet. ' * 100
+    with sync_playwright() as engine:
+        browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
+        try:
+            page = browser.new_page(viewport={'width': 390, 'height': 800})
+            page.set_content(render_comparison(profile, rows, True))
+            region = page.locator('.compare-columns')
+            assert region.evaluate('(n)=>n.scrollWidth>n.clientWidth && n.scrollHeight>n.clientHeight')
+            assert page.locator('.compare-method').first.bounding_box()['width'] >= 320
+            region.focus()
+            region.press('ArrowRight')
+            page.wait_for_function('document.querySelector(".compare-columns").scrollLeft>0')
+            region.press('ArrowDown')
+            page.wait_for_function('document.querySelector(".compare-columns").scrollTop>0')
+            page.locator('[data-compare-method][value="b"]').uncheck()
+            assert page.locator('.compare-method h4').all_text_contents() == ['Provider a']
         finally:
             browser.close()
 

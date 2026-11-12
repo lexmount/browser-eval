@@ -240,6 +240,13 @@ Independent-benchmark comparisons keep one primary table per benchmark. Declare
 method-by-query judgments. Annotated reference URLs remain in query evidence and
 do not create a separate subset leaderboard. Comparison tables support numeric
 and method-name sorting, keyboard activation, stable ties and missing values last.
+Relevance tables identify nDCG at the selected cutoff as their primary metric;
+factual retrieval tables identify reference MRR. Both render in descending order
+before JavaScript runs. Supporting metrics retain their own annotation scope;
+answer-text matches are not graded relevance. Output comparisons initially show
+the baseline and one other method. The same method controls filter both outcome
+relations and actual output columns; wider selections remain keyboard-scrollable
+in both directions without narrowing the columns to fit every method.
 
 For explicitly authorized model annotations, run `uv run --frozen python -m harness.web_search judge`
 with `--report`, `--output`, `--model` and `--base-url`. Supply the credential through

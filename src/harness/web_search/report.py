@@ -106,9 +106,9 @@ def fmt(value):
     return "—" if value is None else f"{value:,.2f}"
 
 
-def table(headers, rows, sortable=True, *, bounded=False):
+def table(headers, rows, sortable=True, *, bounded=False, primary_column=None):
     head = "".join(
-        f'<th aria-sort="none"><button type="button" aria-label="{esc(h)}" data-sort-column="{i}">{esc(h)}</button></th>'
+        f'<th aria-sort="{"descending" if i == primary_column else "none"}"' + (' data-primary-metric' if i == primary_column else '') + f'><button type="button" aria-label="{esc(h)}" data-sort-column="{i}">{esc(h)}</button></th>'
         if sortable
         else f"<th>{esc(h)}</th>"
         for i, h in enumerate(headers)
@@ -3903,7 +3903,11 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         headers = [report_text("Method", zh)] + headings + [report_text("Mean ms", zh, context="duration"), report_text("P50 ms", zh), report_text("P95 ms", zh), report_text("Population cost", zh)]
         if prices is not None:
             headers[-1] = report_text("USD / 1,000 calls", zh)
-        body += table(headers, rendered)
+        primary_column = 1 if ranked else 3 if kind == 'factual' and content.get('summary_metrics') == 'retrieval' else None
+        if primary_column is not None:
+            body += '<p class="primary-guide" data-primary-guide>' + report_text("Primary metric: {metric}. Higher is better; the initial order is descending.", zh, metric=headers[primary_column]) + '</p>'
+            rendered = [html for _, html in sorted(zip(values, rendered, strict=True), key=lambda pair: (pair[0][primary_column] is None, -(pair[0][primary_column] or 0)))]
+        body += table(headers, rendered, primary_column=primary_column)
         if ranked:
             body += '<details><summary>' + report_text("API delivery", zh) + '</summary><p>' + ' · '.join(esc(m['label']) + ' ' + str(stats[m['id']]['nonempty']) + '/' + str(len(ids)) for m in profile['methods']) + report_text(" queries returned results.", zh) + '</p></details>'
         body += '</article>'

@@ -146,6 +146,32 @@ def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
         check(output)
 
 
+@pytest.mark.parametrize('damage', ['order', 'primary', 'guide'])
+def test_primary_metric_order_and_explanation_are_release_checked(tmp_path, damage):
+    example(tmp_path, comparison=True)
+    output = tmp_path / 'report'
+    home = BeautifulSoup((output / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    tables = home.select('[data-executive] table')
+    assert [len(t.select('th[data-primary-metric]')) for t in tables] == [1, 1]
+    assert [t.select('th').index(t.select_one('[data-primary-metric]')) for t in tables] == [1, 3]
+    for table in tables:
+        index = table.select('th').index(table.select_one('[data-primary-metric]'))
+        values = [float(row.select('td')[index]['data-value']) for row in table.select('tbody tr')]
+        assert values == sorted(values, reverse=True)
+        assert table.select_one('[data-primary-metric]')['aria-sort'] == 'descending'
+    assert '评测概览' in home.get_text()
+    if damage == 'order':
+        rows = tables[0].select('tbody tr')
+        tables[0].tbody.append(rows[0].extract())
+    elif damage == 'primary':
+        del tables[0].select_one('[data-primary-metric]')['data-primary-metric']
+    else:
+        home.select_one('[data-primary-guide]').decompose()
+    (output / 'index.html').write_text(str(home), encoding='utf-8')
+    with pytest.raises(ValueError, match='Population summary'):
+        check(output)
+
+
 def test_three_selected_versions_drop_two_optional_experiments(tmp_path):
     example(tmp_path)
     profile, rows, _ = load_run(tmp_path / 'fixture')
