@@ -189,6 +189,45 @@ class ReportTemplateTests(unittest.TestCase):
             (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
             output=root/'output';build_diagnostic_cohorts(source,output);check_diagnostic_report(output)
 
+    def test_authored_diagnoses_preserve_measured_distributions_and_examples(self):
+        from bs4 import BeautifulSoup
+        for comparison in (False, True):
+            with self.subTest(comparison=comparison), tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                model.update(problem_focus=True,comparison_mode=comparison,interpretation_case_ids=[],
+                             guide_title='Why the outputs differ',guide_conclusions=['Keep target body complete'])
+                model['pages']={'guide':[dict(id='diagnosis',title='Access diagnosis',paragraphs=[],
+                    examples=[dict(case_id='challenge',expected='Article body',actual='Challenge returned',
+                        cause='Access barrier',fix='Detect challenge',verify='Challenge must fail',
+                        evidence=[dict(field='first_answer',quote='Verify you are human')])])]}
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                home=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
+                guide=BeautifulSoup((output/'guide/index.html').read_text(encoding='utf-8'),'html.parser')
+                self.assertIsNotNone(guide.select_one('#guide-reviewed-causes'))
+                self.assertIsNotNone(guide.select_one('#guide-output-defects'))
+                self.assertEqual(len(guide.select('[data-interpretation-case]')),2)
+                self.assertEqual(len(guide.select('[data-diagnosis-case]')),1)
+                self.assertEqual(guide.select_one('.hero h1').get_text(),'Why the outputs differ')
+                self.assertIn('Keep target body complete',guide.select_one('#guide-conclusions').get_text())
+                self.assertIsNotNone(home.select_one('.guide-grid'))
+                self.assertEqual(len(home.select('#cohort-results .editorial-bar-row')),1)
+                for route,selector in [('guide/index.html','#guide-reviewed-causes'),
+                        ('guide/index.html','#guide-output-defects'),('guide/index.html','#overall-summary'),
+                        ('guide/index.html','[data-interpretation-case]'),('index.html','#overall-summary'),
+                        ('index.html','#cohort-results .editorial-figure')]:
+                    page=output/route;original=page.read_text(encoding='utf-8')
+                    changed=BeautifulSoup(original,'html.parser');changed.select_one(selector).decompose()
+                    page.write_text(str(changed),encoding='utf-8')
+                    with self.subTest(missing=selector),self.assertRaises(ValueError):
+                        check_diagnostic_report(output)
+                    page.write_text(original,encoding='utf-8')
+                page=output/'guide/index.html';original=page.read_text(encoding='utf-8')
+                changed=BeautifulSoup(original,'html.parser')
+                changed.select_one('#guide-output-defects [data-failure-type]')['data-count']='999'
+                page.write_text(str(changed),encoding='utf-8')
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+
     def test_authored_labels_and_lead_are_literal_text(self):
         from bs4 import BeautifulSoup
         with tempfile.TemporaryDirectory() as temp:

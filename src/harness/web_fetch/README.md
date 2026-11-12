@@ -101,6 +101,26 @@ For a diagnostic release, freeze the complete intended population in the track p
 
 A diagnostic instance profile can bind `diagnostic_input.path` relative to the data home and `diagnostic_input.sha256`. The ordinary build entry selects the diagnostic adapter from that profile, without a separate runner or mode flag. Keep cohort paths, prose, specimens and reviewed findings in the external manifest; refresh those inputs and compact profile bindings without editing the renderer or skill. Modify shared code only for a demonstrated defect or new measurement capability, and exercise multiple independent instances through the same public build/check entry.
 
+#### Authored diagnostic content
+
+The same model accepts the fields below; they do not select a second renderer or relax measured-result checks. Store authored content in the external input manifest.
+
+| Field | Contract |
+| --- | --- |
+| `pages.overview[]`, `pages.guide[]` | Blocks with `id`, `title`, `paragraphs` and optional `case_ids`, `table`, `figure`, `examples`. |
+| `table` | `headers` and `rows`; link cells contain `label` and exactly one of `case_id`, `issue_id` or HTTP(S) `url`. |
+| `figure` | Relative PNG `path`, `sha256`, `alt` and `scope`. Preparation and checking use the same hash/type validator. |
+| `examples[]` | `case_id`, `expected`, `actual`, `cause`, `fix`, `verify` and `evidence[]` containing a bound `field` and verbatim `quote`. |
+| `problem_focus` | Requires at least one concrete guide diagnosis; statistics, reviewed causes and three-way specimens remain mandatory. |
+| `comparison_mode` | Highlights delivery/acceptance rates and keeps the combined call inventory in a disclosure. It does not change scores or populations. |
+| `content_scope`, `scope_views` | Select `main` or `full`; navigation declares both IDs with a `label` and `href`. |
+| `paired_content_scope` | Main results carry `uniform_full_content` in each bound log, with the same scorer hash; a full pass must imply a main pass. |
+| `interpretation_case_ids`, `interpretation_focus` | Choose specimen cases and verbatim excerpt anchors. A missing/empty case list selects representative failures and passes when available. |
+| `guide_title`, `interpretation_lead`, `guide_conclusions` | Reader-facing heading, lead and conclusion paragraphs. |
+| `diagnostic_label`, `pass_label`, `fail_label`, `output_label` | Literal display labels; verdicts and evidence stay unchanged. |
+
+Authored cases supplement the measured failure distribution. The release check rejects missing statistics, changed counts, missing specimens, folded figures and incorrect evidence links in every presentation setting. Run the synthetic public-build examples with `uv run --frozen python -m unittest tests.test_report_templates`.
+
 ### Fresh and composed cohorts
 
 For a fresh browser cohort, extend the maintained Web Fetch interpretation mode with `comparison.report_interpretation: {path, sha256}`. Keep its JSON prose outside Git in the evidence bundle. The `webfetch_browser_interpretation/1` schema binds the normalized task/result input hash, a title, introduction, scoring explanation, conclusions, and one explanation plus specimen case ID for every participant. The owner computes aggregate and family results, all-call and successful-call latency, observed versions, complete program-error distributions, and evidence links. A participant with failures must show a failed specimen. Historical prose bindings remain scoped to their original evidence; do not replace their hashes to reuse old conclusions. `scripts/check_report.py` verifies current-cohort numerical cells, populations, unique highlights, chapters and live result targets on both the interpretation and standalone routes, with negative controls in `tests/test_headless_report.py`.
