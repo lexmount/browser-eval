@@ -65,6 +65,8 @@ def test_diagnostic_report_keeps_both_views_in_one_package(tmp_path):
     for relative in ('index.html', 'analysis/index.html', 'attempts/complete.html'):
         assert 'data-content-scope="full"' in (output/relative).read_text(encoding='utf-8')
         assert 'data-content-scope="main"' in (output/'content-scopes/full'/relative).read_text(encoding='utf-8')
+        assert 'hreflang="en"' not in (output/relative).read_text(encoding='utf-8')
+        assert 'hreflang="en"' not in (output/'content-scopes/full'/relative).read_text(encoding='utf-8')
     shutil.rmtree(output/'content-scopes/full')
     with pytest.raises((ValueError, FileNotFoundError)):
         check_diagnostic_report(output)

@@ -773,7 +773,7 @@ def _scoped_render(function):
   finally:_RENDER_CONTEXT.reset(token)
  return render
 
-def write(out,path,title,body,*,root_links=False):
+def write(out,path,title,body,*,root_links=False,show_language=True):
  depth=len(Path(path).parts)-1;base='../'*depth
  document_base='<base href="'+(base or './')+'">' if root_links else ''
  if root_links:base=''
@@ -786,7 +786,7 @@ def write(out,path,title,body,*,root_links=False):
   if reviewed:
    body+=section(t('acceptance_basis', 'Acceptance basis'),('<div data-score-audit><dl class="diagnostic-fields"><dt>' + t('acceptance_requirement', 'Acceptance requirement') + f"</dt><dd>{esc(reviewed['requirement'])}</dd><dt>" + t('actual_output', 'Actual output') + f"</dt><dd>{esc(reviewed['actual'])}</dd></dl><p>{link('../audit/index.html#' + identifier, t('view_sources_and_judgment_basis', 'View sources and judgment basis'))}</p></div>"))
  counterpart=(base+'en/'+path if context.english_generated else base+'en/index.html')
- language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
+ language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>' if show_language else ''
  footer=t('all_scores_are_computed_from_the_recorded', 'All scores are computed from the recorded calls. Web pages and services may change; conclusions apply only to this sample and configuration.')
  evidence_attr=' data-evidence-state="published_snapshot_score_audit"' if context.score_audit else ''
  if context.score_audit:footer=link(base+'methodology/index.html',t('methodology', 'Methodology'))+' · '+link(base+'changes/index.html',t('version_records', 'Version records'))
@@ -823,7 +823,7 @@ def generate_cohort_diagnostic(out, model):
    '<a data-content-scope="'+esc(view['id'])+'" href="'+esc(safe_href(view['href']))+'"'+
    (' aria-current="page"' if view['id']==model.get('content_scope') else '')+'>'+esc(view['label'])+'</a>'
    for view in model['scope_views'])+'</nav>'
- def page(route,title,body):write(out,route,title,scope_links+body,root_links=True)
+ def page(route,title,body):write(out,route,title,scope_links+body,root_links=True,show_language=False)
  def detail_link(row):return 'attempts/'+row['id']+'.html'
  def blocks(name):
   body=''
