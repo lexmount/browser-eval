@@ -346,7 +346,9 @@ def test_catalog_still_validates_extra_suites(matching_catalog, monkeypatch, cha
         registered['suites'].append(extra)
         expected = 'task or frozen reference bindings changed'
     else:
-        cohort = next(row for row in registered['suites'] if row.get('kind') == 'annotation_cohort')
+        cohort = deepcopy(registered['suites'][0])
+        cohort.update(id='test-annotations', kind='annotation_cohort', source_population=cohort['id'])
+        registered['suites'].append(cohort)
         cohort['files']['tasks.json'] = '0' * 64
         expected = 'Changed suite file'
     monkeypatch.setattr(benchmark, 'registry', lambda: registered)
