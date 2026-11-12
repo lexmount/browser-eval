@@ -44,3 +44,4 @@ button:focus-visible,a:focus-visible,summary:focus-visible,select:focus-visible,
 @media(max-width:700px){main,nav{padding:16px}nav{gap:6px}nav a,nav button{font-size:13px;padding:6px 10px}h1{font-size:26px}[data-population] th:first-child,[data-population] td:first-child{min-width:150px;max-width:180px}[data-population] th,[data-population] td{padding:10px}}
 
 [data-population] th{font-size:12px}[data-sort-column]{overflow-wrap:normal;word-break:normal}
+.billing-basis{display:block;font-size:11px;color:var(--muted);font-weight:400;margin-top:3px}

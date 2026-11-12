@@ -3155,15 +3155,25 @@ def catalog_prices(profile, content):
 def catalog_price_panel(profile, content, zh):
     prices = catalog_prices(profile, content)
     rendered = []
-    winners = numeric_winners([[prices[m['id']]['amount']] for m in profile['methods']], {0: 'min'})
+    direction = 'min' if comparable_catalog_prices(prices) else 'neutral'
+    winners = numeric_winners([[prices[m['id']]['amount']] for m in profile['methods']], {0: direction})
     for method in profile['methods']:
         item = prices[method['id']]
         amount = item['amount']
         price = '' if amount is None else '<a href="' + esc(item['source']) + '">' + fmt(amount) + '</a>'
-        row = '<td>' + esc(method['label']) + '</td>' + numeric_cell(price, amount, 'catalog-unit-price', 'min', amount is not None and winners.get(0) == amount)
+        row = '<td>' + esc(method['label']) + '</td>' + numeric_cell(price + catalog_billing_basis(item, zh), amount, 'catalog-unit-price', direction, amount is not None and winners.get(0) == amount)
         row += cells([esc(item.get('plan', '')), esc(item.get('terms', {}).get('zh' if zh else 'en', '')), esc(item.get('checked_at', ''))])[4:-5]
         rendered.append('<tr>' + row + '</tr>')
     return '<section data-cost-budget data-catalog-prices><h2>' + report_text("Published prices and purchase terms", zh) + '</h2><p>' + report_text("Usage prices per 1,000 calls. Each method’s billing rules, subscription and prepayment terms are listed below. These are quoted rates, not invoice charges.", zh) + '</p>' + table([report_text("Method", zh), report_text("USD / 1,000 calls", zh), report_text("Plan", zh), report_text("Purchase terms", zh), report_text("Verified", zh)], rendered) + '</section>'
+
+
+def comparable_catalog_prices(prices):
+    return len({item['unit'] for item in prices.values()}) == 1
+
+
+def catalog_billing_basis(item, zh):
+    label = 'Requests' if item['unit'] == '1000-requests' else 'Successful searches'
+    return '<small class="billing-basis" data-billing-basis="' + esc(item['unit']) + '">' + report_text(label, zh) + '</small>'
 
 
 def cost_panel(profile, rows, zh, content=None):
@@ -3699,7 +3709,7 @@ def benchmark_operations(profile, selected, content, zh):
     rendered = []
     successful = []
     prices = catalog_prices(profile, content)
-    comparable = prices is not None or len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
+    comparable = comparable_catalog_prices(prices) if prices is not None else len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
     for population in populations:
         ids = set(population['case_ids'])
         rows = [r for r in selected if r['case_id'] in ids]
@@ -3716,7 +3726,7 @@ def benchmark_operations(profile, selected, content, zh):
             for i, value in enumerate(raw[idx]):
                 display = (fmt(value) + (' ' + method.get('currency', 'CNY') if i == 3 else '')) if value is not None else (report_text("Not priced", zh) if method.get('price_per_1000') is None else report_text("Some billing unknown", zh))
                 if prices is not None and i == 3:
-                    display = fmt(value) if value is not None else ''
+                    display = (fmt(value) if value is not None else '') + catalog_billing_basis(prices[method['id']], zh)
                 row += numeric_cell(display, value, f'operation-{population["id"]}-{i}', directions[i], value is not None and winners.get(i) == value)
             rendered.append('<tr>' + row + '</tr>')
             success_row = '<td>' + label + '</td><td>' + esc(method['label']) + '</td><td>' + str(item['success_latency']['n']) + '</td>'
@@ -3838,7 +3848,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             values.append([method['label'], *measures, s['all_latency']['mean'], s['all_latency']['p50'], s['all_latency']['p95'], prices[method['id']]['amount'] if prices is not None else s['cost_total']])
         max_column = 3 if ranked or kind == "factual" and content.get("summary_metrics") == "retrieval" else 2 if quality else 1
         directions = {i: "max" if i <= max_column else "min" for i in range(1, len(values[0]))}
-        if prices is None and len({m.get("currency", "CNY") for m in profile["methods"]}) != 1:
+        if (prices is not None and not comparable_catalog_prices(prices)
+                or prices is None and len({m.get("currency", "CNY") for m in profile["methods"]}) != 1):
             directions[len(values[0]) - 1] = "neutral"
         winners = numeric_winners(values, directions)
         rendered = []
@@ -3864,7 +3875,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     currency = method.get('currency', 'CNY')
                     label = ((report_text("Not priced", zh) if method.get('price_per_1000') is None else report_text("Some calls have unknown billing", zh)) if value is None else label + ' ' + (zh_text("CNY") if zh and currency == 'CNY' else esc(currency)))
                     if prices is not None:
-                        label = fmt(value) if value is not None else ''
+                        label = (fmt(value) if value is not None else '') + catalog_billing_basis(prices[method['id']], zh)
                 win = i in winners and winners[i] == value
                 html_cells.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, f"population-{i}", directions.get(i, "neutral"), win))
             rendered.append('<tr>' + ''.join(html_cells) + '</tr>')

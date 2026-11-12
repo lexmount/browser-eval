@@ -102,7 +102,9 @@ def test_public_webarena_report(tmp_path: Path) -> None:
 
 def test_web_search_report(tmp_path: Path) -> None:
     build_web_search_example(tmp_path)
-    check_golden("web-search", tmp_path / "report", tmp_path)
+    manifest = json.loads((tmp_path / 'report/manifest.json').read_text(encoding='utf-8'))
+    check_golden("web-search", tmp_path / "report", tmp_path,
+                 source_digests=[manifest['renderer_sha256']])
 
 
 def test_wcxb_report(tmp_path: Path) -> None:

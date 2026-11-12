@@ -936,7 +936,7 @@ def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoic
         assert all(t.select('thead button[data-sort-column]') for t in dom.select('table'))
         assert not dom.select_one('[data-population="factual"]').find('th',string='nDCG@5 × 100')
         for article in dom.select('[data-population]'):
-            assert article.select('table')[0].select('tbody tr')[0].select('td')[-1].get_text()==''
+            assert article.select('table')[0].select('tbody tr')[0].select('td')[-1]['data-value']==''
             assert article.select('table')[0].select('tbody tr')[1].select('td')[-1]['data-value']=='5'
         for html in (str(dom),cost_panel(profile,rows,zh,content),benchmark_operations(profile,rows,content,zh)):
             assert '待确认' not in html and 'unknown billing' not in html
@@ -948,6 +948,17 @@ def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoic
     content['catalog_pricing']['a'].update(amount=0.75, unit='1000-requests', source='https://prices.test/lexmount', checked_at='2026-11-12')
     priced = BeautifulSoup(population_summary(profile, rows, content, False, relevance_scores=scored), 'html.parser')
     assert priced.select_one('tbody tr td:last-child')['data-sort'] == '0.75'
+    for zh in (False, True):
+        for html in (population_summary(profile, rows, content, zh, relevance_scores=scored),
+                     cost_panel(profile, rows, zh, content),
+                     benchmark_operations(profile, rows, content, zh)):
+            dom = BeautifulSoup(html, 'html.parser')
+            basis = dom.select('[data-billing-basis]')
+            assert {node['data-billing-basis'] for node in basis} == {
+                '1000-requests', '1000-successful-searches'}
+            assert all(node.get_text().strip() for node in basis)
+            assert all(node.parent['data-metric-direction'] == 'neutral' for node in basis)
+            assert all('win' not in node.parent.get('class', []) for node in basis)
     content['catalog_pricing']['b']['amount']=-1
     with pytest.raises(ValueError,match='catalog price'):
         population_summary(profile,rows,content,True,relevance_scores=scored)
