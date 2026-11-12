@@ -234,7 +234,7 @@ def test_failed_request_cannot_pass_either_scope_on_matching_text():
 
 
 @pytest.mark.parametrize('language', ['zh', 'en'])
-@pytest.mark.parametrize('defect', [None, 'number', 'evidence-link', 'narrative'])
+@pytest.mark.parametrize('defect', [None, 'number', 'evidence-link', 'localized-evidence', 'narrative'])
 def test_complete_release_check_accepts_bilingual_scope_views(tmp_path, language, defect):
     from harness.web_fetch.report_build import (
         _render_content_scope_views, _wire_content_scope_views, _report_summary, copy_methodology_assets,
@@ -273,19 +273,27 @@ def test_complete_release_check_accepts_bilingual_scope_views(tmp_path, language
     _wire_content_scope_views(root)
     assert check(root, authority_root=authority).startswith('PASS:')
     if defect:
-        page = root/'content-scopes/full/en/guide/index.html'
-        soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
-        if defect == 'number':
-            tag = soup.new_tag('p')
-            tag.string = '123456789'
-            soup.main.append(tag)
-        elif defect == 'evidence-link':
-            soup.select_one('main a[href]')['href'] = '../../index.html'
+        page = root/('content-scopes/full/en/datasets/one.html' if defect == 'localized-evidence'
+                     else 'content-scopes/full/en/guide/index.html')
+        original = page.read_text(encoding='utf-8')
+        soup = BeautifulSoup(original, 'html.parser')
+        if defect in {'number', 'narrative'}:
+            extra = '123456789' if defect == 'number' else '这段报告文字没有翻译'
+            changed = original.replace('</p>', ' '+extra+'</p>', 1)
         else:
-            tag = soup.new_tag('p')
-            tag.string = '这段报告文字没有翻译'
-            soup.main.append(tag)
-        page.write_text(str(soup), encoding='utf-8')
+            link = (next(a for a in soup.select('a[href]') if a['href'].endswith('references/one.txt'))
+                    if defect == 'localized-evidence' else soup.select_one('main a[href]'))
+            target = '../references/one.txt' if defect == 'localized-evidence' else '../../index.html'
+            changed = original.replace('href="'+link['href']+'"', 'href="'+target+'"', 1)
+            if defect == 'localized-evidence':
+                wrong = root/'content-scopes/full/en/references/one.txt'
+                wrong.parent.mkdir(parents=True, exist_ok=True)
+                wrong.write_text('Different reference', encoding='utf-8')
+        assert changed != original
+        page.write_text(changed, encoding='utf-8')
+        from harness.web_fetch.report_check import check_report_language_parity
+        with pytest.raises(ValueError, match='parity|untranslated'):
+            check_report_language_parity(root/'content-scopes/full', source, canonical_root=root)
         with pytest.raises(ValueError, match='parity|untranslated'):
             check(root, authority_root=authority)
 

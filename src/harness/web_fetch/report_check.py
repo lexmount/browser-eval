@@ -356,7 +356,8 @@ def check_report_language_parity(root: Path, d, *, canonical_root: Path | None =
                 if relative == '.':
                     continue
                 prefix = Path(relative).parts
-                if target.parts[:len(prefix)+1] == (*prefix, 'en'):
+                if (target.parts[:len(prefix)+1] == (*prefix, 'en')
+                        and target.suffix.lower() in {'.html', '.htm'}):
                     target = Path(*prefix, *target.parts[len(prefix)+1:])
         query = parsed.query
         if target in scope_homepages:
