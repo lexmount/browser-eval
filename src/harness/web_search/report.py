@@ -3172,8 +3172,9 @@ def comparable_catalog_prices(prices):
 
 
 def catalog_billing_basis(item, zh):
-    label = 'Requests' if item['unit'] == '1000-requests' else 'Successful searches'
-    return '<small class="billing-basis" data-billing-basis="' + esc(item['unit']) + '">' + report_text(label, zh) + '</small>'
+    label = (report_text('Requests', zh) if item['unit'] == '1000-requests'
+             else report_text('Successful searches', zh))
+    return '<small class="billing-basis" data-billing-basis="' + esc(item['unit']) + '">' + label + '</small>'
 
 
 def cost_panel(profile, rows, zh, content=None):
