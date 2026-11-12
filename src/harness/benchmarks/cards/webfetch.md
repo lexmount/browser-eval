@@ -191,7 +191,7 @@ Declare the answer representation in a metadata file, because text without a dec
 representation is read as markup:
 
 ```sh
-python -c 'import json,sys; d=json.load(open(sys.argv[1])); json.dump(next(c for c in d["cases"] if c["id"]=="static-simple"), open("task.json","w"), ensure_ascii=False)' "$M/dataset.json"
+uv run --frozen python -c 'import json,sys; d=json.load(open(sys.argv[1])); json.dump(next(c for c in d["cases"] if c["id"]=="static-simple"), open("task.json","w"), ensure_ascii=False)' "$M/dataset.json"
 echo '{"answer_format": "plain_text"}' > metadata.json
 uv run --frozen lexbench-webfetch score --task task.json --response answer.txt --metadata metadata.json
 ```

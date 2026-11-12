@@ -149,6 +149,8 @@ def full_fetch_release():
                      [('web', 100), ('document', 10), ('image', 10), ('video', 10), ('challenge', 10), ('dynamic', 10)]],
         'dynamic-content': [('dynamic', 100)], 'popular-sites': [('challenge', 100)],
         'access-restrictions': [('risk_control', 100)], 'articles': [('articles', 100)],
+        # Annotation cohort over existing tasks: bound and archived, never a viewer group.
+        'content-scopes-530': [('web', 5)],
     }
     files, rows, sources = {}, [], {}
     for identity, groups in suites.items():
@@ -173,7 +175,7 @@ def test_fetch_editions_select_exact_populations_and_keep_all_raw_inputs(tmp_pat
     source, originals = full_fetch_release()
     if historical:
         source = replace(source, viewer_filters={
-            'viewer_exclude_datasets': ['articles'],
+            'viewer_exclude_datasets': ['articles', 'content-scopes-530'],
             'viewer_exclude_tracks': {'webfetch': ['challenge', 'dynamic']}})
     manifest = source.build(tmp_path)
     expected = {'general-web': 100, 'dynamic-sites': 100, 'popular-sites': 100,
@@ -186,7 +188,7 @@ def test_fetch_editions_select_exact_populations_and_keep_all_raw_inputs(tmp_pat
     assert [row['config_name'] for row in metadata(tmp_path)['configs']] == list(expected)
     rows = [row for name in expected for row in exported_rows(tmp_path, name)]
     primary = {case['id']: case for identity, cases in originals.items() for case in cases
-               if not (identity == 'webfetch' and case['track'] == 'dynamic')
+               if identity != 'content-scopes-530' and not (identity == 'webfetch' and case['track'] == 'dynamic')
                and (not historical or (identity != 'articles' and not (identity == 'webfetch' and case['track'] == 'challenge')))}
     assert {row['id'] for row in rows} == set(primary)
     # v3.0.0: 530 counted tasks plus the separate 10-task challenge set.
@@ -194,6 +196,9 @@ def test_fetch_editions_select_exact_populations_and_keep_all_raw_inputs(tmp_pat
     assert all(json.loads(row['task']) == primary[row['id']] for row in rows)
     assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'media-information')} == {'web_media'}
     assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'direct-media-files')} == {'media_file'}
+    cohort = manifest['datasets'].pop('content-scopes-530')
+    assert cohort['count'] == 5
+    # The fixture's pre-cohort catalog keeps 550 entries.
     assert sum(binding['count'] for binding in manifest['datasets'].values()) == 550
     assert (tmp_path / 'data/articles.jsonl').exists() is (not historical)
     with tarfile.open(tmp_path / 'definitions.tar.gz') as archive:
