@@ -1,7 +1,9 @@
 """Small bilingual Web Search report built from frozen calls, never invented scores."""
 
 import argparse
+import base64
 import copy
+import gzip
 import json
 import math
 import posixpath
@@ -1725,6 +1727,7 @@ def _check_english_separators(output, manifest):
 def check(output, *, return_data=False, evidence_only=False):
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    validate_content_revisions(manifest)
     if not evidence_only:
         check_build_version(output, manifest)
     if manifest.get("assessment_revision"):
@@ -2210,12 +2213,56 @@ def check(output, *, return_data=False, evidence_only=False):
     return True
 
 
+def validate_content_revisions(manifest):
+    """Verify paragraph-only revisions against their retained predecessor bytes."""
+    def require(condition):
+        if not condition:
+            raise ValueError('Invalid paragraph revision provenance')
+
+    current = manifest
+    while current.get('content_revisions'):
+        receipt = current['content_revisions'][-1]
+        try:
+            require(receipt['schema'] == 'web-search-paragraph-revision/1')
+            producer = receipt['producer']
+            require(bool(re.fullmatch(r'[0-9a-f]{64}', producer['source_sha256'])))
+            require(bool(re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', producer['version'])))
+            require(producer['revision'] is None or bool(re.fullmatch(r'[0-9a-f]{40}', producer['revision'])))
+            require(type(producer['modified']) is bool)
+            raw = gzip.decompress(base64.b64decode(receipt['before_manifest_gzip_base64'], validate=True))
+            previous = json.loads(raw)
+            require(bytes_sha256(raw) == receipt['before_manifest_sha256'])
+            require(previous.get('content_sha256') == receipt['before_content_sha256'])
+            require(current.get('content_sha256') == receipt['content_sha256'])
+            require(bytes_sha256(receipt['content_utf8'].encode('utf-8')) == receipt['content_sha256'])
+            require(json.loads(receipt['content_utf8']) == current['authored'])
+            require(type(receipt['provider_calls']) is int and receipt['provider_calls'] == 0)
+            require(current['content_revisions'][:-1] == previous.get('content_revisions', []))
+            excluded = {'authored', 'content_sha256', 'content_revisions'}
+            require({k: v for k, v in current.items() if k not in excluded} == {
+                k: v for k, v in previous.items() if k not in excluded})
+            old, new = previous['authored'], current['authored']
+            require(dict(old, sections=[]) == dict(new, sections=[]))
+            changed = []
+            for index, (left, right) in enumerate(zip(old.get('sections', []), new.get('sections', []), strict=True)):
+                require(dict(left, paragraphs=[]) == dict(right, paragraphs=[]))
+                for a, b in zip(left.get('paragraphs', []), right.get('paragraphs', []), strict=True):
+                    require(a.keys() == b.keys() and all(isinstance(v, str) for v in b.values()))
+                if left.get('paragraphs') != right.get('paragraphs'):
+                    changed.append(index)
+            require(receipt['changed_sections'] == changed)
+        except (KeyError, TypeError, ValueError, OSError, EOFError) as error:
+            raise ValueError('Invalid paragraph revision provenance') from error
+        current = previous
+
+
 def revise_paragraphs(output, content):
     """Revise authored paragraphs only; retain evidence and require normal release checks."""
     output, content = Path(output), Path(content)
     path = contained_path(output, 'manifest.json', reject_symlinks=True)
     before = path.read_bytes()
     manifest = json.loads(before)
+    validate_content_revisions(manifest)
     if (manifest.get('schema') != 'web-search-report/1' or not manifest.get('languages')
             or set(manifest['languages']) - {'en', 'zh'}):
         raise ValueError('Paragraph revisions require a supported Web Search report')
@@ -2261,9 +2308,11 @@ def revise_paragraphs(output, content):
                 updates[target] = str(soup)
     if any(count == 0 for count in seen.values()):
         raise ValueError('Revised paragraph is missing from a generated language')
-    receipt = {'before_manifest_sha256': bytes_sha256(before),
+    receipt = {'schema': 'web-search-paragraph-revision/1',
+               'before_manifest_sha256': bytes_sha256(before),
+               'before_manifest_gzip_base64': base64.b64encode(gzip.compress(before, mtime=0)).decode('ascii'),
                'before_content_sha256': manifest.get('content_sha256'),
-               'content_sha256': bytes_sha256(raw), 'provider_calls': 0,
+               'content_sha256': bytes_sha256(raw), 'content_utf8': raw.decode('utf-8'), 'provider_calls': 0,
                'changed_sections': changed, 'producer': software_identity()}
     manifest['authored'], manifest['content_sha256'] = revised, bytes_sha256(raw)
     manifest['content_revisions'] = [*manifest.get('content_revisions', []), receipt]

@@ -39,7 +39,8 @@ def test_public_paragraph_revision_preserves_all_measured_bytes_and_is_idempoten
     assert after['content_revisions'][0]['provider_calls'] == 0
     assert all(p.read_bytes() == raw for p, raw in frozen.items())
     page = BeautifulSoup((report / 'en/research.html').read_text(encoding='utf-8'), 'html.parser')
-    assert page.select_one('[data-authored] > p').get_text() == content['sections'][0]['paragraphs'][0]['en']
+    assert (page.select_one('[data-authored] > p').get_text()
+            == content['sections'][0]['paragraphs'][0]['en'])
     saved = (report / 'manifest.json').read_bytes()
     main(args)
     assert (report / 'manifest.json').read_bytes() == saved
@@ -69,6 +70,42 @@ def test_same_revision_recovers_when_manifest_commit_fails(tmp_path, monkeypatch
     assert len(json.loads((report / 'manifest.json').read_bytes())['content_revisions']) == 1
 
 
+@pytest.mark.parametrize('field,value', [
+    ('before_manifest_sha256', '0' * 64), ('before_content_sha256', '0' * 64),
+    ('content_sha256', '0' * 64), ('changed_sections', []), ('provider_calls', 1),
+    ('before_manifest_gzip_base64', 'invalid'),
+    ('schema', 'unknown'), ('content_utf8', '{}'),
+])
+def test_check_rejects_tampered_revision_claims(tmp_path, field, value):
+    path, content = fixture(tmp_path)
+    report = tmp_path / 'report'
+    content['sections'][0]['paragraphs'][0]['en'] = 'Revised explanation.'
+    path.write_text(json.dumps(content), encoding='utf-8')
+    main(['--output', str(report), '--revise-paragraphs', str(path)])
+    manifest_path = report / 'manifest.json'
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest['content_revisions'][0][field] = value
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='revision provenance'):
+        check(report)
+
+
+def test_multiple_revisions_keep_a_verifiable_predecessor_chain(tmp_path):
+    path, content = fixture(tmp_path)
+    report = tmp_path / 'report'
+    for text in ('First correction.', 'Second correction.'):
+        content['sections'][0]['paragraphs'][0]['en'] = text
+        path.write_text(json.dumps(content), encoding='utf-8')
+        main(['--output', str(report), '--revise-paragraphs', str(path)])
+        assert check(report)
+    manifest_path = report / 'manifest.json'
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest['content_revisions'][0]['provider_calls'] = 1
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='revision provenance'):
+        check(report)
+
+
 @pytest.mark.parametrize('change', ['inputs', 'structure', 'language', 'missing-edition'])
 def test_paragraph_revision_rejects_other_changes_without_partial_writes(tmp_path, change):
     path, content = fixture(tmp_path)
@@ -83,7 +120,8 @@ def test_paragraph_revision_rejects_other_changes_without_partial_writes(tmp_pat
         revised['sections'][0]['paragraphs'][0].pop('zh')
     else:
         page = report / 'en/research.html'
-        page.write_text(page.read_text(encoding='utf-8').replace('data-authored=', 'removed-authored='), encoding='utf-8')
+        page.write_text(page.read_text(encoding='utf-8').replace(
+            'data-authored=', 'removed-authored='), encoding='utf-8')
     path.write_text(json.dumps(revised), encoding='utf-8')
     before = {p: p.read_bytes() for p in report.rglob('*') if p.is_file()}
     with pytest.raises(ValueError):
