@@ -464,10 +464,13 @@ def test_webfetch_scope_switch_keeps_call_and_case_context(tmp_path, browser, di
             expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '4')
             expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
             identities = page.locator('#ranking-web a[href*="providers/"]').evaluate_all('(links) => links.map(a => a.getAttribute("href").split("/").pop()).sort()')
+            labels = page.locator('#ranking-web a[href*="providers/"]').all_text_contents()
+            assert len(set(labels)) == 4
             page.locator('a[data-content-scope="full"]').click()
             expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '0')
             expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
             assert page.locator('#ranking-web a[href*="providers/"]').evaluate_all('(links) => links.map(a => a.getAttribute("href").split("/").pop()).sort()') == identities
+            assert page.locator('#ranking-web a[href*="providers/"]').all_text_contents() == labels
             if language == 'en':
                 page.goto(origin.rstrip('/')+'/index.html?report-language=zh')
                 page.locator('a[data-content-scope="full"]').click()

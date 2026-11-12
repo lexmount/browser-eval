@@ -338,6 +338,15 @@ def with_measured_method_labels(render):
                     labels[name][language] = value
             token = _MEASURED_LABELS.set(labels)
             try:
+                display = {name: {language: browser_method_label(name, language=language)
+                                  for language in ('zh', 'en')}
+                           for name in {row['provider'] for row in records}}
+                for language in ('zh', 'en'):
+                    counts = Counter(value[language] for value in display.values())
+                    for name, value in display.items():
+                        if counts[value[language]] > 1:
+                            value[language] += f' ({name})'
+                labels.update(display)
                 return render(out, dataset, records, *args, **kwargs)
             finally:
                 _MEASURED_LABELS.reset(token)

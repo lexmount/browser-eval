@@ -511,6 +511,8 @@ def test_all_contestants_switch_scoring_together_without_adding_scope_rows(tmp_p
         column = next(i for i, label in enumerate(headers) if label.startswith('任务通过率'))
         rows = table.select('tbody tr')
         assert len(rows) == len(names)
+        labels = [row.select_one('a[href*="providers/"]').get_text(strip=True) for row in rows]
+        assert len(set(labels)) == len(names)
         actual = {}
         for row in rows:
             link = row.select_one('a[href*="providers/"]')
