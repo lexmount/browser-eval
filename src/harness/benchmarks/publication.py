@@ -170,7 +170,7 @@ class DatasetRelease:
     default_dataset: str | None = None
     viewer_filters: dict | None = None
     edition: dict | None = None
-    hub_tools: dict[str, bytes] | None = None
+    hub_files: dict[str, bytes] | None = None
 
     @classmethod
     def from_git(cls, checkout: Path, track: str, revision: str) -> DatasetRelease:
@@ -244,7 +244,8 @@ class DatasetRelease:
                    external_sources=identity.get("external_sources") if hub else None,
                    scorer=settings.get('scorer'), default_dataset=settings.get('default_dataset'),
                    viewer_filters=filters, edition=identity.get('edition') if hub else None,
-                   hub_tools=_git_blobs(checkout, revision, ('tools', 'Makefile')) if hub else None)
+                   hub_files=_git_blobs(checkout, revision, ('tools', 'Makefile', 'snapshots.json'))
+                   if hub else None)
 
     def runtime_settings(self) -> dict:
         """Publish the execution choices bound to this dataset edition."""
@@ -490,8 +491,9 @@ class DatasetRelease:
             manifest["upstream"] = json.loads(self.files["definitions/registry.json"])["source"]
         files["manifest.json"] = encoded(manifest)
         output.mkdir(parents=True, exist_ok=True)
-        # Hub-only tooling is carried unchanged so a dataset pull request keeps it.
-        for name, raw in {**(self.hub_tools or {}), **files}.items():
+        # Hub-only tooling and snapshot URL bindings (written by web_extract.snapshots.publish)
+        # are carried unchanged so a dataset pull request keeps them.
+        for name, raw in {**(self.hub_files or {}), **files}.items():
             path = output / name
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_bytes(raw)
