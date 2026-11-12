@@ -176,6 +176,13 @@ page and response against its source hash. It changes storage and navigation onl
 it does not rescore results. Run the full release gate on the canonical report and
 exercise the exported viewers on the target host before delivery.
 
+For wording corrections, use `report --output /absolute/report --revise-paragraphs
+/absolute/content.json`. This updates existing `sections[].paragraphs` in every
+generated language and records the content revision without rebuilding evidence
+pages. Paragraph counts, language coverage, report structure and all other inputs
+must stay unchanged. Changes to methods, metrics, prices or assets require a normal
+build. Run the usual release checks and freeze a new publication plan afterward.
+
 Collection stops after the declared retry if a participant returns HTTP 401 or
 402. Resolve the account problem before continuing with the same certified entry
 point and `--resume`. Resume requires the unchanged frozen profile and reference

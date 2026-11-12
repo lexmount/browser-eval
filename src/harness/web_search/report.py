@@ -29,7 +29,12 @@ from harness.report_languages import (
 from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.presentation import check_presentation
 from harness.reporting.presentation import esc as escape_text
-from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
+from harness.reporting.versions import (
+    FILENAME,
+    bind_build_version,
+    check_build_version,
+    software_identity,
+)
 from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
 from harness.web_search.core import (
@@ -67,6 +72,7 @@ from harness.web_search.revisions import (
     validate_revision_binding,
 )
 from harness.web_search.runner import reference_available, reference_changes
+from lexbench_webfetch.paths import contained_path
 from lexbench_websearch import answer_rules
 from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
 from lexbench_websearch.inputs import definition_path, implementation_sources
@@ -2203,6 +2209,68 @@ def check(output, *, return_data=False, evidence_only=False):
     return True
 
 
+def revise_paragraphs(output, content):
+    """Revise authored paragraphs only; retain evidence and require normal release checks."""
+    output, content = Path(output), Path(content)
+    path = contained_path(output, 'manifest.json', reject_symlinks=True)
+    before = path.read_bytes()
+    manifest = json.loads(before)
+    if (manifest.get('schema') != 'web-search-report/1' or not manifest.get('languages')
+            or set(manifest['languages']) - {'en', 'zh'}):
+        raise ValueError('Paragraph revisions require a supported Web Search report')
+    previous = manifest.get('authored') or {}
+    raw = content.read_bytes()
+    revised = json.loads(raw)
+    if (dict(previous, sections=[]) != dict(revised, sections=[])
+            or len(previous.get('sections', [])) != len(revised.get('sections', []))):
+        raise ValueError('Paragraph revisions cannot change report inputs or structure')
+    changed = []
+    for index, (old, new) in enumerate(zip(previous.get('sections', []), revised.get('sections', []), strict=True)):
+        if (dict(old, paragraphs=[]) != dict(new, paragraphs=[])
+                or len(old.get('paragraphs', [])) != len(new.get('paragraphs', []))):
+            raise ValueError('Paragraph revisions cannot change report inputs or structure')
+        for left, right in zip(old.get('paragraphs', []), new.get('paragraphs', []), strict=True):
+            if left.keys() != right.keys() or any(not isinstance(value, str) for value in right.values()):
+                raise ValueError('Paragraph revisions must retain language coverage')
+        if old.get('paragraphs') != new.get('paragraphs'):
+            changed.append(index)
+    if not changed and bytes_sha256(raw) == manifest.get('content_sha256'):
+        return output / 'index.html'
+    seen = {(index, lang): 0 for index in changed for lang in manifest['languages']}
+    updates = {}
+    for lang in manifest['languages']:
+        prefix = '' if lang == 'zh' else lang + '/'
+        for page in reader_pages(previous.get('presentation'), reviewed=bool(manifest.get('independent_review_sha256'))):
+            target = contained_path(output, prefix + page['route'], reject_symlinks=True)
+            soup = BeautifulSoup(target.read_text(encoding='utf-8'), 'html.parser')
+            touched = False
+            for index in changed:
+                old = previous['sections'][index]['paragraphs']
+                new = revised['sections'][index]['paragraphs']
+                for section in soup.select(f'[data-authored="{index}"]'):
+                    paragraphs = section.find_all('p', recursive=False)[:len(old)]
+                    if [p.get_text() for p in paragraphs] != [p[lang] for p in old]:
+                        raise ValueError('Existing authored paragraphs differ from their frozen content')
+                    for node, paragraph in zip(paragraphs, new, strict=True):
+                        node.string = paragraph[lang]
+                    seen[index, lang] += 1
+                    touched = True
+            if touched:
+                updates[target] = str(soup)
+    if any(count == 0 for count in seen.values()):
+        raise ValueError('Revised paragraph is missing from a generated language')
+    receipt = {'before_manifest_sha256': bytes_sha256(before),
+               'before_content_sha256': manifest.get('content_sha256'),
+               'content_sha256': bytes_sha256(raw), 'provider_calls': 0,
+               'changed_sections': changed, 'producer': software_identity()}
+    manifest['authored'], manifest['content_sha256'] = revised, bytes_sha256(raw)
+    manifest['content_revisions'] = [*manifest.get('content_revisions', []), receipt]
+    for target, text in updates.items():
+        target.write_text(text, encoding='utf-8')
+    write_json(path, manifest)
+    return output / 'index.html'
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -2217,6 +2285,8 @@ def main(argv=None):
         help="Add a separately verified cohort to the same report",
     )
     parser.add_argument("--content", type=Path)
+    parser.add_argument('--revise-paragraphs', type=Path,
+                        help='Revise authored paragraphs in an existing report without rebuilding evidence pages')
     parser.add_argument("--identity-correction", type=Path)
     parser.add_argument("--review", type=Path, help="Complete independent review with adjudications")
     parser.add_argument("--relevance", type=Path, help="Complete, provenance-bound relevance labels for every in-house query")
@@ -2232,6 +2302,11 @@ def main(argv=None):
     parser.add_argument("--export-delivery", type=Path, metavar="DESTINATION",
                         help="Export the checked report into lossless case shards for bounded-file hosts")
     args = parser.parse_args(argv)
+    if args.revise_paragraphs:
+        if any(value for key, value in vars(args).items() if key not in ('output', 'revise_paragraphs')):
+            parser.error('Paragraph revisions accept only --output and --revise-paragraphs')
+        print(revise_paragraphs(args.output, args.revise_paragraphs))
+        return
     if args.export_annotations:
         if args.source or args.cohort:
             parser.error("Annotation export consumes an existing report")
