@@ -121,7 +121,8 @@ def test_reader_labels_state_what_was_found_and_full_summary_scope():
     assert "符合所选检查" not in page
     assert "不符合所选检查" not in page
     assert "完整长摘要" in page
-    assert "上方筛选条件同步控制这里" in page
+    assert "上方勾选的方法会同步显示在下方" in page
+    assert "结果区可横向和纵向滚动" in page
 
 
 def test_benchmark_and_task_type_filters_are_separate():
