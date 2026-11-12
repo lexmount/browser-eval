@@ -11,6 +11,7 @@ dependencies = [
   "soupsieve==2.9.2",
   "fastcdc==1.7.0",
   "python-dotenv==1.1.1",
+  "pillow>=11,<13",
   "idna==3.19",
   "markdown-it-py==4.2.0",
 ]
@@ -49,7 +50,6 @@ webmainbench-eval = [
 browser-use-eval = [
   "docker>=7,<8",
   "json-repair>=0.54,<1",
-  "pillow>=11,<13",
   "playwright>=1.52,<2",
   "psutil>=7,<8",
   "pyyaml>=6,<7",

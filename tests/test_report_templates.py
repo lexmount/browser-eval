@@ -66,7 +66,7 @@ class ReportTemplateTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp);source=root/'source';model=diagnostic_example(source)
             figure=source/'issue.png'
-            figure.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='))
+            figure.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg=='))
             example=dict(case_id='challenge',expected='Read article body',actual='Challenge returned',
                          cause='Target body was not reached',fix='Detect challenge before extraction',
                          verify='A challenge must fail even with HTTP 200',
@@ -129,6 +129,22 @@ class ReportTemplateTests(unittest.TestCase):
                 with self.subTest(index=old),self.assertRaises(ValueError):check_diagnostic_report(output)
             home.write_text(original_home,encoding='utf-8')
 
+    def test_illustrated_report_rejects_corrupt_png_even_with_matching_hash(self):
+        import base64
+        valid=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg==')
+        corrupt=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEUlEQVRub3QgYSB6bGliIHN0cmVhbUUA3FEAAAAASUVORK5CYII=')
+        for name,raw in [('signature',valid[:8]),('truncated',valid[:33]),
+                         ('checksum',base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=')),('pixel-data',corrupt)]:
+            with self.subTest(image=name), tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                (source/'broken.png').write_bytes(raw)
+                model['pages']={'guide':[dict(id='diagram',title='Content path',paragraphs=[],
+                    figure=dict(path='broken.png',sha256=hashlib.sha256(raw).hexdigest(),
+                                alt='Target content path',scope='Synthetic evidence'))]}
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,'PNG'):
+                    build_diagnostic_cohorts(source,root/'report')
+
     def test_illustrated_report_accepts_numeric_and_dotted_section_ids(self):
         import base64
         from bs4 import BeautifulSoup
@@ -136,7 +152,7 @@ class ReportTemplateTests(unittest.TestCase):
             with self.subTest(anchor=anchor), tempfile.TemporaryDirectory() as temp:
                 root=Path(temp);source=root/'source';model=diagnostic_example(source)
                 image=source/'diagram.png'
-                image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='))
+                image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg=='))
                 model['pages']={'guide':[dict(id=anchor,title='Content path',paragraphs=['Required body'],
                     figure=dict(path='diagram.png',sha256=hashlib.sha256(image.read_bytes()).hexdigest(),
                                 alt='Target content path',scope='Synthetic evidence'))]}
@@ -581,7 +597,7 @@ class ReportTemplateTests(unittest.TestCase):
             review_path=root/'review.json';review_path.write_text(json.dumps(review), encoding='utf-8')
             base['source_labels']={'rubric_visible':'参考要求可见'}
             import base64
-            png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=')
+            png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg==')
             (root/'diagram.png').write_bytes(png)
             base['pages']={'guide':[dict(id='mechanism',title='Mechanism',paragraphs=[],figure=dict(
                 path='diagram.png',sha256=hashlib.sha256(png).hexdigest(),alt='Synthetic content path',scope='Synthetic diagram'))]}

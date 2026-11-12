@@ -85121,6 +85121,763 @@
       "expected_metrics": {
         "evaluation_content_scope": "main"
       }
+    },
+    {
+      "id": "content-scope-reference-only-invalid",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Read the article body.",
+              "ground_truth_main_content": "Complete article body"
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "substantive acceptance"
+    },
+    {
+      "id": "content-scope-reference-with-rule-complete",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body"
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-reference-with-rule-unrelated",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body"
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "content-scope-main-without-full-comments",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "source_benchmark": {
+                "mode": "article",
+                "comment_contract": {
+                  "ignored_labels": [
+                    "add a comment",
+                    "leave a reply",
+                    "like",
+                    "likes",
+                    "load more",
+                    "log in",
+                    "login",
+                    "read more",
+                    "register",
+                    "replies",
+                    "reply",
+                    "report",
+                    "share",
+                    "show more",
+                    "sign in",
+                    "加载更多",
+                    "发表评论",
+                    "回复",
+                    "展开",
+                    "展开回复",
+                    "查看更多",
+                    "注册",
+                    "添加评论",
+                    "点赞",
+                    "登录",
+                    "登录后评论"
+                  ],
+                  "unavailable_notices": [
+                    "[deleted]",
+                    "[removed]",
+                    "[内容不可见]",
+                    "[已删除]",
+                    "this comment has been hidden",
+                    "this comment has been hidden (marked as spam)"
+                  ],
+                  "version": 2,
+                  "minimum_comments": 1,
+                  "record_selector": ".comment",
+                  "author_selector": ".author",
+                  "body_selector": ".text",
+                  "section_markers": [
+                    "Comments"
+                  ]
+                }
+              }
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "source_benchmark": {
+          "mode": "article",
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-full-comments-missing",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "source_benchmark": {
+                "mode": "article",
+                "comment_contract": {
+                  "ignored_labels": [
+                    "add a comment",
+                    "leave a reply",
+                    "like",
+                    "likes",
+                    "load more",
+                    "log in",
+                    "login",
+                    "read more",
+                    "register",
+                    "replies",
+                    "reply",
+                    "report",
+                    "share",
+                    "show more",
+                    "sign in",
+                    "加载更多",
+                    "发表评论",
+                    "回复",
+                    "展开",
+                    "展开回复",
+                    "查看更多",
+                    "注册",
+                    "添加评论",
+                    "点赞",
+                    "登录",
+                    "登录后评论"
+                  ],
+                  "unavailable_notices": [
+                    "[deleted]",
+                    "[removed]",
+                    "[内容不可见]",
+                    "[已删除]",
+                    "this comment has been hidden",
+                    "this comment has been hidden (marked as spam)"
+                  ],
+                  "version": 2,
+                  "minimum_comments": 1,
+                  "record_selector": ".comment",
+                  "author_selector": ".author",
+                  "body_selector": ".text",
+                  "section_markers": [
+                    "Comments"
+                  ]
+                }
+              }
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "source_benchmark": {
+          "mode": "article",
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        },
+        "content_scope": "full"
+      },
+      "artifact": "Complete article body\nContact publisher",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "content-scope-full-comments-complete",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "source_benchmark": {
+                "mode": "article",
+                "comment_contract": {
+                  "ignored_labels": [
+                    "add a comment",
+                    "leave a reply",
+                    "like",
+                    "likes",
+                    "load more",
+                    "log in",
+                    "login",
+                    "read more",
+                    "register",
+                    "replies",
+                    "reply",
+                    "report",
+                    "share",
+                    "show more",
+                    "sign in",
+                    "加载更多",
+                    "发表评论",
+                    "回复",
+                    "展开",
+                    "展开回复",
+                    "查看更多",
+                    "注册",
+                    "添加评论",
+                    "点赞",
+                    "登录",
+                    "登录后评论"
+                  ],
+                  "unavailable_notices": [
+                    "[deleted]",
+                    "[removed]",
+                    "[内容不可见]",
+                    "[已删除]",
+                    "this comment has been hidden",
+                    "this comment has been hidden (marked as spam)"
+                  ],
+                  "version": 2,
+                  "minimum_comments": 1,
+                  "record_selector": ".comment",
+                  "author_selector": ".author",
+                  "body_selector": ".text",
+                  "section_markers": [
+                    "Comments"
+                  ]
+                }
+              }
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "source_benchmark": {
+          "mode": "article",
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        },
+        "content_scope": "full"
+      },
+      "artifact": "Complete article body\nContact publisher\n\nComments\n\n## Reader\nA thoughtful book.",
+      "ok": true,
+      "expected_task_pass": true
     }
   ]
 }

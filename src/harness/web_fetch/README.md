@@ -15,7 +15,7 @@ scoring. Explicit selection fails for tasks without both annotations. Legacy
 tasks keep their existing behavior when no scope is selected. Scores bind the
 selected profile hash; reuse saved responses for score-only comparisons.
 Rescoring retains the saved dataset and task scopes and rejects a scope switch.
-Profiles inherit the original blocked-page and navigation constraints. Tasks with
+Profiles inherit the original blocked-page and navigation constraints. They require a gating acceptance rule; reference text alone supplies only diagnostics. Omitted title, comment and post contracts are cleared, while explicitly declared scope components remain required. Tasks with
 an existing full-page ordered-tree acceptance contract require separate tree
 annotations and are rejected by this scope selector.
 
@@ -109,7 +109,7 @@ The same model accepts the fields below; they do not select a second renderer or
 | --- | --- |
 | `pages.overview[]`, `pages.guide[]` | Blocks with `id`, `title`, `paragraphs` and optional `case_ids`, `table`, `figure`, `examples`. |
 | `table` | `headers` and `rows`; link cells contain `label` and exactly one of `case_id`, `issue_id` or HTTP(S) `url`. |
-| `figure` | Relative PNG `path`, `sha256`, `alt` and `scope`. Preparation and checking use the same hash/type validator. |
+| `figure` | Relative PNG `path`, `sha256`, `alt` and `scope`. Preparation and checking use the same hash and PNG decoder checks (structure, checksums and pixel data). |
 | `examples[]` | `case_id`, `expected`, `actual`, `cause`, `fix`, `verify` and `evidence[]` containing a bound `field` and verbatim `quote`. |
 | `problem_focus` | Requires at least one concrete guide diagnosis; statistics, reviewed causes and three-way specimens remain mandatory. |
 | `comparison_mode` | Highlights delivery/acceptance rates and keeps the combined call inventory in a disclosure. It does not change scores or populations. |

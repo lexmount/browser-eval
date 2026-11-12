@@ -62,7 +62,6 @@ def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, st
             for k in (
                 "required_facts",
                 "required_patterns",
-                "ground_truth_main_content",
                 "body_requirements",
                 "acceptance_contract",
                 "composite_acceptance",
@@ -102,16 +101,16 @@ def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, st
         "post_qualification_proof",
     }
     original_benchmark = case.get("source_benchmark", {})
-    benchmarks = [profile.get("source_benchmark", original_benchmark) for profile in (main, full)]
-    identities = [{k: v for k, v in value.items() if k not in components} for value in benchmarks]
     original_identity = {k:v for k,v in original_benchmark.items() if k not in components}
+    benchmarks = [profile.get("source_benchmark", original_identity) for profile in (main, full)]
+    identities = [{k: v for k, v in value.items() if k not in components} for value in benchmarks]
     if any(identity != original_identity for identity in identities):
         raise ValueError("Content scope cannot change source or navigation identity")
     effective = deepcopy(case)
     effective.update(deepcopy(REQUIREMENT_DEFAULTS))
     effective.update(deepcopy(profiles[selected]["requirements"]))
     effective["forbidden_any"] = deepcopy(forbidden)
-    effective["source_benchmark"] = deepcopy(profiles[selected]["requirements"].get("source_benchmark", original_benchmark))
+    effective["source_benchmark"] = deepcopy(profiles[selected]["requirements"].get("source_benchmark", original_identity))
     effective["content_scope"] = selected
     binding = hashlib.sha256(
         json.dumps(

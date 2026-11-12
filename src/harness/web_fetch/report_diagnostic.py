@@ -6,8 +6,11 @@ import math
 import re
 import statistics
 from collections import Counter
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
+
+from PIL import Image
 
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
@@ -90,6 +93,13 @@ def _read_diagnostic_figure(figure, source):
         raise ValueError('Diagnosis illustration differs from its input binding')
     if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
         raise ValueError('Diagnosis illustration must be a PNG')
+    try:
+        with Image.open(BytesIO(raw), formats=('PNG',)) as image:
+            image.verify()
+        with Image.open(BytesIO(raw), formats=('PNG',)) as image:
+            image.load()
+    except (OSError, SyntaxError, ValueError, Image.DecompressionBombError) as error:
+        raise ValueError('Diagnosis illustration is not a complete PNG') from error
     return raw
 
 

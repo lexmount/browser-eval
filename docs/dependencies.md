@@ -18,6 +18,7 @@ Use the declared source for each benchmark and evaluator. The full commit in the
 | Search scoring (`src/lexbench_websearch/`) | Source qualifications and retrieval/relevance metrics | Webstone source revision; [Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and [SimpleQA](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) definitions selected by the [data lock](../src/harness/benchmarks/data-lock.json) |
 | [Beautiful Soup](https://www.crummy.com/software/BeautifulSoup/) | HTML parsing | `pyproject.toml` and `uv.lock` |
 | [FastCDC](https://github.com/iscc/fastcdc-py) | Content chunking | `pyproject.toml` and `uv.lock` |
+| [Pillow](https://pillow.readthedocs.io/) | Decode and validate report PNG illustrations | `pyproject.toml` and `uv.lock` |
 
 ## Git-based runtime dependencies
 

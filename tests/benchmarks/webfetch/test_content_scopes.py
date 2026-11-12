@@ -231,3 +231,32 @@ def test_scope_evidence_publication_omits_unrecognized_payloads():
     case=annotated_case()
     for name in ('main','full'):case['content_scopes'][name]['evidence']['private_notes']='licensed reference body'
     assert 'licensed reference body' not in json.dumps(public_task(case))
+
+
+def test_reference_text_alone_cannot_replace_acceptance_rules():
+    case=annotated_case()
+    case['content_scopes']['main']['requirements']={
+        'task_prompt':'Read the article body.', 'ground_truth_main_content':'Complete article body'}
+    with pytest.raises(ValueError,match='substantive acceptance'):
+        score_attempt(case,b'Unrelated ordinary text',ok=True,content_scope='main')
+
+
+def test_omitted_components_do_not_survive_complete_scope_replacement():
+    case=annotated_case()
+    components={'title_contract':{'version':1,'alternatives':['Article']},
+                'comment_contract':{'version':2},'post_contract':{'version':2},
+                'comment_qualification_proof':{},'comment_presence_review':{},'post_qualification_proof':{}}
+    identity={'mode':'article','risk_control':{'navigation_contract':{'version':1}}}
+    case['source_benchmark']={**identity,**components}
+    case['content_scopes']['full']['requirements']['source_benchmark']=deepcopy(case['source_benchmark'])
+    main,_=select_content_scope(case,'main');full,_=select_content_scope(case,'full')
+    assert main['source_benchmark']==identity
+    assert full['source_benchmark']==case['source_benchmark']
+
+
+def test_scope_component_controls_use_public_scoring_and_task_predicate():
+    from lexbench_webfetch.scoring_regressions import check_scoring_regressions
+    identifiers=['content-scope-reference-only-invalid','content-scope-reference-with-rule-complete',
+        'content-scope-reference-with-rule-unrelated','content-scope-main-without-full-comments',
+        'content-scope-full-comments-missing','content-scope-full-comments-complete']
+    assert check_scoring_regressions(identifiers)==identifiers
