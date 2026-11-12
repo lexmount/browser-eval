@@ -383,3 +383,27 @@ def test_original_file_rate_limit_retries_the_same_read(tmp_path, monkeypatch):
             assert stream.read() == b'original'
     assert calls == ['https://reports.example/original'] * 2
     assert sleeps == [2]
+
+
+@pytest.mark.parametrize('descriptor_fields', [False, True])
+def test_original_json_attachment_is_data_even_when_it_contains_download_keys(tmp_path, descriptor_fields):
+    body = {'url': 'https://external.example/original-data', 'versionId': 'a-data-value'}
+    if descriptor_fields:
+        body.update(assembled=False, filename='answer.json')
+    original = json.dumps(body).encode()
+    manifest = {'assembled': False, 'versionId': 'ver_saved',
+                'files': [{'path': 'answer.json', 'size': len(original)}]}
+    def response(request, timeout):
+        assert request.full_url.startswith('https://reports.example/')
+        export = request.full_url.endswith('/export')
+        raw = json.dumps(manifest).encode() if export else original
+        stream = io.BytesIO(raw)
+        stream.headers = {'x-artifact-version': 'ver_saved', 'content-type': 'application/json'}
+        if not export:
+            stream.headers['content-disposition'] = 'attachment; filename="answer.json"'
+        return stream
+    request = urllib.request.Request('https://reports.example/api/sites/site/export')
+    with patch('urllib.request.build_opener', lambda *handlers: SimpleNamespace(open=response)):
+        _, path = download_export(request, tmp_path)
+    with zipfile.ZipFile(path) as archive:
+        assert archive.read('answer.json') == original

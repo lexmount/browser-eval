@@ -463,10 +463,11 @@ def test_run_and_offline_rescore_can_select_one_scope_or_both(tmp_path, scope):
     altered = json.loads(dataset.read_text(encoding='utf-8'))
     altered['cases'][0]['url'] = 'https://different.example.test/task'
     dataset.write_text(json.dumps(altered), encoding='utf-8')
-    result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--score-scope', 'main', language='zh')
-    assert result.returncode != 0
-    assert 'retrieval task' in result.stderr
-    assert (run/'results.jsonl').read_bytes() == saved_results
+    for selection in ('main', 'full', 'both'):
+        result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--score-scope', selection, language='zh')
+        assert result.returncode != 0
+        assert 'retrieval task' in result.stderr
+        assert (run/'results.jsonl').read_bytes() == saved_results
 
 
 def test_scopes_do_not_infer_one_verdict_from_the_other():

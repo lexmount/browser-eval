@@ -514,7 +514,14 @@ def diagnostic_bundle_root(output, model):
 
 def check_diagnostic_scope_bundle(output, model):
     bundle = diagnostic_scope_bundle(model)
-    if not bundle or model['content_scope'] != bundle['default_scope']:
+    if not bundle:
+        return
+    if model['content_scope'] != bundle['default_scope']:
+        root = diagnostic_bundle_root(output, model)
+        primary, _ = load_diagnostic(root)
+        if primary.get('scope_bundle') != bundle or primary['content_scope'] != bundle['default_scope']:
+            raise ValueError('Diagnostic scope view has wrong primary binding')
+        check_diagnostic_scope_bundle(root, primary)
         return
     current = {row['id']: row for row in model['rows']}
     for scope, relative in bundle['views'].items():
@@ -528,7 +535,7 @@ def check_diagnostic_scope_bundle(output, model):
             raise ValueError('Diagnostic scope changed contestant identities or labels')
         if child.get('provenance') != model.get('provenance'):
             raise ValueError('Diagnostic scope changed implementation provenance')
-        check_diagnostic_report(view)
+        check_diagnostic_report(view, _bundle_checked=True)
         rows = {row['id']: row for row in child['rows']}
         if rows.keys() != current.keys():
             raise ValueError('Diagnostic scope view changed the invocation population')
@@ -679,7 +686,7 @@ def load_diagnostic(source):
     return model, files
 
 
-def check_diagnostic_report(output, profile=None):
+def check_diagnostic_report(output, profile=None, *, _bundle_checked=False):
     """Enforce the shared reader structure and evidence dialogs at release."""
 
 
@@ -924,7 +931,8 @@ def check_diagnostic_report(output, profile=None):
             raise ValueError('Public report must not contain symlinks')
         if path.is_file() and (risk := publication_risk(path.read_bytes())):
             raise ValueError('Public report privacy scan: ' + path.relative_to(output).as_posix() + ': ' + risk)
-    check_diagnostic_scope_bundle(output, model)
+    if not _bundle_checked:
+        check_diagnostic_scope_bundle(output, model)
     return {"cases": len(model["rows"]), "core_routes": len(core), "status": "passed"}
 
 

@@ -201,7 +201,8 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
                 if relative != '.':
                     build_diagnostic_cohorts(contained_path(source, relative, reject_symlinks=True),
                                              staging/relative)
-        check_diagnostic_report(staging, profile=profile)
+        check_diagnostic_report(staging, profile=profile,
+                                _bundle_checked=bool(scope_bundle and model['content_scope'] != scope_bundle['default_scope']))
         staging.rename(output)
     except Exception:
         shutil.rmtree(staging)

@@ -184,3 +184,26 @@ def test_only_declared_alternate_subtrees_are_checked_as_child_reports(tmp_path)
     rogue.write_text('<html><a href="missing.html">Broken</a></html>', encoding='utf-8')
     with pytest.raises(ValueError):
         check_diagnostic_report(output)
+
+
+def test_direct_alternate_check_enforces_the_shared_contestant_identity(tmp_path):
+    from harness.web_fetch.report import generate_cohort_diagnostic
+    from harness.reporting.versions import bind_build_version
+    source = tmp_path/'input'
+    paired_input(source)
+    output = tmp_path/'report'
+    build_diagnostic_cohorts(source, output)
+    child = output/'content-scopes/full'
+    assert check_diagnostic_report(child)['status'] == 'passed'
+    path = child/'report.json'
+    model = json.loads(path.read_text(encoding='utf-8'))
+    model['cohorts'][0]['label'] = 'A different contestant'
+    path.write_text(json.dumps(model), encoding='utf-8')
+    generate_cohort_diagnostic(child, model)
+    manifest_path = child/'report-manifest.json'
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8'))
+    manifest['model_sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    manifest['webstone'] = bind_build_version(child)
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='contestant identities'):
+        check_diagnostic_report(child)

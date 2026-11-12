@@ -1160,7 +1160,7 @@ def rescore_evaluation(
         'task_content_scopes': {case['id']: case.get('content_scope') for case in saved_dataset['cases']},
         'max_failure_retries': manifest.get('parameters', {}).get('max_failure_retries', 0),
     })
-    if dataset_meta.get('scoring_scope') in {'main', 'full'}:
+    if dataset_meta.get('scoring_scope') in {'main', 'full', 'both'}:
         from lexbench_webfetch.content_scopes import REQUIREMENT_DEFAULTS
         acceptance = set(REQUIREMENT_DEFAULTS) | {'content_scope', 'content_scopes', 'scoring_scope'}
         prior = {case['id']: case for case in saved_dataset['cases']}

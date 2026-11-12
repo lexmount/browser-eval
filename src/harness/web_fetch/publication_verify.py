@@ -268,7 +268,11 @@ def _assemble_manifest_export(request, path, version):
                 with target.open('wb') as stream:
                     if raw is not None:
                         descriptor = json.loads(raw)
-                        if isinstance(descriptor, dict) and 'url' in descriptor and 'versionId' in descriptor:
+                        attachment = response.headers.get('content-disposition', '').lower().startswith('attachment')
+                        if (not attachment and isinstance(descriptor, dict)
+                                and descriptor.get('assembled') is False
+                                and isinstance(descriptor.get('filename'), str)
+                                and 'url' in descriptor and 'versionId' in descriptor):
                             address = urlsplit(descriptor['url'])
                             if (descriptor['versionId'] != version or address.scheme != 'https'
                                     or not address.hostname or address.username or address.password
