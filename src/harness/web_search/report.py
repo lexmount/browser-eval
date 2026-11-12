@@ -956,7 +956,7 @@ def _core_metrics_table(inputs: ReportInputs, edition: ReportEdition) -> tuple[l
             if i == 5 and value is not None:
                 label = t("{value:.1f}% ({n} queries)", value=value * 100, n=summary[m['id']]['metrics'][hit_key]['n'])
             win = i in winners and value == winners[i]
-            td.append(numeric_cell(label, value if i else None, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
+            td.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
         core.append("<tr>" + "".join(td) + "</tr>")
     return headers, core
 
@@ -2925,7 +2925,7 @@ def interpretation_summary_table(profile, selected, zh, content=None, relevance_
         for column, label in enumerate(values):
             source_index = (0, 1, 2, 4, 5, 6)[column]
             win = source_index in winners and raw[source_index] == winners[source_index]
-            cells_html.append(numeric_cell(label, raw[source_index], f"interpretation-{source_index}", directions.get(source_index, "neutral"), win))
+            cells_html.append('<td>' + label + '</td>' if source_index == 0 else numeric_cell(label, raw[source_index], f"interpretation-{source_index}", directions.get(source_index, "neutral"), win))
         rows.append('<tr>' + ''.join(cells_html) + '</tr>')
     return (
         '<h2>' + report_text("Core API comparison", zh) + '</h2>'

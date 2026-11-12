@@ -2,6 +2,7 @@
 
 import base64
 import copy
+import hashlib
 import io
 import json
 import urllib.error
@@ -218,6 +219,24 @@ def test_invalid_model_answer_is_retained_and_never_automatically_replaced(run_j
     assert next(run_judge.output.glob("*-attempts.json")).exists()
 
 
+def test_a_changed_valid_response_cannot_authorize_a_paid_format_repair(run_judge, monkeypatch):
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    run_judge()
+    path = run_judge.output / (hashlib.sha256(b'q').hexdigest()[:16] + '.json')
+    saved = json.loads(path.read_bytes())
+    saved['response']['choices'][0]['message']['content'] = '{"judgments":[]}'
+    path.write_text(json.dumps(saved), encoding='utf-8')
+    with pytest.raises(ValueError, match='Incomplete judge run'):
+        run_judge(['--repair-format'])
+    assert len(requests) == 1
+
+
 @pytest.mark.parametrize('invalid_format', ['omitted-candidates', 'quoted-string', 'url-reference'])
 def test_explicit_format_repair_preserves_invalid_call_and_never_repeats_valid_answers(
     run_judge, monkeypatch, invalid_format
@@ -246,6 +265,15 @@ def test_explicit_format_repair_preserves_invalid_call_and_never_repeats_valid_a
     evidence = json.loads((run_judge.output / 'relevance.json').read_bytes())
     validate_model_evidence(evidence)
     assert evidence['judge']['calls'][0]['format_repair']['prior_call'] == original
+    for field in ('response', 'request-hash'):
+        changed = copy.deepcopy(evidence)
+        prior = changed['judge']['calls'][0]['format_repair']['prior_call']
+        if field == 'response':
+            prior['response']['model'] = 'other-model'
+        else:
+            prior['attempts'][0]['request_sha256'] = '0' * 64
+        with pytest.raises(ValueError):
+            validate_model_evidence(changed)
     assert len(requests) == 2
     run_judge(['--repair-format'])
     assert len(requests) == 2

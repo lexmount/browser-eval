@@ -122,7 +122,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
             query_score = query_metrics(ranking, labels[case["id"]], cutoff) if has_labels and not quality_excluded else None
             outputs[method["id"]] = {
                 "score": query_score,
-                "primary": acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if has_labels else None),
+                "primary": None if case['id'] in labels and not has_labels else acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if has_labels else None),
                 "quality": any(x["grade"] is not None and x["grade"] >= 2 for x in items) if has_labels and not quality_excluded else None,
                 "source": acceptance(case, row, quality_excluded=quality_excluded, cutoff=cutoff), "answer": acceptance(case, row, "answer", quality_excluded=quality_excluded, cutoff=cutoff),
                 "site": acceptance(case, row, "site", cutoff=cutoff),

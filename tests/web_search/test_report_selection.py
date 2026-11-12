@@ -43,6 +43,8 @@ def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_
     compared = comparison_data(manifest["profile"], rows, relevance=evidence)
     unjudged = compared["cases"][0]["outputs"][profile["methods"][1]["id"]]
     assert unjudged["score"] is None and unjudged["quality"] is None
+    assert unjudged['primary'] is None
+    assert unjudged['source'] is True and unjudged['availability'] is True
     assert all(item["grade"] is None and item["grade_source"] == "unjudged" for item in unjudged["items"])
     home = BeautifulSoup((output / "index.html").read_text(encoding="utf-8"), "html.parser")
     assert home.select_one("[data-relevance-method-scope]")

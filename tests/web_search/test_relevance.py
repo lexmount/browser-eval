@@ -411,6 +411,31 @@ def test_valid_format_repair_is_inherited_without_another_judge_call():
     assert relevance.reusable_judge_call(packet, call, request)
 
 
+def test_unreceipted_historical_repair_requires_the_exact_pinned_predecessor():
+    import copy
+    import json
+    from harness.web_search import relevance
+
+    profile, rows, evidence, revision, _, _, _ = repaired_inheritance_fixture()
+    predecessor = evidence['judge']['predecessor']
+    predecessor['judge']['configuration'].pop('receipt_schema')
+    for call in predecessor['judge']['calls']:
+        call.pop('attempts', None)
+        if call.get('format_repair'):
+            call['format_repair']['prior_call'].pop('attempts', None)
+    identity = hashlib.sha256(json.dumps(predecessor, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    evidence['judge']['configuration']['predecessor_sha256'] = identity
+    inherited = set(evidence['judge']['inherited_case_ids'])
+    for index, call in enumerate(evidence['judge']['calls']):
+        if call['case_id'] in inherited:
+            evidence['judge']['calls'][index] = copy.deepcopy(next(
+                old for old in predecessor['judge']['calls'] if old['case_id'] == call['case_id']))
+    authority = {'model': [identity]}
+    relevance.verify_provenance(profile, rows, evidence, authority=authority)
+    with pytest.raises(ValueError, match='legacy evidence must be hash-pinned'):
+        relevance.verify_provenance(profile, rows, evidence)
+
+
 @pytest.mark.parametrize("change", ["prompt", "input", "model", "max_tokens", "extra_params", "repair", "receipt"])
 def test_format_repair_never_reuses_changed_inputs_or_invalid_proof(change):
     import copy

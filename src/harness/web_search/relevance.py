@@ -208,13 +208,15 @@ def reference_repair_messages(packet, expected):
     return [dict(expected[0], content=expected[0]["content"] + suffix), *expected[1:]]
 
 
-def repaired_messages(packet, call, expected):
+def repaired_messages(packet, call, expected, *, configuration=None):
     repair = call.get("format_repair")
     if not repair:
         return expected
     prior = repair["prior_call"]
     if prior["case_id"] != packet["case_id"] or prior["request"]["messages"] != expected or prior.get("format_repair"):
         raise ValueError("Invalid format-repair provenance")
+    if configuration and configuration.get("receipt_schema") in (2, 3):
+        validate_physical_receipts(prior, configuration)
     repaired = reference_repair_messages(packet, expected)
     if dict(prior["request"], messages=repaired) != call["request"]:
         raise ValueError("Format repair changed model configuration")
@@ -314,6 +316,45 @@ def validate_judge_url(value):
     return base
 
 
+def validate_physical_receipts(call, configuration):
+    """Verify transport evidence independently of judgment-format validity."""
+    request = call["request"]
+    if call['response'].get('model', '').lower() != configuration['model'].split('/')[-1].lower():
+        raise ValueError('Judge response reports a different model')
+    attempts = call.get("attempts", [])
+    if not attempts or len(attempts) > configuration["attempt_limit"]:
+        raise ValueError("Missing or excessive physical judge attempts")
+    request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
+    for index, attempt in enumerate(attempts, 1):
+        if (
+            attempt.get("attempt") != index
+            or attempt.get("request_sha256") != request_hash
+            or not attempt.get("completed")
+            or attempt.get("url")
+            != configuration["base_url"].rstrip("/") + "/chat/completions"
+            or attempt.get("request_headers") != configuration["request_headers"]
+        ):
+            raise ValueError("Physical judge attempt identity is invalid")
+        try:
+            raw = base64.b64decode(attempt["response_bytes_base64"], validate=True)
+        except (KeyError, ValueError) as error:
+            raise ValueError("Physical judge response bytes are invalid") from error
+        if hashlib.sha256(raw).hexdigest() != attempt.get("response_sha256"):
+            raise ValueError("Physical judge response hash differs")
+        if attempt.get("retryable") != _judge_retryable(
+            attempt.get("status"), attempt.get("error_type")
+        ):
+            raise ValueError("Physical judge retry classification differs from HTTP status")
+        if index < len(attempts) and not attempt.get("retryable"):
+            raise ValueError("Judge retried a deterministic failure")
+    final = attempts[-1]
+    if (
+        final.get("status") != 200
+        or json.loads(base64.b64decode(final["response_bytes_base64"])) != call["response"]
+    ):
+        raise ValueError("Final judge response differs from preserved bytes")
+
+
 def validate_model_evidence(evidence, *, _depth=0, authority=None):
     if _depth > 8:
         raise ValueError("Judge inheritance chain is too deep")
@@ -401,7 +442,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
                 "content": json.dumps(judge_input(packet), ensure_ascii=False, sort_keys=True),
             },
         ]
-        expected = repaired_messages(packet, call, expected)
+        expected = repaired_messages(packet, call, expected, configuration=configuration if strict else None)
         if (
             request.get("messages") != expected
             or request.get("model") != judge["name"]
@@ -414,38 +455,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
         if strict:
             _validate_judge_field_references(call["response"])
 
-            attempts = call.get("attempts", [])
-            if not attempts or len(attempts) > configuration["attempt_limit"]:
-                raise ValueError("Missing or excessive physical judge attempts")
-            request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
-            for index, attempt in enumerate(attempts, 1):
-                if (
-                    attempt.get("attempt") != index
-                    or attempt.get("request_sha256") != request_hash
-                    or not attempt.get("completed")
-                    or attempt.get("url")
-                    != configuration["base_url"].rstrip("/") + "/chat/completions"
-                    or attempt.get("request_headers") != configuration["request_headers"]
-                ):
-                    raise ValueError("Physical judge attempt identity is invalid")
-                try:
-                    raw = base64.b64decode(attempt["response_bytes_base64"], validate=True)
-                except (KeyError, ValueError) as error:
-                    raise ValueError("Physical judge response bytes are invalid") from error
-                if hashlib.sha256(raw).hexdigest() != attempt.get("response_sha256"):
-                    raise ValueError("Physical judge response hash differs")
-                if attempt.get("retryable") != _judge_retryable(
-                    attempt.get("status"), attempt.get("error_type")
-                ):
-                    raise ValueError("Physical judge retry classification differs from HTTP status")
-                if index < len(attempts) and not attempt.get("retryable"):
-                    raise ValueError("Judge retried a deterministic failure")
-            final = attempts[-1]
-            if (
-                final.get("status") != 200
-                or json.loads(base64.b64decode(final["response_bytes_base64"])) != call["response"]
-            ):
-                raise ValueError("Final judge response differs from preserved bytes")
+            validate_physical_receipts(call, configuration)
         actual_model = call["response"].get("model", "").lower()
         if actual_model != judge["name"].split("/")[-1].lower():
             raise ValueError("Judge response reports a different model")
@@ -579,6 +589,7 @@ def judge_main(argv=None):
             saved = json.loads(path.read_text(encoding="utf-8"))
             if not reusable_judge_call(p, saved, request):
                 raise ValueError("Saved judge request changed")
+            validate_physical_receipts(saved, contract)
             # A saved invalid model answer is an inspection task, never permission
             # to spend again or select a different answer on each invocation.
             try:

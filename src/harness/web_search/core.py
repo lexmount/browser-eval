@@ -175,6 +175,12 @@ def validate_profile(profile, *, execution_methods=None):
     for method in methods:
         canonical_url(method["endpoint"])
         adapter_for(method["adapter"])
+        if method['adapter'] == 'tencent-wsa':
+            expected = method.get('expected_response_version')
+            edition = method.get('output_options', {}).get('edition')
+            if (not isinstance(expected, str) or not expected.strip()
+                    or edition is not None and edition != expected):
+                raise ValueError('Yuanbao requires an expected response version matching its edition')
         if method.get("billing", "unknown") not in BILLING_POLICIES:
             raise ValueError("Unsupported billing policy")
         for case in cases:

@@ -15,6 +15,24 @@ def envelope(pages):
 
 
 class YuanbaoSearchTests(unittest.TestCase):
+    def test_profile_requires_an_explicit_matching_edition_before_collection(self):
+        from harness.web_search.core import validate_profile
+        from harness.web_search.example import synthetic_profile
+
+        profile = synthetic_profile()
+        profile['methods'] = [dict(profile['methods'][0], adapter='tencent-wsa',
+                                   output_options={'edition': 'lite'})]
+        for expected in (None, '', ' ', 1, 'standard'):
+            with self.subTest(expected=expected):
+                profile['methods'][0]['expected_response_version'] = expected
+                with self.assertRaisesRegex(ValueError, 'expected response version'):
+                    validate_profile(profile)
+        profile['methods'][0].pop('expected_response_version')
+        with self.assertRaisesRegex(ValueError, 'expected response version'):
+            validate_profile(profile)
+        profile['methods'][0]['expected_response_version'] = 'lite'
+        validate_profile(profile)
+
     def test_transport_failures_retry_without_becoming_edition_errors(self):
         from harness.web_search.example import synthetic_profile
         from harness.web_search.runner import run
@@ -289,6 +307,7 @@ class YuanbaoSearchTests(unittest.TestCase):
                 "id": "tencent-wsa",
                 "label": "Yuanbao Search",
                 "adapter": "tencent-wsa",
+                "expected_response_version": "standard",
                 "endpoint": "https://api.wsa.cloud.tencent.com/SearchPro",
                 "key_env": "TENCENT_WSA_API_KEY",
                 "currency": "CNY",

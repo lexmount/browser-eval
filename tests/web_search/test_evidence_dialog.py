@@ -74,6 +74,28 @@ def test_comparison_sorting_uses_raw_numbers_keeps_missing_last_and_preserves_hi
         page.close()
 
 
+def test_method_names_sort_in_standard_overview_and_interpretation(tmp_path, browser):
+    from harness.reporting.visual import local_report_server
+    from harness.web_search.example import example
+
+    example(tmp_path)
+    with local_report_server(tmp_path / 'report') as origin:
+        page = browser.new_page()
+        try:
+            for route in ('index.html', 'interpretation.html'):
+                page.goto(origin + '/' + route + '?report-language=zh')
+                comparison = page.locator('main table').first
+                button = comparison.locator('th button').first
+                button.click()
+                assert comparison.locator('tbody tr td:first-child').all_text_contents() == [
+                    'Fixture A', 'Fixture B']
+                button.click()
+                assert comparison.locator('tbody tr td:first-child').all_text_contents() == [
+                    'Fixture B', 'Fixture A']
+        finally:
+            page.close()
+
+
 @pytest.mark.parametrize("adapter", ["lexmount", "deepseek", "bocha"])
 def test_selected_native_item_and_complete_response_are_distinct(browser, adapter):
     items = [{"url": "https://example.com/first", "title": "Other rank", "summary": "UNSELECTED"},
