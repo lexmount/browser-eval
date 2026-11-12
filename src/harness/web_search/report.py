@@ -97,15 +97,16 @@ def fmt(value):
     return "—" if value is None else f"{value:,.2f}"
 
 
-def table(headers, rows, sortable=False, *, bounded=False):
+def table(headers, rows, sortable=True, *, bounded=False):
     head = "".join(
-        f'<th><button data-sort-column="{i}">{esc(h)} ↕</button></th>'
-        if sortable and i
+        f'<th aria-sort="none"><button type="button" data-sort-column="{i}">{esc(h)}</button></th>'
+        if sortable
         else f"<th>{esc(h)}</th>"
         for i, h in enumerate(headers)
     )
     return (
         ('<div class="scroll inventory" tabindex="0"><table' if bounded else '<div class="scroll" tabindex="0"><table')
+        + (' data-sort-controls="buttons"' if sortable else '')
         + (' class="compact"' if len(headers) == 2 else "")
         + "><thead><tr>"
         + head
@@ -848,7 +849,7 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
     path.parent.mkdir(parents=True, exist_ok=True)
     back = "../" if route.startswith("details/") else ""
     depth = "../" * (len(Path(prefix + route).parts) - 1 + bool(site_prefix))
-    navigation = "".join(f'<a href="{back}{p}">{label}</a>' for p, label in nav)
+    navigation = "".join(f'<a href="{back}{p}"' + (' aria-current="page"' if p == route else '') + f'>{label}</a>' for p, label in nav)
     if len(languages) > 1:
         other = "zh" if lang == "en" else "en"
         otherprefix = "" if other == "zh" else other + "/"
@@ -3015,9 +3016,12 @@ def catalog_prices(profile, content):
         raise ValueError("Catalog prices must cover every compared method")
     for item in prices.values():
         amount = item.get("amount")
-        if (item.get("currency") != "USD" or item.get("unit") != "1000-successful-searches"
+        source = item.get('source', '')
+        bound_quote = item.get('source_kind') == 'owner-quote' and any(
+            asset.get('path') == source and asset.get('sha256') for asset in content.get('assets', []))
+        if (item.get("currency") != "USD" or item.get("unit") not in ("1000-successful-searches", "1000-requests")
                 or amount is not None and (type(amount) not in (int, float) or not math.isfinite(amount) or amount < 0)
-                or amount is not None and (not item.get("source", "").startswith("https://") or not item.get("checked_at"))):
+                or amount is not None and (not (source.startswith("https://") or bound_quote) or not item.get("checked_at"))):
             raise ValueError("Invalid verified catalog price")
     return prices
 
@@ -3033,7 +3037,7 @@ def catalog_price_panel(profile, content, zh):
         row = '<td>' + esc(method['label']) + '</td>' + numeric_cell(price, amount, 'catalog-unit-price', 'min', amount is not None and winners.get(0) == amount)
         row += cells([esc(item.get('plan', '')), esc(item.get('terms', {}).get('zh' if zh else 'en', '')), esc(item.get('checked_at', ''))])[4:-5]
         rendered.append('<tr>' + row + '</tr>')
-    return '<section data-cost-budget data-catalog-prices><h2>' + report_text("Published prices and purchase terms", zh) + '</h2><p>' + report_text("Compare the published usage price for 1,000 successful searches, without free-credit offsets or estimates from this run’s invoice. Billing conditions, subscriptions and prepayment terms are listed for each method.", zh) + '</p>' + table([report_text("Method", zh), report_text("USD / 1,000 successful calls", zh), report_text("Plan", zh), report_text("Purchase terms", zh), report_text("Verified", zh)], rendered) + '</section>'
+    return '<section data-cost-budget data-catalog-prices><h2>' + report_text("Published prices and purchase terms", zh) + '</h2><p>' + report_text("Usage prices per 1,000 calls. Each method’s billing rules, subscription and prepayment terms are listed below. These are quoted rates, not invoice charges.", zh) + '</p>' + table([report_text("Method", zh), report_text("USD / 1,000 calls", zh), report_text("Plan", zh), report_text("Purchase terms", zh), report_text("Verified", zh)], rendered) + '</section>'
 
 
 def cost_panel(profile, rows, zh, content=None):
@@ -3593,7 +3597,7 @@ def benchmark_operations(profile, selected, content, zh):
             for i, value in enumerate(conditional[idx]):
                 success_row += numeric_cell(fmt(value), value, f'success-latency-{population["id"]}-{i}', 'min', value is not None and conditional_winners.get(i) == value)
             successful.append('<tr>' + success_row + '</tr>')
-    cost_heading = report_text("USD / 1,000 successful calls", zh) if prices is not None else report_text("Estimated batch cost", zh)
+    cost_heading = report_text("USD / 1,000 calls", zh) if prices is not None else report_text("Estimated batch cost", zh)
     return '<section data-benchmark-operations><h2>' + report_text("Performance and cost by collection", zh) + '</h2><p>' + report_text("One final result per query. Timing includes retries, the complete collection and reference-quarantined queries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.", zh) + '</p>' + table(([report_text("Collection", zh), report_text("API", zh), report_text("Mean ms", zh, context="duration"), "P50 ms", "P95 ms", cost_heading]), rendered) + '</section><section data-successful-latency><h2>' + report_text("Latency of successful result deliveries", zh) + '</h2><p>' + report_text("Only HTTP 200 calls without errors and with at least one result. Counts differ by provider; this conditional comparison does not replace all-call latency.", zh) + '</p>' + table([report_text("Population", zh), report_text("API", zh), report_text("Calls", zh), report_text("Mean ms", zh, context="duration"), 'P50 ms', 'P95 ms'], successful) + '</section>'
 
 
@@ -3637,27 +3641,6 @@ def metric_populations(profile, content):
     return populations
 
 
-def reference_retrieval_panel(profile, rows, case_ids, zh):
-    """Use only independently annotated page targets, never infer missing gold."""
-    ids = {c['id'] for c in profile['cases'] if c['id'] in case_ids and c.get('anchors')}
-    if not ids:
-        return ''
-    cutoff = profile['protocol']['top_k']
-    cases = {c['id']: c for c in profile['cases']}
-    values = []
-    for method in profile['methods']:
-        group = [r for r in rows if r['case_id'] in ids and r['method'] == method['id']]
-        if len(group) != len(ids):
-            raise ValueError('Incomplete reference-retrieval population')
-        metrics = [evaluate(cases[r['case_id']], r['results'], cutoff=cutoff) for r in group]
-        values.append((method['label'], sum(m[f'anchor_hit_{cutoff}'] for m in metrics), sum(m['reciprocal_rank'] for m in metrics) / len(ids)))
-    winners = numeric_winners([[v[1] / len(ids), v[2]] for v in values], {0:'max', 1:'max'})
-    rendered = []
-    for label, hits, mrr in values:
-        rendered.append('<tr><td>' + esc(label) + '</td>' + numeric_cell(f'{int(hits)}/{len(ids)} · {hits/len(ids):.1%}', hits/len(ids), 'reference-hit', 'max', winners.get(0) == hits/len(ids)) + numeric_cell(f'{mrr:.3f}', mrr, 'reference-mrr', 'max', winners.get(1) == mrr) + '</tr>')
-    return '<section data-reference-retrieval><h4>' + report_text("Reference-page retrieval · {queries} queries", zh, queries=len(ids)) + '</h4><p>' + report_text("Only queries with annotated reference pages. Hit@{cutoff} finds any listed URL in the first {cutoff}; MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. These match the factual-set definitions. Listed references are not exhaustive, and unannotated queries are not failures.", zh, cutoff=cutoff) + '</p>' + table([report_text("Method", zh), report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff)], rendered) + '</section>'
-
-
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
     cutoff = profile["protocol"]["top_k"]
     lang = "zh" if zh else "en"
@@ -3669,7 +3652,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
     note = ((scope + report_text(". Benchmarks are reported separately. ", zh)) if scope else "") + (
         report_text("Mean, P50 and P95 cover all requests and retry waits; fees estimate the calls in each population.", zh))
     if prices is not None:
-        note = scope + report_text(". Mean, P50 and P95 include all calls and retry waits. Unit prices compare 1,000 successful calls; purchase terms appear on the performance page.", zh)
+        note = scope + report_text(". Latency includes every call and retry wait. Collection windows differ; recorded times are observational. Prices and billing terms appear on the performance page.", zh)
     if diagnostics:
         heading = report_text("Reference URLs and requested sites: diagnostics", zh)
         note = report_text("These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set.", zh)
@@ -3683,6 +3666,13 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         stats = aggregate(subset)
         kind = population.get('metric_kind', population['id'])
         ranked = bool(relevance_scores) and ids.issubset({r['case_id'] for r in relevance_scores}) and not diagnostics
+        if kind == 'relevance' and not ranked:
+            raise ValueError('Relevance comparison requires every method and query')
+        if ranked and (independent or kind == 'relevance'):
+            expected = {(cid, method['id']) for cid in ids for method in profile['methods']}
+            actual = [(r['case_id'], r['method']) for r in relevance_scores if r['case_id'] in ids]
+            if len(actual) != len(expected) or set(actual) != expected:
+                raise ValueError('Relevance comparison requires every method and query')
         quality = ranked or kind in ('factual', 'scenario', 'site')
         quality_stats = relevance_summary([r for r in (relevance_scores or []) if r['case_id'] in ids], [m['id'] for m in profile['methods']]) if ranked else {}
         cases = {c['id']: c for c in profile['cases']}
@@ -3749,7 +3739,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     if prices is not None:
                         label = fmt(value) if value is not None else ''
                 win = i in winners and winners[i] == value
-                html_cells.append(numeric_cell(label, value if i else None, f"population-{i}", directions.get(i, "neutral"), win))
+                html_cells.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, f"population-{i}", directions.get(i, "neutral"), win))
             rendered.append('<tr>' + ''.join(html_cells) + '</tr>')
         body += '<article data-population="' + esc(population['id']) + '"><h3>' + esc(population['label'][lang]) + f' · {len(quality_ids) if kind == "factual" else len(ids)}' + report_text(" queries", zh) + '</h3>'
         if population.get('description'):
@@ -3757,11 +3747,11 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         headings = [report_text("Queries returning results", zh)]
         if ranked:
             headings = [f'nDCG@{cutoff} × 100', f'Precision@{cutoff}', f'Success@{cutoff}']
-            body += '<p>' + report_text("nDCG@{cutoff} measures graded ranking quality, displayed ×100. Precision@{cutoff} is the share of {cutoff} slots graded ≥2, with missing slots scoring zero. Success@{cutoff} is the share of queries with a grade-3 result. Every query remains in the denominator.", zh, cutoff=cutoff) + ' <a href="quality.html#relevance-scores">' + report_text("Inspect grades and calculation", zh) + '</a></p>'
+            body += '<details class="metric-guide"><summary>' + report_text("Metric definitions", zh) + '</summary><p>' + report_text("nDCG@{cutoff} measures graded ranking quality, displayed ×100. Precision@{cutoff} is the share of {cutoff} slots graded ≥2, with missing slots scoring zero. Success@{cutoff} is the share of queries with a grade-3 result. Every query remains in the denominator.", zh, cutoff=cutoff) + ' <a href="quality.html#relevance-scores">' + report_text("Inspect grades and calculation", zh) + '</a></p></details>'
         elif kind == 'factual':
             if quality_ids != ids:
                 body += '<p data-quality-exclusions>' + (report_text("Quality uses {qualified} qualified queries; latency retains all {total} collected queries.", zh, qualified=len(quality_ids), total=len(ids)) if prices is not None else report_text("Quality uses {qualified} reviewed-reference queries for every method; {defective} defective references are quarantined. Latency and cost retain all {total} queries.", zh, qualified=len(quality_ids), defective=len(ids) - len(quality_ids), total=len(ids))) + '</p>'
-            body += '<p class="population-note">' + report_text("Hit@{cutoff} checks for a published supporting URL in the first {cutoff} results. MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. Answer Match@{cutoff} checks delivered text for reference-answer phrases after excluding explicit dataset mirrors; it does not measure semantic accuracy.", zh, cutoff=cutoff) + '</p>'
+            body += '<details class="metric-guide"><summary>' + report_text("Metric definitions", zh) + '</summary><p>' + report_text("Hit@{cutoff} checks for a published supporting URL in the first {cutoff} results. MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. Answer Match@{cutoff} checks delivered text for reference-answer phrases after excluding explicit dataset mirrors; it does not measure semantic accuracy.", zh, cutoff=cutoff) + '</p></details>'
             headings = [report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Answer Match@{cutoff} (text)", zh, cutoff=cutoff)]
             if content.get('summary_metrics') == 'retrieval':
                 headings.append(report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff))
@@ -3773,10 +3763,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             headings = [report_text("Site constraint met", zh), report_text("Requested-domain fraction", zh)]
         headers = [report_text("Method", zh)] + headings + [report_text("Mean ms", zh, context="duration"), report_text("P50 ms", zh), report_text("P95 ms", zh), report_text("Population cost", zh)]
         if prices is not None:
-            headers[-1] = report_text("USD / 1,000 successful calls", zh)
+            headers[-1] = report_text("USD / 1,000 calls", zh)
         body += table(headers, rendered)
-        if ranked and content.get('summary_metrics') == 'retrieval':
-            body += reference_retrieval_panel(profile, subset, ids, zh)
         if ranked:
             body += '<details><summary>' + report_text("API delivery", zh) + '</summary><p>' + ' · '.join(esc(m['label']) + ' ' + str(stats[m['id']]['nonempty']) + '/' + str(len(ids)) for m in profile['methods']) + report_text(" queries returned results.", zh) + '</p></details>'
         body += '</article>'

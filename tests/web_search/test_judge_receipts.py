@@ -87,6 +87,53 @@ class Response(io.BytesIO):
     status = 200
 
 
+def test_adding_provider_reuses_only_unchanged_blind_inputs(run_judge, monkeypatch, tmp_path):
+    from harness.web_search import report
+
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, "urlopen", transport)
+    run_judge()
+    predecessor = run_judge.output / "relevance.json"
+    original = predecessor.read_bytes()
+    profile = {
+        "protocol": {"top_k": 5},
+        "cases": [{"id": "q", "query": "Install the package", "family": "web"}],
+        "methods": [{"id": "a"}, {"id": "b"}],
+    }
+    item = {"url": "https://example.org/guide", "title": "Install",
+            "snippet": "pip install package"}
+    rows = [{"case_id": "q", "method": m, "results": [dict(item)]} for m in ("a", "b")]
+    monkeypatch.setattr(report, "check", lambda *a, **kw: (profile, rows))
+    reused = tmp_path / "added-provider"
+    run_judge(["--output", str(reused), "--reuse-evidence", str(predecessor)])
+    assert len(requests) == 1
+    evidence = json.loads((reused / "relevance.json").read_bytes())
+    assert evidence["judge"]["inherited_case_ids"] == ["q"]
+    assert set(evidence["provider_rankings"]["q"]) == {"a", "b"}
+    validate_model_evidence(evidence)
+
+    rows[1]["results"][0]["url"] = "https://another.example/guide"
+    expanded = tmp_path / "expanded-pool"
+    run_judge(["--output", str(expanded), "--reuse-evidence", str(predecessor)])
+    assert len(requests) == 2
+    evidence = json.loads((expanded / "relevance.json").read_bytes())
+    assert evidence["judge"]["inherited_case_ids"] == []
+    assert len(evidence["labels"]["q"]) == 2
+    validate_model_evidence(evidence)
+
+    rows[0]["results"][0]["snippet"] = "A changed original provider output"
+    with pytest.raises(ValueError, match="candidate text differs"):
+        run_judge(["--output", str(tmp_path / "changed-old-output"),
+                   "--reuse-evidence", str(predecessor)])
+    assert len(requests) == 2
+    assert predecessor.read_bytes() == original
+
+
 def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judge, monkeypatch):
     requests = []
 
@@ -169,6 +216,30 @@ def test_invalid_model_answer_is_retained_and_never_automatically_replaced(run_j
             run_judge()
     assert count == 1
     assert next(run_judge.output.glob("*-attempts.json")).exists()
+
+
+def test_explicit_format_repair_preserves_invalid_call_and_never_repeats_valid_answers(run_judge, monkeypatch):
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        raw = json.loads(answer(request))
+        if len(requests) == 1:
+            raw['choices'][0]['message']['content'] = '{"judgments":[]}'
+        return Response(json.dumps(raw).encode())
+
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    with pytest.raises(ValueError, match='Incomplete judge run'):
+        run_judge()
+    original = json.loads(next(p for p in run_judge.output.glob('*.json')
+                               if p.name not in ('contract.json',) and not p.name.endswith('-attempts.json')).read_bytes())
+    run_judge(['--repair-format'])
+    evidence = json.loads((run_judge.output / 'relevance.json').read_bytes())
+    validate_model_evidence(evidence)
+    assert evidence['judge']['calls'][0]['format_repair']['prior_call'] == original
+    assert len(requests) == 2
+    run_judge(['--repair-format'])
+    assert len(requests) == 2
 
 
 def test_corrupt_failure_journal_never_authorizes_a_new_request(run_judge, monkeypatch):

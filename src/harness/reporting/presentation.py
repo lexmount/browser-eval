@@ -15,6 +15,14 @@ def esc(value, *, none=""):
 def check_presentation(html):
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     for table in soup.select('table'):
+        if table.get('data-sort-controls') == 'buttons':
+            headers = table.select('thead th')
+            for index, header in enumerate(headers):
+                control = header.select_one('button[type="button"][data-sort-column]')
+                if (control is None or control.get('data-sort-column') != str(index)
+                        or not control.get_text(strip=True) or header.get('aria-sort') not in
+                        ('none', 'ascending', 'descending')):
+                    raise ValueError('Sortable comparison needs an accessible control for every column')
         groups = defaultdict(list)
         for cell in table.select('td[data-metric-direction]'):
             direction = cell['data-metric-direction']

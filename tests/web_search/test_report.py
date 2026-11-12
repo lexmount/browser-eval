@@ -839,7 +839,7 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
         for row in broken.select('[data-executive] tr'):
             row.select('th,td')[column - 1].decompose()
         (output / 'index.html').write_text(str(broken), encoding="utf-8")
-        with pytest.raises(ValueError, match='Population summary'):
+        with pytest.raises(ValueError, match='Population summary|accessible control'):
             check(output)
     (output / 'index.html').write_text(saved_home, encoding="utf-8")
     result = BeautifulSoup((output/'results.html').read_text(encoding="utf-8"),'html.parser')
@@ -885,14 +885,9 @@ def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metr
     value = detail.find('td', string='前 10 条找到标注来源').find_next_sibling('td').get_text()
     assert float(value.replace(',', '')) == 1
     assert '前 5 条找到标注来源' not in detail.get_text()
-    from harness.web_search.report import factual_panel, reference_retrieval_panel
+    from harness.web_search.report import factual_panel
     factual = BeautifulSoup(factual_panel(profile, rows, True, compact=True), 'html.parser')
     assert [h.get_text() for h in factual.select('th')][1:3] == ['Hit@10（参考网页）', 'MRR@10（参考网页）']
-    target_case = dict(case, anchors=case['reference_urls'])
-    reference_rows = [dict(r, metrics=evaluate(target_case, r['results'])) for r in rows if r['case_id'] == case['id']]
-    reference = BeautifulSoup(reference_retrieval_panel(dict(profile, cases=[target_case]), reference_rows, {case['id']}, True), 'html.parser')
-    assert reference.find('th', string='Hit@10（参考网页）')
-    assert reference.select_one('[data-metric="reference-hit"]')['data-value'] == '1.0'
 
     interpretation = output / 'interpretation.html'
     interpretation.write_text(interpretation.read_text(encoding="utf-8").replace('data-factual', 'removed-factual', 1), encoding="utf-8")
@@ -936,8 +931,9 @@ def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoic
         dom=BeautifulSoup(population_summary(profile,rows,content,zh,relevance_scores=scored),'html.parser')
         custom=dom.select_one('[data-population="custom"]')
         assert [x.get_text() for x in custom.select('table')[0].select('th')][1:4]==['nDCG@5 × 100','Precision@5','Success@5']
-        auxiliary=custom.select_one('[data-reference-retrieval]')
-        assert [td.get_text().lstrip('★ ') for td in auxiliary.select('tbody tr')[0].select('td')][1:]==['1/1 · 100.0%','0.500']
+        assert not custom.select_one('[data-reference-retrieval]')
+        assert len(dom.select('[data-population]')) == 2
+        assert all(t.select('thead button[data-sort-column]') for t in dom.select('table'))
         assert not dom.select_one('[data-population="factual"]').find('th',string='nDCG@5 × 100')
         for article in dom.select('[data-population]'):
             assert article.select('table')[0].select('tbody tr')[0].select('td')[-1].get_text()==''
@@ -947,6 +943,11 @@ def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoic
         factual=BeautifulSoup(factual_panel(profile,rows,zh,compact=True),'html.parser')
         assert 'MRR@5' in factual.get_text()
     assert rows==original
+    with pytest.raises(ValueError, match='every method and query'):
+        population_summary(profile, rows, content, False, relevance_scores=[r for r in scored if r['method'] != 'b'])
+    content['catalog_pricing']['a'].update(amount=0.75, unit='1000-requests', source='https://prices.test/lexmount', checked_at='2026-11-12')
+    priced = BeautifulSoup(population_summary(profile, rows, content, False, relevance_scores=scored), 'html.parser')
+    assert priced.select_one('tbody tr td:last-child')['data-sort'] == '0.75'
     content['catalog_pricing']['b']['amount']=-1
     with pytest.raises(ValueError,match='catalog price'):
         population_summary(profile,rows,content,True,relevance_scores=scored)

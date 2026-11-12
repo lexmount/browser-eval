@@ -9,6 +9,21 @@ from harness.web_search.example import example
 from harness.web_search.report import check, numeric_cell, numeric_winners, factual_panel
 
 
+@pytest.mark.parametrize('damage', ['missing-control', 'wrong-column', 'missing-state'])
+def test_sortable_comparison_requires_accessible_controls_for_every_column(damage):
+    from harness.web_search.report import table
+    doc = check_presentation(table(['Method', 'Latency'], ['<tr><td>A</td><td>1</td></tr>']))
+    header = doc.select('th')[1]
+    if damage == 'missing-control':
+        header.button.unwrap()
+    elif damage == 'wrong-column':
+        header.button['data-sort-column'] = '0'
+    else:
+        del header['aria-sort']
+    with pytest.raises(ValueError, match='accessible control'):
+        check_presentation(doc)
+
+
 def render(values):
     rows = [[v] for v in values]
     winners = numeric_winners(rows, {0:'min'})

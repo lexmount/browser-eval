@@ -106,6 +106,19 @@ def inherited_packet_format(profile, rows, evidence):
     raise ValueError("Model candidate text differs from frozen search outputs")
 
 
+def predecessor_projection(profile, rows, evidence):
+    """Verify inherited labels on their original providers before adding providers."""
+    mappings = list(evidence.get("provider_rankings", {}).values())
+    methods = set(mappings[0]) if mappings else set()
+    available = {method["id"] for method in profile["methods"]}
+    if not methods or not methods.issubset(available) or any(set(m) != methods for m in mappings):
+        raise ValueError("Inherited relevance provider scope is inconsistent or unavailable")
+    return (
+        dict(profile, methods=[m for m in profile["methods"] if m["id"] in methods]),
+        [row for row in rows if row["method"] in methods],
+    )
+
+
 def verify_provenance(profile, rows, evidence, *, authority=None):
     """Make public candidate packets and rank mappings agree with measured outputs."""
     judge = evidence.get("judge", {})
@@ -467,6 +480,8 @@ def judge_main(argv=None):
     parser.add_argument(
         "--disable-thinking", action="store_true", help="Pass enable_thinking=false through Bifrost"
     )
+    parser.add_argument('--repair-format', action='store_true',
+                        help='Repair an invalid saved answer once, preserving the original call')
     args = parser.parse_args(argv)
     prompt = judge_prompt()
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
@@ -491,8 +506,9 @@ def judge_main(argv=None):
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
     packet_format, source_policy = "search/1", "explicit-source/2"
     if predecessor:
-        verify_provenance(profile, rows, predecessor, authority=report_authority(args.report))
-        packet_format = inherited_packet_format(profile, rows, predecessor)
+        inherited_profile, inherited_rows = predecessor_projection(profile, rows, predecessor)
+        verify_provenance(inherited_profile, inherited_rows, predecessor, authority=report_authority(args.report))
+        packet_format = inherited_packet_format(inherited_profile, inherited_rows, predecessor)
         source_policy = predecessor.get("source_policy", "legacy-domain-intersection/1")
     packet, rankings = candidate_packet(profile, rows, source_requirements,
         source_policy=source_policy, packet_format=packet_format)
@@ -557,16 +573,23 @@ def judge_main(argv=None):
             parse_judgments(p, previous["response"])
             reused_case_ids.add(p["case_id"])
             return previous
+        prior_call = None
         if path.exists():
             saved = json.loads(path.read_text(encoding="utf-8"))
-            if saved["request"] != request:
+            if not reusable_judge_call(p, saved, request):
                 raise ValueError("Saved judge request changed")
             # A saved invalid model answer is an inspection task, never permission
             # to spend again or select a different answer on each invocation.
-            _validate_judge_field_references(saved["response"])
-            parse_judgments(p, saved["response"])
-            return saved
-        journal = path.with_name(path.stem + "-attempts.json")
+            try:
+                _validate_judge_field_references(saved["response"])
+                parse_judgments(p, saved["response"])
+                return saved
+            except (ValueError, KeyError, TypeError):
+                if not args.repair_format or saved.get('format_repair'):
+                    raise
+                prior_call = saved
+                request = dict(request, messages=reference_repair_messages(p, request['messages']))
+        journal = path.with_name(path.stem + ("-format-repair-attempts.json" if prior_call else "-attempts.json"))
         attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
         request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
         for index, previous in enumerate(attempts, 1):
@@ -645,6 +668,8 @@ def judge_main(argv=None):
                     "elapsed_ms": (time.monotonic() - started) * 1000,
                     "attempts": attempts,
                 }
+                if prior_call:
+                    saved['format_repair'] = {'prior_call': prior_call}
                 path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
                 _validate_judge_field_references(raw)
                 parse_judgments(p, raw)

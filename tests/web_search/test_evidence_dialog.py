@@ -5,7 +5,7 @@ import os
 import pytest
 
 from harness.reporting.visual import browser_executable
-from harness.web_search.report import SCRIPT
+from harness.web_search.report import SCRIPT, numeric_cell, table
 
 playwright = pytest.importorskip("playwright.sync_api")
 
@@ -41,6 +41,35 @@ def open_evidence(page, selector):
     page.locator(selector).click()
     page.wait_for_function("document.querySelector('dialog pre').textContent !== '…'")
     return page.locator("dialog pre").inner_text()
+
+
+def test_comparison_sorting_uses_raw_numbers_keeps_missing_last_and_preserves_highlights(browser):
+    page = browser.new_page()
+    rows = [
+        '<tr><td>Zulu</td>' + numeric_cell('★ 10/20 · 50%', 0.5, 'quality', 'max', True) + '</tr>',
+        '<tr><td>Alpha</td>' + numeric_cell('2/20 · 10%', 0.1, 'quality', 'max', False) + '</tr>',
+        '<tr><td>Beta</td>' + numeric_cell('2/20 · 10%', 0.1, 'quality', 'max', False) + '</tr>',
+        '<tr><td>Missing</td>' + numeric_cell('—', None, 'quality', 'max', False) + '</tr>',
+    ]
+    try:
+        page.set_content('<html lang="en"><button data-theme>Theme</button>'
+                         + table(['Method', 'Hit@5'], rows) + '</html>')
+        page.add_script_tag(content=SCRIPT)
+        def names():
+            return page.locator('tbody tr td:first-child').all_text_contents()
+        page.get_by_role('button', name='Hit@5', exact=True).click()
+        assert names() == ['Alpha', 'Beta', 'Zulu', 'Missing']
+        assert page.locator('th').nth(1).get_attribute('aria-sort') == 'ascending'
+        page.get_by_role('button', name='Hit@5', exact=True).press('Enter')
+        assert names() == ['Zulu', 'Alpha', 'Beta', 'Missing']
+        winner = page.locator('.comparison-winner').locator('xpath=ancestor::tr')
+        assert winner.inner_text().startswith('Zulu')
+        page.get_by_role('button', name='Method', exact=True).click()
+        assert names() == ['Alpha', 'Beta', 'Missing', 'Zulu']
+        page.get_by_role('button', name='Method', exact=True).click()
+        assert names() == ['Zulu', 'Missing', 'Beta', 'Alpha']
+    finally:
+        page.close()
 
 
 @pytest.mark.parametrize("adapter", ["lexmount", "deepseek", "bocha"])
