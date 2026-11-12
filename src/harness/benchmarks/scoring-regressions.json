@@ -84409,5 +84409,205 @@
       "ok": true,
       "expected_task_pass": true
     }
-  ]
+  ],
+  "web_search": {
+    "verified-factual-source-identities": [
+      {
+        "id": "redirect-reference-despite-fetch-denial",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 403,
+            "final": "https://reference.test/fact",
+            "chain": [
+              {
+                "url": "https://reference.test/fact?click=17",
+                "status": 301,
+                "location": "https://reference.test/fact"
+              }
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "id": "same-publisher-canonical",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 200,
+            "final": "https://reference.test/fact?click=17",
+            "chain": [],
+            "canonical": "https://reference.test/fact",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"https://reference.test/fact\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "id": "different-reference-document",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 403,
+            "final": "https://reference.test/fact/other",
+            "chain": [
+              {
+                "url": "https://reference.test/fact?click=17",
+                "status": 301,
+                "location": "https://reference.test/fact/other"
+              }
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "id": "independent-mirror-is-not-identity",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://mirror.test/fact",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://mirror.test/fact",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 200,
+            "final": "https://mirror.test/fact",
+            "chain": [],
+            "canonical": "https://reference.test/fact",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"https://reference.test/fact\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://mirror.test/fact"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "id": "alias-outside-first-five",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 403,
+            "final": "https://reference.test/fact",
+            "chain": [
+              {
+                "url": "https://reference.test/fact?click=17",
+                "status": 301,
+                "location": "https://reference.test/fact"
+              }
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://other.test/0"
+          },
+          {
+            "url": "https://other.test/1"
+          },
+          {
+            "url": "https://other.test/2"
+          },
+          {
+            "url": "https://other.test/3"
+          },
+          {
+            "url": "https://other.test/4"
+          },
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": false
+      }
+    ]
+  }
 }

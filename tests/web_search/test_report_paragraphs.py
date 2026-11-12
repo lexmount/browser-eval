@@ -148,3 +148,72 @@ def test_revised_standard_paragraphs_are_checked_in_every_edition(tmp_path, edit
     page.write_text(str(soup), encoding='utf-8')
     with pytest.raises(ValueError, match='Reader explanation'):
         check(report)
+
+
+def test_repeated_paragraph_revisions_keep_one_linear_history(tmp_path):
+    import base64
+    import gzip
+    import random
+
+    path, content = fixture(tmp_path)
+    report = tmp_path / 'report'
+    manifest_path = report / 'manifest.json'
+    manifest = json.loads(manifest_path.read_bytes())
+    manifest['synthetic_size_control'] = random.Random(0).randbytes(128 * 1024).hex()
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+    assert check(report)
+    sizes = [manifest_path.stat().st_size]
+    for index in range(5):
+        content['sections'][0]['paragraphs'][0]['en'] = f'Correction {index}.'
+        path.write_text(json.dumps(content), encoding='utf-8')
+        main(['--output', str(report), '--revise-paragraphs', str(path)])
+        assert check(report)
+        sizes.append(manifest_path.stat().st_size)
+    first_growth = sizes[1] - sizes[0]
+    assert sizes[-1] <= sizes[0] + 5 * first_growth * 1.5, sizes
+    current = json.loads(manifest_path.read_bytes())
+    revisions = 0
+    while current.get('content_revisions'):
+        assert len(current['content_revisions']) == 1
+        receipt = current['content_revisions'][0]
+        current = json.loads(gzip.decompress(base64.b64decode(receipt['before_manifest_gzip_base64'])))
+        revisions += 1
+    assert revisions == 5
+
+
+def test_compact_history_preserves_and_validates_legacy_predecessors(tmp_path):
+    import base64
+    import gzip
+
+    from harness.record_io import bytes_sha256
+
+    path, content = fixture(tmp_path)
+    report = tmp_path / 'report'
+    manifest_path = report / 'manifest.json'
+    for index in range(2):
+        previous = json.loads(manifest_path.read_bytes())
+        content['sections'][0]['paragraphs'][0]['en'] = f'Legacy correction {index}.'
+        path.write_text(json.dumps(content), encoding='utf-8')
+        main(['--output', str(report), '--revise-paragraphs', str(path)])
+        manifest = json.loads(manifest_path.read_bytes())
+        receipt = manifest['content_revisions'][-1]
+        receipt['schema'] = 'web-search-paragraph-revision/1'
+        manifest['content_revisions'] = [*previous.get('content_revisions', []), receipt]
+        manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+        assert check(report)
+    content['sections'][0]['paragraphs'][0]['en'] = 'Current correction.'
+    path.write_text(json.dumps(content), encoding='utf-8')
+    main(['--output', str(report), '--revise-paragraphs', str(path)])
+    assert check(report)
+    manifest = json.loads(manifest_path.read_bytes())
+    assert len(manifest['content_revisions']) == 1
+    receipt = manifest['content_revisions'][0]
+    previous = json.loads(gzip.decompress(base64.b64decode(receipt['before_manifest_gzip_base64'])))
+    assert len(previous['content_revisions']) == 2
+    previous['content_revisions'][0]['provider_calls'] = 1
+    raw = json.dumps(previous).encode('utf-8')
+    receipt['before_manifest_sha256'] = bytes_sha256(raw)
+    receipt['before_manifest_gzip_base64'] = base64.b64encode(gzip.compress(raw)).decode('ascii')
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='revision provenance'):
+        check(report)

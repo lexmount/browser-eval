@@ -8,7 +8,7 @@ from lexbench_websearch.answer_rules import POLICY_NAME, RULE_VERSION, reference
 from lexbench_websearch.contracts import validate_cases
 from lexbench_websearch.inputs import digest
 from lexbench_websearch.qualification import _equivalent, _qualified, validate_regressions
-from lexbench_websearch.scoring import evaluate
+from lexbench_websearch.scoring import canonical_url, evaluate, task_acceptance
 
 
 def _rescore(profile, rows):
@@ -54,7 +54,131 @@ def normalization_regressions(expected_sha256, normalizer):
                 raise ValueError("Task metric regression failed: " + control["id"])
 
 
+def canonical_metadata(final_url, tags):
+    """Read explicit publisher canonical links, without evaluating page content."""
+    from html.parser import HTMLParser
+    from urllib.parse import urljoin
+
+    targets = set()
+    if not isinstance(tags, list) or any(not isinstance(tag, str) for tag in tags):
+        return targets
+
+    class Links(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            attrs = dict(attrs)
+            if tag == 'link' and 'canonical' in (attrs.get('rel') or '').lower().split() and attrs.get('href'):
+                targets.add(canonical_url(urljoin(final_url, attrs['href'])))
+
+    parser = Links()
+    for tag in tags:
+        parser.feed(tag)
+    return targets
+
+
+def capture_source_identity(url, timeout=6):
+    """Capture redirects and publisher canonical metadata as reference inputs."""
+    import time
+    import urllib.error
+    import urllib.request
+    from datetime import UTC, datetime
+    from html.parser import HTMLParser
+    from http.client import HTTPException
+
+    canonical_url(url)
+    chain, tags = [], []
+    deadline = time.monotonic() + timeout
+
+    class Redirects(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, req, fp, code, msg, headers, newurl):
+            canonical_url(newurl)
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise TimeoutError('Source identity timeout')
+            req.timeout = remaining
+            chain.append(dict(url=req.full_url, status=code, location=newurl))
+            return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+    class Links(HTMLParser):
+        def handle_starttag(self, tag, attrs):
+            if tag == 'link' and 'canonical' in (dict(attrs).get('rel') or '').lower().split():
+                tags.append(self.get_starttag_text())
+
+    observed = dict(url=url, verified_at=datetime.now(UTC).isoformat(), chain=chain)
+    try:
+        opener = urllib.request.build_opener(Redirects())
+        try:
+            response = opener.open(urllib.request.Request(url, headers={'User-Agent': 'Webstone reference identity'}), timeout=timeout)
+        except urllib.error.HTTPError as exc:
+            response = exc
+        with response:
+            observed.update(status=response.status, final=response.url)
+            if response.status == 200 and 'html' in response.headers.get('Content-Type', '').lower():
+                prefix = response.read(262144).decode(response.headers.get_content_charset() or 'utf-8', errors='replace')
+                parser = Links()
+                parser.feed(prefix)
+                targets = canonical_metadata(response.url, tags)
+                if len(targets) == 1:
+                    observed.update(canonical=next(iter(targets)), canonical_evidence=tags)
+    except (OSError, ValueError, UnicodeError, HTTPException) as exc:
+        observed['error'] = str(exc)
+    return observed
+
+
+def factual_source_identity(case, item):
+    """Qualify a reference URI alias without judging page relevance or availability."""
+    from urllib.parse import urlsplit
+
+    try:
+        alias, target = item['alias'], item['target']
+        observed = item['observation']
+        if (item['case_id'] != case['id'] or item['query'] != case['query']
+                or 'reference_answer' not in case or target not in case.get('reference_urls', [])
+                or observed.get('url') != alias or not observed.get('verified_at')):
+            return False
+        canonical_url(alias)
+        wanted = canonical_url(target)
+        current = alias
+        for step in observed.get('chain', []):
+            if step.get('url') != current or step.get('status') not in (301, 302, 303, 307, 308):
+                return False
+            current = step['location']
+            if canonical_url(current) == wanted:
+                return True
+        # Same-publisher canonical metadata can identify query/path variants.
+        final = canonical_url(observed.get('final', ''))
+        canonical = observed.get('canonical')
+        return bool(observed.get('status') == 200 and not observed.get('error')
+                    and final == canonical_url(current)
+                    and canonical and canonical_url(canonical) == wanted
+                    and urlsplit(final).netloc == urlsplit(wanted).netloc
+                    and canonical_metadata(final, observed.get('canonical_evidence', [])) == {wanted})
+    except (KeyError, TypeError, ValueError, AttributeError):
+        return False
+
+
 def validate_revision_controls(revision, normalizer=None):
+    from importlib.resources import files
+
+    ids = revision.get('regression_ids', [])
+    if not revision.get('root_cause') or not ids or len(ids) != len(set(ids)):
+        raise ValueError('Correction requires cause and unique regression provenance')
+    controls = json.loads(files('harness.benchmarks').joinpath('scoring-regressions.json').read_bytes()).get('web_search', {})
+    selected = set(ids) & controls.keys()
+    for identity in selected:
+        group = controls[identity]
+        if {item['expected'] for item in group} != {True, False}:
+            raise ValueError('Source identity regressions require paired controls')
+        for control in group:
+            case = deepcopy(control['case'])
+            if factual_source_identity(case, control['identity']):
+                case['reference_urls'].append(control['identity']['alias'])
+            results = control['results']
+            row = {'results': results, 'metrics': evaluate(case, results)}
+            if (bool(row['metrics']['labeled_source_hit_5']) != control['expected']
+                    or task_acceptance(case, row, metric='source') != control['expected']):
+                raise ValueError('Source identity regression failed: ' + identity)
+    if selected:
+        revision = dict(revision, regression_ids=[item for item in ids if item not in selected])
     if not revision.get("normalization"):
         validate_regressions(revision)
         return
@@ -87,6 +211,16 @@ def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer
     if normalization:
         revised["protocol"]["result_url_resolution"] = normalization
     cases = {c["id"]: c for c in revised["cases"]}
+    original_sources = {cid: deepcopy(case) for cid, case in cases.items()}
+    identities = set()
+    for item in revision.get('factual_source_identities', []):
+        cid, alias = item.get('case_id'), item.get('alias')
+        if ((cid, alias) in identities
+                or not factual_source_identity(original_sources.get(cid, {}), item)):
+            raise ValueError('Unqualified factual source identity')
+        identities.add((cid, alias))
+        if alias not in cases[cid]['reference_urls']:
+            cases[cid]['reference_urls'].append(alias)
     seen = set()
     for item in revision.get("cases", []):
         cid = item["case_id"]

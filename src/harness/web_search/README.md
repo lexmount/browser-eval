@@ -174,12 +174,15 @@ Sections may include `figures` with an asset `path`, localized `alt` and
 `caption`. Figures must select a hash-bound asset; report checks reject missing
 or substituted images. Keep numerical chart data in a bound source.
 
-Factual URL matching measures retrieval of the listed sources, not relevance of
-every returned page or final-answer accuracy. The offline
-`diagnostics.factual_source_diagnostic` can compare original URL matching with
-frozen HTTP redirect observations without modifying scores or references. Keep
-this optional sensitivity analysis separate from the leaderboard. Opening a
-result page is not a required ranking or scoring step.
+Factual URL matching measures retrieval of the listed sources. Reference revisions
+may add aliases proven by a connected HTTP redirect chain reaching an existing
+reference, or explicit canonical metadata on the same publisher host. A terminal
+fetch failure does not invalidate a recorded redirect to the reference URI.
+Independent mirrors and similar URL strings do not establish equivalence. Freeze
+these observations, bind them to the approved assessment revision and run paired
+`verified-factual-source-identities` controls before rescoring every method through
+the shared evaluator. Search calls, result positions, latency and costs stay fixed;
+o network request or browser is required during scoring.
 
 For hosts with a file-count limit, export a checked report with
 `--output /absolute/report --export-delivery /absolute/new-delivery-directory`.
@@ -198,6 +201,9 @@ generated language and records the content revision without rebuilding evidence
 pages. Paragraph counts, language coverage, report structure and all other inputs
 must stay unchanged. Changes to methods, metrics, prices or assets require a normal
 build. Run the usual release checks and freeze a new publication plan afterward.
+Revision receipts retain one predecessor chain instead of duplicating earlier
+receipts at every level. Verification walks the full chain, including preserved
+earlier-format snapshots.
 
 Collection stops after the declared retry if a participant returns HTTP 401 or
 402. Resolve the account problem before continuing with the same certified entry

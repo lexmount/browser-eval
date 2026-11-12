@@ -2235,7 +2235,7 @@ def validate_content_revisions(manifest):
     while current.get('content_revisions'):
         receipt = current['content_revisions'][-1]
         try:
-            require(receipt['schema'] == 'web-search-paragraph-revision/1')
+            require(receipt['schema'] in ('web-search-paragraph-revision/1', 'web-search-paragraph-revision/2'))
             producer = receipt['producer']
             require(bool(re.fullmatch(r'[0-9a-f]{64}', producer['source_sha256'])))
             require(bool(re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', producer['version'])))
@@ -2249,7 +2249,10 @@ def validate_content_revisions(manifest):
             require(bytes_sha256(receipt['content_utf8'].encode('utf-8')) == receipt['content_sha256'])
             require(json.loads(receipt['content_utf8']) == current['authored'])
             require(type(receipt['provider_calls']) is int and receipt['provider_calls'] == 0)
-            require(current['content_revisions'][:-1] == previous.get('content_revisions', []))
+            if receipt['schema'] == 'web-search-paragraph-revision/2':
+                require(len(current['content_revisions']) == 1)
+            else:
+                require(current['content_revisions'][:-1] == previous.get('content_revisions', []))
             excluded = {'authored', 'content_sha256', 'content_revisions'}
             require({k: v for k, v in current.items() if k not in excluded} == {
                 k: v for k, v in previous.items() if k not in excluded})
@@ -2320,14 +2323,14 @@ def revise_paragraphs(output, content):
                 updates[target] = str(soup)
     if any(count == 0 for count in seen.values()):
         raise ValueError('Revised paragraph is missing from a generated language')
-    receipt = {'schema': 'web-search-paragraph-revision/1',
+    receipt = {'schema': 'web-search-paragraph-revision/2',
                'before_manifest_sha256': bytes_sha256(before),
                'before_manifest_gzip_base64': base64.b64encode(gzip.compress(before, mtime=0)).decode('ascii'),
                'before_content_sha256': manifest.get('content_sha256'),
                'content_sha256': bytes_sha256(raw), 'content_utf8': raw.decode('utf-8'), 'provider_calls': 0,
                'changed_sections': changed, 'producer': software_identity()}
     manifest['authored'], manifest['content_sha256'] = revised, bytes_sha256(raw)
-    manifest['content_revisions'] = [*manifest.get('content_revisions', []), receipt]
+    manifest['content_revisions'] = [receipt]
     for target, text in updates.items():
         atomic_write(target, text.encode('utf-8'))
     write_json(path, manifest)

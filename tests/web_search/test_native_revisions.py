@@ -271,3 +271,95 @@ def test_qualified_answer_derivations_are_scoped_and_preserve_calls():
 
     with pytest.raises(ValueError, match="unsupported annotation rule"):
         apply_report_revision(profile, rows, {**revision, "answer_annotation_rule": "reference-answer-evidence/2", "answer_derivations": []})
+
+
+def test_verified_factual_aliases_rescore_every_method_without_changing_calls():
+    from harness.web_search.revisions import factual_source_identity
+    from lexbench_websearch.scoring import task_acceptance
+
+    target, alias = 'https://reference.test/fact', 'https://reference.test/fact?click=17'
+    case = dict(id='fact', query='Which fact?', reference_answer='42', reference_urls=[target])
+    profile = {'cases': [case]}
+    results = [{'url': 'https://other.test/unrelated'}, {'url': alias}]
+    rows = [dict(id=method, case_id='fact', results=results, elapsed_ms=17,
+                 metrics=evaluate(case, results)) for method in ('a', 'b')]
+    identity = dict(case_id='fact', query='Which fact?', target=target, alias=alias,
+                    observation=dict(url=alias, final=target, status=403, verified_at='2026-11-12',
+                                     chain=[dict(url=alias, status=301, location=target)]))
+    revision = dict(schema='web-search-assessment-revision/1', provider_calls=0,
+                    root_cause='Reference URL aliases omitted equivalent document identities',
+                    regression_ids=['equivalence-canonical', 'verified-factual-source-identities'],
+                    factual_source_identities=[identity])
+    before = copy.deepcopy((profile, rows))
+    revised, updated, changes = apply_report_revision(profile, rows, revision)
+    assert revised['cases'][0]['reference_urls'] == [target, alias]
+    assert len(changes) == 2
+    for row in updated:
+        assert row['metrics']['labeled_source_rr_5'] == 0.5
+        assert task_acceptance(revised['cases'][0], row, metric='source') is True
+        assert row['results'] == results and row['elapsed_ms'] == 17
+    assert (profile, rows) == before
+    for key, value in [('query', 'Different question'), ('target', target + '/other')]:
+        changed = copy.deepcopy(revision)
+        changed['factual_source_identities'][0][key] = value
+        with pytest.raises(ValueError, match='Unqualified factual'):
+            apply_report_revision(profile, rows, changed)
+    canonical = copy.deepcopy(identity)
+    canonical['observation'].update(status=200, final=alias, chain=[], canonical=target,
+                                     canonical_evidence=['<link rel="canonical" href="' + target + '">'])
+    assert factual_source_identity(case, canonical)
+    canonical['observation']['canonical_evidence'] = ['<link rel="canonical" href="https://reference.test/other">']
+    assert not factual_source_identity(case, canonical)
+    mirror = copy.deepcopy(identity)
+    mirror['alias'] = 'https://mirror.test/fact'
+    mirror['observation'].update(url=mirror['alias'], final=mirror['alias'], chain=[], status=200,
+                                 canonical=target, canonical_evidence=['<link rel="canonical" href="' + target + '">'])
+    assert not factual_source_identity(case, mirror)
+
+
+def test_reference_identity_capture_and_offline_replay():
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    from harness.web_search.revisions import capture_source_identity, factual_source_identity
+
+    class Origin(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path == '/redirect':
+                self.send_response(301)
+                self.send_header('Location', '/reference')
+                self.end_headers()
+            elif self.path == '/tracking':
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.end_headers()
+                self.wfile.write(b'<html><head><link rel="canonical" href="/reference"></head></html>')
+            else:
+                self.send_response(403)
+                self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Origin)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f'http://127.0.0.1:{server.server_port}'
+    try:
+        observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking')]
+        malformed = capture_source_identity(base + '/invalid space')
+        assert 'error' in malformed
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    # The reference host is offline: only frozen metadata enters scoring.
+    case = dict(id='fact', query='Which fact?', reference_answer='42', reference_urls=[base + '/reference'])
+    assert observations[0]['status'] == 403
+    assert observations[1]['canonical_evidence']
+    for observed in observations:
+        identity = dict(case_id='fact', query=case['query'], alias=observed['url'],
+                        target=case['reference_urls'][0], observation=observed)
+        assert factual_source_identity(case, identity)
+        identity['target'] += '/different'
+        assert not factual_source_identity(case, identity)
