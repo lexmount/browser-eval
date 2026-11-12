@@ -12,6 +12,119 @@ from harness.reporting.versions import check_build_version
 
 FILENAME = "benchmark-release.json"
 
+SCOPE_TEXT = {
+    "main": ("report_scope_main", "Scoring: main content"),
+    "full": ("report_scope_full", "Scoring: full content"),
+}
+RETRY_TEXT = {
+    "main": (
+        "report_retries_main",
+        "Retries followed main-content requirements. This report scores the saved output.",
+    ),
+    "full": (
+        "report_retries_full",
+        "Retries followed full-content requirements. This report scores the saved output.",
+    ),
+    "original": (
+        "report_retries_original",
+        "Retries followed each task's original requirements. This report scores the saved output.",
+    ),
+}
+
+
+def content_scope_presentation(dataset, records, manifests):
+    """Keep the selected score contract separate from the acquisition policy."""
+    if not any(case.get("content_scopes") for case in dataset.get("cases", [])):
+        return None
+    scopes = {
+        row["metrics"].get("evaluation_content_scope")
+        for row in records
+        if row["metrics"].get("evaluation_content_scope")
+    }
+    scope = dataset.get("content_scope")
+    scope = scope if scope in SCOPE_TEXT else next(iter(scopes)) if len(scopes) == 1 else "full"
+    if scopes - {scope}:
+        raise ValueError("Report mixes acceptance scopes")
+    retry_scopes = set()
+    for manifest in manifests:
+        acquisition = manifest.get("acquisition") or {}
+        budget = acquisition.get(
+            "max_failure_retries", manifest.get("parameters", {}).get("max_failure_retries", 0)
+        )
+        if not budget:
+            continue
+        values = set((acquisition.get("task_content_scopes") or {}).values())
+        if not values:
+            values = {acquisition.get("content_scope")}
+        retry_scopes.update(value if value in SCOPE_TEXT else "original" for value in values)
+    return {"scope": scope, "retry_scopes": sorted(retry_scopes)}
+
+
+def scope_retry_text(state):
+    retries = state.get("retry_scopes", [])
+    if not retries or retries == [state["scope"]]:
+        return None
+    return RETRY_TEXT[retries[0] if len(retries) == 1 else "original"]
+
+
+def check_content_scope_presentation(root, state):
+    """Validate visible scope and retry provenance on report-owned pages."""
+    if state is None:
+        return
+    from harness.web_fetch.report_i18n import MESSAGES
+    from harness.reporting.locales import translate
+
+    owned = {
+        "index.html",
+        "analysis",
+        "datasets",
+        "methodology",
+        "review",
+        "guide",
+        "adoption",
+        "reproduce",
+        "changes",
+        "accounts",
+        "attempts",
+        "providers",
+    }
+    for page in root.rglob("*.html"):
+        parts = page.relative_to(root).parts
+        if parts[0] in {"en", "zh"}:
+            parts = parts[1:]
+        if not parts or parts[0] not in owned:
+            continue
+        soup = BeautifulSoup(page.read_text(encoding="utf-8"), "html.parser")
+        if not soup.select_one('meta[name="webstone-report"]'):
+            continue
+        english = soup.html.get("lang", "").startswith("en")
+
+        def text(pair, english=english):
+            return pair[1] if english else translate(MESSAGES, pair[0], "zh")
+
+        nodes = soup.select("[data-report-content-scope]")
+        if (
+            len(nodes) != 1
+            or nodes[0].get("data-report-content-scope") != state["scope"]
+            or not nodes[0].strong
+            or nodes[0].strong.get_text() != text(SCOPE_TEXT[state["scope"]])
+        ):
+            raise ValueError(
+                "Report is missing its visible scoring scope: " + str(page.relative_to(root))
+            )
+        note = scope_retry_text(state)
+        retry_nodes = nodes[0].select("[data-retry-acceptance-scopes]")
+        if note:
+            if (
+                len(retry_nodes) != 1
+                or retry_nodes[0].get("data-retry-acceptance-scopes")
+                != ",".join(state["retry_scopes"])
+                or retry_nodes[0].get_text() != text(note)
+            ):
+                raise ValueError("Report omits or changes the acquisition retry policy")
+        elif retry_nodes:
+            raise ValueError("Report invents a different acquisition retry policy")
+
 
 def _input_release(root):
     execution = root / "execution.json"
@@ -107,6 +220,16 @@ def check_release(root, dataset, records, *, profile=None):
     manifest_path = root / "report-manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8")) if manifest_path.is_file() else {}
     check_build_version(root, manifest)
+    execution = root / "execution.json"
+    manifests = (json.loads(execution.read_text(encoding="utf-8")).get("batches", [])
+                 if execution.is_file() else [])
+    scope_state = content_scope_presentation(dataset, records, manifests)
+    if scope_state is not None and (
+        manifest.get("content_scope") != scope_state["scope"]
+        or manifest.get("retry_acceptance_scopes") != scope_state["retry_scopes"]
+    ):
+        raise ValueError("Report scoring scope or acquisition retry binding changed")
+    check_content_scope_presentation(root, scope_state)
     binding = manifest.get("benchmark_release")
     expected = _profile_binding(profile)
     measured = _input_release(root)

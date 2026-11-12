@@ -22,11 +22,11 @@ def matching_catalog(tmp_path):
 
 
 @pytest.mark.slow
-def test_catalog_binds_every_registered_suite(matching_catalog):
+def test_catalog_retains_registered_task_suites_without_counting_annotations(matching_catalog):
     from lexbench_webfetch.benchmark import registry
     release = catalog_release(matching_catalog)
     assert release["tag"] == "bench-v" + release["version"]
-    entries = registry()["suites"]
+    entries = [row for row in registry()["suites"] if row.get("kind") != "annotation_cohort"]
     assert [row["suite"] for row in release["suites"]] == [row["id"] for row in entries]
     assert release["case_count"] == sum(row["case_count"] for row in entries)
 
@@ -334,3 +334,23 @@ def test_custom_benchmark_sidecars_keep_their_own_version(monkeypatch, tmp_path,
                                      "--version", "1.0.0", "--scorer-revision", "0" * 40])
     main()
     assert json.loads(capsys.readouterr().out)["version"] == "1.0.0"
+
+
+@pytest.mark.parametrize('change', ['extra_task_suite', 'corrupt_annotation'])
+def test_catalog_still_validates_extra_suites(matching_catalog, monkeypatch, change):
+    from lexbench_webfetch import benchmark
+    registered = deepcopy(benchmark.registry())
+    if change == 'extra_task_suite':
+        extra = deepcopy(registered['suites'][0])
+        extra['id'] = 'extra-tasks'
+        registered['suites'].append(extra)
+        expected = 'task or frozen reference bindings changed'
+    else:
+        cohort = deepcopy(registered['suites'][0])
+        cohort.update(id='test-annotations', kind='annotation_cohort', source_population=cohort['id'])
+        registered['suites'].append(cohort)
+        cohort['files']['tasks.json'] = '0' * 64
+        expected = 'Changed suite file'
+    monkeypatch.setattr(benchmark, 'registry', lambda: registered)
+    with pytest.raises(ValueError, match=expected):
+        catalog_release(matching_catalog)

@@ -92,6 +92,44 @@ def score_attempt(
     title: str | None = None,
     final_url: str | None = None,
     content_scope: str | None = None,
+    scoring_scope: str | None = None,
+) -> dict[str, Any]:
+    """Score once per declared acceptance scope, without acquiring another answer."""
+    from copy import deepcopy
+    options = dict(ok=ok, metadata=metadata, previous_metrics=previous_metrics,
+                   list_reference=list_reference, status_code=status_code,
+                   prepared_answer=prepared_answer, delivered_files=delivered_files,
+                   title=title, final_url=final_url)
+    from .content_scopes import resolve_scoring_scope
+    mode, primary = resolve_scoring_scope(_case_dict(case), scoring_scope=scoring_scope,
+                                          content_scope=content_scope)
+    if (scoring_scope or _case_dict(case).get('scoring_scope')) == 'both' and not _case_dict(case).get('content_scopes'):
+        raise ValueError('Both scoring scopes require paired task annotations')
+    result = _score_attempt(case, artifact, content_scope=primary, **options)
+    if mode == 'both' and _case_dict(case).get('content_scopes'):
+        active = result['evaluation_content_scope']
+        paired = {active: deepcopy(result)}
+        for scope in ('main', 'full'):
+            if scope != active:
+                paired[scope] = _score_attempt(case, artifact, content_scope=scope, **options)
+        result['content_scope_metrics'] = paired
+    return result
+
+
+def _score_attempt(
+    case: EvalCase | dict[str, Any],
+    artifact: bytes,
+    *,
+    ok: bool,
+    metadata: dict[str, Any] | None = None,
+    previous_metrics: dict[str, Any] | None = None,
+    list_reference: dict | None = None,
+    status_code: int | None = None,
+    prepared_answer: tuple | None = None,
+    delivered_files: list[bytes] | None = None,
+    title: str | None = None,
+    final_url: str | None = None,
+    content_scope: str | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 

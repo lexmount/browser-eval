@@ -653,6 +653,11 @@ def run_evaluation(
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "public_call_log_schema_version": 1,
         "tool": "web_fetch",
+        "acquisition": {
+            "content_scope": dataset_meta.get('content_scope'),
+            "task_content_scopes": {case.id: case.content_scope for case in cases},
+            "max_failure_retries": max_failure_retries,
+        },
         "webstone": software_identity(),
         "started_at": started_at,
         "dataset": {
@@ -1150,11 +1155,27 @@ def rescore_evaluation(
             raise ValueError("Output integrity failure: " + record["attempt_id"])
     manifest = json.loads(contained_path(run_dir, "manifest.json").read_text(encoding="utf-8"))
     saved_dataset = json.loads(contained_path(run_dir, "dataset.json").read_text(encoding="utf-8"))
-    if dataset_meta.get('content_scope') != saved_dataset.get('content_scope'):
-        raise ValueError('Rescore cannot change the saved content scope')
-    saved_scopes = {case['id']: case.get('content_scope') for case in saved_dataset['cases']}
-    if any(case.content_scope != saved_scopes.get(case.id) for case in cases if case.id in saved_scopes):
-        raise ValueError('Rescore cannot change a saved task content scope')
+    acquisition = manifest.setdefault('acquisition', {
+        'content_scope': saved_dataset.get('content_scope'),
+        'task_content_scopes': {case['id']: case.get('content_scope') for case in saved_dataset['cases']},
+        'max_failure_retries': manifest.get('parameters', {}).get('max_failure_retries', 0),
+    })
+    if dataset_meta.get('scoring_scope') in {'main', 'full', 'both'}:
+        from lexbench_webfetch.content_scopes import REQUIREMENT_DEFAULTS
+        acceptance = set(REQUIREMENT_DEFAULTS) | {'content_scope', 'content_scopes', 'scoring_scope'}
+        prior = {case['id']: case for case in saved_dataset['cases']}
+        for case in cases:
+            if case.id in prior:
+                current = {key: value for key, value in vars(case).items() if key not in acceptance}
+                original = {key: value for key, value in vars(EvalCase(**prior[case.id])).items() if key not in acceptance}
+                if current != original:
+                    raise ValueError('Scoring selection cannot change the saved retrieval task')
+    else:
+        if dataset_meta.get('content_scope') != acquisition.get('content_scope'):
+            raise ValueError('Rescore cannot change the saved content scope')
+        saved_scopes = acquisition['task_content_scopes']
+        if any(case.content_scope != saved_scopes.get(case.id) for case in cases if case.id in saved_scopes):
+            raise ValueError('Rescore cannot change a saved task content scope')
     if is_diagnostic_evidence(saved_dataset) or is_diagnostic_evidence(manifest):
         # Scoring inputs may change; the executed population and intent may not.
         selected_ids = [case['id'] for case in saved_dataset['cases']]
@@ -1213,6 +1234,7 @@ def rescore_evaluation(
     (run_dir / "dataset.json").write_text(json.dumps(dataset_meta, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     manifest_path = run_dir / "manifest.json"
     manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    manifest.setdefault('acquisition', acquisition)
     manifest["dataset"].update({"id": dataset_meta.get("id"), "name": dataset_meta.get("name"), "source": str(dataset_path.resolve()), "case_count": len(cases)})
     manifest["rescored_at"] = utc_now()
     manifest_path.write_text(json.dumps(manifest, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")

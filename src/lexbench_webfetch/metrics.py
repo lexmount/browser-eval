@@ -1415,7 +1415,13 @@ def summarize(records: list[dict[str, Any]]) -> dict[str, Any]:
             "task_unmeasured_attempts": len(items) - len(evaluated),
             "task_pass_rate": round(passed / len(evaluated), 4) if evaluated else None,
         }
-    return {"providers": provider_summary, "cases": case_summary}
+    result = {"providers": provider_summary, "cases": case_summary}
+    if records and all(record['metrics'].get('content_scope_metrics') for record in records):
+        from .content_scopes import metrics_for_scope
+        result['content_scopes'] = {scope: summarize([
+            {**record, 'metrics': metrics_for_scope(record['metrics'], scope)} for record in records
+        ]) for scope in ('main', 'full')}
+    return result
 
 
 def _mean_present(values: Any) -> float | None:

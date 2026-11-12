@@ -33,6 +33,16 @@ REQUIREMENT_DEFAULTS = {
 }
 
 
+def resolve_scoring_scope(case: dict, *, scoring_scope=None, content_scope=None):
+    """Resolve the requested score set separately from the primary report view."""
+    mode = scoring_scope or case.get('scoring_scope') or 'both'
+    if mode not in {'main', 'full', 'both'}:
+        raise ValueError('scoring_scope must be main, full or both')
+    if mode != 'both' and content_scope is not None and content_scope != mode:
+        raise ValueError('Single scoring scope conflicts with the selected primary scope')
+    return mode, mode if mode != 'both' else content_scope
+
+
 def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, str | None]:
     """Fail closed for an unannotated scope; never infer it from a provider answer.
 
@@ -126,3 +136,21 @@ def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, st
         ).encode()
     ).hexdigest()
     return effective, binding
+
+
+def metrics_for_scope(metrics: dict, scope: str) -> dict:
+    """Read a bound scoring view while retaining shared invocation evidence."""
+    selected = deepcopy(metrics['content_scope_metrics'][scope])
+    if (selected.get('evaluation_content_scope') != scope
+            or selected.get('content_sha256') != metrics.get('content_sha256')
+            or not selected.get('content_scope_requirements_sha256')
+            or selected.get('scoring_source_sha256') != metrics.get('scoring_source_sha256')
+            or 'content_scope_metrics' in selected):
+        raise ValueError('Content scope metrics do not bind the same answer and requirements')
+    for name in ('deadline_overrun', 'deadline_budget_ms', 'reference_sha256',
+                 'evaluation_excluded', 'evaluation_exclusion_reason'):
+        if name in metrics:
+            selected[name] = metrics[name]
+        else:
+            selected.pop(name, None)
+    return selected

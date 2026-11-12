@@ -2,6 +2,8 @@
 
 ## Main and full content
 
+The [evaluation skill](../../../.agents/skills/benchmark-report/SKILL.md#web-fetch-scope-selection) asks for Full content (default) or Main content before new collection.
+
 An annotated task may declare `content_scopes.version: 1` with `main` and
 `full` profiles. Each profile contains a complete `requirements` object and
 `evidence` with a source SHA-256 and a description of its reference scope.
@@ -14,14 +16,34 @@ Use `--content-scope main|full` with `lexbench-webfetch score`, or the Web Fetch
 scoring. Explicit selection fails for tasks without both annotations. Legacy
 tasks keep their existing behavior when no scope is selected. Scores bind the
 selected profile hash; reuse saved responses for score-only comparisons.
-Rescoring retains the saved dataset and task scopes and rejects a scope switch.
+Rescoring retains the saved retrieval task. `--score-scope` may select a different acceptance view without another provider call; changes to retrieval inputs are rejected.
 Profiles inherit the original blocked-page and navigation constraints. They require a gating acceptance rule: pattern match counts must be positive integers, and fact coverage thresholds must be finite and greater than zero through one. Reference text alone supplies only diagnostics. Omitted title, comment and post contracts are cleared, while explicitly declared scope components remain required. Tasks with
 an existing full-page ordered-tree acceptance contract require separate tree
 annotations and are rejected by this scope selector.
 
-Public definitions retain both profiles and reference hashes. Export and score
-the matching approved frozen inputs, which contain the bound reference bodies;
-public reference hashes alone are not executable body references.
+Use `--score-scope main`, `--score-scope full` or `--score-scope both` with
+`webstone run`, `webstone rescore` or `lexbench-webfetch score`. A single scope
+computes only that rule set and builds a single-view report. When omitted,
+annotated tasks default to both. An explicit `--content-scope` selects acquisition, retry and report requirements. Without it, paired-score reports default to full content.
+
+Tasks scored with both profiles receive two score sets from the same
+persisted output. `results.jsonl` stores them in `metrics.content_scope_metrics`;
+`summary.json` contains both aggregate views. This adds no provider calls or
+retry attempts. Request latency, usage and cost remain evidence from the original
+calls; conditional successful-call statistics use each view's own passing subset.
+The run manifest preserves the acquisition scope and retry limit. Retries use
+the acquisition scope's verdict; alternate scores reuse the resulting output
+and do not represent a separate run with a different retry policy. Offline scoring selections preserve this
+acquisition record, including when switching back to the original scope.
+
+Each report presents one acceptance scope. A new paired-score report defaults
+to full content. Rebuilds keep the previously selected report scope. Use `webstone report <run-directory> --content-scope main` to build a
+main-content report instead. A run explicitly scored with only one scope reports
+that scope. Reports contain no scope switch or second set of pages. Rebuilding
+uses saved scores and does not modify the acquisition or add provider calls.
+Each page names its scoring scope and discloses different acquisition retry rules.
+Scope-specific interpretation and independent review judgments are retained only
+for their original scope. Legacy tasks keep their existing acceptance rules.
 
 Webstone owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
@@ -113,7 +135,7 @@ The same model accepts the fields below; they do not select a second renderer or
 | `examples[]` | `case_id`, `expected`, `actual`, `cause`, `fix`, `verify` and `evidence[]` containing a bound `field` and verbatim `quote`. |
 | `problem_focus` | Requires at least one concrete guide diagnosis; statistics, reviewed causes and three-way specimens remain mandatory. |
 | `comparison_mode` | Highlights delivery/acceptance rates and keeps the combined call inventory in a disclosure. It does not change scores or populations. |
-| `content_scope`, `scope_views` | Select `main` or `full`; navigation declares both IDs with a `label` and `href`. |
+| `content_scope` | Select one independently scored scope: `main` or `full`. |
 | `paired_content_scope` | Main results carry `uniform_full_content` in each bound log, with the same scorer hash; a full pass must imply a main pass. |
 | `interpretation_case_ids`, `interpretation_focus` | Choose specimen cases and verbatim excerpt anchors. A missing/empty case list selects representative failures and passes when available. |
 | `guide_title`, `interpretation_lead`, `guide_conclusions` | Reader-facing heading, lead and conclusion paragraphs. |

@@ -138,7 +138,7 @@ def command_run(args: argparse.Namespace) -> int:
         raise SystemExit("Output must be a new directory; existing evidence is immutable")
     load_runtime_env(args.env_file)
     language = None if args.no_report else resolve_report_language(args.output / "report", args.language)
-    dataset_meta, cases = load_dataset(args.dataset, content_scope=args.content_scope)
+    dataset_meta, cases = load_dataset(args.dataset, content_scope=args.content_scope, scoring_scope=args.score_scope)
     provider_configs = load_provider_config(args.provider_config)
     selection = resolve_provider_selection(args.providers, args.provider_config)
     names = [name.strip() for name in selection.split(",") if name.strip()]
@@ -170,7 +170,9 @@ def command_run(args: argparse.Namespace) -> int:
         print("Report not built (--no-report).")
     else:
         report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
-                                   language=language)
+                                   language=language,
+                                   content_scope=(args.score_scope if args.score_scope in {'main', 'full'}
+                                                  else args.content_scope))
         print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
@@ -180,7 +182,7 @@ def command_run(args: argparse.Namespace) -> int:
 def command_report(args: argparse.Namespace) -> int:
     language = resolve_report_language(args.run_dir / 'report', args.language)
     report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
-                               language=language)
+                               language=language, content_scope=args.content_scope)
     print(f"Report: {report_path.resolve()}")
     return 0
 
@@ -188,12 +190,19 @@ def command_report(args: argparse.Namespace) -> int:
 def command_rescore(args: argparse.Namespace) -> int:
     language = None if args.no_report else resolve_report_language(args.run_dir / "report", args.language)
     saved = json.loads((args.run_dir / 'dataset.json').read_text(encoding='utf-8'))
-    saved_scope = saved.get('content_scope')
-    task_scopes={case['id']:case.get('content_scope') for case in saved.get('cases',[])}
+    manifest_path = args.run_dir/'manifest.json'
+    manifest = json.loads(manifest_path.read_text(encoding='utf-8')) if manifest_path.is_file() else {}
+    acquisition = manifest.get('acquisition') or {}
+    saved_scope = acquisition.get('content_scope', saved.get('content_scope'))
+    task_scopes = acquisition.get('task_content_scopes') or {case['id']:case.get('content_scope') for case in saved.get('cases',[])}
     executed_scopes=set(task_scopes.values()) or {saved_scope}
     if args.content_scope is not None and executed_scopes != {args.content_scope}:
         raise ValueError('Rescore cannot change the saved content scope')
-    dataset, cases = load_dataset(args.dataset, content_scope=saved_scope,case_scopes=task_scopes)
+    scoring_scope = args.score_scope or saved.get('scoring_scope')
+    if args.score_scope is None and args.content_scope is not None and scoring_scope in {'main', 'full'}:
+        scoring_scope = args.content_scope
+    dataset, cases = load_dataset(args.dataset, content_scope=(None if scoring_scope in {'main', 'full'} else saved_scope),case_scopes=task_scopes,
+                                  scoring_scope=scoring_scope)
     if saved.get('content_scope') is None:
         dataset.pop('content_scope',None)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
@@ -202,7 +211,9 @@ def command_rescore(args: argparse.Namespace) -> int:
         print("Report not rebuilt (--no-report). Any existing HTML is unchanged.")
     else:
         report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
-                                   language=language)
+                                   language=language,
+                                   content_scope=(args.score_scope if args.score_scope in {'main', 'full'}
+                                                  else args.content_scope))
         print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 
@@ -294,7 +305,8 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
     add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
-    run.add_argument("--content-scope", choices=("main", "full"))
+    run.add_argument("--content-scope", choices=("main", "full"), help="Acceptance and report scope when scoring both scopes")
+    run.add_argument("--score-scope", choices=("main", "full", "both"), help="Compute only one scope or both (default for annotated tasks)")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
@@ -319,6 +331,7 @@ def build_parser() -> argparse.ArgumentParser:
 
     report = sub.add_parser("report", help="Rebuild HTML from an existing run directory")
     report.add_argument("run_dir", type=Path)
+    report.add_argument("--content-scope", choices=("main", "full"), help="Report one saved score set (default: full; main-only runs retain main)")
     add_language_argument(report)
     report.set_defaults(handler=command_report)
 
@@ -326,6 +339,7 @@ def build_parser() -> argparse.ArgumentParser:
     rescore.add_argument("run_dir", type=Path)
     rescore.add_argument("--dataset", type=Path, required=True)
     rescore.add_argument("--content-scope", choices=("main", "full"))
+    rescore.add_argument("--score-scope", choices=("main", "full", "both"))
     rescore.add_argument("--no-report", action="store_true",
                          help="Rescore saved data without rebuilding HTML; existing reports are unchanged")
     add_language_argument(rescore)

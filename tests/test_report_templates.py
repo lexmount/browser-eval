@@ -297,21 +297,23 @@ class ReportTemplateTests(unittest.TestCase):
             output=root/'output';build_diagnostic_cohorts(source,output)
             page=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
             winner=page.select_one('[data-metric="acceptance"] .comparison-winner')
-            self.assertEqual(winner.get_text(),'7 / 7')
+            self.assertEqual(winner.get_text(' ',strip=True),'100.0% (7 / 7)')
 
-    def test_content_scope_comparison_navigation_tables_and_highlights(self):
+    def test_comparison_rates_tables_and_highlights(self):
         with tempfile.TemporaryDirectory() as temp:
             root=Path(temp); source=root/'source';model=diagnostic_example(source)
-            model.update(comparison_mode=True,content_scope='main',scope_views=[
-                dict(id='main',label='Primary content',href='index.html'),
-                dict(id='full',label='Complete content',href='https://example.test/full')])
+            model.update(comparison_mode=True,content_scope='full')
             model['pages']={'guide':[dict(title='Measured comparison',paragraphs=['Two retained calls.'],
                 table=dict(headers=['Method','Passes'],rows=[['Articles',1]]))]}
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
             output=root/'output';build_diagnostic_cohorts(source,output)
+            (output/'source-snapshot.html').write_text('<header><a href="en/index.html" hreflang="en">English</a></header>', encoding='utf-8')
             check_diagnostic_report(output)
             home=output/'index.html';original=home.read_text(encoding="utf-8")
-            for bad in [original.replace('data-content-scope="full"','data-wrong-scope="full"'),
+            self.assertNotIn('hreflang="en"', original)
+            for bad in [original.replace('</nav>', '<a href="en/index.html" hreflang="en">English</a></nav>', 1),
+                        original.replace('50.0%', '49.0%'),
+                        original.replace('50.0%', ''),
                         original.replace('comparison-winner good','unmarked')]:
                 home.write_text(bad, encoding="utf-8")
                 with self.assertRaises(ValueError):check_diagnostic_report(output)
@@ -320,15 +322,15 @@ class ReportTemplateTests(unittest.TestCase):
             guide.write_text(text.replace('>Articles</td>','>Wrong method</td>'), encoding="utf-8")
             with self.assertRaises(ValueError):check_diagnostic_report(output)
 
-    def test_paired_scope_requires_shared_scorer_and_monotonic_acceptance(self):
+    def test_paired_scope_requires_shared_scorer_and_keeps_verdicts_independent(self):
         from harness.web_fetch.report_diagnostic import load_diagnostic
         with tempfile.TemporaryDirectory() as temp:
             source=Path(temp)/'source';model=diagnostic_example(source)
             model['paired_content_scope']=True
             for row in model['rows']:
-                data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64),
+                data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64,content_sha256=row['first_answer']['sha256']),
                           uniform_full_content=dict(passed=row['initial_pass'],metrics=dict(
-                              evaluation_content_scope='full',scoring_source_sha256='a'*64)))
+                              evaluation_content_scope='full',scoring_source_sha256='a'*64,content_sha256=row['first_answer']['sha256'])))
                 target=source/row['log']['path'];target.write_text(json.dumps(data), encoding="utf-8")
                 row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8");load_diagnostic(source)
@@ -336,6 +338,11 @@ class ReportTemplateTests(unittest.TestCase):
             data['uniform_full_content']['passed']=True;target.write_text(json.dumps(data), encoding="utf-8")
             row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
+            load_diagnostic(source)
+            data['uniform_full_content']['metrics']['scoring_source_sha256']='b'*64
+            target.write_text(json.dumps(data), encoding='utf-8')
+            row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+            (source/'report.json').write_text(json.dumps(model), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'Paired content scopes'):load_diagnostic(source)
 
     def test_new_track_requires_an_execution_owner_and_behavior_checks(self):
@@ -702,7 +709,7 @@ class ReportTemplateTests(unittest.TestCase):
                 output=root/'report';build_diagnostic_cohorts(source,output)
                 home=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
                 cells=home.select_one('[data-summary-group]').select('td')
-                self.assertEqual([c['data-sort'] for c in cells[3:6]],['2','1','1'])
+                self.assertEqual([c['data-sort'] for c in cells[3:6]],['2','0.5','0.5'])
                 self.assertEqual([float(c['data-sort']) for c in cells[6:]],
                                  [-1,-1,-1] if missing else [5000,5000,9000])
                 target=output/'index.html'

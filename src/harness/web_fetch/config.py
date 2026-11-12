@@ -121,16 +121,31 @@ def load_json(path: Path) -> Any:
     return json.loads(read_dataset_bytes(path))
 
 
-def load_dataset(path: Path, *, content_scope: str | None = None, case_scopes: dict[str, str | None] | None = None) -> tuple[dict[str, Any], list[EvalCase]]:
+def load_dataset(path: Path, *, scoring_scope: str | None = None, content_scope: str | None = None, case_scopes: dict[str, str | None] | None = None) -> tuple[dict[str, Any], list[EvalCase]]:
     payload = load_json(path)
     if not isinstance(payload, dict) or payload.get("tool") != "web_fetch":
         raise ValueError("dataset.tool must be 'web_fetch'")
     raw_cases = payload.get("cases", [])
     if not isinstance(raw_cases, list) or any(not isinstance(item, dict) for item in raw_cases):
         raise ValueError("dataset.cases must be a list of task objects")
+    scoring_scope = scoring_scope or payload.get('scoring_scope')
+    if scoring_scope is None:
+        modes = {item.get('scoring_scope') for item in raw_cases}
+        if len(modes) > 1:
+            raise ValueError('Select one scoring scope mode per run')
+        scoring_scope = next(iter(modes), None)
+    from lexbench_webfetch.content_scopes import resolve_scoring_scope
+    _, content_scope = resolve_scoring_scope({}, scoring_scope=scoring_scope, content_scope=content_scope)
+    if scoring_scope == 'both' and not all(item.get('content_scopes') for item in raw_cases):
+        raise ValueError('Both scoring scopes require paired task annotations')
+    if scoring_scope in {'main', 'full'}:
+        case_scopes = None
     content_scope = content_scope or payload.get('content_scope')
     from lexbench_webfetch.content_scopes import select_content_scope
     raw_cases = [select_content_scope(item, case_scopes[item['id']] if case_scopes and item.get('id') in case_scopes else content_scope)[0] for item in raw_cases]
+    if scoring_scope is not None:
+        raw_cases = [dict(item, scoring_scope=scoring_scope) for item in raw_cases]
+        payload = dict(payload, scoring_scope=scoring_scope)
     payload = dict(payload, cases=raw_cases)
     if content_scope is not None:
         payload['content_scope'] = content_scope

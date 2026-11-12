@@ -56,6 +56,7 @@ class EvalCase:
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)
     content_scope: str | None = None
+    scoring_scope: str | None = None
     content_scopes: dict[str, Any] = field(default_factory=dict)
     ordered_tree_reference: dict[str, Any] | None = None
     ordered_tree_min_similarity: float | None = None

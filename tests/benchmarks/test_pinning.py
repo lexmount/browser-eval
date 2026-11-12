@@ -6,6 +6,7 @@ import io
 import json
 import tarfile
 import copy
+from pathlib import Path
 
 import pytest
 
@@ -837,3 +838,50 @@ def test_pin_uses_current_repository_name_and_preserves_historical_identity(tmp_
     assert selected['repository'] == new_name
     assert selected['history'][0] == before
     assert requested
+
+
+@pytest.mark.parametrize('old_ids,new_ids', [(['sample'], ['sample', 'annotations']),
+                                           (['sample', 'retired'], ['sample']),
+                                           (['sample'], ['annotations'])])
+def test_pin_synchronizes_registered_webfetch_suite_inventory(tmp_path, monkeypatch, old_ids, new_ids):
+    from dataclasses import replace
+    from tests.benchmarks.test_publication import checkout
+    from harness.benchmarks.publication import DatasetRelease
+
+    source, revision, _ = checkout(tmp_path, 'webfetch')
+    release = DatasetRelease.from_git(source, 'webfetch', revision)
+    files = dict(release.files)
+    suites = []
+    for identifier in new_ids:
+        directory = 'evaluation/' + identifier
+        raw = json.dumps({'id': identifier, 'cases': [{'id': 'task', 'url': 'https://example.test'}]}).encode()
+        files['definitions/' + directory + '/tasks.json'] = raw
+        suites.append({'id': identifier, 'dataset_id': identifier, 'directory': directory,
+                       'case_count': 1, 'files': {'tasks.json': hashlib.sha256(raw).hexdigest()}})
+    files['definitions/registry.json'] = json.dumps({'suites': suites}).encode()
+    published = tmp_path / 'published'
+    manifest = replace(release, files=files).build(published)
+    pin_root = tmp_path / 'consumer'
+    lock = source_path('harness/benchmarks/data-lock.json', root=pin_root)
+    lock.parent.mkdir(parents=True)
+    lock.write_text(json.dumps({'datasets': {'webfetch': {
+        'repository': 'Lexmount/LexBench-Web-Fetch', 'revision': '0' * 40, 'files': {}}}}), encoding='utf-8')
+    imported = pin_root / 'evaluation/lexbench-webfetch.json'
+    imported.parent.mkdir()
+    imported.write_text(json.dumps({'suites': [
+        {'id': identifier, 'dataset_id': identifier, 'case_count': 1, 'files': {'tasks.json': 'old'},
+         'benchmark_directory': 'src/lexbench_webfetch/definitions/evaluation/' + identifier,
+         'historical_directory': 'evaluation/' + identifier} for identifier in old_ids]}), encoding='utf-8')
+
+    def fetch(url, timeout):
+        return io.BytesIO((published / ('manifest.json' if url.endswith('manifest.json') else 'definitions.tar.gz')).read_bytes())
+
+    monkeypatch.setattr(data, 'urlopen', fetch)
+    pinning.pin(pin_root, 'webfetch', 'a' * 40)
+    selected = json.loads(imported.read_text(encoding='utf-8'))
+    assert [suite['id'] for suite in selected['suites']] == new_ids
+    for suite in selected['suites']:
+        descriptor = manifest['datasets'][suite['id']]
+        assert suite['files']['tasks.json'] == descriptor['sha256']
+        assert suite['historical_directory'] == str(Path(descriptor['path']).parent)
+    assert pinning.validate_binding(pin_root, 'lexbench-webfetch') == 'a' * 40

@@ -760,6 +760,7 @@ class RenderContext:
  english_generated: bool = False
  score_audit: dict | None = None
  coverage_plan: dict | None = None
+ scope_presentation: dict | None = None
 
 
 _RENDER_CONTEXT=ContextVar('webfetch_render_context',default=RenderContext())
@@ -773,7 +774,7 @@ def _scoped_render(function):
   finally:_RENDER_CONTEXT.reset(token)
  return render
 
-def write(out,path,title,body,*,root_links=False):
+def write(out,path,title,body,*,root_links=False,show_language=True):
  depth=len(Path(path).parts)-1;base='../'*depth
  document_base='<base href="'+(base or './')+'">' if root_links else ''
  if root_links:base=''
@@ -786,12 +787,21 @@ def write(out,path,title,body,*,root_links=False):
   if reviewed:
    body+=section(t('acceptance_basis', 'Acceptance basis'),('<div data-score-audit><dl class="diagnostic-fields"><dt>' + t('acceptance_requirement', 'Acceptance requirement') + f"</dt><dd>{esc(reviewed['requirement'])}</dd><dt>" + t('actual_output', 'Actual output') + f"</dt><dd>{esc(reviewed['actual'])}</dd></dl><p>{link('../audit/index.html#' + identifier, t('view_sources_and_judgment_basis', 'View sources and judgment basis'))}</p></div>"))
  counterpart=(base+'en/'+path if context.english_generated else base+'en/index.html')
- language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>'
+ language=f'<a href="{safe_href(counterpart)}" hreflang="en">English</a>' if show_language else ''
  footer=t('all_scores_are_computed_from_the_recorded', 'All scores are computed from the recorded calls. Web pages and services may change; conclusions apply only to this sample and configuration.')
  evidence_attr=' data-evidence-state="published_snapshot_score_audit"' if context.score_audit else ''
  if context.score_audit:footer=link(base+'methodology/index.html',t('methodology', 'Methodology'))+' · '+link(base+'changes/index.html',t('version_records', 'Version records'))
  banner=context.banner.replace('href="audit/index.html"','href="'+base+'audit/index.html"')
- page=(f'''<!doctype html><html lang="zh-CN"><head><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE + EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{''.join((link(base + url, label) for url, label in nav))}{language}<button class="theme-toggle" onclick="theme()">''' + t('toggle_theme', 'Toggle theme') + f'</button></nav></header><main{evidence_attr}>{banner}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>')
+ scope_note=''
+ if context.scope_presentation:
+  from harness.web_fetch.report_version import SCOPE_TEXT, scope_retry_text
+  state=context.scope_presentation
+  scope_note='<p class="wrap source-note" data-report-content-scope="'+esc(state['scope'])+'"><strong>'+esc(t(*SCOPE_TEXT[state['scope']]))+'</strong>'
+  retry=scope_retry_text(state)
+  if retry:
+   scope_note+=' <span data-retry-acceptance-scopes="'+esc(','.join(state['retry_scopes']))+'">'+esc(t(*retry))+'</span>'
+  scope_note+='</p>'
+ page=(f'''<!doctype html><html lang="zh-CN"><head><meta name="webstone-report" content="1"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">{document_base}<title>{esc(title)} · Web Fetch</title><link rel="stylesheet" href="{base}assets/style.css?v={hashlib.sha256((STYLE + EXTRA).encode()).hexdigest()[:16]}"><script src="{base}assets/report.js" defer></script></head><body><header class="top"><nav class="wrap">{brand}{''.join((link(base + url, label) for url, label in nav))}{language}<button class="theme-toggle" onclick="theme()">''' + t('toggle_theme', 'Toggle theme') + f'</button></nav></header><main{evidence_attr}>{banner}{scope_note}{body}</main><footer class="wrap source-note"><p>{footer}</p></footer></body></html>')
  target=contained_path(out,path);target.parent.mkdir(parents=True,exist_ok=True);target.write_text(page,encoding='utf-8')
 
 _RESEARCH_ROUTES=[
@@ -809,7 +819,7 @@ _RESEARCH_ROUTES=[
 @_scoped_render
 def generate_cohort_diagnostic(out, model):
  """Render live cohort diagnostics through the maintained WebFetch components."""
- token=_RENDER_CONTEXT.set(RenderContext(('<div class="wrap callout"><strong>' + esc(model.get('diagnostic_label') or t('live_page_diagnostic', 'Live page diagnostic')) + f"</strong><p>{esc(model['scope_note'])}</p></div>")))
+ token=_RENDER_CONTEXT.set(RenderContext(('<div class="wrap callout"><strong>' + esc(model.get('diagnostic_label') or t('live_page_diagnostic', 'Live page diagnostic')) + f"</strong><p>{esc(model['scope_note'])}</p></div>"),scope_presentation={'scope':model['content_scope'],'retry_scopes':[]} if model.get('content_scope') in {'main','full'} else None))
  out.mkdir(parents=True,exist_ok=True);(out/'assets').mkdir(exist_ok=True)
  (out/'assets/style.css').write_text(STYLE+EXTRA+asset_text('cohort-diagnostic.css'),encoding='utf-8')
  (out/'assets/report.js').write_text(JS+asset_text('cohort-diagnostic.js'),encoding='utf-8')
@@ -817,13 +827,7 @@ def generate_cohort_diagnostic(out, model):
  files={r[field]['path']:(out/r[field]['path']).read_bytes() for r in rows for field in ('log','reference')}
  findings={r['id']:diagnostic_findings(r,files) for r in rows}
  failure_types=diagnostic_failure_counts(model,files)
- scope_links=''
- if model.get('scope_views'):
-  scope_links='<nav class="wrap scope-switch" aria-label="Content scope">'+''.join(
-   '<a data-content-scope="'+esc(view['id'])+'" href="'+esc(safe_href(view['href']))+'"'+
-   (' aria-current="page"' if view['id']==model.get('content_scope') else '')+'>'+esc(view['label'])+'</a>'
-   for view in model['scope_views'])+'</nav>'
- def page(route,title,body):write(out,route,title,scope_links+body,root_links=True)
+ def page(route,title,body):write(out,route,title,body,root_links=True,show_language=False)
  def detail_link(row):return 'attempts/'+row['id']+'.html'
  def blocks(name):
   body=''
@@ -866,7 +870,7 @@ def generate_cohort_diagnostic(out, model):
   values=cell(t('all_tasks', 'All tasks'))+cell(esc(next(iter(versions)) if len(versions)==1 else t('several_versions_see_groups', 'Several versions; see groups')))+cell(str(n),n)
   for key in ('delivered','accepted'):
    value=overall[key]
-   values+=cell('—' if value is None else f'{value} / {n}（{100*value/n:.1f}%）',-1 if value is None else value)
+   values+=cell('—' if value is None else f'{100*value/n:.1f}% <small>({value} / {n})</small>',-1 if value is None else value)
   values+=''.join(cell('—' if overall[k] is None else f'{overall[k]/1000:.2f}',-1 if overall[k] is None else overall[k]) for k in ('mean_ms','p50_ms','p95_ms'))
   overall_table=table([t('dataset', 'Dataset'),t('implementation_version', 'Implementation version'),t('tasks', 'Tasks'),t('call_success', 'Call success'),t('pass', 'Pass'),t('mean_latency_s', 'Mean latency (s)'),t('p50_latency_s', 'P50 latency (s)'),t('p95_latency_s', 'P95 latency (s)')],[(' data-summary-overall="true"',values)],'overall-summary')
   overall_section=section(t('overall_evaluation_results', 'Overall evaluation results'),(f'{overall_table}<p>' + t('all_planned_tasks_form_one_evaluation_set', 'All planned tasks form one evaluation set. A successful call does not mean a passed task; latency merges all calls including failures and does not average per-group percentiles. Latency merged across execution routes only describes this evaluation set and does not rank routes.') + '</p>'),'overall-results')
@@ -875,7 +879,7 @@ def generate_cohort_diagnostic(out, model):
   summary_rows=[]
   for s in diagnostic_cohort_summary(model,files):
    g=groups[s['id']];n=s['total']
-   values=cell(esc(g['label']))+cell(esc(g.get('version') or t('see_the_call_record', 'See the call record')))+cell(str(n),n)+cell('—' if s['delivered'] is None else str(s['delivered'])+' / '+str(n),-1 if s['delivered'] is None else s['delivered']/n if comparison_mode else s['delivered'])+cell(str(s['accepted'])+' / '+str(n),s['accepted']/n if comparison_mode else s['accepted'])
+   values=cell(esc(g['label']))+cell(esc(g.get('version') or t('see_the_call_record', 'See the call record')))+cell(str(n),n)+cell('—' if s['delivered'] is None else f"{100*s['delivered']/n:.1f}% <small>({s['delivered']} / {n})</small>",-1 if s['delivered'] is None else s['delivered']/n)+cell(f"{100*s['accepted']/n:.1f}% <small>({s['accepted']} / {n})</small>",s['accepted']/n)
    values+=''.join(cell('—' if s[k] is None else f'{s[k]/1000:.2f}',-1 if s[k] is None else s[k]) for k in ('mean_ms','p50_ms','p95_ms'))
    summary_rows.append((' data-summary-group="'+esc(s['id'])+'"',values))
   if comparison_mode:
@@ -2232,7 +2236,8 @@ def generate(out:Path,dataset:dict,records:list,manifests:list,*,include_english
   reliability_banner += ('<div class="wrap callout" role="status"><strong>' + t('synthetic_example_not_a_formal_benchmark', 'Synthetic example · not a formal benchmark') + '</strong><p>' + t('content_and_failures_are_predefined_scenarios_for', 'Content and failures are predefined scenarios for checking installation and report functionality, not browser measurements.') + '</p></div>')
  elif dataset.get('comparison', {}).get('publication_state') == 'diagnostic_not_for_release':
   reliability_banner += ('<div class="wrap callout" role="status"><strong>' + t('diagnostic_run_not_a_formal_benchmark', 'Diagnostic run · not a formal benchmark') + '</strong><p>' + t('these_calls_check_the_selected_tasks_and', 'These calls check the selected tasks and methods without the cohort certification required for a formal benchmark.') + '</p></div>')
- _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit,dataset.get('coverage_plan')))
+ from harness.web_fetch.report_version import content_scope_presentation
+ _RENDER_CONTEXT.set(RenderContext(reliability_banner,include_english,score_audit,dataset.get('coverage_plan'),content_scope_presentation(dataset,records,manifests)))
  validate_report_ids(dataset,records)
  for path in ['assets/style.css','assets/report.js','references']:
   contained_path(out,path)

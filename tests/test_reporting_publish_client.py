@@ -874,7 +874,7 @@ def behind_wire(service):
 
 WEB_FETCH = [BEARER, ('User-agent', 'WebFetch-Report-Publisher/1.0')]
 WEB_FETCH_BASE = 'https://reports.example'
-WEB_FETCH_SHARE = ('POST', '/api/sites/site-one/shares', [*WEB_FETCH, JSON_BODY], 240)
+WEB_FETCH_SHARING = ('GET', '/api/sites/site-one/sharing', WEB_FETCH, 240)
 
 
 def test_web_fetch_single_request_publish_keeps_its_wire_contract(tmp_path, monkeypatch, wire):
@@ -887,7 +887,7 @@ def test_web_fetch_single_request_publish_keeps_its_wire_contract(tmp_path, monk
     assert sent(wire, WEB_FETCH_BASE) == [
         ('POST', '/api/sites/site-one/versions?expected_version=ver_old',
          [*WEB_FETCH, ('Content-type', upload_type), ('Idempotency-key', receipt['operation_key'])], 240),
-        WEB_FETCH_SHARE,
+        WEB_FETCH_SHARING,
     ]
 
 
@@ -914,7 +914,7 @@ def test_web_fetch_staged_publish_keeps_its_wire_contract(tmp_path, monkeypatch,
         lookup,
         ('POST', '/api/uploads/ver_staging/commit?expected_version=ver_old',
          [*WEB_FETCH, JSON_BODY, ('Idempotency-key', key)], 240),
-        WEB_FETCH_SHARE,
+        WEB_FETCH_SHARING,
     ]
 
 

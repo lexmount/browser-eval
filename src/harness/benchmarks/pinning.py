@@ -263,13 +263,19 @@ def refresh_binding(binding: dict, revision: str, definitions: Path) -> dict:
     if 'datasets' in updated:
         updated['datasets'] = json.loads(read('registry.json'))['datasets']
         return updated
-    for suite in updated["suites"]:
-        directory = suite["historical_directory"]
+    previous = {suite["id"]: suite for suite in updated["suites"]}
+    updated["suites"] = []
+    for declared in json.loads(read("registry.json"))["suites"]:
+        directory = declared["directory"]
+        suite = {**previous.get(declared["id"], {}), **copy.deepcopy(declared),
+                 "historical_directory": directory,
+                 "benchmark_directory": "src/lexbench_webfetch/definitions/" + directory}
         for name in suite["files"]:
             suite["files"][name] = hashlib.sha256(read(directory + "/" + name)).hexdigest()
         tasks = json.loads(read(directory + "/tasks.json"))
         suite["dataset_id"] = tasks["id"]
         suite["case_count"] = len(tasks["cases"])
+        updated["suites"].append(suite)
     return updated
 
 

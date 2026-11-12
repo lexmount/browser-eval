@@ -498,16 +498,6 @@ def load_diagnostic(source):
     model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
-    if model.get('scope_views'):
-        views = model['scope_views']
-        if ({view['id'] for view in views} != {'main', 'full'} or len(views) != 2
-                or model.get('content_scope') not in {'main', 'full'}):
-            raise ValueError('Content scope navigation needs main and full views')
-        for view in views:
-            if not view.get('label') or not view.get('href'):
-                raise ValueError('Content scope navigation needs labels and destinations')
-            if view['href'] != 'index.html':
-                validate_http_url(view['href'])
     groups = {g["id"]: g for g in model["cohorts"]}
     if len(groups) != len(model["cohorts"]):
         raise ValueError("Duplicate cohort")
@@ -581,14 +571,20 @@ def load_diagnostic(source):
         if model.get('paired_content_scope'):
             log = json.loads(files[row['log']['path']])
             current = log.get('metrics', {})
-            paired = log.get('uniform_full_content', {})
-            if (current.get('evaluation_content_scope') != 'main'
-                    or paired.get('metrics', {}).get('evaluation_content_scope') != 'full'
+            answer = row['first_answer']
+            expected_hash = (answer.get('publication_projection') or {}).get('original_sha256', answer['sha256'])
+            if current.get('content_sha256') != expected_hash:
+                raise ValueError('Paired content scopes do not bind the saved response bytes')
+            scope = model.get('content_scope', 'main')
+            other = 'full' if scope == 'main' else 'main'
+            paired = log.get('uniform_'+other+'_content', {})
+            if (current.get('evaluation_content_scope') != scope
+                    or paired.get('metrics', {}).get('evaluation_content_scope') != other
                     or not current.get('scoring_source_sha256')
                     or current['scoring_source_sha256'] != paired['metrics'].get('scoring_source_sha256')
-                    or type(paired.get('passed')) is not bool
-                    or (paired['passed'] and not row['initial_pass'])):
-                raise ValueError('Paired content scopes require one scorer and full-pass implies main-pass')
+                    or current.get('content_sha256') != paired['metrics'].get('content_sha256')
+                    or type(paired.get('passed')) is not bool):
+                raise ValueError('Paired content scopes require independent scores of the same bytes')
     validate_diagnostic_blocks(model, files, source)
     audited = [r for r in rows if r.get("success_audit")]
     states = Counter(r["success_audit"]["source_state"] for r in audited)
@@ -603,6 +599,9 @@ def check_diagnostic_report(output, profile=None):
 
     output = open_report(output)
     model, files = load_diagnostic(output)
+    from harness.web_fetch.report_version import check_content_scope_presentation
+    if model.get('content_scope') in {'main', 'full'}:
+        check_content_scope_presentation(output, {'scope':model['content_scope'], 'retry_scopes':[]})
     if profile is not None:
         require_diagnostic_scope(model, read_json(Path(profile)))
     manifest = read_json(output / "report-manifest.json")
@@ -674,11 +673,18 @@ def check_diagnostic_report(output, profile=None):
     for expected, rendered in zip(expected_summaries, summaries, strict=True):
         values = [c.get('data-sort', '-1') for c in rendered.select('td')][3:]
         expected_values = [expected[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
-        if model.get('comparison_mode'):
-            expected_values[1:3]=[v/expected['total'] if v is not None else None for v in expected_values[1:3]]
+        expected_values[1:3]=[v/expected['total'] if v is not None else None for v in expected_values[1:3]]
         if (rendered.get('data-summary-group') != expected['id']
                 or values != [str(-1 if v is None else v) for v in expected_values]):
             raise ValueError('Summary differs from complete cohort calls')
+        for route, selector in [('index.html', '#cohort-summary'), ('guide/index.html', '#guide-summary')]:
+            row = read_page(output/route).select_one(selector+f' [data-summary-group="{expected["id"]}"]')
+            for index, key in [(4, 'delivered'), (5, 'accepted')]:
+                value = expected[key]
+                text = row.select('td')[index].get_text(' ', strip=True) if row else ''
+                wanted = '—' if value is None else f'{100*value/expected["total"]:.1f}% ({value} / {expected["total"]})'
+                if text != wanted:
+                    raise ValueError('Summary omits or changes the visible rate and population')
     if model.get('comparison_mode'):
         from harness.reporting.presentation import check_presentation
         for route in ('index.html', 'guide/index.html'):
@@ -815,13 +821,12 @@ def check_diagnostic_report(output, profile=None):
                     raise ValueError("Lazy evidence target mismatch")
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
+    owned_routes = set(core) | {'attempts/'+row['id']+'.html' for row in model['rows']}
     for route in output.rglob("*.html"):
         soup = read_page(route)
-        if model.get('scope_views'):
-            switches = soup.select('[data-content-scope]')
-            expected = [(view['id'], view['href'], view['label']) for view in model['scope_views']]
-            if [(node.get('data-content-scope'), node.get('href'), node.get_text()) for node in switches] != expected:
-                raise ValueError('Missing or wrong content scope navigation')
+        if (route.relative_to(output).as_posix() in owned_routes
+                and soup.select_one('header a[hreflang="en"], header a[href="en/index.html"]')):
+            raise ValueError('Diagnostic navigation advertises an ungenerated language')
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue

@@ -291,3 +291,22 @@ def test_positive_pattern_minimum_gates_scope_acceptance(answer, passed):
         'required_patterns': [{'id': 'body', 'pattern': 'Complete article body', 'minimum': 1}],
     }
     assert task_passed(True, score_attempt(case, answer.encode(), ok=True, content_scope='main')) is passed
+
+
+@pytest.mark.parametrize('dataset_scope,task_scope,option,expected', [
+    ('main', None, None, 'main'), ('main', None, 'full', 'full'),
+    (None, 'main', 'full', 'full'), (None, None, None, 'full'),
+])
+def test_saved_scope_defaults_and_explicit_override(tmp_path, dataset_scope, task_scope, option, expected):
+    from harness.web_fetch.config import load_dataset
+    case = annotated_case()
+    if task_scope:
+        case['content_scope'] = task_scope
+    dataset = {'tool': 'web_fetch', 'cases': [case]}
+    if dataset_scope:
+        dataset['content_scope'] = dataset_scope
+    path = tmp_path / 'dataset.json'
+    path.write_text(json.dumps(dataset), encoding='utf-8')
+    payload, cases = load_dataset(path, content_scope=option)
+    assert cases[0].content_scope == expected
+    assert payload['cases'][0]['required_facts'] == case['content_scopes'][expected]['requirements']['required_facts']

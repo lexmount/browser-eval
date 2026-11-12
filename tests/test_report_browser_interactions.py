@@ -436,3 +436,38 @@ def test_webfetch_shared_ranks_survive_sorting(tmp_path, browser, display):
                 assert row.locator('td').first.inner_text() == expected
         finally:
             page.close()
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_webfetch_single_scope_report_keeps_contestants_and_evidence(tmp_path, browser, display, language):
+    from tests.benchmarks.webfetch.test_content_scopes import annotated_case
+    from tests.test_optional_reports import invoke
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'paired', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    names = ['method-a', 'method-b', 'method-c', 'method-d']
+    config = tmp_path/'providers.json'
+    config.write_text(json.dumps({'providers': {name: {'type': 'fixture'} for name in names}}), encoding='utf-8')
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--provider-config', config, '--providers', ','.join(names),
+                    '--delay', '0', '--max-failure-retries', '0', language=language)
+    assert result.returncode == 0, result.stdout + result.stderr
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8').splitlines()[0])
+    with local_report_server(run/'report') as origin:
+        page = local_page(browser, origin, **display)
+        try:
+            page.goto(origin)
+            expect(page.locator('[data-content-scope-switch], a[data-content-scope]')).to_have_count(0)
+            expect(page.locator('#ranking-web tbody tr')).to_have_count(4)
+            labels = page.locator('#ranking-web a[href*="providers/"]').all_text_contents()
+            assert len(set(labels)) == 4
+            page.goto(origin.rstrip('/')+'/attempts/'+row['attempt_id']+'.html')
+            expect(page.locator('#evidence-reference')).to_contain_text('Contact publisher')
+            expect(page.locator('[data-content-scope-switch], a[data-content-scope]')).to_have_count(0)
+        finally:
+            page.close()
+    assert len(list((run/'call-logs').rglob('*.json'))) == 4

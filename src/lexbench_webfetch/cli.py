@@ -47,6 +47,7 @@ def main() -> None:
     score.add_argument("--final-url")
     score.add_argument("--title")
     score.add_argument("--content-scope", choices=("main", "full"))
+    score.add_argument("--score-scope", choices=("main", "full", "both"))
     compile_rules = sub.add_parser("compile-access-restrictions")
     compile_rules.add_argument("--output", type=Path, required=True)
     compile_rules.add_argument("--definition-dir", type=Path)
@@ -91,7 +92,7 @@ def main() -> None:
                 metadata=metadata,
                 list_reference=(json.loads(args.list_reference.read_text(encoding="utf-8"))
                                 if args.list_reference else None), status_code=args.status_code,
-                title=args.title, final_url=args.final_url, content_scope=args.content_scope)
+                title=args.title, final_url=args.final_url, content_scope=args.content_scope, scoring_scope=args.score_scope)
         elif args.command == "compile-access-restrictions":
             from .risk_control_dataset import build
             result = build(args.output, args.definition_dir, evidence_home=args.evidence_home)
@@ -106,7 +107,8 @@ def main() -> None:
                 output.write(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
             result = {"dataset": str(args.output.resolve()), "case_count": dataset["case_count"]}
         elif args.command == "list":
-            result = [{k: row[k] for k in ("id", "dataset_id", "case_count")} for row in registry()["suites"]]
+            result = [{k: row[k] for k in ("id", "dataset_id", "case_count", "kind", "source_population")
+                       if k in row} for row in registry()["suites"]]
         elif args.command == "validate":
             result = [validate(row["id"]) for row in registry()["suites"]
                       if args.suite is None or row["id"] == args.suite]

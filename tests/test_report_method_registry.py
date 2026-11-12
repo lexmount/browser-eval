@@ -479,3 +479,18 @@ def test_method_message_languages_preserve_parameter_contracts():
         fields = [{name for _, name, _, _ in Formatter().parse(entries[language]) if name is not None}
                   for language in ('zh', 'en')]
         assert fields[0] == fields[1], key
+
+
+def test_multiple_configurations_of_the_same_engine_have_distinct_names(tmp_path, custom_catalog):
+    rows = [{'provider': name, 'provider_metadata': {'engine': engine, 'reported_version': version}}
+            for name, engine, version in [('moli-auto', 'moli', 'moli 9.9.9'),
+                                          ('moli-wait', 'moli', 'moli 9.9.9'),
+                                          ('other', 'acme-fetch', '7.8.9')]]
+    @with_measured_method_labels
+    def render(out, dataset, records):
+        return {row['provider']: browser_method_label(row['provider']) for row in records}
+    assert render(tmp_path, {}, rows) == {
+        'moli-auto': 'Moli 9.9.9 (moli-auto)',
+        'moli-wait': 'Moli 9.9.9 (moli-wait)',
+        'other': 'Acme Fetch 7.8.9',
+    }
