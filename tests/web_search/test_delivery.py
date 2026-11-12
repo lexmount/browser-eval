@@ -133,7 +133,11 @@ def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path):
             assert page.locator('.compare-method').count() == 2
             assert page.locator('.compare-method a[href^="detail.html#"]').count() == 2
             data_file.unlink()
-            page.reload()
+            # A returning reader may legitimately retain the immutable data in cache.
+            # Exercise the missing-file behavior for a fresh reader instead.
+            page.close()
+            page = browser.new_page()
+            page.goto(origin + '/results.html')
             assert page.get_by_role('alert').inner_text() == '逐题数据加载失败，请刷新页面重试。'
         finally:
             browser.close()
