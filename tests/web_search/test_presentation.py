@@ -74,6 +74,21 @@ def test_public_report_check_executes_the_shared_marker_gate(tmp_path):
         check(tmp_path/'report')
 
 
+def test_two_benchmark_example_has_complete_quality_and_sortable_tables_in_both_languages(tmp_path):
+    example(tmp_path, comparison=True)
+    assert check(tmp_path / 'report')
+    for language in ('', 'en/'):
+        path = tmp_path / 'report' / (language + 'index.html')
+        doc = check_presentation(path.read_text(encoding='utf-8'))
+        assert len(doc.select('[data-population]')) == 2
+        assert not doc.select('[data-reference-retrieval]')
+        for table in doc.select('[data-population] table'):
+            assert len(table.select('tbody tr')) == 2
+            assert len(table.select('thead button[data-sort-column]')) == len(table.select('thead th'))
+        values = doc.select('[data-population="custom"] td[data-metric="population-1"]')
+        assert len(values) == 2 and all(cell.has_attr('data-sort') for cell in values)
+
+
 def test_factual_reciprocal_rank_is_directional_and_highlighted(tmp_path):
     example(tmp_path)
     profile = json.loads((tmp_path/'fixture/profile.json').read_text(encoding='utf-8'))

@@ -6,7 +6,9 @@ from pathlib import Path
 
 from harness.record_io import bytes_sha256
 from harness.web_search.core import normalize, write_json
+from harness.web_search.relevance import import_annotations
 from harness.web_search.report import build
+from lexbench_websearch.relevance import candidate_packet
 from lexbench_websearch.scoring import evaluate
 
 
@@ -23,8 +25,11 @@ def synthetic_profile():
     }
 
 
-def example(output):
+def example(output, *, comparison=False):
     profile = synthetic_profile()
+    if comparison:
+        profile['cases'][1].update(reference_answer='Fixture only',
+                                   reference_urls=profile['cases'][1]['anchors'])
     source = output / "fixture"
     source.mkdir(parents=True, exist_ok=True)
     write_json(source / "profile.json", profile)
@@ -89,13 +94,38 @@ def example(output):
             results_sha256=bytes_sha256((source / "results.jsonl").read_bytes()),
         ),
     )
-    return build(output / "report", source=source)
+    if not comparison:
+        return build(output / "report", source=source)
+    packet, _ = candidate_packet(profile, rows)
+    labels = import_annotations(profile, rows, {
+        'packet_sha256': packet['packet_sha256'], 'reviewed_case_ids': packet['plan']['case_ids'],
+        'judge': {'kind': 'human', 'name': 'Synthetic fixture labels; not a human review'},
+        'labels': {p['case_id']: {c['candidate_id']: 3 for c in p['candidates']}
+                   for p in packet['blind_candidate_packets']},
+    })
+    content = {
+        'presentation': 'comparison-report', 'independent_benchmarks': True,
+        'summary_metrics': 'retrieval', 'sections': [],
+        'metric_populations': [
+            {'id': 'custom', 'metric_kind': 'relevance', 'benchmark_root': True,
+             'case_ids': [profile['cases'][0]['id']],
+             'label': {'en': 'Synthetic scenarios', 'zh': 'Synthetic scenarios'}},
+            {'id': 'factual', 'benchmark_root': True, 'case_ids': [profile['cases'][1]['id']],
+             'label': {'en': 'Synthetic factual queries', 'zh': 'Synthetic factual queries'}},
+        ],
+    }
+    write_json(output / 'content.json', content)
+    write_json(output / 'labels.json', labels)
+    return build(output / 'report', source=source, content=output / 'content.json',
+                 relevance=output / 'labels.json', include_english=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    print(example(parser.parse_args().output))
+    parser.add_argument('--comparison', action='store_true', help='Build the two-benchmark comparison')
+    args = parser.parse_args()
+    print(example(args.output, comparison=args.comparison))
 
 
 if __name__ == "__main__":

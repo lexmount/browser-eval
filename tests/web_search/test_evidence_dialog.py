@@ -5,7 +5,7 @@ import os
 import pytest
 
 from harness.reporting.visual import browser_executable
-from harness.web_search.report import SCRIPT, numeric_cell, table
+from harness.web_search.report import SCRIPT, STYLE, numeric_cell, table
 
 playwright = pytest.importorskip("playwright.sync_api")
 
@@ -52,9 +52,11 @@ def test_comparison_sorting_uses_raw_numbers_keeps_missing_last_and_preserves_hi
         '<tr><td>Missing</td>' + numeric_cell('—', None, 'quality', 'max', False) + '</tr>',
     ]
     try:
-        page.set_content('<html lang="en"><button data-theme>Theme</button>'
+        page.set_content('<html lang="en"><style>' + STYLE + '</style><button data-theme>Theme</button>'
                          + table(['Method', 'Hit@5'], rows) + '</html>')
         page.add_script_tag(content=SCRIPT)
+        assert page.locator('tbody td').evaluate_all(
+            "cells => cells.every(cell => getComputedStyle(cell).display === 'table-cell')")
         def names():
             return page.locator('tbody tr td:first-child').all_text_contents()
         page.get_by_role('button', name='Hit@5', exact=True).click()

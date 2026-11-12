@@ -99,7 +99,7 @@ def fmt(value):
 
 def table(headers, rows, sortable=True, *, bounded=False):
     head = "".join(
-        f'<th aria-sort="none"><button type="button" data-sort-column="{i}">{esc(h)}</button></th>'
+        f'<th aria-sort="none"><button type="button" aria-label="{esc(h)}" data-sort-column="{i}">{esc(h)}</button></th>'
         if sortable
         else f"<th>{esc(h)}</th>"
         for i, h in enumerate(headers)

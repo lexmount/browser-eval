@@ -225,11 +225,22 @@ missing slots count toward the five-slot denominator. A query with no relevant
 pooled candidate receives zero nDCG and precision and stays in the population.
 Known-URL discovery and site constraints remain separate diagnostics.
 
+Independent-benchmark comparisons keep one primary table per benchmark. Declare
+`metric_kind: relevance` for a relevance benchmark; the renderer rejects missing
+method-by-query judgments. Annotated reference URLs remain in query evidence and
+do not create a separate subset leaderboard. Comparison tables support numeric
+and method-name sorting, keyboard activation, stable ties and missing values last.
+
 For explicitly authorized model annotations, run `uv run --frozen python -m harness.web_search judge`
 with `--report`, `--output`, `--model` and `--base-url`. Supply the credential through
 `SEARCH_JUDGE_API_KEY`; do not put credentials in CLI arguments. The runner freezes
 its contract, retains each response, resumes completed queries and refuses changed
 inputs. Import its `relevance.json` through the existing report `--relevance` option.
+When adding providers, `--reuse-evidence` first verifies the original provider
+scope, then builds the expanded anonymous pool. Only byte-equivalent judge
+requests reuse their responses. Invalid saved model answers stop the run by
+default. After inspection, `--repair-format` permits one format-only repair and
+retains the original call; valid answers are never repeated by that option.
 Model annotations are labeled separately from human annotations. The rubric uses
 0–3 grades, with nDCG@5, Precision@5 (grade ≥2), and Success@5 (at least one grade 3).
 

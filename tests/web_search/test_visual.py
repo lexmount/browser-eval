@@ -76,6 +76,22 @@ def test_capture_produces_complete_bound_proof_and_rejects_tampering(tmp_path, m
     assert visual.verify(root, receipt)
 
 
+def test_capture_allows_reachable_scroll_columns_but_rejects_broken_cell_layout(tmp_path):
+    root, receipt = tmp_path / 'report', tmp_path / 'reader.json'
+    report_fixture(root)
+    page = root / 'index.html'
+    original = page.read_text(encoding='utf-8')
+    table = ('<div class="scroll" tabindex="0" style="width:300px;overflow:auto">'
+             '<table style="width:1800px"><tr><td>Method</td>'
+             '<td class="win"><button>Far column</button></td></tr></table></div>')
+    page.write_text(original.replace('</main>', table + '</main>'), encoding='utf-8')
+    visual.capture(root, receipt)
+    page.write_text(page.read_text(encoding='utf-8').replace(
+        'class="win"', 'class="win" style="display:inline-block"'), encoding='utf-8')
+    with pytest.raises(ValueError, match='Invalid table cell layout'):
+        visual.capture(root, receipt)
+
+
 def test_legacy_asserted_readability_is_not_accepted(tmp_path):
     root, receipt = tmp_path / 'report', tmp_path / 'reader.json'
     report_fixture(root)
