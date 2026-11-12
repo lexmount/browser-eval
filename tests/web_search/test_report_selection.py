@@ -375,9 +375,23 @@ def test_uncertain_primary_scores_show_intervals_without_a_unique_winner(tmp_pat
     content = dict(uncertainty='paired-query-bootstrap/1', metric_populations=[dict(
         id='overall', metric_kind='relevance', label={'en':'Scenarios','zh':'场景'},
         case_ids=[case['id'] for case in profile['cases']])])
-    scores = [dict(case_id=case['id'],method=m['id'],ndcg=0.5,precision=0.5,success=0.5)
-              for case in profile['cases'] for m in profile['methods']]
+    scores = [dict(case_id=case['id'],method=m['id'],
+                   ndcg=((1.0,0.0),(0.0,0.8))[ci][mi],precision=0.5,success=0.5)
+              for ci,case in enumerate(profile['cases']) for mi,m in enumerate(profile['methods'])]
     page = BeautifulSoup(population_summary(profile,rows,content,False,relevance_scores=scores),'html.parser')
     cells = page.select('td[data-metric="population-1"]')
-    assert cells and all('95% CI [50.0, 50.0]' in cell.get_text() for cell in cells)
+    assert cells and all('95% CI [' in cell.get_text() for cell in cells)
+    from harness.reporting.presentation import check_presentation
+    check_presentation(page)
     assert not any(cell.select('.comparison-winner') for cell in cells)
+
+
+def test_uncertainty_report_passes_shared_release_presentation_checks(tmp_path):
+    example(tmp_path,comparison=True)
+    content = json.loads((tmp_path/'content.json').read_bytes())
+    content['uncertainty'] = 'paired-query-bootstrap/1'
+    (tmp_path/'content.json').write_text(json.dumps(content),encoding='utf-8')
+    output = tmp_path/'uncertainty-report'
+    build(output,source=tmp_path/'fixture',content=tmp_path/'content.json',
+          relevance=tmp_path/'labels.json',include_english=True)
+    assert check(output)

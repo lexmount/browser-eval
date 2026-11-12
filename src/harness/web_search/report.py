@@ -3892,6 +3892,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             if any(value['difference_to_best'][1] >= 0 for mid, value in intervals['methods'].items()
                    if mid != intervals['best_observed']):
                 winners.pop(1, None)
+                directions[1] = 'neutral'
         rendered = []
         for row, method in zip(values, profile['methods'], strict=True):
             html_cells = []
