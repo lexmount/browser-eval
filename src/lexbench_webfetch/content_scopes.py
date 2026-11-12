@@ -33,6 +33,16 @@ REQUIREMENT_DEFAULTS = {
 }
 
 
+def resolve_scoring_scope(case: dict, *, scoring_scope=None, content_scope=None):
+    """Resolve the requested score set separately from the primary report view."""
+    mode = scoring_scope or case.get('scoring_scope') or 'both'
+    if mode not in {'main', 'full', 'both'}:
+        raise ValueError('scoring_scope must be main, full or both')
+    if mode != 'both' and content_scope is not None and content_scope != mode:
+        raise ValueError('Single scoring scope conflicts with the selected primary scope')
+    return mode, mode if mode != 'both' else content_scope
+
+
 def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, str | None]:
     """Fail closed for an unannotated scope; never infer it from a provider answer.
 

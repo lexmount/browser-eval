@@ -14,7 +14,7 @@ Use `--content-scope main|full` with `lexbench-webfetch score`, or the Web Fetch
 scoring. Explicit selection fails for tasks without both annotations. Legacy
 tasks keep their existing behavior when no scope is selected. Scores bind the
 selected profile hash; reuse saved responses for score-only comparisons.
-Rescoring retains the saved dataset and task scopes and rejects a scope switch.
+Rescoring retains the saved retrieval task. `--score-scope` may select a different acceptance view without another provider call; changes to retrieval inputs are rejected.
 Profiles inherit the original blocked-page and navigation constraints. They require a gating acceptance rule: pattern match counts must be positive integers, and fact coverage thresholds must be finite and greater than zero through one. Reference text alone supplies only diagnostics. Omitted title, comment and post contracts are cleared, while explicitly declared scope components remain required. Tasks with
 an existing full-page ordered-tree acceptance contract require separate tree
 annotations and are rejected by this scope selector.
@@ -26,7 +26,12 @@ lexbench-webfetch export --suite content-scopes-530 --source <approved-input-dir
 webstone validate --dataset <new-directory>/dataset.json --content-scope main
 ```
 
-Tasks with both profiles automatically receive two score sets from the same
+Use `--score-scope main`, `--score-scope full` or `--score-scope both` with
+`webstone run`, `webstone rescore` or `lexbench-webfetch score`. A single scope
+computes only that rule set and builds a single-view report. When omitted,
+annotated tasks default to both; `--content-scope` selects the primary view.
+
+Tasks scored with both profiles receive two score sets from the same
 persisted output. `results.jsonl` stores them in `metrics.content_scope_metrics`;
 `summary.json` contains both aggregate views. This adds no provider calls or
 retry attempts. Request latency, usage and cost remain evidence from the original
@@ -40,6 +45,11 @@ judgments are specific to their original scope and are not reused as judgments
 of the second view. Old outputs gain both score sets through `rescore`, without
 calling providers. A two-view report requires paired annotations and scores for
 every included task; unannotated legacy inputs retain their original behavior.
+
+Cohort diagnostic models can bind both views through `scope_bundle.views`.
+Their input subdirectories use the declared view paths. The diagnostic builder
+uses the same renderer for each view and checks matching calls, response bytes,
+acceptance contracts and saved scores across the bundle.
 
 Choose `main` or `full` as the initial report view and acquisition/retry policy. An explicit option overrides the saved
 dataset or task scope. The approved input bound by `content-scopes-530` declares

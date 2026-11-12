@@ -424,3 +424,64 @@ def test_scope_download_keeps_its_own_title_assessment(tmp_path, full_schema):
         coverage = soup.select_one('#ranking-challenge-titles tbody tr td:last-child')
         assert coverage.get_text(strip=True).startswith(f'{count}/{count}')
     assert (run/'report/results.jsonl').read_bytes() == saved.read_bytes()
+
+
+@pytest.mark.parametrize('scope,passed', [('main', True), ('full', False)])
+def test_selected_scope_scores_only_its_contract(scope, passed):
+    metrics = score_attempt(annotated_case(), b'Complete article body', ok=True, scoring_scope=scope)
+    assert metrics['evaluation_content_scope'] == scope
+    assert task_passed(True, metrics) is passed
+    assert 'content_scope_metrics' not in metrics
+
+
+@pytest.mark.parametrize('scope', ['main', 'full', 'both'])
+def test_run_and_offline_rescore_can_select_one_scope_or_both(tmp_path, scope):
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'paired', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', '--score-scope', scope, language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
+    assert bool(row['metrics'].get('content_scope_metrics')) is (scope == 'both')
+    assert (run/'report/content-scope-views.json').exists() is (scope == 'both')
+    if scope != 'both':
+        assert row['metrics']['evaluation_content_scope'] == scope
+    calls = {p: p.read_bytes() for p in (run/'call-logs').rglob('*.json')}
+    other = 'full' if scope != 'full' else 'main'
+    result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--score-scope', other, language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
+    assert row['metrics']['evaluation_content_scope'] == other
+    assert 'content_scope_metrics' not in row['metrics']
+    assert {p: p.read_bytes() for p in (run/'call-logs').rglob('*.json')} == calls
+    saved_results = (run/'results.jsonl').read_bytes()
+    altered = json.loads(dataset.read_text(encoding='utf-8'))
+    altered['cases'][0]['url'] = 'https://different.example.test/task'
+    dataset.write_text(json.dumps(altered), encoding='utf-8')
+    result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--score-scope', 'main', language='zh')
+    assert result.returncode != 0
+    assert 'retrieval task' in result.stderr
+    assert (run/'results.jsonl').read_bytes() == saved_results
+
+
+def test_scopes_do_not_infer_one_verdict_from_the_other():
+    case = annotated_case()
+    for scope, text in [('main', 'Required core record'), ('full', 'Required full record')]:
+        case['content_scopes'][scope]['requirements'].update(
+            min_content_chars=1, required_facts=[{'id': scope, 'alternatives': [text]}])
+    metrics = score_attempt(case, b'Required full record', ok=True)
+    assert not task_passed(True, metrics['content_scope_metrics']['main'])
+    assert task_passed(True, metrics['content_scope_metrics']['full'])
+
+
+def test_explicit_both_rejects_missing_annotations_instead_of_silently_scoring_one():
+    case = annotated_case()
+    case.pop('content_scopes')
+    with pytest.raises(ValueError, match='paired task annotations'):
+        score_attempt(case, b'Complete article body', ok=True, scoring_scope='both')
+    assert 'content_scope_metrics' not in score_attempt(case, b'Complete article body', ok=True)

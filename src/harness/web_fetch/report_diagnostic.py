@@ -493,11 +493,74 @@ def validate_diagnostic_blocks(model, files, source):
                         raise ValueError('Diagnosis quotation is absent from bound case evidence')
 
 
+def diagnostic_scope_bundle(model):
+    """Paired diagnostic views share one package and an explicit route map."""
+    bundle = model.get('scope_bundle')
+    if bundle is None:
+        return None
+    default = bundle.get('default_scope')
+    other = 'full' if default == 'main' else 'main'
+    if (default not in {'main', 'full'} or model.get('content_scope') not in {'main', 'full'}
+            or bundle.get('views') != {default: '.', other: 'content-scopes/'+other}):
+        raise ValueError('Invalid diagnostic scope bundle')
+    return bundle
+
+
+def diagnostic_bundle_root(output, model):
+    bundle = diagnostic_scope_bundle(model)
+    relative = bundle['views'][model['content_scope']] if bundle else '.'
+    return output if relative == '.' else output.parents[1]
+
+
+def check_diagnostic_scope_bundle(output, model):
+    bundle = diagnostic_scope_bundle(model)
+    if not bundle or model['content_scope'] != bundle['default_scope']:
+        return
+    current = {row['id']: row for row in model['rows']}
+    for scope, relative in bundle['views'].items():
+        if relative == '.':
+            continue
+        view = contained_path(output, relative, reject_symlinks=True)
+        child, _ = load_diagnostic(view)
+        if child.get('scope_bundle') != bundle or child['content_scope'] != scope:
+            raise ValueError('Diagnostic scope view has wrong scope binding')
+        check_diagnostic_report(view)
+        rows = {row['id']: row for row in child['rows']}
+        if rows.keys() != current.keys():
+            raise ValueError('Diagnostic scope view changed the invocation population')
+        for identifier, row in current.items():
+            alternate = rows[identifier]
+            for key in ('cohort', 'run_id', 'url'):
+                if row[key] != alternate[key]:
+                    raise ValueError('Diagnostic scope changed invocation identity')
+            if any(row[field]['sha256'] != alternate[field]['sha256']
+                   for field in ('answer', 'first_answer')):
+                raise ValueError('Diagnostic scope changed the returned bytes')
+            from lexbench_webfetch.content_scopes import select_content_scope
+            original_case = read_json(contained_path(output, row['reference']['path']))
+            selected_case = read_json(contained_path(view, alternate['reference']['path']))
+            if selected_case != select_content_scope(original_case, scope)[0]:
+                raise ValueError('Diagnostic scope changed its declared acceptance contract')
+            original = read_json(contained_path(output, row['log']['path']))
+            selected = read_json(contained_path(view, alternate['log']['path']))
+            for key in ('attempt_id', 'provider', 'case_id', 'url', 'started_at', 'completed_at',
+                        'elapsed_ms', 'ok', 'status_code', 'final_url', 'error_type', 'error_message',
+                        'selected_runtime', 'request_signatures', 'saved_call_log', 'provider_metadata'):
+                if original.get(key) != selected.get(key):
+                    raise ValueError('Diagnostic scope changed saved invocation evidence: '+key)
+            other = 'uniform_'+scope+'_content'
+            if selected['metrics'] != original[other]['metrics']:
+                raise ValueError('Diagnostic scope disagrees with its saved independent score')
+            if alternate['initial_pass'] != original[other]['passed']:
+                raise ValueError('Diagnostic scope changed its saved verdict')
+
+
 def load_diagnostic(source):
     source = Path(source).resolve()
     model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
+    bundle = diagnostic_scope_bundle(model)
     if model.get('scope_views'):
         views = model['scope_views']
         if ({view['id'] for view in views} != {'main', 'full'} or len(views) != 2
@@ -506,7 +569,13 @@ def load_diagnostic(source):
         for view in views:
             if not view.get('label') or not view.get('href'):
                 raise ValueError('Content scope navigation needs labels and destinations')
-            if view['href'] != 'index.html':
+            if bundle:
+                import posixpath
+                expected = posixpath.relpath(bundle['views'][view['id']]+'/index.html',
+                                             bundle['views'][model['content_scope']])
+                if view['href'] != expected:
+                    raise ValueError('Diagnostic scope navigation escapes its paired package')
+            elif view['href'] != 'index.html':
                 validate_http_url(view['href'])
     groups = {g["id"]: g for g in model["cohorts"]}
     if len(groups) != len(model["cohorts"]):
@@ -581,14 +650,16 @@ def load_diagnostic(source):
         if model.get('paired_content_scope'):
             log = json.loads(files[row['log']['path']])
             current = log.get('metrics', {})
-            paired = log.get('uniform_full_content', {})
-            if (current.get('evaluation_content_scope') != 'main'
-                    or paired.get('metrics', {}).get('evaluation_content_scope') != 'full'
+            scope = model.get('content_scope', 'main')
+            other = 'full' if scope == 'main' else 'main'
+            paired = log.get('uniform_'+other+'_content', {})
+            if (current.get('evaluation_content_scope') != scope
+                    or paired.get('metrics', {}).get('evaluation_content_scope') != other
                     or not current.get('scoring_source_sha256')
                     or current['scoring_source_sha256'] != paired['metrics'].get('scoring_source_sha256')
-                    or type(paired.get('passed')) is not bool
-                    or (paired['passed'] and not row['initial_pass'])):
-                raise ValueError('Paired content scopes require one scorer and full-pass implies main-pass')
+                    or current.get('content_sha256') != paired['metrics'].get('content_sha256')
+                    or type(paired.get('passed')) is not bool):
+                raise ValueError('Paired content scopes require independent scores of the same bytes')
     validate_diagnostic_blocks(model, files, source)
     audited = [r for r in rows if r.get("success_audit")]
     states = Counter(r["success_audit"]["source_state"] for r in audited)
@@ -816,6 +887,8 @@ def check_diagnostic_report(output, profile=None):
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
+        if model.get("scope_bundle") and route.relative_to(output).parts[0] == "content-scopes":
+            continue
         soup = read_page(route)
         if model.get('scope_views'):
             switches = soup.select('[data-content-scope]')
@@ -828,7 +901,8 @@ def check_diagnostic_report(output, profile=None):
             value = node.get("href") or node.get("src") or node.get('data-evidence-file')
             if value.startswith(("http:", "https:", "#", "data:")):
                 continue
-            target = _local_target(output, route, soup, value)
+            boundary = diagnostic_bundle_root(output, model) if node.has_attr('data-content-scope') else output
+            target = _local_target(boundary, route, soup, value)
             if not target.is_file():
                 raise ValueError("Broken report target: " + value)
     for path in output.rglob('*'):
@@ -836,6 +910,7 @@ def check_diagnostic_report(output, profile=None):
             raise ValueError('Public report must not contain symlinks')
         if path.is_file() and (risk := publication_risk(path.read_bytes())):
             raise ValueError('Public report privacy scan: ' + path.relative_to(output).as_posix() + ': ' + risk)
+    check_diagnostic_scope_bundle(output, model)
     return {"cases": len(model["rows"]), "core_routes": len(core), "status": "passed"}
 
 

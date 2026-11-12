@@ -92,6 +92,7 @@ def score_attempt(
     title: str | None = None,
     final_url: str | None = None,
     content_scope: str | None = None,
+    scoring_scope: str | None = None,
 ) -> dict[str, Any]:
     """Score once per declared acceptance scope, without acquiring another answer."""
     from copy import deepcopy
@@ -99,8 +100,13 @@ def score_attempt(
                    list_reference=list_reference, status_code=status_code,
                    prepared_answer=prepared_answer, delivered_files=delivered_files,
                    title=title, final_url=final_url)
-    result = _score_attempt(case, artifact, content_scope=content_scope, **options)
-    if _case_dict(case).get('content_scopes'):
+    from .content_scopes import resolve_scoring_scope
+    mode, primary = resolve_scoring_scope(_case_dict(case), scoring_scope=scoring_scope,
+                                          content_scope=content_scope)
+    if (scoring_scope or _case_dict(case).get('scoring_scope')) == 'both' and not _case_dict(case).get('content_scopes'):
+        raise ValueError('Both scoring scopes require paired task annotations')
+    result = _score_attempt(case, artifact, content_scope=primary, **options)
+    if mode == 'both' and _case_dict(case).get('content_scopes'):
         active = result['evaluation_content_scope']
         paired = {active: deepcopy(result)}
         for scope in ('main', 'full'):

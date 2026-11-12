@@ -320,7 +320,7 @@ class ReportTemplateTests(unittest.TestCase):
             guide.write_text(text.replace('>Articles</td>','>Wrong method</td>'), encoding="utf-8")
             with self.assertRaises(ValueError):check_diagnostic_report(output)
 
-    def test_paired_scope_requires_shared_scorer_and_monotonic_acceptance(self):
+    def test_paired_scope_requires_shared_scorer_and_keeps_verdicts_independent(self):
         from harness.web_fetch.report_diagnostic import load_diagnostic
         with tempfile.TemporaryDirectory() as temp:
             source=Path(temp)/'source';model=diagnostic_example(source)
@@ -336,6 +336,11 @@ class ReportTemplateTests(unittest.TestCase):
             data['uniform_full_content']['passed']=True;target.write_text(json.dumps(data), encoding="utf-8")
             row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
+            load_diagnostic(source)
+            data['uniform_full_content']['metrics']['scoring_source_sha256']='b'*64
+            target.write_text(json.dumps(data), encoding='utf-8')
+            row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+            (source/'report.json').write_text(json.dumps(model), encoding='utf-8')
             with self.assertRaisesRegex(ValueError,'Paired content scopes'):load_diagnostic(source)
 
     def test_new_track_requires_an_execution_owner_and_behavior_checks(self):

@@ -452,6 +452,11 @@ def check_content_scope_views(root: Path):
     paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
     binding = root/'content-scope-views.json'
     source_dataset = read_json(root/'dataset.json')
+    single_scope = {case.get('scoring_scope') for case in source_dataset['cases']}
+    if (len(single_scope) == 1 and single_scope <= {'main', 'full'} and not any(paired)):
+        if binding.exists() or any(row['metrics'].get('evaluation_content_scope') not in single_scope for row in records):
+            raise ValueError('Single-scope report changed its selected scoring scope')
+        return
     if not all(case.get('content_scopes') for case in source_dataset['cases']):
         if binding.exists():
             raise ValueError('Content-scope switch has incomplete task annotations')

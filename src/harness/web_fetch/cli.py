@@ -138,7 +138,7 @@ def command_run(args: argparse.Namespace) -> int:
         raise SystemExit("Output must be a new directory; existing evidence is immutable")
     load_runtime_env(args.env_file)
     language = None if args.no_report else resolve_report_language(args.output / "report", args.language)
-    dataset_meta, cases = load_dataset(args.dataset, content_scope=args.content_scope)
+    dataset_meta, cases = load_dataset(args.dataset, content_scope=args.content_scope, scoring_scope=args.score_scope)
     provider_configs = load_provider_config(args.provider_config)
     selection = resolve_provider_selection(args.providers, args.provider_config)
     names = [name.strip() for name in selection.split(",") if name.strip()]
@@ -193,7 +193,8 @@ def command_rescore(args: argparse.Namespace) -> int:
     executed_scopes=set(task_scopes.values()) or {saved_scope}
     if args.content_scope is not None and executed_scopes != {args.content_scope}:
         raise ValueError('Rescore cannot change the saved content scope')
-    dataset, cases = load_dataset(args.dataset, content_scope=saved_scope,case_scopes=task_scopes)
+    dataset, cases = load_dataset(args.dataset, content_scope=(None if args.score_scope in {'main', 'full'} else saved_scope),case_scopes=task_scopes,
+                                  scoring_scope=args.score_scope or saved.get('scoring_scope'))
     if saved.get('content_scope') is None:
         dataset.pop('content_scope',None)
     records, _ = rescore_evaluation(run_dir=args.run_dir, dataset_meta=dataset, dataset_path=args.dataset, cases=cases)
@@ -294,7 +295,8 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
     add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
-    run.add_argument("--content-scope", choices=("main", "full"))
+    run.add_argument("--content-scope", choices=("main", "full"), help="Primary view when scoring both scopes")
+    run.add_argument("--score-scope", choices=("main", "full", "both"), help="Compute only one scope or both (default for annotated tasks)")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")
     run.add_argument("--case-ids", default="", help="Optional comma-separated case IDs")
@@ -326,6 +328,7 @@ def build_parser() -> argparse.ArgumentParser:
     rescore.add_argument("run_dir", type=Path)
     rescore.add_argument("--dataset", type=Path, required=True)
     rescore.add_argument("--content-scope", choices=("main", "full"))
+    rescore.add_argument("--score-scope", choices=("main", "full", "both"))
     rescore.add_argument("--no-report", action="store_true",
                          help="Rescore saved data without rebuilding HTML; existing reports are unchanged")
     add_language_argument(rescore)

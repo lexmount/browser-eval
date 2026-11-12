@@ -194,6 +194,13 @@ def build_diagnostic_cohorts(source: Path | None, output: Path, profile: Path | 
         from harness.reporting.versions import bind_build_version
         manifest['webstone'] = bind_build_version(staging)
         (staging / "report-manifest.json").write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+        from harness.web_fetch.report_diagnostic import diagnostic_scope_bundle
+        scope_bundle = diagnostic_scope_bundle(model)
+        if scope_bundle and model['content_scope'] == scope_bundle['default_scope']:
+            for relative in scope_bundle['views'].values():
+                if relative != '.':
+                    build_diagnostic_cohorts(contained_path(source, relative, reject_symlinks=True),
+                                             staging/relative)
         check_diagnostic_report(staging, profile=profile)
         staging.rename(output)
     except Exception:
@@ -443,7 +450,9 @@ def _render_content_scope_views(output, dataset, records, manifests, *, include_
     from copy import deepcopy
     from lexbench_webfetch.content_scopes import select_content_scope, metrics_for_scope
     paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
-    if not all(case.get('content_scopes') for case in dataset['cases']):
+    single_scope = {case.get('scoring_scope') for case in dataset['cases']}
+    if (not all(case.get('content_scopes') for case in dataset['cases'])
+            or (len(single_scope) == 1 and single_scope <= {'main', 'full'} and not any(paired))):
         generate(output, dataset, records, manifests, include_english=include_english, **options)
         return
     if not all(paired):
