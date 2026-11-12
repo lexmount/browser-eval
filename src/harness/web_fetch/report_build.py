@@ -509,6 +509,11 @@ def _render_content_scope_views(output, dataset, records, manifests, *, include_
     (output/'content-scope-views.json').write_text(json.dumps({
         'schema_version': 1, 'default_scope': default, 'provider_calls_added': 0,
         'views': {default: '.', other: relative},
+        'acquisition': [manifest.get('acquisition', {
+            'content_scope': dataset.get('content_scope'),
+            'task_content_scopes': {case['id']: case.get('content_scope') for case in dataset['cases']},
+            'max_failure_retries': manifest.get('parameters', {}).get('max_failure_retries', 0),
+        }) for manifest in manifests],
     }, indent=2)+'\n', encoding='utf-8')
     return True
 
@@ -530,7 +535,8 @@ def _wire_content_scope_views(output):
     binding = output/'content-scope-views.json'
     if not binding.exists():
         return
-    views = json.loads(binding.read_text(encoding='utf-8'))['views']
+    scope_binding = json.loads(binding.read_text(encoding='utf-8'))
+    views = scope_binding['views']
     for scope, relative in views.items():
         view = output/relative
         view_records = load_jsonl(view/'results.jsonl')
@@ -559,6 +565,13 @@ def _wire_content_scope_views(output):
                              + f'>{labels[target_scope]}</a>')
             links = [f'<strong>{link}</strong>' if 'aria-current=' in link else link for link in links]
             note = 'Same saved calls; switch scoring requirements.' if english else '同一份抓取结果，切换评分要求。'
+            acquisition = scope_binding.get('acquisition') or []
+            if any(item.get('max_failure_retries', 0) > 0 for item in acquisition):
+                scopes = {scope for item in acquisition for scope in item['task_content_scopes'].values()}
+                decision = ('/'.join(labels[scope] for scope in sorted(scopes))
+                            if scopes <= {'main', 'full'} else ('original task rules' if english else '各题原定规则'))
+                note += (f' Retry decisions used {decision}; both views reuse the resulting calls.' if english
+                         else f' 重试按{decision}结果决定，两种评分共用最终输出。')
             verdict_label = 'Passed' if english else '通过'
             nav = f'<nav class="wrap callout" data-content-scope-switch data-active-scope="{scope}" aria-label="Scoring scope">'+ ' · '.join(links)+f'<span> {note}</span><span data-scope-pass-count="{passed}" data-scope-attempt-count="{count}"> {verdict_label}: {passed}/{count}</span></nav>'
             # Keep the renderer's bytes intact outside this presentation control.

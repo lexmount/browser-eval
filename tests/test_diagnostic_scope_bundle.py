@@ -141,3 +141,46 @@ def test_scope_switch_keeps_contestant_names_and_configuration_fixed(tmp_path):
     path.write_text(json.dumps(model), encoding='utf-8')
     with pytest.raises(ValueError, match='contestant identities or labels'):
         build_diagnostic_cohorts(source, tmp_path/'report')
+
+
+@pytest.mark.parametrize('scope', ['main', 'full'])
+@pytest.mark.parametrize('navigation', [None, []])
+def test_bundled_scores_cannot_remove_the_reader_switch(tmp_path, scope, navigation):
+    source = tmp_path/'input'
+    paired_input(source)
+    path = source/('report.json' if scope == 'main' else 'content-scopes/full/report.json')
+    model = json.loads(path.read_text(encoding='utf-8'))
+    model['scope_views'] = navigation
+    path.write_text(json.dumps(model), encoding='utf-8')
+    with pytest.raises(ValueError, match='scope navigation'):
+        build_diagnostic_cohorts(source, tmp_path/'report')
+
+
+@pytest.mark.parametrize('field', ['provider_identity', 'process', 'request', 'call_error'])
+def test_adapter_call_fields_cannot_differ_between_scoring_views(tmp_path, field):
+    source = tmp_path/'input'
+    paired_input(source)
+    child = source/'content-scopes/full'
+    path = child/'report.json'
+    model = json.loads(path.read_text(encoding='utf-8'))
+    row = model['rows'][0]
+    log = child/row['log']['path']
+    value = json.loads(log.read_text(encoding='utf-8'))
+    value[field] = {'changed': True}
+    log.write_text(json.dumps(value), encoding='utf-8')
+    row['log']['sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
+    path.write_text(json.dumps(model), encoding='utf-8')
+    with pytest.raises(ValueError, match='saved invocation evidence: '+field):
+        build_diagnostic_cohorts(source, tmp_path/'report')
+
+
+def test_only_declared_alternate_subtrees_are_checked_as_child_reports(tmp_path):
+    source = tmp_path/'input'
+    paired_input(source)
+    output = tmp_path/'report'
+    build_diagnostic_cohorts(source, output)
+    rogue = output/'content-scopes/unrequested/index.html'
+    rogue.parent.mkdir()
+    rogue.write_text('<html><a href="missing.html">Broken</a></html>', encoding='utf-8')
+    with pytest.raises(ValueError):
+        check_diagnostic_report(output)

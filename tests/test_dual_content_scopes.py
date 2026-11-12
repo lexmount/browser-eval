@@ -522,3 +522,46 @@ def test_all_contestants_switch_scoring_together_without_adding_scope_rows(tmp_p
         assert len(saved) == len(names)
         assert {row['provider'] for row in saved} == set(names)
     assert len(list((run/'call-logs').rglob('*.json'))) == len(names)
+
+
+def test_offline_scope_changes_preserve_acquisition_and_accept_annotation_corrections(tmp_path):
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    data = {'tool': 'web_fetch', 'id': 'acquisition', 'content_scope': 'full', 'cases': [case]}
+    dataset.write_text(json.dumps(data), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '1', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    original = json.loads((run/'manifest.json').read_text(encoding='utf-8'))['acquisition']
+    calls = {path: path.read_bytes() for path in (run/'call-logs').rglob('*.json')}
+    for args in [('--score-scope', 'main'), ('--score-scope', 'full'),
+                 ('--score-scope', 'both'), ('--content-scope', 'full')]:
+        result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--no-report', *args, language='zh')
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert json.loads((run/'manifest.json').read_text(encoding='utf-8'))['acquisition'] == original
+    data['cases'][0]['content_scopes']['main']['requirements']['required_facts'][0]['alternatives'] = ['Different required fact']
+    dataset.write_text(json.dumps(data), encoding='utf-8')
+    result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--no-report', '--score-scope', 'main', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
+    assert not task_passed(row['ok'], row['metrics'])
+    assert {path: path.read_bytes() for path in (run/'call-logs').rglob('*.json')} == calls
+    binding = json.loads((run/'report/content-scope-views.json').read_text(encoding='utf-8'))
+    assert binding['acquisition'] == [original]
+    assert '重试按完整内容结果决定' in (run/'report/index.html').read_text(encoding='utf-8')
+
+
+def test_suite_list_identifies_overlapping_annotation_cohorts(monkeypatch, capsys):
+    from lexbench_webfetch import cli, benchmark
+    rows = [{'id': 'original', 'dataset_id': 'original', 'case_count': 550},
+            {'id': 'annotated', 'dataset_id': 'annotated', 'case_count': 530,
+             'kind': 'annotation_cohort', 'source_population': 'original'}]
+    monkeypatch.setattr(benchmark, 'registry', lambda: {'suites': rows})
+    monkeypatch.setattr('sys.argv', ['lexbench-webfetch', 'list'])
+    cli.main()
+    listed = json.loads(capsys.readouterr().out)
+    assert listed == rows

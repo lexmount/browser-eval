@@ -340,7 +340,7 @@ def test_large_replay_bundle_uses_staged_file_upload(tmp_path: Path) -> None:
     assert puts[1][1] == b"figure-bytes"
     start = next(call for call in calls if call[0].startswith("/api/uploads?"))
     commit = next(call for call in calls if "/commit" in call[0])
-    assert json.loads(start[1]) == {"slug": "site-1"}
+    assert json.loads(start[1]) == {"slug": "site-1", "title": "Replay"}
     assert start[2]["extra_headers"]["Idempotency-Key"].startswith("trajectory-staged-")
     assert commit[2]["extra_headers"]["Idempotency-Key"].startswith("trajectory-staged-")
 

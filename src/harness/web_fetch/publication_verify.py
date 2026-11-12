@@ -17,6 +17,7 @@ from urllib.parse import quote, urlencode, urlsplit, urlunsplit
 
 from harness.benchmarks.data import _TokenRedirects
 from harness.reporting.publication import archive_inventory
+from harness.reporting.publish import _rate_limit_delay
 from harness.web_fetch.artifact_auth import load_token
 from harness.reporting.publication_target import (
     publication_base,
@@ -205,6 +206,22 @@ def verify_public_files(slug, expected_archive, base):
     }
 
 
+def _open_export_file(request):
+    for attempt in range(5):
+        try:
+            return urllib.request.build_opener(_TokenRedirects()).open(request, timeout=180)
+        except HTTPError as error:
+            if error.code != 429 or attempt == 4:
+                raise
+            delay = _rate_limit_delay(error)
+            error.close()
+            while delay > 0:
+                interval = min(delay, 30)
+                time.sleep(interval)
+                delay -= interval
+    raise AssertionError('unreachable')
+
+
 def _assemble_manifest_export(request, path, version):
     """Staged uploads expose immutable original files instead of an assembled ZIP."""
     if path.stat().st_size > 16 * 1024 * 1024:
@@ -242,15 +259,34 @@ def _assemble_manifest_export(request, path, version):
             original = urllib.request.Request(
                 download+'?'+urlencode({'version': version, 'file': entry['path']}),
                 headers=dict(request.header_items()))
-            with urllib.request.build_opener(_TokenRedirects()).open(original, timeout=180) as response:
+            with _open_export_file(original) as response:
                 observed = response.headers.get('x-artifact-version', version)
                 if observed != version:
                     raise ValueError('Original file changed export version')
+                content_type = response.headers.get('content-type', '')
+                raw = response.read() if content_type.startswith('application/json') else None
                 with target.open('wb') as stream:
-                    while chunk := response.read(1024 * 1024):
-                        stream.write(chunk)
+                    if raw is not None:
+                        descriptor = json.loads(raw)
+                        if isinstance(descriptor, dict) and 'url' in descriptor and 'versionId' in descriptor:
+                            address = urlsplit(descriptor['url'])
+                            if (descriptor['versionId'] != version or address.scheme != 'https'
+                                    or not address.hostname or address.username or address.password
+                                    or address.fragment or descriptor.get('filename') not in
+                                    {entry['path'], PurePosixPath(entry['path']).name}):
+                                raise ValueError('Original download descriptor differs from its file binding')
+                            # Object storage uses its signed URL, never the service's bearer token.
+                            with _open_export_file(urllib.request.Request(descriptor['url'])) as original_file:
+                                while chunk := original_file.read(1024 * 1024):
+                                    stream.write(chunk)
+                        else:
+                            stream.write(raw)
+                    else:
+                        while chunk := response.read(1024 * 1024):
+                            stream.write(chunk)
             if target.stat().st_size != entry['size']:
-                raise ValueError('Original file size differs from export manifest')
+                raise ValueError('Original file size differs from export manifest: '+entry['path']
+                                 +f" ({target.stat().st_size} != {entry['size']})")
             return entry['path'], target
         with ThreadPoolExecutor(max_workers=4) as workers:
             originals = list(workers.map(fetch, enumerate(files)))
@@ -265,7 +301,7 @@ def download_export(request, destination, attempts=3):
         path = None
         complete = False
         try:
-            with urllib.request.build_opener(_TokenRedirects()).open(request, timeout=180) as response:
+            with _open_export_file(request) as response:
                 version = response.headers.get("x-artifact-version")
                 if not version or not version.startswith("ver_"):
                     raise ValueError("Export omitted version baseline")

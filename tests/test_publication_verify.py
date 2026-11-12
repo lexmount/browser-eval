@@ -339,3 +339,47 @@ def test_manifest_export_downloads_versioned_originals_without_sharing(tmp_path,
             with zipfile.ZipFile(path) as archive:
                 assert {name: archive.read(name) for name in archive.namelist()} == files
             assert len(calls) == 3
+
+
+def test_original_export_follows_storage_descriptor_without_service_credentials(tmp_path):
+    original = b'Exact original attachment'
+    manifest = {'assembled': False, 'versionId': 'ver_saved',
+                'files': [{'path': 'data/answer.bin', 'size': len(original)}]}
+    def response(request, timeout):
+        if request.full_url.startswith('https://storage.example/'):
+            assert request.get_header('Authorization') is None
+            raw, content_type = original, 'application/octet-stream'
+        else:
+            assert request.get_header('Authorization') == 'Bearer fixture'
+            if request.full_url.endswith('/export'):
+                body = manifest
+            else:
+                body = {'url': 'https://storage.example/answer.bin?signature=fixture',
+                        'filename': 'answer.bin', 'versionId': 'ver_saved', 'assembled': False}
+            raw, content_type = json.dumps(body).encode(), 'application/json'
+        stream = io.BytesIO(raw)
+        stream.headers = {'x-artifact-version': 'ver_saved', 'content-type': content_type}
+        return stream
+    request = urllib.request.Request('https://reports.example/api/sites/site/export',
+                                     headers={'Authorization': 'Bearer fixture'})
+    with patch('urllib.request.build_opener', lambda *handlers: SimpleNamespace(open=response)):
+        _, path = download_export(request, tmp_path)
+    with zipfile.ZipFile(path) as archive:
+        assert archive.read('data/answer.bin') == original
+
+
+def test_original_file_rate_limit_retries_the_same_read(tmp_path, monkeypatch):
+    from urllib.error import HTTPError
+    from harness.web_fetch.publication_verify import _open_export_file
+    calls, sleeps = [], []
+    def response(request, timeout):
+        calls.append(request.full_url)
+        if len(calls) == 1:
+            raise HTTPError(request.full_url, 429, 'Retry later', {'Retry-After': '2'}, io.BytesIO())
+        return io.BytesIO(b'original')
+    monkeypatch.setattr('time.sleep', sleeps.append)
+    with patch('urllib.request.build_opener', lambda *handlers: SimpleNamespace(open=response)):
+        with _open_export_file(urllib.request.Request('https://reports.example/original')) as stream:
+            assert stream.read() == b'original'
+    assert calls == ['https://reports.example/original'] * 2
+    assert sleeps == [2]

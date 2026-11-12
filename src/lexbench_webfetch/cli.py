@@ -107,7 +107,8 @@ def main() -> None:
                 output.write(json.dumps(dataset, ensure_ascii=False, indent=2) + "\n")
             result = {"dataset": str(args.output.resolve()), "case_count": dataset["case_count"]}
         elif args.command == "list":
-            result = [{k: row[k] for k in ("id", "dataset_id", "case_count")} for row in registry()["suites"]]
+            result = [{k: row[k] for k in ("id", "dataset_id", "case_count", "kind", "source_population")
+                       if k in row} for row in registry()["suites"]]
         elif args.command == "validate":
             result = [validate(row["id"]) for row in registry()["suites"]
                       if args.suite is None or row["id"] == args.suite]

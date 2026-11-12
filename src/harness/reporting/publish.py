@@ -350,8 +350,9 @@ def publish_receipt_release(config: ReceiptRelease, *, transport=None):
 
     def finish(value):
         version = activated_version(value)
-        if config.mode == 'reuse' and config.visibility is None and value.get('share_url'):
-            target = urllib.parse.urlsplit(value['share_url'])
+        saved_url = value.get('share_url') or (profile.get('publication') or {}).get('share_url')
+        if saved_url:
+            target = urllib.parse.urlsplit(saved_url)
             authority = urllib.parse.urlsplit(base)
             prefix = authority.path.rstrip('/')
             canonical = prefix+'/s/'+quote(value['slug'], safe='')
@@ -359,7 +360,8 @@ def publish_receipt_release(config: ReceiptRelease, *, transport=None):
             if (target.scheme != authority.scheme or target.netloc != authority.netloc
                     or target.query or target.fragment or not (target.path == canonical or legacy)):
                 raise ValueError('Saved report URL differs from the configured service')
-            return {'slug': value['slug'], 'versionId': version, 'url': value['share_url'],
+        if config.mode == 'reuse' and config.visibility is None and value.get('share_url'):
+            return {'slug': value['slug'], 'versionId': version, 'url': saved_url,
                     **({'visibility': value['visibility']} if value.get('visibility') else {})}
         slug = quote(value['slug'], safe='')
         path = '/api/sites/'+slug+'/sharing'
@@ -374,7 +376,7 @@ def publish_receipt_release(config: ReceiptRelease, *, transport=None):
             sharing = response_json(status, raw, operation='sharing update')
         if sharing.get('visibility') != visibility or sharing.get('moderation'):
             raise ValueError('Requested sharing is not active; inspect the saved publication')
-        value.update(share_url=base+'/s/'+slug, visibility=visibility,
+        value.update(share_url=(saved_url if saved_url and config.visibility is None else base+'/s/'+slug), visibility=visibility,
                      publication_pending=False)
         save(value)
         return {'slug': value['slug'], 'versionId': version,

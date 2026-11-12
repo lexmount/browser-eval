@@ -526,6 +526,8 @@ def check_diagnostic_scope_bundle(output, model):
             raise ValueError('Diagnostic scope view has wrong scope binding')
         if child['cohorts'] != model['cohorts']:
             raise ValueError('Diagnostic scope changed contestant identities or labels')
+        if child.get('provenance') != model.get('provenance'):
+            raise ValueError('Diagnostic scope changed implementation provenance')
         check_diagnostic_report(view)
         rows = {row['id']: row for row in child['rows']}
         if rows.keys() != current.keys():
@@ -547,7 +549,8 @@ def check_diagnostic_scope_bundle(output, model):
             selected = read_json(contained_path(view, alternate['log']['path']))
             for key in ('attempt_id', 'provider', 'case_id', 'url', 'started_at', 'completed_at',
                         'elapsed_ms', 'ok', 'status_code', 'final_url', 'error_type', 'error_message',
-                        'selected_runtime', 'request_signatures', 'saved_call_log', 'provider_metadata'):
+                        'selected_runtime', 'request_signatures', 'saved_call_log', 'provider_metadata',
+                        'provider_identity', 'process', 'request', 'call_error'):
                 if original.get(key) != selected.get(key):
                     raise ValueError('Diagnostic scope changed saved invocation evidence: '+key)
             other = 'uniform_'+scope+'_content'
@@ -563,6 +566,8 @@ def load_diagnostic(source):
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
     bundle = diagnostic_scope_bundle(model)
+    if bundle and not model.get('scope_views'):
+        raise ValueError('Content scope navigation is required for a scope bundle')
     if model.get('scope_views'):
         views = model['scope_views']
         if ({view['id'] for view in views} != {'main', 'full'} or len(views) != 2
@@ -893,7 +898,10 @@ def check_diagnostic_report(output, profile=None):
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
-        if model.get("scope_bundle") and route.relative_to(output).parts[0] == "content-scopes":
+        bundle = diagnostic_scope_bundle(model)
+        if (bundle and model['content_scope'] == bundle['default_scope']
+                and any(route.is_relative_to(output/relative)
+                        for relative in bundle['views'].values() if relative != '.')):
             continue
         soup = read_page(route)
         if model.get('scope_views'):

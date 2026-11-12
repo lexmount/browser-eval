@@ -36,6 +36,11 @@ persisted output. `results.jsonl` stores them in `metrics.content_scope_metrics`
 `summary.json` contains both aggregate views. This adds no provider calls or
 retry attempts. Request latency, usage and cost remain evidence from the original
 calls; conditional successful-call statistics use each view's own passing subset.
+The run manifest preserves the acquisition scope and retry limit. Retries use
+the acquisition scope's verdict; alternate scores reuse the resulting output
+and do not represent a separate run with a different retry policy. The report
+states this when retries are enabled. Offline scoring selections preserve this
+acquisition record, including when switching back to the original scope.
 
 The report exposes **Main content / Full content** controls on every page.
 Switching changes the overview, categories, failures and per-task requirements
