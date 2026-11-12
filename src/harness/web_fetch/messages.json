@@ -2348,6 +2348,25 @@
     "report_contains_invocation_scoring_and_report_tools_its_data_l_8d1d7c": "保存调用、评分和报告工具，通过数据版本锁定文件选择 Hugging Face 上的题目定义和参考数据；本报告提供本轮冻结结果供复核。",
     "report_per_task_acceptance_criteria_and_data_sources_7e4ecd": "逐题验收依据与数据来源。",
     "report_verification_scope_db68a1": "核验范围",
-    "report_per_item_reasons_original_text_and_acceptance_rules_1b0986": "逐条原因、原文与验收规则"
+    "report_per_item_reasons_original_text_and_acceptance_rules_1b0986": "逐条原因、原文与验收规则",
+    "call_inventory": "全部调用汇总",
+    "diagnosis_expected": "题目要求",
+    "diagnosis_actual": "实际返回",
+    "diagnosis_cause": "原因与依据",
+    "diagnosis_fix": "修复建议",
+    "diagnosis_verify": "修复后如何验收",
+    "diagnosis_evidence": "查看逐项检查及原始证据 →",
+    "original_file_not_delivered": "未交付原文件",
+    "document_headings_not_preserved": "未保留要求的章节标题",
+    "heading_coverage_value": "章节标题覆盖率：{value}%",
+    "article_title_missing": "缺少正文标题",
+    "article_title_in_body": "正文中保留文章标题组件",
+    "article_title_not_found": "返回正文中没有符合要求的文章标题",
+    "no_matching_resource": "未匹配到目标资源",
+    "original_file_bytes_required": "交付符合原验证规则的文件字节",
+    "original_file_validation_failed": "原文件字节校验未通过",
+    "document_body_too_short": "章节正文长度不足",
+    "document_section_body_missing": "章节标题存在，但节内正文不足",
+    "section_body_below_requirement": "对应章节正文未达到要求"
   }
 }

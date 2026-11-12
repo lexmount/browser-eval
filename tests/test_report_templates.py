@@ -39,6 +39,305 @@ def diagnostic_example(root):
 
 
 class ReportTemplateTests(unittest.TestCase):
+    def test_saved_document_resource_and_file_failures_keep_exact_checks(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row=dict(initial_pass=False,log=dict(path='log.json'),reference=dict(path='reference.json'))
+        metrics=dict(document_structure_pass=False,document_heading_coverage=0,
+                     document_heading_results=[dict(id='section-1',**{'pass':False})],
+                     article_title_pass=False,raw_file_pass=False,
+                     resource_results=[dict(id='video',expected_urls=['https://example.com/real.mp4'],
+                                            matched_urls=[],**{'pass':False})])
+        files={'log.json':json.dumps(dict(metrics=metrics)).encode(),
+               'reference.json':json.dumps(dict(document_structure=dict(headings=[dict(text='Installation')]))).encode()}
+        findings=diagnostic_findings(row,files)
+        self.assertEqual({f['kind'] for f in findings},{'pattern','text','file','resource'})
+        self.assertTrue(any('Installation' in f['expected'] for f in findings))
+        self.assertTrue(any('https://example.com/real.mp4' in f['expected'] for f in findings))
+        self.assertEqual(diagnostic_findings({**row,'initial_pass':True},files),[])
+        metrics.update(document_structure_pass=True,article_title_pass=True,raw_file_pass=True)
+        metrics['resource_results'][0]['pass']=True
+        files['log.json']=json.dumps(dict(metrics=metrics)).encode()
+        self.assertEqual([f['kind']for f in diagnostic_findings(row,files)],['other'])
+
+    def test_issue_guide_binds_case_diagnosis_figure_and_exact_evidence(self):
+        import base64
+        from bs4 import BeautifulSoup
+        from harness.web_fetch.report_diagnostic import load_diagnostic
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            figure=source/'issue.png'
+            figure.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg=='))
+            example=dict(case_id='challenge',expected='Read article body',actual='Challenge returned',
+                         cause='Target body was not reached',fix='Detect challenge before extraction',
+                         verify='A challenge must fail even with HTTP 200',
+                         evidence=[dict(field='first_answer',quote='Verify you are human')])
+            block=dict(id='access',title='Access failure',paragraphs=['A concrete diagnosis'],
+                       figure=dict(path='issue.png',sha256=hashlib.sha256(figure.read_bytes()).hexdigest(),
+                                   alt='Challenge blocks target content',scope='Synthetic observed response'),
+                       examples=[example],table=dict(headers=['Repair'],rows=[[
+                           dict(url='https://example.test/issues/7',label='Repair issue')]]))
+            model.update(problem_focus=True,comparison_mode=True,interpretation_lead="One of two tasks passed")
+            model['pages']={'overview':[dict(title='Issue index',paragraphs=[],table=dict(
+                headers=['Issue','Case'],rows=[[dict(issue_id='access',label='Access'),
+                                              dict(case_id='challenge',label='Challenge case')]]))],
+                            'guide':[block]}
+            def save(value): (source/'report.json').write_text(json.dumps(value),encoding='utf-8')
+            save(model);output=root/'output';build_diagnostic_cohorts(source,output)
+            check_diagnostic_report(output)
+            rendered_guide=BeautifulSoup((output/'guide/index.html').read_text(encoding='utf-8'),'html.parser')
+            section=rendered_guide.find(id='access')
+            self.assertEqual(section.find('h2').find_next_sibling().name,'figure')
+            self.assertIsNone(section.select_one('.diagnosis-figure').find_parent('details'))
+            self.assertEqual(section.find('a',string='Repair issue')['href'],'https://example.test/issues/7')
+            for field in ('expected','actual','cause','fix','verify'):
+                broken=copy.deepcopy(model);del broken['pages']['guide'][0]['examples'][0][field];save(broken)
+                with self.subTest(field=field), self.assertRaises(ValueError):load_diagnostic(source)
+            for change in ('quote','case','hash','issue'):
+                broken=copy.deepcopy(model)
+                if change=='quote':broken['pages']['guide'][0]['examples'][0]['evidence'][0]['quote']='Invented failure'
+                elif change=='case':broken['pages']['guide'][0]['examples'][0]['case_id']='absent'
+                elif change=='hash':broken['pages']['guide'][0]['figure']['sha256']='0'*64
+                else:broken['pages']['overview'][0]['table']['rows'][0][0]['issue_id']='absent'
+                save(broken)
+                with self.subTest(change=change),self.assertRaises(ValueError):load_diagnostic(source)
+            save(model)
+            guide=output/'guide/index.html';original=guide.read_text(encoding="utf-8")
+            for change in ('fold','late'):
+                changed=BeautifulSoup(original,'html.parser');visual=changed.find(id='access').select_one('figure')
+                if change=='fold':visual.wrap(changed.new_tag('details'))
+                else:changed.find(id='access').find('p').insert_after(visual.extract())
+                guide.write_text(str(changed),encoding='utf-8')
+                with self.subTest(figure=change),self.assertRaisesRegex(ValueError,'must lead'):
+                    check_diagnostic_report(output)
+            for url in ('javascript:alert(1)','https://user:secret@example.test/issues/7'):
+                changed=copy.deepcopy(model)
+                changed['pages']['guide'][0]['table']['rows'][0][0]['url']=url;save(changed)
+                with self.subTest(url=url),self.assertRaises(ValueError):load_diagnostic(source)
+            save(model)
+            for old,new in [('data-diagnosis-field="fix"','data-omitted-field="fix"'),
+                            ('src="issue.png"','src="absent.png"'),
+                            ('https://example.test/issues/7','https://example.test/issues/8'),
+                            ('attempts/challenge.html','attempts/complete.html')]:
+                guide.write_text(original.replace(old,new), encoding="utf-8")
+                with self.subTest(rendered=old),self.assertRaises(ValueError):check_diagnostic_report(output)
+            guide.write_text(original, encoding="utf-8")
+            home=output/'index.html';original_home=home.read_text(encoding='utf-8')
+            for old,new in [('href="attempts/challenge.html"','href="attempts/complete.html"'),
+                            ('href="guide/index.html#access"','href="guide/index.html#wrong"'),
+                            ('href="guide/index.html#access"','data-no-link="access"')]:
+                home.write_text(original_home.replace(old,new),encoding='utf-8')
+                with self.subTest(index=old),self.assertRaises(ValueError):check_diagnostic_report(output)
+            home.write_text(original_home,encoding='utf-8')
+
+    def test_illustrated_report_rejects_corrupt_png_even_with_matching_hash(self):
+        import base64
+        valid=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg==')
+        corrupt=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAEUlEQVRub3QgYSB6bGliIHN0cmVhbUUA3FEAAAAASUVORK5CYII=')
+        for name,raw in [('signature',valid[:8]),('truncated',valid[:33]),
+                         ('checksum',base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII=')),('pixel-data',corrupt)]:
+            with self.subTest(image=name), tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                (source/'broken.png').write_bytes(raw)
+                model['pages']={'guide':[dict(id='diagram',title='Content path',paragraphs=[],
+                    figure=dict(path='broken.png',sha256=hashlib.sha256(raw).hexdigest(),
+                                alt='Target content path',scope='Synthetic evidence'))]}
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,'PNG'):
+                    build_diagnostic_cohorts(source,root/'report')
+
+    def test_illustrated_report_accepts_numeric_and_dotted_section_ids(self):
+        import base64
+        from bs4 import BeautifulSoup
+        for anchor in ('1-introduction', 'diagnosis.v1'):
+            with self.subTest(anchor=anchor), tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                image=source/'diagram.png'
+                image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg=='))
+                model['pages']={'guide':[dict(id=anchor,title='Content path',paragraphs=['Required body'],
+                    figure=dict(path='diagram.png',sha256=hashlib.sha256(image.read_bytes()).hexdigest(),
+                                alt='Target content path',scope='Synthetic evidence'))]}
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                page=output/'guide/index.html';markup=page.read_text(encoding='utf-8')
+                soup=BeautifulSoup(markup,'html.parser')
+                self.assertEqual(soup.find(id=anchor).select_one('figure img')['src'],'diagram.png')
+                check_diagnostic_report(output)
+                soup.find(id=anchor)['id']='different-section'
+                page.write_text(str(soup),encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,'illustration is missing'):
+                    check_diagnostic_report(output)
+
+    def test_present_heading_with_insufficient_section_is_a_body_failure(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row=dict(initial_pass=False,log=dict(path='log.json'),reference=dict(path='reference.json'))
+        from lexbench_webfetch.scoring import score_attempt
+        case=dict(id='sections',url='https://example.test/sections',expected_any=[],min_content_chars=1,
+            document_structure=dict(version=1,minimum_heading_coverage=1,minimum_section_chars=20,
+                minimum_body_chars=100,headings=[dict(text='Installation',level=2)]))
+        metrics=score_attempt(case,('<p>'+('introduction '*100)+'</p><h2>Installation</h2><p>x</p>').encode(),ok=True)
+        self.assertTrue(metrics['document_heading_results'][0]['present'])
+        self.assertGreaterEqual(metrics['document_body_chars'],100)
+        files={'log.json':json.dumps(dict(metrics=metrics)).encode(),'reference.json':json.dumps(case).encode()}
+        findings=diagnostic_findings(row,files)
+        self.assertEqual([f['kind']for f in findings],['body'])
+        self.assertIn('Installation',findings[0]['expected'])
+        self.assertIn('标题存在',findings[0]['label'])
+
+    def test_problem_focus_requires_guide_cases_even_when_pages_are_absent(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model.update(problem_focus=True,interpretation_lead='Explicit lead')
+            for pages in (None,{}, {'overview':[]}):
+                if pages is None:model.pop('pages',None)
+                else:model['pages']=pages
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                with self.subTest(pages=pages),self.assertRaisesRegex(ValueError,'concrete case'):
+                    build_diagnostic_cohorts(source,root/'invalid')
+
+    def test_problem_focus_without_custom_lead_uses_measured_numeric_fallback(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['problem_focus']=True
+            model['pages']={'guide':[dict(title='Diagnosis',paragraphs=[],examples=[dict(
+                case_id='challenge',expected='Body',actual='Challenge',cause='Access barrier',
+                fix='Return blocked status',verify='Challenge fails',
+                evidence=[dict(field='first_answer',quote='Verify you are human')])])]}
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output);check_diagnostic_report(output)
+
+    def test_authored_diagnoses_preserve_measured_distributions_and_examples(self):
+        from bs4 import BeautifulSoup
+        for comparison in (False, True):
+            with self.subTest(comparison=comparison), tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                model.update(problem_focus=True,comparison_mode=comparison,interpretation_case_ids=[],
+                             guide_title='Why the outputs differ',guide_conclusions=['Keep target body complete'])
+                model['pages']={'guide':[dict(id='diagnosis',title='Access diagnosis',paragraphs=[],
+                    examples=[dict(case_id='challenge',expected='Article body',actual='Challenge returned',
+                        cause='Access barrier',fix='Detect challenge',verify='Challenge must fail',
+                        evidence=[dict(field='first_answer',quote='Verify you are human')])])]}
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                home=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
+                guide=BeautifulSoup((output/'guide/index.html').read_text(encoding='utf-8'),'html.parser')
+                self.assertIsNotNone(guide.select_one('#guide-reviewed-causes'))
+                self.assertIsNotNone(guide.select_one('#guide-output-defects'))
+                self.assertEqual(len(guide.select('[data-interpretation-case]')),2)
+                self.assertEqual(len(guide.select('[data-diagnosis-case]')),1)
+                self.assertEqual(guide.select_one('.hero h1').get_text(),'Why the outputs differ')
+                self.assertIn('Keep target body complete',guide.select_one('#guide-conclusions').get_text())
+                self.assertIsNotNone(home.select_one('.guide-grid'))
+                self.assertEqual(len(home.select('#cohort-results .editorial-bar-row')),1)
+                for route,selector in [('guide/index.html','#guide-reviewed-causes'),
+                        ('guide/index.html','#guide-output-defects'),('guide/index.html','#overall-summary'),
+                        ('guide/index.html','[data-interpretation-case]'),('index.html','#overall-summary'),
+                        ('index.html','#cohort-results .editorial-figure')]:
+                    page=output/route;original=page.read_text(encoding='utf-8')
+                    changed=BeautifulSoup(original,'html.parser');changed.select_one(selector).decompose()
+                    page.write_text(str(changed),encoding='utf-8')
+                    with self.subTest(missing=selector),self.assertRaises(ValueError):
+                        check_diagnostic_report(output)
+                    page.write_text(original,encoding='utf-8')
+                page=output/'guide/index.html';original=page.read_text(encoding='utf-8')
+                changed=BeautifulSoup(original,'html.parser')
+                changed.select_one('#guide-output-defects [data-failure-type]')['data-count']='999'
+                page.write_text(str(changed),encoding='utf-8')
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_authored_labels_and_lead_are_literal_text(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model.update(interpretation_lead='A literal <main> example',pass_label='<main>pass</main>',fail_label='<main>fail</main>')
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            for cid,label in [('complete',model['pass_label']),('challenge',model['fail_label'])]:
+                page=BeautifulSoup((output/f'attempts/{cid}.html').read_text(encoding='utf-8'),'html.parser')
+                self.assertEqual(page.select_one('[data-result-summary] h2').get_text(),label)
+
+    def test_complete_headings_with_short_body_names_the_actual_failed_rule(self):
+        from harness.web_fetch.report_diagnostic import diagnostic_findings
+        row=dict(initial_pass=False,log=dict(path='log.json'))
+        metrics=dict(document_structure_pass=False,document_heading_coverage=1,
+                     document_heading_results=[dict(id='a',**{'pass':True})],
+                     document_body_chars=20,document_minimum_body_chars=100)
+        findings=diagnostic_findings(row,{'log.json':json.dumps(dict(metrics=metrics)).encode()})
+        self.assertEqual([f['kind']for f in findings],['body'])
+        self.assertIn('100',findings[0]['expected']);self.assertIn('20',findings[0]['actual'])
+        row['reference']={'path':'reference.json'};metrics['document_heading_coverage']=.9
+        findings=diagnostic_findings(row,{'log.json':json.dumps(dict(metrics=metrics)).encode(),
+            'reference.json':json.dumps(dict(document_structure=dict(minimum_heading_coverage=.8))).encode()})
+        self.assertEqual([f['kind']for f in findings],['body'])
+
+    def test_normal_guides_also_require_authored_case_diagnoses(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            model['pages']={'guide':[dict(title='Diagnosis',paragraphs=[],examples=[dict(
+                case_id='challenge',expected='Body',actual='Challenge',cause='Access barrier',
+                fix='Return explicit blocked status',verify='Challenge stays failed',
+                evidence=[dict(field='first_answer',quote='Verify you are human')])])]}
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            guide=output/'guide/index.html';soup=BeautifulSoup(guide.read_text(encoding='utf-8'),'html.parser')
+            soup.select_one('[data-diagnosis-case]').decompose();guide.write_text(str(soup),encoding='utf-8')
+            with self.assertRaisesRegex(ValueError,'diagnos'):check_diagnostic_report(output)
+
+    def test_comparison_highlights_rates_with_unequal_populations(self):
+        from bs4 import BeautifulSoup
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp);source=root/'source';model=diagnostic_example(source)
+            original=model['rows'];model['rows']=[]
+            for method,total,passed in [('larger',10,8),('smaller',7,7)]:
+                for i in range(total):
+                    row=copy.deepcopy(original[0 if i<passed else 1]);row.update(id=f'{method}-{i}',cohort=method)
+                    model['rows'].append(row)
+            model.update(comparison_mode=True,cohorts=[dict(id='larger',label='Larger',case_count=10),dict(id='smaller',label='Smaller',case_count=7)],metrics=dict(larger=[8,10],smaller=[7,7],overall=[15,17]))
+            (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            page=BeautifulSoup((output/'index.html').read_text(encoding='utf-8'),'html.parser')
+            winner=page.select_one('[data-metric="acceptance"] .comparison-winner')
+            self.assertEqual(winner.get_text(),'7 / 7')
+
+    def test_content_scope_comparison_navigation_tables_and_highlights(self):
+        with tempfile.TemporaryDirectory() as temp:
+            root=Path(temp); source=root/'source';model=diagnostic_example(source)
+            model.update(comparison_mode=True,content_scope='main',scope_views=[
+                dict(id='main',label='Primary content',href='index.html'),
+                dict(id='full',label='Complete content',href='https://example.test/full')])
+            model['pages']={'guide':[dict(title='Measured comparison',paragraphs=['Two retained calls.'],
+                table=dict(headers=['Method','Passes'],rows=[['Articles',1]]))]}
+            (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
+            output=root/'output';build_diagnostic_cohorts(source,output)
+            check_diagnostic_report(output)
+            home=output/'index.html';original=home.read_text(encoding="utf-8")
+            for bad in [original.replace('data-content-scope="full"','data-wrong-scope="full"'),
+                        original.replace('comparison-winner good','unmarked')]:
+                home.write_text(bad, encoding="utf-8")
+                with self.assertRaises(ValueError):check_diagnostic_report(output)
+            home.write_text(original, encoding="utf-8")
+            guide=output/'guide/index.html';text=guide.read_text(encoding="utf-8")
+            guide.write_text(text.replace('>Articles</td>','>Wrong method</td>'), encoding="utf-8")
+            with self.assertRaises(ValueError):check_diagnostic_report(output)
+
+    def test_paired_scope_requires_shared_scorer_and_monotonic_acceptance(self):
+        from harness.web_fetch.report_diagnostic import load_diagnostic
+        with tempfile.TemporaryDirectory() as temp:
+            source=Path(temp)/'source';model=diagnostic_example(source)
+            model['paired_content_scope']=True
+            for row in model['rows']:
+                data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64),
+                          uniform_full_content=dict(passed=row['initial_pass'],metrics=dict(
+                              evaluation_content_scope='full',scoring_source_sha256='a'*64)))
+                target=source/row['log']['path'];target.write_text(json.dumps(data), encoding="utf-8")
+                row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+            (source/'report.json').write_text(json.dumps(model), encoding="utf-8");load_diagnostic(source)
+            row=model['rows'][1];target=source/row['log']['path'];data=json.loads(target.read_text(encoding="utf-8"))
+            data['uniform_full_content']['passed']=True;target.write_text(json.dumps(data), encoding="utf-8")
+            row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
+            (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
+            with self.assertRaisesRegex(ValueError,'Paired content scopes'):load_diagnostic(source)
+
     def test_new_track_requires_an_execution_owner_and_behavior_checks(self):
         with tempfile.TemporaryDirectory() as temp:
             root = Path(temp)
@@ -297,6 +596,11 @@ class ReportTemplateTests(unittest.TestCase):
                 [('dataset_sha256',run/'dataset.json'),('results_sha256',run/'results.jsonl'),('observations_sha256',observation_path)]},rows=reviews)
             review_path=root/'review.json';review_path.write_text(json.dumps(review), encoding='utf-8')
             base['source_labels']={'rubric_visible':'参考要求可见'}
+            import base64
+            png=base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg==')
+            (root/'diagram.png').write_bytes(png)
+            base['pages']={'guide':[dict(id='mechanism',title='Mechanism',paragraphs=[],figure=dict(
+                path='diagram.png',sha256=hashlib.sha256(png).hexdigest(),alt='Synthetic content path',scope='Synthetic diagram'))]}
             spec=root/'input.json';spec.write_text(json.dumps(dict(schema='webfetch_diagnostic_inputs/1',report=base,
                 cohorts=[dict(id='articles',label='Articles',run='run',observations='observations.json',review='review.json')])), encoding='utf-8' )
             output=root/'report';build_diagnostic_cohorts(spec,output)
@@ -304,6 +608,11 @@ class ReportTemplateTests(unittest.TestCase):
             model,files=load_diagnostic(output)
             self.assertEqual(model['metrics']['overall'],[1,2])
             self.assertEqual(model['cohorts'][0]['version'],'moli 1.1.15')
+            self.assertEqual((output/'diagram.png').read_bytes(),png)
+            (root/'diagram.png').write_bytes(png+b'changed')
+            with self.assertRaisesRegex(ValueError,'illustration differs'):
+                build_diagnostic_cohorts(spec,root/'bad-figure')
+            (root/'diagram.png').write_bytes(png)
             self.assertEqual(files[model['rows'][0]['first_answer']['path']],b'Required article body')
             self.assertNotIn('Private DOM',files[model['rows'][0]['source']['path']].decode())
             # One instance profile supplies the input, scope and implementation;

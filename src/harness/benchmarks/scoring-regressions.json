@@ -84408,6 +84408,1792 @@
       },
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "main-product-full-title-without-shopping-controls",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Main content must verify each product title, price and availability together without requiring repeated shopping controls or cropped-label punctuation.",
+      "case": {
+        "id": "main-product-list",
+        "name": "Primary product list",
+        "url": "https://example.test/catalog",
+        "category": "synthetic",
+        "expected_any": [],
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "book-1",
+              "kind": "field_report",
+              "start_pattern": "Frozen short title",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£12.50",
+                "availability": "In stock"
+              },
+              "end_pattern": "Other book"
+            },
+            {
+              "id": "book-2",
+              "kind": "field_report",
+              "start_pattern": "Other book",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£7.25",
+                "availability": "In stock"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Frozen short title with the complete name — £12.50 — In stock — Rating 4/5\nOther book — £7.25 — In stock",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "composite_acceptance_pass": true
+      }
+    },
+    {
+      "id": "main-product-wrong-record-price",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Main content must verify each product title, price and availability together without requiring repeated shopping controls or cropped-label punctuation.",
+      "case": {
+        "id": "main-product-list",
+        "name": "Primary product list",
+        "url": "https://example.test/catalog",
+        "category": "synthetic",
+        "expected_any": [],
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "book-1",
+              "kind": "field_report",
+              "start_pattern": "Frozen short title",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£12.50",
+                "availability": "In stock"
+              },
+              "end_pattern": "Other book"
+            },
+            {
+              "id": "book-2",
+              "kind": "field_report",
+              "start_pattern": "Other book",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£7.25",
+                "availability": "In stock"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Frozen short title with the complete name — £7.25 — In stock\nOther book — £12.50 — In stock",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_acceptance_pass": false
+      }
+    },
+    {
+      "id": "main-product-missing-owned-availability",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Main content must verify each product title, price and availability together without requiring repeated shopping controls or cropped-label punctuation.",
+      "case": {
+        "id": "main-product-list",
+        "name": "Primary product list",
+        "url": "https://example.test/catalog",
+        "category": "synthetic",
+        "expected_any": [],
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "book-1",
+              "kind": "field_report",
+              "start_pattern": "Frozen short title",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£12.50",
+                "availability": "In stock"
+              },
+              "end_pattern": "Other book"
+            },
+            {
+              "id": "book-2",
+              "kind": "field_report",
+              "start_pattern": "Other book",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£7.25",
+                "availability": "In stock"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Frozen short title with the complete name — £12.50\nOther book — £7.25 — In stock",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_acceptance_pass": false
+      }
+    },
+    {
+      "id": "main-product-negated-availability",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Main content must verify each product title, price and availability together without requiring repeated shopping controls or cropped-label punctuation.",
+      "case": {
+        "id": "main-product-list",
+        "name": "Primary product list",
+        "url": "https://example.test/catalog",
+        "category": "synthetic",
+        "expected_any": [],
+        "composite_acceptance": {
+          "version": 1,
+          "groups": [
+            {
+              "id": "book-1",
+              "kind": "field_report",
+              "start_pattern": "Frozen short title",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£12.50",
+                "availability": "In stock"
+              },
+              "end_pattern": "Other book"
+            },
+            {
+              "id": "book-2",
+              "kind": "field_report",
+              "start_pattern": "Other book",
+              "required_fields": [
+                {
+                  "id": "price",
+                  "kind": "price"
+                },
+                {
+                  "id": "availability",
+                  "kind": "text",
+                  "pattern": "(?:^|(?<=[—–|;\\t]))[ \\t]*In[ \\t]+stock[ \\t]*(?=$|[—–|;\\t])"
+                }
+              ],
+              "fixed_values": {
+                "price": "£7.25",
+                "availability": "In stock"
+              }
+            }
+          ]
+        }
+      },
+      "artifact": "Frozen short title with the complete name — £12.50 — Not in stock\nOther book — £7.25 — In stock",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "composite_acceptance_pass": false
+      }
+    },
+    {
+      "id": "reference-domain-current-complete-notice",
+      "category": "reference-evidence",
+      "root_cause": "The live source changed its warning and removed visible heading/link elements; requiring one historical wording misclassified complete current content. Require purpose, permission and a complete independently observed notice variant.",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "reference-notice",
+        "url": "https://example.test/notice",
+        "expected_any": [],
+        "min_content_chars": 76,
+        "required_facts": [
+          {
+            "id": "purpose",
+            "alternatives": [
+              "This domain is for use in documentation examples"
+            ]
+          },
+          {
+            "id": "permission",
+            "alternatives": [
+              "without needing permission"
+            ]
+          },
+          {
+            "id": "notice",
+            "alternatives": [
+              "Avoid use in operations.",
+              "This is not a service; avoid relying on it for testing and monitoring purposes."
+            ]
+          }
+        ]
+      },
+      "artifact": "This domain is for use in documentation examples without needing permission. This is not a service; avoid relying on it for testing and monitoring purposes.",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_coverage_pass": true
+      }
+    },
+    {
+      "id": "reference-domain-original-complete-notice",
+      "category": "reference-evidence",
+      "root_cause": "The live source changed its warning and removed visible heading/link elements; requiring one historical wording misclassified complete current content. Require purpose, permission and a complete independently observed notice variant.",
+      "failure_mode": "false-negative",
+      "case": {
+        "id": "reference-notice",
+        "url": "https://example.test/notice",
+        "expected_any": [],
+        "min_content_chars": 76,
+        "required_facts": [
+          {
+            "id": "purpose",
+            "alternatives": [
+              "This domain is for use in documentation examples"
+            ]
+          },
+          {
+            "id": "permission",
+            "alternatives": [
+              "without needing permission"
+            ]
+          },
+          {
+            "id": "notice",
+            "alternatives": [
+              "Avoid use in operations.",
+              "This is not a service; avoid relying on it for testing and monitoring purposes."
+            ]
+          }
+        ]
+      },
+      "artifact": "Example Domain\nThis domain is for use in documentation examples without needing permission. Avoid use in operations.\nLearn more",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "fact_coverage_pass": true
+      }
+    },
+    {
+      "id": "reference-domain-missing-notice",
+      "category": "reference-evidence",
+      "root_cause": "The live source changed its warning and removed visible heading/link elements; requiring one historical wording misclassified complete current content. Require purpose, permission and a complete independently observed notice variant.",
+      "failure_mode": "false-positive",
+      "case": {
+        "id": "reference-notice",
+        "url": "https://example.test/notice",
+        "expected_any": [],
+        "min_content_chars": 76,
+        "required_facts": [
+          {
+            "id": "purpose",
+            "alternatives": [
+              "This domain is for use in documentation examples"
+            ]
+          },
+          {
+            "id": "permission",
+            "alternatives": [
+              "without needing permission"
+            ]
+          },
+          {
+            "id": "notice",
+            "alternatives": [
+              "Avoid use in operations.",
+              "This is not a service; avoid relying on it for testing and monitoring purposes."
+            ]
+          }
+        ]
+      },
+      "artifact": "Example Domain\nThis domain is for use in documentation examples without needing permission.\nLearn more about Example Domain",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "fact_coverage_pass": false
+      }
+    },
+    {
+      "id": "content-scope-main-body",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "evaluation_content_scope": "main"
+      }
+    },
+    {
+      "id": "content-scope-full-requires-footer",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "full",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "evaluation_content_scope": "full"
+      }
+    },
+    {
+      "id": "content-scope-full-complete",
+      "failure_mode": "false-negative",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "full",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body Contact publisher",
+      "ok": true,
+      "expected_task_pass": true,
+      "expected_metrics": {
+        "evaluation_content_scope": "full"
+      }
+    },
+    {
+      "id": "content-scope-main-rejects-blocked",
+      "failure_mode": "false-positive",
+      "category": "body-scope",
+      "root_cause": "Content-scope selection must use the selected body contract while preserving original blocked-page constraints.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main",
+        "forbidden_any": [
+          "ACCESS BLOCKED"
+        ]
+      },
+      "artifact": "Complete article body ACCESS BLOCKED",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_metrics": {
+        "evaluation_content_scope": "main"
+      }
+    },
+    {
+      "id": "content-scope-reference-only-invalid",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Read the article body.",
+              "ground_truth_main_content": "Complete article body"
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "substantive acceptance"
+    },
+    {
+      "id": "content-scope-reference-with-rule-complete",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body"
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-reference-with-rule-unrelated",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body"
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "content-scope-main-without-full-comments",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "source_benchmark": {
+                "mode": "article",
+                "comment_contract": {
+                  "ignored_labels": [
+                    "add a comment",
+                    "leave a reply",
+                    "like",
+                    "likes",
+                    "load more",
+                    "log in",
+                    "login",
+                    "read more",
+                    "register",
+                    "replies",
+                    "reply",
+                    "report",
+                    "share",
+                    "show more",
+                    "sign in",
+                    "加载更多",
+                    "发表评论",
+                    "回复",
+                    "展开",
+                    "展开回复",
+                    "查看更多",
+                    "注册",
+                    "添加评论",
+                    "点赞",
+                    "登录",
+                    "登录后评论"
+                  ],
+                  "unavailable_notices": [
+                    "[deleted]",
+                    "[removed]",
+                    "[内容不可见]",
+                    "[已删除]",
+                    "this comment has been hidden",
+                    "this comment has been hidden (marked as spam)"
+                  ],
+                  "version": 2,
+                  "minimum_comments": 1,
+                  "record_selector": ".comment",
+                  "author_selector": ".author",
+                  "body_selector": ".text",
+                  "section_markers": [
+                    "Comments"
+                  ]
+                }
+              }
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "source_benchmark": {
+          "mode": "article",
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-full-comments-missing",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "source_benchmark": {
+                "mode": "article",
+                "comment_contract": {
+                  "ignored_labels": [
+                    "add a comment",
+                    "leave a reply",
+                    "like",
+                    "likes",
+                    "load more",
+                    "log in",
+                    "login",
+                    "read more",
+                    "register",
+                    "replies",
+                    "reply",
+                    "report",
+                    "share",
+                    "show more",
+                    "sign in",
+                    "加载更多",
+                    "发表评论",
+                    "回复",
+                    "展开",
+                    "展开回复",
+                    "查看更多",
+                    "注册",
+                    "添加评论",
+                    "点赞",
+                    "登录",
+                    "登录后评论"
+                  ],
+                  "unavailable_notices": [
+                    "[deleted]",
+                    "[removed]",
+                    "[内容不可见]",
+                    "[已删除]",
+                    "this comment has been hidden",
+                    "this comment has been hidden (marked as spam)"
+                  ],
+                  "version": 2,
+                  "minimum_comments": 1,
+                  "record_selector": ".comment",
+                  "author_selector": ".author",
+                  "body_selector": ".text",
+                  "section_markers": [
+                    "Comments"
+                  ]
+                }
+              }
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "source_benchmark": {
+          "mode": "article",
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        },
+        "content_scope": "full"
+      },
+      "artifact": "Complete article body\nContact publisher",
+      "ok": true,
+      "expected_task_pass": false
+    },
+    {
+      "id": "content-scope-full-comments-complete",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "A scope must declare a gating acceptance rule and must not inherit omitted full-page components.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "source_benchmark": {
+                "mode": "article",
+                "comment_contract": {
+                  "ignored_labels": [
+                    "add a comment",
+                    "leave a reply",
+                    "like",
+                    "likes",
+                    "load more",
+                    "log in",
+                    "login",
+                    "read more",
+                    "register",
+                    "replies",
+                    "reply",
+                    "report",
+                    "share",
+                    "show more",
+                    "sign in",
+                    "加载更多",
+                    "发表评论",
+                    "回复",
+                    "展开",
+                    "展开回复",
+                    "查看更多",
+                    "注册",
+                    "添加评论",
+                    "点赞",
+                    "登录",
+                    "登录后评论"
+                  ],
+                  "unavailable_notices": [
+                    "[deleted]",
+                    "[removed]",
+                    "[内容不可见]",
+                    "[已删除]",
+                    "this comment has been hidden",
+                    "this comment has been hidden (marked as spam)"
+                  ],
+                  "version": 2,
+                  "minimum_comments": 1,
+                  "record_selector": ".comment",
+                  "author_selector": ".author",
+                  "body_selector": ".text",
+                  "section_markers": [
+                    "Comments"
+                  ]
+                }
+              }
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "source_benchmark": {
+          "mode": "article",
+          "comment_contract": {
+            "ignored_labels": [
+              "add a comment",
+              "leave a reply",
+              "like",
+              "likes",
+              "load more",
+              "log in",
+              "login",
+              "read more",
+              "register",
+              "replies",
+              "reply",
+              "report",
+              "share",
+              "show more",
+              "sign in",
+              "加载更多",
+              "发表评论",
+              "回复",
+              "展开",
+              "展开回复",
+              "查看更多",
+              "注册",
+              "添加评论",
+              "点赞",
+              "登录",
+              "登录后评论"
+            ],
+            "unavailable_notices": [
+              "[deleted]",
+              "[removed]",
+              "[内容不可见]",
+              "[已删除]",
+              "this comment has been hidden",
+              "this comment has been hidden (marked as spam)"
+            ],
+            "version": 2,
+            "minimum_comments": 1,
+            "record_selector": ".comment",
+            "author_selector": ".author",
+            "body_selector": ".text",
+            "section_markers": [
+              "Comments"
+            ]
+          }
+        },
+        "content_scope": "full"
+      },
+      "artifact": "Complete article body\nContact publisher\n\nComments\n\n## Reader\nA thoughtful book.",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-zero-pattern-minimum-invalid",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "required_patterns": [
+                {
+                  "id": "body",
+                  "pattern": "Complete article body",
+                  "minimum": 0
+                }
+              ]
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "substantive acceptance"
+    },
+    {
+      "id": "content-scope-zero-fact-threshold-invalid",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "fact_coverage_threshold": 0
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "substantive acceptance"
+    },
+    {
+      "id": "content-scope-positive-pattern-complete",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "required_patterns": [
+                {
+                  "id": "body",
+                  "pattern": "Complete article body",
+                  "minimum": 1
+                }
+              ]
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-positive-pattern-unrelated",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "required_patterns": [
+                {
+                  "id": "body",
+                  "pattern": "Complete article body",
+                  "minimum": 1
+                }
+              ]
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

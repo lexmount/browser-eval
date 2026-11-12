@@ -1,5 +1,28 @@
 # Web Fetch
 
+## Main and full content
+
+An annotated task may declare `content_scopes.version: 1` with `main` and
+`full` profiles. Each profile contains a complete `requirements` object and
+`evidence` with a source SHA-256 and a description of its reference scope.
+Main content retains complete body regions and core records; full content may
+also require page controls, surrounding text and comments. Media and original
+file delivery remain task requirements in either scope.
+
+Use `--content-scope main|full` with `lexbench-webfetch score`, or the Web Fetch
+`run`, `rescore` and `validate` commands. Selection happens before execution or
+scoring. Explicit selection fails for tasks without both annotations. Legacy
+tasks keep their existing behavior when no scope is selected. Scores bind the
+selected profile hash; reuse saved responses for score-only comparisons.
+Rescoring retains the saved dataset and task scopes and rejects a scope switch.
+Profiles inherit the original blocked-page and navigation constraints. They require a gating acceptance rule: pattern match counts must be positive integers, and fact coverage thresholds must be finite and greater than zero through one. Reference text alone supplies only diagnostics. Omitted title, comment and post contracts are cleared, while explicitly declared scope components remain required. Tasks with
+an existing full-page ordered-tree acceptance contract require separate tree
+annotations and are rejected by this scope selector.
+
+Public definitions retain both profiles and reference hashes. Export and score
+the matching approved frozen inputs, which contain the bound reference bodies;
+public reference hashes alone are not executable body references.
+
 Webstone owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
 Fetch a page or file, score the returned content against declared requirements, and inspect the saved result. Start with the [local article example](../../../examples/web_fetch/README.md) for a runnable HTTP/Moli/Chromium comparison.
@@ -77,6 +100,26 @@ Fresh diagnostic cohorts can supply a `webfetch_diagnostic_inputs/1` JSON file t
 For a diagnostic release, freeze the complete intended population in the track profile's `cohort_plan` (group IDs, case counts and SHA-256 of sorted case IDs joined by newlines with a trailing newline), independently of the report's selected inputs. Bind a uniform implementation when required. Pass that profile with `--profile` to both `scripts/build_report.py --diagnostic-cohorts` and `uv run --frozen python -m harness.web_fetch diagnostic-check` before publishing. A self-consistent subtotal is not evidence that the requested matrix is complete; reject missing groups, substituted cases and mixed implementations. Template examples without a deployment profile remain local examples, not a substitute for this release gate.
 
 A diagnostic instance profile can bind `diagnostic_input.path` relative to the data home and `diagnostic_input.sha256`. The ordinary build entry selects the diagnostic adapter from that profile, without a separate runner or mode flag. Keep cohort paths, prose, specimens and reviewed findings in the external manifest; refresh those inputs and compact profile bindings without editing the renderer or skill. Modify shared code only for a demonstrated defect or new measurement capability, and exercise multiple independent instances through the same public build/check entry.
+
+#### Authored diagnostic content
+
+The same model accepts the fields below; they do not select a second renderer or relax measured-result checks. Store authored content in the external input manifest.
+
+| Field | Contract |
+| --- | --- |
+| `pages.overview[]`, `pages.guide[]` | Blocks with `id`, `title`, `paragraphs` and optional `case_ids`, `table`, `figure`, `examples`. |
+| `table` | `headers` and `rows`; link cells contain `label` and exactly one of `case_id`, `issue_id` or HTTP(S) `url`. |
+| `figure` | Relative PNG `path`, `sha256`, `alt` and `scope`. Preparation and checking use the same hash and PNG decoder checks (structure, checksums and pixel data). |
+| `examples[]` | `case_id`, `expected`, `actual`, `cause`, `fix`, `verify` and `evidence[]` containing a bound `field` and verbatim `quote`. |
+| `problem_focus` | Requires at least one concrete guide diagnosis; statistics, reviewed causes and three-way specimens remain mandatory. |
+| `comparison_mode` | Highlights delivery/acceptance rates and keeps the combined call inventory in a disclosure. It does not change scores or populations. |
+| `content_scope`, `scope_views` | Select `main` or `full`; navigation declares both IDs with a `label` and `href`. |
+| `paired_content_scope` | Main results carry `uniform_full_content` in each bound log, with the same scorer hash; a full pass must imply a main pass. |
+| `interpretation_case_ids`, `interpretation_focus` | Choose specimen cases and verbatim excerpt anchors. A missing/empty case list selects representative failures and passes when available. |
+| `guide_title`, `interpretation_lead`, `guide_conclusions` | Reader-facing heading, lead and conclusion paragraphs. |
+| `diagnostic_label`, `pass_label`, `fail_label`, `output_label` | Literal display labels; verdicts and evidence stay unchanged. |
+
+Authored cases supplement the measured failure distribution. The release check rejects missing statistics, changed counts, missing specimens, folded figures and incorrect evidence links in every presentation setting. Run the synthetic public-build examples with `uv run --frozen python -m unittest tests.test_report_templates`.
 
 ### Fresh and composed cohorts
 

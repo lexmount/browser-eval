@@ -10,3 +10,9 @@
 .diagnostic-specimen pre{max-height:240px;font-size:13px}
 .section p{overflow-wrap:anywhere}
 @media(max-width:800px){.diagnostic-specimen{grid-template-columns:1fr}}
+
+.scope-switch{display:flex;gap:12px;flex-wrap:wrap;padding-block:14px}.scope-switch a{padding:8px 14px;border:1px solid var(--line);border-radius:8px}.scope-switch [aria-current="page"]{font-weight:700;background:var(--panel2)}
+
+.diagnosis-figure{margin:24px 0}.diagnosis-figure img{display:block;width:100%;height:auto;border-radius:12px;background:white}.diagnosis-figure figcaption{margin-top:10px;color:var(--muted)}.diagnosis-example{border:1px solid var(--line);border-radius:12px;padding:22px;margin:22px 0;background:var(--card)}.diagnosis-example h3{font-size:1.15rem;margin-top:0}.diagnosis-example p{overflow-wrap:anywhere}.diagnosis-contrast{display:grid;grid-template-columns:1fr 1fr;gap:18px}.diagnosis-contrast>div{padding:14px;background:var(--bg);border-radius:8px}.diagnosis-contrast h4{margin:0 0 10px}.diagnosis-repair{display:grid;grid-template-columns:140px minmax(0,1fr);gap:12px 18px}.diagnosis-repair dt{font-weight:650}.diagnosis-repair dd{margin:0;overflow-wrap:anywhere}@media(max-width:640px){.diagnosis-contrast{grid-template-columns:1fr}.diagnosis-repair{grid-template-columns:1fr;gap:8px}.diagnosis-repair dd{margin-bottom:14px}.diagnosis-example{padding:15px}}
+
+@media(max-width:640px){.section[id]{scroll-margin-top:160px}}

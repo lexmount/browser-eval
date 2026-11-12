@@ -95,12 +95,16 @@ let currentImageUrls=[];
 async function fillImages(root,page,m){
  const urls=[];
  try{
-  for(const img of root.querySelectorAll('img[src]')){
-   const src=img.getAttribute('src');if(/^(https?:|data:|blob:)/i.test(src))continue;
-   const {path}=resolvePath(src,page),file=m.files[path];
-   if(!file||!file.mime.startsWith('image/'))throw Error(tr('图片文件不存在：','Image file not found: ')+path);
-   const bytes=await fileBytes(path),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
-   urls.push(url);img.src=url;
+  const images=[...root.querySelectorAll('img[src]')];
+  for(let start=0;start<images.length;start+=4){
+   const results=await Promise.allSettled(images.slice(start,start+4).map(async img=>{
+    const src=img.getAttribute('src');if(/^(https?:|data:|blob:)/i.test(src))return;
+    const {path}=resolvePath(src,page),file=m.files[path];
+    if(!file||!file.mime.startsWith('image/'))throw Error(tr('图片文件不存在：','Image file not found: ')+path);
+    const bytes=await fileBytes(path),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
+    urls.push(url);img.src=url;
+   }));
+   const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
   }
   return urls;
  }catch(error){urls.forEach(url=>URL.revokeObjectURL(url));throw error}

@@ -488,3 +488,37 @@ def test_public_package_checks_original_and_retained_view_hashes(tmp_path,damage
         assert summary['scored_outputs_byte_identical']==3
         assert summary['scored_outputs_privacy_projected']==1
         assert summary['scored_outputs_retained_public_views']==1
+
+
+def test_diagnostic_package_preserves_detail_navigation_and_lazy_evidence(tmp_path):
+    from tests.test_report_templates import diagnostic_example
+    from harness.web_fetch.report_build import build_diagnostic_cohorts
+    from harness.reporting.packs import read_packed_manifest, reconstruct_packed_file
+    source = tmp_path / 'source'
+    model = diagnostic_example(source)
+    row = model['rows'][1]
+    log = source / row['log']['path']
+    log.write_text('Exact failure: required body absent.\n' * 3000, encoding="utf-8")
+    row['log']['sha256'] = hashlib.sha256(log.read_bytes()).hexdigest()
+    (source / 'report.json').write_text(json.dumps(model), encoding="utf-8")
+    report = tmp_path / 'rendered'
+    unbound=tmp_path/'unbound';build_diagnostic_cohorts(source,unbound)
+    with pytest.raises(ValueError,match='bound planned profile'):report_package.build(unbound,tmp_path/'invalid.zip')
+    profile=tmp_path/'profile.json'
+    profile.write_text(json.dumps(dict(variant='diagnostic-cohorts',cohort_plan=[dict(
+        id='articles',case_count=2,case_ids_sha256=hashlib.sha256(b'challenge\ncomplete\n').hexdigest())])),encoding='utf-8')
+    build_diagnostic_cohorts(source,report,profile=profile)
+    archive = tmp_path / 'published.zip'
+    report_package.build(report, archive)
+    packed = tmp_path / 'packed'
+    with zipfile.ZipFile(archive) as bundle:
+        bundle.extractall(packed)
+    manifest = read_packed_manifest(lambda name: (packed / name).read_bytes())
+    import gzip
+    def read(name):
+        return reconstruct_packed_file(manifest, name, lambda pack: gzip.decompress((packed / pack).read_bytes()))
+    detail = read('attempts/challenge.html').decode()
+    assert '<base ' not in detail
+    assert '../analysis/index.html' in detail
+    assert 'data-evidence-file="evidence/challenge-log.txt"' in detail
+    assert read(row['log']['path']) == log.read_bytes()

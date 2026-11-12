@@ -1,5 +1,5 @@
 version = 1
-revision = 5
+revision = 2
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -3808,7 +3808,7 @@ resolution-markers = [
     "python_full_version < '3.12'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.4.6", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7a/97/5a3609c4f8d58b039179648e62dd220f89864f56f7357f5d4f45c29eb2cc/scipy-1.17.1.tar.gz", hash = "sha256:95d8e012d8cb8816c226aef832200b1d45109ed4464303e997c5b13122b297c0", size = 30573822, upload-time = "2026-02-23T00:26:24.851Z" }
 wheels = [
@@ -3883,7 +3883,7 @@ resolution-markers = [
     "python_full_version == '3.12.*'",
 ]
 dependencies = [
-    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" } },
+    { name = "numpy", version = "2.5.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.12'" },
 ]
 sdist = { url = "https://files.pythonhosted.org/packages/7e/74/66de6258867beb2ef08f35f9f2ac017a52cacd5081714d239ff1a442d458/scipy-1.18.1.tar.gz", hash = "sha256:52c4b7422442aba924d03ad4019852b08a92e64ea187b933135687bfe2747307", size = 30781235, upload-time = "2026-08-21T23:28:50.599Z" }
 wheels = [
@@ -4619,6 +4619,7 @@ dependencies = [
     { name = "fastcdc" },
     { name = "idna" },
     { name = "markdown-it-py" },
+    { name = "pillow" },
     { name = "python-dotenv" },
     { name = "soupsieve" },
 ]
@@ -4627,7 +4628,6 @@ dependencies = [
 browser-use-eval = [
     { name = "docker" },
     { name = "json-repair" },
-    { name = "pillow" },
     { name = "playwright" },
     { name = "psutil" },
     { name = "pyyaml" },
@@ -4711,7 +4711,7 @@ requires-dist = [
     { name = "markdown-it-py", specifier = "==4.2.0" },
     { name = "openai", marker = "extra == 'webmainbench-eval'", specifier = ">=2.8,<4" },
     { name = "openpyxl", marker = "extra == 'oss-eval'", specifier = "==3.1.5" },
-    { name = "pillow", marker = "extra == 'browser-use-eval'", specifier = ">=11,<13" },
+    { name = "pillow", specifier = ">=11,<13" },
     { name = "playwright", marker = "extra == 'browser-use-eval'", specifier = ">=1.52,<2" },
     { name = "playwright", marker = "extra == 'headless-eval'", specifier = "==1.58.0" },
     { name = "psutil", marker = "extra == 'browser-use-eval'", specifier = ">=7,<8" },

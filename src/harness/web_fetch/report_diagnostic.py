@@ -6,8 +6,11 @@ import math
 import re
 import statistics
 from collections import Counter
+from io import BytesIO
 from pathlib import Path
 from urllib.parse import unquote, urljoin, urlsplit
+
+from PIL import Image
 
 from lexbench_webfetch.metrics import task_passed
 from lexbench_webfetch.paths import contained_path, safe_identifier, validate_http_url
@@ -22,6 +25,15 @@ from harness.web_fetch.artifacts import (
 from harness.web_fetch.publication_privacy import project_file, publication_risk
 from harness.web_fetch.reference_lifecycle import require_verified_reference_checks
 from harness.web_fetch.report_i18n import t
+
+
+def diagnostic_profile_binding(profile):
+    snapshot={'variant':profile.get('variant'),'cohort_plan':[
+        {key:group[key] for key in ('id','case_count','case_ids_sha256')}
+        for group in profile.get('cohort_plan',[])]}
+    for name,keys in [('implementation',('reported_version','binary_sha256')),('diagnostic_input',('sha256',))]:
+        if profile.get(name):snapshot[name]={key:profile[name][key] for key in keys}
+    return {'profile':snapshot,'sha256':hashlib.sha256(json.dumps(snapshot,sort_keys=True).encode()).hexdigest()}
 
 
 def require_diagnostic_scope(model, profile):
@@ -70,6 +82,25 @@ def _saved_implementation_identity(record, batches):
     if len(identities) != 1 or not all(identities[0]):
         raise ValueError('Timeout attempt has no uniquely bound implementation identity')
     return identities[0]
+
+
+def _read_diagnostic_figure(figure, source):
+    if not all(isinstance(figure.get(k), str) and figure[k].strip()
+               for k in ('path', 'sha256', 'alt', 'scope')):
+        raise ValueError('Diagnosis illustration needs a hash, description and scope')
+    raw = contained_path(source, figure['path'], reject_symlinks=True).read_bytes()
+    if hashlib.sha256(raw).hexdigest() != figure['sha256']:
+        raise ValueError('Diagnosis illustration differs from its input binding')
+    if not raw.startswith(b'\x89PNG\r\n\x1a\n'):
+        raise ValueError('Diagnosis illustration must be a PNG')
+    try:
+        with Image.open(BytesIO(raw), formats=('PNG',)) as image:
+            image.verify()
+        with Image.open(BytesIO(raw), formats=('PNG',)) as image:
+            image.load()
+    except (OSError, SyntaxError, ValueError, Image.DecompressionBombError) as error:
+        raise ValueError('Diagnosis illustration is not a complete PNG') from error
+    return raw
 
 
 def prepare_diagnostic_evidence(spec_path, output):
@@ -160,6 +191,13 @@ def prepare_diagnostic_evidence(spec_path, output):
             if audit.get('independent_verdict'):
                 row['independent_verdict'] = audit['independent_verdict']
             rows.append(row)
+    for blocks in model.get('pages',{}).values():
+        for block in blocks:
+            figure=block.get('figure')
+            if not figure:continue
+            raw=_read_diagnostic_figure(figure,spec_path.parent)
+            target=contained_path(output,figure['path'],reject_symlinks=True)
+            target.parent.mkdir(parents=True,exist_ok=True);target.write_bytes(raw)
     model.update(schema='webfetch_cohort_diagnostic/1',certified=False,cohorts=cohorts,rows=rows,provenance=provenance)
     model['metrics']={g['id']:[sum(r['initial_pass'] for r in rows if r['cohort']==g['id']),g['case_count']] for g in cohorts}
     model['metrics']['overall']=[sum(r['initial_pass'] for r in rows),len(rows)]
@@ -173,6 +211,8 @@ FAILURE_TYPES = {
     'body': t('insufficient_body_coverage', 'Insufficient body coverage'), 'records': t('incomplete_list_or_table', 'Incomplete list or table'),
     'encoding': t('text_encoding_damaged', 'Text encoding damaged'), 'truncated': t('output_truncated', 'Output truncated'),
     'shell': t('only_script_or_page_framework', 'Only script or page framework'), 'length': t('too_little_content_returned', 'Too little content returned'),
+    'resource': t('required_resource_missing', 'Required resource missing'),
+    'file': t('original_file_not_delivered', 'Original file not delivered'),
     'pattern': t('content_structure_mismatch', 'Content structure mismatch'), 'other': t('other_failed_checks', 'Other failed checks'),
 }
 
@@ -319,6 +359,44 @@ def diagnostic_findings(row, files):
             add('pattern', t('required_content_structure_missing', 'Required content structure missing'), check.get('pattern') or check.get('id', t('declared_structure_requirement', 'Declared structure requirement')),
                 t('this_structure_pattern_did_not_match', 'This structure pattern did not match') if 'pattern' in check else
                 t('items_at_least_required', '{get} items; at least {get2} required', get=str(check.get('count', t('not_provided_by_the_record', 'Not provided by the record'))), get2=str(check.get('minimum', t('not_provided_by_the_record', 'Not provided by the record')))))
+    if metrics.get('document_structure_pass') is False:
+        try:
+            reference=json.loads(files[row['reference']['path']])
+            contract=reference.get('document_structure',{})
+        except (KeyError,ValueError,TypeError,AttributeError):
+            contract={}
+        coverage=metrics.get('document_heading_coverage')
+        if coverage is not None and coverage < contract.get('minimum_heading_coverage',1):
+            headings={h.get('id','section-'+str(i)):h['text'] for i,h in enumerate(contract.get('headings',[]),1)}
+            checks=[h for h in metrics.get('document_heading_results',[]) if h.get('pass') is False]
+            absent=[h for h in checks if h.get('present') is not True]
+            short=[h for h in checks if h.get('present') is True]
+            if absent or not checks:
+                names=[headings.get(h['id'],h['id']) for h in absent] or list(headings.values())
+                add('pattern',t('document_headings_not_preserved','Document headings not preserved'),
+                    ' / '.join(names) or t('declared_structure_requirement','Declared structure requirement'),
+                    t('heading_coverage_value','Heading coverage: {value}%',value=round(100*coverage,1)))
+            if short:
+                add('body',t('document_section_body_missing','Heading present but section text insufficient'),
+                    ' / '.join(headings.get(h['id'],h['id']) for h in short),
+                    t('section_body_below_requirement','Required section text did not meet its minimum'))
+        if metrics.get('document_body_chars',0) < metrics.get('document_minimum_body_chars',0):
+            add('body',t('document_body_too_short','Document section body too short'),
+                t('at_least_characters_3','At least {get} characters',get=metrics['document_minimum_body_chars']),
+                t('characters_3','{get} characters',get=metrics.get('document_body_chars',0)))
+    if metrics.get('article_title_pass') is False:
+        add('text',t('article_title_missing','Article title missing'),
+            t('article_title_in_body','Article title retained as a body component'),
+            t('article_title_not_found','No qualifying article title in the returned body'))
+    for resource in metrics.get('resource_results') or []:
+        if resource.get('pass') is False:
+            add('resource',t('required_resource_missing','Required resource missing'),
+                ' / '.join(resource.get('expected_urls') or [resource.get('id','resource')]),
+                ' / '.join(resource.get('matched_urls') or []) or t('no_matching_resource','No matching resource'))
+    if metrics.get('raw_file_pass') is False:
+        add('file',t('original_file_not_delivered','Original file not delivered'),
+            t('original_file_bytes_required','Original file bytes matching the declared validation'),
+            t('original_file_validation_failed','Original file validation failed'))
     if not findings:
         add('other', t('other_failed_checks', 'Other failed checks'), t('meets_the_complete_task_requirements', 'Meets the complete task requirements'), row.get('failure') or t('the_saved_record_lists_no_specific_failed', 'The saved record lists no specific failed item'))
     return findings
@@ -355,11 +433,81 @@ def diagnostic_cohort_summary(model, files):
         for group in model['cohorts']]
 
 
+def diagnostic_cell_text(value):
+    return value['label'] if isinstance(value, dict) else str(value)
+
+
+def diagnostic_cell_href(value):
+    if 'case_id' in value:
+        return 'attempts/' + value['case_id'] + '.html'
+    if 'issue_id' in value:
+        return 'guide/index.html#' + value['issue_id']
+    return value['url']
+
+
+def validate_diagnostic_blocks(model, files, source):
+    """Bind authored diagnosis examples and illustrations to inspectable evidence."""
+    if model.get('problem_focus') and not any(block.get('examples') for block in model.get('pages',{}).get('guide',[])):
+        raise ValueError('Problem-focused guide needs concrete case diagnoses')
+    rows = {row['id']: row for row in model['rows']}
+    guide_ids = {block['id'] for block in model.get('pages', {}).get('guide', []) if block.get('id')}
+    for blocks in model.get('pages', {}).values():
+        for block in blocks:
+            if block.get('id'):
+                safe_identifier(block['id'])
+            for values in block.get('table', {}).get('rows', []):
+                for value in values:
+                    if not isinstance(value, dict):
+                        continue
+                    kind = next((key for key in ('case_id', 'issue_id', 'url') if key in value), None)
+                    if kind is None or set(value) != {kind, 'label'} or not value['label']:
+                        raise ValueError('Diagnosis table link has no matching case or issue')
+                    if kind == 'url':
+                        validate_http_url(value[kind])
+                        if urlsplit(value[kind]).username is not None:
+                            raise ValueError('Diagnosis table links cannot contain credentials')
+                    elif value[kind] not in (rows if kind == 'case_id' else guide_ids):
+                        raise ValueError('Diagnosis table link has no matching case or issue')
+            figure = block.get('figure')
+            if figure:
+                if not block.get('id'):
+                    raise ValueError('Diagnosis illustration needs a section anchor')
+                raw = _read_diagnostic_figure(figure, source)
+                files[figure['path']] = raw
+            for example in block.get('examples', []):
+                row = rows.get(example.get('case_id'))
+                if row is None or any(not isinstance(example.get(k), str) or not example[k].strip()
+                                      for k in ('expected', 'actual', 'cause', 'fix', 'verify')):
+                    raise ValueError('Diagnosis example needs a case, discrepancy, cause and repair')
+                if not example.get('evidence'):
+                    raise ValueError('Diagnosis example needs a verbatim evidence locator')
+                for evidence in example['evidence']:
+                    binding = row.get(evidence.get('field')) if evidence.get('field') in {
+                        'reference', 'first_answer', 'answer', 'source', 'log'} else None
+                    if not binding or not evidence.get('quote'):
+                        raise ValueError('Diagnosis example evidence field is absent')
+                    raw = files.get(binding['path'])
+                    if raw is None:
+                        raw = contained_path(source, binding['path'], reject_symlinks=True).read_bytes()
+                    if evidence['quote'] not in raw.decode('utf-8'):
+                        raise ValueError('Diagnosis quotation is absent from bound case evidence')
+
+
 def load_diagnostic(source):
     source = Path(source).resolve()
     model = json.loads(contained_path(source, "report.json").read_text(encoding='utf-8'))
     if model.get("schema") != "webfetch_cohort_diagnostic/1" or model.get("certified") is not False:
         raise ValueError("Expected an explicitly diagnostic WebFetch model")
+    if model.get('scope_views'):
+        views = model['scope_views']
+        if ({view['id'] for view in views} != {'main', 'full'} or len(views) != 2
+                or model.get('content_scope') not in {'main', 'full'}):
+            raise ValueError('Content scope navigation needs main and full views')
+        for view in views:
+            if not view.get('label') or not view.get('href'):
+                raise ValueError('Content scope navigation needs labels and destinations')
+            if view['href'] != 'index.html':
+                validate_http_url(view['href'])
     groups = {g["id"]: g for g in model["cohorts"]}
     if len(groups) != len(model["cohorts"]):
         raise ValueError("Duplicate cohort")
@@ -430,6 +578,18 @@ def load_diagnostic(source):
                 raise ValueError('Published answer does not bind the scored original')
         if row["cause"] not in model["cause_labels"]:
             raise ValueError("Unknown result cause")
+        if model.get('paired_content_scope'):
+            log = json.loads(files[row['log']['path']])
+            current = log.get('metrics', {})
+            paired = log.get('uniform_full_content', {})
+            if (current.get('evaluation_content_scope') != 'main'
+                    or paired.get('metrics', {}).get('evaluation_content_scope') != 'full'
+                    or not current.get('scoring_source_sha256')
+                    or current['scoring_source_sha256'] != paired['metrics'].get('scoring_source_sha256')
+                    or type(paired.get('passed')) is not bool
+                    or (paired['passed'] and not row['initial_pass'])):
+                raise ValueError('Paired content scopes require one scorer and full-pass implies main-pass')
+    validate_diagnostic_blocks(model, files, source)
     audited = [r for r in rows if r.get("success_audit")]
     states = Counter(r["success_audit"]["source_state"] for r in audited)
     if len(audited) != model["success_audit"]["audited_passes"] or dict(states) != model["success_audit"]["source_state_counts"]:
@@ -447,6 +607,16 @@ def check_diagnostic_report(output, profile=None):
         require_diagnostic_scope(model, read_json(Path(profile)))
     manifest = read_json(output / "report-manifest.json")
     check_build_version(output, manifest)
+    planned=manifest.get('diagnostic_profile')
+    if planned:
+        if planned != diagnostic_profile_binding(planned['profile']):
+            raise ValueError('Diagnostic planned profile hash differs')
+        require_diagnostic_scope(model,planned['profile'])
+        planned_input=planned['profile'].get('diagnostic_input')
+        if planned_input and manifest.get('input_sha256')!=planned_input['sha256']:
+            raise ValueError('Diagnostic input differs from its planned profile')
+        if profile is not None and planned != diagnostic_profile_binding(read_json(Path(profile))):
+            raise ValueError('Diagnostic build uses another planned profile')
     if profile is not None:
         binding = read_json(Path(profile)).get('diagnostic_input')
         if binding and manifest.get('input_sha256') != binding['sha256']:
@@ -463,6 +633,28 @@ def check_diagnostic_report(output, profile=None):
             "review/index.html", "guide/index.html", "reproduce/index.html", "en/index.html"]
     for route in core:
         checked_page(output / route)
+    for name, blocks in model.get('pages', {}).items():
+        route = 'index.html' if name == 'overview' else name + '/index.html'
+        page = read_page(output / route)
+        for index, block in enumerate(blocks):
+            if not block.get('table'):
+                continue
+            spec = block['table']
+            rendered = page.select_one(f'#diagnostic-table-{name}-{index}')
+            if (not rendered
+                    or [c.get_text() for c in rendered.select('thead th')][1:] != spec['headers']
+                    or [[c.get_text() for c in r.select('td')][1:] for r in rendered.select('tbody tr')]
+                    != [[diagnostic_cell_text(v) for v in r] for r in spec['rows']]):
+                raise ValueError('Diagnostic explanatory table differs from evidence model')
+            for source_row, rendered_row in zip(spec['rows'],rendered.select('tbody tr'),strict=True):
+                for value,td in zip(source_row,rendered_row.select('td')[1:],strict=True):
+                    if not isinstance(value,dict):continue
+                    href = diagnostic_cell_href(value)
+                    anchors=td.select('a')
+                    if len(anchors)!=1 or anchors[0].get('href')!=href:
+                        raise ValueError('Diagnosis table points to different evidence')
+                    if 'issue_id'in value and not read_page(output/'guide/index.html').find(id=value['issue_id']):
+                        raise ValueError('Diagnosis issue anchor is absent')
     home = read_page(output / 'index.html')
     overall = diagnostic_call_summary(model['rows'], files)
     for route in ('index.html', 'guide/index.html'):
@@ -480,11 +672,21 @@ def check_diagnostic_report(output, profile=None):
     if len(summaries) != len(expected_summaries):
         raise ValueError('Missing cohort summary')
     for expected, rendered in zip(expected_summaries, summaries, strict=True):
-        values = [c.get('data-sort') for c in rendered.select('td')][3:]
+        values = [c.get('data-sort', '-1') for c in rendered.select('td')][3:]
         expected_values = [expected[k] for k in ('total','delivered','accepted','mean_ms','p50_ms','p95_ms')]
+        if model.get('comparison_mode'):
+            expected_values[1:3]=[v/expected['total'] if v is not None else None for v in expected_values[1:3]]
         if (rendered.get('data-summary-group') != expected['id']
                 or values != [str(-1 if v is None else v) for v in expected_values]):
             raise ValueError('Summary differs from complete cohort calls')
+    if model.get('comparison_mode'):
+        from harness.reporting.presentation import check_presentation
+        for route in ('index.html', 'guide/index.html'):
+            comparison = read_page(output / route).select_one('#cohort-summary, #guide-summary')
+            if (not comparison or len(comparison.select('td[data-metric-direction]'))
+                    != 2 * len(expected_summaries)):
+                raise ValueError('Comparison summary lacks metric directions')
+            check_presentation(str(comparison))
     bars = home.select('#cohort-results .editorial-bar-row')
     if len(bars) != len(model['cohorts']):
         raise ValueError('Missing cohort result chart')
@@ -499,20 +701,22 @@ def check_diagnostic_report(output, profile=None):
             raise ValueError('Cohort chart percentage mismatch')
     analysis = read_page(output / 'analysis/index.html')
     expected_counts = diagnostic_failure_counts(model, files)
-    actual_counts = analysis.select('[data-failure-type]')
-    if Counter(c.get('data-failure-type') for c in actual_counts) != Counter({k: 1 for k in expected_counts}):
-        raise ValueError('Missing or duplicate failure types')
-    for count in actual_counts:
-        kind = count.get('data-failure-type')
-        if (kind not in expected_counts or count.get('data-count') != str(expected_counts[kind])
-                or FAILURE_TYPES[kind] not in count.get_text()
-                or not count.select_one('a[href="analysis/index.html#issue='+kind+'"]')):
-            raise ValueError('Failure type count or drilldown differs from saved checks')
     guide = read_page(output / 'guide/index.html')
+    for report_page in (analysis, guide):
+        actual_counts = report_page.select('[data-failure-type]')
+        if Counter(c.get('data-failure-type') for c in actual_counts) != Counter({k: 1 for k in expected_counts}):
+            raise ValueError('Missing or duplicate failure types')
+        for count in actual_counts:
+            kind = count.get('data-failure-type')
+            if (kind not in expected_counts or count.get('data-count') != str(expected_counts[kind])
+                    or FAILURE_TYPES[kind] not in count.get_text()
+                    or count.select('td')[2].get_text() != f"{expected_counts[kind]} / {sum(not r['initial_pass'] for r in model['rows'])}"
+                    or not count.select_one('a[href="analysis/index.html#issue='+kind+'"]')):
+                raise ValueError('Failure type count or drilldown differs from saved checks')
     if not guide.select_one('#guide-results') or not guide.select_one('#guide-conclusions'):
         raise ValueError('Interpretation lacks outcome or conclusion')
     lead = guide.select_one('.hero .lead')
-    if not lead or not lead.get_text().startswith(f"{model['metrics']['overall'][0]} / {len(model['rows'])} "):
+    if not lead or (lead.get_text() != model['interpretation_lead'] if model.get('interpretation_lead') else not lead.get_text().startswith(f"{model['metrics']['overall'][0]} / {len(model['rows'])} ")):
         raise ValueError('Interpretation headline differs from measured outcome')
     if [r.get_text() for r in guide.select('[data-summary-group]')] != [r.get_text() for r in summaries]:
         raise ValueError('Interpretation summary differs from measured outcome')
@@ -528,7 +732,7 @@ def check_diagnostic_report(output, profile=None):
                 or not cells[3].select_one('a[href="attempts/'+expected_case['id']+'.html"]')):
             raise ValueError('Interpretation reviewed counts differ from per-case review')
     examples = model.get('interpretation_case_ids')
-    if examples is None:
+    if not examples:
         examples = [next(r['id'] for r in model['rows'] if not r['initial_pass'])] if expected_counts else []
         if any(r['initial_pass'] for r in model['rows']):
             examples.append(next(r['id'] for r in model['rows'] if r['initial_pass']))
@@ -549,6 +753,34 @@ def check_diagnostic_report(output, profile=None):
             expected_preview = diagnostic_specimen_excerpt(row,field,files,model)
             if panel.select_one('pre').get_text() != expected_preview:
                 raise ValueError('Interpretation specimen differs from bound evidence')
+    for name,page_blocks in model.get('pages',{}).items():
+        diagnosis_page=read_page(output/('index.html' if name=='overview' else name+'/index.html'))
+        expected_examples = [example for block in page_blocks
+                             for example in block.get('examples', [])]
+        rendered_examples = diagnosis_page.select('[data-diagnosis-case]')
+        if (model.get('problem_focus') and name=='guide' and not expected_examples) or len(expected_examples) != len(rendered_examples):
+            raise ValueError('Problem-focused guide lacks concrete case diagnoses')
+        for expected, rendered in zip(expected_examples, rendered_examples, strict=True):
+            if (rendered['data-diagnosis-case'] != expected['case_id']
+                    or not rendered.select_one('a[href="attempts/'+expected['case_id']+'.html"]')):
+                raise ValueError('Diagnosis points to a different result')
+            for key in ('expected', 'actual', 'cause', 'fix', 'verify'):
+                node = rendered.select_one('[data-diagnosis-field="'+key+'"]')
+                actual = node.select_one('p').get_text() if key in {'expected', 'actual'} and node else node.get_text() if node else None
+                if actual != expected[key]:
+                    raise ValueError('Diagnosis omits or changes its evidence-backed '+key)
+        for block in page_blocks:
+            if not block.get('figure'):
+                continue
+            section_node = diagnosis_page.find(id=block['id'])
+            rendered = section_node.select_one('.diagnosis-figure img') if section_node else None
+            figure = block['figure']
+            if (not rendered or rendered.get('src') != figure['path']
+                    or rendered.get('alt') != figure['alt']):
+                raise ValueError('Diagnosis illustration is missing or points to different evidence')
+            if (rendered.find_parent('details') is not None
+                    or section_node.find('h2').find_next_sibling() != rendered.find_parent('figure')):
+                raise ValueError('Diagnosis illustration must lead its section without folding')
     for row in model["rows"]:
         route = "attempts/" + row["id"] + ".html"
         soup = checked_page(output / route)
@@ -585,6 +817,11 @@ def check_diagnostic_report(output, profile=None):
                 raise ValueError("Rendered evidence differs from saved output")
     for route in output.rglob("*.html"):
         soup = read_page(route)
+        if model.get('scope_views'):
+            switches = soup.select('[data-content-scope]')
+            expected = [(view['id'], view['href'], view['label']) for view in model['scope_views']]
+            if [(node.get('data-content-scope'), node.get('href'), node.get_text()) for node in switches] != expected:
+                raise ValueError('Missing or wrong content scope navigation')
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue

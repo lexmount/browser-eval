@@ -23,7 +23,7 @@ SCORING_SOURCE_FILES = tuple(Path(__file__).with_name(name) for name in (
     "ordered_tree.py", "composite_tasks.py", "dynamic_reference.py",
     "file_acceptance.py", "evaluation.py", "models.py", "paths.py", "article_posts.py",
     "article_comments.py", "article_title.py", "article_text.py", "required_components.py",
-    "resource_urls.py", "document_structure.py",
+    "resource_urls.py", "document_structure.py", "content_scopes.py",
 ))
 SCORING_SOURCE_SHA256 = hashlib.sha256(b"\0".join(
     path.read_bytes() for path in SCORING_SOURCE_FILES)).hexdigest()
@@ -91,6 +91,7 @@ def score_attempt(
     delivered_files: list[bytes] | None = None,
     title: str | None = None,
     final_url: str | None = None,
+    content_scope: str | None = None,
 ) -> dict[str, Any]:
     """Score the exact persisted bytes identically for live and offline callers.
 
@@ -101,7 +102,8 @@ def score_attempt(
     Previous non-text
     evidence is preserved; the caller must have validated its artifact binding.
     """
-    case = _case_dict(case)
+    from .content_scopes import select_content_scope
+    case, scope_binding = select_content_scope(_case_dict(case), content_scope)
     from .ordered_tree import validate_tree_contract
     validate_tree_contract(case)
     if delivered_files is not None:
@@ -367,6 +369,9 @@ def score_attempt(
                 and not result['forbidden_requirement_hits'])
     result["acceptance_checks"] = acceptance_checks(case, result)
     result["scoring_source_sha256"] = SCORING_SOURCE_SHA256
+    if scope_binding is not None:
+        result['evaluation_content_scope'] = case['content_scope']
+        result['content_scope_requirements_sha256'] = scope_binding
     return result
 
 

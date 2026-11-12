@@ -121,13 +121,19 @@ def load_json(path: Path) -> Any:
     return json.loads(read_dataset_bytes(path))
 
 
-def load_dataset(path: Path) -> tuple[dict[str, Any], list[EvalCase]]:
+def load_dataset(path: Path, *, content_scope: str | None = None, case_scopes: dict[str, str | None] | None = None) -> tuple[dict[str, Any], list[EvalCase]]:
     payload = load_json(path)
     if not isinstance(payload, dict) or payload.get("tool") != "web_fetch":
         raise ValueError("dataset.tool must be 'web_fetch'")
     raw_cases = payload.get("cases", [])
     if not isinstance(raw_cases, list) or any(not isinstance(item, dict) for item in raw_cases):
         raise ValueError("dataset.cases must be a list of task objects")
+    content_scope = content_scope or payload.get('content_scope')
+    from lexbench_webfetch.content_scopes import select_content_scope
+    raw_cases = [select_content_scope(item, case_scopes[item['id']] if case_scopes and item.get('id') in case_scopes else content_scope)[0] for item in raw_cases]
+    payload = dict(payload, cases=raw_cases)
+    if content_scope is not None:
+        payload['content_scope'] = content_scope
     for item in raw_cases:
         _validate_retrieval_hints(item)
         _validate_ground_truth_evidence(item)

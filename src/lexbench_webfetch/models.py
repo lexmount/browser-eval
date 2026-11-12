@@ -55,6 +55,8 @@ class EvalCase:
     target_language: str = ""
     target_region: str = ""
     rule_review: dict[str, Any] = field(default_factory=dict)
+    content_scope: str | None = None
+    content_scopes: dict[str, Any] = field(default_factory=dict)
     ordered_tree_reference: dict[str, Any] | None = None
     ordered_tree_min_similarity: float | None = None
 
@@ -67,6 +69,8 @@ class EvalCase:
 
 def validate_case(case: EvalCase) -> None:
     """Validate required fields, routing and identity before acquisition."""
+    from .content_scopes import select_content_scope
+    select_content_scope(vars(case))
     if not isinstance(case.page_identity_required, bool):
         raise ValueError("page_identity_required must be boolean")
     safe_identifier(case.id)
