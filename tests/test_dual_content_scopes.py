@@ -55,6 +55,12 @@ def test_mixed_legacy_tasks_keep_their_report_without_fabricating_other_scores(t
     assert not (run/'report/content-scope-views.json').exists()
     assert BeautifulSoup((run/'report/index.html').read_text(encoding='utf-8'), 'html.parser').select_one('[data-content-scope-switch]') is None
 
+    previous = (run/'report/index.html').read_bytes()
+    result = invoke(tmp_path, 'report', run, '--content-scope', 'main', language='zh')
+    assert result.returncode != 0
+    assert 'annotated main-content requirements for every task' in result.stderr
+    assert (run/'report/index.html').read_bytes() == previous
+
 
 @pytest.mark.parametrize('delivered', [True, False])
 def test_original_file_delivery_is_required_in_both_scopes(delivered):

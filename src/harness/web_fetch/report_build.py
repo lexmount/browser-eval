@@ -449,6 +449,8 @@ def _select_report_scope(output, dataset, records, scope=None):
         return dataset, records
     single = {case.get('scoring_scope') for case in dataset['cases']}
     scope = scope or (next(iter(single)) if len(single) == 1 and single <= {'main', 'full'} else 'full')
+    if scope == 'main' and not all(annotated):
+        raise ValueError('A main-content report needs annotated main-content requirements for every task')
     source_cases = {case['id']: case for case in dataset['cases']}
     for row in records:
         case = source_cases[row['case_id']]
