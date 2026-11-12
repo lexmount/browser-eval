@@ -475,10 +475,24 @@ def _render_content_scope_views(output, dataset, records, manifests, *, include_
     for key in ('report_interpretation', 'score_audit'):
         comparison.pop(key, None)
     comparison.update(kind='web_fetch_diagnostic', publication_state='diagnostic_not_for_release')
-    scoped_records = [dict(row, metrics=metrics_for_scope(row['metrics'], other)) for row in records]
+    scoped_records = []
+    scoped_cases = {case['id']: case for case in scoped_dataset['cases']}
+    for original in records:
+        row = deepcopy(original)
+        row['metrics'] = metrics_for_scope(original['metrics'], other)
+        for key in ('diagnosis', 'failure_category', 'review', 'agent_verdict', 'final_verdict', 'adjudication'):
+            row.pop(key, None)
+        case = scoped_cases[row['case_id']]
+        text = contained_path(view, row['artifact_path']).read_text(encoding='utf-8', errors='replace')
+        row['diagnosis'] = diagnose(row, case, text)
+        row['failure_category'] = failure_category(row, case)
+        scoped_records.append(row)
     (view/'dataset.json').write_text(json.dumps(scoped_dataset, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
     (view/'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=True)+'\n' for row in scoped_records), encoding='utf-8')
     (view/'summary.json').write_text(json.dumps(_report_summary(scoped_dataset, scoped_records), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    from harness.web_fetch.title_quality import add_title_quality
+    for row in scoped_records:
+        add_title_quality(row, scoped_cases[row['case_id']], view)
     generate(view, scoped_dataset, scoped_records, manifests, include_english=include_english,
              **dict(options, authored_interpretation=False))
     if language is not None:
@@ -502,6 +516,7 @@ def _scope_report_pages(view):
 def _wire_content_scope_views(output):
     from posixpath import relpath
     from lexbench_webfetch.metrics import task_passed
+    from harness.report_languages import primary_report_language
     import re
     binding = output/'content-scope-views.json'
     if not binding.exists():
@@ -527,6 +542,9 @@ def _wire_content_scope_views(output):
                 if not target.is_file():
                     target = output/target_root/'index.html'
                 href = relpath(target, page.parent)
+                if (not english and target == output/target_root/'index.html'
+                        and primary_report_language(output/target_root) == 'en'):
+                    href += '?report-language=zh'
                 links.append(f'<a data-content-scope="{target_scope}" href="{href}"'
                              + (' aria-current="page"' if scope == target_scope else '')
                              + f'>{labels[target_scope]}</a>')

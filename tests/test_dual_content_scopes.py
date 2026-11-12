@@ -61,6 +61,15 @@ def test_one_live_call_builds_switchable_report_and_rescores_offline(tmp_path, s
         assert task_passed(records[0]['ok'], records[0]['metrics']) is (active == 'main')
         assert records[0]['elapsed_ms'] == row['elapsed_ms']
         assert records[0]['metrics']['content_sha256'] == row['metrics']['content_sha256']
+        if active == 'main' and view == alternate:
+            assert records[0].get('diagnosis') is None
+            text = BeautifulSoup((view/'attempts'/f'{row["attempt_id"]}.html').read_text(encoding='utf-8'), 'html.parser')
+            explanation = text.select_one('#overview .attempt-verdict').get_text()
+            assert '未命中核对点' not in explanation and 'Missed checks' not in explanation
+        from harness.report_languages import generated_languages
+        assert generated_languages(view) == (('zh',) if language == 'zh' else ('zh', 'en'))
+        if language == 'zh':
+            assert sorted(path.relative_to(view/'en').as_posix() for path in (view/'en').rglob('*') if path.is_file()) == ['index.html']
     before = len(list((run / 'call-logs').rglob('*.json')))
     result = invoke(tmp_path, 'rescore', run, '--dataset', dataset, '--no-report', language='zh')
     assert result.returncode == 0, result.stdout + result.stderr
@@ -79,7 +88,8 @@ def test_scope_summary_reuses_deadline_evidence_for_both_verdicts():
 
 
 @pytest.mark.parametrize('defect', ['missing-view', 'metrics', 'latency', 'requirements', 'summary',
-                                  'missing-toggle', 'wrong-target', 'wrong-total', 'missing-failure-evidence'])
+                                  'missing-toggle', 'wrong-target', 'wrong-total', 'missing-failure-evidence',
+                                  'stripped-structure', 'missing-main', 'unexpected-english'])
 def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
     from harness.web_fetch.report_check import check_content_scope_views
     case = annotated_case()
@@ -105,6 +115,11 @@ def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
         else:
             row['elapsed_ms'] += 1
         path.write_text(json.dumps(row) + '\n', encoding='utf-8')
+    elif defect == 'unexpected-english':
+        path = full/'report-languages.json'
+        model = json.loads(path.read_text(encoding='utf-8'))
+        model['languages'] = ['zh', 'en']
+        path.write_text(json.dumps(model), encoding='utf-8')
     elif defect == 'requirements':
         path = full / 'dataset.json'
         model = json.loads(path.read_text(encoding='utf-8'))
@@ -116,7 +131,7 @@ def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
         model['web']['fixture']['task_pass'] = 1
         path.write_text(json.dumps(model), encoding='utf-8')
     else:
-        path = (full / 'index.html') if defect != 'missing-failure-evidence' else next((full / 'attempts').glob('*.html'))
+        path = (full / 'index.html') if defect not in {'missing-failure-evidence', 'stripped-structure', 'missing-main'} else next((full / 'attempts').glob('*.html'))
         soup = BeautifulSoup(path.read_text(encoding='utf-8'), 'html.parser')
         if defect == 'missing-toggle':
             soup.select_one('[data-content-scope-switch]').decompose()
@@ -124,6 +139,12 @@ def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
             soup.select_one('a[data-content-scope="main"]')['href'] = 'index.html'
         elif defect == 'wrong-total':
             soup.select_one('[data-scope-pass-count]').string = '通过: 1/1'
+        elif defect == 'stripped-structure':
+            soup.select_one('meta[name="webstone-report"]').decompose()
+            soup.select_one('[data-content-scope-switch]').decompose()
+            soup.select_one('#run-log .log-summary').decompose()
+        elif defect == 'missing-main':
+            soup.main.decompose()
         else:
             soup.select_one('#run-log .log-summary').decompose()
         path.write_text(str(soup), encoding='utf-8')
@@ -195,3 +216,64 @@ def test_original_file_delivery_is_required_in_both_scopes(delivered):
 def test_failed_request_cannot_pass_either_scope_on_matching_text():
     metrics = score_attempt(annotated_case(), b'Complete article body Contact publisher', ok=False)
     assert all(not task_passed(False, item) for item in metrics['content_scope_metrics'].values())
+
+
+@pytest.mark.parametrize('language', ['zh', 'en'])
+def test_complete_release_check_accepts_bilingual_scope_views(tmp_path, language):
+    from harness.web_fetch.report_build import (
+        _render_content_scope_views, _wire_content_scope_views, _report_summary, copy_methodology_assets,
+    )
+    from harness.web_fetch.report_check import check
+    from harness.web_fetch.reliability import assess_reliability
+    from lexbench_webfetch.content_scopes import select_content_scope
+    from tests.report_check_fixture import create_report
+    root, authority = create_report(tmp_path, english=True)
+    source = json.loads((root/'dataset.json').read_text(encoding='utf-8'))
+    case = annotated_case()
+    case.update(id='one', name='Sample task', track='web',
+                source_verification=source['cases'][0]['source_verification'])
+    for scope in ('main', 'full'):
+        requirements = case['content_scopes'][scope]['requirements']
+        requirements.update(min_content_chars=1, ground_truth_main_content='fixture',
+                            required_facts=[{'id': 'body', 'alternatives': ['fixture']}])
+        if scope == 'full':
+            requirements['required_facts'].append({'id': 'footer', 'alternatives': ['Footer content']})
+    selected, _ = select_content_scope(case, 'main')
+    source['cases'] = [selected]
+    source['content_scope'] = 'main'
+    row = json.loads((root/'results.jsonl').read_text(encoding='utf-8'))
+    row.update(provider_type='fixture', case_name='Sample task', category='synthetic', url=case['url'],
+               run=1, elapsed_ms=1, started_at='2026-01-01T00:00:00Z', status_code=200,
+               final_url=case['url'], title='Sample task', error_type=None, error_message=None,
+               provider_metadata={}, metrics=score_attempt(case, b'fixture', ok=True, content_scope='main'))
+    (root/'dataset.json').write_text(json.dumps(source), encoding='utf-8')
+    (root/'results.jsonl').write_text(json.dumps(row)+'\n', encoding='utf-8')
+    (root/'summary.json').write_text(json.dumps(_report_summary(source, [row])), encoding='utf-8')
+    (root/'reliability.json').write_text(json.dumps(assess_reliability(source, [row])), encoding='utf-8')
+    copy_methodology_assets(root)
+    manifests = json.loads((root/'execution.json').read_text(encoding='utf-8'))['batches']
+    _render_content_scope_views(root, source, [row], manifests, include_english=True,
+                               language=language, authored_interpretation=False)
+    _wire_content_scope_views(root)
+    assert check(root, authority_root=authority).startswith('PASS:')
+
+
+def test_each_failed_scope_displays_its_own_missing_requirements(tmp_path):
+    case = annotated_case()
+    case['name'] = 'Unrelated ordinary text'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'paired', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
+    for relative in ['.', 'content-scopes/full']:
+        page = run/'report'/relative/'attempts'/f'{row["attempt_id"]}.html'
+        soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
+        explanation = next(tr.select('td')[-1].get_text() for tr in soup.select('#overview details tr')
+                           if any(td.get_text() == '判定依据' for td in tr.select('td')))
+        assert 'body' in explanation
+        assert ('footer' in explanation) is (relative != '.')

@@ -33,7 +33,7 @@ from harness.web_fetch.publication_privacy import public_render_views, read_evid
 from harness.web_fetch.reference_lifecycle import validate_resource_source_evidence
 from harness.web_fetch.reliability import require_reliable
 from harness.web_fetch.report import local_pass_rate_ranking
-from harness.web_fetch.report_build import validate_local_presentation
+from harness.web_fetch.report_build import validate_local_presentation, _scope_report_pages
 from harness.web_fetch.report_explainer import check_current_browser_article
 from harness.web_fetch.report_i18n import report_text, t
 from harness.web_fetch.report_interfaces import SPECS
@@ -327,6 +327,7 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
 def check_content_scope_views(root: Path):
     """Both score views must retain the same calls and valid whole-report controls."""
     from lexbench_webfetch.content_scopes import metrics_for_scope, select_content_scope
+    from harness.report_languages import primary_report_language
     from harness.web_fetch.report_build import _report_summary, _scope_report_pages
     records = load_jsonl(root/'results.jsonl')
     paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
@@ -350,6 +351,22 @@ def check_content_scope_views(root: Path):
         if len(rows) != len(records):
             raise ValueError('Content-scope report changed the call population')
         cases = read_json(view/'dataset.json')
+        check_language_contract(view)
+        if (generated_languages(view) != generated_languages(root)
+                or primary_report_language(view) != primary_report_language(root)):
+            raise ValueError('Content-scope view changed the selected report language')
+        required_routes = {'index.html', 'analysis/index.html', 'datasets/index.html',
+                           'methodology/index.html', 'review/index.html', 'guide/index.html',
+                           'adoption/index.html', 'reproduce/index.html', 'changes/index.html',
+                           'accounts/index.html'}
+        required_routes.update('attempts/'+row['attempt_id']+'.html' for row in rows)
+        required_routes.update('providers/'+row['provider']+'.html' for row in rows)
+        required_routes.update('datasets/'+case['id']+'.html' for case in cases['cases'])
+        for language in generated_languages(view):
+            prefix = view/'en' if language == 'en' else view
+            for route in required_routes:
+                if not contained_path(prefix, route, reject_symlinks=True).is_file():
+                    raise ValueError('Content-scope report lost a required route: '+route)
         expected_cases = [select_content_scope(case, scope)[0] for case in source_dataset['cases']]
         if cases['cases'] != expected_cases:
             raise ValueError('Content-scope report has wrong task requirements')
@@ -372,7 +389,12 @@ def check_content_scope_views(root: Path):
         passed = sum(task_passed(row['ok'], row['metrics']) for row in rows)
         for page in _scope_report_pages(view):
             soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
+            route = page.relative_to(view)
+            canonical_route = Path(*route.parts[1:]) if route.parts[0] == 'en' else route
             if not soup.select_one('meta[name="webstone-report"]') or soup.main is None:
+                if canonical_route.as_posix() in required_routes and not (
+                        route.as_posix() == 'en/index.html' and 'en' not in generated_languages(view)):
+                    raise ValueError('Content-scope report lost required page structure: '+str(route))
                 continue
             toggle = soup.select_one('[data-content-scope-switch]')
             if toggle is None or toggle.get('data-active-scope') != scope:
@@ -388,6 +410,12 @@ def check_content_scope_views(root: Path):
                     expected_target = (root/model['views'][target_scope]/'index.html').resolve()
                 if target != expected_target or not target.is_file() or bool(link.get('aria-current')) != (target_scope==scope):
                     raise ValueError('Content-scope report has an incorrect switch target')
+                expected_query = {'report-language': 'zh'} if (
+                    not soup.html.get('lang', '').startswith('en')
+                    and expected_target == (root/model['views'][target_scope]/'index.html').resolve()
+                    and primary_report_language(root/model['views'][target_scope]) == 'en') else {}
+                if dict(parse_qsl(urlsplit(link['href']).query)) != expected_query:
+                    raise ValueError('Content-scope switch changed the reader language')
             count = toggle.select_one('[data-scope-pass-count]')
             if (count is None or count.get('data-scope-pass-count') != str(passed)
                     or count.get('data-scope-attempt-count') != str(len(rows))
@@ -641,6 +669,10 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         if not zh_pages == en_pages:
             raise ValueError(("Chinese/English route inventories differ", zh_pages ^ en_pages))
 
+    scope_views = (read_json(root/'content-scope-views.json')['views']
+                   if (root/'content-scope-views.json').is_file() else {})
+    scope_homepages = {Path('index.html'), *(Path(relative)/'index.html' for relative in scope_views.values())}
+
     def canonical_link(page, value):
         parsed = urlsplit(value)
         if parsed.scheme or parsed.netloc:
@@ -652,16 +684,15 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             and (target.suffix.lower() in {".html", ".htm"})
         ):
             target = Path(*target.parts[1:])
-        if (root/'content-scope-views.json').is_file():
-            views = read_json(root/'content-scope-views.json')['views']
-            for relative in views.values():
+        if scope_views:
+            for relative in scope_views.values():
                 if relative == '.':
                     continue
                 prefix = Path(relative).parts
                 if target.parts[:len(prefix)+1] == (*prefix, 'en'):
                     target = Path(*prefix, *target.parts[len(prefix)+1:])
         query = parsed.query
-        if target == Path("index.html"):
+        if target in scope_homepages:
             query = urlencode([(key, item) for key, item in parse_qsl(query, keep_blank_values=True)
                                if (key, item) != ("report-language", "zh")])
         return (
@@ -742,7 +773,20 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                 raise ValueError(
                     (relative, "untranslated English report narrative", parser.untranslated[:20])
                 )
-    for p in root.rglob("*.html"):
+    contexts = [(root, rs, case_by_id, local_measurement)]
+    if (root/'content-scope-views.json').is_file():
+        for relative in read_json(root/'content-scope-views.json')['views'].values():
+            if relative != '.':
+                view = contained_path(root, relative, reject_symlinks=True)
+                child = read_json(view/'dataset.json')
+                contexts.append((view, load_jsonl(view/'results.jsonl'),
+                                 {case['id']: case for case in child['cases']},
+                                 child.get('comparison', {}).get('kind') == 'uniform_native_local_measurement'))
+        pages = ((page, view, rows, cases, diagnostic) for view, rows, cases, diagnostic in contexts
+                 for page in _scope_report_pages(view))
+    else:
+        pages = ((page, root, rs, case_by_id, local_measurement) for page in root.rglob('*.html'))
+    for p, page_root, page_records, page_cases, page_diagnostic in pages:
         text = p.read_text(encoding="utf-8")
         check_presentation(text)
         reader = VisibleText()
@@ -774,13 +818,13 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             raise ValueError((p, "HIL"))
         parser = Tables()
         parser.feed(text)
-        relative_parts = p.relative_to(root).parts
+        relative_parts = p.relative_to(page_root).parts
         if "browser-use" not in relative_parts:
             require_table_index_headers(parser, english=relative_parts[0] == 'en',
-                                        diagnostic=local_measurement)
+                                        diagnostic=page_diagnostic)
         if p.parent.name == "attempts":
-            record = next(r for r in rs if r["attempt_id"] == p.stem)
-            case = case_by_id[record["case_id"]]
+            record = next(r for r in page_records if r["attempt_id"] == p.stem)
+            case = page_cases[record["case_id"]]
             heading = (
                 t('target_file', 'Target file')
                 if case.get("task_kind") == "file"
@@ -797,7 +841,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
                     t('complete_reference_answer', 'Complete reference answer'): "Complete reference answer",
                     t('acceptance_rules_no_full_text_reference', 'Acceptance rules (no full-text reference)'): "Acceptance rules (no full-text reference)",
                 }[heading]
-                if p.relative_to(root).parts[0] == "en"
+                if relative_parts[0] == "en"
                 else heading
             )
             if not text.count("<h3>" + actual_heading + "</h3>") == 1:
@@ -805,7 +849,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             if (
                 not text.count(
                     "<h3>"
-                    + ("Actual output" if p.relative_to(root).parts[0] == "en" else t('actual_output', 'Actual output'))
+                    + ("Actual output" if relative_parts[0] == "en" else t('actual_output', 'Actual output'))
                     + "</h3>"
                 )
                 == 1
