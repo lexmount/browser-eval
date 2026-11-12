@@ -498,3 +498,44 @@ def test_invalid_only_outputs_do_not_count_as_available_in_aggregates():
     totals = aggregate(rows)['a']
     assert totals['n'] == 2 and totals['nonempty'] == 1
     assert totals['all_latency']['n'] == 2 and totals['success_latency']['n'] == 1
+
+
+def test_report_build_binds_and_replays_the_selected_factual_rule(tmp_path):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.example import example
+    from harness.web_search.report import build, check
+    from lexbench_websearch.evidence_quality import DATASET_ROWS_RULE
+
+    example(tmp_path, comparison=True)
+    source = tmp_path / 'fixture'
+    profile = json.loads((source / 'profile.json').read_bytes())
+    case = next(c for c in profile['cases'] if 'reference_answer' in c)
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    for row in rows:
+        if row['case_id'] != case['id'] or row['http_status'] != 200:
+            continue
+        payload = {'results': [dict(url='https://corpus.test/data',
+                                   snippet='Dataset Viewer ' + case['query'] + ' ' + case['reference_answer'])]}
+        path = source / row['evidence']['path']
+        path.write_text(json.dumps(payload), encoding='utf-8')
+        row['evidence']['sha256'] = bytes_sha256(path.read_bytes())
+        row['results'] = normalize_results(payload)
+        row['metrics'] = evaluate(case, row['results'])
+    result_file = source / 'results.jsonl'
+    result_file.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+    receipt = json.loads((source / 'receipt.json').read_bytes())
+    receipt['results_sha256'] = bytes_sha256(result_file.read_bytes())
+    (source / 'receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
+    revision = dict(schema='web-search-assessment-revision/1',provider_calls=0,
+                    root_cause='Structured evaluation rows must not supply factual evidence',
+                    regression_ids=['structured-dataset-contamination'],factual_contamination_rule=DATASET_ROWS_RULE)
+    instance = revision_instance(tmp_path,revision)
+    content = tmp_path / 'content.json'
+    content.write_text(json.dumps({'assessment_revision': revision}), encoding='utf-8')
+    output = tmp_path / 'corrected'
+    build(output,source=source,content=content,profile_path=instance)
+    assert check(output)
+    sensitivity = json.loads((output / 'factual-sensitivity.json').read_bytes())
+    assert sensitivity['rule'] == DATASET_ROWS_RULE
+    matched = [r for r in sensitivity['results'].values() if r['excluded_ranks']]
+    assert matched and all(r['metrics']['answer_in_preview_5'] == 0 for r in matched)

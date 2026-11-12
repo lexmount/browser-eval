@@ -764,8 +764,12 @@ def _write_assessment_files(inputs: ReportInputs, bundle: list[dict[str, Any]]) 
         bundle.append({"path": "independent-review.json", "sha256": bytes_sha256((output / "independent-review.json").read_bytes())})
     factual_cases = {c["id"]: c for c in profile["cases"] if "reference_answer" in c}
     if factual_cases:
-        sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"], cutoff=profile["protocol"]["top_k"]) for r in selected if r["case_id"] in factual_cases}
-        write_json(output / "factual-sensitivity.json", {"schema": "factual-sensitivity/1", "timing": "post-hoc diagnostic; no recollection or rank compaction", "rule": CONTAMINATION_RULE, "results": sensitivity})
+        rules = {c.get('factual_contamination_rule', CONTAMINATION_RULE) for c in factual_cases.values()}
+        if len(rules) != 1:
+            raise ValueError('Factual comparisons require one contamination rule')
+        rule = next(iter(rules))
+        sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"], rule=rule, cutoff=profile["protocol"]["top_k"]) for r in selected if r["case_id"] in factual_cases}
+        write_json(output / "factual-sensitivity.json", {"schema": "factual-sensitivity/1", "timing": "post-hoc diagnostic; no recollection or rank compaction", "rule": rule, "results": sensitivity})
         bundle.append({"path": "factual-sensitivity.json", "sha256": bytes_sha256((output / "factual-sensitivity.json").read_bytes())})
     if relevance_data:
         target = output / "relevance-judgments.json"
