@@ -491,7 +491,8 @@ def check_content_scope_views(root: Path):
             raise ValueError('Content-scope report has wrong task requirements')
         for source, row in zip(records, rows, strict=True):
             for key in ('attempt_id', 'case_id', 'provider', 'run', 'started_at', 'elapsed_ms',
-                        'ok', 'status_code', 'artifact_path'):
+                        'ok', 'status_code', 'artifact_path', 'provider_metadata', 'url', 'final_url',
+                        'error_type', 'error_message', 'title'):
                 if row.get(key) != source.get(key):
                     raise ValueError('Content-scope report changed invocation evidence: '+key)
             expected = metrics_for_scope(source['metrics'], scope)

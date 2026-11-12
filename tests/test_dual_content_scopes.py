@@ -90,7 +90,7 @@ def test_scope_summary_reuses_deadline_evidence_for_both_verdicts():
 @pytest.mark.parametrize('defect', ['missing-view', 'metrics', 'latency', 'requirements', 'summary',
                                   'missing-toggle', 'wrong-target', 'wrong-total', 'missing-failure-evidence',
                                   'stripped-structure', 'missing-main', 'unexpected-english',
-                                  'absolute-switch', 'protocol-relative-switch'])
+                                  'absolute-switch', 'protocol-relative-switch', 'usage-changed', 'usage-removed'])
 def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
     from harness.web_fetch.report_check import check_content_scope_views
     case = annotated_case()
@@ -105,16 +105,26 @@ def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
     assert result.returncode == 0, result.stdout + result.stderr
     root = run / 'report'
     full = root / 'content-scopes/full'
+    if defect in {'usage-changed', 'usage-removed'}:
+        for view in (root, full):
+            path = view/'results.jsonl'
+            row = json.loads(path.read_text(encoding='utf-8'))
+            row['provider_metadata'].update(credits_used=2, browser_ms_used=250)
+            path.write_text(json.dumps(row)+'\n', encoding='utf-8')
     check_content_scope_views(root)
     if defect == 'missing-view':
         (root / 'content-scope-views.json').unlink()
-    elif defect in {'metrics', 'latency'}:
+    elif defect in {'metrics', 'latency', 'usage-changed', 'usage-removed'}:
         path = full / 'results.jsonl'
         row = json.loads(path.read_text(encoding='utf-8'))
         if defect == 'metrics':
             row['metrics']['acceptance_checks']['facts'] = True
-        else:
+        elif defect == 'latency':
             row['elapsed_ms'] += 1
+        elif defect == 'usage-changed':
+            row['provider_metadata']['credits_used'] += 1
+        else:
+            row.pop('provider_metadata')
         path.write_text(json.dumps(row) + '\n', encoding='utf-8')
     elif defect == 'unexpected-english':
         path = full/'report-languages.json'
