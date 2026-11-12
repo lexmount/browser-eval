@@ -72,6 +72,7 @@ this table is the index.
 | [0.3.0](https://github.com/lexmount/webstone/releases/tag/v0.3.0) | Add Search/SERP and shared capture/source-validation fixes | Fetch benchmark 2.0.1; Search benchmark 1.0.0 |
 | [0.4.0](https://github.com/lexmount/webstone/releases/tag/v0.4.0) | Move Web Fetch and Web Search scoring into this repository; public inputs on Hugging Face | Web Fetch dataset `3d8aa5cf`; Web Search dataset `76d9c2b6` |
 | [0.5.0](https://github.com/lexmount/webstone/releases/tag/v0.5.0) | The Webstone version names the Web Fetch benchmark edition; score-changing scorer fixes; corrected references | Web Fetch dataset v2.2.0 (`c12559d2`); Web Search dataset `76d9c2b6` |
+| [0.6.0](https://github.com/lexmount/webstone/releases/tag/v0.6.0) | Rename the project to Webstone: the `webstone` command, `WEBSTONE_*` variables and the `~/.webstone` data home replace the Browser Eval names; scoring is unchanged | Web Fetch dataset v2.2.0 (`c12559d2`); Web Search dataset `76d9c2b6` |
 
 Historical 0.1.0 and 0.2.0 tags retain their original commits. A software release
 can support several separately selected benchmarks. Its version never changes

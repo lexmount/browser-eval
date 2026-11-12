@@ -1,6 +1,6 @@
 [project]
 name = "webstone"
-version = "0.5.0"
+version = "0.6.0"
 description = "Webstone: the touchstone for your agent's web tools. Benchmark browsers and Web tools for AI agents: Web Fetch, Web Search, Web Extract and Browser Trajectory Replay"
 readme = "README.md"
 license = "Apache-2.0"
