@@ -3905,7 +3905,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     label = f'{value:.1f}'
                     if intervals:
                         low, high = intervals['methods'][method['id']]['interval']
-                        label += f'<small>95% CI [{low * 100:.1f}, {high * 100:.1f}]</small>'
+                        label += f'<br><small>95% CI [{low * 100:.1f}, {high * 100:.1f}]</small>'
                 elif ranked and i in (2, 3):
                     label = f'{value:.1%}'
                 elif i == 1 or (kind == 'factual' and i == 2):
