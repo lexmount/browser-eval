@@ -443,10 +443,10 @@ def _render_content_scope_views(output, dataset, records, manifests, *, include_
     from copy import deepcopy
     from lexbench_webfetch.content_scopes import select_content_scope, metrics_for_scope
     paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
-    if not any(paired):
+    if not all(case.get('content_scopes') for case in dataset['cases']):
         generate(output, dataset, records, manifests, include_english=include_english, **options)
         return
-    if not all(paired) or not all(case.get('content_scopes') for case in dataset['cases']):
+    if not all(paired):
         raise ValueError('A switchable content-scope report requires paired annotations and scores for every task')
     active = {row['metrics'].get('evaluation_content_scope') for row in records}
     if len(active) != 1 or not active <= {'main', 'full'}:

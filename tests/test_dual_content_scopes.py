@@ -153,3 +153,45 @@ def test_report_switching_preserves_delivered_html_bytes(tmp_path):
     assert result.returncode == 0, result.stdout + result.stderr
     assert (run/'report'/relative).read_bytes() == raw
     assert (run/'report/content-scopes/full'/relative).read_bytes() == raw
+
+
+def test_mixed_legacy_tasks_keep_their_report_without_fabricating_other_scores(tmp_path):
+    case = annotated_case()
+    case.update(name='Complete article body', content_scope='main')
+    legacy = annotated_case()
+    legacy['id'] = 'legacy'
+    legacy.pop('content_scopes')
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'mixed', 'cases': [case, legacy]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    rows = [json.loads(line) for line in (run/'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    assert len(rows) == 2
+    assert 'content_scope_metrics' not in next(row for row in rows if row['case_id']=='legacy')['metrics']
+    assert not (run/'report/content-scope-views.json').exists()
+    assert BeautifulSoup((run/'report/index.html').read_text(encoding='utf-8'), 'html.parser').select_one('[data-content-scope-switch]') is None
+
+
+@pytest.mark.parametrize('delivered', [True, False])
+def test_original_file_delivery_is_required_in_both_scopes(delivered):
+    import base64
+    import hashlib
+    from lexbench_webfetch.evaluation import evaluate_response
+    raw = base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAIAAAACCAIAAAD91JpzAAAAE0lEQVR4nGP8//8/AwMDEwMYAAAkBgMBXaJOiAAAAABJRU5ErkJggg==')
+    case = annotated_case()
+    case.update(task_kind='file', content_score_applicable=False,
+                source_verification={'mime': 'image/png', 'file_sha256': hashlib.sha256(raw).hexdigest()})
+    for scope in ('main', 'full'):
+        case['content_scopes'][scope]['requirements'] = {'task_prompt': 'Deliver the original image bytes.'}
+    result = evaluate_response(case, b'An image caption is not the original file.', files=[raw] if delivered else [])
+    for metrics in result['metrics']['content_scope_metrics'].values():
+        assert task_passed(True, metrics) is delivered
+
+
+def test_failed_request_cannot_pass_either_scope_on_matching_text():
+    metrics = score_attempt(annotated_case(), b'Complete article body Contact publisher', ok=False)
+    assert all(not task_passed(False, item) for item in metrics['content_scope_metrics'].values())

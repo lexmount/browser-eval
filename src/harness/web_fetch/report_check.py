@@ -331,9 +331,10 @@ def check_content_scope_views(root: Path):
     records = load_jsonl(root/'results.jsonl')
     paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
     binding = root/'content-scope-views.json'
-    if not any(paired):
+    source_dataset = read_json(root/'dataset.json')
+    if not all(case.get('content_scopes') for case in source_dataset['cases']):
         if binding.exists():
-            raise ValueError('Content-scope switch has no paired scores')
+            raise ValueError('Content-scope switch has incomplete task annotations')
         return
     if not all(paired) or not binding.is_file():
         raise ValueError('Content-scope report is missing complete paired score views')
@@ -343,7 +344,6 @@ def check_content_scope_views(root: Path):
             or model.get('views') != {default: '.', ('full' if default == 'main' else 'main'):
                                      'content-scopes/'+('full' if default == 'main' else 'main')}):
         raise ValueError('Content-scope report has an invalid view binding')
-    source_dataset = read_json(root/'dataset.json')
     for scope, relative in model['views'].items():
         view = root if relative == '.' else contained_path(root, relative, reject_symlinks=True)
         rows = load_jsonl(view/'results.jsonl')
