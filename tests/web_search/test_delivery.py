@@ -110,10 +110,10 @@ def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path):
     example(tmp_path)
     source, destination = tmp_path / 'report', tmp_path / 'delivery'
     profile = json.loads((tmp_path / 'fixture/profile.json').read_bytes())
-    rows = [json.loads(line) for line in (tmp_path / 'fixture/results.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (tmp_path / 'fixture/results.jsonl').read_text(encoding='utf-8').splitlines()]
     next(row for row in rows if row['results'])['results'][0]['summary'] = 'Long native summary. ' * 500000
     path = source / 'results.html'
-    path.write_text(path.read_text().replace('</main>', render_comparison(profile, rows, True) + '</main>'), encoding='utf-8')
+    path.write_text(path.read_text(encoding='utf-8').replace('</main>', render_comparison(profile, rows, True) + '</main>'), encoding='utf-8')
     assert path.stat().st_size > 8 * 1024 * 1024
     export(source, destination)
     assert verify(source, destination)
