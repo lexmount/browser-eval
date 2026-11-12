@@ -283,7 +283,7 @@ def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tm
     assert rebuilt['default_dataset'] == 'sample'
 
 
-def test_hub_rebuild_keeps_committed_edition_and_dataset_tools(tmp_path):
+def test_hub_rebuild_keeps_committed_edition_tools_and_snapshot_bindings(tmp_path):
     root, revision, _ = checkout(tmp_path, 'websearch')
     plain = DatasetRelease.from_git(root, 'websearch', revision).build(tmp_path / 'published')
     output = tmp_path / 'published'
@@ -293,7 +293,7 @@ def test_hub_rebuild_keeps_committed_edition_and_dataset_tools(tmp_path):
     git(output, 'commit', '-qm', 'Hub without edition')
     rebuilt = DatasetRelease.from_git(output, 'websearch', git(output, 'rev-parse', 'HEAD')).build(tmp_path / 'bare')
     assert 'edition' not in plain and 'edition' not in rebuilt
-    assert not (tmp_path / 'bare/tools').exists() and not (tmp_path / 'bare/Makefile').exists()
+    assert not any((tmp_path / 'bare' / name).exists() for name in ('tools', 'Makefile', 'snapshots.json'))
     assert ({p.relative_to(tmp_path / 'bare') for p in (tmp_path / 'bare').rglob('*')}
             == {p.relative_to(output) for p in output.rglob('*') if '.git' not in p.parts})
 
@@ -301,7 +301,9 @@ def test_hub_rebuild_keeps_committed_edition_and_dataset_tools(tmp_path):
     manifest = json.loads((output / 'manifest.json').read_bytes())
     (output / 'manifest.json').write_text(json.dumps({**manifest, 'edition': edition}), encoding='utf-8')
     tools = {'tools/rebuild_publication.py': b'raise SystemExit(0)\n',
-             'tools/test_population.py': b'# kept\r\n', 'Makefile': b'check:\n\ttrue\n'}
+             'tools/test_population.py': b'# kept\r\n', 'Makefile': b'check:\n\ttrue\n',
+             # Web Extract hubs gain URL bindings from harness.web_extract.snapshots.publish.
+             'snapshots.json': b'{"fixture_base": "https://snapshots.example/v1"}\n'}
     for name, raw in tools.items():
         (output / name).parent.mkdir(exist_ok=True)
         (output / name).write_bytes(raw)
