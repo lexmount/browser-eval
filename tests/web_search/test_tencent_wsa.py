@@ -32,6 +32,16 @@ class YuanbaoSearchTests(unittest.TestCase):
             validate_profile(profile)
         profile['methods'][0]['expected_response_version'] = 'lite'
         validate_profile(profile)
+        for options in (None, {}):
+            profile['methods'][0]['output_options'] = options
+            with self.assertRaisesRegex(ValueError, 'expected response version'):
+                validate_profile(profile)
+            profile['methods'][0]['expected_response_version'] = 'standard'
+            validate_profile(profile)
+            profile['methods'][0]['expected_response_version'] = 'lite'
+        profile['methods'][0].pop('output_options')
+        with self.assertRaisesRegex(ValueError, 'expected response version'):
+            validate_profile(profile)
 
     def test_transport_failures_retry_without_becoming_edition_errors(self):
         from harness.web_search.example import synthetic_profile

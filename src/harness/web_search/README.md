@@ -168,7 +168,10 @@ specimens, source-filter populations and chapter visibility to the public build.
 For hosts with a file-count limit, export a checked report with
 `--output /absolute/report --export-delivery /absolute/new-delivery-directory`.
 This preserves the renderer's pages and raw responses in one compressed file per
-case, with shared detail and evidence viewers. The export verifies every original
+case, with shared detail and evidence viewers. Large supplementary JSON files use
+the same lossless storage, with working source
+links, browser reads and original-byte downloads. The manifest stays directly
+available. The export verifies every original
 page and response against its source hash. It changes storage and navigation only;
 it does not rescore results. Run the full release gate on the canonical report and
 exercise the exported viewers on the target host before delivery.

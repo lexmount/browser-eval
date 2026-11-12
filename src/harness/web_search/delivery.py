@@ -22,17 +22,19 @@ LOADER = "\n" + ASSETS.joinpath("delivery-loader.js").read_text(encoding="utf-8"
     "__DOWNLOAD_LABEL_ZH__", zh_text("Download original response"))
 
 
-def _delivery_link(value):
+def _delivery_link(value, packed=()):
     if not value or value.startswith(("http://", "https://", "#")):
         return value
     if "/details/" in value or value.startswith("details/"):
         return "detail.html#" + quote(value, safe="")
     if value.startswith("calls/"):
         return "evidence.html#" + quote(value, safe="")
+    if value in packed:
+        return "evidence.html#" + quote(value, safe="")
     return value
 
 
-def transform_page(text):
+def transform_page(text, *, packed=()):
     doc = BeautifulSoup(text, "html.parser")
     bridge = doc.new_tag("script")
     bridge.string = BRIDGE
@@ -42,7 +44,7 @@ def transform_page(text):
         for attr in ("href", "data-detail"):
             value = node.get(attr, "")
             if value:
-                node[attr] = _delivery_link(value)
+                node[attr] = _delivery_link(value, packed)
     # Paginated comparison cards are created after load, so their canonical
     # links live in structured data rather than DOM attributes.
     for node in doc.select("script[data-comparison-data]"):
@@ -78,9 +80,21 @@ def export(source, destination):
     public_files = set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}
     for path in sorted(public_files - set(mapping)):
         raw = (source / path).read_bytes()
+        if path == 'manifest.json' or not path.endswith('.json') or len(raw) < 1024 * 1024:
+            continue
+        packed_json = json.dumps({path: {
+            'base64': base64.b64encode(raw).decode('ascii')
+        }}).encode()
+        shard = 'evidence-data/' + bytes_sha256(packed_json) + '.json.gz'
+        target = destination / shard
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(gzip.compress(packed_json, mtime=0))
+        mapping[path], hashes[path] = shard, bytes_sha256(raw)
+    for path in sorted(public_files - set(mapping)):
+        raw = (source / path).read_bytes()
         target = destination / path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(transform_page(raw.decode()).encode() if path.endswith(".html") else raw)
+        target.write_bytes(transform_page(raw.decode(), packed=mapping).encode() if path.endswith(".html") else raw)
     write_json(destination / "delivery-index.json", {
         "schema": "search-report-delivery/2",
         "source_manifest_sha256": bytes_sha256((source / "manifest.json").read_bytes()),
@@ -123,7 +137,7 @@ def verify(source, destination):
         if path in index["files"]:
             continue
         raw = (source / path).read_bytes()
-        expected = transform_page(raw.decode()).encode() if path.endswith(".html") else raw
+        expected = transform_page(raw.decode(), packed=index['files']).encode() if path.endswith(".html") else raw
         if (destination / path).read_bytes() != expected:
             raise ValueError("Delivery page changed")
     return True

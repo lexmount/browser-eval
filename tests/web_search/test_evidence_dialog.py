@@ -96,6 +96,60 @@ def test_method_names_sort_in_standard_overview_and_interpretation(tmp_path, bro
             page.close()
 
 
+def test_large_auxiliary_json_remains_readable_and_downloads_exact_bytes(tmp_path, browser):
+    import base64
+    import gzip
+
+    from harness.record_io import bytes_sha256
+    from harness.reporting.visual import local_report_server
+    from harness.web_search.delivery import export, verify
+    from harness.web_search.example import example
+    from harness.web_search.report import build
+
+    example(tmp_path)
+    raw = (json.dumps({'text': 'café source ' * 120000}, ensure_ascii=False) + '\r\n').encode()
+    (tmp_path / 'large.json').write_bytes(raw)
+    content = {'assets': [{'path': 'report-assets/large.json', 'source': 'large.json',
+                           'sha256': bytes_sha256(raw)}], 'sections': [{
+        'page': 'method', 'title': {'en': 'Synthetic archive', 'zh': 'Synthetic archive'},
+        'sources': [{'label': {'en': 'Open synthetic archive', 'zh': 'Open synthetic archive'},
+                     'url': 'report-assets/large.json'}]}]}
+    (tmp_path / 'content.json').write_text(json.dumps(content), encoding='utf-8')
+    source, delivery = tmp_path / 'report', tmp_path / 'delivery'
+    build(source, source=tmp_path / 'fixture', content=tmp_path / 'content.json', include_english=True)
+    export(source, delivery)
+    assert verify(source, delivery)
+    assert not (delivery / 'report-assets/large.json').exists()
+    index = json.loads((delivery / 'delivery-index.json').read_bytes())
+    shard = delivery / index['files']['report-assets/large.json']
+    with local_report_server(delivery) as origin:
+        page = browser.new_page(accept_downloads=True)
+        try:
+            for language in ('', 'en/'):
+                page.goto(origin + '/' + language + 'research.html')
+                link = page.get_by_role('link', name='Open synthetic archive', exact=True)
+                assert link.get_attribute('href') == 'evidence.html#report-assets%2Flarge.json'
+                fetched = page.evaluate("""async () => {
+                    const bytes=await (await fetch('report-assets/large.json')).arrayBuffer();
+                    const hash=await crypto.subtle.digest('SHA-256',bytes);
+                    return [...new Uint8Array(hash)].map(x=>x.toString(16).padStart(2,'0')).join('');
+                }""")
+                assert fetched == bytes_sha256(raw)
+                link.click()
+                page.locator('[data-evidence-download]').wait_for()
+                with page.expect_download() as pending:
+                    page.locator('[data-evidence-download]').click()
+                from pathlib import Path
+                assert Path(pending.value.path()).read_bytes() == raw
+        finally:
+            page.close()
+    values = json.loads(gzip.decompress(shard.read_bytes()))
+    values['report-assets/large.json']['base64'] = base64.b64encode(b'changed').decode()
+    shard.write_bytes(gzip.compress(json.dumps(values).encode(), mtime=0))
+    with pytest.raises(ValueError, match='Packed evidence changed'):
+        verify(source, delivery)
+
+
 @pytest.mark.parametrize("adapter", ["lexmount", "deepseek", "bocha"])
 def test_selected_native_item_and_complete_response_are_distinct(browser, adapter):
     items = [{"url": "https://example.com/first", "title": "Other rank", "summary": "UNSELECTED"},
