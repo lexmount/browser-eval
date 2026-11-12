@@ -319,6 +319,33 @@ def test_hub_rebuild_keeps_committed_edition_and_dataset_tools(tmp_path):
         assert not set(tools) & set(archive.getnames())
 
 
+def test_committed_paths_cannot_leave_the_release(tmp_path):
+    source, revision, _ = checkout(tmp_path, 'websearch')
+    root = tmp_path / 'hub'
+    DatasetRelease.from_git(source, 'websearch', revision).build(root)
+    git(root, 'init', '-q')
+    git(root, 'add', '.')
+    git(root, 'commit', '-qm', 'Hub')
+    # Git stores a crafted "tools/../../escaped" tree that ls-tree prints verbatim.
+    def tree(entries):
+        return subprocess.run(['git', '-C', str(root), 'mktree'], check=True, text=True,
+                              capture_output=True, input=''.join(entries)).stdout.strip()
+    blob = subprocess.run(['git', '-C', str(root), 'hash-object', '-w', '--stdin'], check=True,
+                          text=True, capture_output=True, input='escaped\n').stdout.strip()
+    inner = tree([f'100644 blob {blob}\tescaped\n'])
+    middle = tree([f'040000 tree {inner}\t..\n'])
+    tools = tree([f'040000 tree {middle}\t..\n'])
+    base = git(root, 'rev-parse', 'HEAD^{tree}')
+    entries = subprocess.run(['git', '-C', str(root), 'ls-tree', base], check=True, text=True,
+                             capture_output=True).stdout
+    top = tree([entries, f'040000 tree {tools}\ttools\n'])
+    revision = git(root, 'commit-tree', top, '-m', 'crafted', '-p', 'HEAD')
+    output = tmp_path / 'nested/out'
+    with pytest.raises(ValueError, match='leaves the release'):
+        DatasetRelease.from_git(root, 'websearch', revision).build(output)
+    assert not (tmp_path / 'escaped').exists() and not (tmp_path / 'nested/escaped').exists()
+
+
 @pytest.mark.parametrize('settings', [
     {'default_dataset': 'missing'},
     {'scorer': {'repository': 'https://github.com/example/scorer', 'revision': 'main'}},

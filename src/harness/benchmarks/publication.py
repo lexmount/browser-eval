@@ -68,6 +68,9 @@ def _git_blobs(checkout: Path, revision: str, paths: tuple[str, ...]) -> dict[st
         name = raw_name.decode("utf-8")
         if kind != b"blob" or mode not in {b"100644", b"100755"}:
             raise ValueError("Public definitions cannot contain links or special files: " + name)
+        # A crafted tree can name "..": committed paths must stay inside the release.
+        if name.startswith("/") or {".", ".."} & set(name.split("/")):
+            raise ValueError("Committed path leaves the release: " + name)
         entries.append((name, object_id))
     raw = subprocess.run(["git", "cat-file", "--batch"], cwd=checkout, check=True,
                          input=b"\n".join(oid for _, oid in entries) + b"\n",
