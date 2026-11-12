@@ -26,7 +26,7 @@ from harness.web_search.messages import report_text
 from harness.web_search.relevance import legacy_evidence_allowed
 from lexbench_webfetch.paths import contained_path
 from lexbench_websearch.relevance import candidate_packet
-from lexbench_websearch.scoring import candidate_identity, classify
+from lexbench_websearch.scoring import classify, ranking_identity
 
 
 def encoded(value):
@@ -305,7 +305,7 @@ def row_state(profile, row, relevance=None):
     case = next(c for c in profile["cases"] if c["id"] == row["case_id"])
     labels = (relevance or {}).get("labels", {}).get(case["id"])
     grades = None if labels is None else [
-        labels[candidate_identity(case["id"], item["url"])]
+        0 if item.get("invalid_slot") else labels[ranking_identity(case["id"], item, preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1")]
         for item in row.get("results", [])[:profile["protocol"]["top_k"]]
     ]
     return classify(case, row, cutoff=profile["protocol"]["top_k"],

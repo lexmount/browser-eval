@@ -84608,6 +84608,278 @@
         ],
         "expected": false
       }
+    ],
+    "delivered-preview-isolation": [
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            },
+            {
+              "id": "b"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": ""
+              }
+            ]
+          },
+          {
+            "case_id": "q",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "Install with pip install example"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "": 1,
+          "Install with pip install example": 3
+        },
+        "method": "a",
+        "expected": false
+      },
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            },
+            {
+              "id": "b"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": ""
+              }
+            ]
+          },
+          {
+            "case_id": "q",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "Install with pip install example"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "": 1,
+          "Install with pip install example": 3
+        },
+        "method": "b",
+        "expected": true
+      }
+    ],
+    "structured-dataset-contamination": [
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did the college open?",
+          "reference_answer": "1971",
+          "factual_contamination_rule": "question-with-structured-dataset-rows/4"
+        },
+        "results": [
+          {
+            "url": "https://data.test/corpus",
+            "snippet": "Dataset Viewer When did the college open? 1971"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did the college open?",
+          "reference_answer": "1971",
+          "factual_contamination_rule": "question-with-structured-dataset-rows/4"
+        },
+        "results": [
+          {
+            "url": "https://college.test/history",
+            "snippet": "When did the college open? It opened in 1971."
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did the college open?",
+          "reference_answer": "1971",
+          "factual_contamination_rule": "question-with-structured-dataset-rows/4"
+        },
+        "results": [
+          {
+            "url": "https://corpus.test/data",
+            "snippet": "PreviewMetadata question string answer string Who won? 1971"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "serp-answer-field-scope": [
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did it open?",
+          "reference_answer": "1971",
+          "answer_evidence_scope": "preview"
+        },
+        "results": [
+          {
+            "url": "https://origin.test/fact",
+            "snippet": "Open in 1971"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did it open?",
+          "reference_answer": "1971",
+          "answer_evidence_scope": "preview"
+        },
+        "results": [
+          {
+            "url": "https://origin.test/fact",
+            "summary": "Open in 1971",
+            "content": "1971"
+          }
+        ],
+        "expected": false
+      }
+    ]
+  },
+  "web_search_normalization": {
+    "invalid-result-slots": [
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "valid-second-slot",
+        "payload": {
+          "results": [
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "https://reference.test/fact",
+              "snippet": "42"
+            }
+          ]
+        },
+        "expected_rr": 0.5,
+        "expected": true
+      },
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "never-promote-sixth-slot",
+        "payload": {
+          "results": [
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "https://reference.test/fact",
+              "snippet": "42"
+            }
+          ]
+        },
+        "expected_rr": 0,
+        "expected": false
+      }
     ]
   }
 }

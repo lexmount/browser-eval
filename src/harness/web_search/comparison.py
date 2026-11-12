@@ -12,10 +12,11 @@ from harness.web_search.relevance import parse_judgments
 from lexbench_websearch.evidence_quality import is_benchmark_page
 from lexbench_websearch.relevance import query_metrics
 from lexbench_websearch.scoring import (
-    candidate_identity,
     evaluate,
     factual_evidence,
     in_domain,
+    ranking_identity,
+    ranking_ids,
     task_acceptance,
 )
 
@@ -83,6 +84,9 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
     for call in (relevance or {}).get("judge", {}).get("calls", []):
         packet = packets[call["case_id"]]
         judgments[call["case_id"]] = {x["candidate_id"]: x for x in parse_judgments(packet, call["response"])}
+    documents = ({p['case_id']: {c['candidate_id']: c['url'] for c in p['candidates']}
+                  for p in (relevance or {}).get('blind_candidate_packets', [])}
+                 if profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1' else {})
     cases = []
     exclusions = set(profile.get("factual_quality_exclusions", []))
     for case in profile["cases"]:
@@ -103,23 +107,25 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                 displayed = {field: _preview(item.get(field), limit)
                              for field, limit in (("title", None), ("snippet", None),
                                                   ("summary", None), ("content", 480))}
+                if item.get('invalid_slot'):
+                    displayed['title'] = report_text('Invalid result slot', zh)
                 _, visible_answers = _item_checks(
                     case, {"url": item.get("url"), **displayed},
                     quality_excluded=quality_excluded, contamination_excluded=contaminated)
-                candidate_id = candidate_identity(case["id"], item["url"]) if _url(item.get("url")) else ""
+                candidate_id = ranking_identity(case["id"], item, preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1") if _url(item.get("url")) else ""
                 judgment = judgments.get(case["id"], {}).get(candidate_id, {}) if has_labels else {}
-                items.append({"url": _url(item.get("url")),
+                items.append({"url": "" if item.get("invalid_slot") else _url(item.get("url")),
                               "grade_reason": judgment.get("reason", ""),
-                              "grade_source": judgment.get("grade_source", (relevance or {}).get("judge", {}).get("kind", "unjudged")) if has_labels else "unjudged",
+                              "grade_source": 'slot-rule' if item.get('invalid_slot') else judgment.get("grade_source", (relevance or {}).get("judge", {}).get("kind", "unjudged")) if has_labels else "unjudged",
                               "grade_evidence": (judgment.get("evidence") or (report_text("Selected field is empty", zh) if judgment.get("evidence_empty") else "")),
                               "contamination_excluded": contaminated,
                               "source_match": source_match, "answer_fields": visible_answers,
                               "answer_outside_preview": answer_fields["content"] and not visible_answers["content"],
-                              "grade": (labels[case["id"]].get(candidate_identity(case["id"], item["url"])) if has_labels and _url(item.get("url")) and not (quality_excluded or contaminated) else None),
+                              "grade": (0 if item.get("invalid_slot") else labels[case["id"]].get(ranking_identity(case["id"], item, preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1")) if has_labels and _url(item.get("url")) and not (quality_excluded or contaminated) else None),
                               "site_match": not (quality_excluded or contaminated) and any(in_domain(item.get("url", ""), d) for d in case.get("domains", [])),
                               **displayed})
-            ranking = [candidate_identity(case["id"], item["url"]) for item in row.get("results", [])[:cutoff] if _url(item.get("url"))]
-            query_score = query_metrics(ranking, labels[case["id"]], cutoff) if has_labels and not quality_excluded else None
+            ranking = ranking_ids(case["id"], [item if _url(item.get("url")) else {"invalid_slot": True} for item in row.get("results", [])[:cutoff]], preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1")
+            query_score = query_metrics(ranking, labels[case["id"]], cutoff, documents=documents.get(case["id"])) if has_labels and not quality_excluded else None
             outputs[method["id"]] = {
                 "score": query_score,
                 "primary": None if case['id'] in labels and not has_labels else acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if has_labels else None),
@@ -210,7 +216,7 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "actual": t("Actual weighted sum"), "ideal": t("Pooled ideal weighted sum"),
         "idealGrades": t("Ideal top-{cutoff} grades", cutoff=cutoff),
         "direct": t("Direct match found"), "noDirect": t("No direct match"),
-        "gradeSources": {"human": t("Human annotation"), "model": t("Model grading"), "source-rule": t("Source requirement"), "source_policy": t("Source requirement")},
+        "gradeSources": {"human": t("Human annotation"), "model": t("Model grading"), "source-rule": t("Source requirement"), "source_policy": t("Source requirement"), 'slot-rule': t('Invalid result slot')},
         "gradeReason": t("Scoring reason and quoted evidence"),
         "verdicts": {"quality": [t("Relevant result found"), t("No relevant result in top {cutoff}", cutoff=cutoff)], "source": [t("Reference URL found"), t("Reference URL absent from top {cutoff}", cutoff=cutoff)],
                      "answer": [t("Answer text found"), t("Answer text absent")],

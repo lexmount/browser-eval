@@ -18,7 +18,7 @@ from harness.web_fetch.config import load_runtime_env, repository_env
 from harness.web_search.messages import zh_text
 from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
 from lexbench_websearch.rubric import judge_prompt, known_prompt
-from lexbench_websearch.scoring import canonical_url
+from lexbench_websearch.scoring import ranking_identity, ranking_ids
 
 
 def verify_protocol(profile, evidence, revision=None, *, authority=None):
@@ -147,12 +147,15 @@ def verify_provenance(profile, rows, evidence, *, authority=None):
         if ids != set(labels[case_id]) or len(ids) != len(packet["candidates"]):
             raise ValueError("Blind packet candidates disagree with grades")
         for candidate in packet["candidates"]:
-            expected = hashlib.sha256((case_id + "\0" + canonical_url(candidate["url"])).encode()).hexdigest()[:12]
+            preview = profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1'
+            if preview and len(candidate['previews']) != 1:
+                raise ValueError('Delivered previews cannot borrow other result text')
+            expected = ranking_identity(case_id, dict(url=candidate['url'], **candidate['previews'][0]), preview=preview)
             if candidate["candidate_id"] != expected:
                 raise ValueError("Blind packet URL identity mismatch")
         for method in (m["id"] for m in profile["methods"]):
-            actual = [hashlib.sha256((case_id + "\0" + canonical_url(item["url"])).encode()).hexdigest()[:12]
-                      for item in indexed[case_id, method]["results"][:plan["cutoff"]]]
+            actual = ranking_ids(case_id, indexed[case_id, method]["results"][:plan["cutoff"]],
+                                 preview=profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1')
             if rankings[case_id][method] != actual:
                 raise ValueError("Published rank mapping disagrees with provider results")
     crosscheck = evidence.get("crosscheck_labels", {})
@@ -469,11 +472,17 @@ def judge_main(argv=None):
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--report", type=Path, required=True)
+    source_group = parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument('--report', type=Path)
+    source_group.add_argument('--source', type=Path)
+    parser.add_argument('--profile', type=Path)
+    parser.add_argument('--content', type=Path)
+    parser.add_argument('--cohort', action='append', default=[], metavar='NAME=RUN')
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--token-env", default="SEARCH_JUDGE_API_KEY")
+    parser.add_argument('--packet-format', choices=('search/1', 'serp/1'), default='search/1')
     parser.add_argument("--reuse-evidence", type=Path,
                         help="Reuse byte-equivalent prior requests; call only changed judge inputs")
     parser.add_argument(
@@ -508,17 +517,32 @@ def judge_main(argv=None):
     configured_base = repository_env().get("SEARCH_JUDGE_BASE_URL", "")
     if not configured_base or validate_judge_url(configured_base).netloc != validate_judge_url(args.base_url).netloc:
         raise ValueError("Judge endpoint host must match repository SEARCH_JUDGE_BASE_URL")
-    from harness.web_search.report import check
+    from harness.web_search.report import _load_report_inputs, check
 
-    profile, rows = check(args.report, return_data=True, evidence_only=True)
+    if args.source:
+        cohorts = []
+        for value in args.cohort:
+            name, separator, path = value.partition('=')
+            if not separator or not name or not path:
+                parser.error('Cohorts must use NAME=RUN')
+            cohorts.append((name, Path(path)))
+        inputs = _load_report_inputs(args.output / 'inputs', profile_path=args.profile,
+            source=args.source, content=args.content, language='en', include_english=False,
+            correction=None, relevance=None, review=None, site_prefix='', cohorts=cohorts)
+        profile, rows, authority = inputs.profile, inputs.selected, inputs.authority
+    else:
+        if args.profile or args.content or args.cohort:
+            parser.error('Report judging does not accept collection input options')
+        profile, rows = check(args.report, return_data=True, evidence_only=True)
+        authority = report_authority(args.report)
     source_requirements = (
         json.loads(args.source_requirements.read_text(encoding="utf-8")) if args.source_requirements else {}
     )
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
-    packet_format, source_policy = "search/1", "explicit-source/2"
+    packet_format, source_policy = args.packet_format, "explicit-source/2"
     if predecessor:
         inherited_profile, inherited_rows = predecessor_projection(profile, rows, predecessor)
-        verify_provenance(inherited_profile, inherited_rows, predecessor, authority=report_authority(args.report))
+        verify_provenance(inherited_profile, inherited_rows, predecessor, authority=authority)
         packet_format = inherited_packet_format(inherited_profile, inherited_rows, predecessor)
         source_policy = predecessor.get("source_policy", "legacy-domain-intersection/1")
     packet, rankings = candidate_packet(profile, rows, source_requirements,
@@ -730,6 +754,6 @@ def judge_main(argv=None):
     }
     if predecessor:
         evidence["judge"].update(predecessor=predecessor, inherited_case_ids=sorted(reused_case_ids))
-    verify_provenance(profile, rows, evidence, authority=report_authority(args.report))
+    verify_provenance(profile, rows, evidence, authority=authority)
     score(profile, rows, evidence["plan"], evidence["labels"])
     (args.output / "relevance.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8")

@@ -103,22 +103,24 @@ class DeliveryScenarios(unittest.TestCase):
                 verify(root / "report", root / "delivery")
 
 
-def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path):
+@pytest.mark.parametrize('prefix', ['', 'en/'])
+def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path, prefix):
     from playwright.sync_api import sync_playwright
     from harness.reporting.visual import browser_executable, local_report_server
 
     example(tmp_path)
     source, destination = tmp_path / 'report', tmp_path / 'delivery'
+    build(source, source=tmp_path / 'fixture', include_english=True)
     profile = json.loads((tmp_path / 'fixture/profile.json').read_bytes())
     rows = [json.loads(line) for line in (tmp_path / 'fixture/results.jsonl').read_text(encoding='utf-8').splitlines()]
     next(row for row in rows if row['results'])['results'][0]['summary'] = 'Long native summary. ' * 500000
-    path = source / 'results.html'
-    path.write_text(path.read_text(encoding='utf-8').replace('</main>', render_comparison(profile, rows, True) + '</main>'), encoding='utf-8')
+    path = source / prefix / 'results.html'
+    path.write_text(path.read_text(encoding='utf-8').replace('</main>', render_comparison(profile, rows, not bool(prefix)) + '</main>'), encoding='utf-8')
     assert path.stat().st_size > 8 * 1024 * 1024
     export(source, destination)
     assert verify(source, destination)
-    assert (destination / 'results.html').stat().st_size < 8 * 1024 * 1024
-    doc = BeautifulSoup((destination / 'results.html').read_bytes(), 'html.parser')
+    assert (destination / prefix / 'results.html').stat().st_size < 8 * 1024 * 1024
+    doc = BeautifulSoup((destination / prefix / 'results.html').read_bytes(), 'html.parser')
     data_node = doc.select_one('[data-comparison-src]')
     data_file = destination / data_node['data-comparison-src']
     assert len(gzip.decompress(data_file.read_bytes())) > 8 * 1024 * 1024
@@ -128,7 +130,7 @@ def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path):
         browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
         try:
             page = browser.new_page()
-            page.goto(origin + '/results.html')
+            page.goto(origin + '/' + prefix + 'results.html')
             page.locator('.compare-task').wait_for()
             assert page.locator('.compare-method').count() == 2
             assert page.locator('.compare-method a[href^="detail.html#"]').count() == 2
@@ -137,8 +139,8 @@ def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path):
             # Exercise the missing-file behavior for a fresh reader instead.
             page.close()
             page = browser.new_page()
-            page.goto(origin + '/results.html')
-            assert page.get_by_role('alert').inner_text() == '逐题数据加载失败，请刷新页面重试。'
+            page.goto(origin + '/' + prefix + 'results.html')
+            assert page.get_by_role('alert').inner_text() == json.loads(doc.select_one('[data-search-comparison]')['data-labels'])['loadError']
         finally:
             browser.close()
     with pytest.raises(ValueError, match='Comparison data changed'):

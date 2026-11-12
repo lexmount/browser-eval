@@ -38,8 +38,10 @@ Register a Tencent Cloud account, complete identity verification, activate the
 service and create a **service API KEY** in the [WSA console](https://console.cloud.tencent.com/wsa).
 The [official setup guide](https://cloud.tencent.com/document/product/1806/130615)
 describes this Bearer route; it requires no Cloud API signing credentials or SDK.
-An explicitly requested home-file setup imports only this named key into the
-repository `.env`; collection still reads repository credentials only.
+An explicitly requested home-file setup can import only this named key with
+`uv run --frozen python -m harness.web_fetch import-env --key TENCENT_WSA_API_KEY`.
+Collection still reads the repository `.env`. The command preserves existing
+values and ignores unrelated home-file credentials.
 
 SearchPro requests `Mode=0` and `Cnt=10`, the smallest documented count. Use
 `protocol.normalize_top_k=true` for a five-result comparison: retain the complete native response but score the
@@ -421,3 +423,35 @@ continue to come from the repository `.env`; they are not passed to review jobs.
 Publication also requires `--profile /absolute/instance/current.json` for a new plan. The plan pins that selector; resume reuses it and rejects changed inputs. Publishing updates only the selected external target receipt. New report builds with legacy evidence must explicitly bind `assessment_authority` by relative path and SHA-256 in the selector. The checked report carries that authority as a hash-bound asset; no report-specific exception list is compiled into the package.
 
 English is the source language of report text. Renderers pass English source text to `messages.py`; `messages.json` holds the Chinese translation keyed by that text, with a `context|` prefix where one English label has several Chinese meanings. Source-language policy checks reject inline Chinese in the Search renderers and report-instance schemas in `evaluation/`, including renamed files. Synthetic examples and benchmark task definitions remain versioned.
+
+### Delivered-preview corrections
+
+Select `relevance_input: delivered-previews/1` through an approved assessment
+revision to judge each distinct returned title and standard snippet separately.
+Identical previews can share a judgment; the same URL with different previews
+cannot borrow another provider's grade. Repeated URLs contribute only once to a
+method's ranking, and ideal ranking uses distinct document URLs. The fixed
+candidate pool and model receipts remain part of the report evidence.
+
+`request-url/2` preserves malformed native result positions with zero credit;
+valid neighboring slots retain their original rank, and later slots never fill
+the gap. Edition-identified responses with no Pages array are empty responses,
+while malformed envelopes remain retryable failures. Corrections require the
+`invalid-result-slots` controls in addition to the original normalization controls.
+
+SERP lexical diagnostics select `answer_evidence_scope: preview`; generated
+summaries remain in native evidence but do not count as title/snippet matches.
+The versioned structured-dataset rule rejects evaluation rows containing the
+question without rejecting ordinary source FAQs. Reference revisions bind the
+corresponding paired controls before any rescore.
+
+Judge a frozen collection directly with the existing `judge` entry using
+`--source`, optional `--profile` and `--content`, and repeatable `--cohort NAME=RUN`.
+It loads the same verified inputs as the report builder and avoids rendering
+thousands of detail pages before annotation. `--report` remains available for
+checked saved reports. These input modes are mutually exclusive.
+
+Reports can select `uncertainty: paired-query-bootstrap/1` to show deterministic
+95% query-bootstrap intervals beside nDCG. The same sampled queries apply to all
+methods. A unique primary winner is omitted when the paired difference from a
+competitor includes zero; this does not assert equivalence between the methods.

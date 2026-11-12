@@ -79,9 +79,11 @@ from lexbench_webfetch.paths import contained_path
 from lexbench_websearch import answer_rules
 from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
 from lexbench_websearch.inputs import definition_path, implementation_sources
+from lexbench_websearch.relevance import paired_bootstrap
 from lexbench_websearch.relevance import score as benchmark_relevance_score
 from lexbench_websearch.relevance import summary as relevance_summary
 from lexbench_websearch.scoring import (
+    answer_evidence_key,
     canonical_url,
     classify,
     evaluate,
@@ -1427,6 +1429,9 @@ def _result_detail(
     detail += same_task(peers, profile, zh)
     detail += "<h2>" + t("Returned results") + "</h2>"
     for item_index, item in enumerate(r["results"]):
+        if item.get('invalid_slot'):
+            detail += '<article class="specimen"><p>' + str(item_index + 1) + '. ' + t('Invalid result slot') + '</p></article>'
+            continue
         detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
     return _wrap_result_detail(detail, status, t)
 
@@ -3292,7 +3297,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
         return ''
     projected = bool(profile.get("comparison_selection") or profile.get("current_selection"))
     baseline = profile['methods'] if projected else [m for m in profile['methods'] if not any(m.get('output_options', {}).values())]
-    answer_key = f'answer_in_delivered_text_{cutoff}' if projected else f'answer_in_preview_{cutoff}'
+    answer_key = f'answer_in_preview_{cutoff}' if all(c.get('answer_evidence_scope') == 'preview' for c in cases.values()) else f'answer_in_delivered_text_{cutoff}' if projected else f'answer_in_preview_{cutoff}'
     keys = (f'labeled_source_hit_{cutoff}', f'labeled_source_rr_{cutoff}', answer_key)
     values = []
     by_method = {}
@@ -3301,6 +3306,8 @@ def factual_panel(profile, selected, zh, *, compact=False):
         by_method[method['id']] = group
         if method in baseline:
             values.append((method['label'], len(group), [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[k] for r in group.values()) for k in keys] + [sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][answer_key] for r in group.values())]))
+    answer_description = (report_text("Check top-{cutoff} given URLs and answer text in titles and standard snippets, excluding dataset mirrors and evaluation logs.", zh, cutoff=cutoff)
+                          if answer_key == f"answer_in_preview_{cutoff}" else report_text("Check top-{cutoff} given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.", zh, cutoff=cutoff))
     if compact:
         headers = [report_text("Method", zh), report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff), report_text("Answer Match@{cutoff} (text)", zh, cutoff=cutoff)]
         rendered = []
@@ -3311,7 +3318,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
                 display = (f'{total/n:.3f}' if i == 1 else f'{int(total)}/{n} · {total/n:.1%}') if n else '—'
                 row += numeric_cell(display, total/n if n else None, f'factual-current-{i}', 'max', n > 0 and best.get(i) == total/n)
             rendered.append('<tr>' + row + '</tr>')
-        return '<section data-factual><h2>' + report_text("Factual evidence retrieval: {cases} queries", zh, cases=len(cases)) + '</h2><p>' + report_text("Check top-{cutoff} given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.", zh, cutoff=cutoff) + '</p>' + table(headers, rendered) + report_text('<p class="muted">Target MRR is available through the per-query reciprocal-rank details.</p>', zh) + ('<p data-quality-exclusions>' + report_text("Reference review excludes {excluded} defective queries for every provider; quality uses {cases} queries. Original responses, timing and cost retain the full collection.", zh, excluded=len(excluded), cases=len(cases)) + '</p>' if excluded else '') + '</section>'
+        return '<section data-factual><h2>' + report_text("Factual evidence retrieval: {cases} queries", zh, cases=len(cases)) + '</h2><p>' + answer_description + '</p>' + table(headers, rendered) + report_text('<p class="muted">Target MRR is available through the per-query reciprocal-rank details.</p>', zh) + ('<p data-quality-exclusions>' + report_text("Reference review excludes {excluded} defective queries for every provider; quality uses {cases} queries. Original responses, timing and cost retain the full collection.", zh, excluded=len(excluded), cases=len(cases)) + '</p>' if excluded else '') + '</section>'
     rendered = []
     for label, n, sums in values:
         row = ['<td>' + esc(label) + '</td>', f'<td>{n}</td>']
@@ -3827,9 +3834,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         ranked = bool(relevance_scores) and ids.issubset({r['case_id'] for r in relevance_scores}) and not diagnostics
         if kind == 'relevance' and not ranked:
             raise ValueError('Relevance comparison requires every method and query')
-        if ranked and (independent or kind == 'relevance'):
-            scoped, _ = relevance_scope(profile, subset)
-            expected = {(cid, method['id']) for cid in ids for method in scoped['methods']}
+        if ranked:
+            expected = {(cid, method['id']) for cid in ids for method in profile['methods']}
             actual = [(r['case_id'], r['method']) for r in relevance_scores if r['case_id'] in ids]
             if len(actual) != len(expected) or set(actual) != expected:
                 raise ValueError('Relevance comparison requires every method and query')
@@ -3847,7 +3853,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 measures = [q['ndcg'] * 100, q['precision'], q['success']] if q['n'] else [None, None, None]
             elif kind == 'factual':
                 quality_group = [r for r in group if r['case_id'] in quality_ids]
-                measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][f'answer_in_delivered_text_{cutoff}'] for r in quality_group)]
+                measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][answer_evidence_key(cases[r['case_id']], cutoff)] for r in quality_group)]
                 if content.get("summary_metrics") == "retrieval":
                     measures.append(sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_rr_{cutoff}'] for r in quality_group) / len(quality_group) if quality_group else None)
             elif kind == 'scenario':
@@ -3875,6 +3881,13 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 or prices is None and len({m.get("currency", "CNY") for m in profile["methods"]}) != 1):
             directions[len(values[0]) - 1] = "neutral"
         winners = numeric_winners(values, directions)
+        intervals = None
+        if ranked and content.get('uncertainty') == 'paired-query-bootstrap/1':
+            intervals = paired_bootstrap([r for r in relevance_scores if r['case_id'] in ids],
+                                         [m['id'] for m in profile['methods']])
+            if any(value['difference_to_best'][1] >= 0 for mid, value in intervals['methods'].items()
+                   if mid != intervals['best_observed']):
+                winners.pop(1, None)
         rendered = []
         for row, method in zip(values, profile['methods'], strict=True):
             html_cells = []
@@ -3885,6 +3898,9 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     label = '—'
                 elif ranked and i == 1:
                     label = f'{value:.1f}'
+                    if intervals:
+                        low, high = intervals['methods'][method['id']]['interval']
+                        label += f'<small>95% CI [{low * 100:.1f}, {high * 100:.1f}]</small>'
                 elif ranked and i in (2, 3):
                     label = f'{value:.1%}'
                 elif i == 1 or (kind == 'factual' and i == 2):

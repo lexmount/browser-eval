@@ -162,13 +162,37 @@ def validate_revision_controls(revision, normalizer=None):
     ids = revision.get('regression_ids', [])
     if not revision.get('root_cause') or not ids or len(ids) != len(set(ids)):
         raise ValueError('Correction requires cause and unique regression provenance')
-    controls = json.loads(files('harness.benchmarks').joinpath('scoring-regressions.json').read_bytes()).get('web_search', {})
+    if revision.get('factual_source_identities') and 'verified-factual-source-identities' not in ids:
+        raise ValueError('Factual source identities require their paired regression controls')
+    registry = json.loads(files('harness.benchmarks').joinpath('scoring-regressions.json').read_bytes())
+    controls = registry.get('web_search', {})
     selected = set(ids) & controls.keys()
     for identity in selected:
         group = controls[identity]
         if {item['expected'] for item in group} != {True, False}:
             raise ValueError('Source identity regressions require paired controls')
         for control in group:
+            if control.get('kind') == 'factual_dataset':
+                case, results = control['case'], control['results']
+                row = dict(results=results, metrics=evaluate(case, results))
+                if task_acceptance(case, row, 'answer') != control['expected']:
+                    raise ValueError('Dataset contamination regression failed')
+                continue
+            if control.get('kind') == 'delivered_preview':
+                from lexbench_websearch.relevance import candidate_packet, score
+
+                profile, rows = control['profile'], control['rows']
+                packet, _ = candidate_packet(profile, rows)
+                candidates = packet['blind_candidate_packets'][0]['candidates']
+                if len(candidates) != 2 or any(len(c['previews']) != 1 for c in candidates):
+                    raise ValueError('Delivered preview isolation regression failed')
+                labels = {profile['cases'][0]['id']: {
+                    c['candidate_id']: control['grades'][c['previews'][0]['snippet']] for c in candidates}}
+                scored = next(row for row in score(profile, rows, packet['plan'], labels) if row['method'] == control['method'])
+                row = next(row for row in rows if row['method'] == control['method'])
+                if task_acceptance(profile['cases'][0], row, relevance_grades=scored['ranked_grades']) != control['expected']:
+                    raise ValueError('Delivered preview acceptance regression failed')
+                continue
             case = deepcopy(control['case'])
             if factual_source_identity(case, control['identity']):
                 case['reference_urls'].append(control['identity']['alias'])
@@ -179,13 +203,25 @@ def validate_revision_controls(revision, normalizer=None):
                 raise ValueError('Source identity regression failed: ' + identity)
     if selected:
         revision = dict(revision, regression_ids=[item for item in ids if item not in selected])
+        if not revision['regression_ids'] and not revision.get('normalization'):
+            return
     if not revision.get("normalization"):
         validate_regressions(revision)
         return
     native = {"relative-serp-links", "unsafe-serp-links", "top-five-boundary"}
+    if revision['normalization'] == 'request-url/2':
+        native.add('invalid-result-slots')
+        if not callable(normalizer):
+            raise ValueError('Native normalization requires the execution adapter')
+        for control in registry['web_search_normalization']['invalid-result-slots']:
+            results = normalizer(control['payload'], control['method'], control['protocol'])
+            row = dict(results=results, metrics=evaluate(control['case'], results))
+            if (row['metrics']['labeled_source_rr_5'] != control['expected_rr']
+                    or task_acceptance(control['case'], row, 'source') != control['expected']):
+                raise ValueError('Invalid result slot regression failed')
     ids = revision.get("regression_ids", [])
     if (
-        revision["normalization"] != "request-url/1"
+        revision["normalization"] not in ("request-url/1", "request-url/2")
         or not native.issubset(ids)
         or len(ids) != len(set(ids))
         or not revision.get("root_cause")
@@ -207,6 +243,27 @@ def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer
     if revision.get("provider_calls") != 0:
         raise ValueError("An annotation revision cannot introduce provider calls")
     revised = deepcopy(profile)
+    preview_rule = revision.get('relevance_input')
+    if preview_rule:
+        if preview_rule != 'delivered-previews/1' or 'delivered-preview-isolation' not in revision['regression_ids']:
+            raise ValueError('Delivered preview correction requires paired controls')
+        revised['protocol']['relevance_input'] = preview_rule
+    contamination_rule = revision.get('factual_contamination_rule')
+    if contamination_rule:
+        from lexbench_websearch.evidence_quality import DATASET_ROWS_RULE
+
+        if contamination_rule != DATASET_ROWS_RULE or 'structured-dataset-contamination' not in revision['regression_ids']:
+            raise ValueError('Dataset contamination correction requires paired controls')
+        for case in revised['cases']:
+            if 'reference_answer' in case:
+                case['factual_contamination_rule'] = contamination_rule
+    answer_scope = revision.get('answer_evidence_scope')
+    if answer_scope:
+        if answer_scope != 'preview' or 'serp-answer-field-scope' not in revision['regression_ids']:
+            raise ValueError('Answer field correction requires paired controls')
+        for case in revised['cases']:
+            if 'reference_answer' in case:
+                case['answer_evidence_scope'] = answer_scope
     normalization = revision.get("normalization")
     if normalization:
         revised["protocol"]["result_url_resolution"] = normalization

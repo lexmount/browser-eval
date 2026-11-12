@@ -118,9 +118,13 @@ def main_import_credentials(argv: list[str] | None = None) -> None:
     parser.add_argument("--source", type=Path, default=Path.home() / ".env")
     parser.add_argument("--target", type=Path, default=config.ROOT / ".env",
                         help="defaults to the repository .env that evaluation runs load")
+    parser.add_argument('--key', action='append', choices=sorted({
+        name for item in account_checklist() for name in item['env_vars']}),
+        help='Import only this declared credential; repeat for multiple variables')
     args = parser.parse_args(argv)
-    imported, missing = import_credentials(args.source, args.target)
+    keys = tuple(dict.fromkeys(args.key)) if args.key else HOSTED_KEYS
+    imported, missing = import_credentials(args.source, args.target, keys=keys)
     print(f"Imported {len(imported)} hosted benchmark variables into {args.target}")
     if missing:
         raise SystemExit("Missing or empty source variables: " + ", ".join(missing))
-    print(f"Hosted benchmark credentials complete: {len(HOSTED_KEYS)}/{len(HOSTED_KEYS)}")
+    print(f"Hosted benchmark credentials complete: {len(keys)}/{len(keys)}")

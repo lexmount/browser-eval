@@ -4326,7 +4326,7 @@
         },
         "evidence_quality.py": {
           "before_sha256": "a78ced8f4f45674dcb61acc14998d508e59a361f8983a39d9ab2099d53bf6ef4",
-          "after_sha256": "ed55bf8f50dea09f0f91d60726fa09e6104b54f0f5fd049434e2525899be9d14"
+          "after_sha256": "85b4af5b7f34443a748bd91b4b626fa1b4d6c86b8aa235742e928f2c5599a30e"
         },
         "inputs.py": {
           "before_sha256": "5883ac279964963ddcd662f47d555e22d1a9af8f4eb6e3b6a7af1988fd6b6ba7",
@@ -4334,11 +4334,11 @@
         },
         "relevance.py": {
           "before_sha256": "9379e0c98ac4106065588d93f41a48de9022f94c9f0dae99bd02778a496c9127",
-          "after_sha256": "4cfda9b3f803c4bbf4b6e8c02f8f8e871844ca81faf48dce12c1d69508ff3837"
+          "after_sha256": "323f770587603926bb573b493ce4fc0b49cfeff9a705e3dd76734266f3f13e8d"
         },
         "scoring.py": {
           "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
-          "after_sha256": "e646c80583db48cfb42f1ef8ee5adb7cf62733dfcc16b6fb41ca2637d059f301"
+          "after_sha256": "05d20bdd23afa9c91d7d11c142572eecc6e0a05a42dd00c5d2340441454cef66"
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
@@ -4369,6 +4369,23 @@
           ],
           "tests": [
             "tests/benchmarks/websearch/test_relevance.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring.py",
+            "evidence_quality.py",
+            "relevance.py"
+          ],
+          "root_cause": "Shared URL pools transferred preview grades between providers, malformed slots erased valid neighboring results, and structured dataset rows leaked into lexical answer checks.",
+          "regression_ids": [
+            "delivered-preview-isolation",
+            "structured-dataset-contamination",
+            "serp-answer-field-scope"
+          ],
+          "tests": [
+            "tests/web_search/test_native_revisions.py",
+            "tests/benchmarks/websearch/test_evidence_quality.py"
           ]
         }
       ]

@@ -495,3 +495,24 @@ def test_judge_host_allowlist_is_not_interpolated_from_the_shell(run_judge, monk
     with pytest.raises(ValueError):
         run_judge([])
     assert not run_judge.output.exists()
+
+
+def test_judge_can_score_verified_collection_without_building_reader_pages(run_judge, monkeypatch, tmp_path):
+    from harness.web_search.example import example
+
+    seed = tmp_path / 'seed'
+    example(seed)
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    output = tmp_path / 'collection-judge'
+    judge_main(['--source', str(seed / 'fixture'), '--output', str(output),
+                '--model', 'test-model', '--base-url', 'https://test.invalid/v1', '--workers', '1'])
+    evidence = json.loads((output / 'relevance.json').read_bytes())
+    assert len(requests) == len(evidence['plan']['case_ids'])
+    assert evidence['labels']
+    assert not list((output / 'inputs').rglob('*.html'))

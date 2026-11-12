@@ -28,12 +28,14 @@ def request_body(adapter, case, protocol, options=None):
     return adapter_for(adapter).request(case, protocol, options)
 
 
-def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots=False):
-    payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots)
+def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots=False,
+              preserve_invalid_slots=False):
+    payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots,
+                                 preserve_invalid_slots=preserve_invalid_slots)
     if isinstance(payload, dict) and isinstance(payload.get("results"), list):
         pages = payload["results"][:top_k] if project_slots and top_k is not None else payload["results"]
         projected = []
-        for item in pages:
+        for rank, item in enumerate(pages, 1):
             if isinstance(item, dict):
                 item = dict(item)
                 if base_url and isinstance(item.get("url"), str):
@@ -42,8 +44,20 @@ def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots
                     item["snippet"] = item.get("description", "")
                 if "date" not in item and "published_at" not in item:
                     item["date"] = item.get("publishedDate")
-            projected.append(item)
+            if preserve_invalid_slots:
+                try:
+                    normalized = normalize_results({'results': [item]})[0]
+                    normalized['rank'] = rank
+                except (ValueError, TypeError, AttributeError):
+                    normalized = dict(rank=rank, url=f'https://invalid-result-slot.invalid/{rank}',
+                                      title='', snippet='', summary='', content='', date=None,
+                                      invalid_slot=True)
+                projected.append(normalized)
+            else:
+                projected.append(item)
         payload = dict(payload, results=projected)
+        if preserve_invalid_slots:
+            return projected
     results = normalize_results(payload)
     return results[:top_k] if top_k is not None else results
 
@@ -53,14 +67,22 @@ def normalize_response(payload, method, protocol, request=None):
     error = adapter_for(method["adapter"]).account_error(payload, method)
     if error:
         raise ValueError(error)
+    adapter = adapter_for(method['adapter'])
+    if method.get('expected_response_version') is not None and not (adapter.failure and adapter.failure(payload)):
+        version = payload
+        for key in adapter_for(method['adapter']).version_path:
+            version = version.get(key) if isinstance(version, dict) else None
+        if version is None:
+            raise ValueError('Search response is missing its edition version')
     policy = protocol.get("result_url_resolution")
-    if policy not in (None, "request-url/1"):
+    if policy not in (None, "request-url/1", "request-url/2"):
         raise ValueError("Unknown native result URL policy")
     base_url = (request or {}).get("url") if policy else None
     if base_url:
         canonical_url(base_url)
     return normalize(payload, method["adapter"], protocol["top_k"] if protocol.get("normalize_top_k") else None,
-                     base_url=base_url, project_slots=bool(policy))
+                     base_url=base_url, project_slots=bool(policy),
+                     preserve_invalid_slots=policy == 'request-url/2')
 
 
 def latency(values):

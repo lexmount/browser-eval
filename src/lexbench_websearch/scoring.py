@@ -98,7 +98,7 @@ def evaluate(case, results, *, cutoff=10):
                 return True
         return False
 
-    ranks = [i + 1 for i, u in enumerate(urls) if matches(u)]
+    ranks = [i + 1 for i, u in enumerate(urls) if not rows[i].get('invalid_slot') and matches(u)]
     qrels = {canonical_url(k): v for k, v in case.get("qrels", {}).items()}
     ndcg = None
     if qrels and all(u in qrels for u in urls):
@@ -155,7 +155,7 @@ def factual_evidence(case, results, *, cutoff=5):
     results = results[:cutoff]
     sources = {canonical_url(u) for u in case.get("reference_urls", [])}
     source_ranks = [
-        i for i, item in enumerate(results, 1) if canonical_url(item["url"]) in sources
+        i for i, item in enumerate(results, 1) if not item.get('invalid_slot') and canonical_url(item["url"]) in sources
     ]
 
     # Test fields individually so words spanning unrelated fields cannot form a hit.
@@ -171,7 +171,7 @@ def factual_evidence(case, results, *, cutoff=5):
         else:
             matcher = lambda text: contains_answer(text, case["reference_answer"])
         return int(
-            any(matcher(item.get(field, "")) for item in results for field in fields)
+            any(matcher(item.get(field, "")) for item in results if not item.get('invalid_slot') for field in fields)
         )
 
     return {
@@ -184,8 +184,35 @@ def factual_evidence(case, results, *, cutoff=5):
     }
 
 
+def answer_evidence_key(case, cutoff=5):
+    scope = 'preview' if case.get('answer_evidence_scope') == 'preview' else 'delivered_text'
+    return f'answer_in_{scope}_{cutoff}'
+
+
 def candidate_identity(case_id, url):
     return digest((case_id + "\0" + canonical_url(url)).encode())[:12]
+
+
+def ranking_identity(case_id, item, *, preview=False):
+    """A malformed native slot contributes zero without moving later ranks."""
+    if item.get('invalid_slot'):
+        return None
+    if preview:
+        import json
+        identity = [case_id, canonical_url(item['url']), item.get('title') or '', item.get('snippet') or '']
+        return digest(json.dumps(identity, ensure_ascii=False, separators=(',', ':')).encode())[:12]
+    return candidate_identity(case_id, item['url'])
+
+
+def ranking_ids(case_id, results, *, preview=False):
+    seen, ranking = {}, []
+    for item in results:
+        if item.get('invalid_slot'):
+            ranking.append(None)
+            continue
+        url = canonical_url(item['url'])
+        ranking.append(seen.setdefault(url, ranking_identity(case_id, item, preview=preview)))
+    return ranking
 
 
 def response_failed(row):
@@ -221,7 +248,7 @@ def task_acceptance(
             else "unscored"
         )
     if metric == "availability":
-        return bool(row.get("results"))
+        return any(not item.get('invalid_slot') for item in row.get('results', []))
     if metric == "site":
         return (
             any(
@@ -242,7 +269,7 @@ def task_acceptance(
             "metrics"
         ]
         return bool(
-            metrics[f"answer_in_delivered_text_{cutoff}"]
+            metrics[answer_evidence_key(case, cutoff)]
             if metric == "answer"
             else metrics[f"labeled_source_hit_{cutoff}"]
         )
@@ -260,7 +287,7 @@ def classify(case, row, *, cutoff=5, quality_excluded=False, relevance_grades=No
     """Primary acceptance and diagnostic labels share the same task predicate."""
     if response_failed(row):
         return "fail", "api_error"
-    if not row["results"]:
+    if not any(not item.get('invalid_slot') for item in row['results']):
         return "fail", "empty"
     if quality_excluded:
         return "probe", "quality_excluded"

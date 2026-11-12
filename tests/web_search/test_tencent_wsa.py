@@ -49,6 +49,8 @@ class YuanbaoSearchTests(unittest.TestCase):
 
         failures = [
             (0, 28, b"", "operation timed out"),
+            (200, 0, b"", ""),
+            (200, 0, b"<html>bad response</html>", ""),
             (502, 0, b"<html>bad gateway</html>", ""),
             (200, 18, b'{"Response":', "partial transfer"),
         ]
@@ -363,3 +365,14 @@ class YuanbaoSearchTests(unittest.TestCase):
             check(root / "report")
             manifest = (root / "report/manifest.json").read_text(encoding="utf-8")
             self.assertNotIn("fixture-secret", manifest)
+
+
+def test_public_import_command_selects_only_the_named_credential(tmp_path):
+    from harness.env_file import parse_env_file
+    from harness.web_fetch.accounts import main_import_credentials
+
+    source, target = tmp_path / 'home.env', tmp_path / 'repo.env'
+    source.write_text('TENCENT_WSA_API_KEY=fixture-yuanbao\nSERPER_API_KEY=fixture-other\n', encoding='utf-8')
+    target.write_text('EXISTING=keep\n', encoding='utf-8')
+    main_import_credentials(['--source', str(source), '--target', str(target), '--key', 'TENCENT_WSA_API_KEY'])
+    assert parse_env_file(target) == {'EXISTING': 'keep', 'TENCENT_WSA_API_KEY': 'fixture-yuanbao'}

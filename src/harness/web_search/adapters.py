@@ -31,7 +31,7 @@ class Adapter:
             version = payload
             for key in self.version_path:
                 version = version.get(key) if isinstance(version, dict) else None
-            if version != expected:
+            if version is not None and version != expected:
                 return f"ResponseVersionMismatch: expected {expected}, received {version}"
         return None
 
@@ -160,22 +160,35 @@ def tencent_wsa_request(case, protocol, options=None):
     return body
 
 
-def tencent_wsa_response(payload, *, top_k=None, project_slots=False):
+def tencent_wsa_response(payload, *, top_k=None, project_slots=False, preserve_invalid_slots=False):
     response = payload.get("Response") if isinstance(payload, dict) else None
     if not isinstance(response, dict):
         raise ValueError("Yuanbao Search response must contain Response")
     if response.get("Error"):
         raise ValueError("Yuanbao Search error: " + json.dumps(response["Error"], ensure_ascii=False))
     pages = response.get("Pages")
+    if (preserve_invalid_slots and pages is None and response.get('Version')
+            and response.get('RequestId') and isinstance(response.get('Query'), str)):
+        pages = []
     if not isinstance(pages, list):
         raise ValueError("Yuanbao Search response must contain a Pages array")
     if top_k is not None:
         pages = pages[:top_k]
     results = []
     for page in pages:
-        if not isinstance(page, str):
-            raise ValueError("Yuanbao Search page must be a JSON string")
-        page = json.loads(page)
+        if preserve_invalid_slots:
+            try:
+                decoded = json.loads(page) if isinstance(page, str) else None
+            except ValueError:
+                decoded = None
+            if not isinstance(decoded, dict):
+                results.append({'url': None})
+                continue
+            page = decoded
+        else:
+            if not isinstance(page, str):
+                raise ValueError("Yuanbao Search page must be a JSON string")
+            page = json.loads(page)
         if not isinstance(page, dict):
             raise ValueError("Yuanbao Search page must decode to an object")
         results.append(dict(url=page.get("url"), title=page.get("title", ""),
@@ -214,7 +227,7 @@ def _bocha_response(payload, **kwargs):
     return payload
 
 
-def _serp_response(payload, adapter, *, top_k=None, project_slots=False):
+def _serp_response(payload, adapter, *, top_k=None, project_slots=False, preserve_invalid_slots=False):
     if adapter == "brightdata" and isinstance(payload, dict) and "status_code" in payload:
         if payload["status_code"] != 200:
             raise ValueError("Bright Data upstream error: " + str(payload.get("body", payload["status_code"])))
@@ -225,8 +238,10 @@ def _serp_response(payload, adapter, *, top_k=None, project_slots=False):
             raise ValueError("Response must contain an organic results array")
         if project_slots and top_k is not None:
             pages = pages[:top_k]
-        if any(not isinstance(item, dict) for item in pages):
+        if not preserve_invalid_slots and any(not isinstance(item, dict) for item in pages):
             raise ValueError("Each organic result must be an object")
+        if preserve_invalid_slots:
+            pages = [item if isinstance(item, dict) else {} for item in pages]
         payload = {"results": [dict(url=p.get("link"), title=p.get("title", ""),
                                    snippet=p.get("snippet", p.get("description", "")),
                                    date=p.get("date")) for p in pages]}

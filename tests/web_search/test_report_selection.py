@@ -35,20 +35,17 @@ def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_
     labels = tmp_path / "labels.json"
     labels.write_text(json.dumps(evidence), encoding="utf-8")
     output = tmp_path / "scoped-report"
-    build(output, source=tmp_path / "fixture", content=content, relevance=labels, include_english=True)
-    assert check(output)
-    manifest = json.loads((output / "manifest.json").read_bytes())
-    scored = score_relevance(manifest["profile"], rows, evidence["plan"], evidence["labels"])
+    scoped_profile = dict(profile, relevance_methods=scope)
+    scored = score_relevance(scoped_profile, rows, evidence["plan"], evidence["labels"])
     assert {r["method"] for r in scored} == set(scope)
-    compared = comparison_data(manifest["profile"], rows, relevance=evidence)
+    compared = comparison_data(scoped_profile, rows, relevance=evidence)
     unjudged = compared["cases"][0]["outputs"][profile["methods"][1]["id"]]
     assert unjudged["score"] is None and unjudged["quality"] is None
     assert unjudged['primary'] is None
     assert unjudged['source'] is True and unjudged['availability'] is True
     assert all(item["grade"] is None and item["grade_source"] == "unjudged" for item in unjudged["items"])
-    home = BeautifulSoup((output / "index.html").read_text(encoding="utf-8"), "html.parser")
-    assert home.select_one("[data-relevance-method-scope]")
-    assert len(home.select_one("[data-populations] table tbody").select("tr")) == 2
+    with pytest.raises(ValueError, match='every method and query'):
+        build(output, source=tmp_path / "fixture", content=content, relevance=labels, include_english=True)
 
 
 def test_projection_retains_selected_method_order_and_all_questions(tmp_path):
@@ -368,3 +365,19 @@ def test_concurrent_three_method_collection_renders_two_selected_methods(tmp_pat
     output = tmp_path / 'selected'
     build(output, source=source, content=content)
     assert check(output)
+
+
+def test_uncertain_primary_scores_show_intervals_without_a_unique_winner(tmp_path):
+    from harness.web_search.report import population_summary
+
+    example(tmp_path)
+    profile, rows, _ = load_run(tmp_path / 'fixture')
+    content = dict(uncertainty='paired-query-bootstrap/1', metric_populations=[dict(
+        id='overall', metric_kind='relevance', label={'en':'Scenarios','zh':'场景'},
+        case_ids=[case['id'] for case in profile['cases']])])
+    scores = [dict(case_id=case['id'],method=m['id'],ndcg=0.5,precision=0.5,success=0.5)
+              for case in profile['cases'] for m in profile['methods']]
+    page = BeautifulSoup(population_summary(profile,rows,content,False,relevance_scores=scores),'html.parser')
+    cells = page.select('td[data-metric="population-1"]')
+    assert cells and all('95% CI [50.0, 50.0]' in cell.get_text() for cell in cells)
+    assert not any(cell.select('.comparison-winner') for cell in cells)

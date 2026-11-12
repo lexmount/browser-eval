@@ -291,6 +291,8 @@ def test_verified_factual_aliases_rescore_every_method_without_changing_calls():
                     regression_ids=['equivalence-canonical', 'verified-factual-source-identities'],
                     factual_source_identities=[identity])
     before = copy.deepcopy((profile, rows))
+    with pytest.raises(ValueError, match='Factual source identities require'):
+        apply_report_revision(profile, rows, dict(revision, regression_ids=['equivalence-canonical']))
     revised, updated, changes = apply_report_revision(profile, rows, revision)
     assert revised['cases'][0]['reference_urls'] == [target, alias]
     assert len(changes) == 2
@@ -363,3 +365,124 @@ def test_reference_identity_capture_and_offline_replay():
         assert factual_source_identity(case, identity)
         identity['target'] += '/different'
         assert not factual_source_identity(case, identity)
+
+
+@pytest.mark.parametrize('adapter,payload', [
+    ('serper', {'organic': [{'link': 'https://user:secret@unsafe.test/'}, {'link': 'https://good.test/fact'}]}),
+    ('brightdata', {'organic': [{'link': 'honmaple:////broken'}, {'link': 'https://good.test/fact'}]}),
+    ('browserbase', {'results': [{'url': 'javascript:bad'}, {'url': 'https://good.test/fact'}]}),
+    ('tencent-wsa', {'Response': {'Version': 'standard', 'Pages': [json.dumps({'url': 'javascript:bad'}), json.dumps({'url': 'https://good.test/fact'})]}}),
+])
+def test_invalid_native_slot_does_not_erase_other_results_or_promote_ranks(adapter, payload):
+    from harness.web_search.core import normalize_response
+
+    protocol = dict(top_k=5, normalize_top_k=True, result_url_resolution='request-url/2')
+    results = normalize_response(payload, {'adapter': adapter}, protocol)
+    assert len(results) == 2
+    assert results[0]['invalid_slot'] is True
+    assert results[1]['url'] == 'https://good.test/fact'
+    metrics = evaluate({'anchors': ['https://good.test/fact']}, results)
+    assert metrics['reciprocal_rank'] == 0.5
+    assert metrics['anchor_hit_5'] == 1
+
+
+def test_dead_slots_keep_query_and_factual_rank_without_fake_candidates():
+    from lexbench_websearch.relevance import candidate_packet, score
+    from harness.web_search.core import normalize_response
+
+    case = dict(id='query', family='web', query='Find official fact', anchors=['https://good.test/fact'])
+    profile = dict(cases=[case], methods=[dict(id='a')], protocol=dict(top_k=5))
+    results = normalize_response({'results': [{'url': 'https://user:pass@bad.test/'},
+                                            {'url': 'https://good.test/fact'}]},
+                                 {'adapter': 'lexmount'}, dict(top_k=5, normalize_top_k=True,
+                                                              result_url_resolution='request-url/2'))
+    rows = [dict(case_id='query', method='a', results=results)]
+    packet, ranking = candidate_packet(profile, rows)
+    assert len(packet['blind_candidate_packets'][0]['candidates']) == 1
+    assert ranking['query']['a'][0] is None
+    cid = ranking['query']['a'][1]
+    scored = score(profile, rows, packet['plan'], {'query': {cid: 3}})[0]
+    assert scored['ranked_grades'] == [0, 3]
+    assert scored['precision'] == 0.2
+    factual = evaluate(dict(reference_answer='42', reference_urls=['https://good.test/fact']), results)
+    assert factual['labeled_source_rr_5'] == 0.5
+
+
+def test_delivered_preview_and_contamination_corrections_have_paired_controls():
+    from harness.web_search.core import normalize_response
+    from harness.web_search.revisions import validate_revision_controls
+
+    revision = dict(schema='web-search-assessment-revision/1', provider_calls=0,
+                    root_cause='Isolate native previews and exclude structured evaluation rows',
+                    regression_ids=['delivered-preview-isolation', 'structured-dataset-contamination',
+                                    'invalid-result-slots', 'relative-serp-links', 'unsafe-serp-links', 'top-five-boundary'],
+                    normalization='request-url/2', regressions_sha256=digest(NATIVE_CONTROLS.read_bytes()),
+                    relevance_input='delivered-previews/1',
+                    factual_contamination_rule='question-with-structured-dataset-rows/4')
+    validate_revision_controls(revision, normalize_response)
+    profile = dict(protocol={},cases=[dict(id='f',query='When?',reference_answer='1971')])
+    corrected, _, _ = apply_report_revision(profile, [], revision, normalizer=normalize_response)
+    assert corrected['protocol']['relevance_input'] == 'delivered-previews/1'
+    assert corrected['cases'][0]['factual_contamination_rule'].endswith('/4')
+
+
+@pytest.mark.parametrize('pages', [['not-json', json.dumps({'url': 'https://good.test/'})],
+                                   [None, json.dumps({'url': 'https://good.test/'})]])
+def test_unparseable_page_keeps_the_other_native_slot(pages):
+    from harness.web_search.core import normalize_response
+
+    results = normalize_response({'Response': {'Version': 'lite', 'Pages': pages}},
+                                 {'adapter': 'tencent-wsa'}, dict(top_k=5, normalize_top_k=True,
+                                 result_url_resolution='request-url/2'))
+    assert results[0]['invalid_slot'] and results[1]['url'] == 'https://good.test/'
+
+
+def test_identified_native_no_results_is_empty_not_a_parse_error():
+    from harness.web_search.core import normalize_response
+
+    payload = dict(Response=dict(Query='no results', Version='lite', RequestId='fixture'))
+    results = normalize_response(payload, dict(adapter='tencent-wsa', expected_response_version='lite'),
+                                 dict(top_k=5, normalize_top_k=True, result_url_resolution='request-url/2'))
+    assert results == []
+
+
+def test_preview_grades_never_borrow_text_or_duplicate_the_same_document_in_ideal_ranking():
+    from lexbench_websearch.relevance import candidate_packet, score
+
+    case = dict(id='q', family='web', query='Find the install command')
+    profile = dict(cases=[case], methods=[dict(id='a'), dict(id='b')],
+                   protocol=dict(top_k=5, relevance_input='delivered-previews/1'))
+    rows = [dict(case_id='q',method='a',results=[dict(url='https://docs.test/',title='Docs',snippet='')]),
+            dict(case_id='q',method='b',results=[dict(url='https://docs.test/',title='Docs',snippet='pip install example'),
+                                               dict(url='https://docs.test/',title='Docs',snippet='Duplicate full instructions')])]
+    packet, _ = candidate_packet(profile, rows)
+    labels = {'q': {c['candidate_id']: (1 if not c['previews'][0]['snippet'] else 3)
+                    for c in packet['blind_candidate_packets'][0]['candidates']}}
+    scored = {r['method']:r for r in score(profile,rows,packet['plan'],labels)}
+    assert scored['a']['ranked_grades'] == [1]
+    assert scored['b']['ranked_grades'] == [3,0]
+    assert scored['b']['duplicates'] == [False,True]
+    assert scored['b']['ideal_grades'] == [3]
+    assert scored['b']['ndcg'] == 1
+
+
+def test_paired_query_intervals_distinguish_observed_order_from_supported_difference():
+    from lexbench_websearch.relevance import paired_bootstrap
+
+    rows = [dict(case_id=str(i),method=m,ndcg=v)for i in range(10)
+            for m,v in [('a',0.5),('b',0.5)]]
+    intervals = paired_bootstrap(rows,['a','b'],samples=100)
+    assert intervals['methods']['b']['difference_to_best'] == [0,0]
+    separated = [dict(r,ndcg=0 if r['method']=='b' else 1) for r in rows]
+    assert paired_bootstrap(separated,['a','b'],samples=100)['methods']['b']['difference_to_best'] == [-1,-1]
+    with pytest.raises(ValueError,match='complete paired'):
+        paired_bootstrap(rows[:-1],['a','b'],samples=100)
+
+
+def test_invalid_slot_never_supplies_reference_or_lexical_evidence():
+    result = dict(url='https://invalid-result-slot.invalid/1', invalid_slot=True, snippet='42')
+    case = dict(anchors=[result['url']], reference_urls=[result['url']], reference_answer='42')
+    metrics = evaluate(case,[result])
+    assert metrics['anchor_hit_5'] == 0
+    assert metrics['labeled_source_hit_5'] == 0
+    assert metrics['answer_in_preview_5'] == 0
