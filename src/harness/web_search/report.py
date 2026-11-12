@@ -1993,7 +1993,7 @@ def check(output, *, return_data=False, evidence_only=False):
         soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
         check_presentation(soup)
         authored = manifest.get("authored") or {}
-        if authored.get("reading_model") and "details/" not in route:
+        if "details/" not in route:
             lang = soup.html["lang"]
             name = Path(route).name
             key = {
@@ -2005,6 +2005,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 "quality.html": "quality",
                 "cost.html": "cost",
                 "review.html": "review",
+                "dataset.html": "dataset",
             }.get(name)
             if key:
                 score_rows = scoring_rows(manifest["profile"], manifest["rows"])
@@ -2012,8 +2013,8 @@ def check(output, *, return_data=False, evidence_only=False):
                     pages = {"index.html": ["lead", "summary"], "quality.html": ["quality-lead", "quality-definitions", "quality"], "capabilities.html": ["capabilities-lead", "capabilities"], "performance.html": ["performance", "cost"]}.get(name, [key])
                     expected = ''.join(authored_sections(authored, section, lang, rows=score_rows) for section in pages)
                 else:
-                    expected = (authored_sections(authored, "lead", lang, rows=score_rows) if name == "index.html" else "") + (authored_sections(authored, "interpretation-lead", lang, rows=score_rows) if name == "interpretation.html" else "") + authored_sections(authored, key, lang, rows=score_rows)
-                if name == "index.html" and authored.get("presentation") != "comparison-report":
+                    expected = (authored_sections(authored, "lead", lang, rows=score_rows) if name == "index.html" and authored.get("reading_model") else "") + (authored_sections(authored, "interpretation-lead", lang, rows=score_rows) if name == "interpretation.html" else "") + authored_sections(authored, key, lang, rows=score_rows)
+                if name == "index.html" and authored.get("reading_model") and authored.get("presentation") != "comparison-report":
                     chapters = manifest["reading_sections"]
                     if [s["data-reading"] for s in soup.select("[data-reading]")] != [
                         c["key"] for c in chapters
@@ -2032,7 +2033,7 @@ def check(output, *, return_data=False, evidence_only=False):
                     str(node) for node in expected_soup.select("[data-authored-figure]")
                 ]:
                     raise ValueError("Reader figure differs from its bound content")
-                if [s.get_text() for s in soup.select("[data-authored]")] != [
+                if authored.get("reading_model") and [s.get_text() for s in soup.select("[data-authored]")] != [
                     s.get_text() for s in expected_soup.select("[data-authored]")
                 ]:
                     raise ValueError(
