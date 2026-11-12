@@ -89,7 +89,8 @@ def test_scope_summary_reuses_deadline_evidence_for_both_verdicts():
 
 @pytest.mark.parametrize('defect', ['missing-view', 'metrics', 'latency', 'requirements', 'summary',
                                   'missing-toggle', 'wrong-target', 'wrong-total', 'missing-failure-evidence',
-                                  'stripped-structure', 'missing-main', 'unexpected-english'])
+                                  'stripped-structure', 'missing-main', 'unexpected-english',
+                                  'absolute-switch', 'protocol-relative-switch'])
 def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
     from harness.web_fetch.report_check import check_content_scope_views
     case = annotated_case()
@@ -137,6 +138,10 @@ def test_scope_release_gate_rejects_inconsistent_views(tmp_path, defect):
             soup.select_one('[data-content-scope-switch]').decompose()
         elif defect == 'wrong-target':
             soup.select_one('a[data-content-scope="main"]')['href'] = 'index.html'
+        elif defect in {'absolute-switch', 'protocol-relative-switch'}:
+            link = soup.select_one('a[data-content-scope="main"]')
+            target = (path.parent / link['href']).resolve()
+            link['href'] = ('https:' if defect == 'absolute-switch' else '') + '//example.org' + str(target)
         elif defect == 'wrong-total':
             soup.select_one('[data-scope-pass-count]').string = '通过: 1/1'
         elif defect == 'stripped-structure':
@@ -219,7 +224,8 @@ def test_failed_request_cannot_pass_either_scope_on_matching_text():
 
 
 @pytest.mark.parametrize('language', ['zh', 'en'])
-def test_complete_release_check_accepts_bilingual_scope_views(tmp_path, language):
+@pytest.mark.parametrize('defect', [None, 'number', 'evidence-link', 'narrative'])
+def test_complete_release_check_accepts_bilingual_scope_views(tmp_path, language, defect):
     from harness.web_fetch.report_build import (
         _render_content_scope_views, _wire_content_scope_views, _report_summary, copy_methodology_assets,
     )
@@ -256,6 +262,22 @@ def test_complete_release_check_accepts_bilingual_scope_views(tmp_path, language
                                language=language, authored_interpretation=False)
     _wire_content_scope_views(root)
     assert check(root, authority_root=authority).startswith('PASS:')
+    if defect:
+        page = root/'content-scopes/full/en/guide/index.html'
+        soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
+        if defect == 'number':
+            tag = soup.new_tag('p')
+            tag.string = '123456789'
+            soup.main.append(tag)
+        elif defect == 'evidence-link':
+            soup.select_one('main a[href]')['href'] = '../../index.html'
+        else:
+            tag = soup.new_tag('p')
+            tag.string = '这段报告文字没有翻译'
+            soup.main.append(tag)
+        page.write_text(str(soup), encoding='utf-8')
+        with pytest.raises(ValueError, match='parity|untranslated'):
+            check(root, authority_root=authority)
 
 
 def test_each_failed_scope_displays_its_own_missing_requirements(tmp_path):

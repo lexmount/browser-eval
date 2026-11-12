@@ -324,6 +324,124 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
                 raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
 
 
+def check_report_language_parity(root: Path, d, *, canonical_root: Path | None = None):
+    """Apply the same language checks to every score view."""
+    canonical_root = root if canonical_root is None else canonical_root
+    has_english = "en" in generated_languages(root)
+    zh_pages = {
+        p.relative_to(root) for p in root.rglob("*.html") if p.relative_to(root).parts[0] not in {"en", "content-scopes"}
+    }
+    en_pages = {Path(*p.relative_to(root).parts[1:]) for p in (root / "en").rglob("*.html")}
+    if has_english:
+        if not zh_pages == en_pages:
+            raise ValueError(("Chinese/English route inventories differ", zh_pages ^ en_pages))
+
+    scope_views = (read_json(canonical_root/'content-scope-views.json')['views']
+                   if (canonical_root/'content-scope-views.json').is_file() else {})
+    scope_homepages = {Path('index.html'), *(Path(relative)/'index.html' for relative in scope_views.values())}
+
+    def canonical_link(page, value):
+        parsed = urlsplit(value)
+        if parsed.scheme or parsed.netloc:
+            return value
+        target = ((page.parent / parsed.path) if parsed.path else page).resolve().relative_to(canonical_root)
+        if (
+            target.parts
+            and target.parts[0] == "en"
+            and (target.suffix.lower() in {".html", ".htm"})
+        ):
+            target = Path(*target.parts[1:])
+        if scope_views:
+            for relative in scope_views.values():
+                if relative == '.':
+                    continue
+                prefix = Path(relative).parts
+                if target.parts[:len(prefix)+1] == (*prefix, 'en'):
+                    target = Path(*prefix, *target.parts[len(prefix)+1:])
+        query = parsed.query
+        if target in scope_homepages:
+            query = urlencode([(key, item) for key, item in parse_qsl(query, keep_blank_values=True)
+                               if (key, item) != ("report-language", "zh")])
+        return (
+            target.as_posix()
+            + ("?" + query if query else "")
+            + ("#" + parsed.fragment if parsed.fragment else "")
+        )
+
+    bilingual_issues = []
+    if has_english:
+        for relative in sorted(zh_pages):
+            zh_path = root / relative
+            en_path = root / "en" / relative
+            zh = PageShape(zh_path)
+            zh.feed(zh_path.read_text(encoding="utf-8"))
+            en = PageShape(en_path)
+            en.feed(en_path.read_text(encoding="utf-8"))
+            if zh.tags != en.tags:
+                bilingual_issues.append((relative, "semantic tag counts differ"))
+            if zh.ids != en.ids:
+                bilingual_issues.append((relative, "element IDs differ"))
+            if Counter(zh.data) != Counter(en.data):
+                bilingual_issues.append((relative, "data attributes differ"))
+            zh_numbers = Counter(zh.numbers)
+            en_numbers = Counter(en.numbers)
+            if zh_numbers != en_numbers:
+                bilingual_issues.append(
+                    (
+                        relative,
+                        "visible numeric values differ",
+                        zh_numbers - en_numbers,
+                        en_numbers - zh_numbers,
+                    )
+                )
+            zh_links = Counter(canonical_link(zh_path, value) for value in zh.links)
+            en_links = Counter(canonical_link(en_path, value) for value in en.links)
+            if zh_links != en_links:
+                bilingual_issues.append((relative, "evidence or navigation links differ"))
+            if relative == Path("methodology/index.html"):
+                check_localized_image_sources(zh, en, canonical_link)
+            if relative in {Path("guide/index.html"), Path("guide/article.html")}:
+                if Counter(canonical_link(zh_path, value) for value in zh.images) != Counter(
+                    canonical_link(en_path, value) for value in en.images
+                ):
+                    bilingual_issues.append((relative, "article image sources differ"))
+    if not not bilingual_issues:
+        raise ValueError(
+            ("Chinese/English page parity failed", bilingual_issues[:200], len(bilingual_issues))
+        )
+    english_primary = [
+        Path(name)
+        for name in (
+            "index.html",
+            "methodology/index.html",
+            "review/index.html",
+            "guide/index.html",
+            "adoption/index.html",
+            "reproduce/index.html",
+            "changes/index.html",
+            "accounts/index.html",
+        )
+    ]
+    allowed_english_source_text = {"中文"} | {
+        case["name"] for case in d["cases"] if case.get("name")
+    }
+    archived_manifest = root / "archived-reading.json"
+    if archived_manifest.is_file():
+        # Validate the archived source before allowing its original case names.
+        render_archived_reading(root, "en" if has_english else "zh")
+        allowed_english_source_text.update(read_json(archived_manifest).get("preserved_source_names", []))
+    if has_english:
+        for relative in english_primary:
+            if relative not in en_pages:
+                continue
+            parser = EnglishNarrative(allowed_english_source_text)
+            parser.feed((root / "en" / relative).read_text(encoding="utf-8"))
+            if not not parser.untranslated:
+                raise ValueError(
+                    (relative, "untranslated English report narrative", parser.untranslated[:20])
+                )
+
+
 def check_content_scope_views(root: Path):
     """Both score views must retain the same calls and valid whole-report controls."""
     from lexbench_webfetch.content_scopes import metrics_for_scope, select_content_scope
@@ -367,6 +485,7 @@ def check_content_scope_views(root: Path):
             for route in required_routes:
                 if not contained_path(prefix, route, reject_symlinks=True).is_file():
                     raise ValueError('Content-scope report lost a required route: '+route)
+        check_report_language_parity(view, cases, canonical_root=root)
         expected_cases = [select_content_scope(case, scope)[0] for case in source_dataset['cases']]
         if cases['cases'] != expected_cases:
             raise ValueError('Content-scope report has wrong task requirements')
@@ -403,7 +522,10 @@ def check_content_scope_views(root: Path):
             if {link.get('data-content-scope') for link in links} != {'main', 'full'} or len(links)!=2:
                 raise ValueError('Content-scope report lost a switch target')
             for link in links:
-                target = (page.parent / urlsplit(link['href']).path).resolve()
+                parsed = urlsplit(link['href'])
+                if parsed.scheme or parsed.netloc or parsed.path.startswith('/') or parsed.fragment:
+                    raise ValueError('Content-scope switch must use a local relative URL')
+                target = (page.parent / parsed.path).resolve()
                 target_scope = link['data-content-scope']
                 expected_target = (root/model['views'][target_scope]/page.relative_to(view)).resolve()
                 if not expected_target.is_file():
@@ -661,118 +783,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             plan.get(c.get("track", "web"), names)
         ):
             raise ValueError(c["id"])
-    zh_pages = {
-        p.relative_to(root) for p in root.rglob("*.html") if p.relative_to(root).parts[0] not in {"en", "content-scopes"}
-    }
-    en_pages = {Path(*p.relative_to(root).parts[1:]) for p in (root / "en").rglob("*.html")}
-    if has_english:
-        if not zh_pages == en_pages:
-            raise ValueError(("Chinese/English route inventories differ", zh_pages ^ en_pages))
-
-    scope_views = (read_json(root/'content-scope-views.json')['views']
-                   if (root/'content-scope-views.json').is_file() else {})
-    scope_homepages = {Path('index.html'), *(Path(relative)/'index.html' for relative in scope_views.values())}
-
-    def canonical_link(page, value):
-        parsed = urlsplit(value)
-        if parsed.scheme or parsed.netloc:
-            return value
-        target = ((page.parent / parsed.path) if parsed.path else page).resolve().relative_to(root)
-        if (
-            target.parts
-            and target.parts[0] == "en"
-            and (target.suffix.lower() in {".html", ".htm"})
-        ):
-            target = Path(*target.parts[1:])
-        if scope_views:
-            for relative in scope_views.values():
-                if relative == '.':
-                    continue
-                prefix = Path(relative).parts
-                if target.parts[:len(prefix)+1] == (*prefix, 'en'):
-                    target = Path(*prefix, *target.parts[len(prefix)+1:])
-        query = parsed.query
-        if target in scope_homepages:
-            query = urlencode([(key, item) for key, item in parse_qsl(query, keep_blank_values=True)
-                               if (key, item) != ("report-language", "zh")])
-        return (
-            target.as_posix()
-            + ("?" + query if query else "")
-            + ("#" + parsed.fragment if parsed.fragment else "")
-        )
-
-    bilingual_issues = []
-    if has_english:
-        for relative in sorted(zh_pages):
-            zh_path = root / relative
-            en_path = root / "en" / relative
-            zh = PageShape(zh_path)
-            zh.feed(zh_path.read_text(encoding="utf-8"))
-            en = PageShape(en_path)
-            en.feed(en_path.read_text(encoding="utf-8"))
-            if zh.tags != en.tags:
-                bilingual_issues.append((relative, "semantic tag counts differ"))
-            if zh.ids != en.ids:
-                bilingual_issues.append((relative, "element IDs differ"))
-            if Counter(zh.data) != Counter(en.data):
-                bilingual_issues.append((relative, "data attributes differ"))
-            zh_numbers = Counter(zh.numbers)
-            en_numbers = Counter(en.numbers)
-            if zh_numbers != en_numbers:
-                bilingual_issues.append(
-                    (
-                        relative,
-                        "visible numeric values differ",
-                        zh_numbers - en_numbers,
-                        en_numbers - zh_numbers,
-                    )
-                )
-            zh_links = Counter(canonical_link(zh_path, value) for value in zh.links)
-            en_links = Counter(canonical_link(en_path, value) for value in en.links)
-            if zh_links != en_links:
-                bilingual_issues.append((relative, "evidence or navigation links differ"))
-            if relative == Path("methodology/index.html"):
-                check_localized_image_sources(zh, en, canonical_link)
-            if relative in {Path("guide/index.html"), Path("guide/article.html")}:
-                if Counter(canonical_link(zh_path, value) for value in zh.images) != Counter(
-                    canonical_link(en_path, value) for value in en.images
-                ):
-                    bilingual_issues.append((relative, "article image sources differ"))
-    if not not bilingual_issues:
-        raise ValueError(
-            ("Chinese/English page parity failed", bilingual_issues[:200], len(bilingual_issues))
-        )
-    english_primary = [
-        Path(name)
-        for name in (
-            "index.html",
-            "methodology/index.html",
-            "review/index.html",
-            "guide/index.html",
-            "adoption/index.html",
-            "reproduce/index.html",
-            "changes/index.html",
-            "accounts/index.html",
-        )
-    ]
-    allowed_english_source_text = {"中文"} | {
-        case["name"] for case in d["cases"] if case.get("name")
-    }
-    archived_manifest = root / "archived-reading.json"
-    if archived_manifest.is_file():
-        # Validate the archived source before allowing its original case names.
-        render_archived_reading(root, "en" if has_english else "zh")
-        allowed_english_source_text.update(read_json(archived_manifest).get("preserved_source_names", []))
-    if has_english:
-        for relative in english_primary:
-            if relative not in en_pages:
-                continue
-            parser = EnglishNarrative(allowed_english_source_text)
-            parser.feed((root / "en" / relative).read_text(encoding="utf-8"))
-            if not not parser.untranslated:
-                raise ValueError(
-                    (relative, "untranslated English report narrative", parser.untranslated[:20])
-                )
+    check_report_language_parity(root, d)
     contexts = [(root, rs, case_by_id, local_measurement)]
     if (root/'content-scope-views.json').is_file():
         for relative in read_json(root/'content-scope-views.json')['views'].values():
