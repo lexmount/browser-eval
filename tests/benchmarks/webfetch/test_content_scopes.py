@@ -258,5 +258,36 @@ def test_scope_component_controls_use_public_scoring_and_task_predicate():
     from lexbench_webfetch.scoring_regressions import check_scoring_regressions
     identifiers=['content-scope-reference-only-invalid','content-scope-reference-with-rule-complete',
         'content-scope-reference-with-rule-unrelated','content-scope-main-without-full-comments',
-        'content-scope-full-comments-missing','content-scope-full-comments-complete']
+        'content-scope-full-comments-missing','content-scope-full-comments-complete',
+        'content-scope-zero-pattern-minimum-invalid','content-scope-zero-fact-threshold-invalid',
+        'content-scope-positive-pattern-complete','content-scope-positive-pattern-unrelated']
     assert check_scoring_regressions(identifiers)==identifiers
+
+
+@pytest.mark.parametrize("minimum", [0, -1, False, float("nan"), float("inf")])
+def test_scope_rejects_non_gating_pattern_counts(minimum):
+    case = annotated_case()
+    case['content_scopes']['main']['requirements'] = {
+        'task_prompt': 'Read the article body.',
+        'required_patterns': [{'id': 'body', 'pattern': 'Complete article body', 'minimum': minimum}],
+    }
+    with pytest.raises(ValueError, match='substantive acceptance'):
+        score_attempt(case, b'Unrelated ordinary text', ok=True, content_scope='main')
+
+
+@pytest.mark.parametrize("threshold", [0, -1, False, float("nan"), float("inf"), 1.1])
+def test_scope_rejects_non_gating_fact_thresholds(threshold):
+    case = annotated_case()
+    case['content_scopes']['main']['requirements']['fact_coverage_threshold'] = threshold
+    with pytest.raises(ValueError, match='substantive acceptance'):
+        score_attempt(case, b'Unrelated ordinary text', ok=True, content_scope='main')
+
+
+@pytest.mark.parametrize("answer, passed", [('Complete article body', True), ('Unrelated ordinary text', False)])
+def test_positive_pattern_minimum_gates_scope_acceptance(answer, passed):
+    case = annotated_case()
+    case['content_scopes']['main']['requirements'] = {
+        'task_prompt': 'Read the article body.',
+        'required_patterns': [{'id': 'body', 'pattern': 'Complete article body', 'minimum': 1}],
+    }
+    assert task_passed(True, score_attempt(case, answer.encode(), ok=True, content_scope='main')) is passed

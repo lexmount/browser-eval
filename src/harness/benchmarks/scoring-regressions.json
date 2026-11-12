@@ -85878,6 +85878,322 @@
       "artifact": "Complete article body\nContact publisher\n\nComments\n\n## Reader\nA thoughtful book.",
       "ok": true,
       "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-zero-pattern-minimum-invalid",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "required_patterns": [
+                {
+                  "id": "body",
+                  "pattern": "Complete article body",
+                  "minimum": 0
+                }
+              ]
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "substantive acceptance"
+    },
+    {
+      "id": "content-scope-zero-fact-threshold-invalid",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                }
+              ],
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "fact_coverage_threshold": 0
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false,
+      "expected_validation_error": "substantive acceptance"
+    },
+    {
+      "id": "content-scope-positive-pattern-complete",
+      "failure_mode": "false-negative",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "required_patterns": [
+                {
+                  "id": "body",
+                  "pattern": "Complete article body",
+                  "minimum": 1
+                }
+              ]
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Complete article body",
+      "ok": true,
+      "expected_task_pass": true
+    },
+    {
+      "id": "content-scope-positive-pattern-unrelated",
+      "failure_mode": "false-positive",
+      "category": "acceptance-contract",
+      "root_cause": "Nonempty scope rules must impose a positive match count or effective fact coverage threshold.",
+      "case": {
+        "id": "article",
+        "name": "Article",
+        "category": "synthetic",
+        "url": "https://example.test/article",
+        "expected_any": [],
+        "task_prompt": "Return body and page footer.",
+        "required_facts": [
+          {
+            "id": "body",
+            "alternatives": [
+              "Complete article body"
+            ]
+          },
+          {
+            "id": "footer",
+            "alternatives": [
+              "Contact publisher"
+            ]
+          }
+        ],
+        "min_content_chars": 20,
+        "content_scopes": {
+          "version": 1,
+          "main": {
+            "requirements": {
+              "task_prompt": "Return the complete article body.",
+              "min_content_chars": 20,
+              "ground_truth_main_content": "Complete article body",
+              "required_patterns": [
+                {
+                  "id": "body",
+                  "pattern": "Complete article body",
+                  "minimum": 1
+                }
+              ]
+            },
+            "evidence": {
+              "scope": "main",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          },
+          "full": {
+            "requirements": {
+              "task_prompt": "Return body and page footer.",
+              "required_facts": [
+                {
+                  "id": "body",
+                  "alternatives": [
+                    "Complete article body"
+                  ]
+                },
+                {
+                  "id": "footer",
+                  "alternatives": [
+                    "Contact publisher"
+                  ]
+                }
+              ],
+              "min_content_chars": 20
+            },
+            "evidence": {
+              "scope": "full",
+              "source_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+            }
+          }
+        },
+        "content_scope": "main"
+      },
+      "artifact": "Unrelated ordinary text",
+      "ok": true,
+      "expected_task_pass": false
     }
   ]
 }

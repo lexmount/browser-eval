@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from copy import deepcopy
 
@@ -57,6 +58,13 @@ def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, st
         requirements, evidence = profile["requirements"], profile["evidence"]
         if not isinstance(requirements, dict):
             raise ValueError(f"{name} scope requirements must be an object")
+        threshold = requirements.get("fact_coverage_threshold", 1.0)
+        if (requirements.get("required_facts") and (
+                type(threshold) not in (int, float) or not math.isfinite(threshold)
+                or not 0 < threshold <= 1)
+                or any(type(rule.get("minimum", 1)) is not int or rule.get("minimum", 1) < 1
+                       for rule in requirements.get("required_patterns", []))):
+            raise ValueError(f"{name} scope must declare substantive acceptance requirements")
         substantive = any(
             requirements.get(k)
             for k in (

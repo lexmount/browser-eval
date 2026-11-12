@@ -15,7 +15,7 @@ scoring. Explicit selection fails for tasks without both annotations. Legacy
 tasks keep their existing behavior when no scope is selected. Scores bind the
 selected profile hash; reuse saved responses for score-only comparisons.
 Rescoring retains the saved dataset and task scopes and rejects a scope switch.
-Profiles inherit the original blocked-page and navigation constraints. They require a gating acceptance rule; reference text alone supplies only diagnostics. Omitted title, comment and post contracts are cleared, while explicitly declared scope components remain required. Tasks with
+Profiles inherit the original blocked-page and navigation constraints. They require a gating acceptance rule: pattern match counts must be positive integers, and fact coverage thresholds must be finite and greater than zero through one. Reference text alone supplies only diagnostics. Omitted title, comment and post contracts are cleared, while explicitly declared scope components remain required. Tasks with
 an existing full-page ordered-tree acceptance contract require separate tree
 annotations and are rejected by this scope selector.
 
