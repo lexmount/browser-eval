@@ -140,7 +140,7 @@ def check_release(root, dataset, records, *, profile=None):
             or label.get("href") != ("../" if route.startswith("en/") else "") + FILENAME
             or label.get("data-benchmark-release") != release["version"]
             or label.get_text(" ", strip=True) not in (
-                {"bench v" + release["version"]} if manifest.get("browser_eval") else
+                {"bench v" + release["version"]} if manifest.get("webstone") else
                 {"bench v" + release["version"], release["benchmark"] + " v" + release["version"]}
             )
         ):

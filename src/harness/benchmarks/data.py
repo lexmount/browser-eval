@@ -45,8 +45,8 @@ def binding(track: str, revision: str | None = None) -> dict:
 
 
 def cache_home() -> Path:
-    root = os.environ.get("BROWSER_EVAL_DATASET_CACHE")
-    return (Path(root).expanduser() if root else Path.home() / ".browser-eval/datasets").resolve()
+    root = os.environ.get("WEBSTONE_DATASET_CACHE")
+    return (Path(root).expanduser() if root else Path.home() / ".webstone/datasets").resolve()
 
 
 def dependencies(track: str) -> dict[str, dict[str, str]]:

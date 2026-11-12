@@ -56,7 +56,7 @@ class ReportLinkCheckTest(unittest.TestCase):
             home.write_text('<a href="local-evidence/capture/missing.html">Missing evidence</a>', encoding='utf-8')
             self.assertEqual(self.run_check(root).returncode, 1)
             home.write_text('<a href="local-evidence/capture/source.html">Frozen source</a>', encoding='utf-8')
-            source.write_text('<meta content="1" name="browser-eval-report"><a href="missing.html">Report navigation</a>', encoding='utf-8')
+            source.write_text('<meta content="1" name="webstone-report"><a href="missing.html">Report navigation</a>', encoding='utf-8')
             self.assertEqual(self.run_check(root).returncode, 1)
 
     def test_rejects_missing_fragment(self) -> None:
@@ -110,7 +110,7 @@ def test_virtual_capture_links_follow_same_frozen_evidence_boundary():
     with pytest.raises(ValueError,match='Invalid internal link'):
         validate_virtual_links(files,content.__getitem__)
     content['index.html'] = f'<a href="{capture}">Evidence</a>'
-    content[capture] = '<meta name="browser-eval-report" content="1">'+content[capture]
+    content[capture] = '<meta name="webstone-report" content="1">'+content[capture]
     with pytest.raises(ValueError,match='Invalid internal link'):
         validate_virtual_links(files,content.__getitem__)
 

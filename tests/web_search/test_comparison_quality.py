@@ -89,9 +89,9 @@ def test_late_contamination_markers_cannot_restore_green_in_truncated_body_previ
 def test_real_browser_filters_and_highlights_respect_quality_scope(zh):
     playwright = pytest.importorskip("playwright.sync_api")
     try:
-        binary = os.environ.get("BROWSER_EVAL_TEST_BROWSER_BINARY") or browser_executable()
+        binary = os.environ.get("WEBSTONE_TEST_BROWSER_BINARY") or browser_executable()
     except ValueError:
-        pytest.skip("Install Chromium or set BROWSER_EVAL_TEST_BROWSER_BINARY")
+        pytest.skip("Install Chromium or set WEBSTONE_TEST_BROWSER_BINARY")
     profile, rows = scenarios()
     with playwright.sync_playwright() as engine:
         browser = engine.chromium.launch(executable_path=binary, headless=True)

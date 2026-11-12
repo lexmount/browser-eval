@@ -146,7 +146,7 @@ def test_changed_source_provenance_is_rejected_without_executing_it(tmp_path):
 
 
 def test_report_builder_import_and_help_do_not_require_private_evidence(monkeypatch, tmp_path):
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "absent-data"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "absent-data"))
     monkeypatch.setenv("LEXBENCH_REPORT_RUNNER_ROOT", str(tmp_path / "absent-runner"))
     module = importlib.import_module("harness.lexbench.report")
     with pytest.raises(SystemExit) as exit_status:

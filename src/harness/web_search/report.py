@@ -764,7 +764,7 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
     if authored.get("presentation") == "comparison-report" and receipt.get("certified") and not receipt.get("synthetic"):
         notice_html = ''
     document = BeautifulSoup(
-        f'''<!doctype html><html lang="{lang}"><head><base href="{depth or './'}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · {t("Web Search")}</title><style>{STYLE}</style></head><body><nav>{navigation}</nav><main><p class="muted">{t("Browser Eval / Web Search")}</p><h1>{esc(title)}</h1>{notice_html}{body}</main><dialog aria-label="{t("Response evidence")}"><button data-close>{t("Close")}</button><pre></pre><a hidden>{t("Full result")}</a></dialog><script>{SCRIPT}</script></body></html>''',
+        f'''<!doctype html><html lang="{lang}"><head><base href="{depth or './'}"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{esc(title)} · {t("Web Search")}</title><style>{STYLE}</style></head><body><nav>{navigation}</nav><main><p class="muted">{t("Webstone / Web Search")}</p><h1>{esc(title)}</h1>{notice_html}{body}</main><dialog aria-label="{t("Response evidence")}"><button data-close>{t("Close")}</button><pre></pre><a hidden>{t("Full result")}</a></dialog><script>{SCRIPT}</script></body></html>''',
         "html.parser",
     )
     # Artifact Site injects a root base on every nested route. Local pages use
@@ -1089,7 +1089,7 @@ def _write_dataset_page(inputs: ReportInputs, edition: ReportEdition) -> None:
         dataset_context(dataset_profile, dataset_content, zh)
         + '<p><a href="https://huggingface.co/datasets/Lexmount/LexBench-Web-Search">'
         + t("LexBench Web Search: dataset and sources")
-        + '</a> · <a href="https://github.com/lexmount/browser-eval/tree/main/src/lexbench_websearch">'
+        + '</a> · <a href="https://github.com/lexmount/webstone/tree/main/src/lexbench_websearch">'
         + t("Scoring code")
         + "</a></p>"
         + provenance_table(dataset_profile, zh)
@@ -1513,7 +1513,7 @@ def _write_manifest(
         dict(
             schema="web-search-report/1",
             template="web-search/1",
-            browser_eval=build_version,
+            webstone=build_version,
             languages=languages,
             language_notices=_language_notice(output, languages),
             primary_language=language,

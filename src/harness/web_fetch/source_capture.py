@@ -429,7 +429,7 @@ def resource_links_main(argv=None) -> None:
                 expected[url] = mime_types
     checks = []
     for url, expected_mime in sorted(expected.items()):
-        request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "browser-harness-eval/1.0"})
+        request = urllib.request.Request(url, method="HEAD", headers={"User-Agent": "webstone/1.0"})
         try:
             with urllib.request.urlopen(request, timeout=args.timeout) as response:
                 checks.append({

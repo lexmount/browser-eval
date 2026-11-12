@@ -1,8 +1,10 @@
 # LexBench-Web-Search
 
+Short name: **LB-WS**.
+
 LexBench-Web-Search evaluates the pages a search API returns for fixed queries: whether useful results appear near the top, whether explicit source requirements are met, and whether known reference pages are found. The tasks cover general web search, named-site search and vertical search across English, Chinese and other languages.
 
-[Browser Eval](https://github.com/lexmount/browser-eval) maintains the scorer, provider adapters and evidence reports. This dataset supplies versioned query definitions, source attribution and qualified reference inputs. Use it to evaluate retrieval before an agent fetches pages or generates an answer. The harness can turn saved results into local HTML reports with query-level drilldown that readers can inspect, rebuild and share.
+[Webstone](https://github.com/lexmount/webstone) maintains the scorer, provider adapters and evidence reports. This dataset supplies versioned query definitions, source attribution and qualified reference inputs. Use it to evaluate retrieval before an agent fetches pages or generates an answer. The harness can turn saved results into local HTML reports with query-level drilldown that readers can inspect, rebuild and share.
 
 ## Dataset editions
 
@@ -10,7 +12,7 @@ LexBench-Web-Search evaluates the pages a search API returns for fixed queries: 
 
 The viewer contains the current scenario edition. Older scenario definitions remain in the archive for reproduction; they use the same queries and are not additional tasks.
 
-The [SimpleQA Verified retrieval dataset](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) owns factual questions, original answers, supporting URLs and the source receipt. This repository retains its composition descriptor but does not copy those records into its viewer or archive. Browser Eval resolves that descriptor to the separately pinned dataset. Report factual retrieval metrics separately from scenario relevance.
+The [SimpleQA Verified retrieval dataset](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) owns factual questions, original answers, supporting URLs and the source receipt. This repository retains its composition descriptor but does not copy those records into its viewer or archive. Webstone resolves that descriptor to the separately pinned dataset. Report factual retrieval metrics separately from scenario relevance.
 
 `manifest.json` records each borrowed source's repository, full commit and file hashes under `external_sources`. Rebuilding a published edition uses those recorded sources, even when the companion dataset has a newer release.
 
@@ -39,11 +41,11 @@ Given a frozen candidate pool and complete grades, the scorer computes:
 
 Duplicates add no gain; missing positions contribute zero. Queries with an all-zero pool stay in the population with nDCG zero. Aggregate over all declared queries and disclose the population. Known-page hits, reciprocal rank, source-domain checks and duplicate rate remain separate diagnostics. Anchor lists cover selected known pages; useful results outside those lists can still receive relevance credit.
 
-The [Search guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_search/README.md) covers annotation receipts, source rules, retries, timing, billing and optional independent review. The [benchmark guide](https://github.com/lexmount/browser-eval/blob/main/docs/benchmarks.md) explains dataset/scorer identities and reproduction.
+The [Search guide](https://github.com/lexmount/webstone/blob/main/src/harness/web_search/README.md) covers annotation receipts, source rules, retries, timing, billing and optional independent review. The [benchmark guide](https://github.com/lexmount/webstone/blob/main/docs/benchmarks.md) explains dataset/scorer identities and reproduction.
 
 ## Use the data and scorer
 
-Clone [Browser Eval](https://github.com/lexmount/browser-eval), install its locked environment, then inspect or export the selected definitions:
+Clone [Webstone](https://github.com/lexmount/webstone), install its locked environment, then inspect or export the selected definitions:
 
 ```sh
 {{tooling_checkout}}uv sync --frozen
@@ -52,7 +54,7 @@ uv run --frozen lexbench-websearch validate scenarios
 uv run --frozen lexbench-websearch export scenarios > /tmp/scenarios.json
 ```
 
-Browser Eval's [data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json) selects exact Hugging Face commits and file hashes. The loader verifies those inputs; inspection and offline scoring require no search-provider key. Live collection uses the credentials and explicit profile described in the Search guide.
+Webstone's [data lock](https://github.com/lexmount/webstone/blob/main/src/harness/benchmarks/data-lock.json) selects exact Hugging Face commits and file hashes. The loader verifies those inputs; inspection and offline scoring require no search-provider key. Live collection uses the credentials and explicit profile described in the Search guide.
 
 For supplied ranking labels, the same deterministic metric implementation is available in Python:
 
@@ -88,7 +90,7 @@ Cite this component and the upstream datasets you use:
 ```bibtex
 @misc{lexbench_websearch_2026,
   author = {{LexBench Web Search contributors}},
-  title = {Browser Eval: Benchmarking Browsers and Web Tools for AI Agents},
+  title = {Webstone: Benchmarking Browsers and Web Tools for AI Agents},
   note = {Web Search benchmark component},
   year = {2026},
   url = {https://huggingface.co/datasets/Lexmount/LexBench-Web-Search}

@@ -210,13 +210,13 @@ def test_public_cli_freezes_and_compares_real_files(tmp_path, capsys, monkeypatc
     frozen = tmp_path / "release.json"
     from lexbench_webfetch import versions
     monkeypatch.setattr(versions, "RELEASED_SCORERS",
-                        {version("browser-harness-eval"): versions.SCORING_SOURCE_SHA256})
+                        {version("webstone"): versions.SCORING_SOURCE_SHA256})
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "release", "--dataset", str(source),
                                     "--output", str(frozen), "--benchmark", "sample-benchmark",
-                                    "--version", version("browser-harness-eval"),
+                                    "--version", version("webstone"),
                                      "--scorer-revision", "a" * 40])
     main()
-    assert json.loads(capsys.readouterr().out)["version"] == version("browser-harness-eval")
+    assert json.loads(capsys.readouterr().out)["version"] == version("webstone")
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "compare-releases", str(frozen), str(frozen)])
     main()
     assert json.loads(capsys.readouterr().out)["mode"] == "direct"
@@ -287,13 +287,13 @@ def test_version_command_marks_scoring_code_the_release_did_not_ship(monkeypatch
 
     from lexbench_webfetch import versions
     from lexbench_webfetch.cli import main
-    current = version("browser-harness-eval")
+    current = version("webstone")
     monkeypatch.setattr(versions, "SCORING_SOURCE_SHA256", "1" * 64)
     monkeypatch.setattr(versions, "RELEASED_SCORERS", {current: "1" * 64 if released else "2" * 64})
     monkeypatch.setattr("sys.argv", ["lexbench-webfetch", "version"])
     main()
     assert json.loads(capsys.readouterr().out) == {
-        "name": "browser-harness-eval",
+        "name": "webstone",
         "version": current if released else current + "+unreleased",
         "status": "released" if released else "unreleased",
         "scoring_source_sha256": "1" * 64}
@@ -303,14 +303,14 @@ def test_every_release_records_its_scoring_hash():
     from importlib.metadata import version
 
     from lexbench_webfetch.versions import RELEASED_SCORERS
-    assert version("browser-harness-eval") in RELEASED_SCORERS
+    assert version("webstone") in RELEASED_SCORERS
 
 
 @pytest.mark.parametrize("case", ["other_version", "unreleased_scorer"])
-def test_release_sidecar_requires_the_released_browser_eval_scorer(monkeypatch, tmp_path, capsys, case):
+def test_release_sidecar_requires_the_released_webstone_scorer(monkeypatch, tmp_path, capsys, case):
     from lexbench_webfetch import versions
     from lexbench_webfetch.cli import main
-    current = version("browser-harness-eval")
+    current = version("webstone")
     shipped = versions.SCORING_SOURCE_SHA256 if case == "other_version" else "2" * 64
     monkeypatch.setattr(versions, "RELEASED_SCORERS", {current: shipped})
     requested = "99.0.0" if case == "other_version" else current
@@ -319,7 +319,7 @@ def test_release_sidecar_requires_the_released_browser_eval_scorer(monkeypatch, 
                                      "--version", requested, "--scorer-revision", "0" * 40])
     with pytest.raises(SystemExit):
         main()
-    assert "installed Browser Eval version" in capsys.readouterr().err
+    assert "installed Webstone version" in capsys.readouterr().err
     assert not (tmp_path / "r.json").exists()
 
 

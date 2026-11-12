@@ -51,7 +51,7 @@ class ReportScenarios(unittest.TestCase):
             dom = BeautifulSoup((self.out / route).read_text(encoding="utf-8"), "html.parser")
             links = {a["href"] for a in dom.select("a[href]")}
             self.assertIn("https://huggingface.co/datasets/Lexmount/LexBench-Web-Search", links)
-            self.assertIn("https://github.com/lexmount/browser-eval/tree/main/src/lexbench_websearch", links)
+            self.assertIn("https://github.com/lexmount/webstone/tree/main/src/lexbench_websearch", links)
             self.assertNotIn("https://github.com/lexmount/lexbench-websearch", links)
         self.assertTrue(check(self.out))
 

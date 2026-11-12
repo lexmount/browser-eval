@@ -46,7 +46,7 @@ def test_official_scorer_stays_inside_custom_dataset_cache(tmp_path, monkeypatch
     revision = 'a' * 40
     expected = cache / 'benchmark-code/webmainbench' / revision
     expected.mkdir(parents=True)
-    monkeypatch.setenv('BROWSER_EVAL_DATASET_CACHE', str(cache))
+    monkeypatch.setenv('WEBSTONE_DATASET_CACHE', str(cache))
     monkeypatch.setattr(data, 'binding', lambda track: {'scorer': {'revision': revision}})
     checked = []
     monkeypatch.setattr(wmb, 'verify_scorer_checkout', lambda path, commit: checked.append((path, commit)))

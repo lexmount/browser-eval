@@ -1,5 +1,7 @@
 # LexBench-Headless-Browser
 
+Short name: **LB-HB**.
+
 A versioned data export of [Lexbench-Headless-Browser](https://github.com/lexmount/Lexbench-Headless-Browser/tree/{{upstream_revision}}). It preserves the original CDP compatibility tasks, web platform tests, scenario specifications, browser and driver configuration, and local fixtures.
 
 The dataset viewer contains **{{upstream_task_count}} executable task definitions** across {{upstream_subset_count}} subsets. The original source files also retain {{upstream_scenario_count}} driver-neutral scenario specifications, {{upstream_fixture_count}} fixture files and {{upstream_config_count}} configuration files. The upstream manifest declares benchmark version `{{upstream_bench_version}}`; its browser binding configuration names {{upstream_driver_count}} driver interfaces. Source commit: [`{{upstream_revision}}`](https://github.com/lexmount/Lexbench-Headless-Browser/commit/{{upstream_revision}}).
@@ -37,7 +39,7 @@ The archive `definitions.tar.gz` provides the same definition files. Measured at
 
 ## Load a pinned dataset
 
-Browser Eval records the selected Hugging Face commit in its data lock. Use that immutable revision for the viewer rows:
+Webstone records the selected Hugging Face commit in its data lock. Use that immutable revision for the viewer rows:
 
 ```python
 import json
@@ -91,7 +93,7 @@ Run the original CLI from that checkout using the pinned guide's setup and scope
 
 Check the source manifest and running guide before choosing a scope. Loading this dataset installs neither that runner nor its runtime dependencies. The local fixture server is implemented in [`runner/run.py`](https://github.com/lexmount/Lexbench-Headless-Browser/blob/{{upstream_revision}}/runner/run.py); driver-neutral expansion and platform semantics also depend on the original runner modules and adapters.
 
-[Browser Eval's public-web replay suite](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) contains 30 self-authored tasks with its own live website inputs, BrowserTool actions and exact checks. This scenario collection informed their design; none of those complete tasks is included in the Headless executable catalog. Headless execution remains owned by the pinned upstream driver runtime described above. Existing report protocols may select smaller, hash-bound populations such as the historical 372-task protocol; their scores and denominators remain attached to those original runs. The complete source collection published here does not expand an earlier report's measured population.
+[Webstone's public-web replay suite](https://huggingface.co/datasets/Lexmount/LexBench-Trajectory-Replay) contains 30 self-authored tasks with its own live website inputs, BrowserTool actions and exact checks. This scenario collection informed their design; none of those complete tasks is included in the Headless executable catalog. Headless execution remains owned by the pinned upstream driver runtime described above. Existing report protocols may select smaller, hash-bound populations such as the historical 372-task protocol; their scores and denominators remain attached to those original runs. The complete source collection published here does not expand an earlier report's measured population.
 
 ## License and citation
 
@@ -107,4 +109,4 @@ The upstream project uses [Apache-2.0](definitions/LICENSE). Included WPT and Ch
 }
 ```
 
-When using Browser Eval's separate replay harness, also cite [Browser Eval](https://github.com/lexmount/browser-eval).
+When using Webstone's separate replay harness, also cite [Webstone](https://github.com/lexmount/webstone).

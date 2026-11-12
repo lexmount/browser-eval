@@ -3672,7 +3672,7 @@ def build(output: Path, content: Path, *, home: Path, run=None, language=None, p
             "model_comparison": model.get("model_comparison"),
             "template_version": VERSION,
             "methods": methods,
-            "browser_eval": build_version,
+            "webstone": build_version,
             **report_dependencies(),
             "dataset_kind": "published-upstream"
             if not read_json(profile).get("local_example", False)
@@ -5674,7 +5674,7 @@ def build_record_cohort(output, content, *, home, language, profile):
             "input_profile": input_profile,
             "template": template_identity("web-extract"),
             "template_version": VERSION,
-            "browser_eval": version,
+            "webstone": version,
             "renderer_sha256": digest(Path(__file__).read_bytes()),
             "profile_sha256": digest(profile.read_bytes()),
             "content_sha256": digest(content.read_bytes()),

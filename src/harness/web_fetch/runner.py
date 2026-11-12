@@ -653,7 +653,7 @@ def run_evaluation(
         "deadline_policy": "end_to_end_answer; non_cancellable_adapter_quarantined",
         "public_call_log_schema_version": 1,
         "tool": "web_fetch",
-        "browser_eval": software_identity(),
+        "webstone": software_identity(),
         "started_at": started_at,
         "dataset": {
             "id": dataset_meta.get("id"),

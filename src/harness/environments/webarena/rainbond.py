@@ -240,7 +240,7 @@ class RainbondSlicePool:
 
     def _create_app(self, pool_id: str, slot: int) -> int:
         name = f"{self.config.app_prefix}-{pool_id}-{slot}"
-        note = f"managed-by=browser-eval;pool={pool_id};slot={slot}"
+        note = f"managed-by=webstone;pool={pool_id};slot={slot}"
         result = self.api.request("POST", self._apps_path(), {"app_name": name, "app_note": note})
         app_id = int((result or {}).get("ID") or 0)
         if app_id < 1:

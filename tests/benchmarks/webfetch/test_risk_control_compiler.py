@@ -34,7 +34,7 @@ def definitions(tmp_path, monkeypatch):
     data = tmp_path / "data"
     proofs = data / "source-inputs"
     proofs.mkdir(parents=True)
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(data))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(data))
     sections, cases, bodies, lists = [], [], {}, {}
     for index in range(100):
         identifier = f"fixture-{index:03d}"
@@ -203,7 +203,7 @@ compiler.main(sys.argv[2:])
     result = subprocess.run([sys.executable, '-c', program, str(guards),
                              '--definition-dir', str(root), '--evidence-home', str(proofs.parent),
                              '--output', str(output)], cwd=tmp_path, capture_output=True, text=True,
-                            env={**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(cache), 'HF_HUB_OFFLINE': '1',
+                            env={**os.environ, 'WEBSTONE_DATASET_CACHE': str(cache), 'HF_HUB_OFFLINE': '1',
                                  **locale_settings})
     assert result.returncode == 0, result.stderr
     assert json.loads(result.stdout)['cases'] == 100
@@ -224,7 +224,7 @@ assign_content_acceptance_roles([{'acceptance_contract': {
     'hosts': ['example.test'], 'entry_path': '/item/[0-9]+', 'stable_text_anchors': []}}])
 '''
     result = subprocess.run([sys.executable, '-c', program], cwd=tmp_path, capture_output=True,
-                            text=True, env={**os.environ, 'BROWSER_EVAL_DATASET_CACHE': str(cache),
+                            text=True, env={**os.environ, 'WEBSTONE_DATASET_CACHE': str(cache),
                                             'HF_HUB_OFFLINE': '1'})
     assert result.returncode == 0, result.stderr
     assert not cache.exists()

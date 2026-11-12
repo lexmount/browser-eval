@@ -404,7 +404,7 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
     assert tool._supports_storage_cdp is False
     assert tool._native_login_form_submit is True
     binding_event = next(event for event in events if event[0] == "binding")
-    assert binding_event[1] == "__browserEvalCaptureRequestBody"
+    assert binding_event[1] == "__webstoneCaptureRequestBody"
     assert "globalThis.fetch = async function" in next(
         event[1] for event in events if event[0] == "init_script"
     )
@@ -431,7 +431,7 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
                 "content-type": "application/json",
                 "content-length": "16",
                 "signature": "private-signature",
-                "x-browser-eval-request-body-id": self.capture_id,
+                "x-webstone-request-body-id": self.capture_id,
             }
 
     class Route:
@@ -470,7 +470,7 @@ def test_kitesurf_reuses_authenticated_default_target_without_second_cdp_attach(
         ),
         ("browser_cdp", "Browser.getVersion"),
         ("browser_cdp", "detach"),
-        ("binding", "__browserEvalCaptureRequestBody", binding_event[2]),
+        ("binding", "__webstoneCaptureRequestBody", binding_event[2]),
         ("init_script", next(event[1] for event in events if event[0] == "init_script")),
         ("route", predicate, handler),
         ("viewport", {"width": 1280, "height": 900}),
@@ -584,7 +584,7 @@ def test_kitesurf_request_bridge_rebuilds_captured_form_data(monkeypatch) -> Non
             return {
                 "content-type": "multipart/form-data; boundary=browser-boundary",
                 "x-csrf-token": "csrf",
-                "x-browser-eval-request-body-id": "form-1",
+                "x-webstone-request-body-id": "form-1",
             }
 
     class Route:
@@ -601,7 +601,7 @@ def test_kitesurf_request_bridge_rebuilds_captured_form_data(monkeypatch) -> Non
     assert call["url"] == "http://private.test/upload"
     assert call["headers"]["x-csrf-token"] == "csrf"
     assert call["headers"]["content-type"].startswith(
-        "multipart/form-data; boundary=browser-eval-"
+        "multipart/form-data; boundary=webstone-"
     )
     assert b'name="title"\r\n\r\nhello\r\n' in call["data"]
     assert (
@@ -699,7 +699,7 @@ def test_kitesurf_native_form_body_uses_capture_id(monkeypatch) -> None:
         def all_headers(self):
             return {
                 "content-type": "application/x-www-form-urlencoded",
-                "x-browser-eval-request-body-id": "native-form-1",
+                "x-webstone-request-body-id": "native-form-1",
             }
 
     class Route:
@@ -714,7 +714,7 @@ def test_kitesurf_native_form_body_uses_capture_id(monkeypatch) -> None:
     headers, body, response_headers = tool.transform_playwright_har_request(
         "POST",
         "http://private.test/issues",
-        {"x-browser-eval-request-body-id": "native-form-1"},
+        {"x-webstone-request-body-id": "native-form-1"},
     )
     assert headers == {}
     assert body == "issue%5Btitle%5D=hello"
@@ -817,7 +817,7 @@ def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
             self.url = url
 
         def all_headers(self):
-            return {"x-browser-eval-request-body-id": "redirect-1"}
+            return {"x-webstone-request-body-id": "redirect-1"}
 
     class Route:
         def __init__(self, request):
@@ -841,7 +841,7 @@ def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
 
     class KeptRequest(Request):
         def all_headers(self):
-            return {"x-browser-eval-request-body-id": "redirect-2"}
+            return {"x-webstone-request-body-id": "redirect-2"}
 
     context.bridge(Route(KeptRequest("POST", "http://private.test/keep")))
     context.bridge(Route(KeptRequest("POST", "http://private.test/kept")))
@@ -855,12 +855,12 @@ def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
     original_headers, original_body, _ = tool.transform_playwright_har_request(
         "POST",
         "http://private.test/start",
-        {"x-browser-eval-request-body-id": "redirect-1"},
+        {"x-webstone-request-body-id": "redirect-1"},
     )
     redirect_headers, redirect_body, _ = tool.transform_playwright_har_request(
         "GET",
         "http://private.test/final",
-        {"x-browser-eval-request-body-id": "redirect-1"},
+        {"x-webstone-request-body-id": "redirect-1"},
     )
     assert original_headers == redirect_headers == {}
     assert original_body == "enabled=true"
@@ -868,7 +868,7 @@ def test_kitesurf_request_body_id_survives_post_redirect_as_bodyless_get(
     _, kept_body, _ = tool.transform_playwright_har_request(
         "POST",
         "http://private.test/kept",
-        {"x-browser-eval-request-body-id": "redirect-2"},
+        {"x-webstone-request-body-id": "redirect-2"},
     )
     assert kept_body == "kept=true"
 

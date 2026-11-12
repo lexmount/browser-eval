@@ -69,7 +69,7 @@ def write_shard(command, *, check, env):
     evidence = output / 'tasks/a/chromium/attempt-1'
     evidence.mkdir(parents=True)
     (evidence / 'network.har').write_text(json.dumps({
-        'log': {'creator': {'name': 'browser-eval-cdp', 'version': '3'}, 'entries': []},
+        'log': {'creator': {'name': 'webstone-cdp', 'version': '3'}, 'entries': []},
     }), encoding='utf-8')
     task = qualification.load_suite(Path(flags['--suite'])).tasks[0]
     task_payload = {

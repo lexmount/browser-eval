@@ -1,6 +1,8 @@
 # LexBench-WebMainBench
 
-A reference-corrected edition of [OpenDataLab WebMainBench](https://huggingface.co/datasets/opendatalab/WebMainBench) with {{total_records}} frozen extraction tasks, used by [Browser Eval](https://github.com/lexmount/browser-eval). Each task supplies frozen HTML and a reference Markdown answer, so extractors can receive the same page bytes. This edition supports comparisons of main-content extraction, HTML-to-Markdown conversion and preservation of code, formulas and tables.
+Short name: **LB-WMB**.
+
+A reference-corrected edition of [OpenDataLab WebMainBench](https://huggingface.co/datasets/opendatalab/WebMainBench) with {{total_records}} frozen extraction tasks, used by [Webstone](https://github.com/lexmount/webstone). Each task supplies frozen HTML and a reference Markdown answer, so extractors can receive the same page bytes. This edition supports comparisons of main-content extraction, HTML-to-Markdown conversion and preservation of code, formulas and tables.
 
 {{dataset_summary}}
 
@@ -10,7 +12,7 @@ The `corrected-545` configuration retains all {{total_records}} pages in their o
 
 The correction receipt records 22 corrections: 19 feature-scope metadata changes and three replacement reference texts. One replacement removes duplicated hidden editor content; two preserve selected inline code as inline code in the Markdown reference. Read the per-case rationale and source hashes in [the correction manifest](definitions/corrections/WebMainBench_545.json); the three replacement Markdown files are beside it. [Upstream provenance](definitions/upstream.json) binds the original corpus, the corrected file and the matching correction/scorer revision.
 
-Browser Eval's [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) also carries scoring corrections for component applicability and aggregation. Dataset and scorer revisions must be recorded together. Results from this edition need to name the corrected edition and evaluation configuration; they are distinct from the upstream leaderboard.
+Webstone's [WebMainBench fork](https://github.com/lexmount/WebMainBench/tree/lex-main) also carries scoring corrections for component applicability and aggregation. Dataset and scorer revisions must be recorded together. Results from this edition need to name the corrected edition and evaluation configuration; they are distinct from the upstream leaderboard.
 
 ## Data and schema
 
@@ -44,7 +46,7 @@ page = json.loads(rows[0]["task"])
 html, reference = page["html"], page["groundtruth_content"]
 ```
 
-For a raw-file download, `definitions.tar.gz` contains the same definition bytes as `definitions/`; verify them against `manifest.json`. Browser Eval selects its dataset and scorer through the [data lock](https://github.com/lexmount/browser-eval/blob/main/src/harness/benchmarks/data-lock.json). Its [benchmark guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/WEBMAINBENCH.md) explains the pinned runner and scorer. Execution starts at `scripts/run_webmainbench_benchmark.py`; `python -m harness.web_fetch webmainbench-score` scores saved outputs.
+For a raw-file download, `definitions.tar.gz` contains the same definition bytes as `definitions/`; verify them against `manifest.json`. Webstone selects its dataset and scorer through the [data lock](https://github.com/lexmount/webstone/blob/main/src/harness/benchmarks/data-lock.json). Its [benchmark guide](https://github.com/lexmount/webstone/blob/main/src/harness/web_fetch/WEBMAINBENCH.md) explains the pinned runner and scorer. Execution starts at `scripts/run_webmainbench_benchmark.py`; `python -m harness.web_fetch webmainbench-score` scores saved outputs.
 
 The 545-page scorer measures text, code, formula and table edit similarity, plus table structural similarity (TEDS). Report the components, their applicable populations and the selected aggregation. The full upstream corpus's ROUGE evaluation is a separate protocol. Provider outputs and measured scores are not included in this dataset.
 
@@ -56,6 +58,6 @@ Please cite the upstream work and identify this corrected dataset revision:
 
 > Liu et al. (2025). [Dripper: Token-Efficient Main HTML Extraction with a Lightweight LM](https://huggingface.co/datasets/opendatalab/WebMainBench).
 
-For the execution and reporting harness, cite [Browser Eval: Benchmarking Browsers and Web Tools for AI Agents](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
+For the execution and reporting harness, cite [Webstone: Benchmarking Browsers and Web Tools for AI Agents](https://github.com/lexmount/webstone/blob/main/CITATION.cff).
 
 Related datasets: [LexBench-Web-Fetch](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch) covers additional fetch tasks; [LexBench-Web-Search](https://huggingface.co/datasets/Lexmount/LexBench-Web-Search) and its separate [SimpleQA Verified retrieval edition](https://huggingface.co/datasets/Lexmount/LexBench-SimpleQA-Verified) cover search. Their task populations and evaluation contracts are separate from these extraction pages.

@@ -236,7 +236,7 @@ def build_snapshot_audit(source, output, *, profile):
         if release_binding:
             manifest['benchmark_release'] = release_binding
         from harness.reporting.versions import bind_build_version
-        manifest['browser_eval'] = bind_build_version(staging)
+        manifest['webstone'] = bind_build_version(staging)
         (staging/'report-manifest.json').write_text(json.dumps(manifest,ensure_ascii=False,indent=2)+'\n', encoding='utf-8')
         check_snapshot_audit(staging)
         _install_report_tree(staging, output)

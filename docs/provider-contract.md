@@ -107,7 +107,7 @@ engine: its command-line templates, native CDP server arguments, completion
 semantics, task routes and recorded metadata.
 `tests/golden/headless-engine-routes.jsonl` pins each resulting command line.
 
-Until [#183](https://github.com/lexmount/browser-eval/issues/183) lands, `ENGINES` does
+Until [#183](https://github.com/lexmount/webstone/issues/183) lands, `ENGINES` does
 not own every engine decision. A new engine also needs matching changes in
 `providers/headless_worker.py`, which selects routes by engine name, in
 `task_outputs.py`, which rejects any other engine, and in `network_preflight.py`, which

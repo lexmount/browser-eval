@@ -276,7 +276,7 @@ class VisibleLocalScope(HTMLParser):
 
     def handle_starttag(self, tag, attrs):
         attrs = dict(attrs)
-        if tag == 'meta' and attrs.get('name') == 'browser-eval-report' and attrs.get('content') == '1':
+        if tag == 'meta' and attrs.get('name') == 'webstone-report' and attrs.get('content') == '1':
             self.is_report = True
         inherited = self.stack[-1][1:] if self.stack else (False, set())
         style = re.sub(r'\s+', '', attrs.get('style', '')).lower()

@@ -1,5 +1,7 @@
 # LexBench-WCXB
 
+Short name: **LB-WCXB**.
+
 WCXB (Web Content eXtraction Benchmark) evaluates main-content extraction and boilerplate removal from saved web pages. This Lexmount distribution contains {{total_records}} source-qualified pages from Murrough Foley's upstream test split, with the original compressed HTML and ground-truth JSON files preserved byte for byte.
 
 Use the same frozen HTML with each extractor, then compare its returned text with the annotated main content. This measures extraction from fixed inputs. The original URLs provide source provenance; fetching those URLs again would create a different experiment.
@@ -62,13 +64,13 @@ The viewer has one `qualified-test` configuration and one `test` split. Its comm
 
 ## Scoring
 
-Browser Eval maintains the scoring implementation in [wcxb_scoring.py](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/wcxb_scoring.py). The pure metric functions in [wcxb_metrics.py](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/wcxb_metrics.py) preserve the pinned upstream evaluator's behavior; the original evaluator identity remains part of the provenance. Loading this dataset does not execute upstream Python code.
+Webstone maintains the scoring implementation in [wcxb_scoring.py](https://github.com/lexmount/webstone/blob/main/src/harness/web_fetch/wcxb_scoring.py). The pure metric functions in [wcxb_metrics.py](https://github.com/lexmount/webstone/blob/main/src/harness/web_fetch/wcxb_metrics.py) preserve the pinned upstream evaluator's behavior; the original evaluator identity remains part of the provenance. Loading this dataset does not execute upstream Python code.
 
 Word precision, recall and F1 use lowercase Unicode `\w+` tokens. Matching counts repeated occurrences, so overlap is the multiset intersection between predicted and reference tokens. Precision measures how much returned text belongs to the reference; recall measures how much reference text was retained. F1 is their harmonic mean. Report the mean per-page scores and page-type breakdowns with their denominators.
 
 Snippet checks separately measure the fraction of `with` or `without` snippets found by case-insensitive substring matching. Higher required-snippet coverage is desirable; lower forbidden-snippet occurrence is desirable. The upstream helper returns `1.0` for an empty snippet list, so disclose empty declarations separately when interpreting snippet aggregates.
 
-After installing the matching Browser Eval revision, score a saved prediction with the same metric functions:
+After installing the matching Webstone revision, score a saved prediction with the same metric functions:
 
 ```python
 from pathlib import Path
@@ -82,7 +84,7 @@ boilerplate_occurrence = snippet_check(predicted, task["without"])
 
 {{tooling_checkout}}
 
-The [Web Fetch guide](https://github.com/lexmount/browser-eval/blob/main/src/harness/web_fetch/README.md) describes execution, saved evidence and report generation. A local HTML report is optional. If you choose to share a report, [Artifact Site hosting](https://github.com/lexmount/browser-eval/blob/main/docs/report-hosting.md) is available. Loading the data, scoring predictions and running local comparisons require no upload.
+The [Web Fetch guide](https://github.com/lexmount/webstone/blob/main/src/harness/web_fetch/README.md) describes execution, saved evidence and report generation. A local HTML report is optional. If you choose to share a report, [Artifact Site hosting](https://github.com/lexmount/webstone/blob/main/docs/report-hosting.md) is available. Loading the data, scoring predictions and running local comparisons require no upload.
 
 ## Interpretation and limitations
 
@@ -94,9 +96,9 @@ Results on this qualified selection need their own denominator. They should not 
 
 ## Source, attribution and license
 
-The upstream benchmark is [Murrough Foley's Web Content Extraction Benchmark](https://github.com/Murrough-Foley/web-content-extraction-benchmark). This qualified distribution is maintained at [Lexmount/LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB); Browser Eval supplies integration and scoring tools.
+The upstream benchmark is [Murrough Foley's Web Content Extraction Benchmark](https://github.com/Murrough-Foley/web-content-extraction-benchmark). This qualified distribution is maintained at [Lexmount/LexBench-WCXB](https://huggingface.co/datasets/Lexmount/LexBench-WCXB); Webstone supplies integration and scoring tools.
 
-The upstream dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), with copyright credited to Murrough Foley, 2026. Retain attribution, the license and the disclosed selection changes when redistributing or adapting this edition. Read [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD_PARTY.md](THIRD_PARTY.md). Browser Eval's software license is separate from the dataset license.
+The upstream dataset is licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/), with copyright credited to Murrough Foley, 2026. Retain attribution, the license and the disclosed selection changes when redistributing or adapting this edition. Read [LICENSE](LICENSE), [NOTICE](NOTICE) and [THIRD_PARTY.md](THIRD_PARTY.md). Webstone's software license is separate from the dataset license.
 
 ## Citation
 
@@ -111,4 +113,4 @@ Cite the original benchmark and identify this distribution's immutable dataset r
 }
 ```
 
-If you use Browser Eval for execution, scoring or reports, also cite its [canonical project citation](https://github.com/lexmount/browser-eval/blob/main/CITATION.cff).
+If you use Webstone for execution, scoring or reports, also cite its [canonical project citation](https://github.com/lexmount/webstone/blob/main/CITATION.cff).

@@ -50,7 +50,7 @@ def test_release_tag_matches_installed_identity():
     if os.environ.get("GITHUB_REF_TYPE") != "tag":
         pytest.skip("Tag identity is checked on release-tag CI runs")
     tag = os.environ["GITHUB_REF_NAME"]
-    assert tag == "v" + importlib.metadata.version("browser-harness-eval")
+    assert tag == "v" + importlib.metadata.version("webstone")
 
 
 def test_declared_benchmark_pins_match_lock_and_installation():
@@ -105,6 +105,6 @@ from unittest.mock import patch
 with patch('importlib.metadata.version', return_value='9.8.7') as installed:
     import harness.web_fetch as package
     assert package.__version__ == '9.8.7'
-    installed.assert_called_once_with('browser-harness-eval')
+    installed.assert_called_once_with('webstone')
 """
     subprocess.run([sys.executable, "-c", code], check=True)

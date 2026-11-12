@@ -39,7 +39,7 @@ def wrapper_environment(tmp_path):
         "PATH": str(binaries) + os.pathsep + os.environ["PATH"],
         "CALL_LOG": str(log),
         "TEST_PYTHON": sys.executable,
-        "BROWSER_EVAL_DATA_HOME": str(tmp_path / "data"),
+        "WEBSTONE_DATA_HOME": str(tmp_path / "data"),
         "TRAJECTORY_REPLAY_BUILD_IMAGES": "0",
     }
     env.pop("TRAJECTORY_REPLAY_OUTPUT_DIR", None)
@@ -100,7 +100,7 @@ def test_wrapper_defaults_to_distinct_external_run_and_report_paths(
     reports = [Path(calls[i + 1]) for i, value in enumerate(calls) if value == "--reports"]
     assert len(outputs) == len(set(outputs)) == 2
     for output, report in zip(outputs, reports, strict=True):
-        assert output.is_relative_to(Path(env["BROWSER_EVAL_DATA_HOME"]))
+        assert output.is_relative_to(Path(env["WEBSTONE_DATA_HOME"]))
         assert report == output / "report"
         assert output.is_dir()
 
@@ -246,7 +246,7 @@ def test_wrapper_no_report_keeps_evidence_paths_and_failure_status(
     calls = log.read_text(encoding="utf-8").splitlines()
     assert calls.count("--no-report") == 1
     output = Path(calls[calls.index("--output") + 1])
-    assert output.is_relative_to(Path(env["BROWSER_EVAL_DATA_HOME"]))
+    assert output.is_relative_to(Path(env["WEBSTONE_DATA_HOME"]))
     assert Path(calls[calls.index("--reports") + 1]) == output / "report"
     assert output.is_dir()
     assert not (output / "report").exists()

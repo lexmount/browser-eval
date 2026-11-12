@@ -190,7 +190,7 @@ class DatasetRelease:
                 raise ValueError("Hub source requires a committed dataset release manifest")
             identity = json.loads(committed.stdout)
             if (not isinstance(identity, dict)
-                    or identity.get("schema") != "browser-eval-dataset-release/1"
+                    or canonical_source_name("schemas", identity.get("schema")) != "webstone-dataset-release/1"
                     or canonical_source_name("tracks", identity.get("track")) != track):
                 raise ValueError("Hub source manifest does not match the requested benchmark track")
             prefix = "definitions/"
@@ -459,7 +459,7 @@ class DatasetRelease:
                 summary.append({"config": name, "source_suite": identity, "count": len(rows),
                                 "description": metadata["subsets"].get(name, "Registered task inputs")})
         manifest = {
-            "schema": "browser-eval-dataset-release/1", "track": self.track,
+            "schema": "webstone-dataset-release/1", "track": self.track,
             "source_repository": self.source_repository or f"https://github.com/lexmount/lexbench-{self.track}",
             "source_revision": self.revision, "datasets": self.datasets(),
             "viewer": {"configurations": summary, "language_annotations": used_annotations},
@@ -476,7 +476,7 @@ class DatasetRelease:
                 metadata.get("external_datasets", {}).items() if identity in self.datasets()
             }
         if self.tooling_revision is not None:
-            manifest["tooling"] = {"repository": "https://github.com/lexmount/browser-eval",
+            manifest["tooling"] = {"repository": "https://github.com/lexmount/webstone",
                                    "revision": self.tooling_revision}
         if self.track == "headless-browser":
             manifest["upstream"] = json.loads(self.files["definitions/registry.json"])["source"]
@@ -563,8 +563,8 @@ class DatasetRelease:
                     body = body.replace("{{upstream_" + key + "}}", replacement)
         checkout = ""
         if self.tooling_revision is not None:
-            body = body.replace("https://github.com/lexmount/browser-eval/blob/main/",
-                                f"https://github.com/lexmount/browser-eval/blob/{self.tooling_revision}/")
+            body = body.replace("https://github.com/lexmount/webstone/blob/main/",
+                                f"https://github.com/lexmount/webstone/blob/{self.tooling_revision}/")
             checkout = "git checkout " + self.tooling_revision + "\n"
         body = body.replace("{{tooling_checkout}}", checkout)
         card = "---\n" + yaml.safe_dump(header, sort_keys=False, allow_unicode=True) + "---\n\n" + body.strip() + "\n"
@@ -578,7 +578,7 @@ def main() -> None:
     parser.add_argument("--track", choices=sorted(json.loads((CARDS / "metadata.json").read_bytes())), required=True)
     parser.add_argument("--revision", required=True)
     parser.add_argument("--output", type=Path, required=True)
-    parser.add_argument("--tooling-revision", help="Full Browser Eval commit for executable examples and code links")
+    parser.add_argument("--tooling-revision", help="Full Webstone commit for executable examples and code links")
     parser.add_argument("--create-pr", metavar="HF_REPOSITORY", help="Open a Hugging Face pull request for the built dataset")
     args = parser.parse_args()
     release = DatasetRelease.from_git(args.checkout, args.track, args.revision)

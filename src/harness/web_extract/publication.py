@@ -161,7 +161,7 @@ def publish(source, target, work, visual_receipt, *, transport=None, home=None):
     def bind(version):
         unchanged_target()
         manifest = read_json(source / "report-manifest.json")
-        builder = read_json(source / "browser-eval-version.json")
+        builder = read_json(source / "webstone-version.json")
         updated = {
             **bound,
             "expected_version": version,

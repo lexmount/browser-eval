@@ -8,7 +8,7 @@ from harness.web_search import publication, profiles
 
 
 def publication_files(tmp_path, monkeypatch):
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path))
     monkeypatch.setattr(publication, "ROOT", tmp_path)
     monkeypatch.setattr(publication, "current_selection", lambda *args: {"publication_target": "target.json"})
     report = tmp_path / "report"
@@ -159,7 +159,7 @@ def test_search_publisher_recovers_one_activation_and_preserves_private_site(tmp
 
 def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, monkeypatch):
     from harness.web_search import report as reports, visual, delivery
-    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path))
+    monkeypatch.setenv('WEBSTONE_DATA_HOME', str(tmp_path))
     repo = tmp_path / 'repo'; repo.mkdir()
     monkeypatch.setattr(publication, 'ROOT', repo)
     verify_inputs = profiles.verify_publication_inputs

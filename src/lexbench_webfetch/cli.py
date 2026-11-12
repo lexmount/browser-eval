@@ -8,7 +8,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description="Inspect and verify LexBench-Web-Fetch inputs")
     sub = parser.add_subparsers(dest="command", required=True)
     sub.add_parser("list", help="List the versioned suites")
-    sub.add_parser("version", help="Show the Browser Eval version and scoring-source hash of the installed scorer")
+    sub.add_parser("version", help="Show the Webstone version and scoring-source hash of the installed scorer")
     release = sub.add_parser("release", help="Freeze a dataset and scorer as a benchmark edition")
     release.add_argument("--dataset", type=Path, required=True)
     release.add_argument("--output", type=Path, required=True)
@@ -67,7 +67,7 @@ def main() -> None:
             scorer = installed_version()
             if args.benchmark == "lexmount-webfetch" and (
                     scorer["status"] != "released" or args.version != scorer["version"]):
-                raise ValueError("Release version must be the installed Browser Eval version "
+                raise ValueError("Release version must be the installed Webstone version "
                                  f"and its released scorer; installed scorer is {scorer['version']}")
             previous = json.loads(args.previous.read_text()) if args.previous else None
             result = freeze_release(args.dataset, args.output, benchmark=args.benchmark,

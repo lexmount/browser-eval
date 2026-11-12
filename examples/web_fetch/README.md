@@ -16,10 +16,10 @@ uv run --frozen python -m http.server 8765 --bind 127.0.0.1 \
 In another terminal at the repository root, validate and run the HTTP baseline:
 
 ```bash
-uv run --frozen browser-harness-eval validate \
+uv run --frozen webstone validate \
   --dataset examples/web_fetch/dataset.json \
   --provider-config configs/providers.quickstart.json --providers http
-uv run --frozen browser-harness-eval run \
+uv run --frozen webstone run \
   --dataset examples/web_fetch/dataset.json \
   --provider-config configs/providers.quickstart.json --providers http --delay 0
 ```
@@ -54,7 +54,7 @@ Quickstart records the actual browser versions; it does not enforce historical p
 Copy `dataset.json` and `configs/providers.quickstart.json` for your own experiment, then pass their paths explicitly:
 
 ```bash
-uv run --frozen browser-harness-eval run \
+uv run --frozen webstone run \
   --dataset /absolute/path/dataset.json \
   --provider-config /absolute/path/providers.json --providers method-a,method-b \
   --case-ids case-a,case-b --task-kind body \
@@ -72,12 +72,12 @@ Declare references and acceptance rules before running. See [metrics](../../docs
 
 ## Open the report
 
-The terminal prints the absolute path to `report/index.html`. It sits inside the run directory, next to `results.jsonl`, `summary.json`, `manifest.json`, `dataset.json` and `artifacts/`. Outputs default to `~/.browser-eval/runs/`; `BROWSER_EVAL_DATA_HOME` changes the data root.
+The terminal prints the absolute path to `report/index.html`. It sits inside the run directory, next to `results.jsonl`, `summary.json`, `manifest.json`, `dataset.json` and `artifacts/`. Outputs default to `~/.webstone/runs/`; `WEBSTONE_DATA_HOME` changes the data root.
 
 Rebuild from saved evidence without calling the methods again:
 
 ```bash
-uv run --frozen browser-harness-eval report /absolute/path/to/run
+uv run --frozen webstone report /absolute/path/to/run
 ```
 
 To publish the report online, follow [Hosting reports](../../docs/report-hosting.md).

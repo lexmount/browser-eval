@@ -15,7 +15,7 @@ from bs4 import BeautifulSoup
 from harness.distribution import repository_root
 from harness.web_fetch import __version__
 
-FILENAME = "browser-eval-version.json"
+FILENAME = "webstone-version.json"
 _RUNTIME_SUFFIXES = {".py", ".js", ".cjs", ".mjs", ".mts", ".c", ".json",
                      ".html", ".css", ".ini", ".txt", ".png"}
 
@@ -75,8 +75,8 @@ def bind_build_version(root):
             continue
         content = re.sub(r'<(p|span) data-report-build-version>.*?</\1>', '', content, flags=re.S)
         href = _version_href(route, content)
-        link = ('<a data-browser-eval-release="'
-                 + escape(identity["version"]) + '" href="' + href + '">Browser Eval v'
+        link = ('<a data-webstone-release="'
+                 + escape(identity["version"]) + '" href="' + href + '">Webstone v'
                  + escape(identity["version"]) + '</a>')
         benchmark = re.search(r'<a\b[^>]*\bdata-benchmark-release=[^>]*>.*?</a>', content, re.S)
         if benchmark:
@@ -93,18 +93,20 @@ def bind_build_version(root):
 
 
 def check_build_version(root, manifest):
-    """Keep legacy reports readable; verify every declared build and label."""
+    """Verify every declared build and label; reports built before the rename need a rebuild."""
 
-    binding = manifest.get("browser_eval")
+    binding = manifest.get("webstone")
     path = root / FILENAME
     pages = [(route, BeautifulSoup((root / route).read_text(encoding="utf-8"), "html.parser"))
              for route in ("index.html", "en/index.html") if (root / route).is_file()]
     if binding is None:
-        if path.exists() or any(page.select_one('[data-browser-eval-release]') for _, page in pages):
-            raise ValueError("Report lost its Browser Eval version binding")
+        if (path.exists() or (root / "browser-eval-version.json").exists() or "browser_eval" in manifest
+                or any(page.select_one('[data-webstone-release], [data-browser-eval-release]')
+                       for _, page in pages)):
+            raise ValueError("Report lost its Webstone version binding")
         return
     if path.is_symlink() or binding.get("file") != FILENAME or not path.is_file():
-        raise ValueError("Report Browser Eval version is missing")
+        raise ValueError("Report Webstone version is missing")
     raw = path.read_bytes()
     identity = json.loads(raw)
     if (hashlib.sha256(raw).hexdigest() != binding.get("sha256")
@@ -114,20 +116,20 @@ def check_build_version(root, manifest):
             or not re.fullmatch(r"[0-9a-f]{64}", identity.get("source_sha256", ""))
             or (identity.get("revision") is not None
                 and not re.fullmatch(r"[0-9a-f]{40}", identity["revision"]))):
-        raise ValueError("Report Browser Eval version changed")
+        raise ValueError("Report Webstone version changed")
     for route, page in pages:
         if page.select_one('[data-english-not-generated]'):
             continue
-        labels = page.select('[data-browser-eval-release]')
-        if (len(labels) != 1 or labels[0].get("data-browser-eval-release") != identity["version"]
-                or labels[0].get_text(" ", strip=True) != "Browser Eval v" + identity["version"]
+        labels = page.select('[data-webstone-release]')
+        if (len(labels) != 1 or labels[0].get("data-webstone-release") != identity["version"]
+                or labels[0].get_text(" ", strip=True) != "Webstone v" + identity["version"]
                 or labels[0].get("href") != _version_href(route, str(page))):
-            raise ValueError("Report lost its Browser Eval version label: " + route)
+            raise ValueError("Report lost its Webstone version label: " + route)
 
 
 def record_build_version(root):
     """Stamp builders whose report manifest is already complete."""
     path = root / "report-manifest.json"
     manifest = json.loads(path.read_text(encoding="utf-8")) if path.is_file() else {"schema_version": 1}
-    manifest["browser_eval"] = bind_build_version(root)
+    manifest["webstone"] = bind_build_version(root)
     path.write_text(json.dumps(manifest, indent=2) + "\n", encoding="utf-8")

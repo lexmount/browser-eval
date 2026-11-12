@@ -122,7 +122,7 @@ def require_quiet_host() -> float:
         pid, cpu, command = fields
         if (int(pid) != os.getpid() and float(cpu) >= 15
                 and any(marker in command for marker in (
-                    '/.browser-eval/work/', 'run_benchmark.py', 'cargo test', 'cargo build'))):
+                    '/.webstone/work/', 'run_benchmark.py', 'cargo test', 'cargo build'))):
             raise RuntimeError('concurrent benchmark/build process is active: ' + pid)
     return load
 

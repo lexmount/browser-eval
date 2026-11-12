@@ -987,8 +987,8 @@ def _teardown_method(client: Any, run_id: str, engine: str) -> None:
 
     errors = []
     labels = [
-        f"lex.browser-eval.run=replay-{run_id}",
-        f"lex.browser-eval.engine={engine}",
+        f"lex.webstone.run=replay-{run_id}",
+        f"lex.webstone.engine={engine}",
     ]
     for container in client.containers.list(all=True, filters={"label": labels}):
         try:
@@ -1049,9 +1049,9 @@ def _remove_orphan_replay_runtimes(client: Any, current_run_id: str) -> None:
 
     errors = []
     for container in client.containers.list(
-        all=True, filters={"label": "lex.browser-eval.run"}
+        all=True, filters={"label": "lex.webstone.run"}
     ):
-        run_label = str((container.labels or {}).get("lex.browser-eval.run") or "")
+        run_label = str((container.labels or {}).get("lex.webstone.run") or "")
         if run_label.startswith("replay-") and run_label != f"replay-{current_run_id}":
             try:
                 container.remove(force=True)
@@ -1384,7 +1384,7 @@ def run_replay_suite(  # noqa: PLR0913
     # is explicitly non-promotable and may be run while investigating an
     # uncommitted candidate fix; retain the exact base commit instead of
     # rejecting that workflow as if it were formal evidence.
-    browser_eval_commit = (
+    webstone_commit = (
         require_clean_git_checkout(repo_root)
         if scope != "diagnostic"
         else subprocess.run(
@@ -1409,7 +1409,7 @@ def run_replay_suite(  # noqa: PLR0913
             **docker_image_metadata(client.images.get(reference)),
         }
     runtime = {
-        "browser_eval_commit": browser_eval_commit,
+        "webstone_commit": webstone_commit,
         "cowagent_commit": cowagent_commit,
         "browser_session_contract": browser_session_contract(),
         "resources": {

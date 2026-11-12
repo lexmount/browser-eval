@@ -86,7 +86,7 @@ def dynamic_extraction_config(request):
     frame_selector = extraction.get("frame_selector")
     exclusions = list(extraction.get("exclude_selectors", []))
     fallback = extraction["fallback"]
-    marker = "[data-browser-eval-extraction-root]"
+    marker = "[data-webstone-extraction-root]"
     # Crawl4AI executes js_code after wait_for and before HTML capture. Clone a
     # bounded, answer-free predeclared selection into a synthetic root so the
     # crawler's own Markdown pipeline processes exactly that result surface.
@@ -104,8 +104,8 @@ let selected = sourceDocument
   : [];
 if (!selected.length && fallback === "body" && sourceDocument?.body) selected = [sourceDocument.body];
 const root = document.createElement("main");
-root.setAttribute("data-browser-eval-extraction-root", "");
-root.setAttribute("data-browser-eval-selected-count", String(selected.length));
+root.setAttribute("data-webstone-extraction-root", "");
+root.setAttribute("data-webstone-selected-count", String(selected.length));
 for (const [index, source] of selected.entries()) {{
   if (index) {{
     root.appendChild(document.createElement("br"));
@@ -339,7 +339,7 @@ async def main() -> None:
         browser_type="chromium",
         chrome_channel="chrome",
         headless=True,
-        verbose=os.environ.get("BROWSER_EVAL_LOG_LEVEL") == "debug",
+        verbose=os.environ.get("WEBSTONE_LOG_LEVEL") == "debug",
         accept_downloads=True,
         downloads_path=download_dir.name,
     )

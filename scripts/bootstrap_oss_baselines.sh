@@ -2,7 +2,7 @@
 set -euo pipefail
 
 harness_root=$(cd "$(dirname "$0")/.." && pwd)
-toolchain_root=${WEBFETCH_TOOLCHAIN_ROOT:-$HOME/.browser-eval/toolchains}
+toolchain_root=${WEBFETCH_TOOLCHAIN_ROOT:-$HOME/.webstone/toolchains}
 openclaw_repo=${OPENCLAW_REPO:-$toolchain_root/openclaw}
 dsh_repo=${DEEPSEEK_HARNESS_REPO:-$toolchain_root/deepseek-harness}
 cowagent_repo=${COWAGENT_REPO:-$toolchain_root/cowagent}

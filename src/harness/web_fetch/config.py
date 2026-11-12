@@ -82,7 +82,7 @@ def load_runtime_env(path: Path | None = None) -> None:
         load_env_file(selected, override_credentials=True,
                       credentials_allowed=selected.resolve() == ((ROOT / ".env")).resolve())
     if path is not None:
-        os.environ.setdefault("BROWSER_EVAL_REPORT_LANGUAGE", "en")
+        os.environ.setdefault("WEBSTONE_REPORT_LANGUAGE", "en")
 
 
 def repository_env() -> dict[str, str]:

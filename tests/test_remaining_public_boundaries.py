@@ -29,7 +29,7 @@ def test_trusted_extractor_probe_and_existing_output(tmp_path):
     assert output.read_bytes() == before
 
 
-@pytest.mark.skipif(os.environ.get("BROWSER_EVAL_FULL_VISUAL_TESTS") != "1",
+@pytest.mark.skipif(os.environ.get("WEBSTONE_FULL_VISUAL_TESTS") != "1",
                     reason="explicit full visual gate requires local Chrome")
 def test_wcxb_visual_generated_report(tmp_path):
     from harness.reporting.visual import browser_executable

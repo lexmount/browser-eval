@@ -2449,7 +2449,7 @@
         "en": "fixture"
       },
       "kind": "adapter",
-      "source_url": "https://github.com/lexmount/browser-eval",
+      "source_url": "https://github.com/lexmount/webstone",
       "adapter_types": [
         "fixture"
       ],
@@ -2463,7 +2463,7 @@
               "zh": "注册 / 登录",
               "en": "Register / sign in"
             },
-            "https://github.com/lexmount/browser-eval"
+            "https://github.com/lexmount/webstone"
           ]
         ],
         "account": {
@@ -6158,7 +6158,7 @@
         "zh": "托管 Fetch 接入代码（能力范围）",
         "en": "Hosted Fetch adapter (implemented scope)"
       },
-      "url": "https://github.com/lexmount/browser-eval/blob/1c2f5d310700db97968d5f75e9a89c96f9505840/harness/web_fetch/providers/hosted_fetch.py",
+      "url": "https://github.com/lexmount/webstone/blob/1c2f5d310700db97968d5f75e9a89c96f9505840/harness/web_fetch/providers/hosted_fetch.py",
       "checked_at": "2026-10-25",
       "checked_version": "1c2f5d310700db97968d5f75e9a89c96f9505840"
     }

@@ -1,5 +1,5 @@
 {
-  "schema": "browser-eval-code-migration/1",
+  "schema": "webstone-code-migration/1",
   "purpose": "Bind consolidated scorer code, dataset resolution and tested scoring corrections to their original sources.",
   "sources": {
     "webfetch": {
@@ -32,7 +32,7 @@
         },
         "benchmark.py": {
           "before_sha256": "c8951a2425441ac334ab126f2b7c9196d980b0cf1b904a7e8621c2a8aab15977",
-          "after_sha256": "5bd2f35229733ff3e77406313063e0066aad69fc61c8bd555758a0aa769e5d40"
+          "after_sha256": "f1c151720cf83c549a4e47ed2acb54d77919b0b0b3839a9184c0f6b7783e047f"
         },
         "body_coverage.py": {
           "before_sha256": "a349a1db3d5de9d63d33443572c4d8f48afb8a7f88d03090625407fddf7b6137",
@@ -40,7 +40,7 @@
         },
         "cli.py": {
           "before_sha256": "46b7bd246e8b56bc03c7d35309a7ec48419c37f54bb05bc6a144cfd3c527e194",
-          "after_sha256": "0094171c9c8dbf7a68f8495404c2b61d5097b759efb10957c8aeb2015af38e3f"
+          "after_sha256": "d1f19462d7d6736152861903018c3433f48d091aad94cc004f49932cb61aac54"
         },
         "composite_tasks.py": {
           "before_sha256": "b3281beb921bbfbddb1ca69f17cedc7af303965eb9039c383d602287c85b1e3d",
@@ -64,7 +64,7 @@
         },
         "inputs.py": {
           "before_sha256": "d0cccd0be9ead93d40a56dcfa15ece74e96965beefb5032e0b6bbe23b5da9d44",
-          "after_sha256": "9064564b91921346ebf5bf7e5b9305ecc0e02db06b91f1fba55d71477a7435b5"
+          "after_sha256": "661fedc7d7c58ba6d73c8b8451ff5d14e4fd8c5a5f48422a6e393dd04d194006"
         },
         "list_verification.py": {
           "before_sha256": "c311bb3ef9d46f21319b7eef35e34120580ec6cad720958b6336fe59e5a24bf7",
@@ -116,15 +116,11 @@
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
-          "after_sha256": "e76133953fa60681fb5af53b3e6467dc7e814f9edf53e464af21c19f0a9a5f94"
+          "after_sha256": "1d299cadb2f2e6f9c5dd4ef0bb933c5391487146704128169573a87ea2625313"
         },
         "annotation_revisions.py": {
           "before_sha256": "98792092a82af477cf2b975c62e37378e75c083bf8370d75d65e08fd25f3d843",
           "after_sha256": "79d49de1020c6465438be004a92c3dbefb45de552f3d37eb35cab53460ebaf0e"
-        },
-        "content_scopes.py": {
-          "before_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
-          "after_sha256": "73c1bf611c230ed3ca8b97ba6492cfd726a3af8febd5ccec5e0b4b7a8e3184e0"
         }
       },
       "corrections": [
@@ -4313,24 +4309,6 @@
             "tests/benchmarks/webfetch/test_benchmark.py"
           ],
           "reason": "Revision export scored descriptive reference text, record-task ground truth and body-only main content as full answers, so contracts that also need records, anchors, titles, comments, links or files failed the frozen-reference gate. Score dataset reference text as plain text; a rejected text that cannot carry every declared requirement and still meets its body requirement is unavailable, while any failed text check (body, facts, patterns, literals, length, content), text-only failures and accepted error pages still fail. Reviews may inherit predecessor entries for byte-identical change rows. score_attempt is unchanged."
-        },
-        {
-          "modules": [
-            "benchmark.py",
-            "content_scopes.py",
-            "cli.py",
-            "models.py",
-            "scoring.py"
-          ],
-          "tests": [
-            "tests/benchmarks/webfetch/test_content_scopes.py"
-          ],
-          "regression_ids": [
-            "content-scope-main-body",
-            "content-scope-full-requires-footer",
-            "content-scope-full-complete",
-            "content-scope-main-rejects-blocked"
-          ]
         }
       ]
     },
@@ -4340,7 +4318,7 @@
       "changes": {
         "__init__.py": {
           "before_sha256": "59ae744164e0235b61506730b36632405944503be2dc472c56d923dcaef3183f",
-          "after_sha256": "ac4d94c16e7f3fb3b280f542e2c2645a1d0b35b9e01cdb13b140d5bbf9057a97"
+          "after_sha256": "b2ebfaf4c127a30cbeab45e22a5449b59aec72ca0d022ff0f9f87d32622a130d"
         },
         "cli.py": {
           "before_sha256": "ca67f5578d2d417a62f96189e857be8b19249882dec37d874d9713c171a6b8ca",
@@ -4403,7 +4381,8 @@
       "web-scraper-public-snapshots/2": "web-extract-public-snapshots/2",
       "web-scraper-snapshot-verification/1": "web-extract-snapshot-verification/1",
       "web-scraper-hf-snapshots/1": "web-extract-hf-snapshots/1",
-      "web-scraper-deployment-approval/1": "web-extract-deployment-approval/1"
+      "web-scraper-deployment-approval/1": "web-extract-deployment-approval/1",
+      "browser-eval-dataset-release/1": "webstone-dataset-release/1"
     },
     "repositories": {
       "Lexmount/LexBench-Web-Scraper": "Lexmount/LexBench-Zyte-Product-Extraction"

@@ -215,7 +215,7 @@ wheels = [
 ]
 
 [[package]]
-name = "browser-eval-extraction-service"
+name = "webstone-extraction-service"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [

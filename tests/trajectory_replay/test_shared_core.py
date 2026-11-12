@@ -337,9 +337,9 @@ def test_engine_container_starts_on_its_own_bridge_with_the_requested_limits(mon
     )
 
     client.networks.create.assert_called_once_with(
-        "lex-browser-eval-run-chromium",
+        "lex-webstone-run-chromium",
         driver="bridge",
-        labels={"lex.browser-eval.run": "run", "lex.browser-eval.engine": "chromium"},
+        labels={"lex.webstone.run": "run", "lex.webstone.engine": "chromium"},
     )
     start_container.assert_called_once_with(
         client,
@@ -580,7 +580,7 @@ def test_only_the_public_environment_records_the_image_build_source():
     container.image.id = "sha256:image"
     container.image.tags = ["image:tag"]
     container.image.attrs = {
-        "Config": {"Labels": {"lex.browser-eval.source": "commit", "other": "ignored"}}
+        "Config": {"Labels": {"lex.webstone.source": "commit", "other": "ignored"}}
     }
     client = MagicMock()
     client.info.return_value = {}
@@ -594,7 +594,7 @@ def test_only_the_public_environment_records_the_image_build_source():
     assert public["images"]["chromium"] == {
         "id": "sha256:image",
         "tags": ["image:tag"],
-        "build_source": {"lex.browser-eval.source": "commit"},
+        "build_source": {"lex.webstone.source": "commit"},
     }
 
 

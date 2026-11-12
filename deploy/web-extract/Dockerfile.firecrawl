@@ -1,4 +1,4 @@
 FROM ghcr.io/firecrawl/firecrawl@sha256:4108cdc36e9ac84e59831e2b710d6f9ee489a11515099742fda31ae910ae2edb
 ENV FIRECRAWL_UPSTREAM_IMAGE=ghcr.io/firecrawl/firecrawl@sha256:4108cdc36e9ac84e59831e2b710d6f9ee489a11515099742fda31ae910ae2edb
-COPY src/harness/web_extract/firecrawl_backend.mjs /opt/browser-eval/firecrawl_backend.mjs
-ENTRYPOINT ["node", "/opt/browser-eval/firecrawl_backend.mjs"]
+COPY src/harness/web_extract/firecrawl_backend.mjs /opt/webstone/firecrawl_backend.mjs
+ENTRYPOINT ["node", "/opt/webstone/firecrawl_backend.mjs"]

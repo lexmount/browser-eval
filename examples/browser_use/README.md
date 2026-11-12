@@ -20,7 +20,7 @@ The current pilot has 15 easy, 30 medium and 45 hard tasks. These project-define
 Use a dedicated Colima VZ profile with Rosetta and at least 140 GiB disk:
 
 ```bash
-colima start browser-eval --vm-type vz --disk 140 --memory 8 --cpus 4 --vz-rosetta
+colima start webstone --vm-type vz --disk 140 --memory 8 --cpus 4 --vz-rosetta
 ```
 
 The four official amd64 images occupy about 91 GB before writable layers. Legacy Alpine/musl PHP-FPM crashes under Rosetta, so the runner mounts Colima's QEMU interpreter for PHP-FPM in Magento and Reddit. Java, GitLab and the remaining processes use Rosetta. Site data and evaluator logic stay unchanged.
@@ -41,7 +41,7 @@ To compare another model, use a separate evidence directory:
 
 ```bash
 ./examples/browser_use/run.sh --model YOUR_SECOND_MODEL \
-  --output "${BROWSER_EVAL_DATA_HOME:-$HOME/.browser-eval}/browser-use/second-model"
+  --output "${WEBSTONE_DATA_HOME:-$HOME/.webstone}/browser-use/second-model"
 ```
 
 One directory contains one model. The runner cannot resume it with another model. Relative `--output` and `--selection` paths resolve from the caller's directory.

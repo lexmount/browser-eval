@@ -46,10 +46,10 @@ content remain external variables rather than being silently treated as fixed.
 Outputs:
 
 - raw attempts, manifest, and summary in a new directory under
-  `~/.browser-eval/trajectory-replay/runs/`
+  `~/.webstone/trajectory-replay/runs/`
 - Markdown, HTML, and audit data in that run's `report/` directory
 
-`BROWSER_EVAL_DATA_HOME` changes the data root. The command prints the selected
+`WEBSTONE_DATA_HOME` changes the data root. The command prints the selected
 evidence directory. `TRAJECTORY_REPLAY_OUTPUT_DIR` selects an explicit new directory;
 an existing directory, file, or symlink is rejected without deleting evidence.
 Repeated invocations create separate runs. This runner does not resume an old run.

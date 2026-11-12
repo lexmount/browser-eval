@@ -15,8 +15,8 @@ are immutable inputs bound by retained cohorts, not copies of report output; rem
 them must not make historical contracts impossible to resolve.
 
 Authored report content and illustrations live outside Git. The report command takes
-`--content` (default `$BROWSER_EVAL_DATA_HOME/report-assets/trajectory-replay`, with the
-data home defaulting to `~/.browser-eval`). `research/trajectory-replay-content.json`
+`--content` (default `$WEBSTONE_DATA_HOME/report-assets/trajectory-replay`, with the
+data home defaulting to `~/.webstone`). `research/trajectory-replay-content.json`
 binds every consumed file. The prior Git revision retains migration recovery copies;
 published report versions and physical execution evidence remain unchanged.
 
@@ -48,7 +48,7 @@ candidate evidence, not additional tasks.
   upstream contract defect, the qualification proof binds its correction ID, catalog hash and
   corrected task hash; historical Browser Use scores remain unchanged.
 - Full HAR, screenshots, traces, resource samples and replay receipts remain outside Git under
-  `BROWSER_EVAL_DATA_HOME`; this directory stores deterministic actions and provenance hashes.
+  `WEBSTONE_DATA_HOME`; this directory stores deterministic actions and provenance hashes.
 - The current self-hosted WebArena deployment has one fixed-port site stack, so a formal suite owns
   the physical environment exclusively. It runs every task for one browser before starting the next
   browser, restores the site stack once before each browser method, and tears down the browser and site

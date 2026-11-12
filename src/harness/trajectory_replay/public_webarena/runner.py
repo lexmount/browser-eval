@@ -471,7 +471,7 @@ def _environment(client: Any, containers: dict[str, Any]) -> dict[str, Any]:
             for key, value in (
                 (container.image.attrs.get("Config") or {}).get("Labels") or {}
             ).items()
-            if key.startswith("lex.browser-eval.")
+            if key.startswith("lex.webstone.")
         }
     return environment
 

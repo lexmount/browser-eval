@@ -82,7 +82,7 @@
     "cowagent-built-in": {
       "type": "cowagent_builtin",
       "repo_path": "${COWAGENT_REPO}",
-      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.browser-eval/runs/cowagent-workspace}",
+      "workspace": "${COWAGENT_BENCHMARK_WORKSPACE:-~/.webstone/runs/cowagent-workspace}",
       "expected_repo_revision": "ed5bb344cfe42cee443c8266ba47ee666d8d7471",
       "required_paths": [
         "{repo_path}/agent/tools/web_fetch/web_fetch.py",
@@ -191,7 +191,7 @@
       "env": {"OPENCLAW_REPO": "${OPENCLAW_REPO}"},
       "expected_repo_revision": "12c4bdf7482f24c85b011e9d858fdec3c245101c",
       "expected_node_version": "v24.15.0",
-      "package_manager_command": "${OPENCLAW_PNPM:-~/.browser-eval/toolchains/openclaw-node/node_modules/.bin/pnpm}",
+      "package_manager_command": "${OPENCLAW_PNPM:-~/.webstone/toolchains/openclaw-node/node_modules/.bin/pnpm}",
       "expected_package_manager_version": "12.1.0",
       "required_paths": [
         "{repo_path}/src/agents/tools/web-fetch.ts",

@@ -451,7 +451,7 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
     # A cold installed import must not resolve dataset files eagerly.
     with monkeypatch.context() as importing:
         importing.setenv("HF_HUB_OFFLINE", "1")
-        importing.setenv("BROWSER_EVAL_DATASET_CACHE", str(tmp_path / "empty-cache"))
+        importing.setenv("WEBSTONE_DATASET_CACHE", str(tmp_path / "empty-cache"))
         importing.setattr("lexbench_webfetch.inputs.definition_path",
                           lambda *a, **k: pytest.fail("eager installed dataset resolution"))
         spec.loader.exec_module(owner)
@@ -475,7 +475,7 @@ def test_registered_contract_from_an_installed_module(tmp_path, monkeypatch, cor
     source = tmp_path / "data/reference-inputs/installed-contract/sources/dynamic-delayed/render-audit.json"
     source.parent.mkdir(parents=True)
     source.write_bytes(b"changed source" if corrupt_source else b"independent source observation")
-    monkeypatch.setenv("BROWSER_EVAL_DATA_HOME", str(tmp_path / "data"))
+    monkeypatch.setenv("WEBSTONE_DATA_HOME", str(tmp_path / "data"))
     registry = json.loads(definition_path("evaluation/native-retrieval-contracts.json").read_text(encoding="utf-8"))
     registry["contracts"]["delayed-ten-records"]["source_authority"]["sha256"] = expected
     registry_path = definitions / "contracts.json"

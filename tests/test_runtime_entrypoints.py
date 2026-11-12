@@ -172,11 +172,11 @@ class RuntimeEntrypointTests(unittest.TestCase):
     def test_env_example_uses_the_bootstrapped_runtime_commands(self) -> None:
         env_example = (ROOT / '.env.example').read_text(encoding='utf-8')
         self.assertIn(
-            'OPENCLAW_NODE=~/.browser-eval/toolchains/openclaw-node/node_modules/node/bin/node',
+            'OPENCLAW_NODE=~/.webstone/toolchains/openclaw-node/node_modules/node/bin/node',
             env_example,
         )
         self.assertIn(
-            'OPENCLAW_PNPM=~/.browser-eval/toolchains/openclaw-node/node_modules/.bin/pnpm',
+            'OPENCLAW_PNPM=~/.webstone/toolchains/openclaw-node/node_modules/.bin/pnpm',
             env_example,
         )
         self.assertNotIn('DEEPSEEK_PNPM=', env_example)

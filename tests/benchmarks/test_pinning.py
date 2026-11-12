@@ -66,7 +66,7 @@ def fixture(root, monkeypatch, defect=None, *, jsonl=False):
             item.size = len(content)
             archive.addfile(item, io.BytesIO(content))
     raw = stream.getvalue()
-    manifest = {'schema': 'browser-eval-dataset-release/1', 'track': 'websearch',
+    manifest = {'schema': 'webstone-dataset-release/1', 'track': 'websearch',
                 'source_revision': 'b' * 40, 'datasets': registry['datasets'],
                 'archive': {'path': 'definitions.tar.gz', 'size': len(raw), 'sha256': hashlib.sha256(raw).hexdigest()},
                 'files': {name: {'size': len(value), 'sha256': hashlib.sha256(value).hexdigest()}
@@ -422,7 +422,7 @@ def coordinated_fixture(root, monkeypatch, defect=None):
                 entry.size = len(value)
                 archive.addfile(entry, io.BytesIO(value))
         archive = buffer.getvalue()
-        manifest = {'schema': 'browser-eval-dataset-release/1', 'track': track,
+        manifest = {'schema': 'webstone-dataset-release/1', 'track': track,
                     'source_revision': 'b' * 40, 'datasets': registry['datasets'],
                     'archive': {'path': 'definitions.tar.gz', 'size': len(archive),
                                 'sha256': hashlib.sha256(archive).hexdigest()},

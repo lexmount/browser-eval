@@ -545,7 +545,7 @@ class ReportTemplateTests(unittest.TestCase):
                 diagnostic_input=dict(path='input.json',sha256=hashlib.sha256(spec.read_bytes()).hexdigest()),
                 cohort_plan=[dict(id='articles',case_count=2,case_ids_sha256=hashlib.sha256(
                     ('\n'.join(sorted(c['id'] for c in cases))+'\n').encode()).hexdigest())])), encoding='utf-8')
-            with patch.dict('os.environ',{'BROWSER_EVAL_DATA_HOME':str(root)}):
+            with patch.dict('os.environ',{'WEBSTONE_DATA_HOME':str(root)}):
                 bound_output=root/'profiled-output'
                 build_diagnostic_cohorts(None,bound_output,profile=profile)
                 check_diagnostic_report(bound_output,profile=profile)

@@ -30,7 +30,7 @@ def cohort(tmp_path, monkeypatch):
     provider = SimpleNamespace(_implementation_identity={'version': 'fixture-v1'}, validate=lambda: [])
     monkeypatch.setattr(risk_control, 'ROOT', tmp_path)
     monkeypatch.setattr(risk_control, 'validate', lambda path: (profile, dataset, [SimpleNamespace(id=row['id']) for row in dataset['cases']], provider, config_path))
-    monkeypatch.setenv('BROWSER_EVAL_DATA_HOME', str(tmp_path / 'data'))
+    monkeypatch.setenv('WEBSTONE_DATA_HOME', str(tmp_path / 'data'))
     # main changes process environment for reproducible measurements; keep the
     # fixture's environment isolation while exercising those real assignments.
     for key in (*risk_control.PROXY_VARIABLES, 'LANG', 'LC_ALL'):
@@ -91,7 +91,7 @@ def assert_certified_data(cohort):
 
 
 def test_certified_collection_can_skip_report_without_losing_evidence(cohort, capsys, monkeypatch):
-    monkeypatch.setenv('BROWSER_EVAL_REPORT_LANGUAGE', 'unsupported-but-unrequested')
+    monkeypatch.setenv('WEBSTONE_REPORT_LANGUAGE', 'unsupported-but-unrequested')
     cohort[2]['report_error'] = 'Unrequested renderer must not run'
     execute(cohort, '--no-report')
     assert_certified_data(cohort)

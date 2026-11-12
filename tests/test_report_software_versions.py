@@ -22,14 +22,14 @@ def test_build_records_software_without_relabeling_saved_benchmark(tmp_path, mon
     assert len(identity['revision']) == 40
     assert len(identity['source_sha256']) == 64
     page = BeautifulSoup((first / 'index.html').read_text(encoding='utf-8'), 'html.parser')
-    assert page.select_one('[data-browser-eval-release]').get_text() == 'Browser Eval v' + __version__
+    assert page.select_one('[data-webstone-release]').get_text() == 'Webstone v' + __version__
     assert page.select_one('[data-benchmark-release]').get_text() == 'bench v1.0.0'
 
     # A newer builder must not change the selected tasks, scorer or saved calls.
     monkeypatch.setattr(versions, 'software_identity', lambda: {**identity, 'version': '0.3.0'})
     second = tmp_path / 'second'
     build_snapshot_audit(source, second, profile=profile)
-    assert 'Browser Eval v0.3.0' in (second / 'index.html').read_text(encoding='utf-8')
+    assert 'Webstone v0.3.0' in (second / 'index.html').read_text(encoding='utf-8')
     for file in ('benchmark-release.json', 'results.jsonl', 'dataset.json'):
         assert (first / file).read_bytes() == (second / file).read_bytes()
     assert before == {path.relative_to(source): path.read_bytes()
@@ -53,15 +53,15 @@ def test_release_gate_rejects_missing_or_conflicting_build_identity(tmp_path, de
     elif defect == 'binding':
         path = output / 'report-manifest.json'
         manifest = json.loads(path.read_text(encoding='utf-8'))
-        del manifest['browser_eval']
+        del manifest['webstone']
         path.write_text(json.dumps(manifest), encoding='utf-8')
     else:
         path = output / 'index.html'
         content = path.read_text(encoding='utf-8')
-        content = content.replace('data-browser-eval-release=', 'data-lost=') if defect == 'label' else content.replace(
-            'href="browser-eval-version.json"', 'href="missing-version.json"')
+        content = content.replace('data-webstone-release=', 'data-lost=') if defect == 'label' else content.replace(
+            'href="webstone-version.json"', 'href="missing-version.json"')
         path.write_text(content, encoding='utf-8')
-    with pytest.raises(ValueError, match='Browser Eval'):
+    with pytest.raises(ValueError, match='Webstone'):
         check_snapshot_audit(output)
 
 
@@ -73,15 +73,15 @@ def test_shared_identity_handles_both_languages_and_repeat_builds(tmp_path, base
                        + '</head><body><main>Results</main><footer></footer></body></html>', encoding='utf-8')
     versions.bind_build_version(tmp_path)
     binding = versions.bind_build_version(tmp_path)
-    versions.check_build_version(tmp_path, {'browser_eval': binding})
+    versions.check_build_version(tmp_path, {'webstone': binding})
     for route in ('index.html', 'en/index.html'):
         page = BeautifulSoup((tmp_path / route).read_text(encoding='utf-8'), 'html.parser')
-        assert len(page.select('[data-browser-eval-release]')) == 1
+        assert len(page.select('[data-webstone-release]')) == 1
         from urllib.parse import urljoin
         base = page.select_one('base')
         document = (tmp_path / route).as_uri()
         target = urljoin(urljoin(document, base['href']) if base else document,
-                         page.select_one('[data-browser-eval-release]')['href'])
+                         page.select_one('[data-webstone-release]')['href'])
         assert target == (tmp_path / versions.FILENAME).as_uri()
 
 
