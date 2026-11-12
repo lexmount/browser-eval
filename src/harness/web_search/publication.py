@@ -56,10 +56,14 @@ def prepare(report, visual, content, sources, work, *, profile):
         ("report_manifest", report / "manifest.json", "manifest.json"),
         ("content", content, "reader-content.json"),
         ("visual_acceptance", visual, "visual-acceptance.json"),
-        ("relevance", report / "relevance-judgments.json", "relevance.json"),
-        ("independent_review", report / "independent-review.json", "independent-review.json"),
     ):
         bind(name, source, filename)
+    for name, field, filename in (
+        ("relevance", "relevance_sha256", "relevance-judgments.json"),
+        ("independent_review", "independent_review_sha256", "independent-review.json"),
+    ):
+        if manifest.get(field):
+            bind(name, report / filename, name.replace("_", "-") + ".json")
     receipts = collection_receipts(manifest)
     if set(sources) != {r["cohort"] for r in receipts}:
         raise ValueError("Publication requires the exact checked cohort sources")
@@ -84,8 +88,8 @@ def prepare(report, visual, content, sources, work, *, profile):
                 raise ValueError("Publication archive contains a symlink")
             if file.is_file():
                 output.write(file, file.relative_to(work / "delivery"))
-    review = json.loads((inputs / "independent-review.json").read_bytes())
-    relevance = json.loads((inputs / "relevance.json").read_bytes())
+    review = json.loads((inputs / "independent-review.json").read_bytes()) if manifest.get("independent_review_sha256") else None
+    relevance = json.loads((inputs / "relevance.json").read_bytes()) if manifest.get("relevance_sha256") else None
     profile = manifest["profile"]
     candidate = dict(target, bindings=bindings, methods=[m["id"] for m in profile["methods"]], cases=len(profile["cases"]), logical_results=len(manifest["rows"]),
                      physical_calls=sum(len(r.get("attempts", [r])) for r in manifest["rows"]),

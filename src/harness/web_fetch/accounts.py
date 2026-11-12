@@ -66,7 +66,9 @@ def usable(value: str | None) -> bool:
     return bool(value and value.strip())
 
 
-def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]]:
+def import_credentials(
+    source: Path, target: Path, *, keys: tuple[str, ...] = HOSTED_KEYS
+) -> tuple[list[str], list[str]]:
     source = source.expanduser().resolve()
     target = target.expanduser().resolve()
     if source == target:
@@ -77,7 +79,7 @@ def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]
     imported: list[str] = []
     missing: list[str] = []
     additions: list[str] = []
-    for key in HOSTED_KEYS:
+    for key in keys:
         if usable(target_values.get(key)):
             continue
         if not usable(source_values.get(key)):
@@ -110,7 +112,9 @@ def import_credentials(source: Path, target: Path) -> tuple[list[str], list[str]
 
 
 def main_import_credentials(argv: list[str] | None = None) -> None:
-    parser = argparse.ArgumentParser(description="Import declared hosted credentials into a .env file.")
+    parser = argparse.ArgumentParser(
+        description="Import declared hosted credentials into a .env file."
+    )
     parser.add_argument("--source", type=Path, default=Path.home() / ".env")
     parser.add_argument("--target", type=Path, default=config.ROOT / ".env",
                         help="defaults to the repository .env that evaluation runs load")

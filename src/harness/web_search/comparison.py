@@ -93,6 +93,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
             if row is None:
                 outputs[method["id"]] = None
                 continue
+            has_labels = case["id"] in labels and method["id"] in profile.get("relevance_methods", [m["id"] for m in methods])
             items = []
             for item in row.get("results", [])[:cutoff]:
                 contaminated = "reference_answer" in case and is_benchmark_page(item, case=case)
@@ -106,23 +107,23 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                     case, {"url": item.get("url"), **displayed},
                     quality_excluded=quality_excluded, contamination_excluded=contaminated)
                 candidate_id = candidate_identity(case["id"], item["url"]) if _url(item.get("url")) else ""
-                judgment = judgments.get(case["id"], {}).get(candidate_id, {})
+                judgment = judgments.get(case["id"], {}).get(candidate_id, {}) if has_labels else {}
                 items.append({"url": _url(item.get("url")),
                               "grade_reason": judgment.get("reason", ""),
-                              "grade_source": judgment.get("grade_source", (relevance or {}).get("judge", {}).get("kind", "unjudged")),
+                              "grade_source": judgment.get("grade_source", (relevance or {}).get("judge", {}).get("kind", "unjudged")) if has_labels else "unjudged",
                               "grade_evidence": (judgment.get("evidence") or (report_text("Selected field is empty", zh) if judgment.get("evidence_empty") else "")),
                               "contamination_excluded": contaminated,
                               "source_match": source_match, "answer_fields": visible_answers,
                               "answer_outside_preview": answer_fields["content"] and not visible_answers["content"],
-                              "grade": (labels[case["id"]].get(candidate_identity(case["id"], item["url"])) if case["id"] in labels and _url(item.get("url")) and not (quality_excluded or contaminated) else None),
+                              "grade": (labels[case["id"]].get(candidate_identity(case["id"], item["url"])) if has_labels and _url(item.get("url")) and not (quality_excluded or contaminated) else None),
                               "site_match": not (quality_excluded or contaminated) and any(in_domain(item.get("url", ""), d) for d in case.get("domains", [])),
                               **displayed})
             ranking = [candidate_identity(case["id"], item["url"]) for item in row.get("results", [])[:cutoff] if _url(item.get("url"))]
-            query_score = query_metrics(ranking, labels[case["id"]], cutoff) if case["id"] in labels and not quality_excluded else None
+            query_score = query_metrics(ranking, labels[case["id"]], cutoff) if has_labels and not quality_excluded else None
             outputs[method["id"]] = {
                 "score": query_score,
-                "primary": acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if case["id"] in labels else None),
-                "quality": any(x["grade"] is not None and x["grade"] >= 2 for x in items) if case["id"] in labels and not quality_excluded else None,
+                "primary": acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=[x["grade"] for x in items] if has_labels else None),
+                "quality": any(x["grade"] is not None and x["grade"] >= 2 for x in items) if has_labels and not quality_excluded else None,
                 "source": acceptance(case, row, quality_excluded=quality_excluded, cutoff=cutoff), "answer": acceptance(case, row, "answer", quality_excluded=quality_excluded, cutoff=cutoff),
                 "site": acceptance(case, row, "site", cutoff=cutoff),
                 "availability": acceptance(case, row, "availability"),

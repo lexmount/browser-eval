@@ -50,6 +50,9 @@ def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots
 
 def normalize_response(payload, method, protocol, request=None):
     """Project native slots using the frozen request's URL-resolution policy."""
+    error = adapter_for(method["adapter"]).account_error(payload, method)
+    if error:
+        raise ValueError(error)
     policy = protocol.get("result_url_resolution")
     if policy not in (None, "request-url/1"):
         raise ValueError("Unknown native result URL policy")
@@ -135,6 +138,9 @@ def validate_profile(profile, *, execution_methods=None):
     cases = profile["cases"]
     methods = profile["methods"]
     protocol = profile["protocol"]
+    reference_retries = protocol.get("reference_retries", 0)
+    if type(reference_retries) is not int or not 0 <= reference_retries <= 3:
+        raise ValueError("Reference retries must be an integer between zero and three")
     if not cases or not methods:
         raise ValueError("Empty matrix")
     for items in (cases, methods):

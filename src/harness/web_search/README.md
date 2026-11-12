@@ -32,6 +32,58 @@ Report commands share one entry point; `--help` after any command lists its opti
 
 ## SERP providers and finite quotas
 
+Yuanbao Search uses adapter `tencent-wsa`, endpoint
+`https://api.wsa.cloud.tencent.com/SearchPro`, and `TENCENT_WSA_API_KEY`.
+Register a Tencent Cloud account, complete identity verification, activate the
+service and create a **service API KEY** in the [WSA console](https://console.cloud.tencent.com/wsa).
+The [official setup guide](https://cloud.tencent.com/document/product/1806/130615)
+describes this Bearer route; it requires no Cloud API signing credentials or SDK.
+An explicitly requested home-file setup imports only this named key into the
+repository `.env`; collection still reads repository credentials only.
+
+SearchPro requests `Mode=0` and `Cnt=10`, the smallest documented count. Use
+`protocol.normalize_top_k=true` for a five-result comparison: retain the complete native response but score the
+first five slots, without replacing invalid entries with later results.
+Keep the original result projection and URL resolution policy when adding a method to an existing run.
+`passage` maps to snippet and `content` to dynamic summary; neither is page body.
+A single declared site uses the native `Site` parameter. Other query operators
+remain in the query and need live verification for the selected account.
+The [API contract](https://cloud.tencent.com/document/product/1806/121811)
+returns the account tier in `Response.Version`; record it before freezing prices.
+Use unknown billing until the account's tier and charging rules are confirmed.
+
+Select `output_options.edition=standard|lite|flagship` and bind the observed
+`expected_response_version` on each method. Lite omits the unsupported `Mode`
+and `Cnt` parameters. Give editions distinct method IDs so their frozen calls
+remain separate. A changed or missing response version stops collection before
+another task; a mismatched edition has unknown billing under the intended plan.
+
+To add a provider to completed measurements, collect only that provider on the
+same frozen tasks. Set external report content `collection_composition` to
+`methods` and pass the new run as `--cohort yuanbao=/absolute/new-run` alongside
+the original `--source`. The builder verifies both complete runs, requires
+identical tasks and measurement controls, rejects overlapping providers, and
+retains each collection receipt. The task inventory remains unique. Collection
+dates and order stay visible; the combined report is not a same-window latency
+trial. A current instance can select methods across its primary and supplementary
+profile bindings; collecting a supplementary cohort executes only its methods.
+Account errors inside a Yuanbao HTTP 200 response stop collection immediately;
+after fixing the account, `--resume` archives the failed call and recollects its
+task rather than accepting an account failure as completed work.
+
+Publication binds independent review and relevance annotations only when the
+checked report manifest names them. Without those assessments, their metadata
+stays unavailable. A current instance that requires full independent review
+still rejects an unreviewed release. Adding a provider does not authorize a new
+independent review or extend historical judgments to the new responses.
+
+External content may set `relevance_methods` to the configurations covered by
+existing annotations. Candidate text, rankings and the complete query population
+still verify against that scope. Other configurations retain their measured
+outputs and timings but show unavailable relevance, including when a URL also
+appears in an annotated provider's response. Do not transfer judgments between
+changed snippets or provider outputs.
+
 SERP profiles select providers through the same collector and renderer. Supported adapters include Lexmount, Browserbase Parallel Advanced, Bright Data Google Light JSON and Serper Google. Keep each report's profile, selected participants and publication target alongside its external evidence. These services use different upstream indexes; the comparison measures their delivered rankings.
 
 Configure `LEXMOUNT_SEARCH_API_KEY`, `BROWSERBASE_API_KEY`, `BRIGHTDATA_API_KEY` and `SERPER_API_KEY` in the repository `.env`. Browserbase Search does not require a browser session. Bright Data requires a SERP zone in the profile's `output_options.zone`; its account key alone does not identify the product configuration. Acquire keys from the [Browserbase dashboard](https://www.browserbase.com/overview), [Bright Data console](https://brightdata.com/cp/start), [Serper](https://serper.dev/) and the Lexmount deployment administrator.

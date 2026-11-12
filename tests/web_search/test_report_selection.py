@@ -8,6 +8,40 @@ from harness.web_search.example import example
 from harness.web_search.report import build, check, load_run, metric_populations, project_comparison
 
 
+def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_urls(tmp_path):
+    from lexbench_websearch.relevance import candidate_packet
+    from harness.web_search.comparison import comparison_data
+    from harness.web_search.report import score_relevance
+
+    example(tmp_path)
+    profile, rows, _ = load_run(tmp_path / "fixture")
+    scope = [profile["methods"][0]["id"]]
+    old_profile = dict(profile, methods=profile["methods"][:1])
+    old_rows = [r for r in rows if r["method"] in scope]
+    packet, rankings = candidate_packet(old_profile, old_rows)
+    evidence = dict(packet, provider_rankings=rankings,
+                    judge={"kind": "human", "name": "Synthetic annotator"},
+                    labels={c["case_id"]: {x["candidate_id"]: 3 for x in c["candidates"]}
+                            for c in packet["blind_candidate_packets"]})
+    content = tmp_path / "scoped-content.json"
+    content.write_text(json.dumps({"relevance_methods": scope, "presentation": "comparison-report"}), encoding="utf-8")
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(evidence), encoding="utf-8")
+    output = tmp_path / "scoped-report"
+    build(output, source=tmp_path / "fixture", content=content, relevance=labels, include_english=True)
+    assert check(output)
+    manifest = json.loads((output / "manifest.json").read_bytes())
+    scored = score_relevance(manifest["profile"], rows, evidence["plan"], evidence["labels"])
+    assert {r["method"] for r in scored} == set(scope)
+    compared = comparison_data(manifest["profile"], rows, relevance=evidence)
+    unjudged = compared["cases"][0]["outputs"][profile["methods"][1]["id"]]
+    assert unjudged["score"] is None and unjudged["quality"] is None
+    assert all(item["grade"] is None and item["grade_source"] == "unjudged" for item in unjudged["items"])
+    home = BeautifulSoup((output / "index.html").read_text(), "html.parser")
+    assert home.select_one("[data-relevance-method-scope]")
+    assert len(home.select_one("[data-populations] table tbody").select("tr")) == 2
+
+
 def test_projection_retains_selected_method_order_and_all_questions(tmp_path):
     example(tmp_path)
     profile, rows, _ = load_run(tmp_path / 'fixture')

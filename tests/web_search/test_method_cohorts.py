@@ -1,0 +1,152 @@
+"""Adding a provider must preserve old calls and one shared task population."""
+
+import json
+
+import pytest
+from bs4 import BeautifulSoup
+
+from harness.record_io import bytes_sha256
+from harness.web_search.core import write_json
+from harness.web_search.example import example
+from harness.web_search.profiles import current_selection, load_profile_bytes
+from harness.web_search.report import build, check, load_report_runs
+
+
+def split_runs(root):
+    paths = []
+    for index, name in enumerate(("old", "new")):
+        location = root / name
+        example(location)
+        source = location / "fixture"
+        profile = json.loads((source / "profile.json").read_bytes())
+        profile["methods"] = [profile["methods"][index]]
+        profile["protocol"].update(
+            as_of=f"2026-11-{index + 1:02d}", order="complete provider batches"
+        )
+        write_json(source / "profile.json", profile)
+        rows = [json.loads(line) for line in (source / "results.jsonl").read_text().splitlines()]
+        rows = [r for r in rows if r["method"] == profile["methods"][0]["id"]]
+        (source / "results.jsonl").write_text("".join(json.dumps(r) + "\n" for r in rows))
+        receipt = json.loads((source / "receipt.json").read_bytes())
+        receipt.update(
+            call_count=len(rows),
+            profile_sha256=bytes_sha256((source / "profile.json").read_bytes()),
+            results_sha256=bytes_sha256((source / "results.jsonl").read_bytes()),
+        )
+        write_json(source / "receipt.json", receipt)
+        paths.append(source)
+    return paths
+
+
+def test_add_provider_reuses_old_calls_and_keeps_exact_task_population(tmp_path):
+    old, new = split_runs(tmp_path)
+    frozen = (old / "results.jsonl").read_bytes()
+    content = tmp_path / "content.json"
+    write_json(content, {"collection_composition": "methods"})
+    output = tmp_path / "combined"
+    build(output, source=old, cohorts=[("yuanbao", new)], content=content, include_english=True)
+    assert check(output)
+    manifest = json.loads((output / "manifest.json").read_bytes())
+    assert len(manifest["profile"]["cases"]) == 2
+    assert len(manifest["profile"]["methods"]) == 2
+    assert len(manifest["rows"]) == 4
+    assert len(manifest["receipt"]["separate_collections"]) == 2
+    assert (old / "results.jsonl").read_bytes() == frozen
+    for prefix in ("", "en/"):
+        text = (output / (prefix + "research.html")).read_text()
+        assert "2026-11-01" in text and "2026-11-02" in text
+        dataset = BeautifulSoup((output / (prefix + "dataset.html")).read_text(), "html.parser")
+        assert len(dataset.select("[data-row]")) == 2
+    # Release checks bind the collection-window disclosure as well as the numbers.
+    home_path = output / "index.html"
+    home = home_path.read_text()
+    home_path.write_text(home.replace("data-method-collection-notice", "removed"))
+    with pytest.raises(ValueError, match="window disclosure"):
+        check(output)
+    home_path.write_text(home)
+    path = output / "research.html"
+    path.write_text(path.read_text().replace("2026-11-02", "2026-11-01"))
+    with pytest.raises(ValueError, match="Execution settings"):
+        check(output)
+
+
+def test_method_composition_rejects_duplicate_providers_or_changed_questions(tmp_path):
+    old, new = split_runs(tmp_path)
+    with pytest.raises(ValueError, match="Overlapping method"):
+        load_report_runs(old, [("duplicate", old)], {}, composition="methods")
+    profile = json.loads((new / "profile.json").read_bytes())
+    profile["cases"][0]["query"] = "A different task"
+    write_json(new / "profile.json", profile)
+    receipt = json.loads((new / "receipt.json").read_bytes())
+    receipt["profile_sha256"] = bytes_sha256((new / "profile.json").read_bytes())
+    write_json(new / "receipt.json", receipt)
+    with pytest.raises(ValueError, match="identical tasks"):
+        load_report_runs(old, [("new", new)], {}, composition="methods")
+
+
+def test_projection_revision_preserves_collection_protocol_after_serialization(tmp_path):
+    from harness.web_search.core import normalize_response
+    from harness.web_search.revisions import NATIVE_CONTROLS, apply_report_revision
+
+    old, new = split_runs(tmp_path)
+    profile, _, _, _ = load_report_runs(old, [("new", new)], {}, composition="methods")
+    frozen_protocol = json.loads(json.dumps(profile["report_cohorts"][0]["protocol"]))
+    revision = {
+        "schema": "web-search-assessment-revision/1",
+        "provider_calls": 0,
+        "root_cause": "Native URL projection correction",
+        "normalization": "request-url/1",
+        "regression_ids": ["relative-serp-links", "unsafe-serp-links", "top-five-boundary"],
+        "regressions_sha256": bytes_sha256(NATIVE_CONTROLS.read_bytes()),
+    }
+    before, _, _ = apply_report_revision(profile, [], revision, normalizer=normalize_response)
+    restored, _, _ = apply_report_revision(
+        json.loads(json.dumps(profile)), [], revision, normalizer=normalize_response
+    )
+    assert before == restored
+    assert before["report_cohorts"][0]["protocol"] == frozen_protocol
+
+
+def test_current_instance_can_collect_only_new_provider(tmp_path):
+    old, new = split_runs(tmp_path)
+    bindings = []
+    for name, source in (("old", old), ("new", new)):
+        path = tmp_path / (name + ".json")
+        path.write_bytes((source / "profile.json").read_bytes())
+        bindings.append({"path": path.name, "sha256": bytes_sha256(path.read_bytes())})
+    selector = tmp_path / "current.json"
+    write_json(
+        selector,
+        {
+            "schema": "web-search-current/1",
+            "title": "Added provider",
+            "profile": bindings[0],
+            "supplementary_profiles": [dict(bindings[1], id="new")],
+            "methods": ["lexmount", "deepseek-content"],
+            "publication_target": "target.json",
+        },
+    )
+    current_selection(selector)
+    selected = json.loads(load_profile_bytes(selector, cohort="new"))
+    assert [m["id"] for m in selected["methods"]] == ["deepseek-content"]
+    assert len(selected["cases"]) == 2
+
+
+@pytest.mark.parametrize(
+    "changed",
+    [
+        {"normalize_top_k": True},
+        {"result_url_resolution": "request-url/1"},
+        {"client_timeout_s": 99},
+    ],
+)
+def test_added_provider_cannot_change_measurement_or_projection_controls(tmp_path, changed):
+    old, new = split_runs(tmp_path)
+    profile = json.loads((new / "profile.json").read_bytes())
+    profile["protocol"].update(changed)
+    write_json(new / "profile.json", profile)
+    receipt = json.loads((new / "receipt.json").read_bytes())
+    receipt["profile_sha256"] = bytes_sha256((new / "profile.json").read_bytes())
+    write_json(new / "receipt.json", receipt)
+    with pytest.raises(ValueError, match="measurement controls"):
+        load_report_runs(old, [("new", new)], {}, composition="methods")

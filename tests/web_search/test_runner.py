@@ -78,6 +78,36 @@ from harness.web_search.report import load_run
 from harness.web_search.runner import run
 
 
+def test_reference_transport_retry_retains_failed_bytes_and_does_not_retry_wrong_identity(tmp_path):
+    from harness.web_search.runner import capture_references
+
+    url = 'https://reference.test/document'
+    profile = {'cases': [{'anchors': [url]}], 'protocol': {'reference_retries': 2},
+               'reference_checks': {url: {'contains': ['Independent identity']}}}
+    okay = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+    failed = dict(okay, http_status=0, transport_exit=35, transport_error='TLS interrupted')
+    with patch('harness.web_search.runner.http_call', side_effect=[(failed, b'partial'), (okay, b'Independent identity ' * 10)]) as calls, patch('harness.web_search.runner.time.sleep'):
+        refs = capture_references(profile, tmp_path, 'before')
+    assert refs[url]['available'] and calls.call_count == 2
+    assert len(refs[url]['attempts']) == 2
+    assert (tmp_path / refs[url]['attempts'][0]['path']).read_bytes() == b'partial'
+    with patch('harness.web_search.runner.http_call', return_value=(okay, b'Wrong page ' * 30)) as calls:
+        refs = capture_references(profile, tmp_path, 'after')
+    assert not refs[url]['available'] and calls.call_count == 1
+
+
+def test_reference_transport_retry_exhaustion_fails_closed(tmp_path):
+    from harness.web_search.runner import capture_references
+
+    url = 'https://reference.test/document'
+    profile = {'cases': [{'anchors': [url]}], 'protocol': {'reference_retries': 2}}
+    failed = dict(http_status=0, elapsed_ms=1, transport_exit=35, transport_error='TLS interrupted')
+    with patch('harness.web_search.runner.http_call', return_value=(failed, b'')) as calls, patch('harness.web_search.runner.time.sleep'):
+        refs = capture_references(profile, tmp_path, 'before')
+    assert not refs[url]['available'] and calls.call_count == 3
+    assert len(refs[url]['attempts']) == 3
+
+
 class CollectionScenarios(unittest.TestCase):
     def test_ctrl_c_drains_active_calls_and_stops_later_cases(self):
         import signal

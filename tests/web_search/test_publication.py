@@ -58,6 +58,21 @@ def test_publication_plan_uses_configured_data_home(tmp_path, monkeypatch):
     assert publication.verify_plan(report, work)["target"]["cases"] == 1
 
 
+@pytest.mark.parametrize("name,field", [("relevance", "relevance_sha256"),
+                                       ("independent_review", "independent_review_sha256")])
+@pytest.mark.parametrize("changed", ["missing_binding", "unclaimed_file"])
+def test_optional_assessment_must_match_the_checked_manifest(tmp_path, monkeypatch, name, field, changed):
+    report, work = publication_files(tmp_path, monkeypatch)
+    manifest = json.loads((report / "manifest.json").read_bytes())
+    target = json.loads((work / "publication-plan.json").read_bytes())["target"]
+    if changed == "missing_binding":
+        del target["bindings"][name]
+    else:
+        manifest[field] = None
+    with pytest.raises(ValueError, match="source differs"):
+        profiles.verify_publication_inputs(manifest, target, data_home=tmp_path)
+
+
 @pytest.mark.parametrize("changed_selection", [False, True])
 def test_explicit_instance_never_updates_another_report(tmp_path, monkeypatch, changed_selection):
     from tests.test_webfetch_report_publish import Service
@@ -157,7 +172,8 @@ def test_search_publisher_recovers_one_activation_and_preserves_private_site(tmp
     assert len(service.uploads) == 1
 
 
-def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, monkeypatch):
+@pytest.mark.parametrize("reviewed", [True, False])
+def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, monkeypatch, reviewed):
     from harness.web_search import report as reports, visual, delivery
     monkeypatch.setenv('WEBSTONE_DATA_HOME', str(tmp_path))
     repo = tmp_path / 'repo'; repo.mkdir()
@@ -195,6 +211,11 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
                 'relevance_sha256': bytes_sha256((report/'relevance-judgments.json').read_bytes()),
                 'independent_review_sha256': bytes_sha256((report/'independent-review.json').read_bytes()),
                 'content_sha256': bytes_sha256(content.read_bytes())}
+    if not reviewed:
+        for name, field in [('relevance-judgments.json', 'relevance_sha256'),
+                            ('independent-review.json', 'independent_review_sha256')]:
+            (report / name).unlink()
+            manifest[field] = None
     (report / 'manifest.json').write_text(json.dumps(manifest), encoding='utf-8')
     proof = tmp_path / 'visual.json'; proof.write_text(json.dumps({'manifest_sha256': bytes_sha256((report/'manifest.json').read_bytes())}), encoding='utf-8')
     monkeypatch.setattr(reports, 'check', lambda *a: True)
@@ -209,5 +230,11 @@ def test_prepare_freezes_new_counts_and_keeps_correction_provenance(tmp_path, mo
     assert plan['target']['physical_calls'] == 2
     assert plan['target']['correction_history']['superseded_physical_calls'] == 89
     assert 'correction' in plan['target']['bindings']
-    assert plan['target']['independent_review']['reference_dispositions'] == {}
+    if reviewed:
+        assert plan['target']['independent_review']['reference_dispositions'] == {}
+    else:
+        assert plan['target']['independent_review'] is None
+        assert plan['target']['quality_annotation'] is None
+        assert 'independent_review' not in plan['target']['bindings']
+        assert 'relevance' not in plan['target']['bindings']
     assert (work/'report.zip').is_file()

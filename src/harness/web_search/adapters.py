@@ -16,6 +16,24 @@ class Adapter:
     response: object = None
     telemetry: object = False
     projection: object = None
+    account_error_codes: frozenset = frozenset()
+    version_path: tuple = ()
+    failure: object = None
+
+    def account_error(self, payload, method=None):
+        response = payload.get("Response") if isinstance(payload, dict) else None
+        error = response.get("Error") if isinstance(response, dict) else None
+        code = error.get("Code") if isinstance(error, dict) else None
+        if isinstance(code, str) and code.split(".")[0] in self.account_error_codes:
+            return code
+        expected = (method or {}).get("expected_response_version")
+        if expected is not None and not error:
+            version = payload
+            for key in self.version_path:
+                version = version.get(key) if isinstance(version, dict) else None
+            if version != expected:
+                return f"ResponseVersionMismatch: expected {expected}, received {version}"
+        return None
 
     def cost(self, method, status, transport_exit, payload):
         price = method.get("price_per_1000")
@@ -25,6 +43,10 @@ class Adapter:
         if policy == "unknown" or price is None or transport_exit:
             return None
         if status != 200:
+            return 0.0
+        if (self.account_error(payload, method) or "").startswith("ResponseVersionMismatch:"):
+            return None
+        if self.failure and self.failure(payload):
             return 0.0
         if policy == "http-200-nonempty":
             try:
@@ -121,6 +143,47 @@ def brightdata_request(case, protocol, options=None):
                 format="json", data_format=options.get("data_format", "parsed"))
 
 
+def tencent_wsa_request(case, protocol, options=None):
+    options = _string_options(options, {"edition"})
+    edition = options.get("edition", "standard")
+    if edition not in {"lite", "standard", "flagship"}:
+        raise ValueError("Unsupported Yuanbao Search edition")
+    # SearchPro starts at ten results; the protocol projects native slots.
+    body = dict(Query=_serp_query(case), Cnt=10, Mode=0)
+    if edition == "lite":
+        body = dict(Query=_serp_query(case))
+    domains = case.get("domains", [])
+    if len(domains) == 1 and case.get("family") in ("site", "vertical"):
+        body["Site"] = domains[0]
+        body["Query"] = re.sub(r"(?<!\S)site:" + re.escape(domains[0]) + r"(?!\S)",
+                               "", case["query"]).strip()
+    return body
+
+
+def tencent_wsa_response(payload, *, top_k=None, project_slots=False):
+    response = payload.get("Response") if isinstance(payload, dict) else None
+    if not isinstance(response, dict):
+        raise ValueError("Yuanbao Search response must contain Response")
+    if response.get("Error"):
+        raise ValueError("Yuanbao Search error: " + json.dumps(response["Error"], ensure_ascii=False))
+    pages = response.get("Pages")
+    if not isinstance(pages, list):
+        raise ValueError("Yuanbao Search response must contain a Pages array")
+    if top_k is not None:
+        pages = pages[:top_k]
+    results = []
+    for page in pages:
+        if not isinstance(page, str):
+            raise ValueError("Yuanbao Search page must be a JSON string")
+        page = json.loads(page)
+        if not isinstance(page, dict):
+            raise ValueError("Yuanbao Search page must decode to an object")
+        results.append(dict(url=page.get("url"), title=page.get("title", ""),
+                            snippet=page.get("passage", ""), summary=page.get("content", ""),
+                            content="", date=page.get("date")))
+    return {"results": results}
+
+
 def _bocha_response(payload, **kwargs):
     if (
         isinstance(payload, dict)
@@ -177,6 +240,12 @@ ADAPTERS = {
     "brightdata": Adapter(brightdata_request, response=lambda payload: _serp_response(payload, "brightdata"), projection=lambda payload, **kwargs: _serp_response(payload, "brightdata", **kwargs)),
     "deepseek": Adapter(deepseek_request),
     "bocha": Adapter(bocha_request, response=_bocha_response),
+    "tencent-wsa": Adapter(tencent_wsa_request, response=tencent_wsa_response,
+                           projection=tencent_wsa_response,
+                           account_error_codes=frozenset({"UnauthorizedOperation", "ResourceNotFound",
+                                                          "ResourceUnavailable", "AuthFailure"}),
+                           version_path=("Response", "Version"),
+                           failure=lambda p: isinstance(p, dict) and isinstance(p.get("Response"), dict) and bool(p["Response"].get("Error"))),
 }
 
 

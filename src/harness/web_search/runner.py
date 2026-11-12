@@ -290,21 +290,27 @@ def capture_references(profile, output, phase):
     urls.update(dict.fromkeys(profile.get("reference_artifacts", {})))
     for url in urls:
         check = profile.get("reference_checks", {}).get(url, {})
-        receipt, raw = http_call(
-            check.get("url", url), timeout=profile["protocol"].get("reference_timeout_s", 60)
-        )
-        relative = f"references/{phase}-{bytes_sha256(url.encode())[:16]}.bin"
-        path = output / relative
-        path.parent.mkdir(exist_ok=True)
-        path.write_bytes(raw)
-        refs[url] = {
-            **receipt,
-            "path": relative,
-            "sha256": bytes_sha256(raw),
-            "bytes": len(raw),
-            "available": reference_available(profile, url, receipt, raw),
-            "identity_check": check or None,
-        }
+        retries = profile["protocol"].get("reference_retries", 0)
+        attempts = []
+        for attempt in range(retries + 1):
+            receipt, raw = http_call(
+                check.get("url", url), timeout=profile["protocol"].get("reference_timeout_s", 60)
+            )
+            suffix = f"-attempt-{attempt + 1}" if retries else ""
+            relative = f"references/{phase}-{bytes_sha256(url.encode())[:16]}{suffix}.bin"
+            path = output / relative
+            path.parent.mkdir(exist_ok=True)
+            path.write_bytes(raw)
+            result = {**receipt, "path": relative, "sha256": bytes_sha256(raw), "bytes": len(raw),
+                      "available": reference_available(profile, url, receipt, raw),
+                      "identity_check": check or None}
+            attempts.append(result)
+            # Retry temporary transport failures, never an observed identity mismatch.
+            transient = receipt["transport_exit"] in {7, 18, 28, 35, 52, 56}
+            if not transient or attempt == retries:
+                break
+            time.sleep(1)
+        refs[url] = dict(result, attempts=attempts) if retries else result
     write_json(output / f"references-{phase}.json", refs)
     return refs
 
@@ -423,6 +429,10 @@ def incomplete_results(profile, output):
     return found
 
 
+def account_failure(row):
+    return row["http_status"] in {401, 402} or bool(row.get("account_error"))
+
+
 def reconcile_incomplete_results(profile, output, rows):
     """Prefer a verified terminal receipt over its interrupted retry predecessor."""
     partial = incomplete_results(profile, output)
@@ -431,7 +441,7 @@ def reconcile_incomplete_results(profile, output, rows):
     for row in rows:
         prior = partial.get(row["id"])
         attempts = row.get("attempts", [row])
-        terminal = (len(attempts) == maximum or row["http_status"] in {401, 402}
+        terminal = (len(attempts) == maximum or account_failure(row)
                     or not (row.get("error") or row["http_status"] != 200 or row["transport_exit"]))
         if prior and terminal:
             if (row["request"] != prior["request"]
@@ -477,11 +487,11 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         cid for cid, group in by_case.items()
         if len(group) == len(expected)
         and {(r["method"], r["round"]) for r in group} == expected
-        and not any(r["http_status"] in {401, 402} for r in group)
+        and not any(account_failure(r) for r in group)
         and not any(r["id"] in partial for r in group)
     }
     retained = [row for row in rows if row["id"] not in partial and
-                (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
+                (not account_failure(row) if retain_results else row["case_id"] in completed)]
     if validate_only:
         return retained, None
     number = len(list(output.glob("resume-*"))) + 1
@@ -695,6 +705,10 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                         )
                 except (ValueError, AttributeError, TypeError) as exc:
                     error = error or str(exc)
+                native_account_error = adapter_for(method["adapter"]).account_error(decoded, method)
+                if native_account_error:
+                    receipt["account_error"] = native_account_error
+                    stopped.set()
                 cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
                 attempts.append({
                     "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
@@ -703,7 +717,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                     "elapsed_ms": receipt["elapsed_ms"],
                     "cost": cost,
                 })
-                if (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
+                if native_account_error or (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
                     break
             total_elapsed_ms = max(
                 prior_elapsed_ms + (time.perf_counter() - operation_start) * 1000,
@@ -752,12 +766,13 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 f"{receipt['elapsed_ms']:.0f} ms",
                 flush=True,
             )
-            if receipt["http_status"] in {401, 402}:
+            if account_failure(receipt):
                 stopped.set()
                 write_json(output / "interruption.json", {
                     "reason": "provider_account",
                     "result_id": identity,
                     "http_status": receipt["http_status"],
+                    **({"account_error": receipt["account_error"]} if receipt.get("account_error") else {}),
                     "completed_logical_results": len(rows),
                     "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
                     "stopped_at": datetime.now(UTC).isoformat(),

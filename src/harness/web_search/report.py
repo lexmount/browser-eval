@@ -70,7 +70,7 @@ from harness.web_search.runner import reference_available, reference_changes
 from lexbench_websearch import answer_rules
 from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
 from lexbench_websearch.inputs import definition_path, implementation_sources
-from lexbench_websearch.relevance import score as score_relevance
+from lexbench_websearch.relevance import score as benchmark_relevance_score
 from lexbench_websearch.relevance import summary as relevance_summary
 from lexbench_websearch.scoring import (
     canonical_url,
@@ -154,7 +154,7 @@ def public_calls(profile, rows, source, sources):
             raise ValueError("Final response evidence differs from the final physical attempt")
         for attempt in attempts or [row]:
             binding = attempt["evidence"]
-            raw = (sources.get(row.get("cohort"), source) / binding["path"]).read_bytes()
+            raw = (sources.get(row.get("collection", row.get("cohort")), source) / binding["path"]).read_bytes()
             public = _redact_url_userinfo(raw)
             try:
                 envelope = json.loads(public)
@@ -309,11 +309,15 @@ def scoring_rows(profile, rows):
     return [row for row in rows if row["round"] == profile["protocol"]["score_round"]]
 
 
-def load_report_runs(source, cohorts, labels, method_ids=None):
+def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases"):
     """Compose separately verified runs; never pretend they were one collection."""
     inputs = [("primary", source), *cohorts]
     if len({name for name, _ in inputs}) != len(inputs):
         raise ValueError("Duplicate cohort name")
+    if composition not in {"cases", "methods"}:
+        raise ValueError("Unsupported collection composition")
+    if composition == "methods":
+        return _load_method_runs(inputs, labels, method_ids)
     profile = None
     rows, receipts, groups, paths = [], [], [], {}
     seen_cases, seen_evidence = set(), set()
@@ -386,6 +390,65 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         },
         paths,
     )
+
+
+def _load_method_runs(inputs, labels, method_ids):
+    """Add disjoint providers on identical frozen tasks without repeating calls."""
+    profile = None
+    rows, receipts, paths, batches = [], [], {}, []
+    evidence_paths, method_names = set(), set()
+    for name, path in inputs:
+        if not name.replace("-", "").isalnum():
+            raise ValueError("Unsafe cohort name")
+        current, calls, receipt = load_run(path)
+        if current.get("execution_policy") or current["protocol"]["concurrency"] != 1:
+            raise ValueError("Method composition requires serial collections")
+        ids = {m["id"] for m in current["methods"]}
+        if method_names & ids:
+            raise ValueError("Overlapping method collections")
+        method_names.update(ids)
+        if profile is None:
+            profile = copy.deepcopy(current)
+            profile["methods"] = []
+        else:
+            def controls(p):
+                return {**{k: v for k, v in _execution_contract(p).items() if k not in {"as_of", "order"}},
+                        "normalize_top_k": p.get("normalize_top_k"),
+                        "result_url_resolution": p.get("result_url_resolution")}
+            if current["cases"] != profile["cases"] or controls(current["protocol"]) != controls(profile["protocol"]):
+                raise ValueError("Method collections require identical tasks and measurement controls")
+            for key in ("reference_checks", "reference_artifacts", "factual_quality_exclusions", "reference_adjudications"):
+                if current.get(key) != profile.get(key):
+                    raise ValueError("Method collection reference contracts differ")
+        native_evidence = {e["path"] for r in calls for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
+        if native_evidence & evidence_paths:
+            raise ValueError("Overlapping method evidence paths")
+        evidence_paths.update(native_evidence)
+        profile["methods"].extend(copy.deepcopy(current["methods"]))
+        rows.extend(dict(r, cohort="primary", collection=name) for r in calls)
+        receipts.append({"cohort": name, "profile_sha256": bytes_sha256((path / "profile.json").read_bytes()),
+                         "results_sha256": bytes_sha256((path / "results.jsonl").read_bytes()),
+                         "receipt_sha256": bytes_sha256((path / "receipt.json").read_bytes()), "collection_receipt": receipt})
+        batches.append({"id": name, "methods": sorted(ids), "as_of": current["protocol"].get("as_of"),
+                        "order": current["protocol"].get("order", "complete provider batches"),
+                        "started_at": min((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("started_at")),
+                        "ended_at": max((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("ended_at"))})
+        paths[name] = path
+    if method_ids is not None:
+        available = {m["id"]: m for m in profile["methods"]}
+        if not method_ids or not set(method_ids).issubset(available):
+            raise ValueError("Collections do not contain every comparison participant")
+        profile["methods"] = [available[mid] for mid in method_ids]
+        rows = [r for r in rows if r["method"] in method_ids]
+    profile["cases"] = [dict(c, cohort="primary") for c in profile["cases"]]
+    profile["method_collections"] = batches
+    profile["report_cohorts"] = [{"id": "primary", "label": labels.get("primary", {"en": "Shared tasks", "zh": zh_text("Shared tasks")}),
+                                  "case_ids": [c["id"] for c in profile["cases"]], "protocol": copy.deepcopy(profile["protocol"])}]
+    profile["protocol"].pop("comparison", None)
+    validate_profile(profile)
+    return profile, rows, {"certified": all(r["collection_receipt"].get("certified") for r in receipts),
+                           "synthetic": all(r["collection_receipt"].get("synthetic") for r in receipts),
+                           "complete": True, "call_count": len(rows), "separate_collections": receipts}, paths
 
 
 def _language_notice(output, languages):
@@ -496,7 +559,8 @@ def _load_collection(
         if not source:
             raise ValueError("Additional cohorts require a primary source")
         profile, rows, receipt, sources = load_report_runs(
-            source, cohorts, authored.get("cohort_labels", {}), authored.get("comparison_methods")
+            source, cohorts, authored.get("cohort_labels", {}), authored.get("comparison_methods"),
+            composition=authored.get("collection_composition", "cases")
         )
     elif source:
         profile, rows, receipt = load_run(source)
@@ -533,6 +597,31 @@ def _apply_revisions(
     return profile, rows, scoring_revision, assessment_revision
 
 
+def relevance_scope(profile, rows):
+    """Keep historical judgments on their declared configurations only."""
+    ids = profile.get("relevance_methods")
+    if ids is None:
+        return profile, rows
+    available = {m["id"]: m for m in profile["methods"]}
+    if not isinstance(ids, list) or not ids or len(ids) != len(set(ids)) or not set(ids).issubset(available):
+        raise ValueError("Invalid relevance method scope")
+    return dict(profile, methods=[available[mid] for mid in ids]), [r for r in rows if r["method"] in ids]
+
+
+def score_relevance(profile, rows, plan, labels):
+    scoped, selected = relevance_scope(profile, rows)
+    return benchmark_relevance_score(scoped, selected, plan, labels)
+
+
+def relevance_scope_notice(profile, zh):
+    if not profile.get("relevance_methods"):
+        return ""
+    labels = {m["id"]: m["label"] for m in profile["methods"]}
+    return ('<p data-relevance-method-scope>' + report_text(
+        "Relevance labels cover {methods}. Other configurations remain unscored; labels are not transferred between provider responses.",
+        zh, methods=", ".join(labels[mid] for mid in profile["relevance_methods"])) + '</p>')
+
+
 def _load_assessment(
     output: Path,
     review: Path | None,
@@ -551,10 +640,11 @@ def _load_assessment(
         review_percent = coverage_percent(review_data)
         write_json(output / "independent-review.json", review_data)
     if relevance_data:
+        relevance_profile, relevance_rows = relevance_scope(profile, selected)
         if "plan" not in relevance_data:
-            relevance_data = import_annotations(profile, selected, relevance_data)
-        verify_provenance(profile, selected, relevance_data, authority=authority)
-        verify_protocol(profile, relevance_data, authored.get("relevance_revision"), authority=authority)
+            relevance_data = import_annotations(relevance_profile, relevance_rows, relevance_data)
+        verify_provenance(relevance_profile, relevance_rows, relevance_data, authority=authority)
+        verify_protocol(relevance_profile, relevance_data, authored.get("relevance_revision"), authority=authority)
     return review_data, review_percent, relevance_data
 
 
@@ -587,6 +677,9 @@ def _load_report_inputs(
     content_bytes, authored, reading_sections = _read_authored_content(content)
     authority = _load_assessment_authority(profile_path)
     profile, rows, receipt, sources = _load_collection(profile_path, source, cohorts, authored)
+    if "relevance_methods" in authored:
+        profile = dict(profile, relevance_methods=authored["relevance_methods"])
+        relevance_scope(profile, rows)
     collection_profile = profile
     rows, public_files, redactions, billing_corrections = public_calls(profile, rows, source, sources)
     profile, rows, scoring_revision, assessment_revision = _apply_revisions(correction, authored, authority, profile, rows, public_files)
@@ -1024,6 +1117,8 @@ def _write_home_page(inputs: ReportInputs, edition: ReportEdition) -> None:
         _write_comparison_chapters(inputs, edition)
     if review_data and authored.get("presentation") != "comparison-report":
         body += f'<p data-review-coverage data-review-percent="{review_percent}" data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">{review_percent}% · ' + t("Reviewed {case_reviewed}/{case_total} queries and {output_reviewed}/{output_total} outputs", case_reviewed=review_data['case_reviewed'], case_total=review_data['case_total'], output_reviewed=review_data['output_reviewed'], output_total=review_data['output_total']) + '</a></p>'
+    if profile.get("method_collections"):
+        body = method_collection_notice(zh) + body
     page(
         "index.html",
         authored.get("title", {}).get(lang)
@@ -1738,6 +1833,12 @@ def check(output, *, return_data=False, evidence_only=False):
             raise ValueError("Result belongs to the wrong cohort")
     for lang in (() if evidence_only else manifest["languages"]):
         prefix = "" if lang == "zh" else lang + "/"
+        if manifest["profile"].get("method_collections"):
+            home = BeautifulSoup((output / (prefix + "index.html")).read_text(encoding="utf-8"), "html.parser")
+            notice = home.select_one("[data-method-collection-notice]")
+            expected_notice = BeautifulSoup(method_collection_notice(lang == "zh"), "html.parser").get_text()
+            if notice is None or notice.get_text() != expected_notice:
+                raise ValueError("Method collection window disclosure is missing or changed")
         soup = BeautifulSoup((output / (prefix + "research.html")).read_text(encoding="utf-8"), "html.parser")
         expected = BeautifulSoup(
             fairness_table(manifest["profile"], manifest["rows"], lang == "zh"), "html.parser"
@@ -1812,8 +1913,11 @@ def check(output, *, return_data=False, evidence_only=False):
             raise ValueError("Published scores disagree with the declared rules")
     if relevance_data:
         selected = scoring_rows(manifest["profile"], manifest["rows"])
-        verify_provenance(manifest["profile"], selected, relevance_data, authority=authority)
-        verify_protocol(manifest["profile"], relevance_data, (manifest.get("authored") or {}).get("relevance_revision"), authority=authority)
+        if manifest["profile"].get("relevance_methods") != manifest.get("authored", {}).get("relevance_methods"):
+            raise ValueError("Relevance method scope differs from authored content")
+        relevance_profile, relevance_rows = relevance_scope(manifest["profile"], selected)
+        verify_provenance(relevance_profile, relevance_rows, relevance_data, authority=authority)
+        verify_protocol(relevance_profile, relevance_data, (manifest.get("authored") or {}).get("relevance_revision"), authority=authority)
     if manifest.get("scoring_revision"):
         revision = manifest["scoring_revision"]
         collected = [
@@ -1989,6 +2093,9 @@ def check(output, *, return_data=False, evidence_only=False):
         comparison_home = route.endswith("index.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report"
         if comparison_home:
             expected = BeautifulSoup(executive_table(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
+            # Page assembly resolves edition-local links against the report root.
+            for link in expected.select('a[href^="quality.html"]'):
+                link['href'] = ('' if soup.html['lang'] == 'zh' else soup.html['lang'] + '/') + link['href']
             if str(soup.select_one('[data-executive]')) != str(expected.select_one('[data-executive]')):
                 raise ValueError("Population summary differs from measured inputs")
             expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], scoring_rows(manifest["profile"], manifest["rows"]), manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
@@ -2275,7 +2382,7 @@ def cohort_summary(profile, rows, zh):
         "<section data-cohort-summary><h2>"
         + t("Independent benchmarks, with separate collection cohorts")
         + "</h2><p>"
-        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(groups))
+        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(profile.get("method_collections", groups)))
         + "</p>"
         + table(
             [
@@ -2295,6 +2402,12 @@ def cohort_summary(profile, rows, zh):
     )
 
 
+def method_collection_notice(zh):
+    return ('<p data-method-collection-notice>'
+            + report_text("Methods were collected on different dates; saved latency is not a same-window speed trial.", zh)
+            + ' <a href="research.html">' + report_text("Collection dates and call order", zh) + '</a></p>')
+
+
 def execution_settings(profile, zh):
     """Disclose effective admission limits and the latency measurement scope."""
     t = partial(report_text, zh=zh)
@@ -2312,11 +2425,26 @@ def execution_settings(profile, zh):
         entries.append(cells([esc(method["label"]), str(capacity), esc(details or "—")]))
     scope = (t("Latency includes concurrent collection load; it is not an isolated speed comparison.")
              if maximum > 1 else t("Serial collection; latency covers each saved API call."))
+    collections = ""
+    if profile.get("method_collections"):
+        def collected_dates(batch):
+            start = (batch.get("started_at") or batch.get("ended_at") or batch.get("as_of") or "—")[:10]
+            end = (batch.get("ended_at") or start)[:10]
+            return start if start == end else start + " / " + end
+
+        method_labels = {m["id"]: m["label"] for m in profile["methods"]}
+        orders = {"complete provider batches": t("complete provider batches"),
+                  "rotate methods by case": t("rotate methods by case"),
+                  "rotate methods by case and round": t("rotate methods by case and round")}
+        collections = ('<p>' + t("Methods were collected in separate batches. Dates and order are shown below; latency describes each saved batch, not a same-window speed trial.") + '</p>'
+                       + table([t("Collection"), t("Methods"), t("Date"), t("Call order")],
+                               [cells([esc(b["id"]), esc(", ".join(method_labels.get(mid, mid) for mid in b["methods"])), esc(collected_dates(b)), esc(orders.get(b["order"], b["order"]))])
+                                for b in profile["method_collections"]]))
     return ('<section data-execution-settings><h2>' + t("Collection concurrency") + '</h2><p>'
             + t("Maximum concurrent calls: {concurrency}.", concurrency=maximum)
             + ' ' + scope + '</p>'
             + table([t("Method"), t("Effective concurrent calls"), t("Shared resource limits")],
-                    entries) + '</section>')
+                    entries) + collections + '</section>')
 
 
 def fairness_table(profile, rows, zh):
@@ -2326,7 +2454,7 @@ def fairness_table(profile, rows, zh):
 
     def requested_limit(row, method):
         request = row.get("request", {})
-        for key in ("limit", "count", "numResults", "num"):
+        for key in ("limit", "count", "numResults", "num", "Cnt"):
             if key in request:
                 return str(request[key])
         default = t("Default") if method.get("adapter") == "brightdata" else "—"
@@ -2937,7 +3065,7 @@ def relevance_panel(profile, scored, evidence, zh):
     cutoff = profile.get("protocol", {}).get("top_k", evidence.get("plan", {}).get("cutoff", scored[0].get("cutoff", 5) if scored else 5))
     if not scored:
         return ""
-    methods = profile["methods"]
+    methods = [m for m in profile["methods"] if m["id"] in {r["method"] for r in scored}]
     rows = []
     families = [family for family in ("web", "site", "vertical") if any(row["family"] == family for row in scored)]
     for family in families:
@@ -2971,7 +3099,7 @@ def relevance_panel(profile, scored, evidence, zh):
         report_text("Human annotator: {name}. Metric calculation uses fixed labels without model calls.", zh, name=audit['name'])
     )
     denominator = report_text("Empty responses, missing slots and all-zero candidate pools remain in the denominator.", zh, cutoff=cutoff)
-    panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + bars
+    panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + relevance_scope_notice(profile, zh) + bars
              + ('' if profile.get("comparison_selection") else '<p>' + esc(definitions) + '</p>')
              + '<details><summary>' + report_text("Useful results and direct matches", zh) + '</summary>' + table([report_text("Category", zh, context="question type"), report_text("Provider", zh), report_text("Queries", zh), f"nDCG@{cutoff} × 100", f"Precision@{cutoff}", f"Success@{cutoff}"], rows) + '</details>'
              + '<p class="muted">' + esc(scope + denominator) + '</p><a href="relevance-judgments.json">'
@@ -3538,7 +3666,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
     if diagnostics:
         heading = report_text("Reference URLs and requested sites: diagnostics", zh)
         note = report_text("These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set.", zh)
-    body = '<section data-populations><h2>' + heading + '</h2><p class="population-note">' + note + '</p>'
+    body = '<section data-populations><h2>' + heading + '</h2><p class="population-note">' + note + '</p>' + relevance_scope_notice(profile, zh)
     for population in metric_populations(profile, content):
         if independent and bool(population.get("benchmark_root")) == diagnostics:
             continue
@@ -3558,8 +3686,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 raise ValueError('Incomplete metric population')
             group = [r for r in subset if r['method'] == method['id']]
             if ranked:
-                q = quality_stats[method['id']]
-                measures = [q['ndcg'] * 100, q['precision'], q['success']]
+                q = quality_stats.get(method['id'], {"n": 0})
+                measures = [q['ndcg'] * 100, q['precision'], q['success']] if q['n'] else [None, None, None]
             elif kind == 'factual':
                 quality_group = [r for r in group if r['case_id'] in quality_ids]
                 measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][f'answer_in_delivered_text_{cutoff}'] for r in quality_group)]
@@ -3595,6 +3723,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             for i, value in enumerate(row):
                 if i == 0:
                     label = esc(value)
+                elif value is None:
+                    label = '—'
                 elif ranked and i == 1:
                     label = f'{value:.1f}'
                 elif ranked and i in (2, 3):
