@@ -11,7 +11,7 @@ from urllib.parse import urljoin
 
 from lexbench_webfetch.metrics import percentile
 from lexbench_websearch.contracts import validate_cases
-from lexbench_websearch.scoring import canonical_url, normalize_results
+from lexbench_websearch.scoring import canonical_url, normalize_results, task_acceptance
 
 from harness.record_io import bytes_sha256, json_bytes
 from harness.reporting.publication import atomic_write
@@ -99,7 +99,7 @@ def aggregate(rows):
     for method in dict.fromkeys(r["method"] for r in rows):
         subset = [r for r in rows if r["method"] == method]
         success = [
-            r for r in subset if r["http_status"] == 200 and r["results"] and not r.get("error")
+            r for r in subset if task_acceptance({}, r, 'availability')
         ]
         costs = [r["cost"] for r in subset]
         metrics = {}

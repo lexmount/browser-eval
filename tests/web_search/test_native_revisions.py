@@ -486,3 +486,15 @@ def test_invalid_slot_never_supplies_reference_or_lexical_evidence():
     assert metrics['anchor_hit_5'] == 0
     assert metrics['labeled_source_hit_5'] == 0
     assert metrics['answer_in_preview_5'] == 0
+
+
+def test_invalid_only_outputs_do_not_count_as_available_in_aggregates():
+    from harness.web_search.core import aggregate
+
+    bad = [dict(url='https://invalid-result-slot.invalid/1', invalid_slot=True)]
+    good = [dict(url='https://origin.test/fact')]
+    rows = [dict(method='a',http_status=200,error='',results=results,cost=0,elapsed_ms=10,
+                 metrics=evaluate({},results)) for results in (bad,bad+good)]
+    totals = aggregate(rows)['a']
+    assert totals['n'] == 2 and totals['nonempty'] == 1
+    assert totals['all_latency']['n'] == 2 and totals['success_latency']['n'] == 1
