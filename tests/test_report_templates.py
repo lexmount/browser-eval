@@ -129,6 +129,28 @@ class ReportTemplateTests(unittest.TestCase):
                 with self.subTest(index=old),self.assertRaises(ValueError):check_diagnostic_report(output)
             home.write_text(original_home,encoding='utf-8')
 
+    def test_illustrated_report_accepts_numeric_and_dotted_section_ids(self):
+        import base64
+        from bs4 import BeautifulSoup
+        for anchor in ('1-introduction', 'diagnosis.v1'):
+            with self.subTest(anchor=anchor), tempfile.TemporaryDirectory() as temp:
+                root=Path(temp);source=root/'source';model=diagnostic_example(source)
+                image=source/'diagram.png'
+                image.write_bytes(base64.b64decode('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+jRZkAAAAASUVORK5CYII='))
+                model['pages']={'guide':[dict(id=anchor,title='Content path',paragraphs=['Required body'],
+                    figure=dict(path='diagram.png',sha256=hashlib.sha256(image.read_bytes()).hexdigest(),
+                                alt='Target content path',scope='Synthetic evidence'))]}
+                (source/'report.json').write_text(json.dumps(model),encoding='utf-8')
+                output=root/'report';build_diagnostic_cohorts(source,output)
+                page=output/'guide/index.html';markup=page.read_text(encoding='utf-8')
+                soup=BeautifulSoup(markup,'html.parser')
+                self.assertEqual(soup.find(id=anchor).select_one('figure img')['src'],'diagram.png')
+                check_diagnostic_report(output)
+                soup.find(id=anchor)['id']='different-section'
+                page.write_text(str(soup),encoding='utf-8')
+                with self.assertRaisesRegex(ValueError,'illustration is missing'):
+                    check_diagnostic_report(output)
+
     def test_present_heading_with_insufficient_section_is_a_body_failure(self):
         from harness.web_fetch.report_diagnostic import diagnostic_findings
         row=dict(initial_pass=False,log=dict(path='log.json'),reference=dict(path='reference.json'))

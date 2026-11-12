@@ -760,12 +760,12 @@ def check_diagnostic_report(output, profile=None):
         for block in page_blocks:
             if not block.get('figure'):
                 continue
-            rendered = diagnosis_page.select_one('#'+block['id']+' .diagnosis-figure img')
+            section_node = diagnosis_page.find(id=block['id'])
+            rendered = section_node.select_one('.diagnosis-figure img') if section_node else None
             figure = block['figure']
             if (not rendered or rendered.get('src') != figure['path']
                     or rendered.get('alt') != figure['alt']):
                 raise ValueError('Diagnosis illustration is missing or points to different evidence')
-            section_node = diagnosis_page.find(id=block['id'])
             if (rendered.find_parent('details') is not None
                     or section_node.find('h2').find_next_sibling() != rendered.find_parent('figure')):
                 raise ValueError('Diagnosis illustration must lead its section without folding')
