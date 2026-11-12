@@ -127,3 +127,24 @@ def test_paragraph_revision_rejects_other_changes_without_partial_writes(tmp_pat
     with pytest.raises(ValueError):
         main(['--output', str(report), '--revise-paragraphs', str(path)])
     assert all(p.read_bytes() == raw for p, raw in before.items())
+
+
+@pytest.mark.parametrize('edition', ['', 'en/'])
+@pytest.mark.parametrize('change', ['alter', 'remove'])
+def test_revised_standard_paragraphs_are_checked_in_every_edition(tmp_path, edition, change):
+    path, content = fixture(tmp_path)
+    report = tmp_path / 'report'
+    content['sections'][0]['paragraphs'][0] = {
+        'en': 'Revised explanation.', 'zh': 'Revised translated explanation.'}
+    path.write_text(json.dumps(content), encoding='utf-8')
+    main(['--output', str(report), '--revise-paragraphs', str(path)])
+    page = report / (edition + 'research.html')
+    soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
+    paragraph = soup.select_one('[data-authored] > p')
+    if change == 'remove':
+        paragraph.decompose()
+    else:
+        paragraph.string = 'Unbound replacement explanation.'
+    page.write_text(str(soup), encoding='utf-8')
+    with pytest.raises(ValueError, match='Reader explanation'):
+        check(report)

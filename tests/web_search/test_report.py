@@ -979,7 +979,7 @@ def test_bound_data_figures_render_in_both_languages_and_reject_wrong_images(
     fixture = tmp_path / 'fixture'
     example(fixture)
     image = tmp_path / 'distribution.svg'
-    image.write_text('<svg xmlns="http://www.w3.org/2000/svg"><title>Counts: 3 and 7</title></svg>')
+    image.write_text('<svg xmlns="http://www.w3.org/2000/svg"><title>Counts: 3 and 7</title></svg>', encoding='utf-8')
     data = {'reading_model': True, 'sections': [{'page': section_page,
             'title': {'en': 'Source coverage', 'zh': '来源覆盖'},
             'figures': [{'path': 'report-assets/distribution.svg',
@@ -995,10 +995,10 @@ def test_bound_data_figures_render_in_both_languages_and_reject_wrong_images(
     build(out, source=fixture / "fixture", content=content, include_english=True)
     assert check(out)
     for route in (filename, 'en/' + filename):
-        dom = BeautifulSoup((out / route).read_text(), 'html.parser')
+        dom = BeautifulSoup((out / route).read_text(encoding='utf-8'), 'html.parser')
         assert dom.select_one('[data-authored-figure] img')['src'] == 'report-assets/distribution.svg'
     page = out / filename
-    original = page.read_text()
+    original = page.read_text(encoding='utf-8')
     for missing in (False, True):
         dom = BeautifulSoup(original, 'html.parser')
         if missing:
@@ -1011,3 +1011,36 @@ def test_bound_data_figures_render_in_both_languages_and_reject_wrong_images(
     data['assets'] = []
     with pytest.raises(ValueError, match='hash-bound'):
         authored_sections(data, section_page, 'zh')
+
+
+@pytest.mark.parametrize('site_prefix', ['', 'social'])
+def test_owner_quote_assets_keep_report_root_links_in_both_editions(tmp_path, site_prefix):
+    example(tmp_path, comparison=True)
+    content_path = tmp_path / 'content.json'
+    content = json.loads(content_path.read_text(encoding='utf-8'))
+    quote = tmp_path / 'quote.txt'
+    quote.write_text('Synthetic quote: USD 1 per 1,000 requests.', encoding='utf-8')
+    content['assets'] = [{'source': quote.name, 'path': 'quotes/price.txt',
+                          'sha256': bytes_sha256(quote.read_bytes())}]
+    profile = json.loads((tmp_path / 'fixture/profile.json').read_bytes())
+    content['catalog_pricing'] = {method['id']: {
+        'amount': 1, 'currency': 'USD', 'unit': '1000-requests',
+        'source': 'quotes/price.txt', 'source_kind': 'owner-quote',
+        'checked_at': '2026-11-12'} for method in profile['methods']}
+    content_path.write_text(json.dumps(content), encoding='utf-8')
+    out = tmp_path / 'report' / site_prefix if site_prefix else tmp_path / 'report'
+    build(out, source=tmp_path / 'fixture', content=content_path,
+          relevance=tmp_path / 'labels.json', site_prefix=site_prefix, include_english=True)
+    assert check(out)
+    expected = (site_prefix + '/' if site_prefix else '') + 'quotes/price.txt'
+    for route in ('performance.html', 'en/performance.html'):
+        page = out / route
+        original = page.read_text(encoding='utf-8')
+        soup = BeautifulSoup(original, 'html.parser')
+        links = soup.select('[data-cost-budget] a[href]')
+        assert len(links) == 2 and all(link['href'] == expected for link in links)
+        links[0]['href'] = 'wrong/quotes/price.txt'
+        page.write_text(str(soup), encoding='utf-8')
+        with pytest.raises(ValueError, match='Cost budget'):
+            check(out)
+        page.write_text(original, encoding='utf-8')

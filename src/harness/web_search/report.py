@@ -850,6 +850,18 @@ def _report_edition(inputs: ReportInputs, lang: str, routes: list[str]) -> Repor
     return ReportEdition(lang=lang, zh=zh, prefix=prefix, t=t, nav=nav, state=state, routes=routes)
 
 
+def _resolve_owned_links(document, route, site_prefix, root_paths):
+    """Use one path rule for rendered pages and their expected fragments."""
+    for node in document.select("[href],[data-evidence],[data-detail],img[src]"):
+        if node.name == "base":
+            continue
+        for attr in ("href", "data-evidence", "data-detail", "src"):
+            value = node.get(attr)
+            if value and not value.startswith(("https://", "http://", "#")):
+                node[attr] = posixpath.normpath(posixpath.join(
+                    site_prefix, "" if value in root_paths else posixpath.dirname(route), value))
+
+
 def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title: str, body: str) -> None:
     output, languages, site_prefix, authored = inputs.output, inputs.languages, inputs.site_prefix, inputs.authored
     receipt, review_data, review_percent, relevance_data = inputs.receipt, inputs.review_data, inputs.review_percent, inputs.relevance_data
@@ -879,24 +891,12 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
     )
     # Artifact Site injects a root base on every nested route. Local pages use
     # the matching base above; every artifact-owned link names the root path.
-    for node in document.select("[href],[data-evidence],[data-detail],img[src]"):
-        if node.name == "base":
-            continue
-        for attr in ("href", "data-evidence", "data-detail", "src"):
-            value = node.get(attr)
-            if value and not value.startswith(("https://", "http://", "#")):
-                asset_paths = {a["path"] for a in authored.get("assets", [])}
-                if relevance_data:
-                    asset_paths.add("relevance-judgments.json")
-                if review_data:
-                    asset_paths.add("independent-review.json")
-                node[attr] = posixpath.normpath(
-                    posixpath.join(
-                        site_prefix,
-                        "" if value in asset_paths or value in inputs.public_files else posixpath.dirname(prefix + route),
-                        value,
-                    )
-                )
+    asset_paths = {a["path"] for a in authored.get("assets", [])}
+    if relevance_data:
+        asset_paths.add("relevance-judgments.json")
+    if review_data:
+        asset_paths.add("independent-review.json")
+    _resolve_owned_links(document, prefix + route, site_prefix, asset_paths | set(inputs.public_files))
     if authored.get("presentation") == "comparison-report":
         footer = document.new_tag("footer")
         for target, label in [("research.html", t("Method and FAQ")), ("review.html", t("Review evidence"))]:
@@ -2033,7 +2033,7 @@ def check(output, *, return_data=False, evidence_only=False):
                     str(node) for node in expected_soup.select("[data-authored-figure]")
                 ]:
                     raise ValueError("Reader figure differs from its bound content")
-                if authored.get("reading_model") and [s.get_text() for s in soup.select("[data-authored]")] != [
+                if [s.get_text() for s in soup.select("[data-authored]")] != [
                     s.get_text() for s in expected_soup.select("[data-authored]")
                 ]:
                     raise ValueError(
@@ -2054,6 +2054,8 @@ def check(output, *, return_data=False, evidence_only=False):
                 if str(soup.select_one('[data-benchmark-operations]')) != str(expected_operations.select_one('[data-benchmark-operations]')):
                     raise ValueError("Benchmark timing/cost summary differs from physical calls")
                 expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), 'html.parser')
+                _resolve_owned_links(expected_cost, route, manifest.get("site_prefix", ""),
+                                     {a["path"] for a in authored.get("assets", [])})
                 if str(soup.select_one('[data-cost-budget]')) != str(expected_cost.select_one('[data-cost-budget]')):
                     raise ValueError("Cost budget differs from physical calls")
             trs = soup.select_one("[data-timing-decomposition]").select("table")[0].select("tbody tr")
@@ -2106,8 +2108,10 @@ def check(output, *, return_data=False, evidence_only=False):
             if str(soup.select_one("[data-factual]")) != str(expected_factual):
                 raise ValueError("Interpretation factual evidence differs from measured inputs")
         if route.endswith("cost.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
-            expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), "html.parser").select_one("[data-cost-budget]")
-            if str(soup.select_one("[data-cost-budget]")) != str(expected_cost):
+            expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), "html.parser")
+            _resolve_owned_links(expected_cost, route, manifest.get("site_prefix", ""),
+                                 {a["path"] for a in authored.get("assets", [])})
+            if str(soup.select_one("[data-cost-budget]")) != str(expected_cost.select_one("[data-cost-budget]")):
                 raise ValueError("Cost budget differs from measured physical calls")
         if authored.get("presentation") == "comparison-report" and "details/" not in route:
             if Path(route).name in {"interpretation.html", "cost.html"}:
