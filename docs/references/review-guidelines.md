@@ -252,3 +252,44 @@ Follow the repository review constraints in `AGENTS.md`, `CONTRIBUTING.md` and t
 ### Repository checks
 
 Keep provider execution and reporting in the harness; use benchmark-owned definitions and scoring. Trace scored answers to native evidence. Verify populations, timing and certification against the selected track contract. Preserve frozen evidence and report targets, keep private run data outside Git, and check report views agree with their evidence.
+
+### Owner review rules
+
+The repository owner has set these rules across review sessions. They apply to every Webstone review without being restated in the request.
+
+**Rounds and posting**
+
+- A request to review a PR includes posting the findings on it. Post one combined comment per PR per round. Comment on another author's PR only when it shares the defect under review.
+- Every round reviews the whole current head against the latest `main` and its rules, not only the new commits. Report all confirmed findings in that round.
+- After the first round, a "new version" round covers the fixes and anything new. Report only P0 and P1 when the owner asks for them. Skip PRs that are unchanged since the last round or that were clean in it.
+- Review related PRs together, including a code PR and its paired Hugging Face dataset PR. State how they depend on each other and the order they should merge in.
+- Keep rounds converging. Focus on the main behavior and leave preference-level P2 items, so each round has fewer findings than the last. By owner agreement, a P2 that is only a preference or tidiness point does not block merging.
+
+**What to question**
+
+- Don't take the author's approach, or the current spec, as given. If a rule in `AGENTS.md` or a guide conflicts with another rule or is unreasonable, report that rule and keep the correct ones.
+- Simple is best. Flag over-design, extra layers, and large diffs that need a more fundamental fix. Suggest splitting a PR that is too large to review or that fails CI for unrelated reasons.
+- Flag code that only works for one report, provider, case or dataset when the shared pipeline should take that difference as data.
+- Keep one current implementation. Flag compatibility layers, aliases and superseded copies unless a written requirement keeps them.
+- Weigh correctness, speed and resource cost (calls, CPU, memory) together. Flag a change that buys a small gain in one at a large cost in another.
+- For benchmark changes, check the datasets, the evaluation process and the results, not only the code:
+  - populations and counts, with no task counted twice;
+  - task selection made by rule, not after seeing results;
+  - reference coverage;
+  - whether scores change.
+- A change that can move a score must state its version impact under `docs/releases.md`. A changed scorer never ships under an already released version.
+- When the PR ships a runnable service or UI, use it as a normal user. Report broken flows, confusing steps and features that should be removed.
+- Keep credentials, internal hostnames and personal data out of the public repository. They belong in `.env`, with names only in `.env.example`.
+- Code and authored text are English. Datasets, web content and evidence keep their original language; do not flag or translate them.
+- A Web Fetch report must rank. A small lead is shown as an n-task lead or a shared place.
+
+**PR hygiene to check**
+
+- The PR body has one picture of its main content. The picture still matches the diff after fixes.
+- The PR closes the issues it resolves. One PR may close several.
+
+**Writing findings**
+
+- Write for a reader without context. Say what breaks, for whom, the evidence and the smallest fix.
+- Link every PR, issue, commit and dataset you mention.
+- When the owner must decide something, give the options with evidence and a recommended default.
