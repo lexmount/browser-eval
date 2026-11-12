@@ -43,15 +43,17 @@ def test_original_license_terms_remain_linked_in_published_cards(tmp_path):
 
 
 def test_fetch_viewer_exposes_original_hierarchy_without_changing_execution_inputs(tmp_path):
-    tracks = ["web", "document", "image", "video", "challenge", "dynamic"]
+    tracks = ["web", "document", "image", "video", "challenge"]
     names = ["general-web", "embedded-documents", "media-information", "media-information",
-             "challenge-examples", "dynamic-examples"]
+             "challenge-examples"]
     cases = [{"id": f"original-{track}", "track": track, "category": f"specific_{track}",
-              "url": "https://example.test", "language": "en"} for track in tracks]
+              "url": "https://example.test", "language": "en"} for track in tracks + ["dynamic"]]
     source = release("webfetch", cases, identity="webfetch")
     manifest = source.build(tmp_path)
     assert {item["config_name"] for item in metadata(tmp_path)["configs"]} == set(names)
-    for track, name, case in zip(tracks, names, cases, strict=True):
+    # Mixed-suite dynamic examples share IDs and URLs with dynamic-content tasks.
+    assert not (tmp_path / "data/dynamic-examples.jsonl").exists()
+    for track, name, case in zip(tracks, names, cases[:-1], strict=True):
         row, = [row for row in exported_rows(tmp_path, name) if row['track'] == track]
         assert (row["id"], row["source_suite"], row["track"], row["category"]) == (
             case["id"], "webfetch", track, case["category"])
@@ -178,15 +180,17 @@ def test_fetch_editions_select_exact_populations_and_keep_all_raw_inputs(tmp_pat
                 'access-restrictions': 100, 'embedded-documents': 10,
                 'media-information': 17, 'direct-media-files': 3}
     if not historical:
-        expected.update(articles=100, **{'dynamic-examples': 10, 'challenge-examples': 10})
+        expected.update(articles=100, **{'challenge-examples': 10})
     assert {row['config']: row['count'] for row in manifest['viewer']['configurations']} == expected
     assert [row['config'] for row in manifest['viewer']['configurations']] == list(expected)
     assert [row['config_name'] for row in metadata(tmp_path)['configs']] == list(expected)
     rows = [row for name in expected for row in exported_rows(tmp_path, name)]
     primary = {case['id']: case for identity, cases in originals.items() for case in cases
-               if not historical or (identity != 'articles' and not (identity == 'webfetch' and case['track'] in {'challenge', 'dynamic'}))}
+               if not (identity == 'webfetch' and case['track'] == 'dynamic')
+               and (not historical or (identity != 'articles' and not (identity == 'webfetch' and case['track'] == 'challenge')))}
     assert {row['id'] for row in rows} == set(primary)
-    assert len(rows) == len(primary) == (430 if historical else 550)
+    # v3.0.0: 530 counted tasks plus the separate 10-task challenge set.
+    assert len(rows) == len(primary) == (430 if historical else 540)
     assert all(json.loads(row['task']) == primary[row['id']] for row in rows)
     assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'media-information')} == {'web_media'}
     assert {row['benchmark_category'] for row in exported_rows(tmp_path, 'direct-media-files')} == {'media_file'}
