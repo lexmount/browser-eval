@@ -8,7 +8,8 @@ from harness.web_search.example import example
 from harness.web_search.report import build, check, load_run, metric_populations, project_comparison
 
 
-def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_urls(tmp_path):
+@pytest.mark.parametrize('independent', [False, True])
+def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_urls(tmp_path, independent):
     from lexbench_websearch.relevance import candidate_packet
     from harness.web_search.comparison import comparison_data
     from harness.web_search.report import score_relevance
@@ -24,7 +25,13 @@ def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_
                     labels={c["case_id"]: {x["candidate_id"]: 3 for x in c["candidates"]}
                             for c in packet["blind_candidate_packets"]})
     content = tmp_path / "scoped-content.json"
-    content.write_text(json.dumps({"relevance_methods": scope, "presentation": "comparison-report"}), encoding="utf-8")
+    authored = {"relevance_methods": scope, "presentation": "comparison-report"}
+    if independent:
+        authored.update(independent_benchmarks=True, metric_populations=[{
+            'id': 'custom', 'metric_kind': 'relevance', 'benchmark_root': True,
+            'case_ids': [c['id'] for c in profile['cases']],
+            'label': {'en': 'Synthetic scenarios', 'zh': 'Synthetic scenarios'}}])
+    content.write_text(json.dumps(authored), encoding="utf-8")
     labels = tmp_path / "labels.json"
     labels.write_text(json.dumps(evidence), encoding="utf-8")
     output = tmp_path / "scoped-report"

@@ -219,6 +219,7 @@ def repaired_messages(packet, call, expected):
     if dict(prior["request"], messages=repaired) != call["request"]:
         raise ValueError("Format repair changed model configuration")
     try:
+        _validate_judge_field_references(prior["response"])
         parse_judgments(packet, prior["response"])
     except (ValueError, KeyError, TypeError):
         return repaired

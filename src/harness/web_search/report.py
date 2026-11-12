@@ -3669,7 +3669,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         if kind == 'relevance' and not ranked:
             raise ValueError('Relevance comparison requires every method and query')
         if ranked and (independent or kind == 'relevance'):
-            expected = {(cid, method['id']) for cid in ids for method in profile['methods']}
+            scoped, _ = relevance_scope(profile, subset)
+            expected = {(cid, method['id']) for cid in ids for method in scoped['methods']}
             actual = [(r['case_id'], r['method']) for r in relevance_scores if r['case_id'] in ids]
             if len(actual) != len(expected) or set(actual) != expected:
                 raise ValueError('Relevance comparison requires every method and query')

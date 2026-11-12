@@ -218,14 +218,23 @@ def test_invalid_model_answer_is_retained_and_never_automatically_replaced(run_j
     assert next(run_judge.output.glob("*-attempts.json")).exists()
 
 
-def test_explicit_format_repair_preserves_invalid_call_and_never_repeats_valid_answers(run_judge, monkeypatch):
+@pytest.mark.parametrize('invalid_format', ['omitted-candidates', 'quoted-string', 'url-reference'])
+def test_explicit_format_repair_preserves_invalid_call_and_never_repeats_valid_answers(
+    run_judge, monkeypatch, invalid_format
+):
     requests = []
 
     def transport(request, **kwargs):
         requests.append(request)
         raw = json.loads(answer(request))
         if len(requests) == 1:
-            raw['choices'][0]['message']['content'] = '{"judgments":[]}'
+            if invalid_format == 'omitted-candidates':
+                raw['choices'][0]['message']['content'] = '{"judgments":[]}'
+            else:
+                items = json.loads(raw['choices'][0]['message']['content'])
+                items['judgments'][0]['evidence'] = ('pip install package' if invalid_format == 'quoted-string'
+                                                    else {'field': 'url', 'preview_index': 0})
+                raw['choices'][0]['message']['content'] = json.dumps(items)
         return Response(json.dumps(raw).encode())
 
     monkeypatch.setattr(urllib.request, 'urlopen', transport)

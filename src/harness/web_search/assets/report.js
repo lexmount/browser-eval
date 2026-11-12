@@ -18,7 +18,9 @@ document.querySelectorAll('table[data-sort-controls]').forEach(table=>{
     const rows=[...table.tBodies[0].rows];
     rows.sort((a,b)=>{
       const x=value(a.cells[index]),y=value(b.cells[index]);
-      if(x.value===null||y.value===null)return x.value===y.value?original.get(a)-original.get(b):x.value===null?1:-1;
+      if(x.value===null&&y.value===null)return original.get(a)-original.get(b);
+      if(x.value===null)return 1;
+      if(y.value===null)return -1;
       const difference=x.numeric&&y.numeric?x.value-y.value:String(x.value).localeCompare(String(y.value),document.documentElement.lang,{numeric:true});
       return difference*(ascending?1:-1)||original.get(a)-original.get(b);
     });
