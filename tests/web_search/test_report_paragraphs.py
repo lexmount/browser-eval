@@ -45,6 +45,30 @@ def test_public_paragraph_revision_preserves_all_measured_bytes_and_is_idempoten
     assert (report / 'manifest.json').read_bytes() == saved
 
 
+def test_same_revision_recovers_when_manifest_commit_fails(tmp_path, monkeypatch):
+    from harness.web_search import report as owner
+
+    path, content = fixture(tmp_path)
+    report = tmp_path / 'report'
+    original = (report / 'manifest.json').read_bytes()
+    content['sections'][0]['paragraphs'][0] = {
+        'en': 'Revised explanation.', 'zh': 'Revised translated explanation.'}
+    path.write_text(json.dumps(content), encoding='utf-8')
+    args = ['--output', str(report), '--revise-paragraphs', str(path)]
+
+    def fail_commit(*args):
+        raise OSError('Simulated full disk during manifest commit')
+
+    with monkeypatch.context() as patch:
+        patch.setattr(owner, 'write_json', fail_commit)
+        with pytest.raises(OSError, match='full disk'):
+            main(args)
+    assert (report / 'manifest.json').read_bytes() == original
+    main(args)
+    assert check(report)
+    assert len(json.loads((report / 'manifest.json').read_bytes())['content_revisions']) == 1
+
+
 @pytest.mark.parametrize('change', ['inputs', 'structure', 'language', 'missing-edition'])
 def test_paragraph_revision_rejects_other_changes_without_partial_writes(tmp_path, change):
     path, content = fixture(tmp_path)

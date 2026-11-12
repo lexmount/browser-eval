@@ -29,6 +29,7 @@ from harness.report_languages import (
 from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.presentation import check_presentation
 from harness.reporting.presentation import esc as escape_text
+from harness.reporting.publication import atomic_write
 from harness.reporting.versions import (
     FILENAME,
     bind_build_version,
@@ -2249,7 +2250,8 @@ def revise_paragraphs(output, content):
                 new = revised['sections'][index]['paragraphs']
                 for section in soup.select(f'[data-authored="{index}"]'):
                     paragraphs = section.find_all('p', recursive=False)[:len(old)]
-                    if [p.get_text() for p in paragraphs] != [p[lang] for p in old]:
+                    current = [p.get_text() for p in paragraphs]
+                    if current not in ([p[lang] for p in old], [p[lang] for p in new]):
                         raise ValueError('Existing authored paragraphs differ from their frozen content')
                     for node, paragraph in zip(paragraphs, new, strict=True):
                         node.string = paragraph[lang]
@@ -2266,7 +2268,7 @@ def revise_paragraphs(output, content):
     manifest['authored'], manifest['content_sha256'] = revised, bytes_sha256(raw)
     manifest['content_revisions'] = [*manifest.get('content_revisions', []), receipt]
     for target, text in updates.items():
-        target.write_text(text, encoding='utf-8')
+        atomic_write(target, text.encode('utf-8'))
     write_json(path, manifest)
     return output / 'index.html'
 
