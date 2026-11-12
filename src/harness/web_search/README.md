@@ -170,6 +170,17 @@ languages. These examples do not enter the measured cohort merely by being
 included in the report. Release checks bind the authored explanation, actual
 specimens, source-filter populations and chapter visibility to the public build.
 
+Sections may include `figures` with an asset `path`, localized `alt` and
+`caption`. Figures must select a hash-bound asset; report checks reject missing
+or substituted images. Keep numerical chart data in a bound source.
+
+Factual URL matching measures retrieval of the listed sources, not relevance of
+every returned page or final-answer accuracy. The offline
+`diagnostics.factual_source_diagnostic` can compare original URL matching with
+frozen HTTP redirect observations without modifying scores or references. Keep
+this optional sensitivity analysis separate from the leaderboard. Opening a
+result page is not a required ranking or scoring step.
+
 For hosts with a file-count limit, export a checked report with
 `--output /absolute/report --export-delivery /absolute/new-delivery-directory`.
 This preserves the renderer's pages and raw responses in one compressed file per

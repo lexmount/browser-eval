@@ -962,3 +962,37 @@ def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoic
     content['catalog_pricing']['b']['amount']=-1
     with pytest.raises(ValueError,match='catalog price'):
         population_summary(profile,rows,content,True,relevance_scores=scored)
+
+
+def test_bound_data_figures_render_in_both_languages_and_reject_wrong_images(tmp_path):
+    from harness.web_search.report import authored_sections
+
+    fixture = tmp_path / 'fixture'
+    example(fixture)
+    image = tmp_path / 'distribution.svg'
+    image.write_text('<svg xmlns="http://www.w3.org/2000/svg"><title>Counts: 3 and 7</title></svg>')
+    data = {'reading_model': True, 'sections': [{'page': 'lead',
+            'title': {'en': 'Source coverage', 'zh': '来源覆盖'},
+            'figures': [{'path': 'report-assets/distribution.svg',
+                         'alt': {'en': '3 source hits, 7 misses', 'zh': '命中 3 题，未命中 7 题'},
+                         'caption': {'en': 'All 10 queries.', 'zh': '全部 10 题。'}}]}],
+            'assets': [{'source': image.name, 'path': 'report-assets/distribution.svg',
+                        'sha256': bytes_sha256(image.read_bytes())}]}
+    content = tmp_path / 'content.json'
+    content.write_text(json.dumps(data), encoding='utf-8')
+    out = tmp_path / 'report'
+    build(out, source=fixture / "fixture", content=content, include_english=True)
+    assert check(out)
+    for route in ('index.html', 'en/index.html'):
+        dom = BeautifulSoup((out / route).read_text(), 'html.parser')
+        assert dom.select_one('[data-authored-figure] img')['src'] == 'report-assets/distribution.svg'
+    page = out / 'index.html'
+    dom = BeautifulSoup(page.read_text(), 'html.parser')
+    dom.select_one('[data-authored-figure] img')['src'] = 'report-assets/wrong.svg'
+    page.write_text(str(dom), encoding='utf-8')
+    import pytest
+    with pytest.raises(ValueError, match='figure|resource|link'):
+        check(out)
+    data['assets'] = []
+    with pytest.raises(ValueError, match='hash-bound'):
+        authored_sections(data, 'lead', 'zh')

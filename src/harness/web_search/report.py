@@ -879,10 +879,10 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
     )
     # Artifact Site injects a root base on every nested route. Local pages use
     # the matching base above; every artifact-owned link names the root path.
-    for node in document.select("[href],[data-evidence],[data-detail]"):
+    for node in document.select("[href],[data-evidence],[data-detail],img[src]"):
         if node.name == "base":
             continue
-        for attr in ("href", "data-evidence", "data-detail"):
+        for attr in ("href", "data-evidence", "data-detail", "src"):
             value = node.get(attr)
             if value and not value.startswith(("https://", "http://", "#")):
                 asset_paths = {a["path"] for a in authored.get("assets", [])}
@@ -2026,6 +2026,12 @@ def check(output, *, return_data=False, evidence_only=False):
                         for c in chapters
                     )
                 expected_soup = BeautifulSoup(expected, "html.parser")
+                for image in expected_soup.select("[data-authored-figure] img"):
+                    image["src"] = posixpath.join(manifest.get("site_prefix", ""), image["src"])
+                if [str(node) for node in soup.select("[data-authored-figure]")] != [
+                    str(node) for node in expected_soup.select("[data-authored-figure]")
+                ]:
+                    raise ValueError("Reader figure differs from its bound content")
                 if [s.get_text() for s in soup.select("[data-authored]")] != [
                     s.get_text() for s in expected_soup.select("[data-authored]")
                 ]:
@@ -2842,6 +2848,13 @@ def authored_sections(content, page, language, *, rows=(), heading_level=2):
             )
         for p in s.get("paragraphs", []):
             body += "<p>" + esc(p[language]) + "</p>"
+        for figure in s.get("figures", []):
+            source = figure["path"]
+            if not any(asset.get("path") == source and asset.get("sha256") for asset in content.get("assets", [])):
+                raise ValueError("Reader figures require a hash-bound report asset")
+            body += ('<figure data-authored-figure><div class="figure-scroll"><img src="'
+                     + esc(source) + '" alt="' + esc(figure["alt"][language])
+                     + '"></div><figcaption>' + esc(figure["caption"][language]) + '</figcaption></figure>')
         if s.get("rows"):
             body += table(
                 s["headers"][language], [cells([esc(v) for v in r[language]]) for r in s["rows"]]

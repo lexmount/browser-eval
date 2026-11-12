@@ -102,3 +102,38 @@ class TimingScenarios(unittest.TestCase):
         self.assertEqual(result["methods"]["m"]["outcomes"], {"cancelled": 1, "error": 1})
         self.assertEqual(result["methods"]["m"]["body_ms"], {"n": 0, "mean": None})
         self.assertEqual(result["methods"]["m"]["ttfb_ms"], {"n": 0, "mean": None})
+
+
+def test_url_identity_diagnostic_never_changes_search_scores_or_references():
+    from copy import deepcopy
+
+    from harness.web_search.diagnostics import factual_source_diagnostic
+    from lexbench_websearch.scoring import evaluate
+
+    target, alias = 'https://reference.test/fact', 'https://old.reference.test/fact'
+    case = dict(id='fact', reference_answer='42', reference_urls=[target])
+    profile = {'cases': [case]}
+    results = [{'url': alias, 'snippet': '42'}]
+    rows = [dict(id=method, method=method, case_id='fact', results=results,
+                 metrics=evaluate(case, results)) for method in ('a', 'b')]
+    observation = dict(url=alias, final=target, status=200, verified_at='2026-01-01',
+                       chain=[dict(url=alias, status=301, location=target)])
+    original = deepcopy((profile, rows))
+    diagnostic = factual_source_diagnostic(profile, rows, [observation])
+    for method in ('a', 'b'):
+        counts = diagnostic['methods'][method]
+        assert counts['source_hit'] == 0
+        assert counts['answer_only'] == 1
+        assert counts['observed_redirect_extra'] == 1
+        assert counts['same_page_diagnostic_hit'] == 1
+    assert (profile, rows) == original
+    assert all(row['metrics']['labeled_source_hit_5'] == 0 for row in rows)
+    for changed in (dict(observation, status=403), dict(observation, chain=[]),
+                    dict(observation, final='https://reference.test/other')):
+        counts = factual_source_diagnostic(profile, rows, [changed])['methods']['a']
+        assert counts['observed_redirect_extra'] == 0
+    late = deepcopy(rows)
+    for row in late:
+        row['results'] = [{'url': f'https://other.test/{i}'} for i in range(5)] + results
+    counts = factual_source_diagnostic(profile, late, [observation])['methods']['a']
+    assert counts['observed_redirect_extra'] == 0
