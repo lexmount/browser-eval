@@ -368,3 +368,27 @@ def test_scope_report_validates_active_edition_and_retains_acquisition_edition(t
     assert (report/'benchmark-release.json').read_bytes() == full_release.read_bytes()
     assert (run/'results.jsonl').read_bytes() == original_results
     assert (run/'dataset.json').read_bytes() == original_dataset
+
+
+@pytest.mark.parametrize('scope', ['main', 'full'])
+def test_explicit_run_scope_selects_one_report_and_both_scores(tmp_path, scope):
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool':'web_fetch','id':'paired','cases':[case]}))
+    env = tmp_path/'empty.env'
+    env.write_text('')
+    run = tmp_path/'run'
+    result = invoke(tmp_path,'run','--dataset',dataset,'--output',run,'--env-file',env,
+                    '--delay','0','--max-failure-retries','0','--content-scope',scope,language='zh')
+    assert result.returncode == 0, result.stdout+result.stderr
+    row = json.loads((run/'results.jsonl').read_text())
+    assert set(row['metrics']['content_scope_metrics']) == {'main','full'}
+    assert json.loads((run/'report/dataset.json').read_text())['content_scope'] == scope
+    assert len(list((run/'call-logs').rglob('*.json'))) == 1
+    assert not (run/'report/content-scopes').exists()
+    result = invoke(tmp_path,'rescore',run,'--dataset',dataset,'--score-scope','both',
+                    '--content-scope',scope,language='zh')
+    assert result.returncode == 0, result.stdout+result.stderr
+    assert json.loads((run/'report/dataset.json').read_text())['content_scope'] == scope
+    assert len(list((run/'call-logs').rglob('*.json'))) == 1

@@ -170,7 +170,9 @@ def command_run(args: argparse.Namespace) -> int:
         print("Report not built (--no-report).")
     else:
         report_path = build_report(args.output, args.output / 'report', diagnostic_preview=True,
-                                   language=language)
+                                   language=language,
+                                   content_scope=(args.score_scope if args.score_scope in {'main', 'full'}
+                                                  else args.content_scope))
         print(f"Report: {report_path.resolve()}")
     kinds={case.id:case.task_kind for case in cases}
     failures = [r for r in records if not task_passed(r['ok'],r['metrics'],kinds[r['case_id']])]
@@ -209,7 +211,9 @@ def command_rescore(args: argparse.Namespace) -> int:
         print("Report not rebuilt (--no-report). Any existing HTML is unchanged.")
     else:
         report_path = build_report(args.run_dir, args.run_dir / 'report', diagnostic_preview=True,
-                                   language=language)
+                                   language=language,
+                                   content_scope=(args.score_scope if args.score_scope in {'main', 'full'}
+                                                  else args.content_scope))
         print(f"Rescored {len(records)} persisted attempts; report: {report_path.resolve()}")
     return 0
 
@@ -301,7 +305,7 @@ def build_parser() -> argparse.ArgumentParser:
     run = sub.add_parser("run", help="Run providers and generate a multi-page report")
     add_language_argument(run)
     run.add_argument("--dataset", type=Path, default=EXAMPLES / "fixture-dataset.json")
-    run.add_argument("--content-scope", choices=("main", "full"), help="Acceptance scope for acquisition and retries when scoring both scopes")
+    run.add_argument("--content-scope", choices=("main", "full"), help="Acceptance and report scope when scoring both scopes")
     run.add_argument("--score-scope", choices=("main", "full", "both"), help="Compute only one scope or both (default for annotated tasks)")
     run.add_argument("--provider-config", type=Path, default=EXAMPLES / "fixture-providers.json")
     run.add_argument("--providers", default="fixture", help="Comma-separated names, or configured for the provider config default cohort")

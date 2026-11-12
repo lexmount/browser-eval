@@ -29,7 +29,7 @@ webstone validate --dataset <new-directory>/dataset.json --content-scope main
 Use `--score-scope main`, `--score-scope full` or `--score-scope both` with
 `webstone run`, `webstone rescore` or `lexbench-webfetch score`. A single scope
 computes only that rule set and builds a single-view report. When omitted,
-annotated tasks default to both; `--content-scope` selects the acquisition and retry rules.
+annotated tasks default to both. An explicit `--content-scope` selects acquisition, retry and report requirements. Without it, paired-score reports default to full content.
 
 Tasks scored with both profiles receive two score sets from the same
 persisted output. `results.jsonl` stores them in `metrics.content_scope_metrics`;
