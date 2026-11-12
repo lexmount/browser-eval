@@ -252,6 +252,15 @@ def test_one_acquisition_builds_only_the_selected_report(tmp_path, language):
             assert ('Contact publisher' in soup.select_one('#evidence-reference').get_text()) == (scope == 'full')
         assert (run/'results.jsonl').read_bytes() == original
     assert len(list((run/'call-logs').rglob('*.json'))) == 4
+    original_report = (run/'report/index.html').read_bytes()
+    frozen = json.loads((run/'dataset.json').read_text())
+    frozen['cases'][0]['content_scopes']['full']['requirements']['required_facts'][0]['alternatives'] = ['Changed requirement']
+    (run/'dataset.json').write_text(json.dumps(frozen))
+    result = invoke(tmp_path, 'report', run, language=language)
+    assert result.returncode != 0
+    assert 'selected requirements' in result.stderr
+    assert (run/'results.jsonl').read_bytes() == original
+    assert (run/'report/index.html').read_bytes() == original_report
 
 
 @pytest.mark.parametrize('full_schema', ['named_link', 'body_text'])

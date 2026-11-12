@@ -449,6 +449,18 @@ def _select_report_scope(output, dataset, records, scope=None):
         return dataset, records
     single = {case.get('scoring_scope') for case in dataset['cases']}
     scope = scope or (next(iter(single)) if len(single) == 1 and single <= {'main', 'full'} else 'full')
+    source_cases = {case['id']: case for case in dataset['cases']}
+    for row in records:
+        case = source_cases[row['case_id']]
+        if not case.get('content_scopes'):
+            continue
+        _, digest = select_content_scope(case, scope)
+        metrics = (metrics_for_scope(row['metrics'], scope) if row['metrics'].get('content_scope_metrics')
+                   else row['metrics'])
+        if metrics.get('evaluation_content_scope') != scope:
+            raise ValueError('Requested report scores are unavailable; rescore saved outputs first')
+        if metrics.get('content_scope_requirements_sha256') != digest:
+            raise ValueError('Saved report scores do not match the selected requirements')
     if all(not row['metrics'].get('evaluation_content_scope') or row['metrics']['evaluation_content_scope'] == scope for row in records):
         return dataset, records
     selected = deepcopy(dataset)
