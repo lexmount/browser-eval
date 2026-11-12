@@ -309,6 +309,11 @@ def scoring_rows(profile, rows):
     return [row for row in rows if row["round"] == profile["protocol"]["score_round"]]
 
 
+def _check_collection_provenance(receipt, previous):
+    if previous and bool(receipt.get("synthetic")) != bool(previous[0]["collection_receipt"].get("synthetic")):
+        raise ValueError("Cannot combine synthetic and measured collections")
+
+
 def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases"):
     """Compose separately verified runs; never pretend they were one collection."""
     inputs = [("primary", source), *cohorts]
@@ -325,6 +330,7 @@ def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="c
         if not name.replace("-", "").isalnum():
             raise ValueError("Unsafe cohort name")
         current, calls, receipt = load_run(path)
+        _check_collection_provenance(receipt, receipts)
         if method_ids is not None:
             methods = {method["id"]: method for method in current["methods"]}
             if not method_ids or not set(method_ids).issubset(methods):
@@ -401,6 +407,7 @@ def _load_method_runs(inputs, labels, method_ids):
         if not name.replace("-", "").isalnum():
             raise ValueError("Unsafe cohort name")
         current, calls, receipt = load_run(path)
+        _check_collection_provenance(receipt, receipts)
         if current.get("execution_policy") or current["protocol"]["concurrency"] != 1:
             raise ValueError("Method composition requires serial collections")
         ids = {m["id"] for m in current["methods"]}
@@ -876,7 +883,7 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
                 node[attr] = posixpath.normpath(
                     posixpath.join(
                         site_prefix,
-                        "" if value in asset_paths else posixpath.dirname(prefix + route),
+                        "" if value in asset_paths or value in inputs.public_files else posixpath.dirname(prefix + route),
                         value,
                     )
                 )

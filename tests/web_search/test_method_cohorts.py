@@ -150,3 +150,49 @@ def test_added_provider_cannot_change_measurement_or_projection_controls(tmp_pat
     write_json(new / "receipt.json", receipt)
     with pytest.raises(ValueError, match="measurement controls"):
         load_report_runs(old, [("new", new)], {}, composition="methods")
+
+
+@pytest.mark.parametrize("composition", ["cases", "methods"])
+@pytest.mark.parametrize("synthetic_first", [True, False])
+def test_mixed_measured_and_synthetic_collections_are_rejected(
+    tmp_path, monkeypatch, composition, synthetic_first
+):
+    from harness.web_search import report
+
+    old, new = split_runs(tmp_path)
+    original = report.load_run
+
+    def load(source):
+        profile, rows, receipt = original(source)
+        return (
+            profile,
+            rows,
+            dict(receipt, synthetic=synthetic_first if source == old else not synthetic_first),
+        )
+
+    monkeypatch.setattr(report, "load_run", load)
+    with pytest.raises(ValueError, match="synthetic and measured"):
+        load_report_runs(old, [("new", new)], {}, composition=composition)
+
+
+def test_native_response_links_resolve_in_both_language_editions(tmp_path):
+    location = tmp_path / "example"
+    example(location)
+    source = location / "fixture"
+    profile = json.loads((source / "profile.json").read_bytes())
+    content = tmp_path / "content.json"
+    write_json(
+        content,
+        {
+            "presentation": "comparison-report",
+            "interface_example_case_id": profile["cases"][0]["id"],
+        },
+    )
+    output = tmp_path / "report"
+    build(output, source=source, content=content, include_english=True)
+    assert check(output)
+    for language in ("", "en/"):
+        page = BeautifulSoup((output / (language + "capabilities.html")).read_text(), "html.parser")
+        links = page.select("[data-interface-case] [data-evidence]")
+        assert len(links) == len(profile["methods"])
+        assert all((output / link["data-evidence"]).is_file() for link in links)

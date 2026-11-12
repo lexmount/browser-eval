@@ -15,6 +15,73 @@ def envelope(pages):
 
 
 class YuanbaoSearchTests(unittest.TestCase):
+    def test_transport_failures_retry_without_becoming_edition_errors(self):
+        from harness.web_search.example import synthetic_profile
+        from harness.web_search.runner import run
+
+        failures = [
+            (0, 28, b"", "operation timed out"),
+            (502, 0, b"<html>bad gateway</html>", ""),
+            (200, 18, b'{"Response":', "partial transfer"),
+        ]
+        for status, exit_code, raw, error in failures:
+            with (
+                self.subTest(status=status, exit_code=exit_code),
+                tempfile.TemporaryDirectory() as d,
+            ):
+                root = Path(d)
+                profile = synthetic_profile()
+                profile["methods"] = [
+                    {
+                        "id": "tencent-wsa",
+                        "label": "Yuanbao",
+                        "adapter": "tencent-wsa",
+                        "endpoint": "https://fixture.invalid",
+                        "key_env": "TENCENT_WSA_API_KEY",
+                        "currency": "CNY",
+                        "billing": "unknown",
+                        "expected_response_version": "standard",
+                    }
+                ]
+                profile["protocol"]["retry"] = True
+                path = root / "input.json"
+                path.write_text(json.dumps(profile), encoding="utf-8")
+                requests = []
+
+                def http(
+                    url,
+                    body=None,
+                    *args,
+                    status=status,
+                    exit_code=exit_code,
+                    raw=raw,
+                    error=error,
+                    requests=requests,
+                    **kwargs,
+                ):
+                    receipt = dict(
+                        http_status=200, elapsed_ms=1, transport_exit=0, transport_error=""
+                    )
+                    if body is None:
+                        return receipt, b"reference " * 20
+                    requests.append(body)
+                    if len(requests) == 1:
+                        receipt.update(
+                            http_status=status, transport_exit=exit_code, transport_error=error
+                        )
+                        return receipt, raw
+                    return receipt, json.dumps(envelope([])).encode()
+
+                with (
+                    patch("harness.web_search.runner.http_call", side_effect=http),
+                    patch("harness.web_search.runner.load_runtime_env"),
+                    patch.dict(os.environ, TENCENT_WSA_API_KEY="fixture"),
+                ):
+                    run(path, root / "run", certified=True)
+                self.assertEqual(len(requests), 3)
+                self.assertTrue(json.loads((root / "run/receipt.json").read_bytes())["certified"])
+                self.assertEqual(requests[0], requests[1])
+
     def test_editions_have_distinct_native_requests_and_cannot_be_mixed(self):
         self.assertEqual(
             request_body("tencent-wsa", {"query": "q"}, {"top_k": 5}, {"edition": "lite"}),
