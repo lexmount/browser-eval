@@ -24,8 +24,8 @@ annotations and are rejected by this scope selector.
 Select `content-scopes-530` when exporting the paired annotations:
 
 ```bash
-lexbench-webfetch export --suite content-scopes-530 --source <approved-input-directory> --output <new-directory>
-webstone validate --dataset <new-directory>/dataset.json --content-scope main
+uv run --frozen lexbench-webfetch export --suite content-scopes-530 --source <approved-input-directory> --output <new-directory>
+uv run --frozen webstone validate --dataset <new-directory>/dataset.json --content-scope main
 ```
 
 Use `--score-scope main`, `--score-scope full` or `--score-scope both` with
