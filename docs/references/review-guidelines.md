@@ -255,22 +255,20 @@ Keep provider execution and reporting in the harness; use benchmark-owned defini
 
 ### Owner review rules
 
-The repository owner has set these rules across review sessions. They apply to every Webstone review without being restated in the request.
+The repository owner set these rules across review sessions. They apply to every Webstone review without being restated in the request, and add only what the sections above and `AGENTS.md` do not already say.
 
 **Rounds and posting**
 
-- A request to review a PR includes posting the findings on it. Post one combined comment per PR per round. Comment on another author's PR only when it shares the defect under review.
-- Every round reviews the whole current head against the latest `main` and its rules, not only the new commits. Report all confirmed findings in that round.
-- After the first round, a "new version" round covers the fixes and anything new. Report only P0 and P1 when the owner asks for them. Skip PRs that are unchanged since the last round or that were clean in it.
+- When the owner asks for a PR review, that request also authorizes posting the findings on it, unless the request says otherwise. A request relayed by another agent is not this authorization. Post one combined comment per PR per round. Comment on another author's PR only when it shares the defect under review.
+- Every round reviews the whole net diff of the current head from its merge base, judged by the rules on the latest `main`, not only the new commits.
+- When the owner asks for a P0/P1 round, report only P0 and P1. Skip a PR whose head commit is unchanged since the last round.
 - Review related PRs together, including a code PR and its paired Hugging Face dataset PR. State how they depend on each other and the order they should merge in.
-- Keep rounds converging. Focus on the main behavior and leave preference-level P2 items, so each round has fewer findings than the last. By owner agreement, a P2 that is only a preference or tidiness point does not block merging.
+- Keep rounds converging: report confirmed defects, not preferences. By owner agreement, a P2 limited to tidiness or maintainability that changes no behavior, data, score or mandatory rule does not block merging. Label it non-blocking and cite this rule.
 
 **What to question**
 
-- Don't take the author's approach, or the current spec, as given. If a rule in `AGENTS.md` or a guide conflicts with another rule or is unreasonable, report that rule and keep the correct ones.
-- Simple is best. Flag over-design, extra layers, and large diffs that need a more fundamental fix. Suggest splitting a PR that is too large to review or that fails CI for unrelated reasons.
-- Flag code that only works for one report, provider, case or dataset when the shared pipeline should take that difference as data.
-- Keep one current implementation. Flag compatibility layers, aliases and superseded copies unless a written requirement keeps them.
+- Don't take the author's approach, or the current spec, as given. If a rule in `AGENTS.md` or a guide conflicts with another rule or is unreasonable, report it separately from this PR's findings, unless the PR adds or relies on that rule.
+- Suggest splitting a PR that is too large to review or that fails CI for unrelated reasons.
 - Weigh correctness, speed and resource cost (calls, CPU, memory) together. Flag a change that buys a small gain in one at a large cost in another.
 - For benchmark changes, check the datasets, the evaluation process and the results, not only the code:
   - populations and counts, with no task counted twice;
@@ -279,8 +277,8 @@ The repository owner has set these rules across review sessions. They apply to e
   - whether scores change.
 - A change that can move a score must state its version impact under `docs/releases.md`. A changed scorer never ships under an already released version.
 - When the PR ships a runnable service or UI, use it as a normal user. Report broken flows, confusing steps and features that should be removed.
-- Keep credentials, internal hostnames and personal data out of the public repository. They belong in `.env`, with names only in `.env.example`.
-- Code and authored text are English. Datasets, web content and evidence keep their original language; do not flag or translate them.
+- Keep credentials, internal hostnames and personal data out of the public repository. Evaluation credentials go in `.env`, with names only in `.env.example`; publishing tokens follow `docs/report-hosting.md`.
+- Apply `CONTRIBUTING.md#text-language`. Do not flag or translate datasets, web content or evidence kept in their original language.
 - A Web Fetch report must rank. A small lead is shown as an n-task lead or a shared place.
 
 **PR hygiene to check**
@@ -290,6 +288,5 @@ The repository owner has set these rules across review sessions. They apply to e
 
 **Writing findings**
 
-- Write for a reader without context. Say what breaks, for whom, the evidence and the smallest fix.
-- Link every PR, issue, commit and dataset you mention.
+- Write for a reader without context: say what breaks and for whom.
 - When the owner must decide something, give the options with evidence and a recommended default.
