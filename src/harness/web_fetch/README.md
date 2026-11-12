@@ -26,8 +26,10 @@ lexbench-webfetch export --suite content-scopes-530 --source <approved-input-dir
 webstone validate --dataset <new-directory>/dataset.json --content-scope main
 ```
 
-Choose `main` or `full` for each run. This annotated suite defaults to `full`;
-the original suites keep their existing acceptance rules. The approved input
+Choose `main` or `full` for each run. An explicit option overrides the saved
+dataset or task scope. The approved input bound by `content-scopes-530` declares
+`main`; annotated tasks without a saved scope fall back to `full`. The original
+suites keep their existing acceptance rules. The approved input
 directory must contain the hash-bound `dataset.json` named by the suite's
 `source-inputs.json`. Public reference hashes do not replace the frozen inputs.
 
