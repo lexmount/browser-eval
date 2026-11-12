@@ -291,3 +291,51 @@ def test_redirected_requests_keep_the_token_only_on_the_publication_host(tmp_pat
     assert [(path, auth) for server, path, auth in seen if server is origin] == hops * 3
     assert [(path, auth) for server, path, auth in seen if server is other] == [
         ('/moved/api/sites/site-one', None)] * 3
+
+
+@pytest.mark.parametrize('damage', [None, 'version', 'path', 'duplicate', 'size'])
+def test_manifest_export_downloads_versioned_originals_without_sharing(tmp_path, damage):
+    from urllib.parse import parse_qs, urlsplit
+    files = {'index.html': b'<h1>Report</h1>', 'data/a.bin': b'\x00\xffraw'}
+    entries = [{'path': name, 'size': len(raw)} for name, raw in files.items()]
+    manifest = {'assembled': False, 'versionId': 'ver_saved', 'files': entries}
+    if damage == 'version':
+        manifest['versionId'] = 'ver_other'
+    elif damage == 'path':
+        entries[0]['path'] = '../outside'
+    elif damage == 'duplicate':
+        entries.append(entries[0])
+    elif damage == 'size':
+        entries[0]['size'] += 1
+    calls = []
+    def response(request, timeout):
+        calls.append(request)
+        assert request.get_method() == 'GET'
+        assert request.get_header('Authorization') == 'Bearer fixture'
+        url = urlsplit(request.full_url)
+        assert url.netloc == 'reports.example'
+        if url.path.endswith('/export'):
+            raw = json.dumps(manifest).encode()
+        else:
+            assert url.path == '/artifact-site/api/sites/test/download'
+            query = parse_qs(url.query)
+            assert query['version'] == ['ver_saved']
+            raw = files[query['file'][0]]
+        stream = io.BytesIO(raw)
+        stream.headers = {'x-artifact-version': 'ver_saved'}
+        return stream
+    request = urllib.request.Request('https://reports.example/artifact-site/api/sites/test/export',
+                                     headers={'Authorization': 'Bearer fixture'})
+    with patch('urllib.request.build_opener', lambda *handlers: SimpleNamespace(open=response)):
+        if damage:
+            with pytest.raises(ValueError):
+                download_export(request, tmp_path)
+            assert not list(tmp_path.glob('remote-export-*.zip'))
+            if damage != 'size':
+                assert len(calls) == 1
+        else:
+            version, path = download_export(request, tmp_path)
+            assert version == 'ver_saved'
+            with zipfile.ZipFile(path) as archive:
+                assert {name: archive.read(name) for name in archive.namelist()} == files
+            assert len(calls) == 3
