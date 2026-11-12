@@ -19,9 +19,17 @@ Profiles inherit the original blocked-page and navigation constraints. They requ
 an existing full-page ordered-tree acceptance contract require separate tree
 annotations and are rejected by this scope selector.
 
-Public definitions retain both profiles and reference hashes. Export and score
-the matching approved frozen inputs, which contain the bound reference bodies;
-public reference hashes alone are not executable body references.
+Select `content-scopes-530` when exporting the paired annotations:
+
+```bash
+lexbench-webfetch export --suite content-scopes-530 --source <approved-input-directory> --output <new-directory>
+webstone validate --dataset <new-directory>/dataset.json --content-scope main
+```
+
+Choose `main` or `full` for each run. This annotated suite defaults to `full`;
+the original suites keep their existing acceptance rules. The approved input
+directory must contain the hash-bound `dataset.json` named by the suite's
+`source-inputs.json`. Public reference hashes do not replace the frozen inputs.
 
 Webstone owns this track's execution, evidence and report pipeline, and the independent scorer in `src/lexbench_webfetch/`. Public task definitions and reference bindings are versioned in [LexBench-Web-Fetch on Hugging Face](https://huggingface.co/datasets/Lexmount/LexBench-Web-Fetch). See [benchmark integration](../../../docs/benchmarks.md) for input export and dataset selection.
 
