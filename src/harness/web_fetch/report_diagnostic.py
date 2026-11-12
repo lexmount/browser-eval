@@ -818,8 +818,12 @@ def check_diagnostic_report(output, profile=None):
                     raise ValueError("Lazy evidence target mismatch")
             elif pre.get_text() != files[binding['path']].decode('utf-8'):
                 raise ValueError("Rendered evidence differs from saved output")
+    owned_routes = set(core) | {'attempts/'+row['id']+'.html' for row in model['rows']}
     for route in output.rglob("*.html"):
         soup = read_page(route)
+        if (route.relative_to(output).as_posix() in owned_routes
+                and soup.select_one('header a[hreflang="en"], header a[href="en/index.html"]')):
+            raise ValueError('Diagnostic navigation advertises an ungenerated language')
         for node in soup.select("[href], [src], [data-evidence-file]"):
             if node.name == 'base':
                 continue

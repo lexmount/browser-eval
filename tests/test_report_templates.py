@@ -307,9 +307,12 @@ class ReportTemplateTests(unittest.TestCase):
                 table=dict(headers=['Method','Passes'],rows=[['Articles',1]]))]}
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8")
             output=root/'output';build_diagnostic_cohorts(source,output)
+            (output/'source-snapshot.html').write_text('<header><a href="en/index.html" hreflang="en">English</a></header>', encoding='utf-8')
             check_diagnostic_report(output)
             home=output/'index.html';original=home.read_text(encoding="utf-8")
-            for bad in [original.replace('50.0%', '49.0%'),
+            self.assertNotIn('hreflang="en"', original)
+            for bad in [original.replace('</nav>', '<a href="en/index.html" hreflang="en">English</a></nav>', 1),
+                        original.replace('50.0%', '49.0%'),
                         original.replace('50.0%', ''),
                         original.replace('comparison-winner good','unmarked')]:
                 home.write_text(bad, encoding="utf-8")
