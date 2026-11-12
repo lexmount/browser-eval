@@ -126,3 +126,18 @@ def select_content_scope(case: dict, scope: str | None = None) -> tuple[dict, st
         ).encode()
     ).hexdigest()
     return effective, binding
+
+
+def metrics_for_scope(metrics: dict, scope: str) -> dict:
+    """Read a bound scoring view while retaining shared invocation evidence."""
+    selected = deepcopy(metrics['content_scope_metrics'][scope])
+    if (selected.get('evaluation_content_scope') != scope
+            or selected.get('content_sha256') != metrics.get('content_sha256')
+            or not selected.get('content_scope_requirements_sha256')
+            or selected.get('scoring_source_sha256') != metrics.get('scoring_source_sha256')
+            or 'content_scope_metrics' in selected):
+        raise ValueError('Content scope metrics do not bind the same answer and requirements')
+    for name in ('deadline_overrun', 'deadline_budget_ms', 'reference_sha256'):
+        if name in metrics:
+            selected[name] = metrics[name]
+    return selected

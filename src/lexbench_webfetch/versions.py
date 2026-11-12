@@ -198,6 +198,10 @@ def catalog_release(path: Path | None = None, *, require_current_scorer: bool = 
     actual = []
     for entry in registry()["suites"]:
         validated = validate(entry["id"])
+        # Annotation cohorts add alternate rules over an existing population.
+        # They do not expand the task population of its frozen catalog edition.
+        if entry.get("kind") == "annotation_cohort":
+            continue
         actual.append({**validated, "dataset_id": entry["dataset_id"],
                        "directory": entry["directory"], "files": entry["files"]})
     if release.get("suites") != actual or release.get("case_count") != sum(

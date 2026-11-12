@@ -78,3 +78,14 @@ Choose checks from the changed surface:
 | Release metadata only | Binding and destination check only |
 
 Automate deterministic invariants in code. Keep visual judgment conditional on relevant layout or style changes. A release gate should fail with the missing invariant, not merely recommend that someone “review the report.”
+
+
+## Paired acceptance views
+
+When the same calls support two independently annotated acceptance scopes, keep
+one invocation population and expose the active scoring scope on every report
+page. Switch summaries, failures, requirements and verdicts together. Keep
+latency, usage, cost and answer hashes tied to the original calls. Verify both
+views through the shared renderer and release checks; missing scope controls,
+wrong totals, broken counterpart links and missing failure evidence must fail.
+Scope-specific prose and independent review judgments need their own evidence.

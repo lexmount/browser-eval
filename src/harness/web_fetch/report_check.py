@@ -324,8 +324,89 @@ def check_local_diagnostic_presentation(root: Path, *, ranked=False):
                 raise ValueError('Sample ranking scope missing: ' + str(path.relative_to(root)))
 
 
+def check_content_scope_views(root: Path):
+    """Both score views must retain the same calls and valid whole-report controls."""
+    from lexbench_webfetch.content_scopes import metrics_for_scope, select_content_scope
+    from harness.web_fetch.report_build import _report_summary, _scope_report_pages
+    records = load_jsonl(root/'results.jsonl')
+    paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
+    binding = root/'content-scope-views.json'
+    if not any(paired):
+        if binding.exists():
+            raise ValueError('Content-scope switch has no paired scores')
+        return
+    if not all(paired) or not binding.is_file():
+        raise ValueError('Content-scope report is missing complete paired score views')
+    model = read_json(binding)
+    default = model.get('default_scope')
+    if (default not in {'main', 'full'} or model.get('provider_calls_added') != 0
+            or model.get('views') != {default: '.', ('full' if default == 'main' else 'main'):
+                                     'content-scopes/'+('full' if default == 'main' else 'main')}):
+        raise ValueError('Content-scope report has an invalid view binding')
+    source_dataset = read_json(root/'dataset.json')
+    for scope, relative in model['views'].items():
+        view = root if relative == '.' else contained_path(root, relative, reject_symlinks=True)
+        rows = load_jsonl(view/'results.jsonl')
+        if len(rows) != len(records):
+            raise ValueError('Content-scope report changed the call population')
+        cases = read_json(view/'dataset.json')
+        expected_cases = [select_content_scope(case, scope)[0] for case in source_dataset['cases']]
+        if cases['cases'] != expected_cases:
+            raise ValueError('Content-scope report has wrong task requirements')
+        for source, row in zip(records, rows, strict=True):
+            for key in ('attempt_id', 'case_id', 'provider', 'run', 'started_at', 'elapsed_ms',
+                        'ok', 'status_code', 'artifact_path'):
+                if row.get(key) != source.get(key):
+                    raise ValueError('Content-scope report changed invocation evidence: '+key)
+            expected = metrics_for_scope(source['metrics'], scope)
+            actual = {key: value for key, value in row['metrics'].items() if key != 'content_scope_metrics'}
+            if actual != expected:
+                raise ValueError('Content-scope report changed saved scope metrics')
+            _, profile_hash = select_content_scope(next(case for case in source_dataset['cases'] if case['id']==row['case_id']), scope)
+            if expected['content_scope_requirements_sha256'] != profile_hash:
+                raise ValueError('Content-scope report changed the requirement binding')
+            if file_sha256(contained_path(view,row['artifact_path'])) != expected['content_sha256']:
+                raise ValueError('Content-scope report changed the answer bytes')
+        if read_json(view/'summary.json') != _report_summary(cases, rows):
+            raise ValueError('Content-scope report summary disagrees with its metrics')
+        passed = sum(task_passed(row['ok'], row['metrics']) for row in rows)
+        for page in _scope_report_pages(view):
+            soup = BeautifulSoup(page.read_text(encoding='utf-8'), 'html.parser')
+            if not soup.select_one('meta[name="webstone-report"]') or soup.main is None:
+                continue
+            toggle = soup.select_one('[data-content-scope-switch]')
+            if toggle is None or toggle.get('data-active-scope') != scope:
+                raise ValueError('Content-scope report lost its active scope control')
+            links = toggle.select('a[data-content-scope]')
+            if {link.get('data-content-scope') for link in links} != {'main', 'full'} or len(links)!=2:
+                raise ValueError('Content-scope report lost a switch target')
+            for link in links:
+                target = (page.parent / urlsplit(link['href']).path).resolve()
+                target_scope = link['data-content-scope']
+                expected_target = (root/model['views'][target_scope]/page.relative_to(view)).resolve()
+                if not expected_target.is_file():
+                    expected_target = (root/model['views'][target_scope]/'index.html').resolve()
+                if target != expected_target or not target.is_file() or bool(link.get('aria-current')) != (target_scope==scope):
+                    raise ValueError('Content-scope report has an incorrect switch target')
+            count = toggle.select_one('[data-scope-pass-count]')
+            if (count is None or count.get('data-scope-pass-count') != str(passed)
+                    or count.get('data-scope-attempt-count') != str(len(rows))
+                    or count.get_text(strip=True) != f'{"Passed" if soup.html.get("lang", "").startswith("en") else "通过"}: {passed}/{len(rows)}'):
+                raise ValueError('Content-scope report has incorrect displayed totals')
+            if page.parent.name == 'attempts':
+                attempt = next((row for row in rows if row['attempt_id'] == page.stem), None)
+                if attempt is not None:
+                    if not soup.select_one('#evidence-reference') or not soup.select_one('#evidence-output'):
+                        raise ValueError('Content-scope result lost expected-versus-actual evidence')
+                    if not task_passed(attempt['ok'], attempt['metrics']) and not soup.select_one('#run-log .log-summary'):
+                        raise ValueError('Content-scope failure lost its diagnosis and logs')
+            check_presentation(soup)
+
+
 def check(root: Path, *, authority_root: Path, profile: Path | None = None, presentation_binding: Path | None = None, source_dataset: Path | None = None):
     root = open_report(root)
+    if (root/"results.jsonl").is_file():
+        check_content_scope_views(root)
     repository = authority_root.resolve()
     profile_path = None
     if profile:
@@ -553,7 +634,7 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
         ):
             raise ValueError(c["id"])
     zh_pages = {
-        p.relative_to(root) for p in root.rglob("*.html") if p.relative_to(root).parts[0] != "en"
+        p.relative_to(root) for p in root.rglob("*.html") if p.relative_to(root).parts[0] not in {"en", "content-scopes"}
     }
     en_pages = {Path(*p.relative_to(root).parts[1:]) for p in (root / "en").rglob("*.html")}
     if has_english:
@@ -571,6 +652,14 @@ def check(root: Path, *, authority_root: Path, profile: Path | None = None, pres
             and (target.suffix.lower() in {".html", ".htm"})
         ):
             target = Path(*target.parts[1:])
+        if (root/'content-scope-views.json').is_file():
+            views = read_json(root/'content-scope-views.json')['views']
+            for relative in views.values():
+                if relative == '.':
+                    continue
+                prefix = Path(relative).parts
+                if target.parts[:len(prefix)+1] == (*prefix, 'en'):
+                    target = Path(*prefix, *target.parts[len(prefix)+1:])
         query = parsed.query
         if target == Path("index.html"):
             query = urlencode([(key, item) for key, item in parse_qsl(query, keep_blank_values=True)

@@ -865,20 +865,20 @@ def test_pin_synchronizes_registered_webfetch_suite_inventory(tmp_path, monkeypa
     lock = source_path('harness/benchmarks/data-lock.json', root=pin_root)
     lock.parent.mkdir(parents=True)
     lock.write_text(json.dumps({'datasets': {'webfetch': {
-        'repository': 'Lexmount/LexBench-Web-Fetch', 'revision': '0' * 40, 'files': {}}}}))
+        'repository': 'Lexmount/LexBench-Web-Fetch', 'revision': '0' * 40, 'files': {}}}}), encoding='utf-8')
     imported = pin_root / 'evaluation/lexbench-webfetch.json'
     imported.parent.mkdir()
     imported.write_text(json.dumps({'suites': [
         {'id': identifier, 'dataset_id': identifier, 'case_count': 1, 'files': {'tasks.json': 'old'},
          'benchmark_directory': 'src/lexbench_webfetch/definitions/evaluation/' + identifier,
-         'historical_directory': 'evaluation/' + identifier} for identifier in old_ids]}))
+         'historical_directory': 'evaluation/' + identifier} for identifier in old_ids]}), encoding='utf-8')
 
     def fetch(url, timeout):
         return io.BytesIO((published / ('manifest.json' if url.endswith('manifest.json') else 'definitions.tar.gz')).read_bytes())
 
     monkeypatch.setattr(data, 'urlopen', fetch)
     pinning.pin(pin_root, 'webfetch', 'a' * 40)
-    selected = json.loads(imported.read_text())
+    selected = json.loads(imported.read_text(encoding='utf-8'))
     assert [suite['id'] for suite in selected['suites']] == new_ids
     for suite in selected['suites']:
         descriptor = manifest['datasets'][suite['id']]

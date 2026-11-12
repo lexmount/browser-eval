@@ -413,6 +413,131 @@ def write_frozen_result_summary(output, dataset, records):
         (output / name).write_text(json.dumps(value, ensure_ascii=False, indent=2) + '\n', encoding='utf-8')
 
 
+def _report_summary(dataset, records):
+    cases = {case["id"]: case for case in dataset["cases"]}
+    summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
+                  for p in sorted({r['provider'] for r in records})
+                  if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
+               for t in TRACKS}
+    for provider, row in summary.get('challenge', {}).items():
+        subset = [r for r in records if r['provider'] == provider
+                  and cases[r['case_id']].get('track') == 'challenge']
+        body = [r for r in subset if cases[r['case_id']].get('task_kind', 'body') == 'body'
+                and cases[r['case_id']].get('ground_truth_main_content')]
+        row['body_evaluated_attempts'] = len(body)
+        row['body_task_pass'] = sum(succeeded(r, cases[r['case_id']]) for r in body) if body else None
+    for track, providers in summary.items():
+        for provider, row in providers.items():
+            subset = [r for r in records if r['provider'] == provider and cases[r['case_id']].get('track','web') == track]
+            row['scoring_scope'] = scoring_scope(subset, cases)
+            row['task_evaluated_attempts'] = sum(measured(r, cases[r['case_id']]) for r in subset)
+            row['task_unmeasured_attempts'] = len(subset) - row['task_evaluated_attempts']
+            text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
+            row['text_checked_attempts']=len(text)
+            row['text_checked_cases']=len({r['case_id'] for r in text})
+    return summary
+
+
+def _render_content_scope_views(output, dataset, records, manifests, *, include_english, language, **options):
+    """Render the existing report for each saved score set; never acquire answers."""
+    from copy import deepcopy
+    from lexbench_webfetch.content_scopes import select_content_scope, metrics_for_scope
+    paired = [bool(row['metrics'].get('content_scope_metrics')) for row in records]
+    if not any(paired):
+        generate(output, dataset, records, manifests, include_english=include_english, **options)
+        return
+    if not all(paired) or not all(case.get('content_scopes') for case in dataset['cases']):
+        raise ValueError('A switchable content-scope report requires paired annotations and scores for every task')
+    active = {row['metrics'].get('evaluation_content_scope') for row in records}
+    if len(active) != 1 or not active <= {'main', 'full'}:
+        raise ValueError('A content-scope report needs one default scoring scope')
+    default = active.pop()
+    other = 'full' if default == 'main' else 'main'
+    relative = 'content-scopes/' + other
+    view = output / relative
+    # Retain the verified support inventory, then render each score view through the same owner.
+    support = [path for path in output.rglob('*') if path.is_file()]
+    generate(output, dataset, records, manifests, include_english=include_english, **options)
+    if language is not None:
+        select_report_language(output, language)
+    for path in support:
+        name = path.relative_to(output)
+        if name.as_posix() in {'result-review.json', 'certification.json', 'report-manifest.json',
+                              'archived-reading.json', 'benchmark-release.json'}:
+            continue
+        target = view / name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(path, target)
+    scoped_dataset = deepcopy(dataset)
+    scoped_dataset['cases'] = [select_content_scope(case, other)[0] for case in dataset['cases']]
+    scoped_dataset['content_scope'] = other
+    comparison = scoped_dataset.setdefault('comparison', {})
+    for key in ('report_interpretation', 'score_audit'):
+        comparison.pop(key, None)
+    comparison.update(kind='web_fetch_diagnostic', publication_state='diagnostic_not_for_release')
+    scoped_records = [dict(row, metrics=metrics_for_scope(row['metrics'], other)) for row in records]
+    (view/'dataset.json').write_text(json.dumps(scoped_dataset, ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    (view/'results.jsonl').write_text(''.join(json.dumps(row, ensure_ascii=True)+'\n' for row in scoped_records), encoding='utf-8')
+    (view/'summary.json').write_text(json.dumps(_report_summary(scoped_dataset, scoped_records), ensure_ascii=False, indent=2)+'\n', encoding='utf-8')
+    generate(view, scoped_dataset, scoped_records, manifests, include_english=include_english,
+             **dict(options, authored_interpretation=False))
+    if language is not None:
+        select_report_language(view, language)
+    (output/'content-scope-views.json').write_text(json.dumps({
+        'schema_version': 1, 'default_scope': default, 'provider_calls_added': 0,
+        'views': {default: '.', other: relative},
+    }, indent=2)+'\n', encoding='utf-8')
+    return True
+
+
+def _scope_report_pages(view):
+    for page in view.rglob('*.html'):
+        parts = page.relative_to(view).parts
+        if parts[0] in {'en', 'zh'}:
+            parts = parts[1:]
+        if parts and parts[0] not in {'content-scopes', 'artifacts', 'call-logs', 'local-evidence', 'references'}:
+            yield page
+
+
+def _wire_content_scope_views(output):
+    from posixpath import relpath
+    from lexbench_webfetch.metrics import task_passed
+    import re
+    binding = output/'content-scope-views.json'
+    if not binding.exists():
+        return
+    views = json.loads(binding.read_text(encoding='utf-8'))['views']
+    for scope, relative in views.items():
+        view = output/relative
+        view_records = load_jsonl(view/'results.jsonl')
+        passed = sum(task_passed(row['ok'], row['metrics']) for row in view_records)
+        count = len(view_records)
+        for page in _scope_report_pages(view):
+            raw = page.read_text(encoding='utf-8')
+            if 'name="webstone-report"' not in raw or not re.search(r'<main[\s>]', raw):
+                continue
+            path = page.relative_to(view)
+            locale = re.search(r'<html[^>]*lang="([^"]+)"', raw)
+            english = bool(locale and locale[1].startswith('en'))
+            labels = {'main': 'Main content' if english else '主要内容',
+                      'full': 'Full content' if english else '完整内容'}
+            links = []
+            for target_scope, target_root in views.items():
+                target = output/target_root/path
+                if not target.is_file():
+                    target = output/target_root/'index.html'
+                href = relpath(target, page.parent)
+                links.append(f'<a data-content-scope="{target_scope}" href="{href}"'
+                             + (' aria-current="page"' if scope == target_scope else '')
+                             + f'>{labels[target_scope]}</a>')
+            links = [f'<strong>{link}</strong>' if 'aria-current=' in link else link for link in links]
+            note = 'Same saved calls; switch scoring requirements.' if english else '同一份抓取结果，切换评分要求。'
+            verdict_label = 'Passed' if english else '通过'
+            nav = f'<nav class="wrap callout" data-content-scope-switch data-active-scope="{scope}" aria-label="Scoring scope">'+ ' · '.join(links)+f'<span> {note}</span><span data-scope-pass-count="{passed}" data-scope-attempt-count="{count}"> {verdict_label}: {passed}/{count}</span></nav>'
+            # Keep the renderer's bytes intact outside this presentation control.
+            page.write_text(re.sub(r'(<main(?:\s[^>]*)?>)', lambda match, control=nav: match[1]+control, raw, count=1), encoding='utf-8')
+
+
 def build_report(source: Path, output: Path, *, include_english: bool = False,
                  local_audit: bool = False, authored_interpretation: bool | None = None,
                  diagnostic_preview: bool = False, language: str | None = None,
@@ -640,26 +765,7 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
             copy_cohort_evidence(resource_root, staging/'resource-cohort',
                 resource_dataset, resource_records, resource_batches,
                 summary_name='resource-comparison.json')
-        summary = {t:{p:{'attempts':len(rs), 'task_pass':sum(succeeded(r,cases[r['case_id']]) for r in rs)}
-                      for p in sorted({r['provider'] for r in records})
-                      if (rs := [r for r in records if r['provider']==p and cases[r['case_id']].get('track','web')==t])}
-                   for t in TRACKS}
-        for provider, row in summary.get('challenge', {}).items():
-            subset = [r for r in records if r['provider'] == provider
-                      and cases[r['case_id']].get('track') == 'challenge']
-            body = [r for r in subset if cases[r['case_id']].get('task_kind', 'body') == 'body'
-                    and cases[r['case_id']].get('ground_truth_main_content')]
-            row['body_evaluated_attempts'] = len(body)
-            row['body_task_pass'] = sum(succeeded(r, cases[r['case_id']]) for r in body) if body else None
-        for track, providers in summary.items():
-            for provider, row in providers.items():
-                subset = [r for r in records if r['provider'] == provider and cases[r['case_id']].get('track','web') == track]
-                row['scoring_scope'] = scoring_scope(subset, cases)
-                row['task_evaluated_attempts'] = sum(measured(r, cases[r['case_id']]) for r in subset)
-                row['task_unmeasured_attempts'] = len(subset) - row['task_evaluated_attempts']
-                text=[r for r in subset if r['metrics'].get('content_check_coverage') is not None]
-                row['text_checked_attempts']=len(text)
-                row['text_checked_cases']=len({r['case_id'] for r in text})
+        summary = _report_summary(dataset, records)
         # Preserve frozen input bytes across build and release profile checks.
         shutil.copy2(contained_path(source,'dataset.json'), staging/'dataset.json')
         for name,data in [('execution.json',{'batches':manifests}),('summary.json',summary)]:
@@ -819,11 +925,15 @@ def build_report(source: Path, output: Path, *, include_english: bool = False,
         copy_archived_reading(source,staging)
         from harness.web_fetch.report_version import bind_release
         release_binding = bind_release(source, staging, dataset, records, profile=profile_path)
-        generate(staging,dataset,records,manifests,include_english=include_english,
+        paired_views = _render_content_scope_views(staging,dataset,records,manifests,include_english=include_english,language=language,
                  authored_interpretation=authored_interpretation,
                  show_local_status_banners=show_local_status_banners)
-        if language is not None:
+        if language is not None and not paired_views:
             select_report_language(staging, language)
+        if paired_views:
+            _wire_content_scope_views(staging)
+        from harness.web_fetch.report_check import check_content_scope_views
+        check_content_scope_views(staging)
         from harness.report_languages import generated_languages
         template_manifest = {'schema_version': 1, 'template': None if diagnostic_preview else resolve_template('webfetch'),
             'dataset_sha256': file_sha256(staging/'dataset.json'),

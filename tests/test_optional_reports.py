@@ -34,7 +34,7 @@ cli.main()
 def invoke(tmp_path, *arguments, reject_builder=False, language='en'):
     env = {key: value for key, value in os.environ.items()
            if not key.startswith(('ARTIFACT_SITE_', 'ARTIFACT_HUB_'))}
-    env.update(PYTHONPATH=str(ROOT), WEBSTONE_REPORT_LANGUAGE=language,
+    env.update(PYTHONPATH=os.pathsep.join((str(ROOT / 'src'), str(ROOT))), WEBSTONE_REPORT_LANGUAGE=language,
                TEST_REJECT_REPORT_BUILDER='1' if reject_builder else '')
     return subprocess.run([sys.executable, '-c', PROGRAM, *map(str, arguments)],
                           cwd=tmp_path, env=env, text=True, capture_output=True)

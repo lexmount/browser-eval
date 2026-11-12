@@ -72,7 +72,7 @@
         },
         "metrics.py": {
           "before_sha256": "f9281d535fd8830069019fcc918f4a02a60471ee20f2e61069ee3d1696ba51ba",
-          "after_sha256": "340b6e7c8837b2c653ee591895263d82a05a94153de606b339457d31a5ef175e"
+          "after_sha256": "fcbfc2bb99e295003ab7e9e28a18e10d6fa74274cef9f773bd1217c54e0aaada"
         },
         "models.py": {
           "before_sha256": "1900f2691f29a87696bcdd13a226b7e6f4f1c593ec20cae120c844b1963c96fe",
@@ -100,7 +100,7 @@
         },
         "scoring.py": {
           "before_sha256": "ea2602b5e2310886dc70c097ce783e2f88be7c88220e9dbf0715a723b3aff567",
-          "after_sha256": "8360b8194992fc7ffba585683ba4542eea9cbfda72a648351744aff762295bb4"
+          "after_sha256": "ae77dc533f21c77e66f55242d966ac30f8a8c0981b73361bac055cc973657b3a"
         },
         "scoring_regressions.py": {
           "before_sha256": "a9dc2c0a86628e90bf5a23c9611adb48c9cf72c0f4941c6ed6412a5f95b37df9",
@@ -116,7 +116,7 @@
         },
         "versions.py": {
           "before_sha256": "be877ddbdefb9df073483b63400400301c59a05a86cffbd6efc721575149cd0f",
-          "after_sha256": "5dd1c536b09f23c71870d18268a205c0fba2b682f60db170ece0b2eb6472773b"
+          "after_sha256": "c3d371cedca0e270030c901eed7f3a387b6d2e5fccb83f9e1554a524dc11a66e"
         },
         "annotation_revisions.py": {
           "before_sha256": "98792092a82af477cf2b975c62e37378e75c083bf8370d75d65e08fd25f3d843",
@@ -4309,6 +4309,21 @@
             "tests/benchmarks/webfetch/test_benchmark.py"
           ],
           "reason": "Revision export scored descriptive reference text, record-task ground truth and body-only main content as full answers, so contracts that also need records, anchors, titles, comments, links or files failed the frozen-reference gate. Score dataset reference text as plain text; a rejected text that cannot carry every declared requirement and still meets its body requirement is unavailable, while any failed text check (body, facts, patterns, literals, length, content), text-only failures and accepted error pages still fail. Reviews may inherit predecessor entries for byte-identical change rows. score_attempt is unchanged."
+        }
+      ],
+      "extensions": [
+        {
+          "modules": [
+            "metrics.py",
+            "scoring.py",
+            "versions.py"
+          ],
+          "behavior": "Score and aggregate both annotated acceptance scopes over the same invocation population without adding provider calls or elapsed time.",
+          "tests": [
+            "tests/test_dual_content_scopes.py::test_scope_summary_reuses_deadline_evidence_for_both_verdicts",
+            "tests/test_dual_content_scopes.py::test_one_live_call_builds_switchable_report_and_rescores_offline",
+            "tests/benchmarks/webfetch/test_release_versions.py::test_catalog_still_validates_extra_suites"
+          ]
         }
       ]
     },

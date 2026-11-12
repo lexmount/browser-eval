@@ -26,7 +26,22 @@ lexbench-webfetch export --suite content-scopes-530 --source <approved-input-dir
 webstone validate --dataset <new-directory>/dataset.json --content-scope main
 ```
 
-Choose `main` or `full` for each run. An explicit option overrides the saved
+Tasks with both profiles automatically receive two score sets from the same
+persisted output. `results.jsonl` stores them in `metrics.content_scope_metrics`;
+`summary.json` contains both aggregate views. This adds no provider calls or
+retry attempts. Request latency, usage and cost remain evidence from the original
+calls; conditional successful-call statistics use each view's own passing subset.
+
+The report exposes **Main content / Full content** controls on every page.
+Switching changes the overview, categories, failures and per-task requirements
+and verdicts together. Each view keeps its downloadable scores and a link back
+to the same call evidence. Saved interpretation prose and independent review
+judgments are specific to their original scope and are not reused as judgments
+of the second view. Old outputs gain both score sets through `rescore`, without
+calling providers. A two-view report requires paired annotations and scores for
+every included task; unannotated legacy inputs retain their original behavior.
+
+Choose `main` or `full` as the initial report view and acquisition/retry policy. An explicit option overrides the saved
 dataset or task scope. The approved input bound by `content-scopes-530` declares
 `main`; annotated tasks without a saved scope fall back to `full`. The original
 suites keep their existing acceptance rules. The approved input
