@@ -1,7 +1,18 @@
 
-(()=>{
+(async()=>{
 const root=document.querySelector('[data-search-comparison]');if(!root)return;
-const data=JSON.parse(root.querySelector('[data-comparison-data]').textContent),L=JSON.parse(root.dataset.labels),$=s=>root.querySelector(s);
+const L=JSON.parse(root.dataset.labels),$=s=>root.querySelector(s),node=$('[data-comparison-data]');
+let data;
+try{
+  if(node.dataset.comparisonSrc){
+    const response=await fetch(node.dataset.comparisonSrc);
+    if(!response.ok)throw Error('HTTP '+response.status);
+    data=await response.json();
+  }else data=JSON.parse(node.textContent);
+}catch(error){
+  const notice=document.createElement('p');notice.setAttribute('role','alert');
+  notice.textContent=L.loadError;root.prepend(notice);return;
+}
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 let page=0,relationPage=0,focusedId=null;const size=1,relationSize=10;
 const selected=()=>[...root.querySelectorAll('[data-compare-method]:checked')].map(x=>x.value).filter(x=>x!==$('[data-compare-baseline]').value);

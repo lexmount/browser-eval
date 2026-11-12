@@ -202,6 +202,7 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
         "gradeNames": [t("0 · Irrelevant"), t("1 · Topic only"), t("2 · Partly useful"), t("3 · Directly useful")],
         "qualityScore": t("Ranking quality · nDCG@{cutoff}", cutoff=cutoff), "usefulCount": t("Useful results"),
         "outputScroll": t("Scrollable comparison outputs"),
+        "loadError": t("Saved comparison data could not be loaded. Refresh the page to retry."),
         "calculation": t("Inspect score calculation"),
         "notReturned": t("Not returned"), "duplicate": t("Duplicate: no extra credit"),
         "zeroPool": t("No relevant candidate in the pool: score zero."),

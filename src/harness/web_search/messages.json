@@ -537,6 +537,7 @@
     "navigation|API outputs": "接口与输出",
     "navigation|Evaluation overview": "评测概览",
     "Scrollable comparison outputs": "并排结果，可横向和纵向滚动",
+    "Saved comparison data could not be loaded. Refresh the page to retry.": "逐题数据加载失败，请刷新页面重试。",
     "Primary metric: {metric}. Higher is better; the initial order is descending.": "主指标：{metric}。越高越好，默认从高到低排列。",
     "navigation|Findings": "结果解读",
     "navigation|Latency diagnostics": "性能诊断",
