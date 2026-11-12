@@ -207,3 +207,30 @@ def test_direct_alternate_check_enforces_the_shared_contestant_identity(tmp_path
     manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
     with pytest.raises(ValueError, match='contestant identities'):
         check_diagnostic_report(child)
+
+
+@pytest.mark.parametrize('drift', ['version', 'binary'])
+def test_alternate_view_keeps_the_profile_planned_implementation(tmp_path, drift):
+    source = tmp_path/'input'
+    paired_input(source)
+    for relative in ['report.json', 'content-scopes/full/report.json']:
+        path = source/relative
+        model = json.loads(path.read_text(encoding='utf-8'))
+        model['cohorts'][0]['version'] = 'fixture-1'
+        model['provenance'] = [{'cohort': 'articles', 'binary_sha256': 'a'*64}]
+        path.write_text(json.dumps(model), encoding='utf-8')
+    profile = tmp_path/'profile.json'
+    profile.write_text(json.dumps({'variant': 'diagnostic-cohorts',
+        'implementation': {'reported_version': 'fixture-1', 'binary_sha256': 'a'*64},
+        'cohort_plan': [{'id': 'articles', 'case_count': 2,
+                        'case_ids_sha256': hashlib.sha256(b'challenge\ncomplete\n').hexdigest()}]}), encoding='utf-8')
+    build_diagnostic_cohorts(source, tmp_path/'good-report', profile=profile)
+    path = source/'content-scopes/full/report.json'
+    child = json.loads(path.read_text(encoding='utf-8'))
+    if drift == 'version':
+        child['cohorts'][0]['version'] = 'fixture-2'
+    else:
+        child['provenance'][0]['binary_sha256'] = 'b'*64
+    path.write_text(json.dumps(child), encoding='utf-8')
+    with pytest.raises(ValueError, match='contestant identities|implementation provenance'):
+        build_diagnostic_cohorts(source, tmp_path/'bad-report', profile=profile)
