@@ -436,3 +436,36 @@ def test_webfetch_shared_ranks_survive_sorting(tmp_path, browser, display):
                 assert row.locator('td').first.inner_text() == expected
         finally:
             page.close()
+
+
+def test_webfetch_scope_switch_keeps_call_and_case_context(tmp_path, browser, display):
+    from tests.benchmarks.webfetch.test_content_scopes import annotated_case
+    from tests.test_optional_reports import invoke
+    case = annotated_case()
+    case['name'] = 'Complete article body'
+    dataset = tmp_path/'dataset.json'
+    dataset.write_text(json.dumps({'tool': 'web_fetch', 'id': 'paired', 'content_scope': 'main', 'cases': [case]}), encoding='utf-8')
+    env = tmp_path/'empty.env'
+    env.write_text('', encoding='utf-8')
+    run = tmp_path/'run'
+    result = invoke(tmp_path, 'run', '--dataset', dataset, '--output', run, '--env-file', env,
+                    '--delay', '0', '--max-failure-retries', '0', language='zh')
+    assert result.returncode == 0, result.stdout + result.stderr
+    row = json.loads((run/'results.jsonl').read_text(encoding='utf-8'))
+    with local_report_server(run/'report') as origin:
+        page = local_page(browser, origin, **display)
+        try:
+            page.goto(origin)
+            expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '1')
+            page.locator('a[data-content-scope="full"]').click()
+            expect(page.locator('[data-scope-pass-count]')).to_have_attribute('data-scope-pass-count', '0')
+            page.locator('header a[href="analysis/index.html"]').click()
+            expect(page.locator('[data-content-scope-switch]')).to_have_attribute('data-active-scope', 'full')
+            page.goto(origin.rstrip('/')+'/content-scopes/full/attempts/'+row['attempt_id']+'.html')
+            expect(page.locator('#evidence-reference')).to_contain_text('Contact publisher')
+            page.locator('a[data-content-scope="main"]').click()
+            expect(page.locator('[data-content-scope-switch]')).to_have_attribute('data-active-scope', 'main')
+            expect(page.locator('#evidence-reference')).not_to_contain_text('Contact publisher')
+        finally:
+            page.close()
+    assert len(list((run/'call-logs').rglob('*.json'))) == 1
