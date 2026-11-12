@@ -172,6 +172,19 @@ def test_primary_metric_order_and_explanation_are_release_checked(tmp_path, dama
         check(output)
 
 
+def test_nested_comparison_keeps_primary_evidence_links_in_both_editions(tmp_path):
+    example(tmp_path, comparison=True)
+    site = tmp_path / 'report'
+    output = site / 'social'
+    build(output, source=tmp_path / 'fixture', content=tmp_path / 'content.json',
+          relevance=tmp_path / 'labels.json', include_english=True, site_prefix='social')
+    assert check(output)
+    for prefix in ('', 'en/'):
+        page = BeautifulSoup((output / prefix / 'index.html').read_bytes(), 'html.parser')
+        link = page.select_one('[data-executive] a[href*="relevance-scores"]')
+        assert link['href'] == 'social/' + prefix + 'quality.html#relevance-scores'
+
+
 def test_three_selected_versions_drop_two_optional_experiments(tmp_path):
     example(tmp_path)
     profile, rows, _ = load_run(tmp_path / 'fixture')

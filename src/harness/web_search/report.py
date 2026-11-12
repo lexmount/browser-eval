@@ -2113,7 +2113,8 @@ def check(output, *, return_data=False, evidence_only=False):
             expected = BeautifulSoup(executive_table(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
             # Page assembly resolves edition-local links against the report root.
             for link in expected.select('a[href^="quality.html"]'):
-                link['href'] = ('' if soup.html['lang'] == 'zh' else soup.html['lang'] + '/') + link['href']
+                edition_prefix = '' if soup.html['lang'] == 'zh' else soup.html['lang']
+                link['href'] = posixpath.join(manifest.get('site_prefix', ''), edition_prefix, link['href'])
             if str(soup.select_one('[data-executive]')) != str(expected.select_one('[data-executive]')):
                 raise ValueError("Population summary differs from measured inputs")
             expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], scoring_rows(manifest["profile"], manifest["rows"]), manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
