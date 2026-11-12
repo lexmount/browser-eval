@@ -650,6 +650,10 @@ def load_diagnostic(source):
         if model.get('paired_content_scope'):
             log = json.loads(files[row['log']['path']])
             current = log.get('metrics', {})
+            answer = row['first_answer']
+            expected_hash = (answer.get('publication_projection') or {}).get('original_sha256', answer['sha256'])
+            if current.get('content_sha256') != expected_hash:
+                raise ValueError('Paired content scopes do not bind the saved response bytes')
             scope = model.get('content_scope', 'main')
             other = 'full' if scope == 'main' else 'main'
             paired = log.get('uniform_'+other+'_content', {})

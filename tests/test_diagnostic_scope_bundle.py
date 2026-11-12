@@ -91,7 +91,7 @@ def test_scope_bundle_rejects_independently_rebound_inconsistent_evidence(tmp_pa
         path.write_text(json.dumps(value), encoding='utf-8')
     row[kind]['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
     (child/'report.json').write_text(json.dumps(model), encoding='utf-8')
-    with pytest.raises(ValueError, match='scope changed'):
+    with pytest.raises(ValueError, match='scope changed|saved response bytes'):
         build_diagnostic_cohorts(source, tmp_path/'report')
 
 
@@ -111,3 +111,20 @@ def test_diagnostic_bundle_uses_the_normal_package_publication_gate(tmp_path):
     (output/'content-scopes/full/analysis/index.html').write_text('Changed report', encoding='utf-8')
     with pytest.raises(ValueError):
         check(archive, output)
+
+
+def test_pair_cannot_bind_two_matching_hashes_to_a_different_response(tmp_path):
+    from harness.web_fetch.report_diagnostic import load_diagnostic
+    source = tmp_path/'input'
+    paired_input(source)
+    model = json.loads((source/'report.json').read_text(encoding='utf-8'))
+    row = model['rows'][0]
+    path = source/row['log']['path']
+    log = json.loads(path.read_text(encoding='utf-8'))
+    log['metrics']['content_sha256'] = 'a'*64
+    log['uniform_full_content']['metrics']['content_sha256'] = 'a'*64
+    path.write_text(json.dumps(log), encoding='utf-8')
+    row['log']['sha256'] = hashlib.sha256(path.read_bytes()).hexdigest()
+    (source/'report.json').write_text(json.dumps(model), encoding='utf-8')
+    with pytest.raises(ValueError, match='saved response bytes'):
+        load_diagnostic(source)

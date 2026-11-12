@@ -326,9 +326,9 @@ class ReportTemplateTests(unittest.TestCase):
             source=Path(temp)/'source';model=diagnostic_example(source)
             model['paired_content_scope']=True
             for row in model['rows']:
-                data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64),
+                data=dict(metrics=dict(evaluation_content_scope='main',scoring_source_sha256='a'*64,content_sha256=row['first_answer']['sha256']),
                           uniform_full_content=dict(passed=row['initial_pass'],metrics=dict(
-                              evaluation_content_scope='full',scoring_source_sha256='a'*64)))
+                              evaluation_content_scope='full',scoring_source_sha256='a'*64,content_sha256=row['first_answer']['sha256'])))
                 target=source/row['log']['path'];target.write_text(json.dumps(data), encoding="utf-8")
                 row['log']['sha256']=hashlib.sha256(target.read_bytes()).hexdigest()
             (source/'report.json').write_text(json.dumps(model), encoding="utf-8");load_diagnostic(source)
