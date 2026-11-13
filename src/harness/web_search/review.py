@@ -304,6 +304,8 @@ def row_state(profile, row, relevance=None):
     """Use the report's relevance labels and quarantine rules for review selection."""
     case = next(c for c in profile["cases"] if c["id"] == row["case_id"])
     labels = (relevance or {}).get("labels", {}).get(case["id"])
+    if row['method'] not in profile.get('relevance_methods', [m['id'] for m in profile['methods']]):
+        labels = None
     cutoff = profile['protocol']['top_k']
     ranking = ranking_ids(case['id'], row.get('results', [])[:cutoff],
                           preview=profile['protocol'].get('relevance_input') == 'delivered-previews/1')

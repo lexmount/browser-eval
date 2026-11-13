@@ -28,6 +28,10 @@ class Adapter:
             return code
         expected = (method or {}).get("expected_response_version")
         if expected is not None and isinstance(response, dict) and not error:
+            try:
+                self.response(payload, top_k=0, preserve_invalid_slots=True)
+            except (ValueError, TypeError, AttributeError):
+                return None
             version = payload
             for key in self.version_path:
                 version = version.get(key) if isinstance(version, dict) else None

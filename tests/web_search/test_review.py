@@ -12,6 +12,38 @@ from harness.web_search import review
 from harness.web_search.core import normalize_response
 
 
+@pytest.mark.parametrize('same_preview', [False, True])
+def test_unranked_scoped_annotations_do_not_block_or_grade_excluded_methods(tmp_path, same_preview):
+    from lexbench_websearch.relevance import candidate_packet
+    from lexbench_websearch.scoring import evaluate
+
+    report = tmp_path / 'report'
+    report.mkdir()
+    case = dict(id='topic', query='Find useful information')
+    profile = dict(cases=[case], methods=[dict(id=m, adapter='lexmount') for m in ('a', 'b')],
+                   relevance_methods=['a'], protocol=dict(top_k=5, relevance_input='delivered-previews/1'))
+    rows = []
+    for method in profile['methods']:
+        payload = {'results': [dict(url='https://example.org/page', title='Document',
+                                   snippet='Useful details' if same_preview or method['id']=='a' else 'Different details')]}
+        path = report / (method['id'] + '.json')
+        path.write_text(json.dumps(payload), encoding='utf-8')
+        results = normalize_response(payload, method, profile['protocol'])
+        rows.append(dict(id=method['id'], case_id=case['id'], method=method['id'], results=results,
+                         http_status=200, error='', metrics=evaluate(case,results),
+                         evidence=dict(path=path.name, sha256=bytes_sha256(path.read_bytes()))))
+    packet, _ = candidate_packet(dict(profile, methods=profile['methods'][:1]), rows[:1])
+    evidence = {'labels': {case['id']: {c['candidate_id']: 3 for c in packet['blind_candidate_packets'][0]['candidates']}}}
+    (report/'relevance-judgments.json').write_text(json.dumps(evidence), encoding='utf-8')
+    (report/'manifest.json').write_text('{}', encoding='utf-8')
+    assert review.row_state(profile, rows[0], evidence) == ('pass', 'relevance_hit')
+    assert review.row_state(profile, rows[1], evidence) == ('probe', 'probe')
+    with patch('harness.web_search.report.check', return_value=(profile,rows)):
+        contract = review.freeze(report,tmp_path/'frozen',model='fixture',scope='all',
+                                 authorization='Explicit synthetic full-review control',budget=1000)
+    assert contract['output_count'] == 2
+
+
 def example(tmp_path, model="gpt-6.1-sol", scope="all", extra_cases=0, source_mode="live"):
     report = tmp_path / "report"
     report.mkdir()
