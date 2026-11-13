@@ -363,3 +363,23 @@ const batchRun=vm.runInContext("fillImages(batchRoot,'guide/index.html',batchMan
 for(let group=0;group<3;group++){await batchStarts[group].promise;assert.equal(startedImages,Math.min(4*(group+1),9));for(let i=4*group;i<Math.min(4*group+4,9);i++)batchJobs[i].resolve()}
 const batchUrls=await batchRun;batchUrls.forEach(url=>URL.revokeObjectURL(url));assert.equal(peakImages,4);
 console.log('PASS: illustrated chapters bound parallel image reads and preserve stale-render cleanup');
+
+// A new summary opens without fetching the full evidence catalog or any pack.
+// Its linked image is also available immediately, while details remain lazy.
+const homeImage={getAttribute:()=> 'assets/chart.png'};
+const homeFiles={'index.html':{size:7,inline_base64:btoa('Summary'),mime:'text/html'},
+ 'assets/chart.png':{asset_path:'home-assets/chart.png',mime:'image/png'},'detail.html':{mime:'text/html'}};
+const homeRequests=[];
+const homeContext=vm.createContext({TextDecoder,URL,Blob,atob,
+ fetch:async url=>{homeRequests.push(url);return {ok:true,json:async()=>({files:{'detail.html':{size:0,parts:[]}}})}},
+ document:{querySelector:selector=>selector==='#report-home'?{textContent:JSON.stringify({files:homeFiles})}:null,addEventListener(){}},
+ window:{addEventListener(){}}});
+vm.runInContext(js,homeContext);
+assert.equal(await vm.runInContext("pageManifest('index.html').then(m=>textFile('index.html',m))",homeContext),'Summary');
+homeContext.imageRoot={querySelectorAll:()=>[homeImage]};
+const homeUrls=await vm.runInContext("pageManifest('index.html').then(m=>fillImages(imageRoot,'index.html',m))",homeContext);
+assert.equal(homeRequests.length,0,'opening the summary and chart must require zero data requests');
+homeUrls.forEach(url=>URL.revokeObjectURL(url));
+await vm.runInContext("pageManifest('detail.html')",homeContext);
+assert.deepEqual(homeRequests,['manifest.json'],'details must acquire the full catalog only when selected');
+console.log('PASS: summary and its chart load without the full catalog or evidence packs; details remain lazy');

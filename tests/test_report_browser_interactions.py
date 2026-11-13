@@ -471,3 +471,55 @@ def test_webfetch_single_scope_report_keeps_contestants_and_evidence(tmp_path, b
         finally:
             page.close()
     assert len(list((run/'call-logs').rglob('*.json'))) == 4
+
+
+def test_webfetch_home_opens_without_catalog_and_details_stay_lazy(tmp_path, browser, display):
+    """The summary works with evidence requests blocked; opening evidence still works."""
+    import zipfile
+    from pathlib import Path
+    from harness.web_fetch import report_package
+    from tests.test_webfetch_report_package import report_tree
+
+    source, archive = report_tree(tmp_path)
+    assets = Path(report_package.__file__).parent/'assets'
+    (source/'assets/report.js').write_bytes((assets/'report.js').read_bytes())
+    (source/'index.html').write_text(
+        '<html><body><main><h1>Summary 80.8%</h1><img src="assets/chart.svg">'
+        '<a href="detail.html">Details</a></main></body></html>', encoding='utf-8')
+    (source/'assets/chart.svg').write_text(
+        '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20">'
+        '<rect width="20" height="20" fill="green"/></svg>', encoding='utf-8')
+    output = 'Exact evidence\n'*30000
+    (source/'large-answer.txt').write_text(output, encoding='utf-8')
+    (source/'detail.html').write_text(
+        '<html><body><main><h1>Detail</h1><a href="index.html">Back</a>'
+        '<pre data-file="large-answer.txt" data-readable="1"></pre></main></body></html>',
+        encoding='utf-8')
+    report_package.build(source, archive)
+    published = tmp_path/'published'
+    with zipfile.ZipFile(archive) as bundle:
+        bundle.extractall(published)
+    with local_report_server(published) as origin:
+        page = local_page(browser, origin, **display)
+        requests = []
+        page.on('request', lambda request:requests.append(request.url))
+        try:
+            page.route('**/manifest.json', lambda route:route.abort())
+            page.route('**/data/**', lambda route:route.abort())
+            page.goto(origin)
+            expect(page.get_by_role('heading', name='Summary 80.8%')).to_be_visible()
+            page.wait_for_function('document.querySelector("img")?.naturalWidth>0')
+            assert not any('/manifest.json' in url or '/data/' in url for url in requests)
+            page.unroute('**/manifest.json')
+            page.unroute('**/data/**')
+            page.get_by_role('link', name='Details', exact=True).click()
+            expect(page.get_by_role('heading', name='Detail', exact=True)).to_be_visible()
+            assert any('/manifest.json' in url for url in requests)
+            expect(page.locator('pre')).to_have_attribute('role', 'button')
+            page.locator('pre').click()
+            expect(page.locator('textarea')).to_have_value(output)
+            assert any('/data/' in url for url in requests)
+            page.get_by_role('link', name='Back', exact=True).click()
+            expect(page.get_by_role('heading', name='Summary 80.8%')).to_be_visible()
+        finally:
+            page.close()
