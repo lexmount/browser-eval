@@ -330,6 +330,10 @@ default. After inspection, `--repair-format` permits one format-only repair and
 retains the original call; valid answers are never repeated by that option.
 Model annotations are labeled separately from human annotations. The rubric uses
 0–3 grades, with nDCG@5, Precision@5 (grade ≥2), and Success@5 (at least one grade 3).
+L3 may explicitly select `--format-repair-limit 2` for one final correction of
+repeated invalid output. The limit is frozen before execution, every prior
+request and response must verify, and a valid judgment is never repeated.
+Each physical request still has zero transport retries.
 
 Site-family domain lists and explicit native-source routes are mandatory judge constraints. Domain lists on
 ordinary searches remain source diagnostics; explicit constraints in the query

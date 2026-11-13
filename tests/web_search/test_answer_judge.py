@@ -49,7 +49,10 @@ def answer_run(tmp_path, monkeypatch):
         if len(messages) == 1:
             text = 'A'
         elif 'judgments containing every citation_index' in messages[0]['content']:
-            reference = '0:content' if behavior['invalid_citation'] else '0:snippet'
+            invalid = behavior['invalid_citation'] or behavior.get('invalid_remaining', 0) > 0
+            if behavior.get('invalid_remaining', 0) > 0:
+                behavior['invalid_remaining'] -= 1
+            reference = '0:content' if invalid else '0:snippet'
             text = json.dumps(dict(judgments=[dict(citation_index=0, supported=True,
                               reason='The source names the author', source_refs=[reference])]))
         else:
@@ -192,3 +195,24 @@ def test_answer_format_repair_is_not_a_retry_for_valid_or_twice_invalid_grades(a
         with pytest.raises(ValueError, match='source references'):
             test['run'](['--repair-format'])
     assert len(test['requests']) == 3
+
+
+def test_explicit_second_format_correction_preserves_both_invalid_responses(answer_run):
+    test = answer_run
+    test['behavior']['invalid_remaining'] = 2
+    options = ['--repair-format', '--format-repair-limit', '2']
+    test['run'](options)
+    evidence = json.loads((test['output']/'answers.json').read_bytes())
+    repaired = [call for call in evidence['calls'].values() if call.get('format_repair')]
+    assert len(repaired) == 1
+    assert repaired[0]['format_repair']['prior_call']['format_repair']['prior_call']
+    assert evidence['configuration']['attempt_limit'] == 1
+    assert len(test['requests']) == 6
+    test['run'](options)
+    assert len(test['requests']) == 6
+
+
+def test_second_format_limit_requires_the_answer_judging_entry(answer_run):
+    with pytest.raises(SystemExit):
+        answer_run['run'](['--level', 'l1', '--format-repair-limit', '2'])
+    assert answer_run['requests'] == []

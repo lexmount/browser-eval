@@ -22,7 +22,7 @@ CITATION_CORRECTION = {
     "provider_calls": 0,
 }
 CITATION_VALIDATION = {
-    "schema": "answer-decision-evidence/5",
+    "schema": "answer-decision-evidence/6",
     "provider_calls": 0,
     "root_cause": (
         "Model-copied claims and quotations are an unstable serialization boundary. "
@@ -30,7 +30,7 @@ CITATION_VALIDATION = {
         "source-field identifiers, and resolve original source text programmatically. "
         "Never accept an invented identifier or borrow evidence from another citation. "
         "Bind scenario judgments to the complete supplied answer rather than model-copied quotations. "
-        "A citation with no visible local claim cannot be supported."
+        "A citation with no visible local claim cannot be supported. Preserve every invalid physical response; allow one format correction by default and at most two only when explicitly selected, never repeating a valid judgment."
     ),
     "regression_ids": ["citation-field-references", "citation-target-occurrences", "scenario-answer-evidence", "rendered-local-citation-claims"],
 }

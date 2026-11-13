@@ -489,7 +489,13 @@ def run_judge_request(path, case_id, request, configuration, token, *, prior_cal
     """Persist each physical model call before parsing its task-specific judgment."""
     contract = configuration
     base_url = configuration["base_url"]
-    journal = path.with_name(path.stem + ("-format-repair-attempts.json" if prior_call else "-attempts.json"))
+    ordinal, ancestor = 0, prior_call
+    while ancestor is not None:
+        ordinal += 1
+        ancestor = (ancestor.get('format_repair') or {}).get('prior_call')
+    suffix = ('-format-repair-attempts.json' if ordinal == 1 else
+              f'-format-repair-{ordinal}-attempts.json' if ordinal else '-attempts.json')
+    journal = path.with_name(path.stem + suffix)
     attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
     request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
     for index, previous in enumerate(attempts, 1):
@@ -607,6 +613,8 @@ def judge_main(argv=None):
     parser.add_argument('--cohort', action='append', default=[], metavar='NAME=RUN')
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--retries", type=int, choices=range(3), default=0, help="Additional transport attempts; disabled by default")
+    parser.add_argument('--format-repair-limit', type=int, choices=(1, 2), default=1,
+                        help='L3 invalid-output corrections with --repair-format; default one')
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--token-env", default="SEARCH_JUDGE_API_KEY")
@@ -647,6 +655,8 @@ def judge_main(argv=None):
     configured_base = repository_env().get("SEARCH_JUDGE_BASE_URL", "")
     if not configured_base or validate_judge_url(configured_base).netloc != validate_judge_url(args.base_url).netloc:
         raise ValueError("Judge endpoint host must match repository SEARCH_JUDGE_BASE_URL")
+    if args.format_repair_limit != 1 and args.level != 'l3':
+        parser.error('An explicit format-repair limit requires L3')
     from harness.web_search.report import _load_report_inputs, check
 
     if args.source:

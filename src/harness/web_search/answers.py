@@ -99,7 +99,7 @@ def _parse(job, packet, response):
     return citation_grades(packet, text)
 
 
-def _format_request(job, model):
+def _format_request(job, model, ordinal=1):
     request = _request(job, model)
     suffix = (
         "\nOutput-format correction only; keep the grading rubric unchanged. "
@@ -112,34 +112,50 @@ def _format_request(job, model):
         if job['kind'] == 'scenario' else
         "\nOutput-format correction only; keep the original rubric unchanged. Return exactly A, B or C."
     )
+    if ordinal == 2:
+        suffix += '\nThis is the final output-format correction; the grading rubric is unchanged.'
+        if job['kind'] == 'citations':
+            citations = json.loads(job['messages'][-1]['content'])['citations']
+            allowed = {str(c['citation_index']): [field['id'] for field in c['source_fields']] for c in citations}
+            suffix += (' Each citation_index may select only its own allowed ids below. '
+                       'Never combine evidence from different indices. If its own fields do not support '
+                       'the entire supplied claim, return supported=false and source_refs=[]. '
+                       'Allowed source_refs by citation_index: ' + json.dumps(allowed, sort_keys=True))
     messages = deepcopy(request['messages'])
     messages[0]['content'] += suffix
     return dict(request, messages=messages)
 
 
+def _validate_history(job, packet, call, configuration, key):
+    """Verify every original byte/request and reject repairs of valid judgments."""
+    limit = configuration.get('format_repair_limit', 1)
+    if type(limit) is not int or limit not in (1, 2) or configuration.get('attempt_limit') != 1:
+        raise ValueError('Invalid answer format-repair or transport-attempt limit')
+    chain = [call]
+    while chain[-1].get('format_repair'):
+        if len(chain) > limit:
+            raise ValueError('Answer format-repair limit exceeded')
+        chain.append(chain[-1]['format_repair']['prior_call'])
+    chain.reverse()
+    for ordinal, node in enumerate(chain):
+        expected = (_request(job, configuration['model']) if ordinal == 0
+                    else _format_request(job, configuration['model'], ordinal))
+        if (node.get('case_id') != key or node.get('request') != expected
+                or len(node.get('attempts', [])) != 1):
+            raise ValueError('Answer judge request or attempt count changed')
+        validate_physical_receipts(node, configuration)
+        if ordinal + 1 < len(chain):
+            try:
+                _parse(job, packet, node['response'])
+            except (ValueError, KeyError, TypeError):
+                pass
+            else:
+                raise ValueError('A valid answer judgment cannot be repaired')
+    return len(chain) - 1
+
+
 def _validate_call(job, packet, call, configuration, key):
-    """Accept at most one explicit repair of a physically verified invalid response."""
-    base = _request(job, configuration['model'])
-    repair = call.get('format_repair')
-    if repair:
-        prior = repair['prior_call']
-        if (prior.get('case_id') != key or prior.get('request') != base
-                or prior.get('format_repair')):
-            raise ValueError('Invalid answer format-repair provenance')
-        validate_physical_receipts(prior, configuration)
-        try:
-            _parse(job, packet, prior['response'])
-        except (ValueError, KeyError, TypeError):
-            pass
-        else:
-            raise ValueError('A valid answer judgment cannot be repaired')
-        expected = _format_request(job, configuration['model'])
-    else:
-        expected = base
-    if (call.get('case_id') != key or call.get('request') != expected
-            or configuration.get('attempt_limit') != 1 or len(call.get('attempts', [])) != 1):
-        raise ValueError('Answer judge request or attempt count changed')
-    validate_physical_receipts(call, configuration)
+    _validate_history(job, packet, call, configuration, key)
     return _parse(job, packet, call['response'])
 
 
@@ -211,7 +227,7 @@ def judge_answers(profile, rows, args, token):
     packets, jobs = _jobs(profile, rows, upstream_source)
     configuration = dict(schema='web-search-answer-judge/1', model=args.model,
                          base_url=args.base_url, temperature=0, max_tokens=8192,
-                         attempt_limit=1, extra_params={'enable_thinking': False},
+                         attempt_limit=1, format_repair_limit=args.format_repair_limit, extra_params={'enable_thinking': False},
                          request_headers={'x-bf-passthrough-extra-params': 'true'},
                          upstream=deepcopy(SIMPLEQA_UPSTREAM),
                          citation_rule=CITATION_RULE, scoring_provenance=deepcopy(CITATION_CORRECTION),
@@ -238,19 +254,19 @@ def judge_answers(profile, rows, args, token):
         else:
             call = run_judge_request(path, key, request, configuration, token)
         packet = packets[job['packet_key']]['packet']
-        try:
-            _validate_call(job, packet, call, configuration, key)
-        except (ValueError, KeyError, TypeError):
-            if not args.repair_format or call.get('format_repair'):
-                raise
-            # Transport/request verification must pass before a paid format correction.
-            if call.get('case_id') != key or call.get('request') != request:
-                raise ValueError('Saved answer judge input changed') from None
-            validate_physical_receipts(call, configuration)
-            call = run_judge_request(path, key, _format_request(job, args.model),
-                                     configuration, token, prior_call=call)
-            _validate_call(job, packet, call, configuration, key)
-        return call
+        while True:
+            try:
+                _validate_call(job, packet, call, configuration, key)
+                return call
+            except (ValueError, KeyError, TypeError):
+                if not args.repair_format:
+                    raise
+                # Every prior request and raw receipt must verify before spending.
+                depth = _validate_history(job, packet, call, configuration, key)
+                if depth >= args.format_repair_limit:
+                    raise
+                call = run_judge_request(path, key, _format_request(job, args.model, depth + 1),
+                                         configuration, token, prior_call=call)
 
     def retain(job, value, error):
         if error:
