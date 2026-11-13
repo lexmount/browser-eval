@@ -310,7 +310,7 @@ def capture_references(profile, output, phase):
                       "identity_check": check or None}
             attempts.append(result)
             # Retry temporary transport failures, never an observed identity mismatch.
-            transient = receipt["transport_exit"] in {7, 18, 28, 35, 52, 56}
+            transient = receipt["http_status"] == 0 and receipt["transport_exit"] in {7, 18, 28, 35, 52, 56}
             if not transient or attempt == retries:
                 break
             time.sleep(1)
@@ -879,7 +879,8 @@ def _recoverable_reference_scope(profile, contract, before, after):
     if (contract.get('diagnostic') is not False or profile['protocol'].get('reference_scope') != 'identity'
             or set(before) != expected or set(after) != expected or not changed
             or not all(item['available'] for item in before.values())
-            or any(after[url].get('http_status') != 0 or not after[url].get('transport_exit')
+            or any(any(attempt.get('http_status') != 0 or not attempt.get('transport_exit')
+                           for attempt in [after[url], *after[url].get('attempts', [])])
                    for url in changed)):
         raise ValueError('Reference recovery requires only unobserved post-check transport failures')
     return sorted(expected)
@@ -913,13 +914,13 @@ def validate_reference_finalization(source, profile, receipt):
         raise ValueError('Reference finalization changed its complete collection')
 
 
-def finalize_references(profile_path, source, output):
+def finalize_references(profile_path, source, output, *, cohort="primary"):
     """Reobserve a complete post-check after zero-response network failures only."""
     from harness.web_search.report import load_run
 
     source, output = source.resolve(), output.expanduser().resolve()
     profile, _, _ = load_run(source)
-    if load_profile_bytes(profile_path) != (source / 'profile.json').read_bytes():
+    if load_profile_bytes(profile_path, cohort=cohort) != (source / 'profile.json').read_bytes():
         raise ValueError('Reference finalization requires the unchanged collection profile')
     previous_raw = (source / 'receipt.json').read_bytes()
     previous = json.loads(previous_raw)
@@ -982,7 +983,7 @@ def main(argv=None, *, certified=False):
     if args.finalize_references_from:
         if args.resume or args.execution_revision or args.diagnostic:
             parser.error('Reference finalization cannot change or resume collection')
-        print(finalize_references(args.profile, args.finalize_references_from, args.output))
+        print(finalize_references(args.profile, args.finalize_references_from, args.output, cohort=args.cohort))
         return
     try:
         print(run(args.profile, args.output, args.diagnostic, args.resume, args.execution_revision, certified=certified, cohort=args.cohort))

@@ -246,3 +246,22 @@ def test_linked_subject_keeps_its_following_predicate_without_the_next_sentence(
     citation, = answers.citation_inventory('[Paris](https://example.test/a) is the capital. Another claim.',
                                            [dict(url='https://example.test/a')])
     assert citation['claim_context'] == 'Paris is the capital.'
+
+
+@pytest.mark.parametrize('newline', ['\n', '\r\n', '\r'])
+def test_rendered_duplicate_of_fenced_text_binds_its_real_markdown_block(newline):
+    text = newline.join(['```text', 'A fact [引用:1]', '```', '', 'A fact [引用:1]'])
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['span'][0] == text.rindex('[引用:1]')
+    assert citation['claim_context'] == 'A fact'
+
+
+def test_consecutive_linked_subjects_keep_separate_sentence_claims():
+    text = '[Paris](https://source.test/paris) is the capital of France. [Rome](https://source.test/rome) is the capital of Italy.'
+    citations = answers.citation_inventory(text, [dict(url='https://source.test/'+city) for city in ['paris','rome']])
+    assert [c['claim_context'] for c in citations] == ['Paris is the capital of France.', 'Rome is the capital of Italy.']
+
+
+def test_link_label_with_complete_sentence_does_not_borrow_the_next_sentence():
+    citation, = answers.citation_inventory('[Paris is in France.](https://source.test/paris) Rome is in Italy.', [dict(url='https://source.test/paris')])
+    assert citation['claim_context'] == 'Paris is in France.'

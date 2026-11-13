@@ -1364,3 +1364,57 @@ def test_reference_finalization_rejects_descendant_before_changing_source(tmp_pa
     assert not output.exists()
     assert original == {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
     assert state['provider_calls'] == 1 and state['references'] == 2
+
+
+def test_reference_recovery_rejects_an_observed_failure_in_any_retained_attempt(tmp_path, failed_postcheck):
+    runner, profile, state = failed_postcheck
+    source = tmp_path / 'source'
+    runner.run(profile, source, certified=True)
+    p = json.loads((source / 'profile.json').read_bytes())
+    contract = json.loads((source / 'run-contract.json').read_bytes())
+    before = json.loads((source / 'references-before.json').read_bytes())
+    after = json.loads((source / 'references-after.json').read_bytes())
+    for item in after.values():
+        item['attempts'] = [dict(item, http_status=503, transport_exit=18), dict(item)]
+    with pytest.raises(ValueError, match='unobserved post-check transport failures'):
+        runner._recoverable_reference_scope(p, contract, before, after)
+
+
+def test_finalize_cli_forwards_the_selected_supplementary_cohort(tmp_path, monkeypatch):
+    from harness.web_search import runner
+    calls = []
+    monkeypatch.setattr(runner, 'finalize_references', lambda *a, **kw: calls.append(kw))
+    runner.main(['--profile', str(tmp_path/'current.json'), '--output', str(tmp_path/'output'),
+                 '--cohort', 'yuanbao', '--finalize-references-from', str(tmp_path/'source')], certified=True)
+    assert calls == [dict(cohort='yuanbao')]
+
+
+def test_reference_capture_does_not_retry_an_observed_http_response(tmp_path, monkeypatch):
+    from harness.web_search import runner
+    calls=[]
+    def http(*args, **kwargs):
+        calls.append(1)
+        return dict(http_status=503,transport_exit=18,elapsed_ms=1), b'truncated response'
+    monkeypatch.setattr(runner,'http_call',http)
+    profile=dict(cases=[dict(anchors=['https://source.test/doc'])],protocol={'reference_retries':2})
+    result=runner.capture_references(profile,tmp_path,'after')
+    assert len(calls)==1
+    assert next(iter(result.values()))['http_status']==503
+
+
+def test_supplementary_collection_recovers_with_the_same_current_selector(tmp_path, failed_postcheck):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.report import load_run
+    runner, profile_path, state = failed_postcheck
+    profile=json.loads(profile_path.read_bytes())
+    binding=dict(path=profile_path.name,sha256=bytes_sha256(profile_path.read_bytes()))
+    selector=tmp_path/'current.json'
+    selector.write_text(json.dumps(dict(schema='web-search-current/1',title='Primary selection',
+        profile=binding,methods=[m['id'] for m in profile['methods']],
+        supplementary_profiles=[dict(binding,id='yuanbao')],publication_target='target.json')),encoding='utf-8')
+    source,output=tmp_path/'supplementary',tmp_path/'recovered'
+    runner.run(selector,source,certified=True,cohort='yuanbao')
+    runner.main(['--profile',str(selector),'--cohort','yuanbao','--output',str(output),
+                 '--finalize-references-from',str(source)],certified=True)
+    assert load_run(output)[2]['certified'] is True
+    assert state['provider_calls']==1

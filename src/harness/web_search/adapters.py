@@ -266,7 +266,7 @@ def tencent_wsa_response(payload, *, top_k=None, project_slots=False, preserve_i
     return {"results": results}
 
 
-def _bocha_response(payload, **kwargs):
+def _bocha_response(payload, *, top_k=None, project_slots=False, preserve_invalid_slots=False):
     if (
         isinstance(payload, dict)
         and isinstance(payload.get("data"), dict)
@@ -278,8 +278,12 @@ def _bocha_response(payload, **kwargs):
         pages = web_pages.get("value") if isinstance(web_pages, dict) else None
         if not isinstance(pages, list):
             raise ValueError("Response must contain a web page array")
-        if any(not isinstance(item, dict) for item in pages):
+        if project_slots and top_k is not None:
+            pages = pages[:top_k]
+        if not preserve_invalid_slots and any(not isinstance(item, dict) for item in pages):
             raise ValueError("Each web page must be an object")
+        if preserve_invalid_slots:
+            pages = [item if isinstance(item, dict) else {} for item in pages]
         payload = {
             "results": [
                 {
@@ -329,7 +333,7 @@ ADAPTERS = {
     "serper": Adapter(serper_request, "X-API-KEY", "", response=lambda payload: _serp_response(payload, "serper"), projection=lambda payload, **kwargs: _serp_response(payload, "serper", **kwargs), output_fields=_fields()),
     "brightdata": Adapter(brightdata_request, response=lambda payload: _serp_response(payload, "brightdata"), projection=lambda payload, **kwargs: _serp_response(payload, "brightdata", **kwargs), output_fields=_fields()),
     "deepseek": Adapter(deepseek_request, output_fields=lambda m: _fields(extra=True, body=(m.get('output_options') or {}).get('need_content', True))),
-    "bocha": Adapter(bocha_request, response=_bocha_response, output_fields=lambda m: _fields(extra=(m.get('output_options') or {}).get('summary', True))),
+    "bocha": Adapter(bocha_request, response=_bocha_response, projection=_bocha_response, output_fields=lambda m: _fields(extra=(m.get('output_options') or {}).get('summary', True))),
     "bocha-ai": Adapter(bocha_ai_request, response=bocha_ai_response, projection=bocha_ai_response,
                         output_fields=lambda m: _fields(extra=True, answer=(m.get('output_options') or {}).get('answer', True)),
                         failure=lambda p: isinstance(p, dict) and p.get('code') != 200),
@@ -357,5 +361,5 @@ def normalize_envelope(payload, adapter=None, **kwargs):
         return config.response(payload) if config.response else payload
     # Saved historical calls predate adapter-tagged native envelopes.
     if isinstance(payload, dict) and isinstance(payload.get("data"), dict) and "webPages" in payload["data"]:
-        return ADAPTERS["bocha"].response(payload)
+        return ADAPTERS["bocha"].projection(payload, **kwargs)
     return payload

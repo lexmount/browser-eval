@@ -86097,6 +86097,156 @@
         },
         "expected": false
       }
+    ],
+    "citation-block-locations": [
+      {
+        "kind": "citation",
+        "answer": "```text\nA fact [引用:1]\n```\n\nA fact [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1
+          }
+        ],
+        "span_starts": [
+          34
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "```text\nA fact [引用:1]\n```\n\nA fact [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1
+          }
+        ],
+        "span_starts": [
+          15
+        ],
+        "expected": false
+      }
+    ],
+    "linked-sentence-boundaries": [
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of France. [Rome](https://source.test/rome) is the capital of Italy.",
+        "results": [
+          {
+            "url": "https://source.test/paris"
+          },
+          {
+            "url": "https://source.test/rome"
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France.",
+          "Rome is the capital of Italy."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of France. [Rome](https://source.test/rome) is the capital of Italy.",
+        "results": [
+          {
+            "url": "https://source.test/paris"
+          },
+          {
+            "url": "https://source.test/rome"
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France.",
+          "is the capital of France. Rome is the capital of Italy."
+        ],
+        "expected": false
+      }
+    ],
+    "bocha-native-slot-projection": [
+      {
+        "kind": "native_projection",
+        "method": {
+          "adapter": "bocha"
+        },
+        "protocol": {
+          "top_k": 2,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "payload": {
+          "code": 200,
+          "data": {
+            "webPages": {
+              "value": [
+                null,
+                {
+                  "url": "https://source.test/a"
+                }
+              ]
+            }
+          }
+        },
+        "invalid_slots": [
+          true,
+          false
+        ],
+        "expected": true
+      },
+      {
+        "kind": "native_projection",
+        "method": {
+          "adapter": "bocha"
+        },
+        "protocol": {
+          "top_k": 2,
+          "normalize_top_k": true
+        },
+        "payload": {
+          "code": 200,
+          "data": {
+            "webPages": {
+              "value": [
+                null,
+                {
+                  "url": "https://source.test/a"
+                }
+              ]
+            }
+          }
+        },
+        "invalid_slots": [
+          true,
+          false
+        ],
+        "expected": false
+      },
+      {
+        "kind": "native_projection",
+        "method": {
+          "adapter": "bocha"
+        },
+        "protocol": {
+          "top_k": 2,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "payload": {
+          "code": 200,
+          "data": {
+            "webPages": {
+              "value": [
+                null
+              ]
+            }
+          }
+        },
+        "invalid_slots": [
+          true
+        ],
+        "expected": false
+      }
     ]
   },
   "web_search_normalization": {

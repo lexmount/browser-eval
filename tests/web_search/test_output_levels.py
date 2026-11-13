@@ -280,3 +280,29 @@ def test_answer_text_credit_uses_shared_leakage_rules_without_changing_source_ra
     assert values[0]['results'][0]['url'] == 'https://source.test/a'
     if level == 'l1':
         assert values[0]['metrics']['labeled_source_rr_5'] == 1
+
+
+@pytest.mark.parametrize('scope', [None, 'delivered-text'])
+def test_l1_leakage_filter_protects_the_preview_metric_used_by_the_table(scope):
+    case = dict(id='f', family='web', query='Who wrote it?', reference_answer='Ada', reference_urls=[],
+                factual_contamination_rule='question-with-structured-dataset-rows/4',
+                contamination_patterns={'identity_patterns': []})
+    if scope is not None:
+        case['answer_evidence_scope'] = scope
+    profile = dict(cases=[case], methods=[dict(id='a', output_fields=fields())], protocol={'top_k':5})
+    rows = [dict(case_id='f', method='a', results=[dict(url='https://source.test/a', snippet='Ada {"answer_type":"person","topic":"books","urls":[]}')])]
+    _, values = project_rows(profile, rows, 'l1')
+    assert values[0]['metrics']['answer_in_preview_5'] == 0
+    assert values[0]['metrics']['answer_in_delivered_text_5'] == 0
+
+
+@pytest.mark.parametrize('adapter', ['bocha', None])
+def test_bocha_web_v2_preserves_invalid_rank_slots_and_ignores_beyond_cutoff(adapter):
+    from harness.web_search.core import normalize
+    payload = dict(code=200, data={'webPages': {'value': [None, {'url':'https://source.test/fact'}, None]}})
+    results = normalize(payload, adapter, top_k=2, project_slots=True, preserve_invalid_slots=True)
+    assert len(results) == 2 and results[0]['invalid_slot'] and results[1]['url'] == 'https://source.test/fact'
+    payload['data']['webPages']['value'] = [{'url':'https://source.test/fact'}, None]
+    assert len(normalize(payload, adapter, top_k=1, project_slots=True)) == 1
+    with pytest.raises(ValueError, match='must be an object'):
+        normalize(payload, adapter)

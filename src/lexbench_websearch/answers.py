@@ -15,10 +15,10 @@ SIMPLEQA_UPSTREAM = {
     "sha256": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29",
 }
 GRADES = {"A": "CORRECT", "B": "INCORRECT", "C": "NOT_ATTEMPTED"}
-CITATION_RULE = "native-source-citations/3"
+CITATION_RULE = "native-source-citations/4"
 CITATION_CORRECTION = {
-    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers and include visible link text in the cited claim.",
-    "regression_ids": ["native-source-citation-identities", "citation-target-occurrences", "rendered-citation-occurrences", "citation-link-claims"],
+    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers, bind original Markdown block locations, include visible link text and keep consecutive linked sentences separate.",
+    "regression_ids": ["native-source-citation-identities", "citation-target-occurrences", "rendered-citation-occurrences", "citation-link-claims", "citation-block-locations", "linked-sentence-boundaries"],
     "provider_calls": 0,
 }
 CITATION_VALIDATION = {
@@ -153,27 +153,26 @@ def citation_inventory(answer, results):
     # belongs to that link rather than becoming a second native citation.
     parser.inline.ruler.after("link", "native_citation", native_citation)
     references = []
-    cursor = 0
+    line_offsets = [0, *(match.end() for match in re.finditer(r"\r\n|\r|\n", answer)), len(answer)]
     for block in parser.parse(answer):
         if block.type != "inline":
             continue
-        start = answer.find(block.content, cursor)
+        block_start, block_end = (line_offsets[line] for line in block.map)
+        start = answer.find(block.content, block_start, block_end)
         if start < 0:
             # Blockquote/list prefixes can interrupt multiline inline content.
-            positions, offset = [], cursor
+            positions, offset = [], block_start
             for line in block.content.splitlines(keepends=True):
                 text = line.rstrip("\n")
-                found = answer.find(text, offset)
+                found = answer.find(text, offset, block_end)
                 if found < 0:
                     raise ValueError("Cannot bind a citation occurrence to the native answer")
                 positions.extend(range(found, found + len(text)))
                 if line.endswith("\n"):
-                    positions.append(answer.index("\n", found + len(text)))
+                    positions.append(found + len(text) + re.search(r"\r\n|\r|\n", answer[found + len(text):block_end]).start())
                 offset = positions[-1] + 1 if positions else offset
         else:
             positions = list(range(start, start + len(block.content)))
-        if positions:
-            cursor = positions[-1] + 1
         children = block.children or []
         link_depth = 0
         for index, token in enumerate(children):
@@ -183,7 +182,7 @@ def citation_inventory(answer, results):
             if token.type == "native_citation" and not link_depth:
                 begin, end = token.meta["span"]
                 for identity in token.meta["identities"]:
-                    references.append((positions[begin], positions[end - 1] + 1, token.content, by_id.get(identity), ""))
+                    references.append((positions[begin], positions[end - 1] + 1, token.content, by_id.get(identity), "", block_start, block_end))
                 continue
             if token.type != "link_open":
                 continue
@@ -204,21 +203,25 @@ def citation_inventory(answer, results):
             begin, end = token.meta["span"]
             absolute_start, absolute_end = positions[begin], positions[end - 1] + 1
             references.append(
-                (absolute_start, absolute_end, answer[absolute_start:absolute_end], by_url.get(key), "".join(label))
+                (absolute_start, absolute_end, answer[absolute_start:absolute_end], by_url.get(key), "".join(label), block_start, block_end)
             )
     citations, previous_end, context = [], 0, ""
     references.sort(key=lambda value: value[0])
-    for index, (start, end, marker, item, label) in enumerate(references):
-        between = answer[previous_end:start]
+    for index, (start, end, marker, item, label, block_start, block_end) in enumerate(references):
+        between = answer[max(previous_end, block_start):start]
         if between.strip(" .;,!?:\n\r\t，。；、！："):
             # Each occurrence gets the claim immediately preceding it, never an earlier claim.
             context = between.rsplit("\n\n", 1)[-1].strip()
         if label:
             # A linked subject can precede its predicate: "[Paris](url) is the capital."
-            limit = references[index + 1][0] if index + 1 < len(references) else len(answer)
+            limit = min(block_end, references[index + 1][0] if index + 1 < len(references) else block_end)
+            context = re.split(r"(?<=[.!?。！？])\s+", between)[-1].strip()
             following = answer[end:limit].split("\n\n", 1)[0]
             following = re.split(r"(?<=[.!?。！？])(?:\s|$)", following, maxsplit=1)[0]
+            if label.rstrip().endswith(tuple(".!?。！？")):
+                following = ""
             context = (context + " " + label + following).strip()
+            previous_end = max(previous_end, end + len(following))
         if not context:
             context = marker
         source = (
