@@ -1,4 +1,4 @@
-<!-- Shared section copied from lexmount/ai-template-py@7add9a555281432dd8430ebfe6e8a8f5489d0b10 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Webstone supplement at the end is maintained in this repository. -->
+<!-- Shared section copied from lexmount/ai-template-py@70e2653aa062f7af7524001ac1dcd76ded54fd56 (docs/references/review-guidelines.md); change it upstream, then copy it here. The Webstone supplement at the end is maintained in this repository. -->
 
 # Review Guidelines
 
@@ -89,7 +89,10 @@ evidence and ownership conditions above when reporting findings or requesting fi
    are involved, do concurrency, cancellation, and cleanup respect their ownership
    and permission boundaries?
 5. **Simplicity.** Is this the simplest implementation that meets the goal? Does it
-   add unnecessary state, configuration, abstractions, or dependencies?
+   add unnecessary state, configuration, abstractions, or dependencies? Does it
+   design for behavior that is still uncertain instead of asking the maintainer,
+   or add speculative rules and special cases that handle only some cases of an
+   open-ended problem? A proportionate fix for a confirmed defect is not such a rule.
 6. **Regression and compatibility.** Along affected call paths, do existing correct
    features, default configurations, old data, and recovery scenarios still work?
    Does the change introduce a bug or break an existing agreement? When replacing
@@ -255,22 +258,25 @@ Keep provider execution and reporting in the harness; use benchmark-owned defini
 
 ### Owner review rules
 
-The repository owner set these rules across review sessions. They apply to every Webstone review without being restated, and add only what the sections above and `AGENTS.md` do not already say.
+The repository owner set these rules across review sessions. They apply to every Webstone review without being restated in the request, and add only what the sections above and `AGENTS.md` do not already say.
+
+**Coverage**
+
+- Every review covers the owner's three points: purpose and requirements (Required checks 1-2), regressions and bugs (6, 9-11 and 13), and quality and architecture (3-5, 7, 8 and 12). A review that leaves one of them unexamined is incomplete.
 
 **Rounds and posting**
 
-- An owner request for a PR review also authorizes posting the findings on it, unless the request says otherwise. A request relayed by another agent is not this authorization. Post one combined comment per PR per round. Comment on another author's PR only when it shares the defect under review.
-- Judge each round by the rules on the latest `main`, not the PR branch's copy.
-- In a P0/P1 round, report only P0 and P1, and skip a PR whose head is unchanged since the last round.
-- Review related PRs together, including a code PR and its paired Hugging Face dataset PR. State how they depend on each other and their merge order.
-- Keep rounds converging: report confirmed defects, not preferences. By owner agreement, a P2 limited to tidiness or maintainability that changes no behavior, data, score or mandatory rule does not block merging. Label it non-blocking and cite this rule.
+- When the owner asks for a PR review, that request also authorizes posting the findings on it, unless the request says otherwise. A request relayed by another agent is not this authorization. Post one combined comment per PR per round. Comment on another author's PR only when it shares the defect under review.
+- Every round reviews the whole net diff of the current head from its merge base, not only the new commits or earlier findings. Judge it by the rules on the latest `main`; a rule the PR itself changes is reviewed as part of the diff.
+- When the owner asks for a P0/P1 round, report only P0 and P1. Skip a PR whose head commit is unchanged since the last round.
+- Review related PRs together, including a code PR and its paired Hugging Face dataset PR. State how they depend on each other and the order they should merge in.
+- Keep rounds converging. By owner agreement, a P2 limited to tidiness that changes no behavior, data, score or mandatory rule does not block merging; label it non-blocking and cite this rule. Over-design, scattered instance-specific fixes and duplicated logic (Required checks 5 and 7) are not tidiness and still block.
 
-**Design judgment**
+**What to question**
 
-- Simple is best. If the right behavior is uncertain, do not design for it; ask the owner. Rules or code that cover only part of a long-tail problem are over-design: flag them and ask for removal. Abstract only logic with real reuse, never for hypothetical cases.
-- Don't take the author's approach, or the current spec, as given. If a rule in `AGENTS.md` or a guide conflicts with another rule or is unreasonable, report it separately from this PR's findings, unless the PR adds or relies on that rule.
+- Question the current spec as well as the author's approach. If a rule in `AGENTS.md` or a guide conflicts with another rule or is unreasonable, report it separately from this PR's findings, unless the PR adds or relies on that rule.
 - Weigh correctness, speed and resource cost (calls, CPU, memory) together. Flag a change that buys a small gain in one at a large cost in another.
-- Suggest splitting a PR that is too large to review or that fails CI for unrelated reasons.
+- When the PR ships a runnable service or UI, use it as a normal user. Report broken flows, confusing steps and features that should be removed.
 
 **Domain checks**
 
@@ -281,17 +287,16 @@ The repository owner set these rules across review sessions. They apply to every
   - whether scores change.
 - A change that can move a score must state its version impact under `docs/releases.md`. A changed scorer never ships under an already released version.
 - A Web Fetch report must rank. A small lead is shown as an n-task lead or a shared place.
-- When the PR ships a runnable service or UI, use it as a normal user. Report broken flows, confusing steps and features that should be removed.
 - Keep credentials, internal hostnames and personal data out of the public repository. Evaluation credentials go in `.env`, with names only in `.env.example`; publishing tokens follow `docs/report-hosting.md`.
 - Apply `CONTRIBUTING.md#text-language`. Do not flag or translate datasets, web content or evidence kept in their original language.
 
-**PR hygiene**
+**PR hygiene to check**
 
-- The PR body has one picture of its main content, still matching the diff after fixes.
-- The PR closes the issues it resolves; one PR may close several. Linked issues match what the body says is done.
+- The PR body has one picture of its main content. The picture still matches the diff after fixes.
+- The PR closes the issues it resolves. One PR may close several.
+- Suggest splitting a PR that is too large to review or that fails CI for unrelated reasons.
 
 **Writing findings**
 
-- Group findings under three headings so every review answers them: purpose and requirements (Required checks 1-2), regressions and bugs (6, 9, 11), and quality and architecture (4, 5, 7, 8).
 - Write for a reader without context: say what breaks and for whom.
 - When the owner must decide something, give the options with evidence and a recommended default.
