@@ -13,13 +13,14 @@ from harness.web_search.core import normalize_response
 
 
 @pytest.mark.parametrize('same_preview', [False, True])
-def test_unranked_scoped_annotations_do_not_block_or_grade_excluded_methods(tmp_path, same_preview):
+@pytest.mark.parametrize('reference', [{}, {'anchors': ['https://example.org/page']}, {'domains': ['example.org']}])
+def test_unranked_scoped_annotations_do_not_block_or_grade_excluded_methods(tmp_path, same_preview, reference):
     from lexbench_websearch.relevance import candidate_packet
     from lexbench_websearch.scoring import evaluate
 
     report = tmp_path / 'report'
     report.mkdir()
-    case = dict(id='topic', query='Find useful information')
+    case = dict(id='topic', query='Find useful information', **reference)
     profile = dict(cases=[case], methods=[dict(id=m, adapter='lexmount') for m in ('a', 'b')],
                    relevance_methods=['a'], protocol=dict(top_k=5, relevance_input='delivered-previews/1'))
     rows = []
