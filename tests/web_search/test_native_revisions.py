@@ -320,6 +320,7 @@ def test_verified_factual_aliases_rescore_every_method_without_changing_calls():
 
 
 def test_reference_identity_capture_and_offline_replay():
+    import time
     from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
     from threading import Thread
 
@@ -331,11 +332,33 @@ def test_reference_identity_capture_and_offline_replay():
                 self.send_response(301)
                 self.send_header('Location', '/reference')
                 self.end_headers()
-            elif self.path in ('/tracking','/articles/','/unknown-charset'):
+            elif self.path in ('/tracking','/tracking-chunks','/articles/','/unknown-charset'):
+                body = b'<link rel="canonical" href="entry">' if self.path == '/articles/' else b'<link rel="canonical" href="/reference">'
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=' + ('unknown-encoding' if self.path == '/unknown-charset' else 'utf-8'))
+                self.send_header('Transfer-Encoding' if self.path == '/tracking-chunks' else 'Content-Length', 'chunked' if self.path == '/tracking-chunks' else str(len(body)))
                 self.end_headers()
-                self.wfile.write(b'<link rel="canonical" href="entry">' if self.path == '/articles/' else b'<link rel="canonical" href="/reference">')
+                self.wfile.write(f'{len(body):x}\r\n'.encode() + body + b'\r\n0\r\n\r\n' if self.path == '/tracking-chunks' else body)
+            elif self.path in ('/slow-body','/slow-chunks','/slow-chunk-header'):
+                chunked = self.path != '/slow-body'
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Transfer-Encoding' if chunked else 'Content-Length', 'chunked' if chunked else '50')
+                self.end_headers()
+                try:
+                    if self.path == '/slow-chunk-header':
+                        piece, ending = b'0', b'1\r\nx\r\n0\r\n\r\n'
+                    elif chunked:
+                        piece, ending = b'1\r\nx\r\n', b'0\r\n\r\n'
+                    else:
+                        piece, ending = b'x', b''
+                    for _ in range(50):
+                        self.wfile.write(piece)
+                        self.wfile.flush()
+                        time.sleep(0.02)
+                    self.wfile.write(ending)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
             else:
                 self.send_response(403)
                 self.end_headers()
@@ -348,7 +371,7 @@ def test_reference_identity_capture_and_offline_replay():
     thread.start()
     base = f'http://127.0.0.1:{server.server_port}'
     try:
-        observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking','/articles/')]
+        observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking','/articles/','/tracking-chunks')]
         malformed = capture_source_identity(base + '/invalid space')
         assert 'error' in malformed
         unknown_charset = capture_source_identity(base + '/unknown-charset')
@@ -356,6 +379,14 @@ def test_reference_identity_capture_and_offline_replay():
         assert unknown_charset['final'] == base + '/unknown-charset'
         assert 'unknown-encoding' in unknown_charset['error']
         assert 'canonical' not in unknown_charset
+        for path in ('/slow-body', '/slow-chunks', '/slow-chunk-header'):
+            started = time.monotonic()
+            slow = capture_source_identity(base + path, timeout=0.12)
+            assert time.monotonic() - started < 0.7, path
+            assert slow['status'] == 200
+            assert slow['final'] == base + path
+            assert 'tim' in slow['error'].lower()
+            assert 'canonical' not in slow
     finally:
         server.shutdown()
         server.server_close()

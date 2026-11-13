@@ -77,6 +77,7 @@ def canonical_metadata(final_url, tags):
 
 def capture_source_identity(url, timeout=6):
     """Capture redirects and publisher canonical metadata as reference inputs."""
+    import io
     import time
     import urllib.error
     import urllib.request
@@ -113,6 +114,28 @@ def capture_source_identity(url, timeout=6):
         with response:
             observed.update(status=response.status, final=response.url)
             if response.status == 200 and 'html' in response.headers.get('Content-Type', '').lower():
+                source = response.fp
+                sock = source.raw._sock
+
+                class DeadlineBody(io.RawIOBase):
+                    def readable(self):
+                        return True
+
+                    def readinto(self, buffer):
+                        remaining = deadline - time.monotonic()
+                        if remaining <= 0:
+                            raise TimeoutError('Source identity timeout')
+                        sock.settimeout(remaining)
+                        data = source.read1(len(buffer))
+                        buffer[:len(data)] = data
+                        return len(data)
+
+                    def close(self):
+                        source.close()
+                        super().close()
+
+                # Apply the deadline to socket reads, including chunk framing.
+                response.fp = io.BufferedReader(DeadlineBody())
                 prefix = response.read(262144).decode(response.headers.get_content_charset() or 'utf-8', errors='replace')
                 parser = Links()
                 parser.feed(prefix)
