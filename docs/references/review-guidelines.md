@@ -265,8 +265,15 @@ The repository owner set these rules across review sessions. They apply to every
 - Review related PRs together, including a code PR and its paired Hugging Face dataset PR. State how they depend on each other and the order they should merge in.
 - Keep rounds converging: report confirmed defects, not preferences. By owner agreement, a P2 limited to tidiness or maintainability that changes no behavior, data, score or mandatory rule does not block merging. Label it non-blocking and cite this rule.
 
+**Every review covers**
+
+- Purpose and requirements: what the PR is for, and the features, behaviors and requirements it must deliver.
+- Regressions and bugs: whether anything that worked before breaks, plus edge cases, side effects and backward-incompatible changes.
+- Quality and architecture: whether the code is robust and maintainable, not only working. Prefer clean abstractions, reuse and separation of concerns; logic with real reuse belongs in a general owner, not a PR-specific copy. Flag ad hoc fixes, duplicated logic and short-term patches.
+
 **What to question**
 
+- Keep behavior and interaction models simple. If the right behavior is uncertain, do not design for it; ask the owner. Rules or code that cover only part of a long-tail problem are over-design: flag them and ask for removal.
 - Don't take the author's approach, or the current spec, as given. If a rule in `AGENTS.md` or a guide conflicts with another rule or is unreasonable, report it separately from this PR's findings, unless the PR adds or relies on that rule.
 - Suggest splitting a PR that is too large to review or that fails CI for unrelated reasons.
 - Weigh correctness, speed and resource cost (calls, CPU, memory) together. Flag a change that buys a small gain in one at a large cost in another.
