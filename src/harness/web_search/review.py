@@ -305,7 +305,8 @@ def row_state(profile, row, relevance=None):
     case = next(c for c in profile["cases"] if c["id"] == row["case_id"])
     labels = (relevance or {}).get("labels", {}).get(case["id"])
     cutoff = profile['protocol']['top_k']
-    if labels is not None and row['method'] not in profile.get('relevance_methods', [m['id'] for m in profile['methods']]):
+    scope = profile.get('relevance_methods')
+    if labels is not None and scope is not None and row.get('method') not in scope:
         # Preserve API/empty failures without substituting another quality metric.
         return classify({}, row, cutoff=cutoff)
     ranking = ranking_ids(case['id'], row.get('results', [])[:cutoff],
