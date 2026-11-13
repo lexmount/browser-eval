@@ -546,9 +546,11 @@ def render_level_detail(views, row, zh=False):
             if scores:
                 body += '<dl data-level-metrics>' + ''.join('<dt>' + esc(metric['label']) + '</dt><dd>' + esc(scores[metric['key']]) + '</dd>'
                             for panel in view['benchmarks'].values() if row['case_id'] in panel['case_ids'] for metric in panel['metrics']) + '</dl>'
-            for index, item in enumerate(projected['results']):
+            ranked = next((score['ranked_grades'] for score in view.get('relevance_scores', [])
+                           if score['case_id'] == row['case_id'] and score['method'] == row['method']), [])
+            for index, item in enumerate(projected['results'][:view['profile']['protocol']['top_k']]):
                 candidate_id = ranking_identity(row['case_id'], item, preview=True, level=level) if not item.get('invalid_slot') else ''
-                grade = evidence.get('labels', {}).get(row['case_id'], {}).get(candidate_id)
+                grade = ranked[index] if index < len(ranked) else None
                 if grade is not None:
                     body += '<p data-result-grade>' + t('Relevance grade') + ': ' + str(grade) + ' / 3</p>'
                     judgment = judgments.get(candidate_id, {})

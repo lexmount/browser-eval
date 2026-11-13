@@ -213,6 +213,15 @@ def test_duplicate_result_badges_follow_rank_credit_in_every_output_level(level)
     for output in data['cases'][0]['outputs'].values():
         assert [item['grade'] for item in output['items']] == [3, 0]
         assert output['score']['ranked_grades'][:2] == [3, 0]
+    from harness.web_search.comparison import render_level_detail
+
+    scored = [dict(case_id=case['id'], method=mid, **output['score'])
+              for mid, output in data['cases'][0]['outputs'].items()]
+    profile['protocol']['relevance_level'] = level or 'l1'
+    view = dict(profile=profile, rows=rows, relevance={'labels': {case['id']: labels}},
+                relevance_scores=scored, benchmarks={})
+    detail = BeautifulSoup(render_level_detail({level or 'l1': view}, rows[0]), 'html.parser')
+    assert [node.get_text().split(': ')[-1] for node in detail.select('[data-result-grade]')] == ['3 / 3', '0 / 3']
 
 
 def test_answer_beyond_body_excerpt_does_not_highlight_unmatched_preview():
