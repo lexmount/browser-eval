@@ -348,16 +348,20 @@ def export_level_bundle(path, destination):
     """Package only declared evidence under public names, preserving original source bytes."""
     from pathlib import Path
 
+    from lexbench_webfetch.paths import contained_path
+
     path, destination = Path(path), Path(destination)
     source = json.loads(path.read_bytes())
     if source.get('schema') != 'web-search-level-assessments/1':
         raise ValueError('Unsupported output-level assessment bundle')
+    if not isinstance(source.get('relevance', {}), dict) or not set(source.get('relevance', {})).issubset({'l1', 'l2'}):
+        raise ValueError('Unsupported public relevance level')
     root = path.parent
     verify_bundle(root, [{'path': path.name, 'sha256': bytes_sha256(path.read_bytes())}])
     destination.mkdir(parents=True, exist_ok=True)
 
     def write(name, raw):
-        target = destination/name
+        target = contained_path(destination, name, reject_symlinks=True)
         target.parent.mkdir(parents=True, exist_ok=True)
         if target.is_symlink() or target.exists() and target.read_bytes() != raw:
             raise ValueError('Public assessment destination already contains different bytes')

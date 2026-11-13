@@ -222,3 +222,24 @@ def test_public_level_bundle_preserves_native_bytes_without_internal_directory_n
     assert original == {path.name: path.read_bytes() for path in source.iterdir() if path.is_file()}
     source_bytes = {raw for name, raw in original.items() if name in {"pages.json", "capture.json"}}
     assert source_bytes <= set(files.values())
+
+
+@pytest.mark.parametrize("defect", ["level-path", "output-symlink"])
+def test_public_assessment_export_rejects_escaping_or_symlinked_paths(tmp_path, defect):
+    import json
+    from harness.web_search.output_levels import export_level_bundle
+
+    source = tmp_path / "private"
+    source.mkdir()
+    write_assessment_bundle(source)
+    destination = tmp_path / "public"
+    if defect == "level-path":
+        manifest = json.loads((source / "manifest.json").read_bytes())
+        manifest["relevance"]["../../escaped"] = manifest["relevance"]["l1"]
+        (source / "manifest.json").write_text(json.dumps(manifest))
+    else:
+        destination.mkdir()
+        (destination / "judgments").symlink_to(source, target_is_directory=True)
+    with pytest.raises(ValueError):
+        export_level_bundle(source / "manifest.json", destination)
+    assert not (tmp_path / "escaped.json").exists()

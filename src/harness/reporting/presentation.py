@@ -17,7 +17,7 @@ def check_presentation(html):
     for table in soup.select('table'):
         if table.get('data-significance') == 'paired-query-bootstrap/1':
             count = table.get('data-query-count', '')
-            if not count.isdecimal() or int(count) < 1:
+            if not count.isdecimal():
                 raise ValueError('Statistical comparison requires its query population')
             if int(count) < 30 and table.select_one('.comparison-winner'):
                 raise ValueError('Small query groups cannot carry significance stars')

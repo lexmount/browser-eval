@@ -119,3 +119,46 @@ def test_close_observed_leader_stays_green_without_a_significance_star():
     cells = doc.select('[data-metric$="-source_rr"]')
     assert cells[0].select_one(".comparison-extremum") is not None
     assert not doc.select(".comparison-winner")
+
+
+def test_factual_chart_counts_joint_outcomes_and_shows_measured_english_sources():
+    from harness.web_search.comparison import factual_outcome_chart
+
+    output = view()
+    case = output["profile"]["cases"][0]
+    case["reference_urls"] = ["https://en.wikipedia.org/wiki/Example"]
+    case["url_equivalence"] = "document-url/2"
+    by_case = {c["id"]: c for c in output["profile"]["cases"]}
+    for row in output["rows"]:
+        if row["case_id"] == case["id"] and row["method"] == "a":
+            row["results"][0]["url"] = "https://en.wikipedia.com/wiki/Example"
+        if row["case_id"] == "q1" and row["method"] == "b":
+            row["results"][0]["title"] = "needle"
+        if row["case_id"] == "q2" and row["method"] == "a":
+            row["results"][0]["title"] = "An unrelated title"
+        row["metrics"] = evaluate(by_case[row["case_id"]], row["results"])
+    output["benchmarks"] = level_benchmarks(output)
+    doc = BeautifulSoup(factual_outcome_chart(output), "html.parser")
+    counts = {
+        row["data-factual-outcome-method"]: [
+            int(n["data-count"]) for n in row.select("[data-count]")
+        ]
+        for row in doc.select("[data-factual-outcome-method]")
+    }
+    assert counts == {"a": [39, 1, 0, 0], "b": [0, 0, 1, 39]}
+    example = doc.select_one("[data-english-wikipedia-example]")
+    assert [a["href"] for a in example.select("a")] == [
+        "https://en.wikipedia.com/wiki/Example",
+        "https://en.wikipedia.org/wiki/Example",
+    ]
+
+
+def test_unavailable_factual_reference_coverage_has_no_zero_score_chart():
+    from harness.web_search.comparison import factual_outcome_chart, source_matching_chart
+
+    output = view()
+    output["profile"]["factual_quality_exclusions"] = [c["id"] for c in output["profile"]["cases"]]
+    output["benchmarks"] = level_benchmarks(output)
+    assert factual_outcome_chart(output) == source_matching_chart(output) == ""
+    doc = check_presentation(render_level_summary(output))
+    assert not doc.select('[data-metric$="-source_rr"] .comparison-extremum')

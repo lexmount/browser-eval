@@ -1583,14 +1583,15 @@ def _result_detail(
     detail += f'''<button data-evidence="{ev}">{t("Open response")}</button> <a href="{ev}">JSON</a>'''
     repeats = [x for x in rows if x["case_id"] == cid and x["method"] == r["method"]]
     detail += _physical_calls_detail(repeats, edition)
-    peers = [x for x in selected if x["case_id"] == cid]
-    detail += same_task(peers, profile, zh)
-    detail += "<h2>" + t("Returned results") + "</h2>"
-    for item_index, item in enumerate(r["results"]):
-        if item.get('invalid_slot'):
-            detail += '<article class="specimen"><p>' + str(item_index + 1) + '. ' + t('Invalid result slot') + '</p></article>'
-            continue
-        detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
+    if not inputs.level_views:
+        peers = [x for x in selected if x["case_id"] == cid]
+        detail += same_task(peers, profile, zh)
+        detail += "<h2>" + t("Returned results") + "</h2>"
+        for item_index, item in enumerate(r["results"]):
+            if item.get('invalid_slot'):
+                detail += '<article class="specimen"><p>' + str(item_index + 1) + '. ' + t('Invalid result slot') + '</p></article>'
+                continue
+            detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
     return _wrap_result_detail(detail, status, t)
 
 

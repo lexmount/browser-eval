@@ -315,6 +315,8 @@ def render_level_summary(view, zh=False, *, content=None):
                   p50_ms=t('P50 ms'), p95_ms=t('P95 ms'))
     body = '<section class="level-summary" data-level-panel="' + level + '" data-output-level="' + level + '" id="' + level + '">'
     body += '<h2>' + level.upper() + ' · ' + titles[level] + '</h2>'
+    if len(methods) > 1:
+        body += '<p class="metric-caption">' + t('Green marks the best observed value; a star also requires a statistically supported lead.') + '</p>'
     prices_content = dict(content or {})
     if prices_content.get('catalog_pricing'):
         prices_content['catalog_pricing'] = {mid: prices_content['catalog_pricing'][mid] for mid in method_ids}
@@ -394,7 +396,8 @@ def render_level_summary(view, zh=False, *, content=None):
                         percent = key not in ('ndcg', 'source_rr', 'answer_grade')
                         scale = 100 if key == 'ndcg' or percent else 1
                         unit = '%' if percent else ''
-                        label += f'<small class="metric-ci">95% CI [{low * scale:.3f}{unit}, {high * scale:.3f}{unit}]</small>'
+                        digits = 3 if key == 'source_rr' else 2 if key == 'answer_grade' else 1
+                        label += f'<small class="metric-ci">95% CI [{low * scale:.{digits}f}{unit}, {high * scale:.{digits}f}{unit}]</small>'
                 winner = index in winners and value == winners[index]
                 cells.append(numeric_cell(label, value, level + '-' + benchmark + '-' + key,
                                           directions[index], winner, significant=significant))
@@ -447,7 +450,7 @@ def render_level_findings(view, zh=False):
             body += '<div class="metric-bar-row" data-method="' + esc(method['id']) + '" data-value="' + esc(value) + '"><span>' + esc(method['label']) + '</span><div class="metric-bar-track"><i style="width:' + f'{width:.4f}' + '%"></i></div><strong>' + label + '</strong></div>'
         body += '</figure>' + level_conclusion(view, panel, zh) + '</article>'
         if level == 'l1' and benchmark == 'factual':
-            body += source_matching_chart(view, zh)
+            body += source_matching_chart(view, zh) + factual_outcome_chart(view, zh)
     return body + '</section>'
 
 
@@ -515,18 +518,34 @@ def render_level_detail(views, row, zh=False):
                 grade = (dict(CORRECT=t('Correct'), INCORRECT=t('Incorrect'), NOT_ATTEMPTED=t('Not attempted'))[score['factual_grade']]
                          if 'factual_grade' in score else str(score['answer_grade']) + ' / 3')
                 body += '<p data-answer-grade>' + t('Grade') + ': ' + esc(grade) + '</p><p>' + t('Supported citations') + ': ' + str(score['supported_citations']) + ' / ' + str(score['citation_count']) + '</p>'
+                call_key = row['method'] + '/' + row['case_id'] + '/scenario'
+                call = view.get('answers', {}).get('calls', {}).get(call_key)
+                if call:
+                    judgment = json.loads(call['response']['choices'][0]['message']['content'])
+                    body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(judgment['reason']) + '</p><blockquote>' + esc(judgment['evidence']) + '</blockquote></details>'
                 from lexbench_websearch.answers import answer_packet
 
                 case = next(c for c in view['profile']['cases'] if c['id'] == row['case_id'])
                 packet = answer_packet(case, dict(row, results=row['results'][:view['profile']['protocol']['top_k']]))
                 body += '<details><summary>' + t('Citations') + '</summary><pre>' + esc(json.dumps(packet['citations'], ensure_ascii=False, indent=2)) + '</pre></details>'
         else:
+            evidence = view['relevance']
+            packet = next((p for p in evidence.get('blind_candidate_packets', []) if p['case_id'] == row['case_id']), None)
+            call = next((c for c in evidence.get('judge', {}).get('calls', []) if c['case_id'] == row['case_id']), None)
+            judgments = ({item['candidate_id']: item for item in parse_judgments(packet, call['response'])} if packet and call else {})
             scores = next((s for panel in view['benchmarks'].values() for s in panel['scores']
                            if s['case_id'] == row['case_id'] and s['method'] == row['method']), None)
             if scores:
                 body += '<dl data-level-metrics>' + ''.join('<dt>' + esc(metric['label']) + '</dt><dd>' + esc(scores[metric['key']]) + '</dd>'
                             for panel in view['benchmarks'].values() if row['case_id'] in panel['case_ids'] for metric in panel['metrics']) + '</dl>'
             for index, item in enumerate(projected['results']):
+                candidate_id = ranking_identity(row['case_id'], item, preview=True, level=level) if not item.get('invalid_slot') else ''
+                grade = evidence.get('labels', {}).get(row['case_id'], {}).get(candidate_id)
+                if grade is not None:
+                    body += '<p data-result-grade>' + t('Relevance grade') + ': ' + str(grade) + ' / 3</p>'
+                    judgment = judgments.get(candidate_id, {})
+                    if judgment.get('reason'):
+                        body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(judgment['reason']) + '</p><blockquote>' + esc(judgment.get('evidence') or '') + '</blockquote></details>'
                 body += '<article class="specimen"><h3>' + str(index+1) + '. ' + esc(item.get('title') or '') + '</h3><p>' + esc(item.get('url') or '') + '</p><div class="native-answer">' + esc(item.get('snippet') or '') + '</div></article>'
         body += '</article>'
     return body + '</section>'
@@ -565,6 +584,8 @@ def source_matching_chart(view, zh=False):
     """Recompute all-source score components; no provider-specific URL exception."""
     t = partial(report_text, zh=zh)
     panel = view['benchmarks']['factual']
+    if not panel['case_ids']:
+        return ''
     ids = set(panel['case_ids'])
     cases = {c['id']: c for c in view['profile']['cases'] if c['id'] in ids}
     labels = [t('Original URL match'), t('Equivalent URL form'), t('Verified copy of the same page'), t('Reference page not retrieved')]
@@ -594,3 +615,37 @@ def render_level_tabs(views, zh=False):
     return '<nav class="level-tabs" data-level-tabs role="tablist">' + ''.join(
         '<button type="button" role="tab" aria-controls="' + level + '" data-level-select="' + level + '">' + labels[level] + ' · ' + level.upper() + '</button>'
         for level in views) + '</nav>'
+
+
+def factual_outcome_chart(view, zh=False):
+    """Explain source/answer-cue differences using every factual quality query."""
+    from lexbench_websearch.scoring import canonical_url
+
+    t = partial(report_text, zh=zh)
+    panel = view['benchmarks']['factual']
+    if not panel['case_ids']:
+        return ''
+    cases = {c['id']: c for c in view['profile']['cases']}
+    labels = [t('Source and answer cue'), t('Source only'), t('Answer cue only'), t('Neither')]
+    body = '<figure data-factual-outcomes><figcaption>' + t('Finding a source and seeing answer words are different outcomes') + '</figcaption><p>' + t('Answer words may occur on another page even when the annotated source is absent. This chart counts the two checks separately; answer-word matches do not grade answer correctness.') + '</p>'
+    body += '<ul class="source-legend">' + ''.join('<li class="source-part-' + str(i) + '">' + label + '</li>' for i,label in enumerate(labels)) + '</ul>'
+    for method in view['profile']['methods']:
+        mid = method['id']
+        scored = [s for s in panel['scores'] if s['method'] == mid]
+        counts = [0, 0, 0, 0]
+        for score in scored:
+            counts[0 if score['source_hit'] and score['answer_match'] else 1 if score['source_hit'] else 2 if score['answer_match'] else 3] += 1
+        body += '<div class="source-chart-row" data-factual-outcome-method="' + esc(mid) + '"><strong>' + esc(method['label']) + '</strong><div class="source-stack">'
+        body += ''.join('<span class="source-part-' + str(i) + '" data-count="' + str(count) + '" style="width:' + str(count/len(scored)*100) + '%" title="' + esc(labels[i]) + ': ' + str(count) + '">' + (str(count) if count else '') + '</span>' for i,count in enumerate(counts))
+        body += '</div><p>' + ' · '.join(label + ' ' + str(count) for label,count in zip(labels,counts,strict=True)) + '</p>'
+        for row in sorted((r for r in view['rows'] if r['method'] == mid and r['case_id'] in panel['case_ids']), key=lambda r:r['case_id']):
+            case = cases[row['case_id']]
+            references = {canonical_url(u, policy='document-url/2'): u for u in case.get('reference_urls', [])
+                          if urlsplit(u).hostname == 'en.wikipedia.org'}
+            matched = next((item for item in row['results'][:5] if not item.get('invalid_slot') and canonical_url(item['url'], policy='document-url/2') in references), None)
+            if matched:
+                target = references[canonical_url(matched['url'], policy='document-url/2')]
+                body += '<details data-english-wikipedia-example><summary>' + t('Measured example: an English Wikipedia source was returned') + '</summary><p>' + esc(case['query']) + '</p><p>' + t('Returned URL') + ': <a href="' + esc(matched['url']) + '">' + esc(matched['url']) + '</a></p><p>' + t('Reference URL') + ': <a href="' + esc(target) + '">' + esc(target) + '</a></p></details>'
+                break
+        body += '</div>'
+    return body + '</figure>'
