@@ -642,7 +642,7 @@
     "xiaohongshu": "小红书",
     "zhihu": "知乎",
     "{cases} frozen queries": "{cases} 条固定查询",
-    "{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.": "共 {cases} 道题、{rows} 份最终结果；含重试的实际请求为 {physical_calls} 次，来自 {groups} 批完整实测。下表分别保留各批次耗时，合并数量不代表重新进行了一轮同时段测速。",
+    "{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries. The table preserves the selected source scopes; the combined count is not a same-window speed trial.": "共 {cases} 道查询、{rows} 个最终结果，对应 {physical_calls} 次实际请求（含重试）。下表保留各来源的实际采集范围，合并后的耗时不代表同时段测速。",
     "{cases} unique queries; repeated calls do not add queries.": "共 {cases} 条独立查询；重复调用不增加样本数。",
     "{exact} original queries have traceable public sources": "{exact} 道原题有可追溯的公开来源",
     "{label}: {count} findings": "{label}：{count} 条发现",

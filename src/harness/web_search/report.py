@@ -2744,7 +2744,7 @@ def cohort_summary(profile, rows, zh):
         "<section data-cohort-summary><h2>"
         + t("Independent benchmarks, with separate collection cohorts")
         + "</h2><p>"
-        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(profile.get("method_collections", groups)))
+        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries. The table preserves the selected source scopes; the combined count is not a same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(profile.get("method_collections", groups)))
         + "</p>"
         + table(
             [
