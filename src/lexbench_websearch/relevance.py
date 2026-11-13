@@ -14,6 +14,7 @@ def _gain(grade, rank):
 def score(profile, rows, plan, labels):
     """Return per-query/provider nDCG and precision after exact coverage checks."""
     cutoff = plan["cutoff"]
+    level = profile['protocol'].get('relevance_level')
     if cutoff != profile["protocol"]["top_k"] or cutoff < 1:
         raise ValueError("Relevance cutoff differs from the measured result count")
     cases = {case["id"]: case for case in profile["cases"]}
@@ -36,9 +37,9 @@ def score(profile, rows, plan, labels):
         documents = {} if profile['protocol'].get('relevance_input') == 'delivered-previews/1' else None
         for method in methods:
             result = indexed[case_id, method]
-            ids = ranking_ids(case_id, result['results'][:cutoff], preview=profile['protocol'].get('relevance_input') == 'delivered-previews/1')
+            ids = ranking_ids(case_id, result['results'][:cutoff], preview=profile['protocol'].get('relevance_input') == 'delivered-previews/1', level=level)
             for item in result['results'][:cutoff]:
-                candidate_id = ranking_identity(case_id, item, preview=documents is not None)
+                candidate_id = ranking_identity(case_id, item, preview=documents is not None, level=level)
                 if candidate_id is not None:
                     candidate_ids.add(candidate_id)
                     if documents is not None:
@@ -165,6 +166,13 @@ def candidate_packet(
         raise ValueError("Unsupported relevance source policy")
     if packet_format not in ("search/1", "serp/1"):
         raise ValueError("Unsupported frozen candidate packet format")
+    level = profile['protocol'].get('relevance_level')
+    if level is not None:
+        if level not in ('l1', 'l2') or profile['protocol'].get('relevance_input') != 'delivered-previews/1':
+            raise ValueError('Relevance levels require isolated per-result text')
+        allowed = {'url', 'title', 'snippet', 'rank', 'invalid_slot', 'citation_id'}
+        if any(set(item) - allowed for row in rows for item in row['results']):
+            raise ValueError('Cross-level fields cannot enter a relevance packet')
     case_ids = [c["id"] for c in profile["cases"] if "reference_answer" not in c]
     cutoff = profile["protocol"]["top_k"]
     indexed = {(r["case_id"], r["method"]): r for r in rows}
@@ -191,7 +199,7 @@ def candidate_packet(
                     ranking.append(None)
                     continue
                 url = canonical_url(item["url"])
-                key = ranking_identity(cid, item, preview=profile['protocol'].get('relevance_input') == 'delivered-previews/1')
+                key = ranking_identity(cid, item, preview=profile['protocol'].get('relevance_input') == 'delivered-previews/1', level=level)
                 ranking.append(seen.setdefault(url, key))
                 candidate = pool.setdefault(
                     key, {"candidate_id": key, "url": url, "previews": []}
@@ -238,6 +246,8 @@ def candidate_packet(
                 "candidates": [pool[k] for k in sorted(pool)],
             }
         )
+        if level is not None:
+            packets[-1]['evaluation_level'] = level
     if source_requirements is not None:
         for packet in packets:
             packet["source_checked"] = True
@@ -246,6 +256,8 @@ def candidate_packet(
         "plan": {"scope": "all_custom", "cutoff": cutoff, "case_ids": case_ids},
         "blind_candidate_packets": packets,
     }
+    if level is not None:
+        blind['evaluation_level'] = level
     if (
         source_requirements is not None
         and source_policy != "legacy-domain-intersection/1"

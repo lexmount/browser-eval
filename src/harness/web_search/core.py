@@ -89,6 +89,16 @@ def normalize_response(payload, method, protocol, request=None):
                      preserve_invalid_slots=policy == 'request-url/2')
 
 
+def normalized_answer(payload, method):
+    adapter = adapter_for(method['adapter'])
+    if not adapter.field_map(method)['answer']:
+        return None
+    value = normalize_envelope(payload, method['adapter']).get('answer', '')
+    if not isinstance(value, str):
+        raise ValueError('Generated answers must be text')
+    return value
+
+
 def latency(values):
     return {
         "n": len(values),
@@ -164,6 +174,8 @@ def validate_profile(profile, *, execution_methods=None):
     cases = profile["cases"]
     methods = profile["methods"]
     protocol = profile["protocol"]
+    if protocol.get('locale_policy') not in (None, 'query-language/1'):
+        raise ValueError('Unsupported query locale policy')
     if type(protocol.get("retry", False)) is not bool:
         raise ValueError("Retry must be a boolean; omit it or use false for zero retries")
     reference_retries = protocol.get("reference_retries", 0)
@@ -203,6 +215,12 @@ def validate_profile(profile, *, execution_methods=None):
     for method in methods:
         canonical_url(method["endpoint"])
         adapter_for(method["adapter"])
+        from lexbench_websearch.outputs import levels
+        fields = adapter_for(method['adapter']).field_map(method)
+        if 'output_fields' in method and method['output_fields'] != fields:
+            raise ValueError('Declared output fields differ from the native adapter')
+        if 'output_levels' in method and method['output_levels'] != levels(fields):
+            raise ValueError('Declared levels differ from the native output fields')
         if method['adapter'] == 'tencent-wsa':
             expected = method.get('expected_response_version')
             edition = (method.get('output_options') or {}).get('edition', 'standard')

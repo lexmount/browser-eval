@@ -2,6 +2,7 @@
 
 import json
 import re
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import date, timedelta
 from urllib.parse import urlencode
@@ -19,6 +20,13 @@ class Adapter:
     account_error_codes: frozenset = frozenset()
     version_path: tuple = ()
     failure: object = None
+    output_fields: object = None
+
+    def field_map(self, method=None):
+        from lexbench_websearch.outputs import validate_fields
+
+        value = self.output_fields(method or {}) if callable(self.output_fields) else self.output_fields
+        return validate_fields(deepcopy(value))
 
     def account_error(self, payload, method=None):
         response = payload.get("Response") if isinstance(payload, dict) else None
@@ -28,10 +36,6 @@ class Adapter:
             return code
         expected = (method or {}).get("expected_response_version")
         if expected is not None and isinstance(response, dict) and not error:
-            try:
-                self.response(payload, top_k=0, preserve_invalid_slots=True)
-            except (ValueError, TypeError, AttributeError):
-                return None
             version = payload
             for key in self.version_path:
                 version = version.get(key) if isinstance(version, dict) else None
@@ -114,6 +118,45 @@ def bocha_request(case, protocol, options=None):
     return body
 
 
+def bocha_ai_request(case, protocol, options=None):
+    options = _options(options, {'answer', 'stream'})
+    if options.get('stream', False):
+        raise ValueError('The measured AI Search contract requires stream=false')
+    body = bocha_request(case, protocol)
+    body.pop('summary')
+    return dict(body, answer=options.get('answer', True), stream=False)
+
+
+def bocha_ai_response(payload, *, top_k=None, project_slots=False, preserve_invalid_slots=False):
+    if (not isinstance(payload, dict) or payload.get('code') != 200
+            or not isinstance(payload.get('messages'), list)):
+        raise ValueError('AI Search requires a successful messages envelope')
+    pages, answers = [], []
+    for message in payload['messages']:
+        if not isinstance(message, dict) or message.get('role', 'assistant') != 'assistant':
+            raise ValueError('Invalid AI Search message')
+        if message.get('content_type') == 'webpage' and message.get('type', 'source') == 'source':
+            content = message.get('content')
+            content = json.loads(content) if isinstance(content, str) else content
+            if not isinstance(content, dict) or not isinstance(content.get('value'), list):
+                raise ValueError('AI Search webpage messages require a value array')
+            pages.extend(content['value'])
+        elif message.get('type') == 'answer' and message.get('content_type') == 'text':
+            if not isinstance(message.get('content'), str):
+                raise ValueError('AI Search answers must be text')
+            answers.append(message['content'])
+    if project_slots and top_k is not None:
+        pages = pages[:top_k]
+    if any(not isinstance(page, dict) for page in pages):
+        if not preserve_invalid_slots:
+            raise ValueError('AI Search webpages must be objects')
+        pages = [p if isinstance(p, dict) else {} for p in pages]
+    return dict(results=[dict(url=p.get('url'), title=p.get('name', ''),
+                              snippet=p.get('snippet', ''), summary=p.get('summary', ''),
+                              citation_id=p.get('id'), date=p.get('datePublished')) for p in pages],
+                answer='\n\n'.join(answers))
+
+
 def _serp_query(case):
     query = case["query"]
     if case.get("source") and case.get("domains"):
@@ -134,15 +177,26 @@ def browserbase_request(case, protocol, options=None):
 
 
 def serper_request(case, protocol, options=None):
+    options = _query_locale(case, protocol, _string_options(options, {'gl', 'hl'}))
     return dict(q=_serp_query(case), num=protocol["top_k"],
-                **_string_options(options, {"gl", "hl"}))
+                **options)
+
+
+def _query_locale(case, protocol, options):
+    policy = protocol.get('locale_policy')
+    if policy not in (None, 'query-language/1'):
+        raise ValueError('Unsupported query locale policy')
+    if policy == 'query-language/1' and case.get('language', '').split('-')[0] == 'zh':
+        return {k:v for k,v in options.items() if k not in ('gl','hl')}
+    return options
 
 
 def brightdata_request(case, protocol, options=None):
     options = _string_options(options, {"zone", "gl", "hl", "data_format"})
     if not options.get("zone"):
         raise ValueError("Bright Data SERP requires an explicit zone")
-    params = urlencode(dict(q=_serp_query(case), gl=options.get("gl", "us"), hl=options.get("hl", "en")))
+    locale = _query_locale(case, protocol, dict(gl=options.get('gl','us'),hl=options.get('hl','en')))
+    params = urlencode(dict(q=_serp_query(case), **locale))
     return dict(zone=options["zone"], url="https://www.google.com/search?" + params,
                 format="json", data_format=options.get("data_format", "parsed"))
 
@@ -252,18 +306,28 @@ def _serp_response(payload, adapter, *, top_k=None, project_slots=False, preserv
     return payload
 
 
+def _fields(*, preview=True, extra=False, answer=False, body=False):
+    return dict(primary_preview='snippet' if preview else None,
+                extra_text=['summary'] if extra else [], answer='answer' if answer else None,
+                page_body='content' if body else None)
+
+
 ADAPTERS = {
-    "lexmount": Adapter(lexmount_request, "X-API-Key", "", telemetry=True),
-    "browserbase": Adapter(browserbase_request, "x-bb-api-key", ""),
-    "serper": Adapter(serper_request, "X-API-KEY", "", response=lambda payload: _serp_response(payload, "serper"), projection=lambda payload, **kwargs: _serp_response(payload, "serper", **kwargs)),
-    "brightdata": Adapter(brightdata_request, response=lambda payload: _serp_response(payload, "brightdata"), projection=lambda payload, **kwargs: _serp_response(payload, "brightdata", **kwargs)),
-    "deepseek": Adapter(deepseek_request),
-    "bocha": Adapter(bocha_request, response=_bocha_response),
+    "lexmount": Adapter(lexmount_request, "X-API-Key", "", telemetry=True, output_fields=_fields()),
+    "browserbase": Adapter(browserbase_request, "x-bb-api-key", "", output_fields=_fields(preview=False)),
+    "serper": Adapter(serper_request, "X-API-KEY", "", response=lambda payload: _serp_response(payload, "serper"), projection=lambda payload, **kwargs: _serp_response(payload, "serper", **kwargs), output_fields=_fields()),
+    "brightdata": Adapter(brightdata_request, response=lambda payload: _serp_response(payload, "brightdata"), projection=lambda payload, **kwargs: _serp_response(payload, "brightdata", **kwargs), output_fields=_fields()),
+    "deepseek": Adapter(deepseek_request, output_fields=lambda m: _fields(extra=True, body=(m.get('output_options') or {}).get('need_content', True))),
+    "bocha": Adapter(bocha_request, response=_bocha_response, output_fields=lambda m: _fields(extra=(m.get('output_options') or {}).get('summary', True))),
+    "bocha-ai": Adapter(bocha_ai_request, response=bocha_ai_response, projection=bocha_ai_response,
+                        output_fields=lambda m: _fields(extra=True, answer=(m.get('output_options') or {}).get('answer', True)),
+                        failure=lambda p: isinstance(p, dict) and p.get('code') != 200),
     "tencent-wsa": Adapter(tencent_wsa_request, response=tencent_wsa_response,
                            projection=tencent_wsa_response,
                            account_error_codes=frozenset({"UnauthorizedOperation", "ResourceNotFound",
                                                           "ResourceUnavailable", "AuthFailure"}),
                            version_path=("Response", "Version"),
+                           output_fields=lambda m: _fields(extra=(m.get('output_options') or {}).get('edition', 'standard') != 'lite'),
                            failure=lambda p: isinstance(p, dict) and isinstance(p.get("Response"), dict) and bool(p["Response"].get("Error"))),
 }
 

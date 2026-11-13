@@ -84958,6 +84958,599 @@
         ],
         "expected": false
       }
+    ],
+    "generic-document-urls": [
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "http://www.en.wikipedia.org/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.m.wikipedia.org/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.com/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wikipedia.com/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.org/wiki/Other"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.com.evil.test/wiki/Example"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.org/wiki/Example?oldid=2"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "http://en.wikipedia.org:8080/wiki/Example"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "reference-mirror-title-and-lead": [
+      {
+        "kind": "reference_mirror",
+        "reference": {
+          "url": "https://en.wikipedia.org/wiki/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "url": "https://wiki2.org/en/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "case": {
+          "id": "mirror",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wiki2.org/en/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "reference_mirror",
+        "reference": {
+          "url": "https://en.wikipedia.org/wiki/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "url": "https://wiki2.org/en/Example",
+          "title": "Other",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "case": {
+          "id": "mirror",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wiki2.org/en/Example"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "reference_mirror",
+        "reference": {
+          "url": "https://en.wikipedia.org/wiki/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "url": "https://wiki2.org/en/Example",
+          "title": "Example",
+          "lead": "Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "case": {
+          "id": "mirror",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wiki2.org/en/Example"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "output-level-field-isolation": [
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l1",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "a",
+        "expected": true
+      },
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l1",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "b",
+        "expected": false
+      },
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l2",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "a",
+        "expected": false
+      },
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l2",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "b",
+        "expected": true
+      }
     ]
   },
   "web_search_normalization": {

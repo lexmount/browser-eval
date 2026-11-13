@@ -78,7 +78,8 @@ def test_new_adapter_envelope_survives_collection_report_and_review(tmp_path, mo
     profile['methods'][0].update(adapter='custom-envelope', key_env='CUSTOM_TEST_KEY')
     path.write_text(json.dumps(profile), encoding='utf-8')
     monkeypatch.setitem(adapters.ADAPTERS, 'custom-envelope', adapters.Adapter(
-        adapters.lexmount_request, response=lambda payload: {'results': payload['items']}))
+        adapters.lexmount_request, response=lambda payload: {'results': payload['items']},
+        output_fields=dict(primary_preview='snippet',extra_text=[],answer=None,page_body=None)))
     monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)
     monkeypatch.setenv('CUSTOM_TEST_KEY', 'fixture')
     target = profile['cases'][0]['anchors'][0]

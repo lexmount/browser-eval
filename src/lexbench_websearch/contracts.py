@@ -1,7 +1,7 @@
 """Validate task definitions independently of any execution harness."""
 
 import re
-from .scoring import canonical_url
+from .scoring import URL_POLICIES, canonical_url
 
 
 def validate_cases(cases, *, reference_checks=None, reference_scope=None):
@@ -13,6 +13,10 @@ def validate_cases(cases, *, reference_checks=None, reference_scope=None):
     ):
         raise ValueError("Empty, duplicate or unsafe task identities")
     for case in cases:
+        if case.get('url_equivalence', 'literal/1') not in URL_POLICIES:
+            raise ValueError('Unsupported URL equivalence policy')
+        for url in case.get('equivalent_reference_urls', []):
+            canonical_url(url)
         if case.get("answer_derivation") is not None:
             from .answer_rules import reference_rule
 

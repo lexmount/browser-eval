@@ -88,6 +88,40 @@ class Response(io.BytesIO):
     status = 200
 
 
+@pytest.mark.parametrize('level', ['l1','l2'])
+def test_layered_judge_receipts_bind_level_prompt_and_exact_fields(run_judge, monkeypatch, level):
+    from harness.web_search import report
+    from harness.web_search.relevance import verify_provenance
+    from lexbench_websearch.rubric import judge_prompt
+
+    profile = dict(protocol=dict(top_k=5,relevance_input='delivered-previews/1',relevance_level=level),
+                   cases=[dict(id='q',query='Install the package',family='web')],methods=[dict(id='a')])
+    rows = [dict(case_id='q',method='a',results=[dict(url='https://example.test/guide',
+                                                   title='Install',snippet='pip install package')])]
+    monkeypatch.setattr(report,'check',lambda *a,**kw:(profile,rows))
+    requests=[]
+    def transport(request,**kwargs):
+        payload=json.loads(request.data)
+        packet=json.loads(payload['messages'][1]['content'])
+        assert packet['evaluation_level'] == level
+        assert ('url' in packet['candidates'][0]) == (level == 'l1')
+        assert payload['messages'][0]['content'] == judge_prompt(level)
+        requests.append(request)
+        return Response(answer(request))
+    monkeypatch.setattr(urllib.request,'urlopen',transport)
+    run_judge(['--disable-thinking'])
+    evidence=json.loads((run_judge.output/'relevance.json').read_bytes())
+    assert evidence['evaluation_level'] == level
+    assert evidence['judge']['configuration']['extra_params']['enable_thinking'] is False
+    verify_provenance(profile,rows,evidence)
+    corrupted=copy.deepcopy(evidence)
+    corrupted['evaluation_level']='l2' if level == 'l1' else 'l1'
+    with pytest.raises(ValueError,match='same output level'):
+        validate_model_evidence(corrupted)
+    run_judge(['--disable-thinking'])
+    assert len(requests) == 1
+
+
 def test_adding_provider_reuses_only_unchanged_blind_inputs(run_judge, monkeypatch, tmp_path):
     from harness.web_search import report
 

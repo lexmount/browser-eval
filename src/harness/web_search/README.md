@@ -22,6 +22,10 @@ Run every publishable Web Search cohort through this certified entry, which free
 
 Retries default to zero: omit `protocol.retry` or set it to the JSON boolean `false`. Set `protocol.retry=true` explicitly to allow one retry after a transport, HTTP or invalid-response failure; a valid empty response is never retried. Strings, numbers and other non-boolean retry settings are rejected before collection. The transport ignores user curl configuration and disables curl-level retries; enabled retries run only through the collector, with a separate evidence record for each attempt. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
 
+New Google-provider profiles use `protocol.locale_policy="query-language/1"`. Chinese queries then omit `gl` and `hl`, so an English interface and US region are not forced on them. Historical profiles retain their recorded parameters. New DeepSeek profiles explicitly set `output_options.need_content=false`; frozen cohorts that requested full page bodies keep those responses and their original timing.
+
+Bocha AI Search uses adapter `bocha-ai`, endpoint `https://api.bochaai.com/v1/ai-search`, and the same `BOCHA_API_KEY` obtained from [the Bocha console](https://open.bochaai.com/). Use `output_options.answer=true` and `stream=false`. The adapter retains webpage previews, extra summaries and citation IDs, stores the generated answer separately, and excludes follow-up questions and image/video cards. Confirm this endpoint's billing separately from Web Search.
+
 Report commands share one entry point; `--help` after any command lists its options. Run them through `uv run --frozen`: `python -m` resolves `harness` from the environment's editable install and does not add this checkout's `src/` itself, so an environment holding a noneditable older package would run that older code.
 
 | Command | Purpose |
@@ -437,8 +441,11 @@ candidate pool and model receipts remain part of the report evidence.
 
 `request-url/2` preserves malformed native result positions with zero credit;
 valid neighboring slots retain their original rank, and later slots never fill
-the gap. Edition-identified responses with no Pages array are empty responses,
-while malformed envelopes remain retryable failures. Corrections require the
+the gap. Edition-identified responses with no Pages array are empty responses.
+A native `Response` object without an application error must identify the expected
+edition even when `Pages` is missing or malformed. An unknown or changed edition
+stops collection with unknown cost. Transport failures and non-native envelopes
+remain ordinary failures, retried only when explicitly enabled. Corrections require the
 `invalid-result-slots` controls in addition to the original normalization controls.
 
 SERP lexical diagnostics select `answer_evidence_scope: preview`; generated

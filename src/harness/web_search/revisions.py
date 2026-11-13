@@ -24,6 +24,51 @@ def _rescore(profile, rows):
 
 NATIVE_CONTROLS = Path(__file__).with_name("data") / "native-normalization-regressions.json"
 
+
+def article_observation(raw, url, *, status, verified_at, media_type='text/html'):
+    """Extract a bounded article lead from frozen HTML for mirror verification."""
+    from bs4 import BeautifulSoup
+
+    from lexbench_websearch.simpleqa import MIRROR_LEAD_CHARACTERS
+
+    canonical_url(url)
+    if media_type == 'text/markdown':
+        from markdown_it import MarkdownIt
+
+        rendered = MarkdownIt('default').render(raw.decode('utf-8'))
+    elif media_type == 'text/html':
+        rendered = raw
+    else:
+        raise ValueError('Unsupported article evidence media type')
+    soup = BeautifulSoup(rendered, 'html.parser')
+    for node in soup.select('script,style,nav,aside,table,sup,.hatnote,.shortdescription,.metadata'):
+        node.decompose()
+    heading = soup.find('h1')
+    body = soup.select_one('.mw-parser-output') or soup.find('article') or soup.find('main')
+    if media_type == 'text/markdown':
+        body = soup
+    paragraphs = []
+    if body:
+        after_heading = media_type != 'text/markdown'
+        for node in body.find_all(['h1', 'p', 'h2']):
+            if node is heading:
+                after_heading = True
+                continue
+            if not after_heading:
+                continue
+            if node.name == 'h2' and node.get_text(' ',strip=True).casefold() != 'from wikipedia, the free encyclopedia':
+                break
+            if node.name != 'p':
+                continue
+            text = node.get_text(' ', strip=True)
+            if text:
+                paragraphs.append(text)
+            if sum(len(part) for part in paragraphs) >= MIRROR_LEAD_CHARACTERS:
+                break
+    return dict(url=url, status=status, verified_at=verified_at, body_sha256=digest(raw),
+                title=heading.get_text(' ', strip=True) if heading else '',
+                lead='\n'.join(paragraphs)[:MIRROR_LEAD_CHARACTERS])
+
 def normalization_regressions(expected_sha256, normalizer):
     """Exercise frozen projection controls through the execution owner's adapter."""
     path = NATIVE_CONTROLS
@@ -195,6 +240,41 @@ def validate_revision_controls(revision, normalizer=None):
         if {item['expected'] for item in group} != {True, False}:
             raise ValueError('Source identity regressions require paired controls')
         for control in group:
+            if control.get('kind') == 'output_level':
+                from lexbench_websearch.outputs import project_rows
+                from lexbench_websearch.relevance import candidate_packet, score
+
+                profile, rows = project_rows(control['profile'], control['rows'], control['level'],
+                                             qualified_fields=control.get('qualified_fields'))
+                packet, _ = candidate_packet(profile, rows)
+                case = profile['cases'][0]
+                labels = {case['id']:{c['candidate_id']:control['grades'][c['previews'][0]['snippet']]
+                                     for c in packet['blind_candidate_packets'][0]['candidates']}}
+                metrics = next(r for r in score(profile, rows, packet['plan'], labels) if r['method'] == control['method'])
+                row = next(r for r in rows if r['method'] == control['method'])
+                if task_acceptance(case, row, relevance_grades=metrics['ranked_grades']) != control['expected']:
+                    raise ValueError('Output-level regression failed: ' + identity)
+                continue
+            if control.get('kind') == 'reference_mirror':
+                from lexbench_websearch.simpleqa import qualify_mirror
+
+                proof = qualify_mirror(control['reference'], control['candidate'])
+                case = deepcopy(control['case'])
+                if proof['qualified']:
+                    case['equivalent_reference_urls'] = [proof['url']]
+                results = control['results']
+                row = dict(results=results, metrics=evaluate(case, results))
+                if (bool(row['metrics']['labeled_source_hit_5']) != control['expected']
+                        or task_acceptance(case, row, 'source') != control['expected']):
+                    raise ValueError('Reference mirror regression failed: ' + identity)
+                continue
+            if control.get('kind') == 'source_url':
+                case, results = control['case'], control['results']
+                row = dict(results=results, metrics=evaluate(case, results))
+                if (bool(row['metrics']['labeled_source_hit_5']) != control['expected']
+                        or task_acceptance(case, row, 'source') != control['expected']):
+                    raise ValueError('Source URL regression failed: ' + identity)
+                continue
             if control.get('kind') == 'factual_dataset':
                 case, results = control['case'], control['results']
                 row = dict(results=results, metrics=evaluate(case, results))

@@ -53,11 +53,9 @@ class YuanbaoSearchTests(unittest.TestCase):
             (200, 0, b"<html>bad response</html>", ""),
             (502, 0, b"<html>bad gateway</html>", ""),
             (200, 18, b'{"Response":', "partial transfer"),
-            (200, 0, b'{"Response": {}}', ''),
-            (200, 0, b'{"Response": {"Pages": null}}', ''),
-            (200, 0, b'{"Response": {"Pages": "broken"}}', ''),
-            (200, 0, b'{"Response": {"Pages": {}}}', ''),
-            (200, 0, b'{"Response": {"Version": "lite", "Pages": "broken"}}', ''),
+            (200, 0, b'{"Response": null}', ''),
+            (200, 0, b'{"unexpected": {}}', ''),
+            (200, 0, b'{"Response": {"Version": "standard", "Pages": "broken"}}', ''),
         ]
         for status, exit_code, raw, error in failures:
             with (
@@ -168,15 +166,22 @@ class YuanbaoSearchTests(unittest.TestCase):
         from harness.web_search.example import synthetic_profile
         from harness.web_search.runner import run
 
-        for code in (
+        errors = [
             "UnauthorizedOperation",
             "ResourceNotFound",
             "ResourceUnavailable",
             "AuthFailure.InvalidAuthorization",
             "ResponseVersionMismatch: expected standard, received lite",
             "ResponseVersionMismatch: expected standard, received None",
-        ):
-            with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
+        ]
+        responses = [(code, None) for code in errors]
+        responses.extend((
+            f"ResponseVersionMismatch: expected standard, received {response.get('Version')}",
+            response,
+        ) for response in ({}, {"Pages": None}, {"Pages": "broken"},
+                           {"Pages": {}}, {"Version": "lite", "Pages": "broken"}))
+        for code, native_response in responses:
+            with self.subTest(code=code, response=native_response), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
                 profile = synthetic_profile()
                 profile["methods"] = [
@@ -196,7 +201,8 @@ class YuanbaoSearchTests(unittest.TestCase):
                 path.write_text(json.dumps(profile), encoding="utf-8")
                 requests = []
 
-                def http(url, body=None, *args, requests=requests, code=code, **kwargs):
+                def http(url, body=None, *args, requests=requests, code=code,
+                         native_response=native_response, **kwargs):
                     receipt = dict(
                         http_status=200, elapsed_ms=1, transport_exit=0, transport_error=""
                     )
@@ -208,6 +214,12 @@ class YuanbaoSearchTests(unittest.TestCase):
                         if code.startswith("ResponseVersionMismatch:")
                         else {"Response": {"Error": {"Code": code}}}
                     )
+                    if native_response is not None:
+                        payload = {"Response": native_response}
+                    if code.startswith('ResponseVersionMismatch:'):
+                        self.assertIsNone(request_cost(
+                            dict(profile['methods'][0], billing='http-200', price_per_1000=3),
+                            200, 0, payload))
                     return receipt, json.dumps(payload).encode()
 
                 with (

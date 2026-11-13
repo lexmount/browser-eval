@@ -22,6 +22,7 @@ from harness.web_search.adapters import adapter_for
 from harness.web_search.core import (
     execution_resources,
     normalize_response,
+    normalized_answer,
     request_body,
     request_cost,
     validate_profile,
@@ -696,12 +697,14 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 (output / "calls").mkdir(exist_ok=True)
                 (output / relative).write_bytes(raw)
                 results = []
+                answer = None
                 decoded = {}
                 error = receipt["transport_error"]
                 try:
                     decoded = json.loads(raw)
                     if receipt["http_status"] == 200 and not receipt["transport_exit"]:
                         results = normalize_response(decoded, method, protocol, payload)
+                        answer = normalized_answer(decoded, method)
                     else:
                         error = error or json.dumps(
                             decoded.get("error", decoded), ensure_ascii=False
@@ -753,6 +756,8 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
                 cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
             )
+            if answer is not None:
+                row['answer'] = answer
             with result_lock:
                 partial_path = output / "partial-results" / (identity + ".json")
                 if interrupted_retry:

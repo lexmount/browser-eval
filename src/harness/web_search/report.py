@@ -44,6 +44,7 @@ from harness.web_search.core import (
     aggregate,
     execution_resources,
     normalize_response,
+    normalized_answer,
     request_body,
     request_cost,
     validate_profile,
@@ -300,9 +301,13 @@ def load_run(source):
                 if abs(r["cost"] - sum(a["cost"] for a in attempts)) > 1e-8:
                     raise ValueError("Retry cost mismatch")
         if not r["error"] and r["http_status"] == 200:
-            normalized = normalize_response(json.loads((source / r["evidence"]["path"]).read_bytes()), bymethod[r["method"]], profile["protocol"], r.get("request"))
+            payload = json.loads((source / r["evidence"]["path"]).read_bytes())
+            normalized = normalize_response(payload, bymethod[r["method"]], profile["protocol"], r.get("request"))
             if normalized != r["results"]:
                 raise ValueError("Normalized response mismatch")
+            answer = normalized_answer(payload, bymethod[r['method']])
+            if answer is not None and r.get('answer') != answer:
+                raise ValueError('Generated answer differs from the native response')
         if evaluate(bycase[r["case_id"]], r["results"]) != r["metrics"]:
             raise ValueError("Stored score mismatch")
     return profile, rows, receipt
@@ -312,7 +317,7 @@ def _execution_contract(protocol):
     """Fields that must match for same-budget cross-cohort comparisons."""
     return {key: protocol.get(key) for key in (
         "top_k", "rounds", "score_round", "concurrency", "server_timeout_ms",
-        "client_timeout_s", "interval_s", "retry", "order", "as_of",
+        "client_timeout_s", "interval_s", "retry", "order", "as_of", "locale_policy",
     )}
 
 

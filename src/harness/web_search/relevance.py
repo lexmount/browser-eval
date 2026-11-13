@@ -150,12 +150,14 @@ def verify_provenance(profile, rows, evidence, *, authority=None):
             preview = profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1'
             if preview and len(candidate['previews']) != 1:
                 raise ValueError('Delivered previews cannot borrow other result text')
-            expected = ranking_identity(case_id, dict(url=candidate['url'], **candidate['previews'][0]), preview=preview)
+            expected = ranking_identity(case_id, dict(url=candidate['url'], **candidate['previews'][0]), preview=preview,
+                                        level=profile['protocol'].get('relevance_level'))
             if candidate["candidate_id"] != expected:
                 raise ValueError("Blind packet URL identity mismatch")
         for method in (m["id"] for m in profile["methods"]):
             actual = ranking_ids(case_id, indexed[case_id, method]["results"][:plan["cutoff"]],
-                                 preview=profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1')
+                                 preview=profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1',
+                                 level=profile['protocol'].get('relevance_level'))
             if rankings[case_id][method] != actual:
                 raise ValueError("Published rank mapping disagrees with provider results")
     crosscheck = evidence.get("crosscheck_labels", {})
@@ -195,6 +197,11 @@ ANNOTATION_HTML = zh_text("Relevance annotation page")
 
 
 def judge_input(packet):
+    if packet.get('evaluation_level') in ('l1', 'l2'):
+        projected = {k: v for k, v in packet.items() if k != 'required_domains'}
+        if packet['evaluation_level'] == 'l2':
+            projected['candidates'] = [{k:v for k,v in c.items() if k != 'url'} for c in packet['candidates']]
+        return projected
     if not packet.get("source_checked"):
         return packet
     return {"case_id": packet["case_id"], "query": packet["query"], "source_requirements_checked": True,
@@ -207,6 +214,8 @@ def reference_repair_messages(packet, expected):
         refs = [{"field": field, "preview_index": i} for i, p in enumerate(c["previews"])
                 for field in ("title", "snippet") if p.get(field)]
         choices[c["candidate_id"]] = refs or [{"field": "title", "preview_index": 0}]
+        if packet.get('evaluation_level') == 'l1':
+            choices[c['candidate_id']].append({'field':'url'})
     suffix = "\nOutput-format correction only; keep the relevance rubric unchanged. For each candidate, evidence MUST be one of these exact supplied nonempty field references. Do not cite an empty snippet when the title contains the information. Return all candidates. Allowed references: " + json.dumps(choices, sort_keys=True)
     return [dict(expected[0], content=expected[0]["content"] + suffix), *expected[1:]]
 
@@ -224,7 +233,7 @@ def repaired_messages(packet, call, expected, *, configuration=None):
     if dict(prior["request"], messages=repaired) != call["request"]:
         raise ValueError("Format repair changed model configuration")
     try:
-        _validate_judge_field_references(prior["response"])
+        _validate_judge_field_references(prior["response"], packet)
         parse_judgments(packet, prior["response"])
     except (ValueError, KeyError, TypeError):
         return repaired
@@ -276,10 +285,13 @@ def parse_judgments(packet, response):
     return items
 
 
-def _validate_judge_field_references(response):
+def _validate_judge_field_references(response, packet=None):
     judgments = json.loads(response["choices"][0]["message"]["content"])["judgments"]
     for item in judgments:
         reference = item.get("evidence")
+        if (isinstance(reference, dict) and reference.get('field') == 'url'
+                and (packet or {}).get('evaluation_level') == 'l1'):
+            continue
         if (not isinstance(reference, dict) or reference.get("field") not in ("title", "snippet")
                 or type(reference.get("preview_index")) is not int):
             raise ValueError("New model evidence requires an exact title/snippet field reference")
@@ -386,8 +398,14 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
         raise ValueError("Model evidence requires strict configuration and physical receipts; legacy evidence must be hash-pinned")
     if not known_prompt(judge["prompt"]):
         raise ValueError("Model evidence uses an unapproved grading prompt")
-    expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    level = evidence.get('evaluation_level')
+    if level is not None and (level not in ('l1','l2') or judge['prompt'] != judge_prompt(level)
+                              or any(p.get('evaluation_level') != level for p in packets)):
+        raise ValueError('Model prompt and packets must use the same output level')
+    level_binding = {'evaluation_level':level} if level is not None else {}
+    expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **level_binding, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     legacy_packet = {"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets,
+                     **level_binding,
                      **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {}),
                      **({"source_requirements": evidence["source_requirements"]} if "source_requirements" in evidence else {})}
     legacy_hash = hashlib.sha256(json.dumps(legacy_packet, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
@@ -456,7 +474,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
             if (strict or key in configuration) and request.get(key) != configuration.get(key):
                 raise ValueError("Model judge configuration differs across calls")
         if strict:
-            _validate_judge_field_references(call["response"])
+            _validate_judge_field_references(call["response"], packet)
 
             validate_physical_receipts(call, configuration)
         actual_model = call["response"].get("model", "").lower()
@@ -503,7 +521,6 @@ def judge_main(argv=None):
     parser.add_argument('--repair-format', action='store_true',
                         help='Repair an invalid saved answer once, preserving the original call')
     args = parser.parse_args(argv)
-    prompt = judge_prompt()
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
     if args.token_env not in {"SEARCH_JUDGE_API_KEY", "BIFROST_API_KEY"}:
@@ -538,6 +555,7 @@ def judge_main(argv=None):
     source_requirements = (
         json.loads(args.source_requirements.read_text(encoding="utf-8")) if args.source_requirements else {}
     )
+    prompt = judge_prompt(profile['protocol'].get('relevance_level'))
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
     packet_format, source_policy = args.packet_format, "explicit-source/2"
     if predecessor:
@@ -617,7 +635,7 @@ def judge_main(argv=None):
             # A saved invalid model answer is an inspection task, never permission
             # to spend again or select a different answer on each invocation.
             try:
-                _validate_judge_field_references(saved["response"])
+                _validate_judge_field_references(saved["response"], p)
                 parse_judgments(p, saved["response"])
                 return saved
             except (ValueError, KeyError, TypeError):
@@ -707,7 +725,7 @@ def judge_main(argv=None):
                 if prior_call:
                     saved['format_repair'] = {'prior_call': prior_call}
                 path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
-                _validate_judge_field_references(raw)
+                _validate_judge_field_references(raw, p)
                 parse_judgments(p, raw)
                 break
             if not retryable or number == contract["attempt_limit"]:

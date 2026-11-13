@@ -4334,15 +4334,15 @@
         },
         "relevance.py": {
           "before_sha256": "9379e0c98ac4106065588d93f41a48de9022f94c9f0dae99bd02778a496c9127",
-          "after_sha256": "323f770587603926bb573b493ce4fc0b49cfeff9a705e3dd76734266f3f13e8d"
+          "after_sha256": "e5565b3dbf9bf0d12330ae5ee414e2afb31ecc40902cdde27fccd89943a1b03b"
         },
         "scoring.py": {
           "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
-          "after_sha256": "05d20bdd23afa9c91d7d11c142572eecc6e0a05a42dd00c5d2340441454cef66"
+          "after_sha256": "0fd4a0fb91a9c2343dfba8e6ac58bbc7f7e0ff0eaf2f9a6e485f76ef19e187eb"
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
-          "after_sha256": "fb8c17cb78abdc0d2e13a7b5523367bf0b7e1fc9d2bda48941e62499d582a6e0"
+          "after_sha256": "3b97fd01c1372a8d4d8401e01110c3b77b29242a4f1385265efe32209815b636"
         },
         "versions.py": {
           "before_sha256": "27c10a5f86b4a8ac7841cc9dfbe77c2f724ea675a938bda3719ae05084c058e0",
@@ -4350,7 +4350,11 @@
         },
         "rubric.py": {
           "before_sha256": "3f5a95c34328ea51c0bd6f147bd713884a5fad19e7a7a6bf1ce998f10fae6d07",
-          "after_sha256": "7d2c7ba3861262efa6341679f33ad4893ef148cf92fd0549dbf5f998abe11060"
+          "after_sha256": "a11bc5daca0d46cff5f46fdc03704234df745e4a01d264c1853b4ee7fd7f477b"
+        },
+        "contracts.py": {
+          "before_sha256": "b9ccbd0f527a322323027b8e93dec2d1596e79a818e36f2bfb8f9ea7b9398ba7",
+          "after_sha256": "4ae11fa3309b63e59eb21a7f4bb66e8227f7c98a4da7e69994b1c1ded62a7819"
         }
       },
       "corrections": [
@@ -4386,6 +4390,26 @@
           "tests": [
             "tests/web_search/test_native_revisions.py",
             "tests/benchmarks/websearch/test_evidence_quality.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring.py",
+            "relevance.py",
+            "simpleqa.py",
+            "contracts.py",
+            "rubric.py"
+          ],
+          "root_cause": "Literal URL matching rejected generic document aliases, while mirror references require independent matching titles and article leads; isolated output levels must not share candidate identities or answer fields.",
+          "regression_ids": [
+            "generic-document-urls",
+            "reference-mirror-title-and-lead",
+            "output-level-field-isolation"
+          ],
+          "tests": [
+            "tests/benchmarks/websearch/test_scoring.py",
+            "tests/benchmarks/websearch/test_simpleqa.py",
+            "tests/web_search/test_output_levels.py"
           ]
         }
       ]

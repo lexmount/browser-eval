@@ -8,6 +8,26 @@ from lexbench_websearch.scoring import normalize_results as normalize
 from lexbench_websearch.scoring import classify, evaluate
 
 
+def test_generic_url_equivalence_is_versioned_and_preserves_document_boundaries():
+    from lexbench_websearch.scoring import canonical_url, factual_evidence
+    from harness.web_search.revisions import validate_revision_controls
+
+    validate_revision_controls({'root_cause': 'Literal host matching rejected web transport and Wikimedia aliases',
+                                'regression_ids': ['generic-document-urls']})
+    target = 'https://example.org/article'
+    assert canonical_url('http://www.example.org/article', policy='document-url/2') == target
+    assert canonical_url('https://m.example.org/article', policy='document-url/2') == target
+    assert canonical_url('http://www.example.org/article') != target
+    case = {'reference_answer': 'answer', 'reference_urls': [target],
+            'equivalent_reference_urls': ['https://mirror.test/article'],
+            'url_equivalence': 'document-url/2'}
+    results = [{'url': 'https://unrelated.test/answer'}, {'url': 'https://mirror.test/article'}]
+    metrics = factual_evidence(case, results)
+    assert metrics['labeled_source_hit_5'] == 1
+    assert metrics['labeled_source_rr_5'] == .5
+    assert factual_evidence(case, results[:1])['labeled_source_hit_5'] == 0
+
+
 class IdentityScenarios(unittest.TestCase):
     def test_verified_equivalent_url_hits(self):
         case = {
