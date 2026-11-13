@@ -595,7 +595,7 @@
     "★ marks a unique favorable value within its column. Populations differ across columns, so these are not an overall ranking. Charges use frozen list prices; unknown prices remain unavailable.": "★ 仅标出当前列唯一的较优数值；各列适用范围不同，不能合成总排名。费用按冻结目录价估算，未知价格保留为空。",
     "Check top-{cutoff} given URLs and answer text in titles and standard snippets, excluding dataset mirrors and evaluation logs.": "检查前 {cutoff} 条中的标注来源，以及标题和标准摘要中的答案文字，排除题库副本和评测记录。",
     "Invalid result slot": "无效结果位置",
-    ". Latency includes successful, empty and failed requests; this collection used no retries. Prices and billing terms appear on the performance page.": "。耗时包含成功、空结果和失败请求；本批未启用重试。单价和计费条件见「速度与费用」。",
-    "One final result per query. Timing covers successful, empty and failed requests, including reference-quarantined queries; this collection used no retries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.": "每题只计一个最终结果。耗时统计成功、空结果和失败请求，也保留参考核查中隔离的题；本批未启用重试。P95 表示 95% 的请求在该时间内结束。费用的计量单位见表头，购买或计费条件在下方列示。"
+    ". Latency includes successful, empty and failed requests; this collection used no retries. Prices and billing terms appear on the performance page.": "。耗时包含成功、空结果和失败请求；本批未发生重试。单价和计费条件见「速度与费用」。",
+    "One final result per query. Timing covers successful, empty and failed requests, including reference-quarantined queries; this collection used no retries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.": "每题只计一个最终结果。耗时统计成功、空结果和失败请求，也保留参考核查中隔离的题；本批未发生重试。P95 表示 95% 的请求在该时间内结束。费用的计量单位见表头，购买或计费条件在下方列示。"
   }
 }

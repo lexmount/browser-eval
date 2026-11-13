@@ -119,7 +119,7 @@ def test_latency_population_keeps_failures_and_reports_actual_retry_usage():
 
     case = {'id': 'query', 'query': 'Find a document', 'domains': ['example.com']}
     profile = {'cases': [case], 'methods': [{'id': 'a', 'label': 'A', 'currency': 'USD'}],
-               'protocol': {'top_k': 5}}
+               'protocol': {'top_k': 5, 'retry': True}}
     rows = []
     for elapsed, results, error in [(100, [{'url': 'https://example.com/'}], ''),
                                     (200, [], ''), (300, [], 'Timed out')]:
@@ -137,7 +137,7 @@ def test_latency_population_keeps_failures_and_reports_actual_retry_usage():
                'metric_populations': [{'id': 'overall', 'metric_kind': 'site',
                                        'label': {'en': 'Site', 'zh': '站点'},
                                        'case_ids': [row['case_id'] for row in rows]}]}
-    for zh, expected in [(False, 'this collection used no retries'), (True, '本批未启用重试')]:
+    for zh, expected in [(False, 'this collection used no retries'), (True, '本批未发生重试')]:
         page = BeautifulSoup(population_summary(profile, rows, content, zh), 'html.parser')
         assert expected in page.select_one('.population-note').get_text()
         performance = BeautifulSoup(benchmark_operations(profile, rows, content, zh), 'html.parser')
@@ -286,7 +286,7 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
         {'id': 'f', 'reference_answer': '42', 'reference_urls': ['https://source.org/answer']},
         {'id': 's', 'anchors': ['https://source.org/target']},
     ]
-    profile = {'cases': cases, 'methods': [{'id': 'a', 'label': 'A', 'currency': 'CNY'}, {'id': 'b', 'label': 'B', 'currency': 'CNY'}], 'protocol': {'top_k': 5}}
+    profile = {'cases': cases, 'methods': [{'id': 'a', 'label': 'A', 'currency': 'CNY'}, {'id': 'b', 'label': 'B', 'currency': 'CNY'}], 'protocol': {'top_k': 5, 'retry': True}}
     rows = []
     for method in ('a', 'b'):
         for case in cases:
