@@ -11,6 +11,101 @@ from unittest.mock import patch
 import pytest
 
 
+@pytest.mark.parametrize('retry', [None, False, True])
+@pytest.mark.parametrize('failure', ['transport', 'http', 'invalid', 'empty'])
+def test_retries_require_explicit_opt_in(tmp_path, retry, failure):
+    from harness.web_search.runner import run
+    from harness.web_search.report import load_run
+
+    profile = execution_profile()
+    profile['methods'] = profile['methods'][1:2]
+    profile['cases'] = profile['cases'][:1]
+    if retry is None:
+        profile['protocol'].pop('retry')
+    else:
+        profile['protocol']['retry'] = retry
+    path = tmp_path / 'profile.json'
+    path.write_text(json.dumps(profile), encoding='utf-8')
+    calls = []
+
+    def http(url, body=None, *args, **kwargs):
+        receipt = dict(http_status=200, elapsed_ms=10, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        calls.append(body)
+        if len(calls) == 1:
+            if failure == 'transport':
+                return dict(receipt, http_status=0, transport_exit=28, transport_error='Timed out'), b''
+            if failure == 'http':
+                return dict(receipt, http_status=503), b'{"error":"busy"}'
+            if failure == 'invalid':
+                return receipt, b'not JSON'
+            return receipt, b'{"results":[]}'
+        return receipt, b'{"results":[{"url":"https://example.org/page"}]}'
+
+    with (patch('harness.web_search.runner.http_call', side_effect=http),
+          patch('harness.web_search.runner.load_runtime_env'),
+          patch.dict(os.environ, DEEPSEEK_API_KEY='fixture')):
+        run(path, tmp_path/'run', certified=True)
+    _, rows, receipt = load_run(tmp_path/'run')
+    expected = 2 if retry is True and failure != 'empty' else 1
+    assert len(calls) == expected
+    assert len(rows) == 1
+    assert len(rows[0]['attempts']) == expected
+    assert bool(rows[0]['error']) == (failure != 'empty' and expected == 1)
+    assert receipt['certified'] is True
+
+
+@pytest.mark.parametrize('retry', ['false', 'true', '', 0, 1, 2, None, [], {}])
+def test_invalid_retry_settings_are_rejected_before_collection(tmp_path, retry):
+    from harness.web_search.runner import run
+
+    profile = execution_profile()
+    profile['protocol']['retry'] = retry
+    path = tmp_path/'profile.json'
+    path.write_text(json.dumps(profile), encoding='utf-8')
+    with (patch('harness.web_search.runner.http_call') as call,
+          patch('harness.web_search.runner.load_runtime_env'),
+          pytest.raises(ValueError, match='Retry must be a boolean')):
+        run(path, tmp_path/'run', certified=True)
+    call.assert_not_called()
+    assert not (tmp_path/'run').exists()
+
+
+def test_transport_does_not_inherit_retries_from_user_curl_configuration(tmp_path):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    from harness.web_search.runner import http_call
+
+    requests = []
+
+    class Origin(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get('Content-Length', 0)))
+            requests.append(self.path)
+            self.send_response(503 if len(requests) == 1 else 200)
+            self.end_headers()
+            self.wfile.write(b'busy' if len(requests) == 1 else b'retried')
+
+        def log_message(self, *args):
+            pass
+
+    (tmp_path/'.curlrc').write_text('retry = 2\n', encoding='utf-8')
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Origin)
+    worker = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        with patch.dict(os.environ, CURL_HOME=str(tmp_path), NO_PROXY='127.0.0.1'):
+            receipt, raw = http_call(f'http://127.0.0.1:{server.server_port}/search', {'query':'fixture'}, timeout=3)
+    finally:
+        server.shutdown()
+        server.server_close()
+        worker.join()
+    assert requests == ['/search']
+    assert receipt['http_status'] == 503
+    assert raw == b'busy'
+
+
 def test_terminal_interrupt_retains_a_completed_curl_response(tmp_path):
     import json
     import os

@@ -164,6 +164,8 @@ def validate_profile(profile, *, execution_methods=None):
     cases = profile["cases"]
     methods = profile["methods"]
     protocol = profile["protocol"]
+    if type(protocol.get("retry", False)) is not bool:
+        raise ValueError("Retry must be a boolean; omit it or use false for zero retries")
     reference_retries = protocol.get("reference_retries", 0)
     if type(reference_retries) is not int or not 0 <= reference_retries <= 3:
         raise ValueError("Reference retries must be an integer between zero and three")

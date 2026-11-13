@@ -225,6 +225,9 @@ def http_call(url, body=None, header=None, timeout=20):
             config += "header = " + json.dumps(header) + "\n"
         command = [
             "curl",
+            "--disable",
+            "--retry",
+            "0",
             "--silent",
             "--show-error",
             "--config",
