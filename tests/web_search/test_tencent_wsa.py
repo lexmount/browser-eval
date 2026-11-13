@@ -169,6 +169,7 @@ class YuanbaoSearchTests(unittest.TestCase):
             "ResourceUnavailable",
             "AuthFailure.InvalidAuthorization",
             "ResponseVersionMismatch: expected standard, received lite",
+            "ResponseVersionMismatch: expected standard, received None",
         ):
             with self.subTest(code=code), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -198,7 +199,7 @@ class YuanbaoSearchTests(unittest.TestCase):
                         return receipt, b"reference " * 20
                     requests.append(body)
                     payload = (
-                        {"Response": {"Version": "lite", "Pages": []}}
+                        {"Response": {"Pages": []}} if code.endswith("received None") else {"Response": {"Version": "lite", "Pages": []}}
                         if code.startswith("ResponseVersionMismatch:")
                         else {"Response": {"Error": {"Code": code}}}
                     )
@@ -376,3 +377,11 @@ def test_public_import_command_selects_only_the_named_credential(tmp_path):
     target.write_text('EXISTING=keep\n', encoding='utf-8')
     main_import_credentials(['--source', str(source), '--target', str(target), '--key', 'TENCENT_WSA_API_KEY'])
     assert parse_env_file(target) == {'EXISTING': 'keep', 'TENCENT_WSA_API_KEY': 'fixture-yuanbao'}
+
+
+def test_missing_edition_in_a_native_envelope_has_unknown_billing():
+    method=dict(adapter='tencent-wsa',expected_response_version='lite',billing='http-200',price_per_1000=4)
+    payload={'Response':{'Pages':[]}}
+    assert request_cost(method,200,0,payload) is None
+    with unittest.TestCase().assertRaisesRegex(ValueError,'ResponseVersionMismatch'):
+        normalize_response(payload,method,{'top_k':5})

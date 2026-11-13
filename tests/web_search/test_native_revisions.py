@@ -331,11 +331,11 @@ def test_reference_identity_capture_and_offline_replay():
                 self.send_response(301)
                 self.send_header('Location', '/reference')
                 self.end_headers()
-            elif self.path == '/tracking':
+            elif self.path in ('/tracking','/articles/'):
                 self.send_response(200)
                 self.send_header('Content-Type', 'text/html; charset=utf-8')
                 self.end_headers()
-                self.wfile.write(b'<html><head><link rel="canonical" href="/reference"></head></html>')
+                self.wfile.write(b'<link rel="canonical" href="entry">' if self.path == '/articles/' else b'<link rel="canonical" href="/reference">')
             else:
                 self.send_response(403)
                 self.end_headers()
@@ -348,7 +348,7 @@ def test_reference_identity_capture_and_offline_replay():
     thread.start()
     base = f'http://127.0.0.1:{server.server_port}'
     try:
-        observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking')]
+        observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking','/articles/')]
         malformed = capture_source_identity(base + '/invalid space')
         assert 'error' in malformed
     finally:
@@ -356,12 +356,12 @@ def test_reference_identity_capture_and_offline_replay():
         server.server_close()
         thread.join()
     # The reference host is offline: only frozen metadata enters scoring.
-    case = dict(id='fact', query='Which fact?', reference_answer='42', reference_urls=[base + '/reference'])
+    case = dict(id='fact', query='Which fact?', reference_answer='42', reference_urls=[base + '/reference',base + '/articles/entry'])
     assert observations[0]['status'] == 403
     assert observations[1]['canonical_evidence']
     for observed in observations:
         identity = dict(case_id='fact', query=case['query'], alias=observed['url'],
-                        target=case['reference_urls'][0], observation=observed)
+                        target=observed.get('canonical',case['reference_urls'][0]), observation=observed)
         assert factual_source_identity(case, identity)
         identity['target'] += '/different'
         assert not factual_source_identity(case, identity)
@@ -539,3 +539,62 @@ def test_report_build_binds_and_replays_the_selected_factual_rule(tmp_path):
     assert sensitivity['rule'] == DATASET_ROWS_RULE
     matched = [r for r in sensitivity['results'].values() if r['excluded_ranks']]
     assert matched and all(r['metrics']['answer_in_preview_5'] == 0 for r in matched)
+
+
+@pytest.mark.parametrize('adapter',['lexmount','browserbase','deepseek'])
+@pytest.mark.parametrize('results',[[],[{'url':'https://origin.test/fact'}]])
+def test_error_envelopes_never_become_successes_under_slot_preservation(adapter,results):
+    from harness.web_search.core import normalize_response
+
+    with pytest.raises(ValueError):
+        normalize_response(dict(error='Unavailable',results=results),{'adapter':adapter},
+                           dict(top_k=5,normalize_top_k=True,result_url_resolution='request-url/2'))
+
+
+def test_resolution_failure_only_invalidates_its_own_native_slot():
+    from harness.web_search.core import normalize_response
+
+    results=normalize_response({'organic':[{'link':'https://[broken/'},{'link':'/answer'}]},
+                               {'adapter':'brightdata'},dict(top_k=5,normalize_top_k=True,
+                               result_url_resolution='request-url/2'),{'url':'https://source.test/search'})
+    assert results[0]['invalid_slot'] and results[1]['url']=='https://source.test/answer'
+    assert evaluate({'reference_answer':'42','reference_urls':['https://source.test/answer']},results)['labeled_source_rr_5']==0.5
+
+
+def test_capture_relative_canonical_replays_the_original_directory_base():
+    from harness.web_search.revisions import canonical_metadata,factual_source_identity
+
+    alias='https://source.test/articles/'
+    target=alias+'entry'
+    tags=['<link rel="canonical" href="entry">']
+    assert canonical_metadata(alias,tags)=={target}
+    case=dict(id='q',query='Which fact?',reference_answer='42',reference_urls=[target])
+    observed=dict(url=alias,final=alias,status=200,chain=[],verified_at='2026-11-13',
+                  canonical=target,canonical_evidence=tags)
+    item=dict(case_id='q',query=case['query'],alias=alias,target=target,observation=observed)
+    assert factual_source_identity(case,item)
+    observed['canonical_evidence']=['<link rel="canonical" href="../different">']
+    assert not factual_source_identity(case,item)
+
+
+@pytest.mark.parametrize('first_grade',[0,3])
+def test_explorer_and_review_accept_only_effective_ranked_preview_grades(first_grade):
+    from harness.web_search.comparison import comparison_data
+    from harness.web_search.review import row_state
+    from lexbench_websearch.relevance import candidate_packet,score
+
+    case=dict(id='q',query='Find the fact',family='web')
+    profile=dict(cases=[case],methods=[dict(id='a',label='A')],
+                 protocol=dict(top_k=5,relevance_input='delivered-previews/1'))
+    results=[dict(url='https://source.test/fact',title='Fact',snippet=text)for text in ('first','second')]
+    row=dict(id='q-a-r0',case_id='q',method='a',http_status=200,error='',results=results)
+    packet,rankings=candidate_packet(profile,[row])
+    labels={'q':{c['candidate_id']:(first_grade if c['previews'][0]['snippet']=='first' else 3-first_grade)
+                 for c in packet['blind_candidate_packets'][0]['candidates']}}
+    evidence=dict(packet,labels=labels,provider_rankings=rankings,judge={'kind':'human','name':'Synthetic controls'})
+    output=comparison_data(profile,[row],relevance=evidence)['cases'][0]['outputs']['a']
+    accepted=first_grade>=2
+    assert output['primary']==output['quality']==accepted
+    assert output['score']['ranked_grades']==[first_grade,0]
+    assert score(profile,[row],packet['plan'],labels)[0]['ranked_grades']==[first_grade,0]
+    assert (row_state(profile,row,evidence)[0]=='pass')==accepted

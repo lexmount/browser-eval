@@ -25,8 +25,8 @@ from harness.web_search.diagnostics import error_evidence
 from harness.web_search.messages import report_text
 from harness.web_search.relevance import legacy_evidence_allowed
 from lexbench_webfetch.paths import contained_path
-from lexbench_websearch.relevance import candidate_packet
-from lexbench_websearch.scoring import classify, ranking_identity
+from lexbench_websearch.relevance import candidate_packet, query_metrics
+from lexbench_websearch.scoring import classify, ranking_ids
 
 
 def encoded(value):
@@ -304,10 +304,10 @@ def row_state(profile, row, relevance=None):
     """Use the report's relevance labels and quarantine rules for review selection."""
     case = next(c for c in profile["cases"] if c["id"] == row["case_id"])
     labels = (relevance or {}).get("labels", {}).get(case["id"])
-    grades = None if labels is None else [
-        0 if item.get("invalid_slot") else labels[ranking_identity(case["id"], item, preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1")]
-        for item in row.get("results", [])[:profile["protocol"]["top_k"]]
-    ]
+    cutoff = profile['protocol']['top_k']
+    ranking = ranking_ids(case['id'], row.get('results', [])[:cutoff],
+                          preview=profile['protocol'].get('relevance_input') == 'delivered-previews/1')
+    grades = None if labels is None else query_metrics(ranking, labels, cutoff)['ranked_grades']
     return classify(case, row, cutoff=profile["protocol"]["top_k"],
                     quality_excluded=case["id"] in profile.get("factual_quality_exclusions", []),
                     relevance_grades=grades)

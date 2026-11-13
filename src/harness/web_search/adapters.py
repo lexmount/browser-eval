@@ -27,11 +27,11 @@ class Adapter:
         if isinstance(code, str) and code.split(".")[0] in self.account_error_codes:
             return code
         expected = (method or {}).get("expected_response_version")
-        if expected is not None and not error:
+        if expected is not None and isinstance(response, dict) and not error:
             version = payload
             for key in self.version_path:
                 version = version.get(key) if isinstance(version, dict) else None
-            if version is not None and version != expected:
+            if version != expected:
                 return f"ResponseVersionMismatch: expected {expected}, received {version}"
         return None
 

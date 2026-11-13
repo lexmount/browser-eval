@@ -3822,7 +3822,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
     note = ((scope + report_text(". Benchmarks are reported separately. ", zh)) if scope else "") + (
         report_text("Mean, P50 and P95 cover all requests and retry waits; fees estimate the calls in each population.", zh))
     if prices is not None:
-        note = scope + report_text(". Latency includes every call and retry wait. Collection windows differ; recorded times are observational. Prices and billing terms appear on the performance page.", zh)
+        retried = any(len(row.get('attempts') or [row]) > 1 for row in selected)
+        note = scope + (report_text(". Latency includes every call and retry wait. Collection windows differ; recorded times are observational. Prices and billing terms appear on the performance page.", zh) if retried else report_text(". Latency includes successful, empty and failed requests; this collection used no retries. Prices and billing terms appear on the performance page.", zh))
     if diagnostics:
         heading = report_text("Reference URLs and requested sites: diagnostics", zh)
         note = report_text("These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set.", zh)

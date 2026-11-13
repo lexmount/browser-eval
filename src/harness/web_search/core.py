@@ -32,29 +32,33 @@ def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots
               preserve_invalid_slots=False):
     payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots,
                                  preserve_invalid_slots=preserve_invalid_slots)
+    if isinstance(payload, dict) and payload.get('error'):
+        raise ValueError('Search response contains an error')
     if isinstance(payload, dict) and isinstance(payload.get("results"), list):
         pages = payload["results"][:top_k] if project_slots and top_k is not None else payload["results"]
         projected = []
         for rank, item in enumerate(pages, 1):
-            if isinstance(item, dict):
-                item = dict(item)
-                if base_url and isinstance(item.get("url"), str):
-                    item["url"] = urljoin(base_url, item["url"])
-                if adapter == "browserbase" and "snippet" not in item:
-                    item["snippet"] = item.get("description", "")
-                if "date" not in item and "published_at" not in item:
-                    item["date"] = item.get("publishedDate")
-            if preserve_invalid_slots:
-                try:
+            try:
+                if isinstance(item, dict):
+                    item = dict(item)
+                    if base_url and isinstance(item.get("url"), str):
+                        item["url"] = urljoin(base_url, item["url"])
+                    if adapter == "browserbase" and "snippet" not in item:
+                        item["snippet"] = item.get("description", "")
+                    if "date" not in item and "published_at" not in item:
+                        item["date"] = item.get("publishedDate")
+                if preserve_invalid_slots:
                     normalized = normalize_results({'results': [item]})[0]
                     normalized['rank'] = rank
-                except (ValueError, TypeError, AttributeError):
-                    normalized = dict(rank=rank, url=f'https://invalid-result-slot.invalid/{rank}',
+                    projected.append(normalized)
+                else:
+                    projected.append(item)
+            except (ValueError, TypeError, AttributeError):
+                if not preserve_invalid_slots:
+                    raise
+                projected.append(dict(rank=rank, url=f'https://invalid-result-slot.invalid/{rank}',
                                       title='', snippet='', summary='', content='', date=None,
-                                      invalid_slot=True)
-                projected.append(normalized)
-            else:
-                projected.append(item)
+                                      invalid_slot=True))
         payload = dict(payload, results=projected)
         if preserve_invalid_slots:
             return projected

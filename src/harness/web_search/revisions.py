@@ -151,7 +151,7 @@ def factual_source_identity(case, item):
                     and final == canonical_url(current)
                     and canonical and canonical_url(canonical) == wanted
                     and urlsplit(final).netloc == urlsplit(wanted).netloc
-                    and canonical_metadata(final, observed.get('canonical_evidence', [])) == {wanted})
+                    and canonical_metadata(observed['final'], observed.get('canonical_evidence', [])) == {wanted})
     except (KeyError, TypeError, ValueError, AttributeError):
         return False
 
@@ -214,7 +214,14 @@ def validate_revision_controls(revision, normalizer=None):
         if not callable(normalizer):
             raise ValueError('Native normalization requires the execution adapter')
         for control in registry['web_search_normalization']['invalid-result-slots']:
-            results = normalizer(control['payload'], control['method'], control['protocol'])
+            try:
+                results = normalizer(control['payload'], control['method'], control['protocol'], control.get('request'))
+            except ValueError:
+                if control.get('error'):
+                    continue
+                raise
+            if control.get('error'):
+                raise ValueError('Error envelope regression failed')
             row = dict(results=results, metrics=evaluate(control['case'], results))
             if (row['metrics']['labeled_source_rr_5'] != control['expected_rr']
                     or task_acceptance(control['case'], row, 'source') != control['expected']):

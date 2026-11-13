@@ -112,6 +112,40 @@ def test_site_population_counts_empty_response_as_constraint_miss():
     assert '0/1' in soup.get_text()
 
 
+def test_latency_population_keeps_failures_and_reports_actual_retry_usage():
+    from lexbench_websearch.scoring import evaluate
+    from harness.web_search.core import aggregate
+    from harness.web_search.report import population_summary
+
+    case = {'id': 'query', 'query': 'Find a document', 'domains': ['example.com']}
+    profile = {'cases': [case], 'methods': [{'id': 'a', 'label': 'A', 'currency': 'USD'}],
+               'protocol': {'top_k': 5}}
+    rows = []
+    for elapsed, results, error in [(100, [{'url': 'https://example.com/'}], ''),
+                                    (200, [], ''), (300, [], 'Timed out')]:
+        rows.append({'case_id': f'query-{elapsed}', 'method': 'a', 'http_status': 200 if not error else 0,
+                     'results': results, 'error': error, 'elapsed_ms': elapsed, 'cost': 0,
+                     'metrics': evaluate(case, results), 'attempts': [{'elapsed_ms': elapsed}]})
+    stats = aggregate(rows)['a']
+    assert stats['all_latency']['n'] == 3
+    assert stats['all_latency']['mean'] == 200
+    assert stats['success_latency']['n'] == 1
+    assert stats['success_latency']['mean'] == 100
+    profile['cases'] = [dict(case, id=row['case_id']) for row in rows]
+    content = {'catalog_pricing': {'a': {'amount': 1, 'currency': 'USD', 'unit': '1000-requests',
+                                       'source': 'https://prices.test/', 'checked_at': '2026-11-13'}},
+               'metric_populations': [{'id': 'overall', 'metric_kind': 'site',
+                                       'label': {'en': 'Site', 'zh': '站点'},
+                                       'case_ids': [row['case_id'] for row in rows]}]}
+    for zh, expected in [(False, 'this collection used no retries'), (True, '本批未启用重试')]:
+        page = BeautifulSoup(population_summary(profile, rows, content, zh), 'html.parser')
+        assert expected in page.select_one('.population-note').get_text()
+    rows[-1]['attempts'].append({'elapsed_ms': 50})
+    page = BeautifulSoup(population_summary(profile, rows, content, False), 'html.parser')
+    assert 'every call and retry wait' in page.select_one('.population-note').get_text()
+    assert 'used no retries' not in page.get_text()
+
+
 def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
     example(tmp_path)
     profile, _, _ = load_run(tmp_path / 'fixture')

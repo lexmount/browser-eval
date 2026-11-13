@@ -84607,6 +84607,76 @@
           }
         ],
         "expected": false
+      },
+      {
+        "id": "relative-canonical-directory-base",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/articles/entry"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/articles/",
+          "target": "https://reference.test/articles/entry",
+          "observation": {
+            "url": "https://reference.test/articles/",
+            "final": "https://reference.test/articles/",
+            "status": 200,
+            "chain": [],
+            "verified_at": "2026-11-13",
+            "canonical": "https://reference.test/articles/entry",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"entry\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/articles/"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "id": "relative-canonical-wrong-document",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/articles/entry"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/articles/",
+          "target": "https://reference.test/articles/entry",
+          "observation": {
+            "url": "https://reference.test/articles/",
+            "final": "https://reference.test/articles/",
+            "status": 200,
+            "chain": [],
+            "verified_at": "2026-11-13",
+            "canonical": "https://reference.test/articles/entry",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"../other\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/articles/"
+          }
+        ],
+        "expected": false
       }
     ],
     "delivered-preview-isolation": [
@@ -84716,6 +84786,96 @@
           "Install with pip install example": 3
         },
         "method": "b",
+        "expected": true
+      },
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "first"
+              },
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "second"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "first": 0,
+          "second": 3
+        },
+        "method": "a",
+        "expected": false
+      },
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "first"
+              },
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "second"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "first": 3,
+          "second": 0
+        },
+        "method": "a",
         "expected": true
       }
     ],
@@ -84879,6 +85039,96 @@
         },
         "expected_rr": 0,
         "expected": false
+      },
+      {
+        "method": {
+          "adapter": "brightdata"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "resolution-does-not-discard-neighbor",
+        "payload": {
+          "organic": [
+            {
+              "link": "https://[broken/"
+            },
+            {
+              "link": "/fact"
+            }
+          ]
+        },
+        "expected_rr": 0.5,
+        "expected": true,
+        "request": {
+          "url": "https://reference.test/search"
+        }
+      },
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "error-envelope-0",
+        "payload": {
+          "error": "Unavailable",
+          "results": []
+        },
+        "expected_rr": 0.5,
+        "expected": true,
+        "request": {
+          "url": "https://reference.test/search"
+        },
+        "error": true
+      },
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "error-envelope-1",
+        "payload": {
+          "error": "Unavailable",
+          "results": [
+            {
+              "url": "https://reference.test/fact"
+            }
+          ]
+        },
+        "expected_rr": 0.5,
+        "expected": true,
+        "request": {
+          "url": "https://reference.test/search"
+        },
+        "error": true
       }
     ]
   }

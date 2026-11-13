@@ -79,12 +79,12 @@ stays unavailable. A current instance that requires full independent review
 still rejects an unreviewed release. Adding a provider does not authorize a new
 independent review or extend historical judgments to the new responses.
 
-External content may set `relevance_methods` to the configurations covered by
-existing annotations. Candidate text, rankings and the complete query population
-still verify against that scope. Other configurations retain their measured
-outputs and timings but show unavailable relevance, including when a URL also
-appears in an annotated provider's response. Do not transfer judgments between
-changed snippets or provider outputs.
+Ranked comparisons require annotations for every ranked configuration and query;
+a `relevance_methods` scope that omits a ranked configuration fails the build.
+Partial annotations are available only for unranked diagnostics. Candidate text,
+rankings and the complete query population still verify against that scope.
+Do not transfer judgments between changed snippets or provider outputs, even
+when they return the same URL.
 
 SERP profiles select providers through the same collector and renderer. Supported adapters include Lexmount, Browserbase Parallel Advanced, Bright Data Google Light JSON and Serper Google. Keep each report's profile, selected participants and publication target alongside its external evidence. These services use different upstream indexes; the comparison measures their delivered rankings.
 
