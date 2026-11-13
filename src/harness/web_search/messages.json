@@ -185,7 +185,6 @@
     "Factual queries test retrieval of the annotated supporting pages. MRR@5 rewards finding that source earlier; alternative pages are not automatically equivalent sources.": "事实题检查能否找到题库标注的支持网页。主指标 MRR@5 越高，表示这些来源通常排得越靠前；其他网页即使包含答案，也不一定是同一篇文档。",
     "Factual queries test whether the extra text contains the reference answer. Source ranking is not measured at this level.": "事实题检查附加摘录里是否包含参考答案。本层不评来源网页的排序。",
     "Filter": "筛选",
-    "Filter methods": "筛选方法",
     "Find": "查找",
     "Find a query": "搜索题目",
     "Find the given webpage": "找到指定网页",

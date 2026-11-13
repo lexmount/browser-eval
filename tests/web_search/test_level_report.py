@@ -72,7 +72,7 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
 
 @pytest.mark.parametrize(
     "damage",
-    ["missing-level", "missing-chart", "wrong-value", "missing-filter", "wrong-participant", "wrong-dataset"],
+    ["missing-level", "missing-chart", "wrong-value", "wrong-participant", "wrong-dataset"],
 )
 def test_public_check_rejects_missing_or_incorrect_level_presentation(tmp_path, damage):
     example(tmp_path, levels=True)
@@ -85,8 +85,6 @@ def test_public_check_rejects_missing_or_incorrect_level_presentation(tmp_path, 
         soup.select_one("[data-primary-chart]").decompose()
     elif damage == "wrong-value":
         soup.select_one("[data-output-level] td[data-metric]")["data-sort"] = "999"
-    elif damage == "missing-filter":
-        soup.select_one("[data-level-summary-filter]").decompose()
     elif damage == 'wrong-dataset':
         soup.select_one('[data-dataset-context] tbody tr td:nth-of-type(2)').string = '999'
     else:
@@ -218,3 +216,23 @@ def test_level_report_keeps_authored_quality_definitions_before_findings(tmp_pat
         text = (root / (prefix + 'quality.html')).read_text(encoding='utf-8')
         assert text.index('Reading guide') < text.index('Grade definitions') < text.index('Findings')
         assert 'Three means directly useful' in text
+
+
+@pytest.mark.parametrize('attribute,value', [('hidden', ''), ('id', 'wrong-level')])
+def test_public_check_binds_detail_visibility_and_fragment(tmp_path, attribute, value):
+    example(tmp_path, levels=True)
+    root = tmp_path / 'report'
+    path = next((root / 'details').glob('*.html'))
+    doc = BeautifulSoup(path.read_bytes(), 'html.parser')
+    doc.select_one('[data-detail-level]')[attribute] = value
+    path.write_text(str(doc), encoding='utf-8')
+    with pytest.raises(ValueError, match='Per-level detail'):
+        check(root)
+
+
+def test_english_primary_level_report_keeps_edition_local_detail_links(tmp_path, monkeypatch):
+    from harness.web_search import example as module
+    original = module.build
+    monkeypatch.setattr(module, 'build', lambda output, **kwargs: original(output, **dict(kwargs, language='en')))
+    module.example(tmp_path, levels=True)
+    check(tmp_path / 'report')

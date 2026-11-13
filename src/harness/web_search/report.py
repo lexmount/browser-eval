@@ -2332,7 +2332,7 @@ def check(output, *, return_data=False, evidence_only=False):
             row_id = Path(route).stem
             row = next(r for r in manifest['rows'] if r['id'] == row_id)
             expected_detail = BeautifulSoup(render_level_detail(level_views, row, soup.html['lang'] == 'zh'), 'html.parser')
-            if [node.get_text() for node in soup.select('[data-detail-level]')] != [node.get_text() for node in expected_detail.select('[data-detail-level]')]:
+            if [str(node) for node in soup.select('[data-detail-level]')] != [str(node) for node in expected_detail.select('[data-detail-level]')]:
                 raise ValueError('Per-level detail differs from scored fields and judgments: ' + route)
         if level_views and route.endswith(('index.html', 'quality.html', 'capabilities.html', 'results.html')):
             from harness.web_search.comparison import (
@@ -2351,7 +2351,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 expected = ''.join(render_level_findings(view, zh) for view in level_views.values())
             elif route.endswith('results.html'):
                 selector = '[data-level-results]'
-                prefix = '' if soup.html['lang'] == manifest['primary_language'] else soup.html['lang'] + '/'
+                prefix = '' if soup.html['lang'] == 'zh' else soup.html['lang'] + '/'
                 expected = render_level_results(level_views, zh, detail_link=lambda row, prefix=prefix: posixpath.join(manifest.get('site_prefix', ''), prefix, 'details', row['id'] + '.html'))
             else:
                 selector = '[data-level-capabilities]'
@@ -4149,10 +4149,9 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         if ranked and content.get('uncertainty') == 'paired-query-bootstrap/1':
             intervals = paired_bootstrap([r for r in relevance_scores if r['case_id'] in ids],
                                          [m['id'] for m in profile['methods']])
-            if any(value['difference_to_best'][1] >= 0 for mid, value in intervals['methods'].items()
-                   if mid != intervals['best_observed']):
-                winners.pop(1, None)
-                directions[1] = 'neutral'
+            significant_lead = (len(ids) >= 30 and len(profile['methods']) > 1
+                                and all(value['difference_to_best'][1] < 0 for mid, value in intervals['methods'].items()
+                                        if mid != intervals['best_observed']))
         rendered = []
         for row, method in zip(values, profile['methods'], strict=True):
             html_cells = []
@@ -4181,7 +4180,8 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     if prices is not None:
                         label = (fmt(value) if value is not None else '') + catalog_billing_basis(prices[method['id']], zh)
                 win = i in winners and winners[i] == value
-                html_cells.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, f"population-{i}", directions.get(i, "neutral"), win))
+                html_cells.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, f"population-{i}", directions.get(i, "neutral"), win,
+                                  significant=(bool(i == 1 and win and significant_lead) if intervals else None)))
             rendered.append('<tr>' + ''.join(html_cells) + '</tr>')
         body += '<article data-population="' + esc(population['id']) + '"><h3>' + esc(population['label'][lang]) + f' · {len(quality_ids) if kind == "factual" else len(ids)}' + report_text(" queries", zh) + '</h3>'
         if population.get('description'):
@@ -4210,7 +4210,7 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         if primary_column is not None:
             body += '<p class="primary-guide" data-primary-guide>' + report_text("Primary metric: {metric}. Higher is better; the initial order is descending.", zh, metric=headers[primary_column]) + '</p>'
             rendered = [html for _, html in sorted(zip(values, rendered, strict=True), key=lambda pair: (pair[0][primary_column] is None, -(pair[0][primary_column] or 0)))]
-        body += table(headers, rendered, primary_column=primary_column)
+        body += table(headers, rendered, primary_column=primary_column, significance=intervals is not None, query_count=len(ids))
         if ranked:
             body += '<details><summary>' + report_text("API delivery", zh) + '</summary><p>' + ' · '.join(esc(m['label']) + ' ' + str(stats[m['id']]['nonempty']) + '/' + str(len(ids)) for m in profile['methods']) + report_text(" queries returned results.", zh) + '</p></details>'
         body += '</article>'

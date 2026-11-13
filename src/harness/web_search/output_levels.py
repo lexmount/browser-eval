@@ -392,6 +392,7 @@ def export_level_bundle(path, destination):
             value = deepcopy(receipt)
             for page in value['pages']:
                 for key in ('capture', 'evidence'):
+                    _bound(artifacts, page[key])
                     page[key] = mapped[page[key]['path']]
             raw = json_bytes(value)
             public_receipts[method] = write('fields/' + bytes_sha256(raw) + '.json', raw)

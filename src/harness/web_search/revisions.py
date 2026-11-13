@@ -274,6 +274,18 @@ def validate_revision_controls(revision, normalizer=None):
                 if bool(citations and all(c['in_results'] and control.get('claim_contains', '') in c['claim_context'] for c in citations)) != control['expected']:
                     raise ValueError('Native citation identity regression failed')
                 continue
+            if control.get('kind') == 'factual_output_level':
+                from lexbench_websearch.outputs import project_rows
+                from lexbench_websearch.scoring import answer_evidence_key
+
+                profile, rows = project_rows(control['profile'], control['rows'], control['level'],
+                                             qualified_fields=control.get('qualified_fields'))
+                case, row = profile['cases'][0], rows[0]
+                key = answer_evidence_key(case, 5)
+                if (bool(row['metrics'][key]) != control['expected']
+                        or task_acceptance(case, row, cutoff=5, metric='answer') != control['expected']):
+                    raise ValueError('Factual output-level contamination regression failed')
+                continue
             if control.get('kind') == 'output_level':
                 from lexbench_websearch.outputs import project_rows
                 from lexbench_websearch.relevance import candidate_packet, score

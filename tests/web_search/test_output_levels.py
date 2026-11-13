@@ -257,3 +257,26 @@ def test_query_language_policy_preserves_query_without_forcing_foreign_locale(ad
         assert localized['q'] in ('中文原问题',['中文原问题'])
     assert "gl" in parameters("en") and "hl" in parameters("en")
     assert "gl" in parameters("zh", dict(top_k=5))
+
+
+@pytest.mark.parametrize('level', ['l1', 'l2'])
+@pytest.mark.parametrize('leaked', [False, True])
+def test_answer_text_credit_uses_shared_leakage_rules_without_changing_source_rank(level, leaked):
+    from lexbench_websearch.scoring import answer_evidence_key, task_acceptance
+
+    case = dict(id='fact', family='web', query='Who wrote it?', reference_answer='Ada',
+                reference_urls=['https://source.test/a'],
+                factual_contamination_rule='question-with-structured-dataset-rows/4',
+                contamination_patterns={'identity_patterns': []})
+    text = 'Ada wrote the document.'
+    if leaked:
+        text = 'Ada {"answer_type":"person","topic":"books","urls":[]}'
+    profile = dict(cases=[case], methods=[dict(id='a', output_fields=fields(extra=True))], protocol={'top_k': 5})
+    rows = [dict(case_id='fact', method='a', results=[dict(url='https://source.test/a', snippet=text, summary=text)])]
+    p, values = project_rows(profile, rows, level, qualified_fields={'a': dict(fields=['summary'], qualified=True)})
+    key = answer_evidence_key(p['cases'][0], 5)
+    assert values[0]['metrics'][key] == int(not leaked)
+    assert task_acceptance(p['cases'][0], values[0], cutoff=5, metric='answer') is (not leaked)
+    assert values[0]['results'][0]['url'] == 'https://source.test/a'
+    if level == 'l1':
+        assert values[0]['metrics']['labeled_source_rr_5'] == 1

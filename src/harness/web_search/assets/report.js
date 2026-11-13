@@ -33,15 +33,6 @@ document.querySelectorAll('[data-diagnosis]').forEach(b=>b.onclick=()=>{let d=do
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 if(document.querySelector('.mermaid')&&innerWidth>700){let s=document.createElement('script');/*mermaid-script-attributes*/;s.onload=async()=>{mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'neutral'});for(let [i,n] of [...document.querySelectorAll('.mermaid')].entries()){try{let r=await mermaid.render('search-flow-'+i,n.textContent);n.innerHTML=r.svg;n.hidden=false;n.previousElementSibling.hidden=true}catch{}}};document.head.appendChild(s)}
 
-document.querySelectorAll('[data-level-summary-filter]').forEach(input=>{
-  input.addEventListener('input',()=>{
-    const query=input.value.toLocaleLowerCase();
-    input.closest('[data-level-benchmark]').querySelectorAll('tbody tr').forEach(row=>{
-      row.hidden=!row.cells[0].textContent.toLocaleLowerCase().includes(query);
-    });
-  });
-});
-
 const levelTabs=document.querySelector('[data-level-tabs]');
 if(levelTabs){
   const buttons=[...levelTabs.querySelectorAll('[data-level-select]')];

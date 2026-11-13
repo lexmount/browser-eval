@@ -99,7 +99,7 @@ def test_layer_table_has_correct_sort_order_raw_highlights_and_supported_stars(z
         assert first.select_one('[data-metric$="-' + key + '"] .comparison-extremum') is not None
     assert first.select_one('[data-metric$="-source_rr"] .comparison-winner')
     assert not first.select_one('[data-metric$="-context_characters"] .comparison-extremum')
-    assert doc.select_one('input[type="search"][data-level-summary-filter]')
+    assert not doc.select_one('[data-level-summary-filter]')
     assert doc.select_one('.scroll.inventory[tabindex="0"]')
 
 
@@ -196,3 +196,22 @@ def test_unavailable_factual_reference_coverage_has_no_zero_score_chart():
     assert factual_outcome_chart(output) == source_matching_chart(output) == ""
     doc = check_presentation(render_level_summary(output))
     assert not doc.select('[data-metric$="-source_rr"] .comparison-extremum')
+
+
+def test_legacy_paired_table_cannot_claim_significance_for_two_queries():
+    from harness.web_search.report import population_summary
+    selected = view(n=2)
+    profile, rows = selected['profile'], selected['rows']
+    for row in rows:
+        row['round'] = 0
+    scores = [dict(case_id=r['case_id'], method=r['method'], ndcg=float(r['method']=='a'),
+                   precision=float(r['method']=='a'), success=float(r['method']=='a')) for r in rows]
+    content = dict(uncertainty='paired-query-bootstrap/1', metric_populations=[dict(
+        id='overall', metric_kind='relevance', case_ids=[c['id'] for c in profile['cases']],
+        label={'en':'Scenarios','zh':'Scenarios'})])
+    doc = BeautifulSoup(population_summary(profile, rows, content, False, relevance_scores=scores), 'html.parser')
+    table = doc.select_one('table')
+    assert table['data-query-count'] == '2'
+    assert table['data-significance'] == 'paired-query-bootstrap/1'
+    assert not table.select('.comparison-winner')
+    assert table.select('.comparison-extremum')

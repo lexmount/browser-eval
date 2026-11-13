@@ -259,3 +259,29 @@ def test_public_assessment_export_rejects_escaping_or_symlinked_paths(tmp_path, 
     with pytest.raises(ValueError):
         export_level_bundle(source / "manifest.json", destination)
     assert not (tmp_path / "escaped.json").exists()
+
+
+@pytest.mark.parametrize('field', ['capture', 'evidence'])
+def test_export_rejects_inconsistent_original_page_hashes(tmp_path, field):
+    import json
+    from harness.record_io import bytes_sha256
+    from harness.web_search.output_levels import export_level_bundle
+
+    source = tmp_path / 'private'
+    source.mkdir()
+    write_assessment_bundle(source)
+    manifest_path = source / 'manifest.json'
+    manifest = json.loads(manifest_path.read_bytes())
+    admissions_path = source / manifest['field_admissions']['path']
+    admissions = json.loads(admissions_path.read_bytes())
+    receipt_binding = next(iter(admissions['receipts'].values()))
+    receipt_path = source / receipt_binding['path']
+    receipt = json.loads(receipt_path.read_bytes())
+    receipt['pages'][0][field]['sha256'] = '0' * 64
+    receipt_path.write_text(json.dumps(receipt), encoding='utf-8')
+    receipt_binding['sha256'] = bytes_sha256(receipt_path.read_bytes())
+    admissions_path.write_text(json.dumps(admissions), encoding='utf-8')
+    manifest['field_admissions']['sha256'] = bytes_sha256(admissions_path.read_bytes())
+    manifest_path.write_text(json.dumps(manifest), encoding='utf-8')
+    with pytest.raises(ValueError, match='binding|hash|changed'):
+        export_level_bundle(manifest_path, tmp_path / 'public')

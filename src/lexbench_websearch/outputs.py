@@ -105,11 +105,15 @@ def project_rows(profile, rows, level, *, qualified_fields=None):
 
         cases = {case["id"]: case for case in projected["cases"]}
         for value in output:
-            value["metrics"] = evaluate(
-                cases[value["case_id"]],
-                value["results"],
-                cutoff=profile["protocol"].get("top_k", 5),
-            )
+            case = cases[value["case_id"]]
+            cutoff = profile["protocol"].get("top_k", 5)
+            value["metrics"] = evaluate(case, value["results"], cutoff=cutoff)
+            if "reference_answer" in case:
+                from .evidence_quality import factual_sensitivity
+                from .scoring import answer_evidence_key
+
+                key = answer_evidence_key(case, cutoff)
+                value["metrics"][key] = factual_sensitivity(case, value["results"], cutoff=cutoff)["metrics"][key]
     return projected, output
 
 

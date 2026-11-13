@@ -85859,6 +85859,244 @@
         "claim_contains": "Paris",
         "expected": false
       }
+    ],
+    "output-level-answer-contamination": [
+      {
+        "kind": "factual_output_level",
+        "level": "l1",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada wrote the document.",
+                "summary": "Ada wrote the document."
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": true
+      },
+      {
+        "kind": "factual_output_level",
+        "level": "l1",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}",
+                "summary": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}"
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": false
+      },
+      {
+        "kind": "factual_output_level",
+        "level": "l2",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada wrote the document.",
+                "summary": "Ada wrote the document."
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": true
+      },
+      {
+        "kind": "factual_output_level",
+        "level": "l2",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}",
+                "summary": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}"
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": false
+      }
     ]
   },
   "web_search_normalization": {

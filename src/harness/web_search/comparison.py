@@ -420,7 +420,6 @@ def render_level_summary(view, zh=False, *, content=None):
         body += '<p data-dataset-purpose>' + level_purpose(level, benchmark, zh) + '</p>'
         body += level_conclusion(view, panel, zh)
         body += '<p class="primary-guide" data-primary-guide>' + t('Primary metric: {metric}. Higher is better; the initial order is descending.', metric=labels[panel['primary_metric']]) + '</p>'
-        body += '<label class="summary-filter">' + t('Filter methods') + '<input type="search" data-level-summary-filter></label>'
         headers = [t('Method')] + [labels[d['key']] + (' × 100' if d['key'] == 'ndcg' else '') for d in definitions]
         body += table(headers, rendered, bounded=True, primary_column=1, significance=True, query_count=n)
         body += '</article>'
