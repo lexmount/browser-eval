@@ -119,7 +119,7 @@ def capture_source_identity(url, timeout=6):
                 targets = canonical_metadata(response.url, tags)
                 if len(targets) == 1:
                     observed.update(canonical=next(iter(targets)), canonical_evidence=tags)
-    except (OSError, ValueError, UnicodeError, HTTPException) as exc:
+    except (OSError, ValueError, UnicodeError, LookupError, HTTPException) as exc:
         observed['error'] = str(exc)
     return observed
 

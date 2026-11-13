@@ -331,9 +331,9 @@ def test_reference_identity_capture_and_offline_replay():
                 self.send_response(301)
                 self.send_header('Location', '/reference')
                 self.end_headers()
-            elif self.path in ('/tracking','/articles/'):
+            elif self.path in ('/tracking','/articles/','/unknown-charset'):
                 self.send_response(200)
-                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Content-Type', 'text/html; charset=' + ('unknown-encoding' if self.path == '/unknown-charset' else 'utf-8'))
                 self.end_headers()
                 self.wfile.write(b'<link rel="canonical" href="entry">' if self.path == '/articles/' else b'<link rel="canonical" href="/reference">')
             else:
@@ -351,6 +351,11 @@ def test_reference_identity_capture_and_offline_replay():
         observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking','/articles/')]
         malformed = capture_source_identity(base + '/invalid space')
         assert 'error' in malformed
+        unknown_charset = capture_source_identity(base + '/unknown-charset')
+        assert unknown_charset['status'] == 200
+        assert unknown_charset['final'] == base + '/unknown-charset'
+        assert 'unknown-encoding' in unknown_charset['error']
+        assert 'canonical' not in unknown_charset
     finally:
         server.shutdown()
         server.server_close()
