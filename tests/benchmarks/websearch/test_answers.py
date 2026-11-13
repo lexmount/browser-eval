@@ -204,3 +204,26 @@ def test_repeated_link_destinations_keep_each_occurrence_and_claim(style):
     )
     with pytest.raises(ValueError, match="cited claim"):
         answers.citation_grades(value, json.dumps(dict(judgments=judgments)))
+
+
+def test_explanatory_prose_is_optional_but_verdict_claim_and_source_quote_are_required():
+    value = packet()
+    judgments = [
+        dict(citation_index=i, supported=False, claim=c["claim_context"], evidence=None)
+        for i, c in enumerate(value["citations"])
+    ]
+    judgments[0].update(
+        supported=True, evidence=dict(field="snippet", quote="Ada wrote the document.")
+    )
+    original = json.dumps(judgments, sort_keys=True)
+    assert answers.citation_grades(value, json.dumps(dict(judgments=judgments))) == judgments
+    assert json.dumps(judgments, sort_keys=True) == original
+    for field in ("supported", "claim", "evidence"):
+        changed = json.loads(original)
+        del changed[0][field]
+        with pytest.raises(ValueError):
+            answers.citation_grades(value, json.dumps(dict(judgments=changed)))
+    changed = json.loads(original)
+    changed[0]["evidence"]["quote"] = "A quotation absent from the cited source"
+    with pytest.raises(ValueError, match="exact quote"):
+        answers.citation_grades(value, json.dumps(dict(judgments=changed)))

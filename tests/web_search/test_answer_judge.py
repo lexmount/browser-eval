@@ -61,7 +61,7 @@ def answer_run(tmp_path, monkeypatch):
     args = ['--report', str(tmp_path/'report'), '--output', str(tmp_path/'judge'),
             '--model', 'test-model', '--base-url', 'https://judge.test/v1', '--workers', '1',
             '--level', 'l3', '--simpleqa-grader', str(grader)]
-    return dict(run=lambda: judge_main(args), profile=profile, rows=rows, requests=requests,
+    return dict(run=lambda extra=(): judge_main(args + list(extra)), profile=profile, rows=rows, requests=requests,
                 behavior=behavior, output=tmp_path/'judge', source=source, grader=grader)
 
 
@@ -153,3 +153,29 @@ def test_missing_citations_are_unavailable_support_not_perfect_support(answer_ru
     assert len(test['requests']) == 2
     assert all(r['citation_count'] == 0 and r['citation_support'] is None
                and r['cited_urls_in_results'] is None for r in results)
+
+
+def test_answer_format_repair_preserves_original_paid_call_and_is_explicit(answer_run):
+    test = answer_run
+    test['behavior']['invalid_citation'] = True
+    with pytest.raises(ValueError, match='exact quote'):
+        test['run']()
+    assert len(test['requests']) == 2
+    test['behavior']['invalid_citation'] = False
+    test['run'](['--repair-format'])
+    assert len(test['requests']) == 5
+    evidence = json.loads((test['output']/'answers.json').read_bytes())
+    repaired = [c for c in evidence['calls'].values() if c.get('format_repair')]
+    assert len(repaired) == 1
+    assert repaired[0]['format_repair']['prior_call']['response']['choices'][0]['message']['content'].find('Invented quote') >= 0
+    test['run']()
+    assert len(test['requests']) == 5
+
+
+def test_answer_format_repair_is_not_a_retry_for_valid_or_twice_invalid_grades(answer_run):
+    test = answer_run
+    test['behavior']['invalid_citation'] = True
+    for _ in range(2):
+        with pytest.raises(ValueError, match='exact quote'):
+            test['run'](['--repair-format'])
+    assert len(test['requests']) == 3

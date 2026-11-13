@@ -10,6 +10,7 @@ from lexbench_websearch.answers import (
     CITATION_CORRECTION,
     CITATION_PROMPT,
     CITATION_RULE,
+    CITATION_VALIDATION,
     SCENARIO_PROMPT,
     SIMPLEQA_UPSTREAM,
     answer_messages,
@@ -89,10 +90,59 @@ def _parse(job, packet, response):
     return citation_grades(packet, text)
 
 
+def _format_request(job, model):
+    request = _request(job, model)
+    suffix = (
+        "\nOutput-format correction only; keep the grading rubric unchanged. "
+        "Return only the requested JSON schema, with every required item exactly once. "
+        "A citation claim must be an exact contiguous substring of that occurrence's "
+        "claim_context, including punctuation and Markdown. Do not paraphrase or insert "
+        "ellipses. A supporting quote must be an exact contiguous substring of the cited "
+        "source field. Use a JSON boolean for supported and null evidence when unsupported. "
+        "For scenario grades use an integer 0 through 3 and an exact answer quote."
+        if job['kind'] != 'factual' else
+        "\nOutput-format correction only; keep the original rubric unchanged. Return exactly A, B or C."
+    )
+    messages = deepcopy(request['messages'])
+    messages[0]['content'] += suffix
+    return dict(request, messages=messages)
+
+
+def _validate_call(job, packet, call, configuration, key):
+    """Accept at most one explicit repair of a physically verified invalid response."""
+    base = _request(job, configuration['model'])
+    repair = call.get('format_repair')
+    if repair:
+        prior = repair['prior_call']
+        if (prior.get('case_id') != key or prior.get('request') != base
+                or prior.get('format_repair')):
+            raise ValueError('Invalid answer format-repair provenance')
+        validate_physical_receipts(prior, configuration)
+        try:
+            _parse(job, packet, prior['response'])
+        except (ValueError, KeyError, TypeError):
+            pass
+        else:
+            raise ValueError('A valid answer judgment cannot be repaired')
+        expected = _format_request(job, configuration['model'])
+    else:
+        expected = base
+    if (call.get('case_id') != key or call.get('request') != expected
+            or not 1 <= len(call.get('attempts', [])) <= configuration['attempt_limit']):
+        raise ValueError('Answer judge request or attempt count changed')
+    validate_physical_receipts(call, configuration)
+    return _parse(job, packet, call['response'])
+
+
 def verify_answer_evidence(profile, rows, evidence, upstream_source):
     """Rebuild judge requests and recompute every grade from retained response bytes."""
     if evidence.get('schema') != 'web-search-answer-evidence/1':
         raise ValueError('Unsupported answer evidence')
+    if evidence.get('validation') != CITATION_VALIDATION:
+        raise ValueError('Answer evidence lacks its decision-evidence validation receipt')
+    from harness.web_search.revisions import validate_revision_controls
+
+    validate_revision_controls(CITATION_VALIDATION)
     packets, jobs = _jobs(profile, rows, upstream_source)
     configuration = evidence['configuration']
     if (configuration.get('inputs_sha256') != _digest(dict(profile=profile, rows=rows))
@@ -119,12 +169,8 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
                             supported_citations=0, citation_support=None, cited_urls_in_results=None)
     for key, job in jobs.items():
         call = evidence['calls'][key]
-        if (call.get('case_id') != key or call.get('request') != _request(job, configuration['model'])
-                or not 1 <= len(call.get('attempts', [])) <= configuration['attempt_limit']):
-            raise ValueError('Answer judge request or attempt count changed')
-        validate_physical_receipts(call, configuration)
         packet_key = job['packet_key']
-        grade = _parse(job, packets[packet_key]['packet'], call['response'])
+        grade = _validate_call(job, packets[packet_key]['packet'], call, configuration, key)
         result = results[packet_key]
         if job['kind'] == 'factual':
             result['factual_grade'] = grade
@@ -144,11 +190,12 @@ def judge_answers(profile, rows, args, token):
     """Finish a complete L3 population; a resumed run replays saved calls verbatim."""
     if args.simpleqa_grader is None:
         raise ValueError('L3 requires the pinned official SimpleQA grader source')
-    if args.reuse_evidence or args.repair_format or args.source_requirements:
+    if args.reuse_evidence or args.source_requirements:
         raise ValueError('L3 does not use relevance inheritance or format-repair inputs')
     from harness.web_search.revisions import validate_revision_controls
 
     validate_revision_controls(CITATION_CORRECTION)
+    validate_revision_controls(CITATION_VALIDATION)
     upstream_source = args.simpleqa_grader.read_bytes()
     packets, jobs = _jobs(profile, rows, upstream_source)
     configuration = dict(schema='web-search-answer-judge/1', model=args.model,
@@ -177,14 +224,21 @@ def judge_answers(profile, rows, args, token):
         request = _request(job, args.model)
         if path.exists():
             call = json.loads(path.read_bytes())
-            if call.get('case_id') != key or call['request'] != request:
-                raise ValueError('Saved answer judge input changed')
         else:
             call = run_judge_request(path, key, request, configuration, token)
-        if not 1 <= len(call.get('attempts', [])) <= configuration['attempt_limit']:
-            raise ValueError('Answer judging exceeds its frozen physical attempt budget')
-        validate_physical_receipts(call, configuration)
-        _parse(job, packets[job['packet_key']]['packet'], call['response'])
+        packet = packets[job['packet_key']]['packet']
+        try:
+            _validate_call(job, packet, call, configuration, key)
+        except (ValueError, KeyError, TypeError):
+            if not args.repair_format or call.get('format_repair'):
+                raise
+            # Transport/request verification must pass before a paid format correction.
+            if call.get('case_id') != key or call.get('request') != request:
+                raise ValueError('Saved answer judge input changed') from None
+            validate_physical_receipts(call, configuration)
+            call = run_judge_request(path, key, _format_request(job, args.model),
+                                     configuration, token, prior_call=call)
+            _validate_call(job, packet, call, configuration, key)
         return call
 
     def retain(job, value, error):
@@ -200,6 +254,7 @@ def judge_answers(profile, rows, args, token):
     run_jobs([Job(key, ('judge',), (key, job)) for key, job in jobs.items()],
              execute, retain, policy)
     evidence = dict(schema='web-search-answer-evidence/1', configuration=configuration,
+                    validation=deepcopy(CITATION_VALIDATION),
                     calls={key: calls[key] for key in jobs})
     evidence['results'] = verify_answer_evidence(profile, rows, evidence, upstream_source)
     _write(args.output/'answers.json', evidence)

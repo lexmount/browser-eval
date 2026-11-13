@@ -244,6 +244,18 @@ def validate_revision_controls(revision, normalizer=None):
         if {item['expected'] for item in group} != {True, False}:
             raise ValueError('Source identity regressions require paired controls')
         for control in group:
+            if control.get('kind') == 'citation_grade':
+                from lexbench_websearch.answers import answer_packet, citation_grades
+
+                packet = answer_packet(dict(id='citation-control', query='Who wrote it?'), control)
+                try:
+                    citation_grades(packet, json.dumps(dict(judgments=control['judgments'])))
+                    accepted = True
+                except ValueError:
+                    accepted = False
+                if accepted != control['expected']:
+                    raise ValueError('Citation decision-evidence regression failed')
+                continue
             if control.get('kind') == 'citation_claim':
                 from lexbench_websearch.answers import answer_packet, citation_grades
 

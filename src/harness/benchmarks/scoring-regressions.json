@@ -85651,6 +85651,56 @@
         "claim": "Ada wrote it",
         "expected": false
       }
+    ],
+    "citation-evidence-without-prose": [
+      {
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": 1,
+            "title": "Author",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "claim": "Ada wrote it",
+            "evidence": {
+              "field": "snippet",
+              "quote": "Ada wrote it"
+            }
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": 1,
+            "title": "Author",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "claim": "Ada wrote it",
+            "evidence": {
+              "field": "snippet",
+              "quote": "Invented words"
+            }
+          }
+        ],
+        "expected": false
+      }
     ]
   },
   "web_search_normalization": {
