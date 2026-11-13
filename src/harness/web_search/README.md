@@ -26,6 +26,8 @@ New Google-provider profiles use `protocol.locale_policy="query-language/1"`. Ca
 
 Bocha AI Search uses adapter `bocha-ai`, endpoint `https://api.bochaai.com/v1/ai-search`, and the same `BOCHA_API_KEY` obtained from [the Bocha console](https://open.bochaai.com/). Use `output_options.answer=true` and `stream=false`. The adapter retains webpage previews, extra summaries and citation IDs, stores the generated answer separately, and excludes follow-up questions and image/video cards. Confirm this endpoint's billing separately from Web Search.
 
+A complete certified-mode collection can recover a post-collection identity check that received no HTTP response because of a transport failure. Pass `--finalize-references-from /absolute/original-run` with the unchanged `--profile` and a new `--output` to the certified entry above. This reobserves the entire reference scope, makes no provider calls, and preserves the original collection and failed observations. An observed HTTP failure, identity mismatch, changed task or incomplete call matrix requires investigation; this operation cannot certify it.
+
 Report commands share one entry point; `--help` after any command lists its options. Run them through `uv run --frozen`: `python -m` resolves `harness` from the environment's editable install and does not add this checkout's `src/` itself, so an environment holding a noneditable older package would run that older code.
 
 | Command | Purpose |

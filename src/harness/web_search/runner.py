@@ -872,6 +872,98 @@ def reference_changes(profile, before, after):
     ]
 
 
+def _recoverable_reference_scope(profile, contract, before, after):
+    expected = {url for case in profile['cases'] for url in case.get('anchors', [])}
+    expected.update(profile.get('reference_artifacts', {}))
+    changed = reference_changes(profile, before, after)
+    if (contract.get('diagnostic') is not False or profile['protocol'].get('reference_scope') != 'identity'
+            or set(before) != expected or set(after) != expected or not changed
+            or not all(item['available'] for item in before.values())
+            or any(after[url].get('http_status') != 0 or not after[url].get('transport_exit')
+                   for url in changed)):
+        raise ValueError('Reference recovery requires only unobserved post-check transport failures')
+    return sorted(expected)
+
+
+def validate_reference_finalization(source, profile, receipt):
+    """Verify a transport-only reference recovery without changing measured calls."""
+    binding = receipt.get('reference_finalization')
+    if not binding:
+        return
+    verify_bundle(source, [binding])
+    proof = json.loads((source / binding['path']).read_bytes())
+    if proof.get('schema') != 'web-search-reference-finalization/1' or proof.get('provider_calls') != 0:
+        raise ValueError('Invalid reference-finalization provenance')
+    verify_bundle(source, [proof['previous_receipt'], proof['previous_after'], proof['implementation']])
+    previous = json.loads((source / proof['previous_receipt']['path']).read_bytes())
+    for item in previous['bindings']:
+        if item['path'] == 'references-after.json':
+            if item['sha256'] != proof['previous_after']['sha256']:
+                raise ValueError('Original post-check evidence changed')
+        else:
+            verify_bundle(source, [item])
+    before = json.loads((source / 'references-before.json').read_bytes())
+    after = json.loads((source / proof['previous_after']['path']).read_bytes())
+    contract = json.loads((source / 'run-contract.json').read_bytes())
+    scope = _recoverable_reference_scope(profile, contract, before, after)
+    if (previous.get('certified') or not previous.get('complete')
+            or proof.get('reference_urls') != scope
+            or any(previous.get(key) != receipt.get(key) for key in
+                   ('profile_sha256', 'results_sha256', 'call_count', 'physical_call_count', 'ended_at'))):
+        raise ValueError('Reference finalization changed its complete collection')
+
+
+def finalize_references(profile_path, source, output):
+    """Reobserve a complete post-check after zero-response network failures only."""
+    from harness.web_search.report import load_run
+
+    source, output = source.resolve(), output.expanduser().resolve()
+    profile, _, _ = load_run(source)
+    if load_profile_bytes(profile_path) != (source / 'profile.json').read_bytes():
+        raise ValueError('Reference finalization requires the unchanged collection profile')
+    previous_raw = (source / 'receipt.json').read_bytes()
+    previous = json.loads(previous_raw)
+    if previous.get('certified') or previous.get('reference_finalization'):
+        raise ValueError('Reference finalization requires an uncertified original collection')
+    before = json.loads((source / 'references-before.json').read_bytes())
+    old_after = (source / 'references-after.json').read_bytes()
+    contract = json.loads((source / 'run-contract.json').read_bytes())
+    scope = _recoverable_reference_scope(profile, contract, before, json.loads(old_after))
+    if output.is_relative_to(ROOT) or output == source or output.exists():
+        raise ValueError('Reference finalization requires a new external output directory')
+    if any(path.is_symlink() for path in source.rglob('*')):
+        raise ValueError('Reference finalization rejects symlinks')
+    shutil.copytree(source, output)
+    phase = 'after-recheck-' + datetime.now(UTC).strftime('%Y%m%dT%H%M%S%f')
+    current = capture_references(profile, output, phase)
+    if reference_changes(profile, before, current):
+        raise ValueError('Post-check recovery failed; original collection and calls remain unchanged')
+    archive = output / 'reference-finalization'
+    archive.mkdir()
+    (archive / 'previous-receipt.json').write_bytes(previous_raw)
+    (archive / 'previous-after.json').write_bytes(old_after)
+    (archive / 'implementation.py').write_bytes(Path(__file__).read_bytes())
+    def binding(path):
+        return dict(path=path.relative_to(output).as_posix(), sha256=bytes_sha256(path.read_bytes()))
+    proof = dict(schema='web-search-reference-finalization/1', provider_calls=0,
+                 reference_urls=scope, checked_at=datetime.now(UTC).isoformat(),
+                 root_cause='Post-collection reference checks received no response because of transport failures; reobserve the complete identity scope without repeating provider calls.',
+                 previous_receipt=binding(archive / 'previous-receipt.json'),
+                 previous_after=binding(archive / 'previous-after.json'),
+                 implementation=binding(archive / 'implementation.py'))
+    write_json(archive / 'receipt.json', proof)
+    write_json(output / 'references-after.json', current)
+    retained = [item for item in previous['bindings'] if item['path'] != 'references-after.json']
+    added = [output / 'references-after.json', output / ('references-' + phase + '.json'),
+             *archive.iterdir(), *sorted((output / 'references').glob('*.bin'))]
+    bindings = {item['path']: item for item in [*retained, *map(binding, added)]}
+    receipt = dict(previous, certified=True, unavailable_references=[], changed_references=[],
+                   reference_finalization=binding(archive / 'receipt.json'), bindings=list(bindings.values()))
+    write_json(output / 'receipt.json', receipt)
+    load_run(output)
+    return output
+
+
 def main(argv=None, *, certified=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -882,9 +974,16 @@ def main(argv=None, *, certified=False):
     parser.add_argument("--diagnostic", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--execution-revision", type=Path, help="Bound native-interface correction; supersede only declared methods")
+    parser.add_argument('--finalize-references-from', type=Path,
+                        help='Reobserve a complete post-check after transport failure; make no provider calls')
     args = parser.parse_args(argv)
     if certified and args.diagnostic:
         parser.error("Certified collection cannot use --diagnostic")
+    if args.finalize_references_from:
+        if args.resume or args.execution_revision or args.diagnostic:
+            parser.error('Reference finalization cannot change or resume collection')
+        print(finalize_references(args.profile, args.finalize_references_from, args.output))
+        return
     try:
         print(run(args.profile, args.output, args.diagnostic, args.resume, args.execution_revision, certified=certified, cohort=args.cohort))
     except (ValueError, FileExistsError) as exc:

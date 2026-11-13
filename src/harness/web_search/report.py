@@ -273,6 +273,10 @@ def load_run(source):
                     )
     if receipt.get("certified") and receipt["reference_capture_issues"]:
         raise ValueError("Certified source capture is incomplete")
+    if receipt.get('reference_finalization'):
+        from harness.web_search.runner import validate_reference_finalization
+
+        validate_reference_finalization(source, profile, receipt)
     if receipt.get("certified") and profile["protocol"].get("reference_scope") == "identity":
         before = json.loads((source / "references-before.json").read_text(encoding="utf-8"))
         after = json.loads((source / "references-after.json").read_text(encoding="utf-8"))

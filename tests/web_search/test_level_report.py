@@ -53,6 +53,7 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
         results = BeautifulSoup((root / (prefix + 'results.html')).read_bytes(), 'html.parser')
         comparison = json.loads(results.select_one('[data-comparison-data]').string)
         assert {p['id'] for p in comparison['populations']} == {'scenario', 'factual'}
+        assert {o['value'] for o in results.select('[data-output-benchmark] option')} == {'all', 'scenario', 'factual'}
         quality = BeautifulSoup((root / (prefix + "quality.html")).read_text(), "html.parser")
         assert {
             s["data-findings-benchmark"] for s in quality.select("[data-findings-benchmark]")

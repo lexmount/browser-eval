@@ -11,6 +11,117 @@ from unittest.mock import patch
 import pytest
 
 
+@pytest.mark.parametrize('selection', [['web-search'], ['--track', 'web-search']])
+def test_documented_certified_entry_dispatches_web_search_with_certification(monkeypatch, selection):
+    from harness.reporting.certified_cli import main
+
+    calls = []
+    monkeypatch.setattr('harness.web_search.runner.main', lambda args, **kwargs: calls.append((args, kwargs)))
+    main([*selection, '--profile', 'frozen.json', '--output', 'run'])
+    assert calls == [(['--profile', 'frozen.json', '--output', 'run'], {'certified': True})]
+
+
+@pytest.fixture
+def failed_postcheck(tmp_path, monkeypatch):
+    from harness.web_search import runner
+
+    profile = execution_profile()
+    profile['methods'] = profile['methods'][1:2]
+    profile['cases'] = profile['cases'][:1]
+    profile['protocol'].update(reference_scope='identity', reference_retries=0, retry=False)
+    profile['reference_checks'] = {url: dict(url=url, contains=['reference'])
+                                   for case in profile['cases'] for url in case['anchors']}
+    path = tmp_path / 'profile.json'
+    path.write_text(json.dumps(profile))
+    state = dict(references=0, provider_calls=0, post_status=0, post_exit=6, recover=True)
+
+    def http(url, body=None, *args, **kwargs):
+        receipt = dict(http_status=200, elapsed_ms=10, transport_exit=0, transport_error='')
+        if body is not None:
+            state['provider_calls'] += 1
+            return receipt, b'{"results":[{"url":"https://example.org/page"}]}'
+        state['references'] += 1
+        if state['references'] == 2 or state['references'] > 2 and not state['recover']:
+            return dict(receipt, http_status=state['post_status'], transport_exit=state['post_exit']), b''
+        return receipt, b'reference ' * 20
+
+    monkeypatch.setattr(runner, 'http_call', http)
+    monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)
+    monkeypatch.setenv('DEEPSEEK_API_KEY', 'fixture')
+    return runner, path, state
+
+
+def test_reference_finalization_preserves_complete_calls_and_original_failed_postcheck(tmp_path, failed_postcheck):
+    from harness.web_search.report import load_run
+
+    runner, profile, state = failed_postcheck
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    original = {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
+    assert json.loads(original[Path('receipt.json')])['certified'] is False
+    runner.main(['--profile', str(profile), '--output', str(output), '--finalize-references-from', str(source)], certified=True)
+    assert state['provider_calls'] == 1 and state['references'] == 3
+    assert all((source / path).read_bytes() == raw for path, raw in original.items())
+    assert (output / 'results.jsonl').read_bytes() == original[Path('results.jsonl')]
+    assert (output / 'reference-finalization/previous-after.json').read_bytes() == original[Path('references-after.json')]
+    _, rows, receipt = load_run(output)
+    assert len(rows) == 1 and receipt['certified'] is True
+    assert receipt['ended_at'] == json.loads(original[Path('receipt.json')])['ended_at']
+    raw = json.loads((output / 'reference-finalization/receipt.json').read_bytes())
+    assert raw['provider_calls'] == 0 and len(raw['reference_urls']) == 1
+
+
+@pytest.mark.parametrize('observed_status', [200, 404, 503])
+def test_reference_finalization_rejects_observed_source_failures(tmp_path, failed_postcheck, observed_status):
+    runner, profile, state = failed_postcheck
+    state.update(post_status=observed_status, post_exit=0)
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    with pytest.raises(ValueError, match='unobserved post-check transport failures'):
+        runner.finalize_references(profile, source, output)
+    assert state['provider_calls'] == 1 and not output.exists()
+
+
+def test_failed_reference_reobservation_cannot_certify_or_change_the_original(tmp_path, failed_postcheck):
+    runner, profile, state = failed_postcheck
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    before = (source / 'receipt.json').read_bytes()
+    state['recover'] = False
+    with pytest.raises(ValueError, match='Post-check recovery failed'):
+        runner.finalize_references(profile, source, output)
+    assert (source / 'receipt.json').read_bytes() == before
+    assert json.loads((output / 'receipt.json').read_bytes())['certified'] is False
+    assert state['provider_calls'] == 1
+
+
+@pytest.mark.parametrize('changed', ['provider_calls', 'reference_urls', 'ended_at'])
+def test_reference_finalization_replays_its_zero_call_and_complete_scope_contract(tmp_path, failed_postcheck, changed):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.report import load_run
+
+    runner, profile, state = failed_postcheck
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    runner.finalize_references(profile, source, output)
+    receipt = json.loads((output / 'receipt.json').read_bytes())
+    if changed == 'ended_at':
+        receipt['ended_at'] = 'Changed collection date'
+    else:
+        path = output / receipt['reference_finalization']['path']
+        proof = json.loads(path.read_bytes())
+        proof[changed] = 1 if changed == 'provider_calls' else []
+        path.write_text(json.dumps(proof))
+        receipt['reference_finalization']['sha256'] = bytes_sha256(path.read_bytes())
+        for binding in receipt['bindings']:
+            if binding['path'] == path.relative_to(output).as_posix():
+                binding['sha256'] = bytes_sha256(path.read_bytes())
+    (output / 'receipt.json').write_text(json.dumps(receipt))
+    with pytest.raises(ValueError, match='finalization|complete collection'):
+        load_run(output)
+    assert state['provider_calls'] == 1
+
+
 @pytest.mark.parametrize('retry', [None, False, True])
 @pytest.mark.parametrize('failure', ['transport', 'http', 'invalid', 'empty'])
 def test_retries_require_explicit_opt_in(tmp_path, retry, failure):

@@ -152,7 +152,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
         if not check_types:
             check_types = ["availability"]
         cases.append({"id": case["id"], "query": case["query"],
-                      "benchmark": case.get('benchmark') or case.get('cohort') or benchmark, "quality_excluded": quality_excluded, "check_types": check_types, "has_relevance": case["id"] in labels,
+                      "benchmark": ('factual' if 'reference_answer' in case else 'scenario') if profile.get('protocol', {}).get('relevance_level') else case.get('benchmark') or case.get('cohort') or benchmark, "quality_excluded": quality_excluded, "check_types": check_types, "has_relevance": case["id"] in labels,
                       "criteria": {"answer": case.get("reference_answer"),
                                    "official_sources": (relevance or {}).get("source_requirements", {}).get(case["id"], {}),
                                    "urls": [_url(u) for u in case.get("reference_urls", case.get("anchors", [])) if _url(u)],
@@ -167,7 +167,7 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
             dict(id='scenario', label=dict(en='Scenario relevance', zh=zh_text('Scenario relevance')),
                  case_ids=[case['id'] for case in cases if 'factual' not in case['check_types']]),
             dict(id='factual', label=dict(en='SimpleQA Verified', zh=zh_text('SimpleQA Verified')),
-                 case_ids=[case['id'] for case in cases if 'factual' in case['check_types']]),
+                 case_ids=[case['id'] for case in cases if 'factual' in case['check_types'] and not case['quality_excluded']]),
         ]
     if not populations:
         populations = [
@@ -252,6 +252,8 @@ def render_comparison(profile, selected_rows, zh, detail_link=None, relevance=No
     for group in profile.get('report_cohorts', []):
         label = group.get('label', group['id'])
         names[group['id']] = label.get('zh' if zh else 'en', group['id']) if isinstance(label, dict) else label
+    if profile.get('protocol', {}).get('relevance_level'):
+        names.update(scenario=t('Scenario relevance'), factual=t('SimpleQA Verified'))
     default_group = next((case['benchmark'] for case in data['cases'] if 'factual' not in case['check_types']), 'all')
     benchmark_options = [("all", t("All saved responses · {cases}", cases=len(data['cases'])))] + [
         (key, names.get(key, key) + " · " + str(sum(c["benchmark"] == key and not c["quality_excluded"] for c in data["cases"]))) for key in populations
