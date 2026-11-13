@@ -121,6 +121,9 @@ def _hub_definitions(checkout: Path, revision: str, identity: dict) -> dict[str,
             name = member.name
             if not member.isfile() or name in files or {"", ".", ".."} & set(name.split("/")):
                 raise ValueError("Unexpected archive member: " + name)
+            # Reject before reading: a small archive can declare a huge member.
+            if not isinstance(listed.get(name), dict) or member.size != listed[name].get("size"):
+                raise ValueError("Archive member does not match the release manifest: " + name)
             content = archive.extractfile(member).read()
             if listed.get(name) != {"sha256": bytes_sha256(content), "size": len(content)}:
                 raise ValueError("Archive member does not match the release manifest: " + name)

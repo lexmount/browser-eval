@@ -250,7 +250,7 @@ def test_invalid_committed_population_filters_fail_before_build(tmp_path, filter
     assert not output.exists()
 
 
-def test_hub_definitions_come_from_the_manifest_bound_archive(tmp_path):
+def test_hub_definitions_come_from_the_manifest_bound_archive(tmp_path, monkeypatch):
     root = published_hub(tmp_path)
     expected = DatasetRelease.from_git(root, 'websearch', git(root, 'rev-parse', 'HEAD')).files
     # Large hubs keep definitions only in the archive (LexBench-NewsXLM, LexBench-LiveWeb-IE).
@@ -266,6 +266,17 @@ def test_hub_definitions_come_from_the_manifest_bound_archive(tmp_path):
     tampered = {**manifest['files'], name: {**manifest['files'][name], 'sha256': '0' * 64}}
     with pytest.raises(ValueError, match='does not match the release manifest: ' + name):
         DatasetRelease.from_git(root, 'websearch', commit_manifest(root, files=tampered))
+    # A member whose declared size disagrees is rejected before its payload is read.
+    smaller = {**manifest['files'], name: {**manifest['files'][name], 'size': 1}}
+    revision = commit_manifest(root, files=smaller)
+    extract = tarfile.TarFile.extractfile
+    def unread(archive, member):
+        assert member.name != name, 'member payload read before size check'
+        return extract(archive, member)
+    monkeypatch.setattr(tarfile.TarFile, 'extractfile', unread)
+    with pytest.raises(ValueError, match='does not match the release manifest: ' + name):
+        DatasetRelease.from_git(root, 'websearch', revision)
+    monkeypatch.undo()
     with pytest.raises(ValueError, match='archive does not match'):
         DatasetRelease.from_git(root, 'websearch', commit_manifest(
             root, files=manifest['files'], archive={**manifest['archive'], 'size': 1}))
