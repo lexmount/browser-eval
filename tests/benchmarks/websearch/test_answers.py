@@ -306,6 +306,16 @@ def test_citation_claim_starts_after_quoted_or_parenthesized_sentence(first):
     assert citation['claim_context'] == 'Second claim'
 
 
+@pytest.mark.parametrize('label', [
+    '<span title="Hidden assertion">Paris</span>', '**Paris**',
+    '[Paris](https://hidden.test/assertion)', '![Paris](https://hidden.test/nested.png)',
+])
+def test_image_alternative_text_uses_rendered_children_without_hidden_markup(label):
+    text = '![' + label + '](https://source.test/image.png)[引用:1]'
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Paris'
+
+
 @pytest.mark.parametrize('markup,claim', [
     ('<span title="Paris is in France"></span>', ''),
     ('<span title="Hidden assertion">Paris is in France.</span>', 'Paris is in France.'),

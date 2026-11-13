@@ -86734,6 +86734,36 @@
           "『First claim。』 Second claim"
         ],
         "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "![<span title=\"Hidden assertion\">Paris</span>](https://source.test/image.png)[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris"
+          }
+        ],
+        "claims": [
+          "Paris"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "![<span title=\"Hidden assertion\">Paris</span>](https://source.test/image.png)[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris"
+          }
+        ],
+        "claims": [
+          "<span title=\"Hidden assertion\">Paris</span>"
+        ],
+        "expected": false
       }
     ]
   },
