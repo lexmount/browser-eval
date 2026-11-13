@@ -485,6 +485,103 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
             raise ValueError("Published labels disagree with the frozen model response")
 
 
+def run_judge_request(path, case_id, request, configuration, token, *, prior_call=None):
+    """Persist each physical model call before parsing its task-specific judgment."""
+    contract = configuration
+    base_url = configuration["base_url"]
+    journal = path.with_name(path.stem + ("-format-repair-attempts.json" if prior_call else "-attempts.json"))
+    attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
+    request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
+    for index, previous in enumerate(attempts, 1):
+        if (
+            previous.get("request_sha256") != request_hash
+            or previous.get("attempt") != index
+            or previous.get("url") != base_url.rstrip("/") + "/chat/completions"
+            or previous.get("request_headers") != contract["request_headers"]
+        ):
+            raise ValueError("Saved physical judge request changed")
+        if previous.get("completed"):
+            if previous.get("retryable") != _judge_retryable(
+                previous.get("status"), previous.get("error_type")
+            ):
+                raise ValueError("Saved physical judge retry classification changed")
+            body = base64.b64decode(previous["response_bytes_base64"], validate=True)
+            if hashlib.sha256(body).hexdigest() != previous.get("response_sha256"):
+                raise ValueError("Saved physical judge response changed")
+    if attempts and (not attempts[-1].get("completed") or not attempts[-1].get("retryable")):
+        raise ValueError("Saved judge response requires investigation; no automatic new call")
+    started = time.monotonic()
+
+    def preserve():
+        temporary = journal.with_suffix(".tmp")
+        temporary.write_text(json.dumps(attempts, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(journal)
+
+    for number in range(len(attempts) + 1, contract["attempt_limit"] + 1):
+        attempt = {
+            "attempt": number,
+            "request_sha256": request_hash,
+            "started_at_ns": time.time_ns(),
+            "completed": False,
+            "url": base_url.rstrip("/") + "/chat/completions",
+            "request_headers": contract["request_headers"],
+        }
+        attempts.append(attempt)
+        preserve()  # Reserve the physical attempt before any network activity.
+        req = urllib.request.Request(
+            base_url.rstrip("/") + "/chat/completions",
+            data=json.dumps(request).encode(),
+            headers={
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json",
+                **contract.get("request_headers", {}),
+            },
+        )
+        attempt_started = time.monotonic()
+        body, status, error = b"", None, None
+        try:
+            with urllib.request.urlopen(req, timeout=180) as response:
+                status = response.status
+                body = response.read()
+        except urllib.error.HTTPError as caught:
+            status, error = caught.code, type(caught).__name__
+            body = caught.read()
+        except (urllib.error.URLError, TimeoutError) as caught:
+            error = type(caught).__name__
+        retryable = _judge_retryable(status, error)
+        attempt.update(
+            completed=True,
+            status=status,
+            error_type=error,
+            retryable=retryable,
+            elapsed_ms=(time.monotonic() - attempt_started) * 1000,
+            response_bytes_base64=base64.b64encode(body).decode("ascii"),
+            response_sha256=hashlib.sha256(body).hexdigest(),
+        )
+        preserve()  # Raw bytes survive malformed JSON and model-output failures.
+        if status == 200:
+            raw = json.loads(body)
+            saved = {
+                "case_id": case_id,
+                "request": request,
+                "response": raw,
+                "elapsed_ms": (time.monotonic() - started) * 1000,
+                "attempts": attempts,
+            }
+            if prior_call:
+                saved['format_repair'] = {'prior_call': prior_call}
+            path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
+            break
+        if not retryable or number == contract["attempt_limit"]:
+            raise ValueError(
+                "Judge request failed; preserved physical attempts require investigation"
+            )
+        time.sleep(30 if status in (429, 503) else 2)
+    else:
+        raise ValueError("Judge physical attempt limit exhausted; no automatic new call")
+    return saved
+
+
 def judge_main(argv=None):
     """Explicit model judging, resumable from immutable per-query receipts."""
 
@@ -520,8 +617,9 @@ def judge_main(argv=None):
     )
     parser.add_argument('--repair-format', action='store_true',
                         help='Repair an invalid saved answer once, preserving the original call')
-    parser.add_argument('--level',choices=('l1','l2'),help='Judge one isolated native output level')
+    parser.add_argument('--level',choices=('l1','l2','l3'),help='Judge one isolated native output level')
     parser.add_argument('--field-admissions',type=Path,help='Hash-bound live-page admission bundle for L2')
+    parser.add_argument('--simpleqa-grader', type=Path, help='Hash-pinned official SimpleQA grader source for L3')
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
@@ -554,6 +652,8 @@ def judge_main(argv=None):
             parser.error('Report judging does not accept collection input options')
         profile, rows = check(args.report, return_data=True, evidence_only=True)
         authority = report_authority(args.report)
+    if args.field_admissions and args.level != 'l2':
+        parser.error('Field admission requires L2')
     if args.level:
         from harness.web_search.output_levels import level_inputs, load_admissions
 
@@ -562,6 +662,12 @@ def judge_main(argv=None):
         args.disable_thinking = True
     elif args.field_admissions:
         parser.error('Field admission requires an output level')
+    if args.level == 'l3':
+        from harness.web_search.answers import judge_answers
+
+        return judge_answers(profile, rows, args, token)
+    if args.simpleqa_grader:
+        parser.error('The official answer grader requires L3')
     source_requirements = (
         json.loads(args.source_requirements.read_text(encoding="utf-8")) if args.source_requirements else {}
     )
@@ -653,98 +759,10 @@ def judge_main(argv=None):
                     raise
                 prior_call = saved
                 request = dict(request, messages=reference_repair_messages(p, request['messages']))
-        journal = path.with_name(path.stem + ("-format-repair-attempts.json" if prior_call else "-attempts.json"))
-        attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
-        request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
-        for index, previous in enumerate(attempts, 1):
-            if (
-                previous.get("request_sha256") != request_hash
-                or previous.get("attempt") != index
-                or previous.get("url") != args.base_url.rstrip("/") + "/chat/completions"
-                or previous.get("request_headers") != contract["request_headers"]
-            ):
-                raise ValueError("Saved physical judge request changed")
-            if previous.get("completed"):
-                if previous.get("retryable") != _judge_retryable(
-                    previous.get("status"), previous.get("error_type")
-                ):
-                    raise ValueError("Saved physical judge retry classification changed")
-                body = base64.b64decode(previous["response_bytes_base64"], validate=True)
-                if hashlib.sha256(body).hexdigest() != previous.get("response_sha256"):
-                    raise ValueError("Saved physical judge response changed")
-        if attempts and (not attempts[-1].get("completed") or not attempts[-1].get("retryable")):
-            raise ValueError("Saved judge response requires investigation; no automatic new call")
-        started = time.monotonic()
-
-        def preserve():
-            temporary = journal.with_suffix(".tmp")
-            temporary.write_text(json.dumps(attempts, ensure_ascii=False, indent=2), encoding="utf-8")
-            temporary.replace(journal)
-
-        for number in range(len(attempts) + 1, contract["attempt_limit"] + 1):
-            attempt = {
-                "attempt": number,
-                "request_sha256": request_hash,
-                "started_at_ns": time.time_ns(),
-                "completed": False,
-                "url": args.base_url.rstrip("/") + "/chat/completions",
-                "request_headers": contract["request_headers"],
-            }
-            attempts.append(attempt)
-            preserve()  # Reserve the physical attempt before any network activity.
-            req = urllib.request.Request(
-                args.base_url.rstrip("/") + "/chat/completions",
-                data=json.dumps(request).encode(),
-                headers={
-                    "Authorization": "Bearer " + token,
-                    "Content-Type": "application/json",
-                    **contract.get("request_headers", {}),
-                },
-            )
-            attempt_started = time.monotonic()
-            body, status, error = b"", None, None
-            try:
-                with urllib.request.urlopen(req, timeout=180) as response:
-                    status = response.status
-                    body = response.read()
-            except urllib.error.HTTPError as caught:
-                status, error = caught.code, type(caught).__name__
-                body = caught.read()
-            except (urllib.error.URLError, TimeoutError) as caught:
-                error = type(caught).__name__
-            retryable = _judge_retryable(status, error)
-            attempt.update(
-                completed=True,
-                status=status,
-                error_type=error,
-                retryable=retryable,
-                elapsed_ms=(time.monotonic() - attempt_started) * 1000,
-                response_bytes_base64=base64.b64encode(body).decode("ascii"),
-                response_sha256=hashlib.sha256(body).hexdigest(),
-            )
-            preserve()  # Raw bytes survive malformed JSON and model-output failures.
-            if status == 200:
-                raw = json.loads(body)
-                saved = {
-                    "case_id": p["case_id"],
-                    "request": request,
-                    "response": raw,
-                    "elapsed_ms": (time.monotonic() - started) * 1000,
-                    "attempts": attempts,
-                }
-                if prior_call:
-                    saved['format_repair'] = {'prior_call': prior_call}
-                path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
-                _validate_judge_field_references(raw, p)
-                parse_judgments(p, raw)
-                break
-            if not retryable or number == contract["attempt_limit"]:
-                raise ValueError(
-                    "Judge request failed; preserved physical attempts require investigation"
-                )
-            time.sleep(30 if status in (429, 503) else 2)
-        else:
-            raise ValueError("Judge physical attempt limit exhausted; no automatic new call")
+        saved = run_judge_request(path, p["case_id"], request, contract, token,
+                                  prior_call=prior_call)
+        _validate_judge_field_references(saved["response"], p)
+        parse_judgments(p, saved["response"])
         print(p["case_id"], "scored", flush=True)
         return saved
 

@@ -82,8 +82,24 @@ from each source name (`primary` and the `--cohort` names) to its method IDs.
 The builder validates every original run before selection, rejects conflicting
 task or method definitions and duplicate cells, and requires every selected
 method to cover the complete shared case population. Each source retains its
-own timeout, retry, concurrency and collection-date records. The composed
+own timeout, retry, concurrency and collection-date records. An optional
+`collection_cases` mapping selects the predeclared case IDs for every source;
+missing or overlapping cells still fail. The composed
 profile is a read-only scoring view and cannot be passed to the collector.
+
+Generated answers use the same `judge` command with `--level l3` and
+`--simpleqa-grader /absolute/simpleqa_eval.py`. The independent answer scorer
+pins the upstream source commit and SHA-256 in `lexbench_websearch.answers`;
+it reads the official template without executing upstream Python. Scenario
+usefulness, factual correctness and citation support use separate requests.
+Citation support is checked against delivered titles, previews and extra text;
+full page bodies are excluded. Missing citations leave support unavailable.
+The command preserves physical response bytes, uses temperature zero with
+thinking disabled, and permits one physical attempt per judgment. Resuming
+replays saved judgments and never retries a failed or invalid answer. The
+complete quality population is required; reference exclusions apply equally
+to every configuration. `answers.json` can be replayed through
+`verify_answer_evidence` before rendering.
 
 The model relevance command accepts `--level l1` or `--level l2`. Adapters select
 the native fields; no text is truncated. L1 needs no source-page retrieval.
