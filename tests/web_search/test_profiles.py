@@ -55,6 +55,27 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.manifest["receipt"]["separate_collections"][0]["profile_sha256"] = bytes_sha256(load_profile_bytes(self.entry, root=self.root))
         self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)["slug"], "search")
 
+    def test_bounded_collection_keeps_its_admission_order_when_selected_and_published(self):
+        profile = json.loads(self.raw)
+        method = next(method for method in profile['methods'] if method['id'] == 'body')
+        method['key_env'] = 'FIXTURE_KEY'
+        profile['methods'] = [method]
+        profile['protocol'].update(concurrency=4, order='bounded calls')
+        profile['execution_policy'] = dict(purpose='quality', max_in_flight=4,
+                                           resources={'body': {'capacity': 4}}, backend='thread')
+        self.historical.write_text(json.dumps(profile))
+        self.binding['sha256'] = bytes_sha256(self.historical.read_bytes())
+        self.selection['methods'] = ['body']
+        self.entry.write_text(json.dumps(self.selection))
+        resolved = json.loads(load_profile_bytes(self.entry))
+        self.assertEqual(resolved['protocol']['order'], 'bounded calls')
+        self.assertEqual(resolved['execution_policy'], profile['execution_policy'])
+        self.manifest['profile']['methods'] = [{'id': 'body'}]
+        self.manifest['receipt']['separate_collections'][0]['profile_sha256'] = self.binding['sha256']
+        self.target['methods'] = ['body']
+        self.save_target()
+        self.assertEqual(publication_authority(self.manifest, self.entry)['slug'], 'search')
+
     def test_current_selection_rejects_changed_historical_input(self):
         self.historical.write_bytes(self.raw + b" ")
         with self.assertRaisesRegex(ValueError, "binding changed"):

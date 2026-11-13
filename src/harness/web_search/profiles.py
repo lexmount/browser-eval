@@ -95,7 +95,8 @@ def load_profile_bytes(path, *, root=None, cohort="primary"):
     profile["methods"] = [by_id[mid] for mid in selection["methods"] if mid in by_id]
     profile["title"] = selection["title"] if cohort == "primary" else profile["title"]
     profile["protocol"]["comparison"] = "Current selected methods; one declared result per query and method."
-    profile["protocol"]["order"] = "complete provider batches"
+    if profile['protocol']['concurrency'] == 1 and profile.get('execution_policy') is None:
+        profile["protocol"]["order"] = "complete provider batches"
     profile["publication"] = {"authority": selection["publication_target"]}
     if selection.get("independent_result_review_scope"):
         profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
@@ -157,7 +158,8 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
         if bindings[prefix + "_profile"] != {k: expected_profile[k] for k in ("path", "sha256")}:
             raise ValueError("Live search target profile differs from the current selection")
         accepted_profiles = {bytes_sha256(load_profile_bytes(_inside(root, expected_profile["path"]), root=root))}
-        accepted_profiles.add(bytes_sha256(load_profile_bytes(path, root=root, cohort=cohort)))
+        if receipt['profile_sha256'] not in accepted_profiles:
+            accepted_profiles.add(bytes_sha256(load_profile_bytes(path, root=root, cohort=cohort)))
         if receipt["profile_sha256"] not in accepted_profiles:
             raise ValueError("Search release uses a different collection profile")
         if receipt.get("receipt_sha256") != bindings[prefix + "_receipt"]["sha256"]:
