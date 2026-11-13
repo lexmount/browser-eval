@@ -88,6 +88,44 @@ class Response(io.BytesIO):
     status = 200
 
 
+@pytest.mark.parametrize('level',['l1','l2'])
+def test_public_judge_selects_native_fields_and_replays_l2_admission(run_judge,monkeypatch,tmp_path,level):
+    from harness.record_io import bytes_sha256
+    from harness.web_search import report
+    from tests.web_search.test_field_admission import example
+
+    profile,rows,receipt,artifacts=example()
+    profile['cases'][0].pop('reference_answer')
+    monkeypatch.setattr(report,'check',lambda *a,**kw:(profile,rows))
+    args=['--level',level]
+    if level == 'l2':
+        for name,raw in artifacts.items():
+            (tmp_path/name).write_bytes(raw)
+        raw=json.dumps(receipt).encode();(tmp_path/'admission.json').write_bytes(raw)
+        bundle=dict(schema='web-search-field-admissions/1',receipts={'web':dict(path='admission.json',sha256=bytes_sha256(raw))},
+                    artifacts=[dict(path=name,sha256=bytes_sha256(value)) for name,value in artifacts.items()])
+        (tmp_path/'admissions.json').write_text(json.dumps(bundle))
+        args+=['--field-admissions',str(tmp_path/'admissions.json')]
+    requests=[]
+    def transport(request,**kwargs):
+        assert request.full_url.endswith('/chat/completions')
+        message=json.loads(request.data)
+        packet=json.loads(message['messages'][1]['content'])
+        for candidate in packet['candidates']:
+            assert set(candidate['previews'][0]) == {'title','snippet'}
+            actual=candidate['previews'][0]['snippet']
+            assert actual == ('Primary preview' if level == 'l1' else rows[0]['results'][0]['summary'])
+        requests.append(request)
+        return Response(answer(request))
+    monkeypatch.setattr(urllib.request,'urlopen',transport)
+    run_judge(args)
+    evidence=json.loads((run_judge.output/'relevance.json').read_bytes())
+    assert evidence['evaluation_level'] == level
+    assert evidence['judge']['configuration']['extra_params']['enable_thinking'] is False
+    validate_model_evidence(evidence)
+    assert len(requests) == 1
+
+
 @pytest.mark.parametrize('level', ['l1','l2'])
 def test_layered_judge_receipts_bind_level_prompt_and_exact_fields(run_judge, monkeypatch, level):
     from harness.web_search import report

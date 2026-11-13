@@ -520,6 +520,8 @@ def judge_main(argv=None):
     )
     parser.add_argument('--repair-format', action='store_true',
                         help='Repair an invalid saved answer once, preserving the original call')
+    parser.add_argument('--level',choices=('l1','l2'),help='Judge one isolated native output level')
+    parser.add_argument('--field-admissions',type=Path,help='Hash-bound live-page admission bundle for L2')
     args = parser.parse_args(argv)
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
@@ -552,6 +554,14 @@ def judge_main(argv=None):
             parser.error('Report judging does not accept collection input options')
         profile, rows = check(args.report, return_data=True, evidence_only=True)
         authority = report_authority(args.report)
+    if args.level:
+        from harness.web_search.output_levels import level_inputs, load_admissions
+
+        admissions,artifacts = load_admissions(args.field_admissions) if args.field_admissions else ({},{})
+        profile,rows = level_inputs(profile,rows,args.level,admissions=admissions,artifacts=artifacts)
+        args.disable_thinking = True
+    elif args.field_admissions:
+        parser.error('Field admission requires an output level')
     source_requirements = (
         json.loads(args.source_requirements.read_text(encoding="utf-8")) if args.source_requirements else {}
     )

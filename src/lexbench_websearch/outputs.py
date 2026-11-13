@@ -79,7 +79,9 @@ def project_rows(profile, rows, level, *, qualified_fields=None):
         value = deepcopy(row)
         if level != "l3":
             value["results"] = project_results(
-                row["results"], by_id[row["method"]]["output_fields"], level
+                row["results"][: profile["protocol"].get("top_k", 5)],
+                by_id[row["method"]]["output_fields"],
+                level,
             )
         output.append(value)
     expected = {(c["id"], m["id"]) for c in profile["cases"] for m in selected}
@@ -98,6 +100,16 @@ def project_rows(profile, rows, level, *, qualified_fields=None):
             delivered = any(not item.get("invalid_slot") for r in scoped for item in r["results"])
         if not delivered:
             raise ValueError("A declared output level delivered nothing: " + method["id"])
+    if level != "l3":
+        from .scoring import evaluate
+
+        cases = {case["id"]: case for case in projected["cases"]}
+        for value in output:
+            value["metrics"] = evaluate(
+                cases[value["case_id"]],
+                value["results"],
+                cutoff=profile["protocol"].get("top_k", 5),
+            )
     return projected, output
 
 

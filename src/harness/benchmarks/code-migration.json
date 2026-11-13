@@ -4342,7 +4342,7 @@
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
-          "after_sha256": "3b97fd01c1372a8d4d8401e01110c3b77b29242a4f1385265efe32209815b636"
+          "after_sha256": "4b87cd67bd6b417269b699417b2d4d8bdef31ca33dcf1f14de0efab959127580"
         },
         "versions.py": {
           "before_sha256": "27c10a5f86b4a8ac7841cc9dfbe77c2f724ea675a938bda3719ae05084c058e0",
@@ -4354,7 +4354,7 @@
         },
         "contracts.py": {
           "before_sha256": "b9ccbd0f527a322323027b8e93dec2d1596e79a818e36f2bfb8f9ea7b9398ba7",
-          "after_sha256": "4ae11fa3309b63e59eb21a7f4bb66e8227f7c98a4da7e69994b1c1ded62a7819"
+          "after_sha256": "fe66d8536ef685bbbd47948cb9eb4da840162eb3dd2fda8624f08bd9b6ca5626"
         }
       },
       "corrections": [

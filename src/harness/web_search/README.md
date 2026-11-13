@@ -75,6 +75,25 @@ retains each collection receipt. The task inventory remains unique. Collection
 dates and order stay visible; the combined report is not a same-window latency
 trial. A current instance can select methods across its primary and supplementary
 profile bindings; collecting a supplementary cohort executes only its methods.
+
+For providers whose historical calls span several case batches, use
+`collection_composition: "matrix"` and an explicit `collection_methods` mapping
+from each source name (`primary` and the `--cohort` names) to its method IDs.
+The builder validates every original run before selection, rejects conflicting
+task or method definitions and duplicate cells, and requires every selected
+method to cover the complete shared case population. Each source retains its
+own timeout, retry, concurrency and collection-date records. The composed
+profile is a read-only scoring view and cannot be passed to the collector.
+
+The model relevance command accepts `--level l1` or `--level l2`. Adapters select
+the native fields; no text is truncated. L1 needs no source-page retrieval.
+L2 also requires `--field-admissions /absolute/admissions.json`, an explicitly
+bound bundle of fifty distinct source URLs per field, native-output samples
+and live-capture bytes. The command replays those bytes and recomputes the
+80% original-text check before admitting a method. Both levels use temperature
+zero with thinking disabled and keep separate prompts, candidate identities
+and complete pools.
+
 Account errors inside a Yuanbao HTTP 200 response stop collection immediately;
 after fixing the account, `--resume` archives the failed call and recollects its
 task rather than accepting an account failure as completed work.

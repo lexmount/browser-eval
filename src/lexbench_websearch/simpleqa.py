@@ -23,7 +23,11 @@ def mirror_candidates(reference_url):
             or parsed.query or parsed.username or parsed.password):
         return []
     title = unquote(parsed.path[len('/wiki/'):])
-    if not title or ':' in title:
+    namespace = title.partition(':')[0].replace('_',' ').casefold()
+    if not title or ':' in title and namespace in {
+        'special','file','image','media','help','category','wikipedia','wp','portal',
+        'template','talk','user','user talk','draft','module','mediawiki',
+    }:
         return []
     path = quote(title, safe='()_,:-')
     return ['https://www.wikiwand.com/en/articles/' + path,
@@ -92,6 +96,35 @@ def extend_reference_urls(dataset, observations):
         maximum_lead_characters=MIRROR_LEAD_CHARACTERS, minimum_block_overlap=MIRROR_OVERLAP,
         candidate_scope='Publisher reference URLs only', url_policy='document-url/2')
     return extended
+
+
+def validate_reference_extensions(case):
+    """Require provenance for every added URL before a dataset is accepted."""
+    from datetime import datetime
+
+    aliases = case.get('equivalent_reference_urls',[])
+    proofs = case.get('equivalent_reference_provenance',[])
+    if (not isinstance(aliases,list) or any(not isinstance(url,str) for url in aliases)
+            or len(aliases) != len(set(aliases)) or not isinstance(proofs,list)
+            or any(not isinstance(proof,dict) for proof in proofs)
+            or {proof.get('url') for proof in proofs} != set(aliases)):
+        raise ValueError('Equivalent reference URLs require complete unique provenance')
+    for proof in proofs:
+        reference = proof.get('reference_url')
+        overlap = proof.get('lead_overlap')
+        if (reference not in case.get('reference_urls',[]) or proof['url'] not in mirror_candidates(reference)
+                or proof.get('method') != MIRROR_POLICY or proof.get('title_matches') is not True
+                or proof.get('qualified') is not True or type(overlap) not in (float,int)
+                or not MIRROR_OVERLAP <= overlap <= 1
+                or any(not re.fullmatch('[0-9a-f]{64}',proof.get(field,'')) for field in
+                       ('reference_observation_sha256','observation_sha256'))):
+            raise ValueError('Invalid equivalent reference URL proof')
+        try:
+            observed = datetime.fromisoformat(proof['verified_at'].replace('Z','+00:00'))
+        except (KeyError,TypeError,ValueError,AttributeError) as error:
+            raise ValueError('Equivalent references require an observation date') from error
+        if observed.tzinfo is None:
+            raise ValueError('Equivalent reference observation dates require a time zone')
 
 
 def source_manifest():

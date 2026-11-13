@@ -25,7 +25,7 @@ def _rescore(profile, rows):
 NATIVE_CONTROLS = Path(__file__).with_name("data") / "native-normalization-regressions.json"
 
 
-def article_observation(raw, url, *, status, verified_at, media_type='text/html'):
+def article_observation(raw, url, *, status, verified_at, media_type='text/html', source_title=None):
     """Extract a bounded article lead from frozen HTML for mirror verification."""
     from bs4 import BeautifulSoup
 
@@ -44,6 +44,10 @@ def article_observation(raw, url, *, status, verified_at, media_type='text/html'
     for node in soup.select('script,style,nav,aside,table,sup,.hatnote,.shortdescription,.metadata'):
         node.decompose()
     heading = soup.find('h1')
+    if heading is None and media_type == 'text/markdown' and source_title:
+        first = soup.find('p')
+        if first and first.get_text(' ',strip=True) == source_title:
+            heading = first
     body = soup.select_one('.mw-parser-output') or soup.find('article') or soup.find('main')
     if media_type == 'text/markdown':
         body = soup

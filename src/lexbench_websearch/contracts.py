@@ -13,6 +13,10 @@ def validate_cases(cases, *, reference_checks=None, reference_scope=None):
     ):
         raise ValueError("Empty, duplicate or unsafe task identities")
     for case in cases:
+        if 'equivalent_reference_urls' in case or 'equivalent_reference_provenance' in case:
+            from .simpleqa import validate_reference_extensions
+
+            validate_reference_extensions(case)
         if case.get('url_equivalence', 'literal/1') not in URL_POLICIES:
             raise ValueError('Unsupported URL equivalence policy')
         for url in case.get('equivalent_reference_urls', []):

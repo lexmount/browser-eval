@@ -79,6 +79,88 @@ def test_add_provider_reuses_old_calls_and_keeps_exact_task_population(tmp_path)
         check(output)
 
 
+def test_composed_matrix_is_not_an_executable_collection_profile(tmp_path):
+    from harness.web_search.runner import run
+
+    old,new=split_runs(tmp_path)
+    methods={name:[json.loads((path/'profile.json').read_bytes())['methods'][0]['id']]
+             for name,path in [('primary',old),('new',new)]}
+    profile,_,_,_=load_report_runs(old,[('new',new)],{},composition='matrix',source_methods=methods)
+    path=tmp_path/'view.json'
+    write_json(path,profile)
+    with pytest.raises(ValueError,match='cannot be used as a collection profile'):
+        run(path,tmp_path/'forbidden-collection',certified=True)
+    assert not (tmp_path/'forbidden-collection').exists()
+
+
+def _fragment_run(source, target, case_ids):
+    import shutil
+
+    shutil.copytree(source,target)
+    profile=json.loads((target/'profile.json').read_bytes())
+    profile['cases']=[c for c in profile['cases'] if c['id'] in case_ids]
+    profile['protocol']['client_timeout_s']=35
+    write_json(target/'profile.json',profile)
+    rows=[json.loads(line) for line in (target/'results.jsonl').read_text().splitlines()]
+    rows=[r for r in rows if r['case_id'] in case_ids]
+    (target/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+    receipt=json.loads((target/'receipt.json').read_bytes())
+    receipt.update(call_count=len(rows),profile_sha256=bytes_sha256((target/'profile.json').read_bytes()),
+                   results_sha256=bytes_sha256((target/'results.jsonl').read_bytes()))
+    write_json(target/'receipt.json',receipt)
+    return target
+
+
+def test_matrix_preserves_concurrent_source_admission_without_reusing_it_for_other_methods(tmp_path):
+    from harness.web_search.report import execution_settings
+
+    first,second=split_runs(tmp_path)
+    source=json.loads((first/'profile.json').read_bytes())
+    mid=source['methods'][0]['id']
+    source['protocol'].update(concurrency=2,interval_s=0,order='bounded calls')
+    source['execution_policy']=dict(purpose='quality',max_in_flight=2,
+                                    resources={mid:dict(capacity=2)})
+    write_json(first/'profile.json',source)
+    receipt=json.loads((first/'receipt.json').read_bytes())
+    receipt['profile_sha256']=bytes_sha256((first/'profile.json').read_bytes())
+    write_json(first/'receipt.json',receipt)
+    methods={name:[json.loads((path/'profile.json').read_bytes())['methods'][0]['id']]
+             for name,path in [('primary',first),('second',second)]}
+    profile,rows,_,_=load_report_runs(first,[('second',second)],{},composition='matrix',source_methods=methods)
+    assert len(rows) == 4
+    assert profile['method_collections'][0]['protocol']['concurrency'] == 2
+    page=BeautifulSoup(execution_settings(profile,False),'html.parser')
+    capacities=[r.select('td')[1].get_text() for r in page.select('table')[0].select('tbody tr')]
+    assert capacities == ['2','1']
+
+
+def test_matrix_composition_joins_provider_fragments_and_preserves_actual_controls(tmp_path):
+    old,new=split_runs(tmp_path)
+    profiles=[json.loads((p/'profile.json').read_bytes()) for p in (old,new)]
+    case_ids=[c['id'] for c in profiles[0]['cases']]
+    first=_fragment_run(new,tmp_path/'first',[case_ids[0]])
+    second=_fragment_run(new,tmp_path/'second',[case_ids[1]])
+    methods={name:[profile['methods'][0]['id']] for name,profile in [('primary',profiles[0]),('first',profiles[1]),('second',profiles[1])]}
+    frozen=[(p/'results.jsonl').read_bytes() for p in (old,first,second)]
+    profile,rows,receipt,_=load_report_runs(old,[('first',first),('second',second)],{},
+                                         composition='matrix',source_methods=methods)
+    assert len(profile['cases']) == 2 and len(profile['methods']) == 2 and len(rows) == 4
+    assert len(receipt['separate_collections']) == 3
+    assert profile['method_collections'][0]['protocol']['client_timeout_s'] != 35
+    assert profile['method_collections'][1]['protocol']['client_timeout_s'] == 35
+    assert [(p/'results.jsonl').read_bytes() for p in (old,first,second)] == frozen
+    with pytest.raises(ValueError,match='complete method-by-task'):
+        load_report_runs(old,[('first',first)],{},composition='matrix',
+                         source_methods={k:v for k,v in methods.items() if k != 'second'})
+    with pytest.raises(ValueError,match='Overlapping.*cells'):
+        load_report_runs(old,[('first',first),('second',first)],{},composition='matrix',source_methods=methods)
+    content=tmp_path/'matrix-content.json'
+    write_json(content,dict(collection_composition='matrix',collection_methods=methods))
+    output=tmp_path/'matrix-report'
+    build(output,source=old,cohorts=[('first',first),('second',second)],content=content)
+    assert check(output)
+
+
 def test_method_composition_rejects_duplicate_providers_or_changed_questions(tmp_path):
     old, new = split_runs(tmp_path)
     with pytest.raises(ValueError, match="Overlapping method"):

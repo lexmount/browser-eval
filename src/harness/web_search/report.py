@@ -331,15 +331,21 @@ def _check_collection_provenance(receipt, previous):
         raise ValueError("Cannot combine synthetic and measured collections")
 
 
-def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases"):
+def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases", source_methods=None):
     """Compose separately verified runs; never pretend they were one collection."""
     inputs = [("primary", source), *cohorts]
     if len({name for name, _ in inputs}) != len(inputs):
         raise ValueError("Duplicate cohort name")
-    if composition not in {"cases", "methods"}:
+    if composition not in {"cases", "methods", "matrix"}:
         raise ValueError("Unsupported collection composition")
-    if composition == "methods":
-        return _load_method_runs(inputs, labels, method_ids)
+    if source_methods is not None and composition != 'matrix':
+        raise ValueError('Per-source method selection requires matrix composition')
+    if composition in {'methods','matrix'}:
+        if composition == 'matrix':
+            if (not isinstance(source_methods,dict) or set(source_methods) != {name for name,_ in inputs}
+                    or any(not isinstance(ids,list) or not ids or len(ids) != len(set(ids)) for ids in source_methods.values())):
+                raise ValueError('Matrix composition requires explicit methods for every source')
+        return _load_method_runs(inputs, labels, method_ids, source_methods=source_methods)
     profile = None
     rows, receipts, groups, paths = [], [], [], {}
     seen_cases, seen_evidence = set(), set()
@@ -415,26 +421,37 @@ def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="c
     )
 
 
-def _load_method_runs(inputs, labels, method_ids):
+def _load_method_runs(inputs, labels, method_ids, *, source_methods=None):
     """Add disjoint providers on identical frozen tasks without repeating calls."""
     profile = None
     rows, receipts, paths, batches = [], [], {}, []
     evidence_paths, method_names = set(), set()
+    matrix = source_methods is not None
+    case_definitions, method_definitions, selected_cells = {}, {}, set()
     for name, path in inputs:
         if not name.replace("-", "").isalnum():
             raise ValueError("Unsafe cohort name")
         current, calls, receipt = load_run(path)
         _check_collection_provenance(receipt, receipts)
-        if current.get("execution_policy") or current["protocol"]["concurrency"] != 1:
+        execution_methods = current['methods']
+        if matrix:
+            available = {m['id']:m for m in current['methods']}
+            chosen = source_methods[name]
+            if not set(chosen).issubset(available):
+                raise ValueError('Selected methods are unavailable in source: ' + name)
+            current = copy.deepcopy(current)
+            current['methods'] = [available[mid] for mid in chosen]
+            calls = [r for r in calls if r['method'] in chosen]
+        elif current.get("execution_policy") or current["protocol"]["concurrency"] != 1:
             raise ValueError("Method composition requires serial collections")
         ids = {m["id"] for m in current["methods"]}
-        if method_names & ids:
+        if not matrix and method_names & ids:
             raise ValueError("Overlapping method collections")
         method_names.update(ids)
         if profile is None:
             profile = copy.deepcopy(current)
             profile["methods"] = []
-        else:
+        elif not matrix:
             def controls(p):
                 return {**{k: v for k, v in _execution_contract(p).items() if k not in {"as_of", "order"}},
                         "normalize_top_k": p.get("normalize_top_k"),
@@ -444,6 +461,21 @@ def _load_method_runs(inputs, labels, method_ids):
             for key in ("reference_checks", "reference_artifacts", "factual_quality_exclusions", "reference_adjudications"):
                 if current.get(key) != profile.get(key):
                     raise ValueError("Method collection reference contracts differ")
+        if matrix:
+            if any(current['protocol'][k] != profile['protocol'][k] for k in ('top_k','rounds','score_round')):
+                raise ValueError('Matrix collections require the same cutoff and score rounds')
+            for case in current['cases']:
+                if case['id'] in case_definitions and case_definitions[case['id']] != case:
+                    raise ValueError('Matrix collections contain conflicting task definitions')
+                case_definitions.setdefault(case['id'],copy.deepcopy(case))
+            for method in current['methods']:
+                if method['id'] in method_definitions and method_definitions[method['id']] != method:
+                    raise ValueError('Matrix collections contain conflicting method definitions')
+                method_definitions.setdefault(method['id'],copy.deepcopy(method))
+            cells = {(r['case_id'],r['method'],r['round']) for r in calls}
+            if selected_cells & cells:
+                raise ValueError('Overlapping method-by-task cells')
+            selected_cells.update(cells)
         native_evidence = {e["path"] for r in calls for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
         if native_evidence & evidence_paths:
             raise ValueError("Overlapping method evidence paths")
@@ -457,13 +489,33 @@ def _load_method_runs(inputs, labels, method_ids):
                         "order": current["protocol"].get("order", "complete provider batches"),
                         "started_at": min((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("started_at")),
                         "ended_at": max((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("ended_at"))})
+        if matrix:
+            receipts[-1]['selected_methods'] = list(source_methods[name])
+            batches[-1].update(protocol=copy.deepcopy(current['protocol']),
+                               execution_policy=copy.deepcopy(current.get('execution_policy')),
+                               execution_methods=copy.deepcopy(execution_methods))
         paths[name] = path
+    if matrix:
+        profile['cases'] = list(case_definitions.values())
+        profile['methods'] = list(method_definitions.values())
+        profile['collection_composition'] = 'matrix'
+        # This is a read-only scoring view; source batches retain their admission contracts.
+        profile.pop('execution_policy',None)
+        profile.pop('collection_methods',None)
+        profile['protocol']['concurrency'] = 1
+        profile['protocol']['order'] = 'complete provider batches'
     if method_ids is not None:
         available = {m["id"]: m for m in profile["methods"]}
         if not method_ids or not set(method_ids).issubset(available):
             raise ValueError("Collections do not contain every comparison participant")
         profile["methods"] = [available[mid] for mid in method_ids]
         rows = [r for r in rows if r["method"] in method_ids]
+    if matrix:
+        expected = {(c['id'],m['id'],round_id) for c in profile['cases'] for m in profile['methods']
+                    for round_id in range(profile['protocol']['rounds'])}
+        actual = {(r['case_id'],r['method'],r['round']) for r in rows}
+        if actual != expected or len(actual) != len(rows):
+            raise ValueError('Matrix composition requires the complete method-by-task population')
     profile["cases"] = [dict(c, cohort="primary") for c in profile["cases"]]
     profile["method_collections"] = batches
     profile["report_cohorts"] = [{"id": "primary", "label": labels.get("primary", {"en": "Shared tasks", "zh": zh_text("Shared tasks")}),
@@ -584,7 +636,8 @@ def _load_collection(
             raise ValueError("Additional cohorts require a primary source")
         profile, rows, receipt, sources = load_report_runs(
             source, cohorts, authored.get("cohort_labels", {}), authored.get("comparison_methods"),
-            composition=authored.get("collection_composition", "cases")
+            composition=authored.get("collection_composition", "cases"),
+            source_methods=authored.get('collection_methods')
         )
     elif source:
         profile, rows, receipt = load_run(source)
@@ -2574,18 +2627,33 @@ def method_collection_notice(zh):
 def execution_settings(profile, zh):
     """Disclose effective admission limits and the latency measurement scope."""
     t = partial(report_text, zh=zh)
-    maximum = profile["protocol"]["concurrency"]
-    policy = profile.get("execution_policy")
-    bindings = execution_resources({**profile, "methods": profile.get("collection_methods", profile["methods"])}) if policy else {}
+    matrix = profile.get('collection_composition') == 'matrix'
+    batches = profile.get('method_collections',[])
+    maximum = (max(b['protocol']['concurrency'] for b in batches) if matrix
+               else profile['protocol']['concurrency'])
+
+    def admission(context, method):
+        limit = context['protocol']['concurrency']
+        policy = context.get('execution_policy')
+        bindings = execution_resources(context) if policy else {}
+        resources = bindings.get(method['id'],())
+        capacity = min([limit] + [policy['resources'][r]['capacity'] for r in resources])
+        details = '; '.join(f'{r}: {policy["resources"][r]["capacity"]}'
+                            + (f' ({policy["resources"][r]["reason"]})'
+                               if policy['resources'][r].get('reason') else '') for r in resources)
+        return capacity, details
+
     entries = []
     for method in profile["methods"]:
-        resources = bindings.get(method["id"], ())
-        capacity = min([maximum] + [policy["resources"][r]["capacity"] for r in resources])
-        details = "; ".join(
-            f'{r}: {policy["resources"][r]["capacity"]}'
-            + (f' ({policy["resources"][r]["reason"]})'
-               if policy["resources"][r].get("reason") else "") for r in resources)
-        entries.append(cells([esc(method["label"]), str(capacity), esc(details or "—")]))
+        if matrix:
+            settings = [admission(dict(protocol=b['protocol'],execution_policy=b.get('execution_policy'),
+                                       methods=b['execution_methods']), method)
+                        for b in batches if method['id'] in b['methods']]
+            capacity = ' / '.join(str(v) for v in sorted({value for value,_ in settings}))
+            details = '; '.join(dict.fromkeys(text for _,text in settings if text))
+        else:
+            capacity,details = admission({**profile,'methods':profile.get('collection_methods',profile['methods'])},method)
+        entries.append(cells([esc(method['label']),str(capacity),esc(details or '—')]))
     scope = (t("Latency includes concurrent collection load; it is not an isolated speed comparison.")
              if maximum > 1 else t("Serial collection; latency covers each saved API call."))
     collections = ""
@@ -2600,8 +2668,10 @@ def execution_settings(profile, zh):
                   "rotate methods by case": t("rotate methods by case"),
                   "rotate methods by case and round": t("rotate methods by case and round")}
         collections = ('<p>' + t("Methods were collected in separate batches. Dates and order are shown below; latency describes each saved batch, not a same-window speed trial.") + '</p>'
-                       + table([t("Collection"), t("Methods"), t("Date"), t("Call order")],
-                               [cells([esc(b["id"]), esc(", ".join(method_labels.get(mid, mid) for mid in b["methods"])), esc(collected_dates(b)), esc(orders.get(b["order"], b["order"]))])
+                       + table([t("Collection"), t("Methods"), t("Date"), t("Call order")]
+                               + ([t('Concurrent calls'),t('Client timeout (s)'),t('Allowed retries')] if matrix else []),
+                               [cells([esc(b["id"]), esc(", ".join(method_labels.get(mid, mid) for mid in b["methods"])), esc(collected_dates(b)), esc(orders.get(b["order"], b["order"]))]
+                                      + ([str(b['protocol']['concurrency']),str(b['protocol']['client_timeout_s']),str(int(b['protocol'].get('retry',False)))] if matrix else []))
                                 for b in profile["method_collections"]]))
     return ('<section data-execution-settings><h2>' + t("Collection concurrency") + '</h2><p>'
             + t("Maximum concurrent calls: {concurrency}.", concurrency=maximum)

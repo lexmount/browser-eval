@@ -68,6 +68,7 @@ def test_mirror_admission_requires_both_matching_title_and_original_lead():
     assert mirror_candidates('https://en.wikipedia.org.evil.test/wiki/Example') == []
     assert mirror_candidates('https://example.org/page') == []
     assert mirror_candidates('https://en.wikipedia.org/wiki/Special:Search') == []
+    assert mirror_candidates('https://en.wikipedia.org/wiki/Star_Trek:_First_Contact')
 
 
 def test_article_observations_exclude_navigation_tables_and_later_sections():
@@ -86,6 +87,13 @@ def test_article_observations_exclude_navigation_tables_and_later_sections():
     assert a['title'] == b['title'] == 'Article'
     assert a['lead'] == b['lead'] == paragraph
     assert a['body_sha256'] != b['body_sha256']
+    plain = ('Article\n\n' + paragraph + '\n\n## History\n\nLater section').encode()
+    fallback = article_observation(plain,'https://en.wikipedia.org/wiki/Article',
+                                  media_type='text/markdown',source_title='Article',**options)
+    assert fallback['title'] == 'Article' and fallback['lead'] == paragraph
+    wrong_title = article_observation(plain,'https://en.wikipedia.org/wiki/Article',
+                                     media_type='text/markdown',source_title='Different',**options)
+    assert wrong_title['title'] == '' and wrong_title['lead'] == ''
 
 
 def test_reference_extension_preserves_publisher_data_and_shares_aliases_by_document():
@@ -99,6 +107,9 @@ def test_reference_extension_preserves_publisher_data_and_shares_aliases_by_docu
                               reference_urls=[reference['url']]) for i in range(2)])
     original = deepcopy(dataset)
     extended = extend_reference_urls(dataset,[reference,mirror])
+    from lexbench_websearch.contracts import validate_cases
+
+    validate_cases(extended['cases'])
     assert dataset == original
     for case, previous in zip(extended['cases'], original['cases'], strict=True):
         assert {key:case[key] for key in previous} == previous
@@ -107,3 +118,12 @@ def test_reference_extension_preserves_publisher_data_and_shares_aliases_by_docu
     assert not extend_reference_urls(dataset,[mirror])['cases'][0]['equivalent_reference_urls']
     with pytest.raises(ValueError,match='independently derived'):
         extend_reference_urls(dataset,[dict(mirror,url='https://provider-result.test/document')])
+    for key,value in [('equivalent_reference_provenance',[]),('equivalent_reference_urls',[mirror['url'],mirror['url']])]:
+        modified=deepcopy(extended['cases'])
+        modified[0][key]=value
+        with pytest.raises(ValueError,match='provenance'):
+            validate_cases(modified)
+    modified=deepcopy(extended['cases'])
+    modified[0]['equivalent_reference_provenance'][0]['title_matches']=False
+    with pytest.raises(ValueError,match='proof'):
+        validate_cases(modified)

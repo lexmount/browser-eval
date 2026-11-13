@@ -463,6 +463,8 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
+    if profile.get('collection_composition') == 'matrix':
+        raise ValueError('A composed report matrix cannot be used as a collection profile')
     required = ("profile.json", "run-contract.json", "results.jsonl")
     if any(not (output / name).is_file() for name in required):
         raise ValueError("Resume requires complete frozen inputs and results.jsonl")
@@ -556,6 +558,8 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
     diagnostic = diagnostic or not certified
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
+    if profile.get('collection_composition') == 'matrix':
+        raise ValueError('A composed report matrix cannot be used as a collection profile')
     validate_profile(profile)
     budgets = call_budgets(profile)
     if execution_revision and not resume:
