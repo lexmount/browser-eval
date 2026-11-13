@@ -167,10 +167,12 @@ def test_shared_publisher_reads_committed_extract_inputs_and_rejects_unknown_bin
         for args in (
             ["init", "-q"],
             ["add", "."],
-            ["-c", "user.name=Fixture", "-c", "user.email=test@example.org", "commit", "-qm", "Fixture"],
+            ["-c", "user.name=Fixture", "-c", "user.email=test@example.org"]
+            + ["commit", "-qm", "Fixture"],
         ):
             subprocess.run(["git", *args], cwd=directory, capture_output=True, check=True)
-        return subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=directory, text=True).strip()
+        head = ["git", "rev-parse", "HEAD"]
+        return subprocess.check_output(head, cwd=directory, text=True).strip()
 
     revision = commit(root)
     (definitions / "evaluate.py").write_bytes(b"# uncommitted edit\n")
