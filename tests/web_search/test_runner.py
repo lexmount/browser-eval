@@ -32,7 +32,7 @@ def failed_postcheck(tmp_path, monkeypatch):
     profile['reference_checks'] = {url: dict(url=url, contains=['reference'])
                                    for case in profile['cases'] for url in case['anchors']}
     path = tmp_path / 'profile.json'
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding="utf-8")
     state = dict(references=0, provider_calls=0, post_status=0, post_exit=6, recover=True)
 
     def http(url, body=None, *args, **kwargs):
@@ -111,12 +111,12 @@ def test_reference_finalization_replays_its_zero_call_and_complete_scope_contrac
         path = output / receipt['reference_finalization']['path']
         proof = json.loads(path.read_bytes())
         proof[changed] = 1 if changed == 'provider_calls' else []
-        path.write_text(json.dumps(proof))
+        path.write_text(json.dumps(proof), encoding="utf-8")
         receipt['reference_finalization']['sha256'] = bytes_sha256(path.read_bytes())
         for binding in receipt['bindings']:
             if binding['path'] == path.relative_to(output).as_posix():
                 binding['sha256'] = bytes_sha256(path.read_bytes())
-    (output / 'receipt.json').write_text(json.dumps(receipt))
+    (output / 'receipt.json').write_text(json.dumps(receipt), encoding="utf-8")
     with pytest.raises(ValueError, match='finalization|complete collection'):
         load_run(output)
     assert state['provider_calls'] == 1
@@ -1313,7 +1313,7 @@ def test_ai_answer_survives_invalid_webpage_slots_without_retry(tmp_path, pages)
     profile['cases'] = profile['cases'][:1]
     profile['protocol'].update(normalize_top_k=True, result_url_resolution='request-url/2')
     path = tmp_path/'profile.json'
-    path.write_text(json.dumps(profile))
+    path.write_text(json.dumps(profile), encoding="utf-8")
     payload = dict(code=200, messages=[
         dict(type='source', content_type='webpage', content=json.dumps({'value': pages})),
         dict(type='answer', content_type='text', content='A retained answer [引用:1]'),
@@ -1338,3 +1338,29 @@ def test_ai_answer_survives_invalid_webpage_slots_without_retry(tmp_path, pages)
     assert len(rows[0]['results']) == min(5, len(pages))
     if pages[0] is None:
         assert rows[0]['results'][0]['invalid_slot']
+
+
+@pytest.mark.parametrize('selector', [['--track', 'webfetch'], ['--track=webfetch'], ['--track=web-search']])
+def test_positional_track_rejects_a_second_selector_before_dispatch(selector, monkeypatch):
+    from harness.reporting.certified_cli import main
+
+    def unexpected(*args, **kwargs):
+        pytest.fail('A duplicated track must not start any collection')
+
+    monkeypatch.setattr('harness.web_search.runner.main', unexpected)
+    monkeypatch.setattr('harness.web_fetch.certification.main', unexpected)
+    with pytest.raises(ValueError, match='Select the certified track once'):
+        main(['web-search', *selector])
+
+
+def test_reference_finalization_rejects_descendant_before_changing_source(tmp_path, failed_postcheck):
+    runner, profile, state = failed_postcheck
+    source = tmp_path / 'source'
+    runner.run(profile, source, certified=True)
+    original = {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
+    output = source / 'references' / 'recovered'
+    with pytest.raises(ValueError, match='new external output directory'):
+        runner.finalize_references(profile, source, output)
+    assert not output.exists()
+    assert original == {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
+    assert state['provider_calls'] == 1 and state['references'] == 2

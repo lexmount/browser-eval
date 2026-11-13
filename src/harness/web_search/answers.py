@@ -5,6 +5,7 @@ import json
 from copy import deepcopy
 
 from harness.benchmark_execution import ExecutionPolicy, Job, exclusive_policy, run_jobs
+from harness.record_io import canonical_json_sha256
 from harness.web_search.relevance import run_judge_request, validate_physical_receipts
 from lexbench_websearch.answers import (
     CITATION_CORRECTION,
@@ -24,7 +25,7 @@ from lexbench_websearch.answers import (
 
 
 def _digest(value):
-    return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    return canonical_json_sha256(value, separators=None)
 
 
 def _inputs_digest(profile, rows):

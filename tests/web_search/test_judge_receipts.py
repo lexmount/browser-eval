@@ -104,7 +104,7 @@ def test_public_judge_selects_native_fields_and_replays_l2_admission(run_judge,m
         raw=json.dumps(receipt).encode();(tmp_path/'admission.json').write_bytes(raw)
         bundle=dict(schema='web-search-field-admissions/1',receipts={'web':dict(path='admission.json',sha256=bytes_sha256(raw))},
                     artifacts=[dict(path=name,sha256=bytes_sha256(value)) for name,value in artifacts.items()])
-        (tmp_path/'admissions.json').write_text(json.dumps(bundle))
+        (tmp_path/'admissions.json').write_text(json.dumps(bundle), encoding="utf-8")
         args+=['--field-admissions',str(tmp_path/'admissions.json')]
     requests=[]
     def transport(request,**kwargs):
@@ -609,7 +609,7 @@ def test_interrupted_format_repair_keeps_original_and_recovers_without_paid_call
     from harness.web_search.relevance import run_judge_request
     path = tmp_path/'call.json'
     original = {'paid': 'original'}
-    path.write_text(json.dumps(original))
+    path.write_text(json.dumps(original), encoding="utf-8")
     config = dict(base_url='https://test.invalid/v1', request_headers={}, attempt_limit=1)
     request = dict(messages=[])
     spent = []

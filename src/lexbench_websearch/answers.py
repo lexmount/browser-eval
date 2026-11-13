@@ -15,10 +15,10 @@ SIMPLEQA_UPSTREAM = {
     "sha256": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29",
 }
 GRADES = {"A": "CORRECT", "B": "INCORRECT", "C": "NOT_ATTEMPTED"}
-CITATION_RULE = "native-source-citations/2"
+CITATION_RULE = "native-source-citations/3"
 CITATION_CORRECTION = {
-    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking.",
-    "regression_ids": ["native-source-citation-identities", "citation-target-occurrences"],
+    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers and include visible link text in the cited claim.",
+    "regression_ids": ["native-source-citation-identities", "citation-target-occurrences", "rendered-citation-occurrences", "citation-link-claims"],
     "provider_calls": 0,
 }
 CITATION_VALIDATION = {
@@ -138,10 +138,21 @@ def citation_inventory(answer, results):
     parser = MarkdownIt()
     parser.inline.ruler.at("link", positioned(link))
     parser.inline.ruler.at("autolink", positioned(autolink))
+    def native_citation(state, silent):
+        marker = re.match(r"\[引用[:：]\s*([0-9]+(?:\s*[,，、]\s*[0-9]+)*)\s*\]", state.src[state.pos:])
+        if not marker:
+            return False
+        if not silent:
+            token = state.push("native_citation", "", 0)
+            token.content = marker[0]
+            token.meta = dict(span=(state.pos, state.pos + len(marker[0])), identities=re.split(r"\s*[,，、]\s*", marker[1]))
+        state.pos += len(marker[0])
+        return True
+
+    # Markdown handles escapes and code before this rule. A marker in a link label
+    # belongs to that link rather than becoming a second native citation.
+    parser.inline.ruler.after("link", "native_citation", native_citation)
     references = []
-    for marker in re.finditer(r"\[引用[:：]\s*([0-9]+(?:\s*[,，、]\s*[0-9]+)*)\s*\]", answer):
-        for identity in re.split(r"\s*[,，、]\s*", marker[1]):
-            references.append((marker.start(), marker.end(), marker[0], by_id.get(identity)))
     cursor = 0
     for block in parser.parse(answer):
         if block.type != "inline":
@@ -163,9 +174,28 @@ def citation_inventory(answer, results):
             positions = list(range(start, start + len(block.content)))
         if positions:
             cursor = positions[-1] + 1
-        for token in block.children or []:
+        children = block.children or []
+        link_depth = 0
+        for index, token in enumerate(children):
+            if token.type == "link_close":
+                link_depth -= 1
+                continue
+            if token.type == "native_citation" and not link_depth:
+                begin, end = token.meta["span"]
+                for identity in token.meta["identities"]:
+                    references.append((positions[begin], positions[end - 1] + 1, token.content, by_id.get(identity), ""))
+                continue
             if token.type != "link_open":
                 continue
+            link_depth += 1
+            label = []
+            for child in children[index + 1:]:
+                if child.type == "link_close":
+                    break
+                if child.type in ("text", "code_inline", "native_citation", "image"):
+                    label.append(child.content)
+                elif child.type in ("softbreak", "hardbreak"):
+                    label.append(" ")
             url = token.attrGet("href") or ""
             try:
                 key = canonical_url(url, policy="document-url/2")
@@ -174,14 +204,21 @@ def citation_inventory(answer, results):
             begin, end = token.meta["span"]
             absolute_start, absolute_end = positions[begin], positions[end - 1] + 1
             references.append(
-                (absolute_start, absolute_end, answer[absolute_start:absolute_end], by_url.get(key))
+                (absolute_start, absolute_end, answer[absolute_start:absolute_end], by_url.get(key), "".join(label))
             )
     citations, previous_end, context = [], 0, ""
-    for start, end, marker, item in sorted(references, key=lambda value: value[0]):
+    references.sort(key=lambda value: value[0])
+    for index, (start, end, marker, item, label) in enumerate(references):
         between = answer[previous_end:start]
         if between.strip(" .;,!?:\n\r\t，。；、！："):
             # Each occurrence gets the claim immediately preceding it, never an earlier claim.
             context = between.rsplit("\n\n", 1)[-1].strip()
+        if label:
+            # A linked subject can precede its predicate: "[Paris](url) is the capital."
+            limit = references[index + 1][0] if index + 1 < len(references) else len(answer)
+            following = answer[end:limit].split("\n\n", 1)[0]
+            following = re.split(r"(?<=[.!?。！？])(?:\s|$)", following, maxsplit=1)[0]
+            context = (context + " " + label + following).strip()
         if not context:
             context = marker
         source = (

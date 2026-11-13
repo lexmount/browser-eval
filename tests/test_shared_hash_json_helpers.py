@@ -503,3 +503,8 @@ def test_write_diagnostic_keeps_document_bytes_and_refuses_an_existing_file(tmp_
     assert target.read_bytes() == (json.dumps(VALUE, ensure_ascii=False, indent=2) + '\n').encode()
     with pytest.raises(ValueError, match='already exists'):
         write_diagnostic(target, VALUE)
+
+
+def test_legacy_sorted_json_hash_keeps_its_spaced_wire_encoding():
+    raw = json.dumps(VALUE, ensure_ascii=False, sort_keys=True).encode('utf-8')
+    assert canonical_json_sha256(VALUE, separators=None) == bytes_sha256(raw)

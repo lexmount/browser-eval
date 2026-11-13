@@ -16,14 +16,14 @@ def test_public_report_roundtrip_preserves_native_crlf_text(tmp_path, monkeypatc
 
     def native_multiline(path, value):
         if path.parent.name == 'calls' and value.get('results'):
-            value['results'][0]['snippet'] = 'Fixture only\r\nExample: /Users/public-author/tool.py'
+            value['results'][0]['snippet'] = 'Fixture only\r\nExample: /Users/fixture/tool.py'
         return write(path, value)
 
     monkeypatch.setattr(owner, 'write_json', native_multiline)
     owner.example(tmp_path, levels=True)
     assert check(tmp_path / 'report')
     native = next((tmp_path / 'fixture/calls').glob('*.json')).read_bytes()
-    assert b'/Users/public-author/tool.py' in native
+    assert b'/Users/fixture/tool.py' in native
     detail = next((tmp_path / 'report/details').glob('*.html')).read_bytes().decode()
     assert '/Users/' not in detail and '[source path]' in detail
 
@@ -39,7 +39,7 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
         "level-assessments/level-l1.json",
     }
     for prefix in ["", "en/"]:
-        home = BeautifulSoup((root / (prefix + "index.html")).read_text(), "html.parser")
+        home = BeautifulSoup((root / (prefix + "index.html")).read_text(encoding="utf-8"), "html.parser")
         assert [s["data-output-level"] for s in home.select("[data-output-level]")] == ["l1"]
         assert {s["data-level-benchmark"] for s in home.select("[data-level-benchmark]")} == {
             "scenario",
@@ -54,7 +54,7 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
         comparison = json.loads(results.select_one('[data-comparison-data]').string)
         assert {p['id'] for p in comparison['populations']} == {'scenario', 'factual'}
         assert {o['value'] for o in results.select('[data-output-benchmark] option')} == {'all', 'scenario', 'factual'}
-        quality = BeautifulSoup((root / (prefix + "quality.html")).read_text(), "html.parser")
+        quality = BeautifulSoup((root / (prefix + "quality.html")).read_text(encoding="utf-8"), "html.parser")
         assert {
             s["data-findings-benchmark"] for s in quality.select("[data-findings-benchmark]")
         } == {"scenario", "factual"}
@@ -63,7 +63,7 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
         assert (
             len(
                 BeautifulSoup(
-                    (root / (prefix + "capabilities.html")).read_text(), "html.parser"
+                    (root / (prefix + "capabilities.html")).read_text(encoding="utf-8"), "html.parser"
                 ).select('[data-capability-level="l1"]')
             )
             == 1
@@ -78,7 +78,7 @@ def test_public_check_rejects_missing_or_incorrect_level_presentation(tmp_path, 
     example(tmp_path, levels=True)
     root = tmp_path / "report"
     path = root / ("quality.html" if damage == "missing-chart" else 'dataset.html' if damage == 'wrong-dataset' else "index.html")
-    soup = BeautifulSoup(path.read_text(), "html.parser")
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     if damage == "missing-level":
         soup.select_one("[data-output-level]").decompose()
     elif damage == "missing-chart":
@@ -91,7 +91,7 @@ def test_public_check_rejects_missing_or_incorrect_level_presentation(tmp_path, 
         soup.select_one('[data-dataset-context] tbody tr td:nth-of-type(2)').string = '999'
     else:
         soup.select_one("[data-output-level] tbody tr td").string = "An unsupported provider"
-    path.write_text(str(soup))
+    path.write_text(str(soup), encoding="utf-8")
     with pytest.raises(ValueError):
         check(root)
 
@@ -177,7 +177,7 @@ def test_public_check_rejects_mixed_or_missing_level_evidence_views(tmp_path, da
         if damage == "wrong-detail"
         else root / "results.html"
     )
-    soup = BeautifulSoup(path.read_text(), "html.parser")
+    soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
     if damage == "missing-results-level":
         soup.select_one("[data-level-results]").decompose()
     elif damage == "mixed-preview":
@@ -189,6 +189,32 @@ def test_public_check_rejects_mixed_or_missing_level_evidence_views(tmp_path, da
         node.string = json.dumps(value)
     else:
         soup.select_one("[data-detail-level] .native-answer").string = "Wrong scored text"
-    path.write_text(str(soup))
+    path.write_text(str(soup), encoding="utf-8")
     with pytest.raises(ValueError):
         check(root)
+
+
+def test_level_report_keeps_authored_quality_definitions_before_findings(tmp_path, monkeypatch):
+    from harness.web_search import example as example_module
+
+    original = example_module.build
+
+    def build(output, **kwargs):
+        path = kwargs['content']
+        content = json.loads(path.read_bytes())
+        content['sections'] = [dict(page=page, title=dict(en=title, zh=title),
+                                   paragraphs=[dict(en=text, zh=text)]) for page, title, text in [
+            ('quality-lead', 'Reading guide', 'Start with the primary metric'),
+            ('quality-definitions', 'Grade definitions', 'Three means directly useful'),
+            ('quality', 'Findings', 'Compare the two benchmark populations')]]
+        path.write_text(json.dumps(content), encoding='utf-8')
+        return original(output, **kwargs)
+
+    monkeypatch.setattr(example_module, 'build', build)
+    example_module.example(tmp_path, levels=True)
+    root = tmp_path / 'report'
+    check(root)
+    for prefix in ('', 'en/'):
+        text = (root / (prefix + 'quality.html')).read_text(encoding='utf-8')
+        assert text.index('Reading guide') < text.index('Grade definitions') < text.index('Findings')
+        assert 'Three means directly useful' in text

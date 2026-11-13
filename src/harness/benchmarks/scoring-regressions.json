@@ -85787,6 +85787,78 @@
         },
         "expected": false
       }
+    ],
+    "rendered-citation-occurrences": [
+      {
+        "kind": "citation",
+        "answer": "Fact [引用:1]",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "`[引用:1]`",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "```\n[引用:1]\n```",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "\\[引用:1]",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "citation-link-claims": [
+      {
+        "kind": "citation",
+        "answer": "The capital is [Paris](https://example.test/a).",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "claim_contains": "Paris",
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "The capital is [Lyon](https://example.test/a).",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "claim_contains": "Paris",
+        "expected": false
+      }
     ]
   },
   "web_search_normalization": {

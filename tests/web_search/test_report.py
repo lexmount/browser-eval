@@ -1067,13 +1067,13 @@ def test_native_answer_substitution_is_rejected_at_every_input_boundary(tmp_path
     source = tmp_path/'fixture'
     if boundary == 'load':
         path = source/'results.jsonl'
-        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
         row = next(r for r in rows if bool(r['error']) == failed)
         row['answer'] = 'An answer absent from the native response'
-        path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+        path.write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding="utf-8")
         receipt = json.loads((source/'receipt.json').read_bytes())
         receipt['results_sha256'] = bytes_sha256(path.read_bytes())
-        (source/'receipt.json').write_text(json.dumps(receipt))
+        (source/'receipt.json').write_text(json.dumps(receipt), encoding="utf-8")
         with pytest.raises(ValueError, match='answer'):
             load_run(source)
     else:
@@ -1083,6 +1083,6 @@ def test_native_answer_substitution_is_rejected_at_every_input_boundary(tmp_path
         value = json.loads(path.read_bytes())
         row = next(r for r in value['rows'] if bool(r['error']) == failed)
         row['answer'] = 'An answer absent from the native response'
-        path.write_text(json.dumps(value))
+        path.write_text(json.dumps(value), encoding="utf-8")
         with pytest.raises(ValueError, match='answer'):
             check(output, evidence_only=boundary == 'evidence-only')

@@ -215,3 +215,34 @@ def test_explanation_is_optional_but_evidence_ids_and_verdict_are_required():
         del changed[0][field]
         with pytest.raises(ValueError):
             answers.citation_grades(value, json.dumps(dict(judgments=changed)))
+
+
+@pytest.mark.parametrize('text', ['`[引用:1]`', '```text\n[引用:1]\n```', r'\[引用:1]', '    [引用:1]'])
+def test_literal_citation_examples_do_not_become_evidence(text):
+    assert answers.citation_inventory(text, [dict(url='https://example.test/a', citation_id=1)]) == []
+
+
+@pytest.mark.parametrize('text', ['A fact [引用:1]', '> A fact [引用:1]', '- A fact [引用:1]'])
+def test_rendered_native_citations_preserve_original_spans(text):
+    citation, = answers.citation_inventory(text, [dict(url='https://example.test/a', citation_id=1)])
+    assert citation['in_results']
+    assert text[slice(*citation['span'])] == '[引用:1]'
+
+
+@pytest.mark.parametrize('label', ['Paris', '**Paris**', '`Paris`', 'Paris is the capital of France'])
+def test_cited_claim_contains_visible_link_facts(label):
+    text = 'The capital is [' + label + '](https://example.test/a).'
+    citation, = answers.citation_inventory(text, [dict(url='https://example.test/a')])
+    assert 'Paris' in citation['claim_context']
+    assert text[slice(*citation['span'])] == citation['marker']
+
+
+def test_native_marker_in_link_label_counts_one_link():
+    citation, = answers.citation_inventory('Fact [引用:1](https://example.test/a)', [dict(url='https://example.test/a', citation_id=1)])
+    assert citation['in_results']
+
+
+def test_linked_subject_keeps_its_following_predicate_without_the_next_sentence():
+    citation, = answers.citation_inventory('[Paris](https://example.test/a) is the capital. Another claim.',
+                                           [dict(url='https://example.test/a')])
+    assert citation['claim_context'] == 'Paris is the capital.'

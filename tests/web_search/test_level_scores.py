@@ -252,7 +252,7 @@ def test_public_assessment_export_rejects_escaping_or_symlinked_paths(tmp_path, 
     if defect == "level-path":
         manifest = json.loads((source / "manifest.json").read_bytes())
         manifest["relevance"]["../../escaped"] = manifest["relevance"]["l1"]
-        (source / "manifest.json").write_text(json.dumps(manifest))
+        (source / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     else:
         destination.mkdir()
         (destination / "judgments").symlink_to(source, target_is_directory=True)

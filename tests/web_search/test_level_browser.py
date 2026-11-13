@@ -51,7 +51,7 @@ def test_level_tabs_and_independent_filters_in_real_browser(tmp_path, width):
         + "</main><script>"
         + SCRIPT
         + "</script></html>"
-    )
+    , encoding="utf-8")
     binary = os.environ.get("WEBSTONE_TEST_BROWSER_BINARY") or browser_executable()
     with playwright.sync_playwright() as engine:
         browser = engine.chromium.launch(executable_path=binary, headless=True)

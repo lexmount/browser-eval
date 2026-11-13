@@ -6,7 +6,7 @@ from copy import deepcopy
 from bs4 import BeautifulSoup
 from markdown_it import MarkdownIt
 
-from harness.record_io import bytes_sha256
+from harness.record_io import bytes_sha256, json_bytes
 from harness.web_search.adapters import adapter_for
 from harness.web_search.core import verify_bundle
 from lexbench_webfetch.reference_quality import blocked_page_hits
@@ -374,9 +374,6 @@ def export_level_bundle(path, destination):
         target.write_bytes(raw)
         return dict(path=name, sha256=bytes_sha256(raw))
 
-    def encoded(value):
-        return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
-
     public = dict(source, relevance={})
     bindings = list(source.get('relevance', {}).values())
     bindings += [source[key] for key in ('answers', 'upstream', 'field_admissions') if source.get(key)]
@@ -396,9 +393,9 @@ def export_level_bundle(path, destination):
             for page in value['pages']:
                 for key in ('capture', 'evidence'):
                     page[key] = mapped[page[key]['path']]
-            raw = encoded(value)
+            raw = json_bytes(value)
             public_receipts[method] = write('fields/' + bytes_sha256(raw) + '.json', raw)
         fields = dict(schema='web-search-field-admissions/1', receipts=public_receipts,
                       artifacts=list({item['path']: item for item in mapped.values()}.values()))
-        public['field_admissions'] = write('field-admissions.json', encoded(fields))
-    return write('assessments.json', encoded(public))
+        public['field_admissions'] = write('field-admissions.json', json_bytes(fields))
+    return write('assessments.json', json_bytes(public))

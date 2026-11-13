@@ -46,7 +46,7 @@ def unchanged_legacy_inputs(tmp_path, monkeypatch):
     historical = next(item for item in [provider, *provider.get("history", [])]
                       if item["revision"] == revision)
     lock["datasets"]["simpleqa-verified"] = copy.deepcopy(historical)
-    (tmp_path/"data-lock.json").write_text(json.dumps(lock))
+    (tmp_path/"data-lock.json").write_text(json.dumps(lock), encoding="utf-8")
     monkeypatch.setattr(data, "__file__", str(tmp_path/"data.py"))
 
 

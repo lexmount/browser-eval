@@ -17,7 +17,7 @@ def answer_run(tmp_path, monkeypatch):
     from lexbench_websearch import answers
 
     monkeypatch.setattr(config, 'ROOT', tmp_path)
-    (tmp_path/'.env').write_text('SEARCH_JUDGE_API_KEY=fixture\nSEARCH_JUDGE_BASE_URL=https://judge.test/v1\n')
+    (tmp_path/'.env').write_text('SEARCH_JUDGE_API_KEY=fixture\nSEARCH_JUDGE_BASE_URL=https://judge.test/v1\n', encoding="utf-8")
     source = b'GRADER_TEMPLATE = "Question {question}; expected {target}; answer {predicted_answer}".strip()\n'
     monkeypatch.setitem(answers.SIMPLEQA_UPSTREAM, 'sha256', hashlib.sha256(source).hexdigest())
     grader = tmp_path/'simpleqa.py'

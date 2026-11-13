@@ -63,10 +63,10 @@ class CurrentProfileScenarios(unittest.TestCase):
         profile['protocol'].update(concurrency=4, order='bounded calls')
         profile['execution_policy'] = dict(purpose='quality', max_in_flight=4,
                                            resources={'body': {'capacity': 4}}, backend='thread')
-        self.historical.write_text(json.dumps(profile))
+        self.historical.write_text(json.dumps(profile), encoding="utf-8")
         self.binding['sha256'] = bytes_sha256(self.historical.read_bytes())
         self.selection['methods'] = ['body']
-        self.entry.write_text(json.dumps(self.selection))
+        self.entry.write_text(json.dumps(self.selection), encoding="utf-8")
         resolved = json.loads(load_profile_bytes(self.entry))
         self.assertEqual(resolved['protocol']['order'], 'bounded calls')
         self.assertEqual(resolved['execution_policy'], profile['execution_policy'])
@@ -88,11 +88,11 @@ class CurrentProfileScenarios(unittest.TestCase):
         (self.root / 'extra.json').write_bytes(raw)
         binding = dict(id='extra', path='extra.json', sha256=bytes_sha256(raw), methods=['base'])
         selected = dict(self.selection, supplementary_profiles=[binding], methods=['lexmount', 'base'])
-        self.entry.write_text(json.dumps(selected))
+        self.entry.write_text(json.dumps(selected), encoding="utf-8")
         loaded = json.loads(load_profile_bytes(self.entry, cohort='extra'))
         self.assertEqual([m['id'] for m in loaded['methods']], ['base'])
         binding['methods'] = ['missing']
-        self.entry.write_text(json.dumps(selected))
+        self.entry.write_text(json.dumps(selected), encoding="utf-8")
         with self.assertRaisesRegex(ValueError, 'source method selection'):
             load_profile_bytes(self.entry)
 

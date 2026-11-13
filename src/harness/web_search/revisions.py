@@ -271,7 +271,7 @@ def validate_revision_controls(revision, normalizer=None):
                 from lexbench_websearch.answers import citation_inventory
 
                 citations = citation_inventory(control['answer'], control['results'])
-                if bool(citations and all(c['in_results'] for c in citations)) != control['expected']:
+                if bool(citations and all(c['in_results'] and control.get('claim_contains', '') in c['claim_context'] for c in citations)) != control['expected']:
                     raise ValueError('Native citation identity regression failed')
                 continue
             if control.get('kind') == 'output_level':

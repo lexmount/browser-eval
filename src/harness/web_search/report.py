@@ -1260,6 +1260,7 @@ def _write_comparison_chapters(inputs: ReportInputs, edition: ReportEdition) -> 
             )
 
             if chapter_key == 'quality':
+                chapter_body += authored_sections(authored, 'quality-definitions', lang, rows=selected)
                 chapter_body += render_level_tabs(inputs.level_views, zh)
             chapter_body += (render_level_capabilities(inputs.level_views, zh) if chapter_key == 'capabilities'
                              else ''.join(render_level_findings(view, zh) for view in inputs.level_views.values()))

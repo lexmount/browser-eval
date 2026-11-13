@@ -101,9 +101,9 @@ def _fragment_run(source, target, case_ids):
     profile['cases']=[c for c in profile['cases'] if c['id'] in case_ids]
     profile['protocol']['client_timeout_s']=35
     write_json(target/'profile.json',profile)
-    rows=[json.loads(line) for line in (target/'results.jsonl').read_text().splitlines()]
+    rows=[json.loads(line) for line in (target/'results.jsonl').read_text(encoding="utf-8").splitlines()]
     rows=[r for r in rows if r['case_id'] in case_ids]
-    (target/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows))
+    (target/'results.jsonl').write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding="utf-8")
     receipt=json.loads((target/'receipt.json').read_bytes())
     receipt.update(call_count=len(rows),profile_sha256=bytes_sha256((target/'profile.json').read_bytes()),
                    results_sha256=bytes_sha256((target/'results.jsonl').read_bytes()))
@@ -372,7 +372,7 @@ def test_matrix_replays_each_source_projection_policy_through_public_report(tmp_
     old, new = split_runs(tmp_path)
     profile = json.loads((new/'profile.json').read_bytes())
     profile['protocol'][control] = True if control == 'normalize_top_k' else 'request-url/2'
-    rows = [json.loads(line) for line in (new/'results.jsonl').read_text().splitlines()]
+    rows = [json.loads(line) for line in (new/'results.jsonl').read_text(encoding="utf-8").splitlines()]
     for row in rows:
         if row['error']:
             continue
@@ -384,7 +384,7 @@ def test_matrix_replays_each_source_projection_policy_through_public_report(tmp_
         row['results'] = normalize_response(payload, profile['methods'][0], profile['protocol'])
         row['metrics'] = evaluate(next(c for c in profile['cases'] if c['id'] == row['case_id']), row['results'])
     write_json(new/'profile.json',profile)
-    (new/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    (new/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding="utf-8")
     receipt = json.loads((new/'receipt.json').read_bytes())
     receipt.update(profile_sha256=bytes_sha256((new/'profile.json').read_bytes()), results_sha256=bytes_sha256((new/'results.jsonl').read_bytes()))
     write_json(new/'receipt.json',receipt)

@@ -929,7 +929,7 @@ def finalize_references(profile_path, source, output):
     old_after = (source / 'references-after.json').read_bytes()
     contract = json.loads((source / 'run-contract.json').read_bytes())
     scope = _recoverable_reference_scope(profile, contract, before, json.loads(old_after))
-    if output.is_relative_to(ROOT) or output == source or output.exists():
+    if output.is_relative_to(ROOT) or output.is_relative_to(source) or output.exists():
         raise ValueError('Reference finalization requires a new external output directory')
     if any(path.is_symlink() for path in source.rglob('*')):
         raise ValueError('Reference finalization rejects symlinks')
