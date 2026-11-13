@@ -286,3 +286,20 @@ def test_local_claim_keeps_abbreviations_and_inline_formatting():
     text='The U.S. capital is [**Washington**](https://source.test/a).'
     citation,=answers.citation_inventory(text,[dict(url='https://source.test/a')])
     assert citation['claim_context']=='The U.S. capital is Washington.'
+
+
+@pytest.mark.parametrize('markup,claim', [
+    ('<span title="Paris is in France"></span>', ''),
+    ('<span title="Hidden assertion">Paris is in France.</span>', 'Paris is in France.'),
+])
+def test_citation_support_uses_visible_inline_html_text(markup, claim):
+    packet = answers.answer_packet(dict(id='q', query='Where is Paris?'), dict(
+        answer=markup+'[引用:1]',
+        results=[dict(url='https://source.test/a', citation_id=1, snippet='Paris is in France.')]))
+    assert packet['citations'][0]['claim_context'] == claim
+    response = json.dumps(dict(judgments=[dict(citation_index=0, supported=True, source_refs=['0:snippet'])]))
+    if claim:
+        assert answers.citation_grades(packet, response)
+    else:
+        with pytest.raises(ValueError, match='source references'):
+            answers.citation_grades(packet, response)

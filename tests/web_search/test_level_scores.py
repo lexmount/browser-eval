@@ -41,6 +41,32 @@ def test_unsupported_cutoff_is_rejected_before_any_level_judgments():
         level_inputs(profile, rows, 'l1')
 
 
+@pytest.mark.parametrize('change', [
+    {'extra_params': {'enable_thinking': True}},
+    {'extra_params': {}},
+    {'max_tokens': 4096},
+    {'temperature': 0.7},
+    {'extra_params': {'enable_thinking': False, 'top_k': 20}},
+])
+def test_same_model_with_different_inference_settings_is_rejected(change):
+    profile, rows, admissions, artifacts, evidence = complete_levels()
+    for value in evidence.values():
+        value['judge'] = dict(kind='model', name='fixture-model', configuration=dict(
+            temperature=0, max_tokens=8192, extra_params={'enable_thinking': False}))
+    evidence['l2']['judge']['configuration'].update(change)
+    with pytest.raises(ValueError, match='shared judge inference configuration'):
+        assessed_levels(profile, rows, relevance=evidence, admissions=admissions, artifacts=artifacts)
+
+
+def test_all_model_levels_must_explicitly_disable_thinking():
+    profile, rows, admissions, artifacts, evidence = complete_levels()
+    for value in evidence.values():
+        value['judge'] = dict(kind='model', name='fixture-model', configuration=dict(
+            temperature=0, max_tokens=8192, extra_params={'enable_thinking': True}))
+    with pytest.raises(ValueError, match='thinking disabled'):
+        assessed_levels(profile, rows, relevance=evidence, admissions=admissions, artifacts=artifacts)
+
+
 def test_level_assessments_retain_separate_full_call_timing_population():
     profile, rows, admissions, artifacts, evidence = complete_levels()
     timing = rows + [dict(row, id=row['id'] + '-round2', round=1) for row in rows]

@@ -86362,6 +86362,78 @@
           }
         ],
         "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "<span title=\"Paris is in France\"></span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "claims": [
+          ""
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "<span title=\"Paris is in France\"></span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "<span title=\"Hidden assertion\">Paris is in France.</span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "claims": [
+          "Paris is in France."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "<span title=\"Hidden assertion\">Paris is in France.</span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": true
       }
     ]
   },

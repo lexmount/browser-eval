@@ -218,6 +218,16 @@ def assessed_levels(profile, rows, *, relevance=None, relevance_revisions=None,
         raise ValueError('Output levels require one shared judge configuration')
     if answers is not None and model_names != {answers['configuration']['model']}:
         raise ValueError('Answer and relevance levels require the same judge model')
+    configurations = [judge['configuration'] for judge in judges if judge.get('kind') == 'model']
+    if answers is not None:
+        configurations.append(answers['configuration'])
+    if configurations:
+        common = configurations[0]
+        if any(config.get('extra_params', {}).get('enable_thinking') is not False
+               or any(config.get(key) != common.get(key)
+                      for key in ('temperature', 'max_tokens', 'extra_params'))
+               for config in configurations):
+            raise ValueError('Output levels require one shared judge inference configuration with thinking disabled')
     views = {}
     for level in ('l1', 'l2', 'l3'):
         if level not in available:

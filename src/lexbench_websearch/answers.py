@@ -205,7 +205,7 @@ def citation_inventory(answer, results):
                                       local_start=length, local_end=length,
                                       item=by_id.get(identity), native=True))
                 continue
-            if token.type in ("text", "code_inline", "image", "native_citation", "html_inline"):
+            if token.type in ("text", "code_inline", "image", "native_citation"):
                 text = token.content
             elif token.type in ("softbreak", "hardbreak"):
                 text = " "
