@@ -1,7 +1,10 @@
 async function loadSavedPage(){
  let target=document.querySelector('[data-delivery-target]');
  if(!target){target=document.createElement('pre');target.dataset.deliveryTarget='';document.querySelector('main').appendChild(target)}
- const path=decodeURIComponent(location.hash.slice(1));
+ const selected=decodeURIComponent(location.hash.slice(1));
+ const separator=selected.indexOf('#');
+ const path=separator<0?selected:selected.slice(0,separator);
+ const anchor=separator<0?'':selected.slice(separator+1);
  try{
   if(!path)throw Error('No result selected');
   const bytes=restoreBytes(await stored(path));
@@ -17,6 +20,7 @@ async function loadSavedPage(){
    const script=document.createElement('script');
    script.textContent='{'+doc.querySelector('script').textContent+'}';
    document.body.appendChild(script);
+   if(anchor)requestAnimationFrame(()=>document.getElementById(anchor)?.scrollIntoView());
   }else{
    let formatted=text;try{formatted=JSON.stringify(JSON.parse(text),null,2)}catch{}
    target.textContent=formatted;

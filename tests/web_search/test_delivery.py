@@ -166,3 +166,27 @@ def test_crlf_and_non_utf8_provider_bodies_are_lossless():
             shard = json.loads(gzip.decompress((destination / index["files"][virtual]).read_bytes()))
             assert base64.b64decode(shard[virtual]["base64"]) == raw
             assert verify(source, destination)
+
+
+@pytest.mark.parametrize('prefix', ['', 'en/'])
+def test_delivered_detail_sections_open_the_original_file_before_scrolling(tmp_path, prefix):
+    from harness.web_search.delivery import _delivery_link
+    from harness.reporting.visual import browser_executable, local_report_server
+    from playwright.sync_api import sync_playwright
+
+    example(tmp_path, comparison=True)
+    source, destination = tmp_path / 'report', tmp_path / 'delivery'
+    export(source, destination)
+    manifest = json.loads((source / 'manifest.json').read_bytes())
+    row = manifest['rows'][0]
+    target = prefix + 'details/' + row['id'] + '.html#result-logs'
+    with local_report_server(destination) as origin, sync_playwright() as engine:
+        browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
+        try:
+            page = browser.new_page()
+            page.goto(origin + '/' + _delivery_link(target))
+            page.locator('#result-logs').wait_for()
+            assert page.locator('[data-result-summary]').count() == 1
+            assert 'Unable to load saved evidence' not in page.locator('body').inner_text()
+        finally:
+            browser.close()

@@ -98,7 +98,10 @@ def test_level_results_and_details_keep_text_and_grade_sources_separate():
 
     answer_profile = deepcopy(profile)
     answer_profile["protocol"]["relevance_level"] = "l3"
-    views["l3"] = dict(profile=answer_profile, rows=[native], answer_scores=[answer_score])
+    raw_grade = json.dumps(dict(grade=2, reason='Useful but incomplete'))
+    call = dict(response={'choices': [{'message': {'content': raw_grade}}]})
+    views["l3"] = dict(profile=answer_profile, rows=[native], answer_scores=[answer_score],
+                       answers={'calls': {row['method'] + '/' + row['case_id'] + '/scenario': call}})
     soup = BeautifulSoup(render_level_results(views), "html.parser")
     assert [s["data-level-results"] for s in soup.select("[data-level-results]")] == [
         "l1",

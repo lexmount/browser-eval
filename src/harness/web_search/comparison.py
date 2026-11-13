@@ -525,13 +525,17 @@ def render_level_detail(views, row, zh=False):
                 call_key = row['method'] + '/' + row['case_id'] + '/scenario'
                 call = view.get('answers', {}).get('calls', {}).get(call_key)
                 if call:
-                    judgment = json.loads(call['response']['choices'][0]['message']['content'])
+                    from lexbench_websearch.answers import scenario_grade
+
+                    judgment = scenario_grade({'answer': row.get('answer') or ''}, call['response']['choices'][0]['message']['content'])
                     body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(judgment['reason']) + '</p><blockquote>' + esc(judgment['evidence']) + '</blockquote></details>'
-                from lexbench_websearch.answers import answer_packet
+                from lexbench_websearch.answers import answer_packet, citation_grades
 
                 case = next(c for c in view['profile']['cases'] if c['id'] == row['case_id'])
                 packet = answer_packet(case, dict(row, results=row['results'][:view['profile']['protocol']['top_k']]))
-                body += '<details><summary>' + t('Citations') + '</summary><pre>' + esc(json.dumps(packet['citations'], ensure_ascii=False, indent=2)) + '</pre></details>'
+                citation_call = view.get('answers', {}).get('calls', {}).get(row['method'] + '/' + row['case_id'] + '/citations')
+                decisions = citation_grades(packet, citation_call['response']['choices'][0]['message']['content']) if citation_call else []
+                body += '<details><summary>' + t('Citations') + '</summary><pre>' + esc(json.dumps(dict(citations=packet['citations'], judgments=decisions), ensure_ascii=False, indent=2)) + '</pre></details>'
         else:
             evidence = view['relevance']
             packet = next((p for p in evidence.get('blind_candidate_packets', []) if p['case_id'] == row['case_id']), None)
