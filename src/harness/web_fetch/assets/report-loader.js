@@ -16,6 +16,11 @@ async function compactCatalog(descriptor){
  }
  return m;
 }
+// New packages carry a small, public home snapshot in the HTML shell.
+// Detail navigation and downloads still use the complete immutable catalog.
+const homeNode=document.querySelector?.('#report-home');
+const homeCatalog=homeNode?.textContent?JSON.parse(homeNode.textContent):null;
+function pageManifest(path){return path==='index.html'&&homeCatalog?Promise.resolve(homeCatalog):manifest()}
 let manifestPromise;
 function manifest(){
  if(!manifestPromise)manifestPromise=fetch('manifest.json').then(r=>{if(!r.ok)throw Error(tr('数据目录加载失败','Failed to load the data catalog'));return r.json()}).then(compactCatalog).catch(error=>{manifestPromise=undefined;throw error});
@@ -41,8 +46,8 @@ async function pack(name){
  if(packs.size>6){const first=packs.keys().next().value;if(first!==name)packs.delete(first)}
  return result;
 }
-async function fileBytes(path){
- const m=await manifest(),f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
+async function fileBytes(path,catalog){
+ const m=catalog||await manifest(),f=m.files[path];if(!f)throw Error(tr('文件不存在：','File not found: ')+path);
  if(f.inline_base64!==undefined){const bytes=Uint8Array.from(atob(f.inline_base64),c=>c.charCodeAt(0));if(bytes.length!==f.size)throw Error(tr('文件长度错误：','Invalid file length: ')+path);return bytes}
  const result=new Uint8Array(f.size);let offset=0;
  if(m.schema_version===3){
@@ -58,7 +63,7 @@ async function fileBytes(path){
  if(offset!==f.size)throw Error(tr('文件长度错误：','Invalid file length: ')+path);
  return result;
 }
-async function textFile(path){return decoder.decode(await fileBytes(path))}
+async function textFile(path,catalog){return decoder.decode(await fileBytes(path,catalog))}
 let recordsPromise;
 const PRIVATE_METADATA_KEYS=new Set(['raw_response_path','private_artifacts','private_artifact','private_path']);
 function publicMetadata(value){
@@ -101,7 +106,8 @@ async function fillImages(root,page,m){
     const src=img.getAttribute('src');if(/^(https?:|data:|blob:)/i.test(src))return;
     const {path}=resolvePath(src,page),file=m.files[path];
     if(!file||!file.mime.startsWith('image/'))throw Error(tr('图片文件不存在：','Image file not found: ')+path);
-    const bytes=await fileBytes(path),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
+    if(file.asset_path){img.src=file.asset_path;img.loading='lazy';return}
+    const bytes=await fileBytes(path,m),url=URL.createObjectURL(new Blob([bytes],{type:file.mime}));
     urls.push(url);img.src=url;
    }));
    const failed=results.find(result=>result.status==='rejected');if(failed)throw failed.reason;
@@ -125,7 +131,7 @@ async function render(){
  const token=++renderId,params=new URLSearchParams(location.hash.slice(1)),path=params.get('page')||'index.html';
  let imageUrls=[];
  try{
-  const [m,text]=await Promise.all([manifest(),textFile(path)]);if(token!==renderId)return;
+  const m=await pageManifest(path),text=await textFile(path,m);if(token!==renderId)return;
   if(!path.endsWith('.html'))throw Error(tr('不是报告页面','Not a report page'));
   const page=new DOMParser().parseFromString(text,'text/html');
   if(page.documentElement?.lang&&document.documentElement)document.documentElement.lang=page.documentElement.lang;

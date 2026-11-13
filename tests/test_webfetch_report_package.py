@@ -522,3 +522,65 @@ def test_diagnostic_package_preserves_detail_navigation_and_lazy_evidence(tmp_pa
     assert '../analysis/index.html' in detail
     assert 'data-evidence-file="evidence/challenge-log.txt"' in detail
     assert read(row['log']['path']) == log.read_bytes()
+
+
+def test_home_is_self_contained_and_excludes_unopened_evidence(tmp_path):
+    """A small illustrated summary must not acquire a large unrelated answer."""
+    import base64
+    from bs4 import BeautifulSoup
+    from harness.web_fetch.publication_check import check
+
+    source, archive = report_tree(tmp_path)
+    home = ('<html><body><h1>Summary 80.8%</h1><img src="assets/chart.png">'
+            '<a href="detail.html#answer">Details</a>'
+            '<a href="https://example.test/">External</a></body></html>')
+    (source/'index.html').write_text(home, encoding='utf-8')
+    image = b'synthetic image bytes'
+    (source/'assets/chart.png').write_bytes(image)
+    (source/'large-answer.txt').write_bytes(b'unopened evidence\n'*100000)
+    report_package.build(source, archive)
+    check(archive, source)
+    with zipfile.ZipFile(archive) as bundle:
+        soup = BeautifulSoup(bundle.read('index.html'), 'html.parser')
+        catalog = json.loads(soup.select_one('#report-home').string)
+        assert set(catalog['files']) == {'index.html','assets/chart.png','detail.html'}
+        assert base64.b64decode(catalog['files']['index.html']['inline_base64']) == home.encode()
+        assert bundle.read(catalog['files']['assets/chart.png']['asset_path']) == image
+        assert 'inline_base64' not in catalog['files']['detail.html']
+        assert len(bundle.read('index.html')) < 4000
+        files = {name:bundle.read(name) for name in bundle.namelist()}
+    # A stale or tampered home view must fail the same public release boundary.
+    catalog['files']['index.html']['inline_base64'] = base64.b64encode(b'Wrong scores').decode()
+    soup.select_one('#report-home').string = json.dumps(catalog)
+    files['index.html'] = str(soup).encode()
+    with zipfile.ZipFile(archive, 'w') as bundle:
+        for name,data in files.items():
+            bundle.writestr(name,data)
+    with pytest.raises(ValueError,match='home snapshot differs'):
+        check(archive, source)
+
+
+def test_incremental_home_refresh_includes_its_images_and_rejects_substitution(tmp_path):
+    from bs4 import BeautifulSoup
+    from harness.web_fetch.publication_check import check
+
+    source, archive = report_tree(tmp_path)
+    (source/'report-manifest.json').write_text('{}', encoding='utf-8')
+    (source/'assets/chart.png').write_bytes(b'original chart bytes')
+    (source/'index.html').write_text(
+        '<html><body>Old summary<img src="assets/chart.png"></body></html>', encoding='utf-8')
+    report_package.build(source, archive)
+    (source/'index.html').write_text(
+        '<html><body>New summary<img src="assets/chart.png"></body></html>', encoding='utf-8')
+    (source/'report-manifest.json').write_text(json.dumps({'presentation_refresh':{
+        'scores_changed':False,'provider_calls_added':0,'changed_routes':['index.html']}}), encoding='utf-8')
+    overlay = tmp_path/'update'
+    receipt = report_package.build_incremental(source, archive, overlay)
+    check(archive, source, overlay)
+    assert set(receipt['physical_files']) == {
+        path.relative_to(overlay).as_posix() for path in overlay.rglob('*')
+        if path.is_file() and path.name != 'update-receipt.json'}
+    home = json.loads(BeautifulSoup((overlay/'index.html').read_bytes(),'html.parser').select_one('#report-home').string)
+    (overlay/home['files']['assets/chart.png']['asset_path']).write_bytes(b'wrong chart')
+    with pytest.raises(ValueError,match='home image differs'):
+        check(archive, source, overlay)

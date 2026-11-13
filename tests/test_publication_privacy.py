@@ -563,7 +563,9 @@ class PublicationPrivacyTests(unittest.TestCase):
             (source / 'changes/index.html').write_text('<html><body>New release history</body></html>', encoding='utf-8')
             delta = root / 'delta'
             module.build_incremental(source, archive_path, delta)
-            self.assertEqual({path.name for path in delta.iterdir()}, {'loader.js', 'manifest.json', 'update-receipt.json'})
+            self.assertEqual({path.name for path in delta.iterdir()}, {'index.html', 'loader.js', 'manifest.json', 'update-receipt.json'})
+            home = BeautifulSoup((delta/'index.html').read_bytes(), 'html.parser').select_one('#report-home')
+            self.assertIn('45 秒', base64.b64decode(json.loads(home.string)['files']['index.html']['inline_base64']).decode())
             patched_manifest = json.loads((delta / 'manifest.json').read_text(encoding='utf-8'))
             self.assertEqual(patched_manifest['blocks'], manifest['blocks'])
             self.assertEqual(patched_manifest['files']['results.jsonl'], manifest['files']['results.jsonl'])

@@ -1530,6 +1530,10 @@ Large publication trees automatically use content-defined deduplication and a
 compressed catalog when fixed-block storage exceeds the upload budget. Both
 encodings retain complete virtual files, source bindings and file hashes.
 An acceptance contract stays inline when no standalone contract file exists.
+The HTML shell carries the home page and its images so opening the summary does
+not download the full catalog or evidence packs. Full builds, cached repacks and
+incremental updates refresh this snapshot; publication checks verify its bytes
+against the packaged public files.
 To reuse a completed public content cache, pass `--cached-content <directory>`
 to `uv run --frozen python -m harness.web_fetch site-package` with the same source and, when applicable,
 `--presentation-binding`. The packer refreshes source-bound result privacy and

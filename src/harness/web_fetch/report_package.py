@@ -16,7 +16,9 @@ import tempfile
 import zipfile
 from functools import lru_cache
 from pathlib import Path
-from urllib.parse import quote, urlencode, urljoin, urlsplit
+from urllib.parse import quote, unquote, urlencode, urljoin, urlsplit
+
+from bs4 import BeautifulSoup
 
 from lexbench_webfetch.paths import contained_path
 
@@ -137,6 +139,48 @@ def _retain_inline_contract(text, original, available):
              'Unmaterialized contract lacks one unambiguous inline source')
     match = missing[0]
     return text[:match.start()]+embedded[0]+text[match.end():]
+
+
+def home_catalog(manifest, read_file):
+    """Keep only the home page, its images and its known link destinations."""
+    raw = read_file('index.html')
+    page = BeautifulSoup(raw, 'html.parser')
+    files = {}
+    for node in page.select('a[href],img[src]'):
+        target = urlsplit(urljoin('https://report.invalid/index.html',
+                                  node.get('href') or node.get('src')))
+        if target.netloc != 'report.invalid':
+            continue
+        name = unquote(target.path.lstrip('/'))
+        if name not in manifest['files']:
+            continue
+        entry = manifest['files'][name]
+        files.setdefault(name, {'mime': entry['mime']})
+        if node.name == 'img':
+            suffix = mimetypes.guess_extension(entry['mime']) or '.bin'
+            files[name].update(asset_path='home-assets/'+entry['sha256']+suffix)
+    entry = manifest['files']['index.html']
+    files['index.html'] = {'mime': entry['mime'], 'size':len(raw),
+                           'inline_base64':base64.b64encode(raw).decode()}
+    return {'files':files}
+
+
+def _install_home_catalog(destination, manifest, read_file):
+    if 'index.html' not in manifest['files']:
+        return
+    catalog = home_catalog(manifest, read_file)
+    for name, entry in catalog['files'].items():
+        if 'asset_path' in entry:
+            target = destination/entry['asset_path']
+            target.parent.mkdir(exist_ok=True)
+            target.write_bytes(read_file(name))
+    shell = (destination/'index.html').read_text(encoding='utf-8')
+    shell = re.sub(r'<script id="report-home" type="application/json">.*?</script>',
+                   '', shell, flags=re.S)
+    data = json.dumps(catalog, separators=(',',':')).replace('<', r'\u003c')
+    shell = shell.replace('</head>', '<script id="report-home" type="application/json">'
+                          + data + '</script></head>')
+    (destination/'index.html').write_text(shell, encoding='utf-8')
 
 
 def _build(source: Path, destination: Path, archive: Path, *, webmainbench: bool, defer_archive=False):
@@ -424,6 +468,8 @@ def _build_content(source, destination, archive, *, webmainbench, raw_blocks, de
         "</head><body><p>正在加载报告…</p></body></html>",
         encoding="utf-8"
     )
+    _install_home_catalog(destination, manifest,
+                          lambda name: b''.join(raw_blocks[k] for k in files[name]['parts']))
     # Validate every download and every internal page/file link after transformation.
     for name, digest in original.items():
         _require(
@@ -495,6 +541,9 @@ def _compact_cached_content(cached: Path, destination: Path, *, source: Path, re
     if manifest['schema_version'] == 3 and not refresh_privacy and source_projection is None:
         shutil.copytree(cached,destination,dirs_exist_ok=True)
         (destination/'loader.js').write_bytes((Path(__file__).parent/'assets/report-loader.js').read_bytes())
+        with DecompressedPackCache(lambda name:(destination/name).read_bytes()) as pack:
+            _install_home_catalog(destination, manifest,
+                                  lambda name:reconstruct_packed_file(manifest,name,pack))
         return manifest
 
     repairs = {}
@@ -571,6 +620,10 @@ def _compact_cached_content(cached: Path, destination: Path, *, source: Path, re
     for name in ('index.html','style.css','report.js'):
         shutil.copyfile(cached/name, destination/name)
     (destination/'loader.js').write_bytes((Path(__file__).parent/'assets/report-loader.js').read_bytes())
+    with DecompressedPackCache(lambda name:(destination/name).read_bytes()) as pack:
+        normalized = read_packed_manifest(lambda name:(destination/name).read_bytes())
+        _install_home_catalog(destination, normalized,
+                              lambda name:reconstruct_packed_file(normalized,name,pack))
     return compact
 
 
@@ -749,20 +802,24 @@ def _build_incremental(source: Path, baseline: Path, destination: Path):
         (destination / "loader.js").write_bytes(
             (Path(__file__).parent / "assets/report-loader.js").read_bytes()
         )
+        (destination/'index.html').write_bytes(bundle.read('index.html'))
+        _install_home_catalog(destination, manifest, old_bytes)
         raw = json.dumps(manifest, separators=(",", ":")).encode()
         (destination / "manifest.json").write_bytes(raw)
+        upload_files = sorted(path.relative_to(destination).as_posix()
+                              for path in destination.rglob("*") if path.is_file())
         receipt = {
             "kind": "presentation_only_incremental_update",
             "baseline_archive_sha256": hashlib.sha256(baseline.read_bytes()).hexdigest(),
             "changed_virtual_files": changes,
-            "physical_files": ["loader.js", "manifest.json"],
+            "physical_files": upload_files,
             "unchanged_content_packs": len(
                 {block["pack"] for block in manifest["blocks"].values()}
             ),
             "provider_calls_added": 0,
             "scores_changed": False,
             "upload_bytes": sum(
-                (destination / name).stat().st_size for name in ["loader.js", "manifest.json"]
+                (destination / name).stat().st_size for name in upload_files
             ),
         }
         (destination / "update-receipt.json").write_text(

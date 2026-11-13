@@ -27,7 +27,7 @@ from harness.web_fetch.publication_privacy import (
     publication_file_risk,
     publication_risk,
 )
-from harness.web_fetch.report_package import DATA_ATTACHMENT_HTML, validate_release
+from harness.web_fetch.report_package import DATA_ATTACHMENT_HTML, home_catalog, validate_release
 from harness.web_fetch.safety import evidence_tree_identity
 from harness.web_fetch.webmainbench_diagnostics import (
     require_valid_teds_for_release,
@@ -61,7 +61,8 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
     physical = archive_inventory(archive)
     if overlay:
         overlay_files = evidence_tree_identity(overlay)
-        if not {"manifest.json"} <= set(overlay_files) or set(overlay_files) - {"manifest.json", "loader.js", "update-receipt.json"}:
+        if not {"manifest.json"} <= set(overlay_files) or {name for name in overlay_files
+                if not name.startswith("home-assets/")} - {"index.html", "manifest.json", "loader.js", "update-receipt.json"}:
             raise ValueError("Incremental overlay contains undeclared physical files")
     with ExitStack() as stack:
         bundle = stack.enter_context(zipfile.ZipFile(archive))
@@ -127,10 +128,15 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
         if not overlay and used != set(manifest["blocks"]):
             raise ValueError("Publication contains unreferenced content blocks")
         packs = {block["pack"] for block in manifest["blocks"].values()}
+        home_assets = ({entry['asset_path'] for entry in json.loads(
+            shell.select_one('#report-home').string)['files'].values() if 'asset_path' in entry}
+            if shell.select_one('#report-home') else set())
+        if overlay and set(overlay_files) - {'index.html','manifest.json','loader.js','update-receipt.json'} - home_assets:
+            raise ValueError('Incremental overlay contains undeclared home assets')
         catalog_files = ({"manifest.json.gz", "catalog.bin.gz"} if manifest['schema_version'] == 3 else set())
         if (
             set(physical)
-            != {"index.html", "style.css", "report.js", "loader.js", "manifest.json"} | (packs-set(external)) | catalog_files
+            != {"index.html", "style.css", "report.js", "loader.js", "manifest.json"} | (packs-set(external)) | catalog_files | (home_assets if not overlay else {name for name in physical if name.startswith("home-assets/")})
         ):
             raise ValueError("Publication contains an undeclared physical file")
         for name in set(physical) - packs:
@@ -171,6 +177,16 @@ def check(archive, source, overlay=None, *, presentation_binding=None, external_
             return reconstruct_packed_file(manifest,name,pack)
 
         validate_virtual_links(manifest["files"], data)
+        home = shell.select_one('#report-home')
+        if home is not None:
+            expected_home = home_catalog(manifest,
+                lambda name:reconstruct_packed_file(manifest,name,pack))
+            if json.loads(home.string) != expected_home:
+                raise ValueError('Publication home snapshot differs from its public files')
+            for name,entry in expected_home['files'].items():
+                if 'asset_path' in entry and read(entry['asset_path']) != data(name):
+                    raise ValueError('Publication home image differs from its public file')
+
         for name in sorted(expected_files):
             if manifest["files"][name].get("source_sha256") != source_files[name]:
                 raise ValueError("Publication source hash differs or source binding is missing: " + name)
