@@ -34,6 +34,15 @@ def test_collection_context_is_available_without_expanding_comparison_rows():
     assert all('2026-11-13' in node.get_text() and 'concurrency 4' in node.get_text() for node in contexts)
 
 
+def test_context_size_counts_titles_when_the_provider_has_no_primary_excerpt():
+    selected = view(n=2)
+    for row in selected['rows']:
+        row['results'][0].update(title='Only a title', snippet='')
+    doc = BeautifulSoup(render_level_summary(selected), 'html.parser')
+    values = [float(cell['data-sort']) for cell in doc.select('[data-metric$="-context_characters"]')]
+    assert values == [len('Only a title')] * 2
+
+
 def view(n=40, single=False):
     cases = [
         dict(

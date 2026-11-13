@@ -356,7 +356,8 @@ def render_level_summary(view, zh=False, *, content=None):
                               cited_urls_in_results=sum(s['citations_in_results'] for s in scored) / citations if citations else None)
             else:
                 delivered = [r for r in rows if r['method'] == mid and r['case_id'] in ids]
-                values['context_characters'] = sum(len(item.get('snippet') or '') for r in delivered for item in r['results']) / len(delivered)
+                values['context_characters'] = sum(len(item.get('title') or '') + len(item.get('snippet') or '')
+                                                   for r in delivered for item in r['results']) / len(delivered)
             latency = stats[mid]['all_latency']
             values.update(mean_ms=latency['mean'], p50_ms=latency['p50'], p95_ms=latency['p95'],
                           price=prices[mid]['amount'] if prices is not None else method.get('price_per_1000'))
