@@ -86247,6 +86247,122 @@
         ],
         "expected": false
       }
+    ],
+    "rendered-local-citation-claims": [
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of [France](https://source.test/france).",
+        "results": [
+          {
+            "url": "https://source.test/paris",
+            "citation_id": 1,
+            "snippet": "A fact."
+          },
+          {
+            "url": "https://source.test/france",
+            "citation_id": 2,
+            "snippet": "A fact."
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France.",
+          "Paris is the capital of France."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of [France](https://source.test/france).",
+        "results": [
+          {
+            "url": "https://source.test/paris",
+            "citation_id": 1,
+            "snippet": "A fact."
+          },
+          {
+            "url": "https://source.test/france",
+            "citation_id": 2,
+            "snippet": "A fact."
+          }
+        ],
+        "claims": [
+          "Paris is the capital of",
+          "France."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Ada wrote it [引用:1].\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "claims": [
+          "Ada wrote it.",
+          ""
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Ada wrote it [引用:1].\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "claims": [
+          "Ada wrote it.",
+          "Ada wrote it."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "A fact.\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "A fact.\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": false
+      }
     ]
   },
   "web_search_normalization": {

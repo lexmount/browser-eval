@@ -265,3 +265,24 @@ def test_consecutive_linked_subjects_keep_separate_sentence_claims():
 def test_link_label_with_complete_sentence_does_not_borrow_the_next_sentence():
     citation, = answers.citation_inventory('[Paris is in France.](https://source.test/paris) Rome is in Italy.', [dict(url='https://source.test/paris')])
     assert citation['claim_context'] == 'Paris is in France.'
+
+
+def test_multiple_links_in_a_sentence_share_the_complete_visible_claim():
+    text='[Paris](https://source.test/paris) is the capital of [France](https://source.test/france).'
+    citations=answers.citation_inventory(text,[dict(url='https://source.test/'+c) for c in ['paris','france']])
+    assert [c['claim_context'] for c in citations]==['Paris is the capital of France.']*2
+
+
+def test_citation_only_paragraph_has_no_inherited_claim_and_cannot_be_supported():
+    text='Ada wrote it [引用:1].\n\n[引用:1]'
+    packet=answers.answer_packet(dict(id='q',query='Who wrote it?'),dict(answer=text,results=[dict(url='https://source.test/a',citation_id=1,snippet='Ada wrote it.')]))
+    assert [c['claim_context'] for c in packet['citations']]==['Ada wrote it.','']
+    judgments=[dict(citation_index=0,supported=True,source_refs=['0:snippet']),dict(citation_index=1,supported=True,source_refs=['1:snippet'])]
+    with pytest.raises(ValueError,match='source references'):
+        answers.citation_grades(packet,json.dumps(dict(judgments=judgments)))
+
+
+def test_local_claim_keeps_abbreviations_and_inline_formatting():
+    text='The U.S. capital is [**Washington**](https://source.test/a).'
+    citation,=answers.citation_inventory(text,[dict(url='https://source.test/a')])
+    assert citation['claim_context']=='The U.S. capital is Washington.'

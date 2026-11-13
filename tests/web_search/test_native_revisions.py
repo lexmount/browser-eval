@@ -328,10 +328,20 @@ def test_reference_identity_capture_and_offline_replay():
 
     class Origin(BaseHTTPRequestHandler):
         def do_GET(self):
-            if self.path == '/redirect':
+            if self.path in ('/redirect', '/slow-redirect'):
                 self.send_response(301)
                 self.send_header('Location', '/reference')
+                if self.path == '/slow-redirect':
+                    self.send_header('Content-Length', '50')
                 self.end_headers()
+                if self.path == '/slow-redirect':
+                    try:
+                        for _ in range(50):
+                            self.wfile.write(b'x')
+                            self.wfile.flush()
+                            time.sleep(0.02)
+                    except (BrokenPipeError, ConnectionResetError):
+                        pass
             elif self.path in ('/tracking','/tracking-chunks','/articles/','/unknown-charset'):
                 body = b'<link rel="canonical" href="entry">' if self.path == '/articles/' else b'<link rel="canonical" href="/reference">'
                 self.send_response(200)
@@ -372,6 +382,11 @@ def test_reference_identity_capture_and_offline_replay():
     base = f'http://127.0.0.1:{server.server_port}'
     try:
         observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking','/articles/','/tracking-chunks')]
+        started = time.monotonic()
+        slow_redirect = capture_source_identity(base + '/slow-redirect', timeout=0.12)
+        assert time.monotonic() - started < 0.7
+        assert slow_redirect['final'] == base + '/reference'
+        assert slow_redirect['chain'][0]['status'] == 301
         malformed = capture_source_identity(base + '/invalid space')
         assert 'error' in malformed
         unknown_charset = capture_source_identity(base + '/unknown-charset')

@@ -146,7 +146,11 @@ def capture_source_identity(url, timeout=6):
                 raise TimeoutError('Source identity timeout')
             req.timeout = remaining
             chain.append(dict(url=req.full_url, status=code, location=newurl))
-            return super().redirect_request(req, fp, code, msg, headers, newurl)
+            redirected = super().redirect_request(req, fp, code, msg, headers, newurl)
+            if redirected is not None:
+                # urllib otherwise drains the redirect body without the deadline.
+                fp.close()
+            return redirected
 
     class Links(HTMLParser):
         def handle_starttag(self, tag, attrs):
