@@ -88,9 +88,12 @@ profile is a read-only scoring view and cannot be passed to the collector.
 The model relevance command accepts `--level l1` or `--level l2`. Adapters select
 the native fields; no text is truncated. L1 needs no source-page retrieval.
 L2 also requires `--field-admissions /absolute/admissions.json`, an explicitly
-bound bundle of fifty distinct source URLs per field, native-output samples
-and live-capture bytes. The command replays those bytes and recomputes the
-80% original-text check before admitting a method. Both levels use temperature
+bound bundle of native-output candidates and live-capture bytes. Up to 200
+distinct URLs are ordered by hash before capture. The first 50 independently
+accessible pages form the sample; every preceding unavailable page needs a
+retained capture receipt. Successful pages with different text remain in the
+sample. The command replays those bytes and recomputes the 80% original-text
+check before admitting a method. Both levels use temperature
 zero with thinking disabled and keep separate prompts, candidate identities
 and complete pools.
 

@@ -9,7 +9,7 @@ from harness.record_io import bytes_sha256
 from harness.web_search.output_levels import field_sample_plan, level_inputs, verify_field_admission
 
 
-def example():
+def example(*, extra_urls=0, source_mutator=None):
     text = "An independently published paragraph describing the document and its original contents."
     profile = dict(
         protocol=dict(top_k=5),
@@ -44,16 +44,32 @@ def example():
         )
         for i, c in enumerate(profile["cases"])
     ]
+    for i in range(extra_urls):
+        case = dict(profile["cases"][0], id=f"extra-{i}")
+        profile["cases"].append(case)
+        row = deepcopy(rows[0])
+        row.update(
+            id=case["id"] + "-web",
+            case_id=case["id"],
+            evidence=dict(path=case["id"] + ".json", sha256="a" * 64),
+        )
+        row["results"] = [dict(row["results"][0], url=f"https://example.test/extra-{i}")]
+        rows.append(row)
     plan = field_sample_plan(profile, rows, "web")
     payload = dict(
         results=[
-            dict(id=s["url"], url=s["url"], text="# Document\n\n" + text) for s in plan["samples"]
+            dict(id=s["url"], url=s["url"], text="# Document\n\n" + text)
+            for s in plan["candidates"]
         ],
-        statuses=[dict(id=s["url"], status="success", source="crawled") for s in plan["samples"]],
+        statuses=[
+            dict(id=s["url"], status="success", source="crawled") for s in plan["candidates"]
+        ],
     )
+    if source_mutator:
+        source_mutator(payload, plan)
     raw = json.dumps(payload).encode()
     capture = dict(
-        request=dict(urls=[s["url"] for s in plan["samples"]], maxAgeHours=0),
+        request=dict(urls=[s["url"] for s in plan["candidates"]], maxAgeHours=0),
         sha256=bytes_sha256(raw),
         http_status=200,
         transport_exit=0,
@@ -61,7 +77,7 @@ def example():
     )
     meta = json.dumps(capture).encode()
     receipt = dict(
-        schema="web-search-field-admission/1",
+        schema="web-search-field-admission/2",
         plan=plan,
         pages=[
             dict(
@@ -69,7 +85,7 @@ def example():
                 evidence=dict(path="pages.json", sha256=bytes_sha256(raw)),
                 capture=dict(path="capture.json", sha256=bytes_sha256(meta)),
             )
-            for s in plan["samples"]
+            for s in plan["candidates"]
         ],
     )
     return profile, rows, receipt, {"pages.json": raw, "capture.json": meta}
@@ -87,6 +103,40 @@ def test_source_sample_is_deterministic_and_admission_replays_original_bytes():
     assert values[0]["metrics"]["answer_in_extra_text_5"] == 0
     assert "labeled_source_hit_5" not in values[0]["metrics"]
     assert selected["methods"][0]["output_fields"]["extra_text"] == ["summary"]
+
+
+@pytest.mark.parametrize("unavailable", ["origin-error", "challenge-page"])
+def test_sample_replaces_only_independently_unavailable_pages_in_fixed_order(unavailable):
+    def sources(payload, plan):
+        if unavailable == "origin-error":
+            payload["statuses"][0] = dict(
+                id=plan["candidates"][0]["url"], status="error", error={"httpStatusCode": 403}
+            )
+            payload["results"].pop(0)
+        else:
+            payload["results"][0]["text"] = "# Just a moment...\n\nVerify that you are human."
+
+    profile, rows, receipt, artifacts = example(extra_urls=5, source_mutator=sources)
+    actual = verify_field_admission(profile, rows, receipt, artifacts)
+    assert actual["qualified"] and actual["sample_size"] == 50
+    assert actual["examined_urls"] == 51 and actual["unavailable_source_pages"] == 1
+    receipt["pages"].pop(0)
+    with pytest.raises(ValueError, match="Missing capture evidence"):
+        verify_field_admission(profile, rows, receipt, artifacts)
+
+
+def test_source_availability_selection_cannot_skip_successful_text_mismatches():
+    def sources(payload, plan):
+        for page in payload["results"][:50]:
+            page["text"] = (
+                "Unrelated content about a completely different subject with no original wording."
+            )
+
+    profile, rows, receipt, artifacts = example(extra_urls=5, source_mutator=sources)
+    actual = verify_field_admission(profile, rows, receipt, artifacts)
+    assert actual["qualified"] is False
+    assert actual["sample_size"] == actual["examined_urls"] == 50
+    assert actual["unavailable_source_pages"] == 0
 
 
 @pytest.mark.parametrize(
