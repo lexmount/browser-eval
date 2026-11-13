@@ -133,7 +133,7 @@ def test_l3_invalid_citation_keeps_raw_call_and_cannot_be_rejudged_on_resume(ans
     assert len(test['requests']) == spent
 
 
-@pytest.mark.parametrize('tamper', ['request', 'native', 'bytes', 'source', 'verdict', 'missing-task'])
+@pytest.mark.parametrize('tamper', ['request', 'native', 'bytes', 'source', 'verdict', 'missing-task', 'token-limit'])
 def test_l3_evidence_rechecks_native_answers_requests_and_physical_bytes(answer_run, tamper):
     from harness.web_search.answers import verify_answer_evidence
     from harness.web_search.output_levels import level_inputs
@@ -154,6 +154,8 @@ def test_l3_evidence_rechecks_native_answers_requests_and_physical_bytes(answer_
         evidence['results'][0]['answer_grade'] = 0
     elif tamper == 'missing-task':
         rows = rows[:-1]
+    elif tamper == 'token-limit':
+        evidence['configuration']['max_tokens'] = 4096
     else:
         source += b'\n'
     with pytest.raises(ValueError):

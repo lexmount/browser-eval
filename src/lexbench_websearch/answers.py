@@ -15,9 +15,9 @@ SIMPLEQA_UPSTREAM = {
     "sha256": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29",
 }
 GRADES = {"A": "CORRECT", "B": "INCORRECT", "C": "NOT_ATTEMPTED"}
-CITATION_RULE = "native-source-citations/6"
+CITATION_RULE = "native-source-citations/7"
 CITATION_CORRECTION = {
-    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers, bind original Markdown block locations, derive complete local claims from rendered text, retain every link label in a shared sentence, and reset context at Markdown block boundaries, and bind sentence-final native markers to the preceding sentence regardless of intervening whitespace.",
+    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers, bind original Markdown block locations, derive complete local claims from rendered text, retain every link label in a shared sentence, and reset context at Markdown block boundaries, and bind sentence-final native markers to the preceding sentence regardless of intervening whitespace. Include sentence-closing quotes and parentheses in the preceding boundary.",
     "regression_ids": ["native-source-citation-identities", "citation-target-occurrences", "rendered-citation-occurrences", "citation-link-claims", "citation-block-locations", "linked-sentence-boundaries", "rendered-local-citation-claims"],
     "provider_calls": 0,
 }
@@ -217,11 +217,17 @@ def citation_inventory(answer, results):
         # Sentences are local to this rendered inline block. Every link in one
         # sentence sees the complete assertion, including the other link labels.
         boundaries = [0]
-        for match in re.finditer(r"[。！？]+|[.!?]+(?=\s|$)", plain):
-            prefix = plain[:match.end()]
+        closers = r'''["'”’»）)\]}」』】]*'''
+        native_offsets = {reference['local_start'] for reference in local if reference['native']}
+        for match in re.finditer(rf"(?P<stop>[。！？]+|[.!?]+){closers}", plain):
+            if (match['stop'][0] in '.!?'
+                    and match.end() < len(plain) and not plain[match.end()].isspace()
+                    and match.end() not in native_offsets and match.end('stop') not in native_offsets):
+                continue
+            prefix = plain[:match.end("stop")]
             abbreviation = re.search(r"(?:[A-Za-z]\.){2,}$", prefix)
             word = re.search(r"([A-Za-z]+)\.$", prefix)
-            if match[0] == "." and (abbreviation or word and word[1].casefold() in
+            if match["stop"] == "." and (abbreviation or word and word[1].casefold() in
                                       {"mr", "mrs", "ms", "dr", "prof", "sr", "jr", "st", "vs", "fig", "no"}):
                 continue
             boundaries.append(match.end())

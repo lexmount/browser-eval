@@ -289,10 +289,21 @@ def test_local_claim_keeps_abbreviations_and_inline_formatting():
 
 
 @pytest.mark.parametrize('space', ['', ' ', '  ', '\n'])
-def test_native_sentence_final_citation_does_not_include_the_next_sentence(space):
-    text = 'Alpha.' + space + '[引用：1] Beta.'
+@pytest.mark.parametrize('following', ['', ' ', '\n'])
+def test_native_sentence_final_citation_does_not_include_the_next_sentence(space, following):
+    text = 'Alpha.' + space + '[引用：1]' + following + 'Beta.'
     citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
     assert citation['claim_context'] == 'Alpha.'
+
+
+@pytest.mark.parametrize('first', [
+    'She said "First claim."', 'She said “First claim.”',
+    '(First claim.)', '("First claim.")', '[First claim.]', '『First claim。』',
+])
+def test_citation_claim_starts_after_quoted_or_parenthesized_sentence(first):
+    text = first + ' Second claim [引用:1]'
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Second claim'
 
 
 @pytest.mark.parametrize('markup,claim', [

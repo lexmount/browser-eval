@@ -178,6 +178,7 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
             or configuration.get('scoring_provenance') != CITATION_CORRECTION
             or configuration.get('prompt_sha256') != _prompt_hashes(upstream_source)
             or configuration.get('temperature') != 0
+            or configuration.get('max_tokens') != 8192
             or type(configuration.get('attempt_limit')) is not int
             or configuration['attempt_limit'] != 1
             or configuration.get('extra_params') != {'enable_thinking': False}

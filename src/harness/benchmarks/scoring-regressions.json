@@ -86554,6 +86554,186 @@
           "Alpha. Beta."
         ],
         "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "She said \"First claim.\" Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "She said \"First claim.\" Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "She said \"First claim.\" Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "She said “First claim.” Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "She said “First claim.” Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "She said “First claim.” Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "(First claim.) Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "(First claim.) Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "(First claim.) Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "(\"First claim.\") Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "(\"First claim.\") Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "(\"First claim.\") Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "[First claim.] Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "[First claim.] Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "[First claim.] Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "『First claim。』 Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "『First claim。』 Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "『First claim。』 Second claim"
+        ],
+        "expected": false
       }
     ]
   },
