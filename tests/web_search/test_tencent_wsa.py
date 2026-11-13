@@ -54,6 +54,8 @@ class YuanbaoSearchTests(unittest.TestCase):
             (502, 0, b"<html>bad gateway</html>", ""),
             (200, 18, b'{"Response":', "partial transfer"),
             (200, 0, b'{"Response": null}', ''),
+            (200, 0, b'{"Response": {}}', ''),
+            (200, 0, b'{"Response": {"Pages": null}}', ''),
             (200, 0, b'{"unexpected": {}}', ''),
             (200, 0, b'{"Response": {"Version": "standard", "Pages": "broken"}}', ''),
         ]
