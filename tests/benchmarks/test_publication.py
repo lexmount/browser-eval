@@ -192,19 +192,30 @@ assert json.loads(viewer['task'])['query'] == '\u68c0\u7d22 caf\u00e9'
     assert result.returncode == 0, result.stderr
 
 
+def published_hub(tmp_path, track="websearch"):
+    """Build a source release and commit it as a Hugging Face hub checkout."""
+    source, revision, _ = checkout(tmp_path, track)
+    root = tmp_path / "hub"
+    DatasetRelease.from_git(source, track, revision).build(root)
+    git(root, "init", "-q")
+    git(root, "add", ".")
+    git(root, "commit", "-qm", "Hub")
+    return root
+
+
+def commit_manifest(root, **changes):
+    manifest = json.loads((root / "manifest.json").read_bytes())
+    (root / "manifest.json").write_text(json.dumps({**manifest, **changes}), encoding="utf-8")
+    git(root, "commit", "-qam", "Manifest change")
+    return git(root, "rev-parse", "HEAD")
+
+
 @pytest.mark.parametrize("claimed", ["websearch", "trajectory-replay"])
 def test_hub_track_identity_comes_from_committed_manifest(tmp_path, claimed):
-    root, _, _ = checkout(tmp_path, "websearch")
-    (root / "src/lexbench_websearch/definitions").rename(root / "definitions")
-    manifest = root / "manifest.json"
-    manifest.write_text(json.dumps({
-        "schema": "webstone-dataset-release/1", "track": "websearch",
-    }), encoding="utf-8")
-    git(root, "add", ".")
-    git(root, "commit", "-qm", "Hub layout")
+    root = published_hub(tmp_path)
     revision = git(root, "rev-parse", "HEAD")
     # A dirty working-tree claim must neither repair nor break the committed identity.
-    manifest.write_text(json.dumps({"track": "trajectory-replay"}), encoding="utf-8")
+    (root / "manifest.json").write_text(json.dumps({"track": "trajectory-replay"}), encoding="utf-8")
     output = tmp_path / "release"
     if claimed == "websearch":
         release = DatasetRelease.from_git(root, claimed, revision)
@@ -216,16 +227,11 @@ def test_hub_track_identity_comes_from_committed_manifest(tmp_path, claimed):
 
 
 def test_hub_track_cannot_be_supplied_by_uncommitted_manifest(tmp_path):
-    root, _, _ = checkout(tmp_path, "websearch")
-    (root / "src/lexbench_websearch/definitions").rename(root / "definitions")
-    git(root, "add", ".")
+    root = published_hub(tmp_path)
+    git(root, "rm", "-q", "--cached", "manifest.json")
     git(root, "commit", "-qm", "Hub without identity")
-    revision = git(root, "rev-parse", "HEAD")
-    (root / "manifest.json").write_text(json.dumps({
-        "schema": "webstone-dataset-release/1", "track": "websearch",
-    }), encoding="utf-8")
     with pytest.raises(ValueError, match="manifest"):
-        DatasetRelease.from_git(root, "websearch", revision)
+        DatasetRelease.from_git(root, "websearch", git(root, "rev-parse", "HEAD"))
 
 
 @pytest.mark.parametrize('filters', [
@@ -236,17 +242,37 @@ def test_hub_track_cannot_be_supplied_by_uncommitted_manifest(tmp_path):
     {'viewer_exclude_tracks': {'': ['dynamic']}},
 ])
 def test_invalid_committed_population_filters_fail_before_build(tmp_path, filters):
-    root, _, _ = checkout(tmp_path, 'websearch')
-    (root / 'src/lexbench_websearch/definitions').rename(root / 'definitions')
-    (root / 'manifest.json').write_text(json.dumps({
-        'schema': 'webstone-dataset-release/1', 'track': 'websearch',
-        'viewer_filters': filters}), encoding="utf-8")
-    git(root, 'add', '.')
-    git(root, 'commit', '-qm', 'Invalid population selection')
+    root = published_hub(tmp_path)
+    revision = commit_manifest(root, viewer_filters=filters)
     output = tmp_path / 'release'
     with pytest.raises(ValueError, match='viewer filters'):
-        DatasetRelease.from_git(root, 'websearch', git(root, 'rev-parse', 'HEAD')).build(output)
+        DatasetRelease.from_git(root, 'websearch', revision).build(output)
     assert not output.exists()
+
+
+def test_hub_definitions_come_from_the_manifest_bound_archive(tmp_path):
+    root = published_hub(tmp_path)
+    expected = DatasetRelease.from_git(root, 'websearch', git(root, 'rev-parse', 'HEAD')).files
+    # Large hubs keep definitions only in the archive (LexBench-NewsXLM, LexBench-LiveWeb-IE).
+    git(root, 'rm', '-rq', '--cached', 'definitions')
+    git(root, 'commit', '-qm', 'Archive-only hub')
+    (root / 'definitions').mkdir(exist_ok=True)
+    git(root, 'add', '-f', '--', str(next((root / 'definitions').rglob('*.json'))))
+    git(root, 'commit', '-qm', 'One mirrored file')
+    assert DatasetRelease.from_git(root, 'websearch', git(root, 'rev-parse', 'HEAD')).files == expected
+    # Archive bytes and every member stay bound by the committed manifest.
+    manifest = json.loads((root / 'manifest.json').read_bytes())
+    name = next(name for name in manifest['files'] if name.startswith('definitions/'))
+    tampered = {**manifest['files'], name: {**manifest['files'][name], 'sha256': '0' * 64}}
+    with pytest.raises(ValueError, match='does not match the release manifest: ' + name):
+        DatasetRelease.from_git(root, 'websearch', commit_manifest(root, files=tampered))
+    with pytest.raises(ValueError, match='archive does not match'):
+        DatasetRelease.from_git(root, 'websearch', commit_manifest(
+            root, files=manifest['files'], archive={**manifest['archive'], 'size': 1}))
+    missing = {**manifest['files'], 'definitions/absent.json': {'sha256': '0' * 64, 'size': 1}}
+    with pytest.raises(ValueError, match="manifest's definition files"):
+        DatasetRelease.from_git(root, 'websearch', commit_manifest(
+            root, files=missing, archive=manifest['archive']))
 
 
 def test_runtime_settings_survive_original_source_publication_and_hub_rebuild(tmp_path, monkeypatch):
@@ -322,12 +348,7 @@ def test_hub_rebuild_keeps_committed_edition_tools_and_snapshot_bindings(tmp_pat
 
 
 def test_committed_paths_cannot_leave_the_release(tmp_path):
-    source, revision, _ = checkout(tmp_path, 'websearch')
-    root = tmp_path / 'hub'
-    DatasetRelease.from_git(source, 'websearch', revision).build(root)
-    git(root, 'init', '-q')
-    git(root, 'add', '.')
-    git(root, 'commit', '-qm', 'Hub')
+    root = published_hub(tmp_path)
     # Git stores a crafted "tools/../../escaped" tree that ls-tree prints verbatim.
     def tree(entries):
         return subprocess.run(['git', '-C', str(root), 'mktree'], check=True, text=True,
