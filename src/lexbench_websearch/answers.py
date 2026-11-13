@@ -15,9 +15,9 @@ SIMPLEQA_UPSTREAM = {
     "sha256": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29",
 }
 GRADES = {"A": "CORRECT", "B": "INCORRECT", "C": "NOT_ATTEMPTED"}
-CITATION_RULE = "native-source-citations/5"
+CITATION_RULE = "native-source-citations/6"
 CITATION_CORRECTION = {
-    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers, bind original Markdown block locations, derive complete local claims from rendered text, retain every link label in a shared sentence, and reset context at Markdown block boundaries.",
+    "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers, bind original Markdown block locations, derive complete local claims from rendered text, retain every link label in a shared sentence, and reset context at Markdown block boundaries, and bind sentence-final native markers to the preceding sentence regardless of intervening whitespace.",
     "regression_ids": ["native-source-citation-identities", "citation-target-occurrences", "rendered-citation-occurrences", "citation-link-claims", "citation-block-locations", "linked-sentence-boundaries", "rendered-local-citation-claims"],
     "provider_calls": 0,
 }
@@ -235,7 +235,7 @@ def citation_inventory(answer, results):
                 context = ""
             else:
                 left = max((value for value in boundaries if value <= anchor), default=0)
-                last = max(anchor, reference["local_end"] - 1)
+                last = anchor if reference["native"] else max(anchor, reference["local_end"] - 1)
                 right = next((value for value in boundaries if value > last), len(plain))
                 context = re.sub(r"\s+", " ", plain[left:right]).strip()
                 context = re.sub(r"\s+([,.;:!?，。；：！？])", r"\1", context)

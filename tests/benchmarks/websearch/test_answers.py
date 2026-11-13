@@ -288,6 +288,13 @@ def test_local_claim_keeps_abbreviations_and_inline_formatting():
     assert citation['claim_context']=='The U.S. capital is Washington.'
 
 
+@pytest.mark.parametrize('space', ['', ' ', '  ', '\n'])
+def test_native_sentence_final_citation_does_not_include_the_next_sentence(space):
+    text = 'Alpha.' + space + '[引用：1] Beta.'
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Alpha.'
+
+
 @pytest.mark.parametrize('markup,claim', [
     ('<span title="Paris is in France"></span>', ''),
     ('<span title="Hidden assertion">Paris is in France.</span>', 'Paris is in France.'),

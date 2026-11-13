@@ -86434,6 +86434,126 @@
           }
         ],
         "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha. [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha. [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.  [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.  [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.\n[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.\n[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
       }
     ]
   },
