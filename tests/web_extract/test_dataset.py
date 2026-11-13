@@ -141,7 +141,7 @@ def test_shared_publisher_reads_committed_extract_inputs_and_rejects_unknown_bin
     from harness.benchmarks.publication import DatasetRelease
 
     root = tmp_path / "source"
-    definitions = root / "definitions"
+    definitions = root / "src/lexbench_web-extract/definitions"
     definitions.mkdir(parents=True)
     tasks = b'{"cases":[{"id":"one","url":"https://example.org"}]}'
     (definitions / "tasks.json").write_bytes(tasks)
@@ -162,41 +162,53 @@ def test_shared_publisher_reads_committed_extract_inputs_and_rejects_unknown_bin
     (definitions / "README.rst").write_bytes(b"Original upstream documentation\n")
     if unsafe:
         (definitions / "unregistered.bin").write_bytes(b"unexpected binary")
+
+    def commit(directory):
+        for args in (
+            ["init", "-q"],
+            ["add", "."],
+            ["-c", "user.name=Fixture", "-c", "user.email=test@example.org"]
+            + ["commit", "-qm", "Fixture"],
+        ):
+            subprocess.run(["git", *args], cwd=directory, capture_output=True, check=True)
+        head = ["git", "rev-parse", "HEAD"]
+        return subprocess.check_output(head, cwd=directory, text=True).strip()
+
+    revision = commit(root)
+    (definitions / "evaluate.py").write_bytes(b"# uncommitted edit\n")
+    if unsafe:
+        # Source repositories may only publish registered definition file types.
+        with pytest.raises(ValueError, match="Unexpected definition file"):
+            DatasetRelease.from_git(root, "web-extract", revision)
+        return
+    release = DatasetRelease.from_git(root, "web-extract", revision)
+    assert release.files["definitions/evaluate.py"] == b"# original evaluator\n"
+    hub = tmp_path / "hub"
+    release.build(hub)
     from harness.benchmarks.data import source_name_migrations
 
     original_track = next(iter(source_name_migrations()["tracks"]))
     source_name = {"current": "web-extract", "archived": original_track, "unrelated": "webfetch"}[
         source_track
     ]
-    save_json(
-        root / "manifest.json", {"schema": "webstone-dataset-release/1", "track": source_name}
-    )
-    for args in (
-        ["init"],
-        ["add", "."],
-        ["-c", "user.name=Fixture", "-c", "user.email=test@example.org", "commit", "-m", "Fixture"],
-    ):
-        subprocess.run(["git", *args], cwd=root, capture_output=True, check=True)
-    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=root, text=True).strip()
-    (definitions / "evaluate.py").write_bytes(b"# uncommitted edit\n")
+    manifest = json.loads((hub / "manifest.json").read_bytes())
+    save_json(hub / "manifest.json", {**manifest, "track": source_name})
+    revision = commit(hub)
+    (hub / "definitions/evaluate.py").write_bytes(b"# uncommitted edit\n")
     if source_track == "unrelated":
         with pytest.raises(ValueError, match="does not match the requested benchmark track"):
-            DatasetRelease.from_git(root, "web-extract", revision)
+            DatasetRelease.from_git(hub, "web-extract", revision)
         return
-    if unsafe:
-        with pytest.raises(ValueError, match="Unexpected definition file"):
-            DatasetRelease.from_git(root, "web-extract", revision)
-    else:
-        release = DatasetRelease.from_git(root, "web-extract", revision)
-        assert release.files["definitions/evaluate.py"] == b"# original evaluator\n"
-        out = tmp_path / "built"
-        result = release.build(out)
-        assert result["datasets"]["zyte-products-140"]["count"] == 1
-        assert (
-            json.loads((out / "data/zyte-products-140.jsonl").read_text(encoding="utf-8"))["id"]
-            == "one"
-        )
-        assert (out / "definitions.tar.gz").is_file()
+    rebuilt = DatasetRelease.from_git(hub, "web-extract", revision)
+    assert rebuilt.files["definitions/evaluate.py"] == b"# original evaluator\n"
+    out = tmp_path / "built"
+    result = rebuilt.build(out)
+    assert result["datasets"]["zyte-products-140"]["count"] == 1
+    assert (
+        json.loads((out / "data/zyte-products-140.jsonl").read_text(encoding="utf-8"))["id"]
+        == "one"
+    )
+    assert (out / "definitions.tar.gz").is_file()
 
 
 @pytest.mark.parametrize("damage", [None, "other-html", "other-upstream"])

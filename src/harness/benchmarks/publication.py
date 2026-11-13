@@ -88,6 +88,51 @@ def _git_blobs(checkout: Path, revision: str, paths: tuple[str, ...]) -> dict[st
     return files
 
 
+def _materialized(checkout: Path, name: str, content: bytes) -> bytes:
+    """Replace a Git LFS pointer with the exact local object it names."""
+    pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)
+    if not pointer:
+        return content
+    local = checkout / name
+    if local.is_symlink() or not local.resolve().is_relative_to(checkout.resolve()):
+        raise ValueError("Unsafe local LFS file")
+    content = local.read_bytes()
+    if bytes_sha256(content) != pointer[1].decode() or len(content) != int(pointer[2]):
+        raise ValueError("Materialize the exact committed LFS object: " + name)
+    return content
+
+
+def _hub_definitions(checkout: Path, revision: str, identity: dict) -> dict[str, bytes]:
+    """Read a published release's definitions and notices from its committed archive.
+
+    A hub may keep definitions only in the archive, so its tree is not authoritative.
+    The committed manifest binds the archive and every file in it.
+    """
+    blobs = _git_blobs(checkout, revision, ("definitions.tar.gz",))
+    if "definitions.tar.gz" not in blobs:
+        raise ValueError("Hub source requires a committed definitions archive")
+    raw = _materialized(checkout, "definitions.tar.gz", blobs["definitions.tar.gz"])
+    listed = identity.get("files") if isinstance(identity.get("files"), dict) else {}
+    if identity.get("archive") != {"path": "definitions.tar.gz", "sha256": bytes_sha256(raw), "size": len(raw)}:
+        raise ValueError("Committed archive does not match the release manifest")
+    files = {}
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:gz") as archive:
+        for member in archive:
+            name = member.name
+            if not member.isfile() or name in files or {"", ".", ".."} & set(name.split("/")):
+                raise ValueError("Unexpected archive member: " + name)
+            # Reject before reading: a small archive can declare a huge member.
+            if not isinstance(listed.get(name), dict) or member.size != listed[name].get("size"):
+                raise ValueError("Archive member does not match the release manifest: " + name)
+            content = archive.extractfile(member).read()
+            if listed.get(name) != {"sha256": bytes_sha256(content), "size": len(content)}:
+                raise ValueError("Archive member does not match the release manifest: " + name)
+            files[name] = content
+    if not {name for name in listed if name.startswith("definitions/")} <= set(files):
+        raise ValueError("Archive does not contain the manifest's definition files")
+    return files
+
+
 def _headless_definitions(checkout: Path, revision: str) -> dict[str, bytes]:
     originals = _git_blobs(checkout, revision, HEADLESS_INPUTS)
     files, source_files = {}, {}
@@ -198,7 +243,7 @@ class DatasetRelease:
                     or canonical_source_name("schemas", identity.get("schema")) != "webstone-dataset-release/1"
                     or canonical_source_name("tracks", identity.get("track")) != track):
                 raise ValueError("Hub source manifest does not match the requested benchmark track")
-            prefix = "definitions/"
+            files = _hub_definitions(checkout, revision, identity)
         else:
             prefixes = [value for value in (f"src/lexbench_{track}/definitions/", f"lexbench_{track}/definitions/")
                         if subprocess.run(["git", "cat-file", "-e", revision + ":" + value.rstrip("/")],
@@ -206,26 +251,18 @@ class DatasetRelease:
             if len(prefixes) != 1:
                 raise ValueError("Source requires one committed definitions tree")
             prefix = prefixes[0]
-        notices = subprocess.check_output(
-            ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "LICENSE-annotations", "NOTICE",
-             "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md", "VERSIONING.md"], cwd=checkout, text=True).splitlines()
-        files = {}
-        for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():
-            name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
-            allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
-                       or Path(name).name in {"LICENSE", "NOTICE"}
-                       or any(name.endswith(suffix) for suffix in registered[track].get("definition_suffixes", [])))
-            if name.startswith("definitions/") and not allowed:
-                raise ValueError("Unexpected definition file: " + name)
-            pointer = re.fullmatch(rb"version https://git-lfs.github.com/spec/v1\noid sha256:([0-9a-f]{64})\nsize ([0-9]+)\n", content)
-            if pointer:
-                local = checkout / original_name
-                if local.is_symlink() or not local.resolve().is_relative_to(checkout.resolve()):
-                    raise ValueError("Unsafe local LFS file")
-                content = local.read_bytes()
-                if bytes_sha256(content) != pointer[1].decode() or len(content) != int(pointer[2]):
-                    raise ValueError("Materialize the exact committed LFS object: " + original_name)
-            files[name] = content
+            notices = subprocess.check_output(
+                ["git", "ls-tree", "--name-only", revision, "--", "LICENSE", "LICENSE-annotations", "NOTICE",
+                 "THIRD_PARTY.md", "THIRD_PARTY_NOTICES.md", "VERSIONING.md"], cwd=checkout, text=True).splitlines()
+            files = {}
+            for original_name, content in _git_blobs(checkout, revision, (prefix, *notices)).items():
+                name = "definitions/" + original_name[len(prefix):] if original_name.startswith(prefix) else original_name
+                allowed = (track == "headless-browser" or Path(name).suffix in {".json", ".jsonl", ".txt", ".md"}
+                           or Path(name).name in {"LICENSE", "NOTICE"}
+                           or any(name.endswith(suffix) for suffix in registered[track].get("definition_suffixes", [])))
+                if name.startswith("definitions/") and not allowed:
+                    raise ValueError("Unexpected definition file: " + name)
+                files[name] = _materialized(checkout, original_name, content)
         repository = "https://huggingface.co/datasets/" + registered[track]["repo_id"] if hub else None
         settings = identity if hub else json.loads(files['definitions/registry.json'])
         filters = identity.get('viewer_filters') if hub else None
