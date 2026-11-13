@@ -1351,7 +1351,7 @@ def _write_dataset_page(inputs: ReportInputs, edition: ReportEdition) -> None:
     lang, zh, prefix, t = edition.lang, edition.zh, edition.prefix, edition.t
     page = partial(_write_page, inputs, edition)
     dataset_profile, dataset_content = quality_dataset(profile, authored)
-    ds = [_dataset_row(profile, c, edition) for c in dataset_profile["cases"]]
+    ds = [_dataset_row(dataset_profile, c, edition) for c in dataset_profile["cases"]]
     page(
         "dataset.html",
         t("Tests and sources"),
@@ -2050,7 +2050,7 @@ def check(output, *, return_data=False, evidence_only=False):
         actual_execution = soup.select("[data-execution-settings]")
         if len(actual_execution) != 1 or actual_execution[0].get_text() != expected_execution.get_text():
             raise ValueError("Execution settings disagree with the frozen collection policy")
-        if groups:
+        if groups or level_views:
             if (manifest.get("authored") or {}).get("presentation") != "comparison-report":
                 summary_route = (
                     "research.html"
@@ -2067,7 +2067,9 @@ def check(output, *, return_data=False, evidence_only=False):
             for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
                 inventory = BeautifulSoup((output / (prefix + route)).read_text(encoding="utf-8"), "html.parser")
                 options = inventory.select("[data-cohort-filter] option")
-                if {o["value"] for o in options} != {"all", *(g["id"] for g in groups)}:
+                expected_groups = (quality_dataset(manifest['profile'], manifest.get('authored') or {})[0].get('report_cohorts', [])
+                                   if route == 'dataset.html' else groups)
+                if {o["value"] for o in options} != {"all", *(g["id"] for g in expected_groups)}:
                     raise ValueError("Incomplete cohort filter")
         for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
             inventory = BeautifulSoup((output / (prefix + route)).read_text(encoding="utf-8"), "html.parser")
@@ -2176,6 +2178,11 @@ def check(output, *, return_data=False, evidence_only=False):
         soup = BeautifulSoup(path.read_bytes().decode("utf-8"), "html.parser")
         check_presentation(soup)
         authored = manifest.get("authored") or {}
+        if level_views and route.endswith('dataset.html'):
+            dataset_profile, dataset_content = quality_dataset(manifest['profile'], authored)
+            expected_dataset = BeautifulSoup(dataset_context(dataset_profile, dataset_content, soup.html['lang'] == 'zh'), 'html.parser')
+            if str(soup.select_one('[data-dataset-context]')) != str(expected_dataset.select_one('[data-dataset-context]')):
+                raise ValueError('Dataset definitions differ from the two scored benchmarks')
         if "details/" not in route:
             lang = soup.html["lang"]
             name = Path(route).name
@@ -4010,7 +4017,7 @@ def benchmark_operations(profile, selected, content, zh):
 def quality_dataset(profile, content):
     """Active dataset excludes rejected references; archived calls stay in results."""
     excluded = set(profile.get("factual_quality_exclusions", []))
-    if not excluded:
+    if not excluded and not content.get('output_level_assessments'):
         return profile, content
     active = copy.deepcopy(profile)
     active["cases"] = [case for case in active["cases"] if case["id"] not in excluded]
@@ -4019,6 +4026,17 @@ def quality_dataset(profile, content):
     authored = copy.deepcopy(content)
     for population in authored.get("metric_populations", []):
         population["case_ids"] = [cid for cid in population["case_ids"] if cid not in excluded]
+    if content.get('output_level_assessments'):
+        for case in active['cases']:
+            case['cohort'] = 'factual' if 'reference_answer' in case else 'scenario'
+        groups = [dict(id=identity, label=label,
+                       case_ids=[case['id'] for case in active['cases'] if case['cohort'] == identity])
+                  for identity, label in [
+                      ('scenario', dict(en='Scenario relevance', zh=zh_text('Scenario relevance'))),
+                      ('factual', dict(en='SimpleQA Verified', zh=zh_text('SimpleQA Verified')))]]
+        active['report_cohorts'] = [group for group in groups if group['case_ids']]
+        authored['independent_benchmarks'] = True
+        authored['metric_populations'] = [dict(group, benchmark_root=True) for group in active['report_cohorts']]
     return active, authored
 
 
@@ -4241,4 +4259,4 @@ def dataset_context(profile, content, zh):
     if note:
         note += report_text(". ", zh)
     note += report_text("Original queries, source URLs and derivations are listed below.", zh)
-    return '<section><h2>' + report_text("Datasets and evaluation scope", zh) + '</h2>' + table([report_text("Dataset", zh), report_text("Queries", zh), report_text("Purpose", zh)], rows) + '<p>' + note + '</p></section>'
+    return '<section data-dataset-context><h2>' + report_text("Datasets and evaluation scope", zh) + '</h2>' + table([report_text("Dataset", zh), report_text("Queries", zh), report_text("Purpose", zh)], rows) + '<p>' + note + '</p></section>'

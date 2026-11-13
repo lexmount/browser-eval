@@ -16,12 +16,16 @@ def test_public_report_roundtrip_preserves_native_crlf_text(tmp_path, monkeypatc
 
     def native_multiline(path, value):
         if path.parent.name == 'calls' and value.get('results'):
-            value['results'][0]['snippet'] = 'Fixture only\r\nSecond line'
+            value['results'][0]['snippet'] = 'Fixture only\r\nExample: /Users/public-author/tool.py'
         return write(path, value)
 
     monkeypatch.setattr(owner, 'write_json', native_multiline)
     owner.example(tmp_path, levels=True)
     assert check(tmp_path / 'report')
+    native = next((tmp_path / 'fixture/calls').glob('*.json')).read_bytes()
+    assert b'/Users/public-author/tool.py' in native
+    detail = next((tmp_path / 'report/details').glob('*.html')).read_bytes().decode()
+    assert '/Users/' not in detail and '[source path]' in detail
 
 
 def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_path):
@@ -42,6 +46,13 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
             "factual",
         }
         assert not home.select("[data-executive], [data-discovery]")
+        dataset = BeautifulSoup((root / (prefix + 'dataset.html')).read_bytes(), 'html.parser')
+        assert len(dataset.select('[data-dataset-context] tbody tr')) == 2
+        assert {o['value'] for o in dataset.select('[data-cohort-filter] option')} == {'all', 'scenario', 'factual'}
+        assert {row['data-cohort'] for row in dataset.select('[data-row]')} == {'scenario', 'factual'}
+        results = BeautifulSoup((root / (prefix + 'results.html')).read_bytes(), 'html.parser')
+        comparison = json.loads(results.select_one('[data-comparison-data]').string)
+        assert {p['id'] for p in comparison['populations']} == {'scenario', 'factual'}
         quality = BeautifulSoup((root / (prefix + "quality.html")).read_text(), "html.parser")
         assert {
             s["data-findings-benchmark"] for s in quality.select("[data-findings-benchmark]")
@@ -60,12 +71,12 @@ def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_p
 
 @pytest.mark.parametrize(
     "damage",
-    ["missing-level", "missing-chart", "wrong-value", "missing-filter", "wrong-participant"],
+    ["missing-level", "missing-chart", "wrong-value", "missing-filter", "wrong-participant", "wrong-dataset"],
 )
 def test_public_check_rejects_missing_or_incorrect_level_presentation(tmp_path, damage):
     example(tmp_path, levels=True)
     root = tmp_path / "report"
-    path = root / ("quality.html" if damage == "missing-chart" else "index.html")
+    path = root / ("quality.html" if damage == "missing-chart" else 'dataset.html' if damage == 'wrong-dataset' else "index.html")
     soup = BeautifulSoup(path.read_text(), "html.parser")
     if damage == "missing-level":
         soup.select_one("[data-output-level]").decompose()
@@ -75,6 +86,8 @@ def test_public_check_rejects_missing_or_incorrect_level_presentation(tmp_path, 
         soup.select_one("[data-output-level] td[data-metric]")["data-sort"] = "999"
     elif damage == "missing-filter":
         soup.select_one("[data-level-summary-filter]").decompose()
+    elif damage == 'wrong-dataset':
+        soup.select_one('[data-dataset-context] tbody tr td:nth-of-type(2)').string = '999'
     else:
         soup.select_one("[data-output-level] tbody tr td").string = "An unsupported provider"
     path.write_text(str(soup))

@@ -120,9 +120,9 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                 candidate_id = ranking_identity(case["id"], item, preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1", level=profile.get("protocol", {}).get("relevance_level")) if _url(item.get("url")) else ""
                 judgment = judgments.get(case["id"], {}).get(candidate_id, {}) if has_labels else {}
                 items.append({"url": "" if item.get("invalid_slot") else _url(item.get("url")),
-                              "grade_reason": judgment.get("reason", ""),
+                              "grade_reason": _preview(judgment.get("reason", "")),
                               "grade_source": 'slot-rule' if item.get('invalid_slot') else judgment.get("grade_source", (relevance or {}).get("judge", {}).get("kind", "unjudged")) if has_labels else "unjudged",
-                              "grade_evidence": (judgment.get("evidence") or (report_text("Selected field is empty", zh) if judgment.get("evidence_empty") else "")),
+                              "grade_evidence": _preview(judgment.get("evidence") or (report_text("Selected field is empty", zh) if judgment.get("evidence_empty") else "")),
                               "contamination_excluded": contaminated,
                               "source_match": source_match, "answer_fields": visible_answers,
                               "answer_outside_preview": answer_fields["content"] and not visible_answers["content"],
@@ -162,6 +162,13 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                                    "repositories": case.get("repositories", [])},
                       "outputs": outputs})
     populations = profile.get("comparison_populations")
+    if profile.get('protocol', {}).get('relevance_level'):
+        populations = [
+            dict(id='scenario', label=dict(en='Scenario relevance', zh=zh_text('Scenario relevance')),
+                 case_ids=[case['id'] for case in cases if 'factual' not in case['check_types']]),
+            dict(id='factual', label=dict(en='SimpleQA Verified', zh=zh_text('SimpleQA Verified')),
+                 case_ids=[case['id'] for case in cases if 'factual' in case['check_types']]),
+        ]
     if not populations:
         populations = [
             {"id": "overall", "label": {"en": "All tasks", "zh": zh_text("All tasks")}, "case_ids": [c["id"] for c in cases]},
@@ -518,7 +525,7 @@ def render_level_detail(views, row, zh=False):
         body += '<article id="' + level + '" data-detail-level="' + level + '"><h2>' + level.upper() + '</h2>'
         if level == 'l3':
             score = next((s for s in view['answer_scores'] if s['case_id'] == row['case_id'] and s['method'] == row['method']), None)
-            body += '<h3>' + t('Generated answer') + '</h3><div class="native-answer">' + esc(row.get('answer') or '') + '</div>'
+            body += '<h3>' + t('Generated answer') + '</h3><div class="native-answer">' + esc(_preview(row.get('answer') or '')) + '</div>'
             if score:
                 grade = (dict(CORRECT=t('Correct'), INCORRECT=t('Incorrect'), NOT_ATTEMPTED=t('Not attempted'))[score['factual_grade']]
                          if 'factual_grade' in score else str(score['answer_grade']) + ' / 3')
@@ -529,14 +536,14 @@ def render_level_detail(views, row, zh=False):
                     from lexbench_websearch.answers import scenario_grade
 
                     judgment = scenario_grade({'answer': row.get('answer') or ''}, call['response']['choices'][0]['message']['content'])
-                    body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(judgment['reason']) + '</p><blockquote>' + esc(judgment['evidence']) + '</blockquote></details>'
+                    body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(_preview(judgment['reason'])) + '</p><blockquote>' + esc(_preview(judgment['evidence'])) + '</blockquote></details>'
                 from lexbench_websearch.answers import answer_packet, citation_grades
 
                 case = next(c for c in view['profile']['cases'] if c['id'] == row['case_id'])
                 packet = answer_packet(case, dict(row, results=row['results'][:view['profile']['protocol']['top_k']]))
                 citation_call = view.get('answers', {}).get('calls', {}).get(row['method'] + '/' + row['case_id'] + '/citations')
                 decisions = citation_grades(packet, citation_call['response']['choices'][0]['message']['content']) if citation_call else []
-                body += '<details><summary>' + t('Citations') + '</summary><pre>' + esc(json.dumps(dict(citations=packet['citations'], judgments=decisions), ensure_ascii=False, indent=2)) + '</pre></details>'
+                body += '<details><summary>' + t('Citations') + '</summary><pre>' + esc(_preview(json.dumps(dict(citations=packet['citations'], judgments=decisions), ensure_ascii=False, indent=2))) + '</pre></details>'
         else:
             evidence = view['relevance']
             packet = next((p for p in evidence.get('blind_candidate_packets', []) if p['case_id'] == row['case_id']), None)
@@ -556,8 +563,8 @@ def render_level_detail(views, row, zh=False):
                     body += '<p data-result-grade>' + t('Relevance grade') + ': ' + str(grade) + ' / 3</p>'
                     judgment = judgments.get(candidate_id, {})
                     if judgment.get('reason'):
-                        body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(judgment['reason']) + '</p><blockquote>' + esc(judgment.get('evidence') or '') + '</blockquote></details>'
-                body += '<article class="specimen"><h3>' + str(index+1) + '. ' + esc(item.get('title') or '') + '</h3><p>' + esc(item.get('url') or '') + '</p><div class="native-answer">' + esc(item.get('snippet') or '') + '</div></article>'
+                        body += '<details><summary>' + t('Scoring reason and quoted evidence') + '</summary><p>' + esc(_preview(judgment['reason'])) + '</p><blockquote>' + esc(_preview(judgment.get('evidence') or '')) + '</blockquote></details>'
+                body += '<article class="specimen"><h3>' + str(index+1) + '. ' + esc(_preview(item.get('title') or '')) + '</h3><p>' + esc(item.get('url') or '') + '</p><div class="native-answer">' + esc(_preview(item.get('snippet') or '')) + '</div></article>'
         body += '</article>'
     return body + '</section>'
 
