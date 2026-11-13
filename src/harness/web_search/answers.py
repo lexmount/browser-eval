@@ -99,7 +99,7 @@ def _format_request(job, model):
         "Unsupported citations require source_refs=[]. Do not copy claims or quotations."
         if job['kind'] == 'citations' else
         "\nOutput-format correction only; keep the rubric unchanged. Return the required "
-        "scenario JSON with an integer grade and exact answer evidence."
+        "scenario JSON with only an integer grade and a short reason; do not copy evidence."
         if job['kind'] == 'scenario' else
         "\nOutput-format correction only; keep the original rubric unchanged. Return exactly A, B or C."
     )
@@ -128,7 +128,7 @@ def _validate_call(job, packet, call, configuration, key):
     else:
         expected = base
     if (call.get('case_id') != key or call.get('request') != expected
-            or not 1 <= len(call.get('attempts', [])) <= configuration['attempt_limit']):
+            or configuration.get('attempt_limit') != 1 or len(call.get('attempts', [])) != 1):
         raise ValueError('Answer judge request or attempt count changed')
     validate_physical_receipts(call, configuration)
     return _parse(job, packet, call['response'])
@@ -154,7 +154,7 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
             or configuration.get('prompt_sha256') != _prompt_hashes(upstream_source)
             or configuration.get('temperature') != 0
             or type(configuration.get('attempt_limit')) is not int
-            or configuration['attempt_limit'] not in (1, 2, 3)
+            or configuration['attempt_limit'] != 1
             or configuration.get('extra_params') != {'enable_thinking': False}
             or configuration.get('request_headers') != {'x-bf-passthrough-extra-params': 'true'}
             or set(evidence['calls']) != set(jobs)):
@@ -188,6 +188,8 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
 
 def judge_answers(profile, rows, args, token):
     """Finish a complete L3 population; a resumed run replays saved calls verbatim."""
+    if args.retries:
+        raise ValueError('L3 answer judging requires zero retries')
     if args.simpleqa_grader is None:
         raise ValueError('L3 requires the pinned official SimpleQA grader source')
     if args.reuse_evidence or args.source_requirements:
@@ -200,7 +202,7 @@ def judge_answers(profile, rows, args, token):
     packets, jobs = _jobs(profile, rows, upstream_source)
     configuration = dict(schema='web-search-answer-judge/1', model=args.model,
                          base_url=args.base_url, temperature=0, max_tokens=8192,
-                         attempt_limit=1 + args.retries, extra_params={'enable_thinking': False},
+                         attempt_limit=1, extra_params={'enable_thinking': False},
                          request_headers={'x-bf-passthrough-extra-params': 'true'},
                          upstream=deepcopy(SIMPLEQA_UPSTREAM),
                          citation_rule=CITATION_RULE, scoring_provenance=deepcopy(CITATION_CORRECTION),

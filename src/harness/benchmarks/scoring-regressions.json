@@ -85622,6 +85622,26 @@
           }
         ],
         "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Source: <https://source.test/doc>",
+        "results": [
+          {
+            "url": "https://source.test/doc"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Source: <https://other.test/doc>",
+        "results": [
+          {
+            "url": "https://source.test/doc"
+          }
+        ],
+        "expected": false
       }
     ],
     "citation-field-references": [
@@ -85735,6 +85755,36 @@
             ]
           }
         ],
+        "expected": false
+      }
+    ],
+    "scenario-answer-evidence": [
+      {
+        "kind": "scenario_grade",
+        "answer": "署名用電子証明書 **5年**。\nOriginal answer.",
+        "judgment": {
+          "grade": 3,
+          "reason": "Answers the duration question"
+        },
+        "expected": true
+      },
+      {
+        "kind": "scenario_grade",
+        "answer": "",
+        "judgment": {
+          "grade": 3,
+          "reason": "Claims a useful answer despite empty input"
+        },
+        "expected": false
+      },
+      {
+        "kind": "scenario_grade",
+        "answer": "Ada wrote it.",
+        "judgment": {
+          "grade": 3,
+          "reason": "Author identified",
+          "evidence": "Invented quote"
+        },
         "expected": false
       }
     ]

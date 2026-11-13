@@ -44,6 +44,14 @@ def _bound(root, binding):
     return resolve_profile(json.loads(raw))
 
 
+def _selected_methods(profile, binding):
+    methods = {method['id']: method for method in profile['methods']}
+    ids = binding.get('methods', list(methods))
+    if not ids or len(ids) != len(set(ids)) or not set(ids).issubset(methods):
+        raise ValueError('Invalid current source method selection')
+    return [methods[mid] for mid in ids]
+
+
 def current_selection(path, *, root=None):
     root = authority_root(path, root)
     selection = json.loads(Path(path).read_bytes())
@@ -53,12 +61,12 @@ def current_selection(path, *, root=None):
         raise ValueError("Unsupported independent Search review scope")
     profile = _bound(root, selection["profile"])
     ids = selection["methods"]
-    available = {m["id"]: m for m in profile["methods"]}
+    available = {m["id"]: m for m in _selected_methods(profile, selection['profile'])}
     cohorts = selection.get("supplementary_profiles", [])
     if len({c["id"] for c in cohorts}) != len(cohorts) or any(c["id"] == "primary" for c in cohorts):
         raise ValueError("Duplicate current search cohort")
     for cohort in cohorts:
-        for method in _bound(root, cohort)["methods"]:
+        for method in _selected_methods(_bound(root, cohort), cohort):
             if method["id"] in available and available[method["id"]] != method:
                 raise ValueError("Conflicting current search method definitions")
             available[method["id"]] = method
@@ -83,7 +91,7 @@ def load_profile_bytes(path, *, root=None, cohort="primary"):
     if binding is None:
         raise ValueError("Unknown supplementary cohort")
     profile = copy.deepcopy(_bound(root, binding))
-    by_id = {m["id"]: m for m in profile["methods"]}
+    by_id = {m["id"]: m for m in _selected_methods(profile, binding)}
     profile["methods"] = [by_id[mid] for mid in selection["methods"] if mid in by_id]
     profile["title"] = selection["title"] if cohort == "primary" else profile["title"]
     profile["protocol"]["comparison"] = "Current selected methods; one declared result per query and method."

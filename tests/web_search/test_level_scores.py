@@ -34,6 +34,22 @@ def complete_levels():
     return profile, rows, admissions, artifacts, evidence
 
 
+def test_unsupported_cutoff_is_rejected_before_any_level_judgments():
+    profile, rows, *_ = complete_levels()
+    profile['protocol']['top_k'] = 10
+    with pytest.raises(ValueError, match='require top_k=5'):
+        level_inputs(profile, rows, 'l1')
+
+
+def test_level_assessments_retain_separate_full_call_timing_population():
+    profile, rows, admissions, artifacts, evidence = complete_levels()
+    timing = rows + [dict(row, id=row['id'] + '-round2', round=1) for row in rows]
+    views = assessed_levels(profile, rows, relevance=evidence, admissions=admissions,
+                            artifacts=artifacts, timing_rows=timing)
+    assert all(len(v['timing_rows']) == 2 * len(rows) for v in views.values())
+    assert all(len(v['rows']) == len(rows) for v in views.values())
+
+
 def test_each_level_uses_its_own_text_metrics_and_same_two_benchmarks():
     profile, rows, admissions, artifacts, evidence = complete_levels()
     views = assessed_levels(

@@ -198,6 +198,23 @@ def test_human_relevance_is_the_primary_quality_check_when_complete_labels_exist
     assert data["cases"][2]["outputs"]["a"]["quality"] is None
 
 
+@pytest.mark.parametrize('level', [None, 'l1', 'l2'])
+def test_duplicate_result_badges_follow_rank_credit_in_every_output_level(level):
+    from lexbench_websearch.relevance import ranking_identity
+
+    profile, rows = matrix()
+    profile['protocol'] = {'top_k': 5, 'relevance_level': level}
+    for row in rows:
+        row['results'].append(dict(row['results'][0], snippet='Another preview'))
+    case = profile['cases'][0]
+    labels = {ranking_identity(case['id'], item, level=level): 3
+              for row in rows if row['case_id'] == case['id'] for item in row['results']}
+    data = comparison_data(profile, rows, relevance={'labels': {case['id']: labels}})
+    for output in data['cases'][0]['outputs'].values():
+        assert [item['grade'] for item in output['items']] == [3, 0]
+        assert output['score']['ranked_grades'][:2] == [3, 0]
+
+
 def test_answer_beyond_body_excerpt_does_not_highlight_unmatched_preview():
     p, rows = matrix()
     row = rows[3]

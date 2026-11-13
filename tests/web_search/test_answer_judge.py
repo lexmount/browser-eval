@@ -53,7 +53,7 @@ def answer_run(tmp_path, monkeypatch):
             text = json.dumps(dict(judgments=[dict(citation_index=0, supported=True,
                               reason='The source names the author', source_refs=[reference])]))
         else:
-            text = json.dumps(dict(grade=3, reason='The answer identifies the author', evidence='Ada'))
+            text = json.dumps(dict(grade=3, reason='The answer identifies the author'))
         return Response(json.dumps(dict(model='test-model', choices=[dict(message={'content': text})])).encode())
 
     monkeypatch.setattr('urllib.request.urlopen', send)
@@ -101,6 +101,14 @@ def test_l3_transport_failure_is_zero_retry_including_resume(answer_run):
     with pytest.raises(ValueError, match='attempt limit exhausted'):
         test['run']()
     assert len(test['requests']) == 1
+
+
+@pytest.mark.parametrize('retries', [1, 2])
+def test_l3_rejects_explicit_transport_retries_before_any_paid_request(answer_run, retries):
+    with pytest.raises(ValueError, match='requires zero retries'):
+        answer_run['run'](['--retries', str(retries)])
+    assert not answer_run['requests']
+    assert not (answer_run['output']/'contract.json').exists()
 
 
 def test_l3_invalid_citation_keeps_raw_call_and_cannot_be_rejudged_on_resume(answer_run):

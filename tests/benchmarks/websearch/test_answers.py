@@ -105,18 +105,33 @@ def test_citation_support_requires_complete_original_source_references():
             answers.citation_grades(value, json.dumps(dict(judgments=changed)))
 
 
-def test_scenario_answer_score_requires_answer_evidence_and_valid_grade():
+def test_scenario_answer_score_binds_complete_native_answer_and_valid_grade():
     value = packet()
-    judgment = dict(grade=3, reason="Names the author", evidence="Ada wrote it")
-    assert answers.scenario_grade(value, json.dumps(judgment)) == judgment
+    judgment = dict(grade=3, reason="Names the author")
+    assert answers.scenario_grade(value, json.dumps(judgment)) == dict(judgment, evidence=value["answer"])
     for altered in (
         dict(judgment, grade=True),
         dict(judgment, grade=4),
         dict(judgment, evidence="Invented answer"),
-        dict(judgment, evidence=""),
+        dict(judgment, reason=""),
     ):
         with pytest.raises(ValueError):
             answers.scenario_grade(value, json.dumps(altered))
+    with pytest.raises(ValueError):
+        answers.scenario_grade(dict(answer=""), json.dumps(judgment))
+    assert answers.scenario_grade(dict(answer=""), json.dumps(dict(grade=0, reason="No answer")))["evidence"] == ""
+
+
+@pytest.mark.parametrize('text', [
+    'Source: <https://example.test/doc>',
+    '[Source](https://example.test/doc)',
+    '[Source][ref]\n\n[ref]: https://example.test/doc',
+])
+def test_native_markdown_links_keep_exact_occurrences_and_source_identity(text):
+    citations = answers.citation_inventory(text, [dict(url='https://example.test/doc')])
+    assert len(citations) == 1 and citations[0]['in_results']
+    start, end = citations[0]['span']
+    assert text[start:end] == citations[0]['marker']
 
 
 def test_one_based_citations_resolve_zero_based_webpage_source_uris_without_changing_rank():

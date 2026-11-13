@@ -123,6 +123,18 @@ def test_level_results_and_details_keep_text_and_grade_sources_separate():
     )
     assert "1 / 1" in detail.select_one('[data-detail-level="l3"]').get_text()
 
+    from harness.web_search.report import _resolve_owned_links
+
+    for prefix in ('', 'en/'):
+        for site in ('', 'reports'):
+            rendered = render_level_results(views, detail_link=lambda r, site=site, prefix=prefix: '/'.join(
+                part for part in (site, prefix.rstrip('/'), 'details', r['id'] + '.html') if part))
+            doc = BeautifulSoup(rendered, 'html.parser')
+            _resolve_owned_links(doc, prefix + 'results.html', site, set())
+            expected = '/'.join(part for part in (site, prefix.rstrip('/'), 'details',
+                                                 native['id'] + '.html#l3') if part)
+            assert doc.select_one('[data-answer-result] a')['href'] == expected
+
 
 @pytest.mark.parametrize("damage", ["missing-results-level", "mixed-preview", "wrong-detail"])
 def test_public_check_rejects_mixed_or_missing_level_evidence_views(tmp_path, damage):

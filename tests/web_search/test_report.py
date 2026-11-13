@@ -379,6 +379,9 @@ class ReportScenarios(unittest.TestCase):
         evidence = import_annotations(profile, measured, submission)
         relevance = self.root / "relevance.json"
         relevance.write_text(json.dumps(evidence), encoding="utf-8")
+        build(self.out, source=source, relevance=relevance)
+        self.assertIsNone(json.loads((self.out / "manifest.json").read_bytes())["authored"])
+        self.assertTrue(check(self.out))
         content = self.root / "reading.json"
         content.write_text(json.dumps({"reading_model": True, "reading_sections": [
             {"key": "quality", "title": {"en": "Quality", "zh": "质量"}, "nav": {"en": "Quality", "zh": "质量"}}],

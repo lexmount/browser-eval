@@ -72,8 +72,8 @@ from harness.web_search.review import (
 from harness.web_search.revisions import (
     apply_identity_correction,
     apply_report_revision,
+    assessment_protocol,
     collected_projection,
-    collection_protocol,
     validate_revision_binding,
 )
 from harness.web_search.runner import reference_available, reference_changes
@@ -837,7 +837,7 @@ def _load_report_inputs(
         binding = authored['output_level_assessments']
         verify_bundle(content.parent, [binding])
         path = content.parent/binding['path']
-        level_views, files = load_assessed_levels(path, profile, selected, authority=authority)
+        level_views, files = load_assessed_levels(path, profile, selected, authority=authority, timing_rows=rows)
         level_files = {'level-assessments/' + name: raw for name, raw in files.items()}
         level_binding = dict(path='level-assessments/' + path.name, sha256=bytes_sha256(path.read_bytes()))
     overview_methods = scoped_overview_methods(profile, authored)
@@ -1280,6 +1280,8 @@ def _write_home_page(inputs: ReportInputs, edition: ReportEdition) -> None:
     page = partial(_write_page, inputs, edition)
     headers, core = ([], []) if inputs.level_views else _core_metrics_table(inputs, edition)
     body = '' if inputs.level_views else _default_home_body(inputs, edition, headers, core)
+    if inputs.relevance_scores and not authored.get('reading_model') and authored.get('presentation') != 'comparison-report':
+        body += relevance_panel(profile, inputs.relevance_scores, inputs.relevance_data, zh)
     if authored.get("reading_model") and not inputs.level_views:
         body = _reading_model_home_body(inputs, edition, headers, core)
     if not any(c["key"] == "speed" for c in reading_sections) and authored.get("presentation") != "comparison-report":
@@ -1952,7 +1954,7 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), (manifest["profile"]["protocol"] if manifest.get("assessment_revision") else collection_protocol(manifest["profile"], row)), row.get("request"))
+                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), assessment_protocol(manifest["profile"], row, manifest.get('assessment_revision')), row.get("request"))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1970,7 +1972,7 @@ def check(output, *, return_data=False, evidence_only=False):
         verify_bundle(output, [manifest['level_assessments']])
         level_views, _ = load_assessed_levels(output/manifest['level_assessments']['path'],
                                              manifest['profile'], scoring_rows(manifest['profile'], manifest['rows']),
-                                             authority=authority)
+                                             authority=authority, timing_rows=manifest['rows'])
     if manifest.get("independent_review_sha256"):
         review_path = output / "independent-review.json"
         if bytes_sha256(review_path.read_bytes()) != manifest["independent_review_sha256"]:
@@ -2106,13 +2108,13 @@ def check(output, *, return_data=False, evidence_only=False):
         method = next(m for m in manifest['profile']['methods'] if m['id'] == row['method'])
         validate_native_answer(row, payloads.get(row['id'], {}), method)
         if row["http_status"] == 200 and not row["error"]:
-            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), (manifest["profile"]["protocol"] if manifest.get("assessment_revision") else collection_protocol(manifest["profile"], row)), row.get("request")) != row["results"]:
+            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), assessment_protocol(manifest["profile"], row, manifest.get('assessment_revision')), row.get("request")) != row["results"]:
                 raise ValueError("Published results disagree with raw response")
         if row["metrics"] != evaluate(cases[row["case_id"]], row["results"]):
             raise ValueError("Published scores disagree with the declared rules")
     if relevance_data:
         selected = scoring_rows(manifest["profile"], manifest["rows"])
-        if manifest["profile"].get("relevance_methods") != manifest.get("authored", {}).get("relevance_methods"):
+        if manifest["profile"].get("relevance_methods") != (manifest.get("authored") or {}).get("relevance_methods"):
             raise ValueError("Relevance method scope differs from authored content")
         relevance_profile, relevance_rows = relevance_scope(manifest["profile"], selected)
         verify_provenance(relevance_profile, relevance_rows, relevance_data, authority=authority)
@@ -2343,6 +2345,10 @@ def check(output, *, return_data=False, evidence_only=False):
                 selector = '[data-level-capabilities]'
                 expected = render_level_capabilities(level_views, zh)
             expected_nodes = BeautifulSoup(expected, 'html.parser').select(selector)
+            if route.endswith('results.html'):
+                fragment = BeautifulSoup(expected, 'html.parser')
+                _resolve_owned_links(fragment, route, manifest.get('site_prefix', ''), set())
+                expected_nodes = fragment.select(selector)
             if [str(node) for node in soup.select(selector)] != [str(node) for node in expected_nodes]:
                 raise ValueError('Output-level presentation differs from verified evidence')
         if route.endswith("index.html") and not comparison_home:

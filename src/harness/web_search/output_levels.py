@@ -174,6 +174,8 @@ def verify_field_admission(profile, rows, receipt, artifacts):
 
 def level_inputs(profile, rows, level, *, admissions=None, artifacts=None):
     """Derive participation from adapters and verified field evidence."""
+    if profile.get('protocol', {}).get('top_k') != 5:
+        raise ValueError('Output-level assessments require top_k=5')
     declared = output_profile(profile)
     qualified = None
     if level == "l2":
@@ -192,7 +194,7 @@ def level_inputs(profile, rows, level, *, admissions=None, artifacts=None):
 
 def assessed_levels(profile, rows, *, relevance=None, relevance_revisions=None,
                     answers=None, upstream_source=None, admissions=None, artifacts=None,
-                    authority=None):
+                    authority=None, timing_rows=None):
     """Build isolated, fully verified score views for every delivered native level."""
     from harness.web_search.answers import verify_answer_evidence
     from harness.web_search.relevance import verify_protocol, verify_provenance
@@ -221,7 +223,10 @@ def assessed_levels(profile, rows, *, relevance=None, relevance_revisions=None,
         if level not in available:
             continue
         selected, projected = projected_levels[level]
-        view = dict(profile=selected, rows=projected)
+        participants = {method['id'] for method in selected['methods']}
+        view = dict(profile=selected, rows=projected,
+                    timing_rows=[row for row in (rows if timing_rows is None else timing_rows)
+                                 if row['method'] in participants])
         if level in ('l1', 'l2'):
             evidence = relevance[level]
             if evidence.get('evaluation_level') != level:
@@ -302,7 +307,7 @@ def level_benchmarks(view):
     return output
 
 
-def load_assessed_levels(path, profile, rows, *, authority=None):
+def load_assessed_levels(path, profile, rows, *, authority=None, timing_rows=None):
     """Resolve a selected external assessment bundle and its complete file inventory."""
     from pathlib import Path
 
@@ -340,7 +345,8 @@ def load_assessed_levels(path, profile, rows, *, authority=None):
     views = assessed_levels(profile, rows, relevance=evidence,
                             relevance_revisions=manifest.get('relevance_revisions'),
                             answers=answers, upstream_source=upstream,
-                            admissions=admissions, artifacts=artifacts, authority=authority)
+                            admissions=admissions, artifacts=artifacts, authority=authority,
+                            timing_rows=timing_rows)
     return views, files
 
 

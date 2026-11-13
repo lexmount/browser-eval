@@ -9,6 +9,20 @@ from harness.web_search.output_levels import level_benchmarks
 from lexbench_websearch.scoring import evaluate
 
 
+def test_level_latency_uses_all_frozen_rounds_while_quality_stays_on_score_round():
+    from copy import deepcopy
+
+    selected = view(n=2)
+    selected['timing_rows'] = deepcopy(selected['rows'])
+    for row in selected['rows']:
+        selected['timing_rows'].append(dict(row, elapsed_ms=900, round=1))
+    doc = BeautifulSoup(render_level_summary(selected), 'html.parser')
+    values = {row['data-summary-method']: row for row in doc.select('tbody tr[data-summary-method]')}
+    assert float(values['a'].select_one('[data-metric$="-mean_ms"]')['data-sort']) == 500
+    assert float(values['b'].select_one('[data-metric$="-mean_ms"]')['data-sort']) == 550
+    assert len(selected['benchmarks']['factual']['scores']) == 4
+
+
 def view(n=40, single=False):
     cases = [
         dict(

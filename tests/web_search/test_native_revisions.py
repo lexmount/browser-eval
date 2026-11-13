@@ -693,3 +693,17 @@ def test_reference_dataset_revision_rejects_unbound_or_changed_inputs(defect):
         revision['regression_ids'] = ['generic-document-urls']
     with pytest.raises(ValueError):
         apply_report_revision(dict(cases=[case], methods=[], protocol={'top_k': 5}), [], revision)
+
+
+@pytest.mark.parametrize('revision', [None, {'root_cause': 'Reference repair'},
+                                      {'normalization': 'request-url/2'}])
+def test_assessment_replay_keeps_each_source_protocol_unless_explicitly_revised(revision):
+    from harness.web_search.revisions import assessment_protocol
+
+    source = dict(top_k=5, normalize_top_k=False, result_url_resolution='request-url/1')
+    profile = dict(collection_composition='matrix', protocol=dict(top_k=5, normalize_top_k=True),
+                   method_collections=[dict(id='other', protocol=source)])
+    actual = assessment_protocol(profile, {'collection': 'other'}, revision)
+    assert actual['normalize_top_k'] is False
+    assert actual['result_url_resolution'] == (revision or {}).get('normalization', 'request-url/1')
+    assert source['result_url_resolution'] == 'request-url/1'

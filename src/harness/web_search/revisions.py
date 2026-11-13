@@ -244,6 +244,17 @@ def validate_revision_controls(revision, normalizer=None):
         if {item['expected'] for item in group} != {True, False}:
             raise ValueError('Source identity regressions require paired controls')
         for control in group:
+            if control.get('kind') == 'scenario_grade':
+                from lexbench_websearch.answers import scenario_grade
+
+                try:
+                    result = scenario_grade({'answer': control['answer']}, json.dumps(control['judgment']))
+                    accepted = result['evidence'] == control['answer']
+                except ValueError:
+                    accepted = False
+                if accepted != control['expected']:
+                    raise ValueError('Scenario decision-evidence regression failed')
+                continue
             if control.get('kind') == 'citation_grade':
                 from lexbench_websearch.answers import answer_packet, citation_grades
 
@@ -547,7 +558,7 @@ def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer
                 new["results"] = normalizer(
                     json.loads(artifacts[path]),
                     method,
-                    revised["protocol"],
+                    assessment_protocol(revised, row, revision),
                     row.get("request"),
                 )
                 new["error"] = ""
@@ -595,6 +606,15 @@ def collection_protocol(profile, row):
             raise ValueError('Missing unique source protocol for matrix row')
         return batches[0]['protocol']
     return profile['protocol']
+
+
+def assessment_protocol(profile, row, revision=None):
+    """Apply only explicitly revised controls to each row's collection protocol."""
+    protocol = dict(collection_protocol(profile, row))
+    revision = (revision or {}).get('contract', revision or {})
+    if (revision or {}).get('normalization'):
+        protocol['result_url_resolution'] = revision['normalization']
+    return protocol
 
 
 def collected_projection(profile, rows, artifacts, normalizer):

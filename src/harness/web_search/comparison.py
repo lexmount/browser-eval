@@ -131,6 +131,9 @@ def comparison_data(profile, selected_rows, zh=False, detail_link=None, relevanc
                               **displayed})
             ranking = ranking_ids(case["id"], [item if _url(item.get("url")) else {"invalid_slot": True} for item in row.get("results", [])[:cutoff]], preview=profile.get("protocol", {}).get("relevance_input") == "delivered-previews/1", level=profile.get("protocol", {}).get("relevance_level"))
             query_score = query_metrics(ranking, labels[case["id"]], cutoff, documents=documents.get(case["id"])) if has_labels and not quality_excluded else None
+            if query_score:
+                for position, item in enumerate(items):
+                    item['grade'] = query_score['ranked_grades'][position]
             outputs[method["id"]] = {
                 "score": query_score,
                 "primary": None if case['id'] in labels and not has_labels else acceptance(case, row, primary_factual_metric if "reference_answer" in case else "primary", cutoff=cutoff, quality_excluded=quality_excluded, relevance_grades=query_score['ranked_grades'] if query_score else None),
@@ -323,7 +326,7 @@ def render_level_summary(view, zh=False, *, content=None):
     prices = catalog_prices(profile, prices_content)
     for benchmark, panel in view['benchmarks'].items():
         ids = set(panel['timing_case_ids'])
-        stats = aggregate([row for row in rows if row['case_id'] in ids])
+        stats = aggregate([row for row in view.get('timing_rows', rows) if row['case_id'] in ids])
         n = len(panel['case_ids'])
         definitions = list(panel['metrics'])
         quality_keys = [metric['key'] for metric in definitions]
@@ -492,7 +495,8 @@ def render_level_results(views, zh=False, *, detail_link=None):
                 benchmark = t('SimpleQA Verified') if 'reference_answer' in case else t('Scenario relevance')
                 grade = (dict(CORRECT=t('Correct'), INCORRECT=t('Incorrect'), NOT_ATTEMPTED=t('Not attempted'))[score['factual_grade']]
                          if 'factual_grade' in score else str(score['answer_grade']) + ' / 3')
-                link = detail_link(row) if detail_link else 'details/' + row['id'] + '.html'
+                # HTML anchors are resolved once by the page writer; JSON links are already rooted.
+                link = 'details/' + row['id'] + '.html'
                 cells = [esc(benchmark), esc(case['query']), esc(labels[row['method']]), esc(grade),
                          str(score['supported_citations']) + ' / ' + str(score['citation_count']),
                          '<a href="' + esc(link) + '#l3">' + t('Open full response and evidence') + '</a>']
