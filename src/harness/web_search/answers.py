@@ -94,13 +94,13 @@ def _format_request(job, model):
     request = _request(job, model)
     suffix = (
         "\nOutput-format correction only; keep the grading rubric unchanged. "
-        "Return only the requested JSON schema, with every required item exactly once. "
-        "A citation claim must be an exact contiguous substring of that occurrence's "
-        "claim_context, including punctuation and Markdown. Do not paraphrase or insert "
-        "ellipses. A supporting quote must be an exact contiguous substring of the cited "
-        "source field. Use a JSON boolean for supported and null evidence when unsupported. "
-        "For scenario grades use an integer 0 through 3 and an exact answer quote."
-        if job['kind'] != 'factual' else
+        "Return every citation_index exactly once, with a JSON boolean supported and "
+        "source_refs containing only ids in that occurrence's supplied source_fields. "
+        "Unsupported citations require source_refs=[]. Do not copy claims or quotations."
+        if job['kind'] == 'citations' else
+        "\nOutput-format correction only; keep the rubric unchanged. Return the required "
+        "scenario JSON with an integer grade and exact answer evidence."
+        if job['kind'] == 'scenario' else
         "\nOutput-format correction only; keep the original rubric unchanged. Return exactly A, B or C."
     )
     messages = deepcopy(request['messages'])

@@ -59,7 +59,12 @@ def test_citations_resolve_native_ids_and_links_without_borrowing_page_body():
     assert "content" not in value["citations"][0]["source"]
     user = json.loads(answers.answer_messages(value)[1]["content"])
     assert set(user) == {"case_id", "query", "answer"}
-    assert json.loads(answers.answer_messages(value, citations=True)[1]["content"]) == value
+    selected = json.loads(answers.answer_messages(value, citations=True)[1]["content"])
+    assert selected["citations"][0]["claim_context"] == value["citations"][0]["claim_context"]
+    assert selected["citations"][0]["source_fields"][1] == dict(
+        id="0:snippet", field="snippet", text="Ada wrote the document."
+    )
+    assert "content" not in json.dumps(selected)
     assert answers.citation_inventory("![image](https://example.test/doc)", []) == []
     inventory = answers.citation_inventory(
         "Claim [引用：7，8]",
@@ -79,39 +84,25 @@ def test_citations_resolve_native_ids_and_links_without_borrowing_page_body():
         )
 
 
-def test_citation_support_requires_complete_exact_evidence_from_the_cited_document():
+def test_citation_support_requires_complete_original_source_references():
     value = packet()
-    judgments = [
-        dict(
-            citation_index=i,
-            supported=False,
-            claim=value["citations"][i]["claim_context"],
-            reason="Not supported",
-            evidence=None,
-        )
-        for i in range(3)
+    judgments = [dict(citation_index=i, supported=False, source_refs=[]) for i in range(3)]
+    judgments[0].update(supported=True, source_refs=["0:snippet"])
+    scored = answers.citation_grades(value, json.dumps(dict(judgments=judgments)))
+    assert scored[0]["claim"] == value["citations"][0]["claim_context"]
+    assert scored[0]["evidence"] == [
+        dict(source_ref="0:snippet", field="snippet", quote="Ada wrote the document.")
     ]
-    judgments[0].update(
-        supported=True,
-        reason="The preview names the author",
-        evidence=dict(field="snippet", quote="Ada wrote the document."),
-    )
-    assert answers.citation_grades(value, json.dumps(dict(judgments=judgments))) == judgments
-    for altered in (
+    for changed in (
         judgments[:-1],
         [judgments[0]] * 3,
-        [
-            dict(judgments[0], evidence=dict(field="content", quote="Full body must stay out")),
-            *judgments[1:],
-        ],
-        [
-            dict(judgments[0], evidence=dict(field="summary", quote="Invented quote")),
-            *judgments[1:],
-        ],
-        [judgments[0], dict(judgments[0], citation_index=1), judgments[2]],
+        [dict(judgments[0], source_refs=["0:content"]), *judgments[1:]],
+        [dict(judgments[0], source_refs=["invented"]), *judgments[1:]],
+        [judgments[0], dict(judgments[1], supported=True, source_refs=["0:snippet"]), judgments[2]],
+        [dict(judgments[0], evidence={"quote": "Invented quotation"}), *judgments[1:]],
     ):
         with pytest.raises(ValueError):
-            answers.citation_grades(value, json.dumps(dict(judgments=altered)))
+            answers.citation_grades(value, json.dumps(dict(judgments=changed)))
 
 
 def test_scenario_answer_score_requires_answer_evidence_and_valid_grade():
@@ -188,42 +179,24 @@ def test_repeated_link_destinations_keep_each_occurrence_and_claim(style):
     ]
     assert all(text[c["span"][0] : c["span"][1]] == c["marker"] for c in citations)
     assert citations[0]["span"][1] < citations[1]["span"][0] < citations[2]["span"][0]
-    judgments = [
-        dict(
-            citation_index=i,
-            supported=False,
-            claim=c["claim_context"],
-            reason="No support",
-            evidence=None,
-        )
-        for i, c in enumerate(citations)
-    ]
-    assert answers.citation_grades(value, json.dumps(dict(judgments=judgments)))
-    judgments[2].update(
-        supported=True, claim="Ada wrote it", evidence=dict(field="snippet", quote="Ada wrote it")
-    )
-    with pytest.raises(ValueError, match="cited claim"):
+    judgments = [dict(citation_index=i, supported=False, source_refs=[]) for i in range(3)]
+    scored = answers.citation_grades(value, json.dumps(dict(judgments=judgments)))
+    assert "Ada wrote it" in scored[0]["claim"]
+    assert "Eve wrote it" in scored[2]["claim"]
+    judgments[2].update(supported=True, source_refs=["0:snippet"])
+    with pytest.raises(ValueError, match="source references"):
         answers.citation_grades(value, json.dumps(dict(judgments=judgments)))
 
 
-def test_explanatory_prose_is_optional_but_verdict_claim_and_source_quote_are_required():
+def test_explanation_is_optional_but_evidence_ids_and_verdict_are_required():
     value = packet()
-    judgments = [
-        dict(citation_index=i, supported=False, claim=c["claim_context"], evidence=None)
-        for i, c in enumerate(value["citations"])
-    ]
-    judgments[0].update(
-        supported=True, evidence=dict(field="snippet", quote="Ada wrote the document.")
-    )
+    judgments = [dict(citation_index=i, supported=False, source_refs=[]) for i in range(3)]
+    judgments[0].update(supported=True, source_refs=["0:snippet"])
     original = json.dumps(judgments, sort_keys=True)
-    assert answers.citation_grades(value, json.dumps(dict(judgments=judgments))) == judgments
+    assert answers.citation_grades(value, json.dumps(dict(judgments=judgments)))[0]["supported"]
     assert json.dumps(judgments, sort_keys=True) == original
-    for field in ("supported", "claim", "evidence"):
+    for field in ("supported", "source_refs"):
         changed = json.loads(original)
         del changed[0][field]
         with pytest.raises(ValueError):
             answers.citation_grades(value, json.dumps(dict(judgments=changed)))
-    changed = json.loads(original)
-    changed[0]["evidence"]["quote"] = "A quotation absent from the cited source"
-    with pytest.raises(ValueError, match="exact quote"):
-        answers.citation_grades(value, json.dumps(dict(judgments=changed)))

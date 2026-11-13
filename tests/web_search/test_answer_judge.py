@@ -49,10 +49,9 @@ def answer_run(tmp_path, monkeypatch):
         if len(messages) == 1:
             text = 'A'
         elif 'judgments containing every citation_index' in messages[0]['content']:
-            quote = 'Invented quote' if behavior['invalid_citation'] else 'Ada wrote the document.'
+            reference = '0:content' if behavior['invalid_citation'] else '0:snippet'
             text = json.dumps(dict(judgments=[dict(citation_index=0, supported=True,
-                              claim='Ada wrote it', reason='The source names the author',
-                              evidence=dict(field='snippet', quote=quote))]))
+                              reason='The source names the author', source_refs=[reference])]))
         else:
             text = json.dumps(dict(grade=3, reason='The answer identifies the author', evidence='Ada'))
         return Response(json.dumps(dict(model='test-model', choices=[dict(message={'content': text})])).encode())
@@ -107,12 +106,12 @@ def test_l3_transport_failure_is_zero_retry_including_resume(answer_run):
 def test_l3_invalid_citation_keeps_raw_call_and_cannot_be_rejudged_on_resume(answer_run):
     test = answer_run
     test['behavior']['invalid_citation'] = True
-    with pytest.raises(ValueError, match='exact quote'):
+    with pytest.raises(ValueError, match='source references'):
         test['run']()
     spent = len(test['requests'])
     assert spent == 2 and not (test['output']/'answers.json').exists()
     test['behavior']['invalid_citation'] = False
-    with pytest.raises(ValueError, match='exact quote'):
+    with pytest.raises(ValueError, match='source references'):
         test['run']()
     assert len(test['requests']) == spent
 
@@ -158,7 +157,7 @@ def test_missing_citations_are_unavailable_support_not_perfect_support(answer_ru
 def test_answer_format_repair_preserves_original_paid_call_and_is_explicit(answer_run):
     test = answer_run
     test['behavior']['invalid_citation'] = True
-    with pytest.raises(ValueError, match='exact quote'):
+    with pytest.raises(ValueError, match='source references'):
         test['run']()
     assert len(test['requests']) == 2
     test['behavior']['invalid_citation'] = False
@@ -167,7 +166,7 @@ def test_answer_format_repair_preserves_original_paid_call_and_is_explicit(answe
     evidence = json.loads((test['output']/'answers.json').read_bytes())
     repaired = [c for c in evidence['calls'].values() if c.get('format_repair')]
     assert len(repaired) == 1
-    assert repaired[0]['format_repair']['prior_call']['response']['choices'][0]['message']['content'].find('Invented quote') >= 0
+    assert repaired[0]['format_repair']['prior_call']['response']['choices'][0]['message']['content'].find('0:content') >= 0
     test['run']()
     assert len(test['requests']) == 5
 
@@ -176,6 +175,6 @@ def test_answer_format_repair_is_not_a_retry_for_valid_or_twice_invalid_grades(a
     test = answer_run
     test['behavior']['invalid_citation'] = True
     for _ in range(2):
-        with pytest.raises(ValueError, match='exact quote'):
+        with pytest.raises(ValueError, match='source references'):
             test['run'](['--repair-format'])
     assert len(test['requests']) == 3

@@ -256,21 +256,6 @@ def validate_revision_controls(revision, normalizer=None):
                 if accepted != control['expected']:
                     raise ValueError('Citation decision-evidence regression failed')
                 continue
-            if control.get('kind') == 'citation_claim':
-                from lexbench_websearch.answers import answer_packet, citation_grades
-
-                packet = answer_packet(dict(id='citation-control', query='Who wrote it?'), control)
-                judgments = [dict(citation_index=i, supported=False, claim=c['claim_context'],
-                                  reason='Occurrence control', evidence=None) for i,c in enumerate(packet['citations'])]
-                judgments[-1]['claim'] = control['claim']
-                try:
-                    citation_grades(packet, json.dumps(dict(judgments=judgments)))
-                    accepted = True
-                except ValueError:
-                    accepted = False
-                if accepted != control['expected']:
-                    raise ValueError('Citation occurrence regression failed')
-                continue
             if control.get('kind') == 'citation':
                 from lexbench_websearch.answers import citation_inventory
 

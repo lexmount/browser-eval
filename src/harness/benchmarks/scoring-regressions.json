@@ -85624,43 +85624,71 @@
         "expected": false
       }
     ],
-    "native-source-citation-occurrences": [
+    "citation-field-references": [
       {
-        "kind": "citation_claim",
-        "answer": "Ada wrote it [first](https://source.test/a). Eve wrote it [last][a].\n\n[a]: https://source.test/a",
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
         "results": [
           {
-            "url": "https://source.test/a",
+            "url": "https://source.test/doc",
+            "citation_id": 1,
             "title": "Authors",
             "snippet": "Ada wrote it"
           }
         ],
-        "claim": "Eve wrote it",
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
         "expected": true
       },
       {
-        "kind": "citation_claim",
-        "answer": "Ada wrote it [first](https://source.test/a). Eve wrote it [last][a].\n\n[a]: https://source.test/a",
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
         "results": [
           {
-            "url": "https://source.test/a",
+            "url": "https://source.test/doc",
+            "citation_id": 1,
             "title": "Authors",
             "snippet": "Ada wrote it"
           }
         ],
-        "claim": "Ada wrote it",
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:content"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
         "expected": false
       }
     ],
-    "citation-evidence-without-prose": [
+    "citation-target-occurrences": [
       {
         "kind": "citation_grade",
-        "answer": "Ada wrote it [引用:1]",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
         "results": [
           {
             "url": "https://source.test/doc",
             "citation_id": 1,
-            "title": "Author",
+            "title": "Authors",
             "snippet": "Ada wrote it"
           }
         ],
@@ -85668,23 +85696,26 @@
           {
             "citation_index": 0,
             "supported": true,
-            "claim": "Ada wrote it",
-            "evidence": {
-              "field": "snippet",
-              "quote": "Ada wrote it"
-            }
+            "source_refs": [
+              "0:snippet"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": false,
+            "source_refs": []
           }
         ],
         "expected": true
       },
       {
         "kind": "citation_grade",
-        "answer": "Ada wrote it [引用:1]",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
         "results": [
           {
             "url": "https://source.test/doc",
             "citation_id": 1,
-            "title": "Author",
+            "title": "Authors",
             "snippet": "Ada wrote it"
           }
         ],
@@ -85692,11 +85723,16 @@
           {
             "citation_index": 0,
             "supported": true,
-            "claim": "Ada wrote it",
-            "evidence": {
-              "field": "snippet",
-              "quote": "Invented words"
-            }
+            "source_refs": [
+              "0:snippet"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
           }
         ],
         "expected": false
