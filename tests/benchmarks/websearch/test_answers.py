@@ -325,6 +325,45 @@ def test_inline_html_line_break_is_a_visible_separator(separator):
     assert citation['claim_context'] == 'Paris is the capital of France.'
 
 
+@pytest.mark.parametrize('opening,closing', [
+    ('script', 'script'), ('style', 'style'), ('template', 'template'),
+    ('span hidden', 'span'), ('span style="display:none"', 'span'),
+    ('span style="visibility:hidden"', 'span'),
+    ('span style="content-visibility:hidden"', 'span'),
+    ('noscript', 'noscript'), ('title', 'title'),
+    ('span style="display:none!important;display:block"', 'span'),
+])
+def test_hidden_html_subtrees_do_not_contribute_claims_or_citations(opening, closing):
+    text = ('Visible claim <' + opening + '>hidden assertion [引用:2] '
+            '[hidden link](https://source.test/b)</' + closing + '> [引用:1]')
+    citations = answers.citation_inventory(text, [dict(url='https://source.test/'+c, citation_id=i)
+                                                 for i, c in enumerate(['a', 'b'], 1)])
+    assert len(citations) == 1
+    assert citations[0]['claim_context'] == 'Visible claim'
+    assert text[slice(*citations[0]['span'])] == '[引用:1]'
+    assert answers.citation_inventory('Prefix <' + opening + '>hidden [引用:1]</' + closing + '>',
+                                      [dict(url='https://source.test/a', citation_id=1)]) == []
+
+
+def test_hidden_contents_in_link_labels_preserve_visible_text_and_original_span():
+    text = '[Before<script>hidden assertion</script>after](https://source.test/a)'
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Beforeafter'
+    assert text[slice(*citation['span'])] == text
+    assert answers.citation_inventory('[<span hidden>hidden</span>](https://source.test/a)', []) == []
+
+
+@pytest.mark.parametrize('reset', ['visible', 'initial'])
+def test_html_visibility_state_preserves_explicitly_visible_children_and_hidden_breaks(reset):
+    text = '<span style="visibility:hidden">hidden <span style="visibility:'+reset+'">Visible [引用:1]</span></span>'
+    # A leading raw HTML block is not an inline Markdown claim.
+    text = 'Prefix ' + text
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Prefix Visible'
+    citation, = answers.citation_inventory('Pa<br hidden>ris [引用:1]', [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Paris'
+
+
 @pytest.mark.parametrize('markup,claim', [
     ('<span title="Paris is in France"></span>', ''),
     ('<span title="Hidden assertion">Paris is in France.</span>', 'Paris is in France.'),

@@ -4,6 +4,7 @@ import ast
 import hashlib
 import json
 import re
+from html.parser import HTMLParser
 from urllib.parse import urlsplit
 
 from .scoring import canonical_url
@@ -15,6 +16,65 @@ SIMPLEQA_UPSTREAM = {
     "sha256": "d61a8f97132b29f6fe5d264dd9d619407ea14421525827fabd4cc21162e35c29",
 }
 GRADES = {"A": "CORRECT", "B": "INCORRECT", "C": "NOT_ATTEMPTED"}
+
+
+class _InlineVisibility(HTMLParser):
+    """Track hidden HTML subtrees without loading or executing answer content."""
+
+    _void = {'area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link',
+             'meta', 'param', 'source', 'track', 'wbr'}
+    _hidden = {'script', 'style', 'template', 'title', 'noscript'}
+
+    def __init__(self):
+        super().__init__()
+        self.stack = []
+        self.separator = False
+
+    @property
+    def hidden(self):
+        return bool(self.stack and (self.stack[-1][1] or self.stack[-1][2]))
+
+    def feed(self, data):
+        self.separator = False
+        super().feed(data)
+
+    def handle_starttag(self, tag, attrs):
+        attributes = dict(attrs)
+        declarations = {}
+        priorities = {}
+        for declaration in (attributes.get('style') or '').split(';'):
+            key, colon, value = declaration.partition(':')
+            if colon:
+                key = key.strip().lower()
+                important = bool(re.search(r'!\s*important\s*$', value, re.I))
+                if priorities.get(key) and not important:
+                    continue
+                declarations[key] = value.split('!', 1)[0].strip().lower()
+                priorities[key] = important
+        parent_blocked, visibility = self.stack[-1][1:] if self.stack else (False, False)
+        blocked = (parent_blocked or tag in self._hidden or 'hidden' in attributes
+                   or declarations.get('display') == 'none'
+                   or declarations.get('content-visibility') == 'hidden')
+        if declarations.get('visibility') in {'visible', 'hidden', 'collapse', 'initial'}:
+            visibility = declarations['visibility'] in {'hidden', 'collapse'}
+        if tag in {'br', 'hr'} and not blocked and not visibility:
+            self.separator = True
+        if tag not in self._void:
+            self.stack.append((tag, blocked, visibility))
+
+    def handle_startendtag(self, tag, attrs):
+        # HTML ignores a self-closing slash on non-void elements.
+        self.handle_starttag(tag, attrs)
+
+    def handle_endtag(self, tag):
+        if tag == 'br' and not self.hidden:
+            self.separator = True
+        for index in range(len(self.stack) - 1, -1, -1):
+            if self.stack[index][0] == tag:
+                del self.stack[index:]
+                break
+
+
 CITATION_RULE = "native-source-citations/7"
 CITATION_CORRECTION = {
     "root_cause": "Native webpage source URIs are zero-based while prose citation markers are one-based. Resolve declared source identifiers consistently, bind repeated citation occurrences to their own claims, reject ambiguous identifiers and preserve the returned ranking. Count only rendered citation markers, bind original Markdown block locations, derive complete local claims from rendered text, retain every link label in a shared sentence, and reset context at Markdown block boundaries, and bind sentence-final native markers to the preceding sentence regardless of intervening whitespace. Include sentence-closing quotes and parentheses in the preceding boundary.",
@@ -154,9 +214,12 @@ def citation_inventory(answer, results):
     # belongs to that link rather than becoming a second native citation.
     parser.inline.ruler.after("link", "native_citation", native_citation)
     references = []
+    visibility = _InlineVisibility()
     search_source = answer.replace("\x00", "\ufffd")
     line_offsets = [0, *(match.end() for match in re.finditer(r"\r\n|\r|\n", answer)), len(answer)]
     for block in parser.parse(answer):
+        if block.type == 'html_block':
+            visibility.feed(block.content)
         if block.type != "inline":
             continue
         block_start, block_end = (line_offsets[line] for line in block.map)
@@ -182,12 +245,18 @@ def citation_inventory(answer, results):
 
         parts, length, pending, local = [], 0, [], []
         for token in block.children or []:
+            if token.type == 'html_inline':
+                visibility.feed(token.content)
+                if visibility.separator:
+                    parts.append(' ')
+                    length += 1
+                continue
             if token.type == "link_open":
                 begin, end = token.meta["span"]
                 try:
                     key = canonical_url(token.attrGet("href") or "", policy="document-url/2")
                     item = by_url.get(key)
-                    eligible = True
+                    eligible = not visibility.hidden
                 except ValueError:
                     item, eligible = None, False
                 pending.append(dict(begin=positions[begin], end=positions[end - 1] + 1,
@@ -195,8 +264,10 @@ def citation_inventory(answer, results):
                 continue
             if token.type == "link_close":
                 reference = pending.pop()
-                if reference.pop("eligible"):
+                if reference.pop("eligible") and ''.join(parts)[reference['local_start']:].strip():
                     local.append(dict(reference, local_end=length))
+                continue
+            if visibility.hidden:
                 continue
             if token.type == "native_citation" and not pending:
                 begin, end = token.meta["span"]
@@ -209,8 +280,7 @@ def citation_inventory(answer, results):
                 text = parser.renderer.renderInlineAsText(token.children, parser.options, {})
             elif token.type in ("text", "code_inline", "native_citation"):
                 text = token.content
-            elif (token.type in ("softbreak", "hardbreak")
-                  or token.type == "html_inline" and re.match(r"</?br(?=[\s/>])", token.content, re.I)):
+            elif token.type in ("softbreak", "hardbreak"):
                 text = " "
             else:
                 continue

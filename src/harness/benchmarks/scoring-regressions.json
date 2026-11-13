@@ -86794,6 +86794,88 @@
           "Parisis the capital of France."
         ],
         "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Visible claim <script>hidden assertion [引用:2]</script> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Visible claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Visible claim <script>hidden assertion [引用:2]</script> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Visible claim hidden assertion",
+          "Visible claim hidden assertion"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Prefix <style>hidden [引用:2]</style> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Prefix"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Prefix <style>hidden [引用:2]</style> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Prefix hidden",
+          "Prefix hidden"
+        ],
+        "expected": false
       }
     ]
   },
