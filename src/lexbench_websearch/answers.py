@@ -209,7 +209,8 @@ def citation_inventory(answer, results):
                 text = parser.renderer.renderInlineAsText(token.children, parser.options, {})
             elif token.type in ("text", "code_inline", "native_citation"):
                 text = token.content
-            elif token.type in ("softbreak", "hardbreak"):
+            elif (token.type in ("softbreak", "hardbreak")
+                  or token.type == "html_inline" and re.match(r"</?br(?=[\s/>])", token.content, re.I)):
                 text = " "
             else:
                 continue

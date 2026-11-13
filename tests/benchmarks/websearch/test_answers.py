@@ -316,6 +316,15 @@ def test_image_alternative_text_uses_rendered_children_without_hidden_markup(lab
     assert citation['claim_context'] == 'Paris'
 
 
+@pytest.mark.parametrize('separator', [
+    '<br>', '<br/>', '<br />', '<BR>', '<br title="Hidden assertion">', '</br>',
+])
+def test_inline_html_line_break_is_a_visible_separator(separator):
+    text = 'Paris' + separator + 'is the capital of France. [引用:1]'
+    citation, = answers.citation_inventory(text, [dict(url='https://source.test/a', citation_id=1)])
+    assert citation['claim_context'] == 'Paris is the capital of France.'
+
+
 @pytest.mark.parametrize('markup,claim', [
     ('<span title="Paris is in France"></span>', ''),
     ('<span title="Hidden assertion">Paris is in France.</span>', 'Paris is in France.'),

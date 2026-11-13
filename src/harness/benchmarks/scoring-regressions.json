@@ -86764,6 +86764,36 @@
           "<span title=\"Hidden assertion\">Paris</span>"
         ],
         "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Paris<br title=\"Hidden assertion\">is the capital of France. [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is the capital of France."
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Paris<br title=\"Hidden assertion\">is the capital of France. [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is the capital of France."
+          }
+        ],
+        "claims": [
+          "Parisis the capital of France."
+        ],
+        "expected": false
       }
     ]
   },
