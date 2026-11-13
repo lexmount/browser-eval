@@ -29,6 +29,8 @@ Publisher row order, question text and reference answer text are retained. Case 
 
 The viewer's `input` is the unchanged question. Parse `task` as JSON for `id`, `query`, `reference_answer`, `reference_urls`, `topic`, `answer_type`, provenance and derivation. Records have `family: web`, `category: factual` and `language: en`.
 
+`reference_urls` retains the publisher's URLs. `equivalent_reference_urls` adds independently verified copies of those documents. Candidates come from fixed mirror URL templates applied to the reference URLs, without consulting search results. A copy needs the same article title and at least 80% matching characters in its normalized lead text, in contiguous blocks of at least 12 characters. Verification uses up to 4,000 lead characters and requires at least 200 normalized characters from each page. Failed requests and short pages establish no equivalence. `equivalent_reference_provenance` records the reference URL, verification method, observation date and source hashes for each accepted copy. The dataset's `reference_equivalence` record fixes these rules; `url_equivalence` selects the generic document-URL policy.
+
 ## Load and evaluate
 
 Choose a full Hugging Face commit from this dataset's revision history and retain it with your evaluation:

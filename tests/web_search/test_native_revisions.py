@@ -271,3 +271,454 @@ def test_qualified_answer_derivations_are_scoped_and_preserve_calls():
 
     with pytest.raises(ValueError, match="unsupported annotation rule"):
         apply_report_revision(profile, rows, {**revision, "answer_annotation_rule": "reference-answer-evidence/2", "answer_derivations": []})
+
+
+def test_verified_factual_aliases_rescore_every_method_without_changing_calls():
+    from harness.web_search.revisions import factual_source_identity
+    from lexbench_websearch.scoring import task_acceptance
+
+    target, alias = 'https://reference.test/fact', 'https://reference.test/fact?click=17'
+    case = dict(id='fact', query='Which fact?', reference_answer='42', reference_urls=[target])
+    profile = {'cases': [case]}
+    results = [{'url': 'https://other.test/unrelated'}, {'url': alias}]
+    rows = [dict(id=method, case_id='fact', results=results, elapsed_ms=17,
+                 metrics=evaluate(case, results)) for method in ('a', 'b')]
+    identity = dict(case_id='fact', query='Which fact?', target=target, alias=alias,
+                    observation=dict(url=alias, final=target, status=403, verified_at='2026-11-12',
+                                     chain=[dict(url=alias, status=301, location=target)]))
+    revision = dict(schema='web-search-assessment-revision/1', provider_calls=0,
+                    root_cause='Reference URL aliases omitted equivalent document identities',
+                    regression_ids=['equivalence-canonical', 'verified-factual-source-identities'],
+                    factual_source_identities=[identity])
+    before = copy.deepcopy((profile, rows))
+    with pytest.raises(ValueError, match='Factual source identities require'):
+        apply_report_revision(profile, rows, dict(revision, regression_ids=['equivalence-canonical']))
+    revised, updated, changes = apply_report_revision(profile, rows, revision)
+    assert revised['cases'][0]['reference_urls'] == [target, alias]
+    assert len(changes) == 2
+    for row in updated:
+        assert row['metrics']['labeled_source_rr_5'] == 0.5
+        assert task_acceptance(revised['cases'][0], row, metric='source') is True
+        assert row['results'] == results and row['elapsed_ms'] == 17
+    assert (profile, rows) == before
+    for key, value in [('query', 'Different question'), ('target', target + '/other')]:
+        changed = copy.deepcopy(revision)
+        changed['factual_source_identities'][0][key] = value
+        with pytest.raises(ValueError, match='Unqualified factual'):
+            apply_report_revision(profile, rows, changed)
+    canonical = copy.deepcopy(identity)
+    canonical['observation'].update(status=200, final=alias, chain=[], canonical=target,
+                                     canonical_evidence=['<link rel="canonical" href="' + target + '">'])
+    assert factual_source_identity(case, canonical)
+    canonical['observation']['canonical_evidence'] = ['<link rel="canonical" href="https://reference.test/other">']
+    assert not factual_source_identity(case, canonical)
+    mirror = copy.deepcopy(identity)
+    mirror['alias'] = 'https://mirror.test/fact'
+    mirror['observation'].update(url=mirror['alias'], final=mirror['alias'], chain=[], status=200,
+                                 canonical=target, canonical_evidence=['<link rel="canonical" href="' + target + '">'])
+    assert not factual_source_identity(case, mirror)
+
+
+def test_reference_identity_capture_and_offline_replay():
+    import time
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+
+    from harness.web_search.revisions import capture_source_identity, factual_source_identity
+
+    class Origin(BaseHTTPRequestHandler):
+        def do_GET(self):
+            if self.path in ('/redirect', '/slow-redirect'):
+                self.send_response(301)
+                self.send_header('Location', '/reference')
+                if self.path == '/slow-redirect':
+                    self.send_header('Content-Length', '50')
+                self.end_headers()
+                if self.path == '/slow-redirect':
+                    try:
+                        for _ in range(50):
+                            self.wfile.write(b'x')
+                            self.wfile.flush()
+                            time.sleep(0.02)
+                    except (BrokenPipeError, ConnectionResetError):
+                        pass
+            elif self.path in ('/tracking','/tracking-chunks','/articles/','/unknown-charset'):
+                body = b'<link rel="canonical" href="entry">' if self.path == '/articles/' else b'<link rel="canonical" href="/reference">'
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=' + ('unknown-encoding' if self.path == '/unknown-charset' else 'utf-8'))
+                self.send_header('Transfer-Encoding' if self.path == '/tracking-chunks' else 'Content-Length', 'chunked' if self.path == '/tracking-chunks' else str(len(body)))
+                self.end_headers()
+                self.wfile.write(f'{len(body):x}\r\n'.encode() + body + b'\r\n0\r\n\r\n' if self.path == '/tracking-chunks' else body)
+            elif self.path in ('/slow-body','/slow-chunks','/slow-chunk-header'):
+                chunked = self.path != '/slow-body'
+                self.send_response(200)
+                self.send_header('Content-Type', 'text/html; charset=utf-8')
+                self.send_header('Transfer-Encoding' if chunked else 'Content-Length', 'chunked' if chunked else '50')
+                self.end_headers()
+                try:
+                    if self.path == '/slow-chunk-header':
+                        piece, ending = b'0', b'1\r\nx\r\n0\r\n\r\n'
+                    elif chunked:
+                        piece, ending = b'1\r\nx\r\n', b'0\r\n\r\n'
+                    else:
+                        piece, ending = b'x', b''
+                    for _ in range(50):
+                        self.wfile.write(piece)
+                        self.wfile.flush()
+                        time.sleep(0.02)
+                    self.wfile.write(ending)
+                except (BrokenPipeError, ConnectionResetError):
+                    pass
+            else:
+                self.send_response(403)
+                self.end_headers()
+
+        def log_message(self, *args):
+            pass
+
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Origin)
+    thread = Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    base = f'http://127.0.0.1:{server.server_port}'
+    try:
+        observations = [capture_source_identity(base + path) for path in ('/redirect', '/tracking','/articles/','/tracking-chunks')]
+        started = time.monotonic()
+        slow_redirect = capture_source_identity(base + '/slow-redirect', timeout=0.12)
+        assert time.monotonic() - started < 0.7
+        assert slow_redirect['final'] == base + '/reference'
+        assert slow_redirect['chain'][0]['status'] == 301
+        malformed = capture_source_identity(base + '/invalid space')
+        assert 'error' in malformed
+        unknown_charset = capture_source_identity(base + '/unknown-charset')
+        assert unknown_charset['status'] == 200
+        assert unknown_charset['final'] == base + '/unknown-charset'
+        assert 'unknown-encoding' in unknown_charset['error']
+        assert 'canonical' not in unknown_charset
+        for path in ('/slow-body', '/slow-chunks', '/slow-chunk-header'):
+            started = time.monotonic()
+            slow = capture_source_identity(base + path, timeout=0.12)
+            assert time.monotonic() - started < 0.7, path
+            assert slow['status'] == 200
+            assert slow['final'] == base + path
+            assert 'tim' in slow['error'].lower()
+            assert 'canonical' not in slow
+    finally:
+        server.shutdown()
+        server.server_close()
+        thread.join()
+    # The reference host is offline: only frozen metadata enters scoring.
+    case = dict(id='fact', query='Which fact?', reference_answer='42', reference_urls=[base + '/reference',base + '/articles/entry'])
+    assert observations[0]['status'] == 403
+    assert observations[1]['canonical_evidence']
+    for observed in observations:
+        identity = dict(case_id='fact', query=case['query'], alias=observed['url'],
+                        target=observed.get('canonical',case['reference_urls'][0]), observation=observed)
+        assert factual_source_identity(case, identity)
+        identity['target'] += '/different'
+        assert not factual_source_identity(case, identity)
+
+
+@pytest.mark.parametrize('adapter,payload', [
+    ('serper', {'organic': [{'link': 'https://user:secret@unsafe.test/'}, {'link': 'https://good.test/fact'}]}),
+    ('brightdata', {'organic': [{'link': 'honmaple:////broken'}, {'link': 'https://good.test/fact'}]}),
+    ('browserbase', {'results': [{'url': 'javascript:bad'}, {'url': 'https://good.test/fact'}]}),
+    ('tencent-wsa', {'Response': {'Version': 'standard', 'Pages': [json.dumps({'url': 'javascript:bad'}), json.dumps({'url': 'https://good.test/fact'})]}}),
+])
+def test_invalid_native_slot_does_not_erase_other_results_or_promote_ranks(adapter, payload):
+    from harness.web_search.core import normalize_response
+
+    protocol = dict(top_k=5, normalize_top_k=True, result_url_resolution='request-url/2')
+    results = normalize_response(payload, {'adapter': adapter}, protocol)
+    assert len(results) == 2
+    assert results[0]['invalid_slot'] is True
+    assert results[1]['url'] == 'https://good.test/fact'
+    metrics = evaluate({'anchors': ['https://good.test/fact']}, results)
+    assert metrics['reciprocal_rank'] == 0.5
+    assert metrics['anchor_hit_5'] == 1
+
+
+def test_dead_slots_keep_query_and_factual_rank_without_fake_candidates():
+    from lexbench_websearch.relevance import candidate_packet, score
+    from harness.web_search.core import normalize_response
+
+    case = dict(id='query', family='web', query='Find official fact', anchors=['https://good.test/fact'])
+    profile = dict(cases=[case], methods=[dict(id='a')], protocol=dict(top_k=5))
+    results = normalize_response({'results': [{'url': 'https://user:pass@bad.test/'},
+                                            {'url': 'https://good.test/fact'}]},
+                                 {'adapter': 'lexmount'}, dict(top_k=5, normalize_top_k=True,
+                                                              result_url_resolution='request-url/2'))
+    rows = [dict(case_id='query', method='a', results=results)]
+    packet, ranking = candidate_packet(profile, rows)
+    assert len(packet['blind_candidate_packets'][0]['candidates']) == 1
+    assert ranking['query']['a'][0] is None
+    cid = ranking['query']['a'][1]
+    scored = score(profile, rows, packet['plan'], {'query': {cid: 3}})[0]
+    assert scored['ranked_grades'] == [0, 3]
+    assert scored['precision'] == 0.2
+    factual = evaluate(dict(reference_answer='42', reference_urls=['https://good.test/fact']), results)
+    assert factual['labeled_source_rr_5'] == 0.5
+
+
+def test_delivered_preview_and_contamination_corrections_have_paired_controls():
+    from harness.web_search.core import normalize_response
+    from harness.web_search.revisions import validate_revision_controls
+
+    revision = dict(schema='web-search-assessment-revision/1', provider_calls=0,
+                    root_cause='Isolate native previews and exclude structured evaluation rows',
+                    regression_ids=['delivered-preview-isolation', 'structured-dataset-contamination',
+                                    'invalid-result-slots', 'relative-serp-links', 'unsafe-serp-links', 'top-five-boundary'],
+                    normalization='request-url/2', regressions_sha256=digest(NATIVE_CONTROLS.read_bytes()),
+                    relevance_input='delivered-previews/1',
+                    factual_contamination_rule='question-with-structured-dataset-rows/4')
+    validate_revision_controls(revision, normalize_response)
+    profile = dict(protocol={},cases=[dict(id='f',query='When?',reference_answer='1971')])
+    corrected, _, _ = apply_report_revision(profile, [], revision, normalizer=normalize_response)
+    assert corrected['protocol']['relevance_input'] == 'delivered-previews/1'
+    assert corrected['cases'][0]['factual_contamination_rule'].endswith('/4')
+
+
+@pytest.mark.parametrize('pages', [['not-json', json.dumps({'url': 'https://good.test/'})],
+                                   [None, json.dumps({'url': 'https://good.test/'})]])
+def test_unparseable_page_keeps_the_other_native_slot(pages):
+    from harness.web_search.core import normalize_response
+
+    results = normalize_response({'Response': {'Version': 'lite', 'Pages': pages}},
+                                 {'adapter': 'tencent-wsa'}, dict(top_k=5, normalize_top_k=True,
+                                 result_url_resolution='request-url/2'))
+    assert results[0]['invalid_slot'] and results[1]['url'] == 'https://good.test/'
+
+
+def test_identified_native_no_results_is_empty_not_a_parse_error():
+    from harness.web_search.core import normalize_response
+
+    payload = dict(Response=dict(Query='no results', Version='lite', RequestId='fixture'))
+    results = normalize_response(payload, dict(adapter='tencent-wsa', expected_response_version='lite'),
+                                 dict(top_k=5, normalize_top_k=True, result_url_resolution='request-url/2'))
+    assert results == []
+
+
+def test_preview_grades_never_borrow_text_or_duplicate_the_same_document_in_ideal_ranking():
+    from lexbench_websearch.relevance import candidate_packet, score
+
+    case = dict(id='q', family='web', query='Find the install command')
+    profile = dict(cases=[case], methods=[dict(id='a'), dict(id='b')],
+                   protocol=dict(top_k=5, relevance_input='delivered-previews/1'))
+    rows = [dict(case_id='q',method='a',results=[dict(url='https://docs.test/',title='Docs',snippet='')]),
+            dict(case_id='q',method='b',results=[dict(url='https://docs.test/',title='Docs',snippet='pip install example'),
+                                               dict(url='https://docs.test/',title='Docs',snippet='Duplicate full instructions')])]
+    packet, _ = candidate_packet(profile, rows)
+    labels = {'q': {c['candidate_id']: (1 if not c['previews'][0]['snippet'] else 3)
+                    for c in packet['blind_candidate_packets'][0]['candidates']}}
+    scored = {r['method']:r for r in score(profile,rows,packet['plan'],labels)}
+    assert scored['a']['ranked_grades'] == [1]
+    assert scored['b']['ranked_grades'] == [3,0]
+    assert scored['b']['duplicates'] == [False,True]
+    assert scored['b']['ideal_grades'] == [3]
+    assert scored['b']['ndcg'] == 1
+
+
+def test_paired_query_intervals_distinguish_observed_order_from_supported_difference():
+    from lexbench_websearch.relevance import paired_bootstrap
+
+    rows = [dict(case_id=str(i),method=m,ndcg=v)for i in range(10)
+            for m,v in [('a',0.5),('b',0.5)]]
+    intervals = paired_bootstrap(rows,['a','b'],samples=100)
+    assert intervals['methods']['b']['difference_to_best'] == [0,0]
+    separated = [dict(r,ndcg=0 if r['method']=='b' else 1) for r in rows]
+    assert paired_bootstrap(separated,['a','b'],samples=100)['methods']['b']['difference_to_best'] == [-1,-1]
+    with pytest.raises(ValueError,match='complete paired'):
+        paired_bootstrap(rows[:-1],['a','b'],samples=100)
+
+
+def test_invalid_slot_never_supplies_reference_or_lexical_evidence():
+    result = dict(url='https://invalid-result-slot.invalid/1', invalid_slot=True, snippet='42')
+    case = dict(anchors=[result['url']], reference_urls=[result['url']], reference_answer='42')
+    metrics = evaluate(case,[result])
+    assert metrics['anchor_hit_5'] == 0
+    assert metrics['labeled_source_hit_5'] == 0
+    assert metrics['answer_in_preview_5'] == 0
+
+
+def test_invalid_only_outputs_do_not_count_as_available_in_aggregates():
+    from harness.web_search.core import aggregate
+
+    bad = [dict(url='https://invalid-result-slot.invalid/1', invalid_slot=True)]
+    good = [dict(url='https://origin.test/fact')]
+    rows = [dict(method='a',http_status=200,error='',results=results,cost=0,elapsed_ms=10,
+                 metrics=evaluate({},results)) for results in (bad,bad+good)]
+    totals = aggregate(rows)['a']
+    assert totals['n'] == 2 and totals['nonempty'] == 1
+    assert totals['all_latency']['n'] == 2 and totals['success_latency']['n'] == 1
+
+
+def test_report_build_binds_and_replays_the_selected_factual_rule(tmp_path):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.example import example
+    from harness.web_search.report import build, check
+    from lexbench_websearch.evidence_quality import DATASET_ROWS_RULE
+
+    example(tmp_path, comparison=True)
+    source = tmp_path / 'fixture'
+    profile = json.loads((source / 'profile.json').read_bytes())
+    case = next(c for c in profile['cases'] if 'reference_answer' in c)
+    rows = [json.loads(line) for line in (source / 'results.jsonl').read_text(encoding='utf-8').splitlines()]
+    for row in rows:
+        if row['case_id'] != case['id'] or row['http_status'] != 200:
+            continue
+        payload = {'results': [dict(url='https://corpus.test/data',
+                                   snippet='Dataset Viewer ' + case['query'] + ' ' + case['reference_answer'])]}
+        path = source / row['evidence']['path']
+        path.write_text(json.dumps(payload), encoding='utf-8')
+        row['evidence']['sha256'] = bytes_sha256(path.read_bytes())
+        row['results'] = normalize_results(payload)
+        row['metrics'] = evaluate(case, row['results'])
+    result_file = source / 'results.jsonl'
+    result_file.write_text(''.join(json.dumps(row)+'\n' for row in rows), encoding='utf-8')
+    receipt = json.loads((source / 'receipt.json').read_bytes())
+    receipt['results_sha256'] = bytes_sha256(result_file.read_bytes())
+    (source / 'receipt.json').write_text(json.dumps(receipt), encoding='utf-8')
+    revision = dict(schema='web-search-assessment-revision/1',provider_calls=0,
+                    root_cause='Structured evaluation rows must not supply factual evidence',
+                    regression_ids=['structured-dataset-contamination'],factual_contamination_rule=DATASET_ROWS_RULE)
+    instance = revision_instance(tmp_path,revision)
+    content = tmp_path / 'content.json'
+    content.write_text(json.dumps({'assessment_revision': revision}), encoding='utf-8')
+    output = tmp_path / 'corrected'
+    build(output,source=source,content=content,profile_path=instance)
+    assert check(output)
+    sensitivity = json.loads((output / 'factual-sensitivity.json').read_bytes())
+    assert sensitivity['rule'] == DATASET_ROWS_RULE
+    matched = [r for r in sensitivity['results'].values() if r['excluded_ranks']]
+    assert matched and all(r['metrics']['answer_in_preview_5'] == 0 for r in matched)
+
+
+@pytest.mark.parametrize('adapter',['lexmount','browserbase','deepseek'])
+@pytest.mark.parametrize('results',[[],[{'url':'https://origin.test/fact'}]])
+def test_error_envelopes_never_become_successes_under_slot_preservation(adapter,results):
+    from harness.web_search.core import normalize_response
+
+    with pytest.raises(ValueError):
+        normalize_response(dict(error='Unavailable',results=results),{'adapter':adapter},
+                           dict(top_k=5,normalize_top_k=True,result_url_resolution='request-url/2'))
+
+
+def test_resolution_failure_only_invalidates_its_own_native_slot():
+    from harness.web_search.core import normalize_response
+
+    results=normalize_response({'organic':[{'link':'https://[broken/'},{'link':'/answer'}]},
+                               {'adapter':'brightdata'},dict(top_k=5,normalize_top_k=True,
+                               result_url_resolution='request-url/2'),{'url':'https://source.test/search'})
+    assert results[0]['invalid_slot'] and results[1]['url']=='https://source.test/answer'
+    assert evaluate({'reference_answer':'42','reference_urls':['https://source.test/answer']},results)['labeled_source_rr_5']==0.5
+
+
+def test_capture_relative_canonical_replays_the_original_directory_base():
+    from harness.web_search.revisions import canonical_metadata,factual_source_identity
+
+    alias='https://source.test/articles/'
+    target=alias+'entry'
+    tags=['<link rel="canonical" href="entry">']
+    assert canonical_metadata(alias,tags)=={target}
+    case=dict(id='q',query='Which fact?',reference_answer='42',reference_urls=[target])
+    observed=dict(url=alias,final=alias,status=200,chain=[],verified_at='2026-11-13',
+                  canonical=target,canonical_evidence=tags)
+    item=dict(case_id='q',query=case['query'],alias=alias,target=target,observation=observed)
+    assert factual_source_identity(case,item)
+    observed['canonical_evidence']=['<link rel="canonical" href="../different">']
+    assert not factual_source_identity(case,item)
+
+
+@pytest.mark.parametrize('first_grade',[0,3])
+def test_explorer_and_review_accept_only_effective_ranked_preview_grades(first_grade):
+    from harness.web_search.comparison import comparison_data
+    from harness.web_search.review import row_state
+    from lexbench_websearch.relevance import candidate_packet,score
+
+    case=dict(id='q',query='Find the fact',family='web')
+    profile=dict(cases=[case],methods=[dict(id='a',label='A')],
+                 protocol=dict(top_k=5,relevance_input='delivered-previews/1'))
+    results=[dict(url='https://source.test/fact',title='Fact',snippet=text)for text in ('first','second')]
+    row=dict(id='q-a-r0',case_id='q',method='a',http_status=200,error='',results=results)
+    packet,rankings=candidate_packet(profile,[row])
+    labels={'q':{c['candidate_id']:(first_grade if c['previews'][0]['snippet']=='first' else 3-first_grade)
+                 for c in packet['blind_candidate_packets'][0]['candidates']}}
+    evidence=dict(packet,labels=labels,provider_rankings=rankings,judge={'kind':'human','name':'Synthetic controls'})
+    output=comparison_data(profile,[row],relevance=evidence)['cases'][0]['outputs']['a']
+    accepted=first_grade>=2
+    assert output['primary']==output['quality']==accepted
+    assert output['score']['ranked_grades']==[first_grade,0]
+    assert score(profile,[row],packet['plan'],labels)[0]['ranked_grades']==[first_grade,0]
+    assert (row_state(profile,row,evidence)[0]=='pass')==accepted
+
+
+def reference_dataset_revision():
+    from harness.benchmarks.data import binding
+
+    selected = binding('simpleqa-verified')
+    return dict(schema='web-search-assessment-revision/1', provider_calls=0,
+                root_cause='Reference-only source verification supplies missing same-document URLs',
+                regression_ids=['generic-document-urls', 'reference-mirror-title-and-lead'],
+                reference_dataset=dict(track='simpleqa-verified', revision=selected['revision'],
+                                       path='datasets/factual-v1.json',
+                                       sha256=selected['datasets']['factual-v1']['sha256']))
+
+
+def test_locked_reference_extensions_rescore_all_methods_without_replacing_original_gold():
+    from lexbench_websearch.inputs import load_dataset
+    from harness.web_search.revisions import apply_report_revision
+    from lexbench_websearch.scoring import evaluate
+
+    current = load_dataset('factual-v1')
+    selected = next(case for case in current['cases'] if case.get('equivalent_reference_urls'))
+    original = {k: v for k, v in selected.items()
+                if k not in ('equivalent_reference_urls', 'equivalent_reference_provenance', 'url_equivalence')}
+    import copy
+    profile = dict(cases=[copy.deepcopy(original)], methods=[dict(id='a'), dict(id='b')], protocol={'top_k': 5})
+    results = [dict(url=selected['equivalent_reference_urls'][0], title='Source', snippet='Text')]
+    rows = [dict(id=mid, method=mid, case_id=selected['id'], results=results,
+                 metrics=evaluate(original, results)) for mid in ('a', 'b')]
+    revised, updated, changes = apply_report_revision(profile, rows, reference_dataset_revision())
+    assert all(row['metrics']['labeled_source_hit_5'] == 1 for row in updated)
+    assert all(row['metrics']['labeled_source_hit_5'] == 0 for row in rows)
+    assert len(changes) == 2
+    assert revised['cases'][0]['reference_urls'] == original['reference_urls']
+    assert revised['cases'][0]['reference_answer'] == original['reference_answer']
+    assert 'equivalent_reference_urls' not in profile['cases'][0]
+
+
+@pytest.mark.parametrize('defect', ['wrong-hash', 'unknown-revision', 'changed-query', 'changed-gold', 'second-authority', 'missing-controls'])
+def test_reference_dataset_revision_rejects_unbound_or_changed_inputs(defect):
+    from lexbench_websearch.inputs import load_dataset
+    from harness.web_search.revisions import apply_report_revision
+    import copy
+
+    case = copy.deepcopy(load_dataset('factual-v1')['cases'][0])
+    revision = reference_dataset_revision()
+    if defect == 'wrong-hash':
+        revision['reference_dataset']['sha256'] = 'a'*64
+    elif defect == 'unknown-revision':
+        revision['reference_dataset']['revision'] = 'a'*40
+    elif defect == 'changed-query':
+        case['query'] = 'Another question'
+    elif defect == 'changed-gold':
+        case['reference_answer'] = 'Another answer'
+    elif defect == 'second-authority':
+        revision['factual_source_identities'] = [{'case_id': case['id']}]
+    else:
+        revision['regression_ids'] = ['generic-document-urls']
+    with pytest.raises(ValueError):
+        apply_report_revision(dict(cases=[case], methods=[], protocol={'top_k': 5}), [], revision)
+
+
+@pytest.mark.parametrize('revision', [None, {'root_cause': 'Reference repair'},
+                                      {'normalization': 'request-url/2'}])
+def test_assessment_replay_keeps_each_source_protocol_unless_explicitly_revised(revision):
+    from harness.web_search.revisions import assessment_protocol
+
+    source = dict(top_k=5, normalize_top_k=False, result_url_resolution='request-url/1')
+    profile = dict(collection_composition='matrix', protocol=dict(top_k=5, normalize_top_k=True),
+                   method_collections=[dict(id='other', protocol=source)])
+    actual = assessment_protocol(profile, {'collection': 'other'}, revision)
+    assert actual['normalize_top_k'] is False
+    assert actual['result_url_resolution'] == (revision or {}).get('normalization', 'request-url/1')
+    assert source['result_url_resolution'] == 'request-url/1'

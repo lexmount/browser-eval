@@ -58,6 +58,7 @@ def main():
         value = {
             "version": catalog["version"],
             "tag": catalog["tag"],
+            "dataset_status": catalog["development"]["dataset_status"],
             "scoring_status": catalog["development"]["scoring_status"],
             "scoring_source_sha256": catalog["development"]["scoring_source_sha256"],
             "suites": {

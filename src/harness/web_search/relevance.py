@@ -18,7 +18,7 @@ from harness.web_fetch.config import load_runtime_env, repository_env
 from harness.web_search.messages import zh_text
 from lexbench_websearch.relevance import candidate_packet, score, validate_source_rule_regressions
 from lexbench_websearch.rubric import judge_prompt, known_prompt
-from lexbench_websearch.scoring import canonical_url
+from lexbench_websearch.scoring import ranking_identity, ranking_ids
 
 
 def verify_protocol(profile, evidence, revision=None, *, authority=None):
@@ -106,6 +106,19 @@ def inherited_packet_format(profile, rows, evidence):
     raise ValueError("Model candidate text differs from frozen search outputs")
 
 
+def predecessor_projection(profile, rows, evidence):
+    """Verify inherited labels on their original providers before adding providers."""
+    mappings = list(evidence.get("provider_rankings", {}).values())
+    methods = set(mappings[0]) if mappings else set()
+    available = {method["id"] for method in profile["methods"]}
+    if not methods or not methods.issubset(available) or any(set(m) != methods for m in mappings):
+        raise ValueError("Inherited relevance provider scope is inconsistent or unavailable")
+    return (
+        dict(profile, methods=[m for m in profile["methods"] if m["id"] in methods]),
+        [row for row in rows if row["method"] in methods],
+    )
+
+
 def verify_provenance(profile, rows, evidence, *, authority=None):
     """Make public candidate packets and rank mappings agree with measured outputs."""
     judge = evidence.get("judge", {})
@@ -134,12 +147,17 @@ def verify_provenance(profile, rows, evidence, *, authority=None):
         if ids != set(labels[case_id]) or len(ids) != len(packet["candidates"]):
             raise ValueError("Blind packet candidates disagree with grades")
         for candidate in packet["candidates"]:
-            expected = hashlib.sha256((case_id + "\0" + canonical_url(candidate["url"])).encode()).hexdigest()[:12]
+            preview = profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1'
+            if preview and len(candidate['previews']) != 1:
+                raise ValueError('Delivered previews cannot borrow other result text')
+            expected = ranking_identity(case_id, dict(url=candidate['url'], **candidate['previews'][0]), preview=preview,
+                                        level=profile['protocol'].get('relevance_level'))
             if candidate["candidate_id"] != expected:
                 raise ValueError("Blind packet URL identity mismatch")
         for method in (m["id"] for m in profile["methods"]):
-            actual = [hashlib.sha256((case_id + "\0" + canonical_url(item["url"])).encode()).hexdigest()[:12]
-                      for item in indexed[case_id, method]["results"][:plan["cutoff"]]]
+            actual = ranking_ids(case_id, indexed[case_id, method]["results"][:plan["cutoff"]],
+                                 preview=profile.get('protocol', {}).get('relevance_input') == 'delivered-previews/1',
+                                 level=profile['protocol'].get('relevance_level'))
             if rankings[case_id][method] != actual:
                 raise ValueError("Published rank mapping disagrees with provider results")
     crosscheck = evidence.get("crosscheck_labels", {})
@@ -179,6 +197,11 @@ ANNOTATION_HTML = zh_text("Relevance annotation page")
 
 
 def judge_input(packet):
+    if packet.get('evaluation_level') in ('l1', 'l2'):
+        projected = {k: v for k, v in packet.items() if k != 'required_domains'}
+        if packet['evaluation_level'] == 'l2':
+            projected['candidates'] = [{k:v for k,v in c.items() if k != 'url'} for c in packet['candidates']]
+        return projected
     if not packet.get("source_checked"):
         return packet
     return {"case_id": packet["case_id"], "query": packet["query"], "source_requirements_checked": True,
@@ -191,21 +214,26 @@ def reference_repair_messages(packet, expected):
         refs = [{"field": field, "preview_index": i} for i, p in enumerate(c["previews"])
                 for field in ("title", "snippet") if p.get(field)]
         choices[c["candidate_id"]] = refs or [{"field": "title", "preview_index": 0}]
+        if packet.get('evaluation_level') == 'l1':
+            choices[c['candidate_id']].append({'field':'url'})
     suffix = "\nOutput-format correction only; keep the relevance rubric unchanged. For each candidate, evidence MUST be one of these exact supplied nonempty field references. Do not cite an empty snippet when the title contains the information. Return all candidates. Allowed references: " + json.dumps(choices, sort_keys=True)
     return [dict(expected[0], content=expected[0]["content"] + suffix), *expected[1:]]
 
 
-def repaired_messages(packet, call, expected):
+def repaired_messages(packet, call, expected, *, configuration=None):
     repair = call.get("format_repair")
     if not repair:
         return expected
     prior = repair["prior_call"]
     if prior["case_id"] != packet["case_id"] or prior["request"]["messages"] != expected or prior.get("format_repair"):
         raise ValueError("Invalid format-repair provenance")
+    if configuration and configuration.get("receipt_schema") in (2, 3):
+        validate_physical_receipts(prior, configuration)
     repaired = reference_repair_messages(packet, expected)
     if dict(prior["request"], messages=repaired) != call["request"]:
         raise ValueError("Format repair changed model configuration")
     try:
+        _validate_judge_field_references(prior["response"], packet)
         parse_judgments(packet, prior["response"])
     except (ValueError, KeyError, TypeError):
         return repaired
@@ -257,10 +285,13 @@ def parse_judgments(packet, response):
     return items
 
 
-def _validate_judge_field_references(response):
+def _validate_judge_field_references(response, packet=None):
     judgments = json.loads(response["choices"][0]["message"]["content"])["judgments"]
     for item in judgments:
         reference = item.get("evidence")
+        if (isinstance(reference, dict) and reference.get('field') == 'url'
+                and (packet or {}).get('evaluation_level') == 'l1'):
+            continue
         if (not isinstance(reference, dict) or reference.get("field") not in ("title", "snippet")
                 or type(reference.get("preview_index")) is not int):
             raise ValueError("New model evidence requires an exact title/snippet field reference")
@@ -300,6 +331,45 @@ def validate_judge_url(value):
     return base
 
 
+def validate_physical_receipts(call, configuration):
+    """Verify transport evidence independently of judgment-format validity."""
+    request = call["request"]
+    if call['response'].get('model', '').lower() != configuration['model'].split('/')[-1].lower():
+        raise ValueError('Judge response reports a different model')
+    attempts = call.get("attempts", [])
+    if not attempts or len(attempts) > configuration["attempt_limit"]:
+        raise ValueError("Missing or excessive physical judge attempts")
+    request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
+    for index, attempt in enumerate(attempts, 1):
+        if (
+            attempt.get("attempt") != index
+            or attempt.get("request_sha256") != request_hash
+            or not attempt.get("completed")
+            or attempt.get("url")
+            != configuration["base_url"].rstrip("/") + "/chat/completions"
+            or attempt.get("request_headers") != configuration["request_headers"]
+        ):
+            raise ValueError("Physical judge attempt identity is invalid")
+        try:
+            raw = base64.b64decode(attempt["response_bytes_base64"], validate=True)
+        except (KeyError, ValueError) as error:
+            raise ValueError("Physical judge response bytes are invalid") from error
+        if hashlib.sha256(raw).hexdigest() != attempt.get("response_sha256"):
+            raise ValueError("Physical judge response hash differs")
+        if attempt.get("retryable") != _judge_retryable(
+            attempt.get("status"), attempt.get("error_type")
+        ):
+            raise ValueError("Physical judge retry classification differs from HTTP status")
+        if index < len(attempts) and not attempt.get("retryable"):
+            raise ValueError("Judge retried a deterministic failure")
+    final = attempts[-1]
+    if (
+        final.get("status") != 200
+        or json.loads(base64.b64decode(final["response_bytes_base64"])) != call["response"]
+    ):
+        raise ValueError("Final judge response differs from preserved bytes")
+
+
 def validate_model_evidence(evidence, *, _depth=0, authority=None):
     if _depth > 8:
         raise ValueError("Judge inheritance chain is too deep")
@@ -328,8 +398,14 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
         raise ValueError("Model evidence requires strict configuration and physical receipts; legacy evidence must be hash-pinned")
     if not known_prompt(judge["prompt"]):
         raise ValueError("Model evidence uses an unapproved grading prompt")
-    expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
+    level = evidence.get('evaluation_level')
+    if level is not None and (level not in ('l1','l2') or judge['prompt'] != judge_prompt(level)
+                              or any(p.get('evaluation_level') != level for p in packets)):
+        raise ValueError('Model prompt and packets must use the same output level')
+    level_binding = {'evaluation_level':level} if level is not None else {}
+    expected_packet = hashlib.sha256(json.dumps({"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets, **level_binding, **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {})}, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
     legacy_packet = {"schema": evidence["schema"], "plan": evidence["plan"], "blind_candidate_packets": packets,
+                     **level_binding,
                      **({"source_policy": evidence["source_policy"]} if "source_policy" in evidence else {}),
                      **({"source_requirements": evidence["source_requirements"]} if "source_requirements" in evidence else {})}
     legacy_hash = hashlib.sha256(json.dumps(legacy_packet, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
@@ -371,7 +447,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
         )
     ):
         raise ValueError("Incomplete model judge configuration")
-    if strict and configuration["attempt_limit"] != 3:
+    if strict and (type(configuration["attempt_limit"]) is not int or configuration["attempt_limit"] not in (1, 2, 3)):
         raise ValueError("Model judge attempt limit differs from the supported policy")
     for packet, call in zip(packets, calls, strict=True):
         strict = strict_receipts and packet["case_id"] not in inherited
@@ -387,7 +463,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
                 "content": json.dumps(judge_input(packet), ensure_ascii=False, sort_keys=True),
             },
         ]
-        expected = repaired_messages(packet, call, expected)
+        expected = repaired_messages(packet, call, expected, configuration=configuration if strict else None)
         if (
             request.get("messages") != expected
             or request.get("model") != judge["name"]
@@ -398,40 +474,9 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
             if (strict or key in configuration) and request.get(key) != configuration.get(key):
                 raise ValueError("Model judge configuration differs across calls")
         if strict:
-            _validate_judge_field_references(call["response"])
+            _validate_judge_field_references(call["response"], packet)
 
-            attempts = call.get("attempts", [])
-            if not attempts or len(attempts) > configuration["attempt_limit"]:
-                raise ValueError("Missing or excessive physical judge attempts")
-            request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
-            for index, attempt in enumerate(attempts, 1):
-                if (
-                    attempt.get("attempt") != index
-                    or attempt.get("request_sha256") != request_hash
-                    or not attempt.get("completed")
-                    or attempt.get("url")
-                    != configuration["base_url"].rstrip("/") + "/chat/completions"
-                    or attempt.get("request_headers") != configuration["request_headers"]
-                ):
-                    raise ValueError("Physical judge attempt identity is invalid")
-                try:
-                    raw = base64.b64decode(attempt["response_bytes_base64"], validate=True)
-                except (KeyError, ValueError) as error:
-                    raise ValueError("Physical judge response bytes are invalid") from error
-                if hashlib.sha256(raw).hexdigest() != attempt.get("response_sha256"):
-                    raise ValueError("Physical judge response hash differs")
-                if attempt.get("retryable") != _judge_retryable(
-                    attempt.get("status"), attempt.get("error_type")
-                ):
-                    raise ValueError("Physical judge retry classification differs from HTTP status")
-                if index < len(attempts) and not attempt.get("retryable"):
-                    raise ValueError("Judge retried a deterministic failure")
-            final = attempts[-1]
-            if (
-                final.get("status") != 200
-                or json.loads(base64.b64decode(final["response_bytes_base64"])) != call["response"]
-            ):
-                raise ValueError("Final judge response differs from preserved bytes")
+            validate_physical_receipts(call, configuration)
         actual_model = call["response"].get("model", "").lower()
         if actual_model != judge["name"].split("/")[-1].lower():
             raise ValueError("Judge response reports a different model")
@@ -440,16 +485,140 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
             raise ValueError("Published labels disagree with the frozen model response")
 
 
+def run_judge_request(path, case_id, request, configuration, token, *, prior_call=None):
+    """Persist each physical model call before parsing its task-specific judgment."""
+    contract = configuration
+    base_url = configuration["base_url"]
+    ordinal, ancestor = 0, prior_call
+    while ancestor is not None:
+        ordinal += 1
+        ancestor = (ancestor.get('format_repair') or {}).get('prior_call')
+    suffix = ('-format-repair-attempts.json' if ordinal == 1 else
+              f'-format-repair-{ordinal}-attempts.json' if ordinal else '-attempts.json')
+    journal = path.with_name(path.stem + suffix)
+    attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
+    request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
+    for index, previous in enumerate(attempts, 1):
+        if (
+            previous.get("request_sha256") != request_hash
+            or previous.get("attempt") != index
+            or previous.get("url") != base_url.rstrip("/") + "/chat/completions"
+            or previous.get("request_headers") != contract["request_headers"]
+        ):
+            raise ValueError("Saved physical judge request changed")
+        if previous.get("completed"):
+            if previous.get("retryable") != _judge_retryable(
+                previous.get("status"), previous.get("error_type")
+            ):
+                raise ValueError("Saved physical judge retry classification changed")
+            body = base64.b64decode(previous["response_bytes_base64"], validate=True)
+            if hashlib.sha256(body).hexdigest() != previous.get("response_sha256"):
+                raise ValueError("Saved physical judge response changed")
+    if attempts and attempts[-1].get('completed') and attempts[-1].get('status') == 200:
+        saved = dict(case_id=case_id, request=request,
+                     response=json.loads(base64.b64decode(attempts[-1]['response_bytes_base64'], validate=True)),
+                     elapsed_ms=(attempts[-1]['started_at_ns'] - attempts[0]['started_at_ns']) / 1e6 + attempts[-1].get('elapsed_ms', 0), attempts=attempts)
+        if prior_call:
+            saved['format_repair'] = {'prior_call': prior_call}
+        temporary = path.with_suffix('.tmp')
+        temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+        temporary.replace(path)
+        return saved
+    if attempts and (not attempts[-1].get("completed") or not attempts[-1].get("retryable")):
+        raise ValueError("Saved judge response requires investigation; no automatic new call")
+    started = time.monotonic()
+
+    def preserve():
+        temporary = journal.with_suffix(".tmp")
+        temporary.write_text(json.dumps(attempts, ensure_ascii=False, indent=2), encoding="utf-8")
+        temporary.replace(journal)
+
+    for number in range(len(attempts) + 1, contract["attempt_limit"] + 1):
+        attempt = {
+            "attempt": number,
+            "request_sha256": request_hash,
+            "started_at_ns": time.time_ns(),
+            "completed": False,
+            "url": base_url.rstrip("/") + "/chat/completions",
+            "request_headers": contract["request_headers"],
+        }
+        attempts.append(attempt)
+        preserve()  # Reserve the physical attempt before any network activity.
+        req = urllib.request.Request(
+            base_url.rstrip("/") + "/chat/completions",
+            data=json.dumps(request).encode(),
+            headers={
+                "Authorization": "Bearer " + token,
+                "Content-Type": "application/json",
+                **contract.get("request_headers", {}),
+            },
+        )
+        attempt_started = time.monotonic()
+        body, status, error = b"", None, None
+        try:
+            with urllib.request.urlopen(req, timeout=180) as response:
+                status = response.status
+                body = response.read()
+        except urllib.error.HTTPError as caught:
+            status, error = caught.code, type(caught).__name__
+            body = caught.read()
+        except (urllib.error.URLError, TimeoutError) as caught:
+            error = type(caught).__name__
+        retryable = _judge_retryable(status, error)
+        attempt.update(
+            completed=True,
+            status=status,
+            error_type=error,
+            retryable=retryable,
+            elapsed_ms=(time.monotonic() - attempt_started) * 1000,
+            response_bytes_base64=base64.b64encode(body).decode("ascii"),
+            response_sha256=hashlib.sha256(body).hexdigest(),
+        )
+        preserve()  # Raw bytes survive malformed JSON and model-output failures.
+        if status == 200:
+            raw = json.loads(body)
+            saved = {
+                "case_id": case_id,
+                "request": request,
+                "response": raw,
+                "elapsed_ms": (time.monotonic() - started) * 1000,
+                "attempts": attempts,
+            }
+            if prior_call:
+                saved['format_repair'] = {'prior_call': prior_call}
+            temporary = path.with_suffix('.tmp')
+            temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+            temporary.replace(path)
+            break
+        if not retryable or number == contract["attempt_limit"]:
+            raise ValueError(
+                "Judge request failed; preserved physical attempts require investigation"
+            )
+        time.sleep(30 if status in (429, 503) else 2)
+    else:
+        raise ValueError("Judge physical attempt limit exhausted; no automatic new call")
+    return saved
+
+
 def judge_main(argv=None):
     """Explicit model judging, resumable from immutable per-query receipts."""
 
 
     parser = argparse.ArgumentParser()
-    parser.add_argument("--report", type=Path, required=True)
+    source_group = parser.add_mutually_exclusive_group(required=True)
+    source_group.add_argument('--report', type=Path)
+    source_group.add_argument('--source', type=Path)
+    parser.add_argument('--profile', type=Path)
+    parser.add_argument('--content', type=Path)
+    parser.add_argument('--cohort', action='append', default=[], metavar='NAME=RUN')
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--retries", type=int, choices=range(3), default=0, help="Additional transport attempts; disabled by default")
+    parser.add_argument('--format-repair-limit', type=int, choices=(1, 2), default=1,
+                        help='L3 invalid-output corrections with --repair-format; default one')
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--token-env", default="SEARCH_JUDGE_API_KEY")
+    parser.add_argument('--packet-format', choices=('search/1', 'serp/1'), default='search/1')
     parser.add_argument("--reuse-evidence", type=Path,
                         help="Reuse byte-equivalent prior requests; call only changed judge inputs")
     parser.add_argument(
@@ -467,8 +636,12 @@ def judge_main(argv=None):
     parser.add_argument(
         "--disable-thinking", action="store_true", help="Pass enable_thinking=false through Bifrost"
     )
+    parser.add_argument('--repair-format', action='store_true',
+                        help='Repair an invalid saved answer once, preserving the original call')
+    parser.add_argument('--level',choices=('l1','l2','l3'),help='Judge one isolated native output level')
+    parser.add_argument('--field-admissions',type=Path,help='Hash-bound live-page admission bundle for L2')
+    parser.add_argument('--simpleqa-grader', type=Path, help='Hash-pinned official SimpleQA grader source for L3')
     args = parser.parse_args(argv)
-    prompt = judge_prompt()
     if not re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", args.token_env):
         raise ValueError("Judge credential variable must be a valid environment variable name")
     if args.token_env not in {"SEARCH_JUDGE_API_KEY", "BIFROST_API_KEY"}:
@@ -482,17 +655,52 @@ def judge_main(argv=None):
     configured_base = repository_env().get("SEARCH_JUDGE_BASE_URL", "")
     if not configured_base or validate_judge_url(configured_base).netloc != validate_judge_url(args.base_url).netloc:
         raise ValueError("Judge endpoint host must match repository SEARCH_JUDGE_BASE_URL")
-    from harness.web_search.report import check
+    if args.format_repair_limit != 1 and args.level != 'l3':
+        parser.error('An explicit format-repair limit requires L3')
+    from harness.web_search.report import _load_report_inputs, check
 
-    profile, rows = check(args.report, return_data=True, evidence_only=True)
+    if args.source:
+        cohorts = []
+        for value in args.cohort:
+            name, separator, path = value.partition('=')
+            if not separator or not name or not path:
+                parser.error('Cohorts must use NAME=RUN')
+            cohorts.append((name, Path(path)))
+        inputs = _load_report_inputs(args.output / 'inputs', profile_path=args.profile,
+            source=args.source, content=args.content, language='en', include_english=False,
+            correction=None, relevance=None, review=None, site_prefix='', cohorts=cohorts)
+        profile, rows, authority = inputs.profile, inputs.selected, inputs.authority
+    else:
+        if args.profile or args.content or args.cohort:
+            parser.error('Report judging does not accept collection input options')
+        profile, rows = check(args.report, return_data=True, evidence_only=True)
+        authority = report_authority(args.report)
+    if args.field_admissions and args.level != 'l2':
+        parser.error('Field admission requires L2')
+    if args.level:
+        from harness.web_search.output_levels import level_inputs, load_admissions
+
+        admissions,artifacts = load_admissions(args.field_admissions) if args.field_admissions else ({},{})
+        profile,rows = level_inputs(profile,rows,args.level,admissions=admissions,artifacts=artifacts)
+        args.disable_thinking = True
+    elif args.field_admissions:
+        parser.error('Field admission requires an output level')
+    if args.level == 'l3':
+        from harness.web_search.answers import judge_answers
+
+        return judge_answers(profile, rows, args, token)
+    if args.simpleqa_grader:
+        parser.error('The official answer grader requires L3')
     source_requirements = (
         json.loads(args.source_requirements.read_text(encoding="utf-8")) if args.source_requirements else {}
     )
+    prompt = judge_prompt(profile['protocol'].get('relevance_level'))
     predecessor = json.loads(args.reuse_evidence.read_bytes()) if args.reuse_evidence else None
-    packet_format, source_policy = "search/1", "explicit-source/2"
+    packet_format, source_policy = args.packet_format, "explicit-source/2"
     if predecessor:
-        verify_provenance(profile, rows, predecessor, authority=report_authority(args.report))
-        packet_format = inherited_packet_format(profile, rows, predecessor)
+        inherited_profile, inherited_rows = predecessor_projection(profile, rows, predecessor)
+        verify_provenance(inherited_profile, inherited_rows, predecessor, authority=authority)
+        packet_format = inherited_packet_format(inherited_profile, inherited_rows, predecessor)
         source_policy = predecessor.get("source_policy", "legacy-domain-intersection/1")
     packet, rankings = candidate_packet(profile, rows, source_requirements,
         source_policy=source_policy, packet_format=packet_format)
@@ -510,7 +718,7 @@ def judge_main(argv=None):
         "response_format": {"type": "json_object"},
         "request_headers": {},
         "receipt_schema": 2,
-        "attempt_limit": 3,
+        "attempt_limit": 1 + args.retries,
     }
     if source_requirements is not None:
         contract["source_requirements_sha256"] = hashlib.sha256(
@@ -557,105 +765,27 @@ def judge_main(argv=None):
             parse_judgments(p, previous["response"])
             reused_case_ids.add(p["case_id"])
             return previous
+        prior_call = None
         if path.exists():
             saved = json.loads(path.read_text(encoding="utf-8"))
-            if saved["request"] != request:
+            if not reusable_judge_call(p, saved, request):
                 raise ValueError("Saved judge request changed")
+            validate_physical_receipts(saved, contract)
             # A saved invalid model answer is an inspection task, never permission
             # to spend again or select a different answer on each invocation.
-            _validate_judge_field_references(saved["response"])
-            parse_judgments(p, saved["response"])
-            return saved
-        journal = path.with_name(path.stem + "-attempts.json")
-        attempts = json.loads(journal.read_text(encoding="utf-8")) if journal.exists() else []
-        request_hash = hashlib.sha256(json.dumps(request, sort_keys=True).encode()).hexdigest()
-        for index, previous in enumerate(attempts, 1):
-            if (
-                previous.get("request_sha256") != request_hash
-                or previous.get("attempt") != index
-                or previous.get("url") != args.base_url.rstrip("/") + "/chat/completions"
-                or previous.get("request_headers") != contract["request_headers"]
-            ):
-                raise ValueError("Saved physical judge request changed")
-            if previous.get("completed"):
-                if previous.get("retryable") != _judge_retryable(
-                    previous.get("status"), previous.get("error_type")
-                ):
-                    raise ValueError("Saved physical judge retry classification changed")
-                body = base64.b64decode(previous["response_bytes_base64"], validate=True)
-                if hashlib.sha256(body).hexdigest() != previous.get("response_sha256"):
-                    raise ValueError("Saved physical judge response changed")
-        if attempts and (not attempts[-1].get("completed") or not attempts[-1].get("retryable")):
-            raise ValueError("Saved judge response requires investigation; no automatic new call")
-        started = time.monotonic()
-
-        def preserve():
-            temporary = journal.with_suffix(".tmp")
-            temporary.write_text(json.dumps(attempts, ensure_ascii=False, indent=2), encoding="utf-8")
-            temporary.replace(journal)
-
-        for number in range(len(attempts) + 1, contract["attempt_limit"] + 1):
-            attempt = {
-                "attempt": number,
-                "request_sha256": request_hash,
-                "started_at_ns": time.time_ns(),
-                "completed": False,
-                "url": args.base_url.rstrip("/") + "/chat/completions",
-                "request_headers": contract["request_headers"],
-            }
-            attempts.append(attempt)
-            preserve()  # Reserve the physical attempt before any network activity.
-            req = urllib.request.Request(
-                args.base_url.rstrip("/") + "/chat/completions",
-                data=json.dumps(request).encode(),
-                headers={
-                    "Authorization": "Bearer " + token,
-                    "Content-Type": "application/json",
-                    **contract.get("request_headers", {}),
-                },
-            )
-            attempt_started = time.monotonic()
-            body, status, error = b"", None, None
             try:
-                with urllib.request.urlopen(req, timeout=180) as response:
-                    status = response.status
-                    body = response.read()
-            except urllib.error.HTTPError as caught:
-                status, error = caught.code, type(caught).__name__
-                body = caught.read()
-            except (urllib.error.URLError, TimeoutError) as caught:
-                error = type(caught).__name__
-            retryable = _judge_retryable(status, error)
-            attempt.update(
-                completed=True,
-                status=status,
-                error_type=error,
-                retryable=retryable,
-                elapsed_ms=(time.monotonic() - attempt_started) * 1000,
-                response_bytes_base64=base64.b64encode(body).decode("ascii"),
-                response_sha256=hashlib.sha256(body).hexdigest(),
-            )
-            preserve()  # Raw bytes survive malformed JSON and model-output failures.
-            if status == 200:
-                raw = json.loads(body)
-                saved = {
-                    "case_id": p["case_id"],
-                    "request": request,
-                    "response": raw,
-                    "elapsed_ms": (time.monotonic() - started) * 1000,
-                    "attempts": attempts,
-                }
-                path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
-                _validate_judge_field_references(raw)
-                parse_judgments(p, raw)
-                break
-            if not retryable or number == contract["attempt_limit"]:
-                raise ValueError(
-                    "Judge request failed; preserved physical attempts require investigation"
-                )
-            time.sleep(30 if status in (429, 503) else 2)
-        else:
-            raise ValueError("Judge physical attempt limit exhausted; no automatic new call")
+                _validate_judge_field_references(saved["response"], p)
+                parse_judgments(p, saved["response"])
+                return saved
+            except (ValueError, KeyError, TypeError):
+                if not args.repair_format or saved.get('format_repair'):
+                    raise
+                prior_call = saved
+                request = dict(request, messages=reference_repair_messages(p, request['messages']))
+        saved = run_judge_request(path, p["case_id"], request, contract, token,
+                                  prior_call=prior_call)
+        _validate_judge_field_references(saved["response"], p)
+        parse_judgments(p, saved["response"])
         print(p["case_id"], "scored", flush=True)
         return saved
 
@@ -693,6 +823,6 @@ def judge_main(argv=None):
     }
     if predecessor:
         evidence["judge"].update(predecessor=predecessor, inherited_case_ids=sorted(reused_case_ids))
-    verify_provenance(profile, rows, evidence, authority=report_authority(args.report))
+    verify_provenance(profile, rows, evidence, authority=authority)
     score(profile, rows, evidence["plan"], evidence["labels"])
     (args.output / "relevance.json").write_text(json.dumps(evidence, ensure_ascii=False, indent=2), encoding="utf-8")

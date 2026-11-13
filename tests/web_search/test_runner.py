@@ -11,6 +11,212 @@ from unittest.mock import patch
 import pytest
 
 
+@pytest.mark.parametrize('selection', [['web-search'], ['--track', 'web-search']])
+def test_documented_certified_entry_dispatches_web_search_with_certification(monkeypatch, selection):
+    from harness.reporting.certified_cli import main
+
+    calls = []
+    monkeypatch.setattr('harness.web_search.runner.main', lambda args, **kwargs: calls.append((args, kwargs)))
+    main([*selection, '--profile', 'frozen.json', '--output', 'run'])
+    assert calls == [(['--profile', 'frozen.json', '--output', 'run'], {'certified': True})]
+
+
+@pytest.fixture
+def failed_postcheck(tmp_path, monkeypatch):
+    from harness.web_search import runner
+
+    profile = execution_profile()
+    profile['methods'] = profile['methods'][1:2]
+    profile['cases'] = profile['cases'][:1]
+    profile['protocol'].update(reference_scope='identity', reference_retries=0, retry=False)
+    profile['reference_checks'] = {url: dict(url=url, contains=['reference'])
+                                   for case in profile['cases'] for url in case['anchors']}
+    path = tmp_path / 'profile.json'
+    path.write_text(json.dumps(profile), encoding="utf-8")
+    state = dict(references=0, provider_calls=0, post_status=0, post_exit=6, recover=True)
+
+    def http(url, body=None, *args, **kwargs):
+        receipt = dict(http_status=200, elapsed_ms=10, transport_exit=0, transport_error='')
+        if body is not None:
+            state['provider_calls'] += 1
+            return receipt, b'{"results":[{"url":"https://example.org/page"}]}'
+        state['references'] += 1
+        if state['references'] == 2 or state['references'] > 2 and not state['recover']:
+            return dict(receipt, http_status=state['post_status'], transport_exit=state['post_exit']), b''
+        return receipt, b'reference ' * 20
+
+    monkeypatch.setattr(runner, 'http_call', http)
+    monkeypatch.setattr(runner, 'load_runtime_env', lambda: None)
+    monkeypatch.setenv('DEEPSEEK_API_KEY', 'fixture')
+    return runner, path, state
+
+
+def test_reference_finalization_preserves_complete_calls_and_original_failed_postcheck(tmp_path, failed_postcheck):
+    from harness.web_search.report import load_run
+
+    runner, profile, state = failed_postcheck
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    original = {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
+    assert json.loads(original[Path('receipt.json')])['certified'] is False
+    runner.main(['--profile', str(profile), '--output', str(output), '--finalize-references-from', str(source)], certified=True)
+    assert state['provider_calls'] == 1 and state['references'] == 3
+    assert all((source / path).read_bytes() == raw for path, raw in original.items())
+    assert (output / 'results.jsonl').read_bytes() == original[Path('results.jsonl')]
+    assert (output / 'reference-finalization/previous-after.json').read_bytes() == original[Path('references-after.json')]
+    _, rows, receipt = load_run(output)
+    assert len(rows) == 1 and receipt['certified'] is True
+    assert receipt['ended_at'] == json.loads(original[Path('receipt.json')])['ended_at']
+    raw = json.loads((output / 'reference-finalization/receipt.json').read_bytes())
+    assert raw['provider_calls'] == 0 and len(raw['reference_urls']) == 1
+
+
+@pytest.mark.parametrize('observed_status', [200, 404, 503])
+def test_reference_finalization_rejects_observed_source_failures(tmp_path, failed_postcheck, observed_status):
+    runner, profile, state = failed_postcheck
+    state.update(post_status=observed_status, post_exit=0)
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    with pytest.raises(ValueError, match='unobserved post-check transport failures'):
+        runner.finalize_references(profile, source, output)
+    assert state['provider_calls'] == 1 and not output.exists()
+
+
+def test_failed_reference_reobservation_cannot_certify_or_change_the_original(tmp_path, failed_postcheck):
+    runner, profile, state = failed_postcheck
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    before = (source / 'receipt.json').read_bytes()
+    state['recover'] = False
+    with pytest.raises(ValueError, match='Post-check recovery failed'):
+        runner.finalize_references(profile, source, output)
+    assert (source / 'receipt.json').read_bytes() == before
+    assert json.loads((output / 'receipt.json').read_bytes())['certified'] is False
+    assert state['provider_calls'] == 1
+
+
+@pytest.mark.parametrize('changed', ['provider_calls', 'reference_urls', 'ended_at'])
+def test_reference_finalization_replays_its_zero_call_and_complete_scope_contract(tmp_path, failed_postcheck, changed):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.report import load_run
+
+    runner, profile, state = failed_postcheck
+    source, output = tmp_path / 'source', tmp_path / 'finalized'
+    runner.run(profile, source, certified=True)
+    runner.finalize_references(profile, source, output)
+    receipt = json.loads((output / 'receipt.json').read_bytes())
+    if changed == 'ended_at':
+        receipt['ended_at'] = 'Changed collection date'
+    else:
+        path = output / receipt['reference_finalization']['path']
+        proof = json.loads(path.read_bytes())
+        proof[changed] = 1 if changed == 'provider_calls' else []
+        path.write_text(json.dumps(proof), encoding="utf-8")
+        receipt['reference_finalization']['sha256'] = bytes_sha256(path.read_bytes())
+        for binding in receipt['bindings']:
+            if binding['path'] == path.relative_to(output).as_posix():
+                binding['sha256'] = bytes_sha256(path.read_bytes())
+    (output / 'receipt.json').write_text(json.dumps(receipt), encoding="utf-8")
+    with pytest.raises(ValueError, match='finalization|complete collection'):
+        load_run(output)
+    assert state['provider_calls'] == 1
+
+
+@pytest.mark.parametrize('retry', [None, False, True])
+@pytest.mark.parametrize('failure', ['transport', 'http', 'invalid', 'empty'])
+def test_retries_require_explicit_opt_in(tmp_path, retry, failure):
+    from harness.web_search.runner import run
+    from harness.web_search.report import load_run
+
+    profile = execution_profile()
+    profile['methods'] = profile['methods'][1:2]
+    profile['cases'] = profile['cases'][:1]
+    if retry is None:
+        profile['protocol'].pop('retry')
+    else:
+        profile['protocol']['retry'] = retry
+    path = tmp_path / 'profile.json'
+    path.write_text(json.dumps(profile), encoding='utf-8')
+    calls = []
+
+    def http(url, body=None, *args, **kwargs):
+        receipt = dict(http_status=200, elapsed_ms=10, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        calls.append(body)
+        if len(calls) == 1:
+            if failure == 'transport':
+                return dict(receipt, http_status=0, transport_exit=28, transport_error='Timed out'), b''
+            if failure == 'http':
+                return dict(receipt, http_status=503), b'{"error":"busy"}'
+            if failure == 'invalid':
+                return receipt, b'not JSON'
+            return receipt, b'{"results":[]}'
+        return receipt, b'{"results":[{"url":"https://example.org/page"}]}'
+
+    with (patch('harness.web_search.runner.http_call', side_effect=http),
+          patch('harness.web_search.runner.load_runtime_env'),
+          patch.dict(os.environ, DEEPSEEK_API_KEY='fixture')):
+        run(path, tmp_path/'run', certified=True)
+    _, rows, receipt = load_run(tmp_path/'run')
+    expected = 2 if retry is True and failure != 'empty' else 1
+    assert len(calls) == expected
+    assert len(rows) == 1
+    assert len(rows[0]['attempts']) == expected
+    assert bool(rows[0]['error']) == (failure != 'empty' and expected == 1)
+    assert receipt['certified'] is True
+
+
+@pytest.mark.parametrize('retry', ['false', 'true', '', 0, 1, 2, None, [], {}])
+def test_invalid_retry_settings_are_rejected_before_collection(tmp_path, retry):
+    from harness.web_search.runner import run
+
+    profile = execution_profile()
+    profile['protocol']['retry'] = retry
+    path = tmp_path/'profile.json'
+    path.write_text(json.dumps(profile), encoding='utf-8')
+    with (patch('harness.web_search.runner.http_call') as call,
+          patch('harness.web_search.runner.load_runtime_env'),
+          pytest.raises(ValueError, match='Retry must be a boolean')):
+        run(path, tmp_path/'run', certified=True)
+    call.assert_not_called()
+    assert not (tmp_path/'run').exists()
+
+
+def test_transport_does_not_inherit_retries_from_user_curl_configuration(tmp_path):
+    from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+    from threading import Thread
+    from harness.web_search.runner import http_call
+
+    requests = []
+
+    class Origin(BaseHTTPRequestHandler):
+        def do_POST(self):
+            self.rfile.read(int(self.headers.get('Content-Length', 0)))
+            requests.append(self.path)
+            self.send_response(503 if len(requests) == 1 else 200)
+            self.end_headers()
+            self.wfile.write(b'busy' if len(requests) == 1 else b'retried')
+
+        def log_message(self, *args):
+            pass
+
+    (tmp_path/'.curlrc').write_text('retry = 2\n', encoding='utf-8')
+    server = ThreadingHTTPServer(('127.0.0.1', 0), Origin)
+    worker = Thread(target=server.serve_forever, daemon=True)
+    worker.start()
+    try:
+        with patch.dict(os.environ, CURL_HOME=str(tmp_path), NO_PROXY='127.0.0.1'):
+            receipt, raw = http_call(f'http://127.0.0.1:{server.server_port}/search', {'query':'fixture'}, timeout=3)
+    finally:
+        server.shutdown()
+        server.server_close()
+        worker.join()
+    assert requests == ['/search']
+    assert receipt['http_status'] == 503
+    assert raw == b'busy'
+
+
 def test_terminal_interrupt_retains_a_completed_curl_response(tmp_path):
     import json
     import os
@@ -76,6 +282,36 @@ except KeyboardInterrupt:
 from harness.record_io import bytes_sha256
 from harness.web_search.report import load_run
 from harness.web_search.runner import run
+
+
+def test_reference_transport_retry_retains_failed_bytes_and_does_not_retry_wrong_identity(tmp_path):
+    from harness.web_search.runner import capture_references
+
+    url = 'https://reference.test/document'
+    profile = {'cases': [{'anchors': [url]}], 'protocol': {'reference_retries': 2},
+               'reference_checks': {url: {'contains': ['Independent identity']}}}
+    okay = dict(http_status=200, elapsed_ms=1, transport_exit=0, transport_error='')
+    failed = dict(okay, http_status=0, transport_exit=35, transport_error='TLS interrupted')
+    with patch('harness.web_search.runner.http_call', side_effect=[(failed, b'partial'), (okay, b'Independent identity ' * 10)]) as calls, patch('harness.web_search.runner.time.sleep'):
+        refs = capture_references(profile, tmp_path, 'before')
+    assert refs[url]['available'] and calls.call_count == 2
+    assert len(refs[url]['attempts']) == 2
+    assert (tmp_path / refs[url]['attempts'][0]['path']).read_bytes() == b'partial'
+    with patch('harness.web_search.runner.http_call', return_value=(okay, b'Wrong page ' * 30)) as calls:
+        refs = capture_references(profile, tmp_path, 'after')
+    assert not refs[url]['available'] and calls.call_count == 1
+
+
+def test_reference_transport_retry_exhaustion_fails_closed(tmp_path):
+    from harness.web_search.runner import capture_references
+
+    url = 'https://reference.test/document'
+    profile = {'cases': [{'anchors': [url]}], 'protocol': {'reference_retries': 2}}
+    failed = dict(http_status=0, elapsed_ms=1, transport_exit=35, transport_error='TLS interrupted')
+    with patch('harness.web_search.runner.http_call', return_value=(failed, b'')) as calls, patch('harness.web_search.runner.time.sleep'):
+        refs = capture_references(profile, tmp_path, 'before')
+    assert not refs[url]['available'] and calls.call_count == 3
+    assert len(refs[url]['attempts']) == 3
 
 
 class CollectionScenarios(unittest.TestCase):
@@ -1060,3 +1296,125 @@ def test_account_denial_stops_other_retries_before_failure_finalization(tmp_path
         with pytest.raises(ValueError, match='Provider account error'):
             future.result(timeout=4)
     assert len(sends) == 2
+
+
+@pytest.mark.parametrize('pages', [
+    [None, {'url': 'https://example.org/page'}],
+    [{'url': 'https://example.org/page'}] * 5 + [None],
+])
+def test_ai_answer_survives_invalid_webpage_slots_without_retry(tmp_path, pages):
+    from harness.web_search.runner import run
+    from harness.web_search.report import load_run
+
+    profile = execution_profile()
+    method = dict(profile['methods'][2], id='bocha-ai', adapter='bocha-ai',
+                  output_options={'answer': True, 'stream': False})
+    profile['methods'] = [method]
+    profile['cases'] = profile['cases'][:1]
+    profile['protocol'].update(normalize_top_k=True, result_url_resolution='request-url/2')
+    path = tmp_path/'profile.json'
+    path.write_text(json.dumps(profile), encoding="utf-8")
+    payload = dict(code=200, messages=[
+        dict(type='source', content_type='webpage', content=json.dumps({'value': pages})),
+        dict(type='answer', content_type='text', content='A retained answer [引用:1]'),
+    ])
+    calls = []
+
+    def http(url, body=None, *args, **kwargs):
+        receipt = dict(http_status=200, elapsed_ms=10, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        calls.append(body)
+        return receipt, json.dumps(payload).encode()
+
+    with (patch('harness.web_search.runner.http_call', side_effect=http),
+          patch('harness.web_search.runner.load_runtime_env'),
+          patch.dict(os.environ, BOCHA_API_KEY='fixture')):
+        run(path, tmp_path/'run', certified=True)
+    _, rows, _ = load_run(tmp_path/'run')
+    assert len(calls) == 1
+    assert not rows[0]['error']
+    assert rows[0]['answer'] == 'A retained answer [引用:1]'
+    assert len(rows[0]['results']) == min(5, len(pages))
+    if pages[0] is None:
+        assert rows[0]['results'][0]['invalid_slot']
+
+
+@pytest.mark.parametrize('selector', [['--track', 'webfetch'], ['--track=webfetch'], ['--track=web-search']])
+def test_positional_track_rejects_a_second_selector_before_dispatch(selector, monkeypatch):
+    from harness.reporting.certified_cli import main
+
+    def unexpected(*args, **kwargs):
+        pytest.fail('A duplicated track must not start any collection')
+
+    monkeypatch.setattr('harness.web_search.runner.main', unexpected)
+    monkeypatch.setattr('harness.web_fetch.certification.main', unexpected)
+    with pytest.raises(ValueError, match='Select the certified track once'):
+        main(['web-search', *selector])
+
+
+def test_reference_finalization_rejects_descendant_before_changing_source(tmp_path, failed_postcheck):
+    runner, profile, state = failed_postcheck
+    source = tmp_path / 'source'
+    runner.run(profile, source, certified=True)
+    original = {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
+    output = source / 'references' / 'recovered'
+    with pytest.raises(ValueError, match='new external output directory'):
+        runner.finalize_references(profile, source, output)
+    assert not output.exists()
+    assert original == {p.relative_to(source): p.read_bytes() for p in source.rglob('*') if p.is_file()}
+    assert state['provider_calls'] == 1 and state['references'] == 2
+
+
+def test_reference_recovery_rejects_an_observed_failure_in_any_retained_attempt(tmp_path, failed_postcheck):
+    runner, profile, state = failed_postcheck
+    source = tmp_path / 'source'
+    runner.run(profile, source, certified=True)
+    p = json.loads((source / 'profile.json').read_bytes())
+    contract = json.loads((source / 'run-contract.json').read_bytes())
+    before = json.loads((source / 'references-before.json').read_bytes())
+    after = json.loads((source / 'references-after.json').read_bytes())
+    for item in after.values():
+        item['attempts'] = [dict(item, http_status=503, transport_exit=18), dict(item)]
+    with pytest.raises(ValueError, match='unobserved post-check transport failures'):
+        runner._recoverable_reference_scope(p, contract, before, after)
+
+
+def test_finalize_cli_forwards_the_selected_supplementary_cohort(tmp_path, monkeypatch):
+    from harness.web_search import runner
+    calls = []
+    monkeypatch.setattr(runner, 'finalize_references', lambda *a, **kw: calls.append(kw))
+    runner.main(['--profile', str(tmp_path/'current.json'), '--output', str(tmp_path/'output'),
+                 '--cohort', 'yuanbao', '--finalize-references-from', str(tmp_path/'source')], certified=True)
+    assert calls == [dict(cohort='yuanbao')]
+
+
+def test_reference_capture_does_not_retry_an_observed_http_response(tmp_path, monkeypatch):
+    from harness.web_search import runner
+    calls=[]
+    def http(*args, **kwargs):
+        calls.append(1)
+        return dict(http_status=503,transport_exit=18,elapsed_ms=1), b'truncated response'
+    monkeypatch.setattr(runner,'http_call',http)
+    profile=dict(cases=[dict(anchors=['https://source.test/doc'])],protocol={'reference_retries':2})
+    result=runner.capture_references(profile,tmp_path,'after')
+    assert len(calls)==1
+    assert next(iter(result.values()))['http_status']==503
+
+
+def test_supplementary_collection_recovers_with_the_same_current_selector(tmp_path, failed_postcheck):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.report import load_run
+    runner, profile_path, state = failed_postcheck
+    profile=json.loads(profile_path.read_bytes())
+    binding=dict(path=profile_path.name,sha256=bytes_sha256(profile_path.read_bytes()))
+    selector=tmp_path/'current.json'
+    selector.write_text(json.dumps(dict(schema='web-search-current/1',title='Primary selection',
+        profile=binding,methods=[m['id'] for m in profile['methods']],
+        supplementary_profiles=[dict(binding,id='yuanbao')],publication_target='target.json')),encoding='utf-8')
+    source,output=tmp_path/'supplementary',tmp_path/'recovered'
+    runner.run(selector,source,certified=True,cohort='yuanbao')
+    runner.main(['--profile',str(selector),'--cohort','yuanbao','--output',str(output),
+                 '--finalize-references-from',str(source)],certified=True)
+    assert load_run(output)[2]['certified'] is True
+    assert state['provider_calls']==1

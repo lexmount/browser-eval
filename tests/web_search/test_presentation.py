@@ -9,6 +9,21 @@ from harness.web_search.example import example
 from harness.web_search.report import check, numeric_cell, numeric_winners, factual_panel
 
 
+@pytest.mark.parametrize('damage', ['missing-control', 'wrong-column', 'missing-state'])
+def test_sortable_comparison_requires_accessible_controls_for_every_column(damage):
+    from harness.web_search.report import table
+    doc = check_presentation(table(['Method', 'Latency'], ['<tr><td>A</td><td>1</td></tr>']))
+    header = doc.select('th')[1]
+    if damage == 'missing-control':
+        header.button.unwrap()
+    elif damage == 'wrong-column':
+        header.button['data-sort-column'] = '0'
+    else:
+        del header['aria-sort']
+    with pytest.raises(ValueError, match='accessible control'):
+        check_presentation(doc)
+
+
 def render(values):
     rows = [[v] for v in values]
     winners = numeric_winners(rows, {0:'min'})
@@ -57,6 +72,21 @@ def test_public_report_check_executes_the_shared_marker_gate(tmp_path):
     page.write_text(str(doc), encoding='utf-8')
     with pytest.raises(ValueError,match='extremum'):
         check(tmp_path/'report')
+
+
+def test_two_benchmark_example_has_complete_quality_and_sortable_tables_in_both_languages(tmp_path):
+    example(tmp_path, comparison=True)
+    assert check(tmp_path / 'report')
+    for language in ('', 'en/'):
+        path = tmp_path / 'report' / (language + 'index.html')
+        doc = check_presentation(path.read_text(encoding='utf-8'))
+        assert len(doc.select('[data-population]')) == 2
+        assert not doc.select('[data-reference-retrieval]')
+        for table in doc.select('[data-population] table'):
+            assert len(table.select('tbody tr')) == 2
+            assert len(table.select('thead button[data-sort-column]')) == len(table.select('thead th'))
+        values = doc.select('[data-population="custom"] td[data-metric="population-1"]')
+        assert len(values) == 2 and all(cell.has_attr('data-sort') for cell in values)
 
 
 def test_factual_reciprocal_rank_is_directional_and_highlighted(tmp_path):

@@ -212,15 +212,38 @@ def catalog_release(path=None, *, require_current_scorer=True):
         release.get("datasets", {})
     ) != set(installed["datasets"]):
         raise ValueError("Catalog dataset inventory changed")
+    dataset_revisions = {}
+    changed_datasets = []
     for identity, binding in release["datasets"].items():
         if binding.get("version") != release["version"]:
             raise ValueError("Dataset edition differs from the catalog")
-        verify_release(
-            binding, load_dataset(identity), verify_scorer=require_current_scorer
-        )
+        dataset = load_dataset(identity)
+        from harness.benchmarks.data import binding as snapshot_binding
+
+        selected_inputs = snapshot_binding("websearch")
+        dataset_revisions[identity] = selected_inputs["revision"]
+        if not require_current_scorer and _hash(dataset) != binding["dataset_sha256"]:
+            changed_datasets.append(identity)
+            for previous in selected_inputs.get("history", []):
+                if identity not in previous.get("datasets", {}):
+                    continue
+                descriptor = previous["datasets"][identity]
+                source = previous.get("dataset_sources", {}).get(identity)
+                if ("definitions/" + descriptor["path"] not in previous["files"]
+                        and source not in previous.get("external_sources", {})):
+                    continue
+                historical = load_dataset(identity, revision=previous["revision"])
+                if _hash(historical) == binding["dataset_sha256"]:
+                    dataset = historical
+                    dataset_revisions[identity] = previous["revision"]
+                    break
+        verify_release(binding, dataset, verify_scorer=require_current_scorer)
     if not require_current_scorer:
         current = scoring_source_sha256()
         release["development"] = {
+            "dataset_status": "unreleased" if changed_datasets else "released",
+            "changed_datasets": changed_datasets,
+            "dataset_revisions": dataset_revisions,
             "scoring_status": "released"
             if all(
                 b["scoring_source_sha256"] == current

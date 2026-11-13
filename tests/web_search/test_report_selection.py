@@ -8,6 +8,46 @@ from harness.web_search.example import example
 from harness.web_search.report import build, check, load_run, metric_populations, project_comparison
 
 
+@pytest.mark.parametrize('independent', [False, True])
+def test_added_configuration_does_not_inherit_historical_relevance_even_on_same_urls(tmp_path, independent):
+    from lexbench_websearch.relevance import candidate_packet
+    from harness.web_search.comparison import comparison_data
+    from harness.web_search.report import score_relevance
+
+    example(tmp_path)
+    profile, rows, _ = load_run(tmp_path / "fixture")
+    scope = [profile["methods"][0]["id"]]
+    old_profile = dict(profile, methods=profile["methods"][:1])
+    old_rows = [r for r in rows if r["method"] in scope]
+    packet, rankings = candidate_packet(old_profile, old_rows)
+    evidence = dict(packet, provider_rankings=rankings,
+                    judge={"kind": "human", "name": "Synthetic annotator"},
+                    labels={c["case_id"]: {x["candidate_id"]: 3 for x in c["candidates"]}
+                            for c in packet["blind_candidate_packets"]})
+    content = tmp_path / "scoped-content.json"
+    authored = {"relevance_methods": scope, "presentation": "comparison-report"}
+    if independent:
+        authored.update(independent_benchmarks=True, metric_populations=[{
+            'id': 'custom', 'metric_kind': 'relevance', 'benchmark_root': True,
+            'case_ids': [c['id'] for c in profile['cases']],
+            'label': {'en': 'Synthetic scenarios', 'zh': 'Synthetic scenarios'}}])
+    content.write_text(json.dumps(authored), encoding="utf-8")
+    labels = tmp_path / "labels.json"
+    labels.write_text(json.dumps(evidence), encoding="utf-8")
+    output = tmp_path / "scoped-report"
+    scoped_profile = dict(profile, relevance_methods=scope)
+    scored = score_relevance(scoped_profile, rows, evidence["plan"], evidence["labels"])
+    assert {r["method"] for r in scored} == set(scope)
+    compared = comparison_data(scoped_profile, rows, relevance=evidence)
+    unjudged = compared["cases"][0]["outputs"][profile["methods"][1]["id"]]
+    assert unjudged["score"] is None and unjudged["quality"] is None
+    assert unjudged['primary'] is None
+    assert unjudged['source'] is True and unjudged['availability'] is True
+    assert all(item["grade"] is None and item["grade_source"] == "unjudged" for item in unjudged["items"])
+    with pytest.raises(ValueError, match='every method and query'):
+        build(output, source=tmp_path / "fixture", content=content, relevance=labels, include_english=True)
+
+
 def test_projection_retains_selected_method_order_and_all_questions(tmp_path):
     example(tmp_path)
     profile, rows, _ = load_run(tmp_path / 'fixture')
@@ -72,6 +112,45 @@ def test_site_population_counts_empty_response_as_constraint_miss():
     assert '0/1' in soup.get_text()
 
 
+def test_latency_population_keeps_failures_and_reports_actual_retry_usage():
+    from lexbench_websearch.scoring import evaluate
+    from harness.web_search.core import aggregate
+    from harness.web_search.report import population_summary, benchmark_operations
+
+    case = {'id': 'query', 'query': 'Find a document', 'domains': ['example.com']}
+    profile = {'cases': [case], 'methods': [{'id': 'a', 'label': 'A', 'currency': 'USD'}],
+               'protocol': {'top_k': 5, 'retry': True}}
+    rows = []
+    for elapsed, results, error in [(100, [{'url': 'https://example.com/'}], ''),
+                                    (200, [], ''), (300, [], 'Timed out')]:
+        rows.append({'case_id': f'query-{elapsed}', 'method': 'a', 'http_status': 200 if not error else 0,
+                     'results': results, 'error': error, 'elapsed_ms': elapsed, 'cost': 0,
+                     'metrics': evaluate(case, results), 'attempts': [{'elapsed_ms': elapsed}]})
+    stats = aggregate(rows)['a']
+    assert stats['all_latency']['n'] == 3
+    assert stats['all_latency']['mean'] == 200
+    assert stats['success_latency']['n'] == 1
+    assert stats['success_latency']['mean'] == 100
+    profile['cases'] = [dict(case, id=row['case_id']) for row in rows]
+    content = {'catalog_pricing': {'a': {'amount': 1, 'currency': 'USD', 'unit': '1000-requests',
+                                       'source': 'https://prices.test/', 'checked_at': '2026-11-13'}},
+               'metric_populations': [{'id': 'overall', 'metric_kind': 'site',
+                                       'label': {'en': 'Site', 'zh': '站点'},
+                                       'case_ids': [row['case_id'] for row in rows]}]}
+    for zh, expected in [(False, 'this collection used no retries'), (True, '本批未发生重试')]:
+        page = BeautifulSoup(population_summary(profile, rows, content, zh), 'html.parser')
+        assert expected in page.select_one('.population-note').get_text()
+        performance = BeautifulSoup(benchmark_operations(profile, rows, content, zh), 'html.parser')
+        assert expected in performance.select_one('[data-benchmark-operations] p').get_text()
+    rows[-1]['attempts'].append({'elapsed_ms': 50})
+    page = BeautifulSoup(population_summary(profile, rows, content, False), 'html.parser')
+    assert 'every call and retry wait' in page.select_one('.population-note').get_text()
+    assert 'used no retries' not in page.get_text()
+    performance = BeautifulSoup(benchmark_operations(profile, rows, content, False), 'html.parser')
+    assert 'Timing includes retries' in performance.select_one('[data-benchmark-operations] p').get_text()
+    assert 'used no retries' not in performance.get_text()
+
+
 def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
     example(tmp_path)
     profile, _, _ = load_run(tmp_path / 'fixture')
@@ -101,6 +180,45 @@ def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
     (output / 'index.html').write_text(str(home), encoding='utf-8')
     with pytest.raises(ValueError, match='Population summary'):
         check(output)
+
+
+@pytest.mark.parametrize('damage', ['order', 'primary', 'guide'])
+def test_primary_metric_order_and_explanation_are_release_checked(tmp_path, damage):
+    example(tmp_path, comparison=True)
+    output = tmp_path / 'report'
+    home = BeautifulSoup((output / 'index.html').read_text(encoding='utf-8'), 'html.parser')
+    tables = home.select('[data-executive] table')
+    assert [len(t.select('th[data-primary-metric]')) for t in tables] == [1, 1]
+    assert [t.select('th').index(t.select_one('[data-primary-metric]')) for t in tables] == [1, 3]
+    for table in tables:
+        index = table.select('th').index(table.select_one('[data-primary-metric]'))
+        values = [float(row.select('td')[index]['data-value']) for row in table.select('tbody tr')]
+        assert values == sorted(values, reverse=True)
+        assert table.select_one('[data-primary-metric]')['aria-sort'] == 'descending'
+    assert '评测概览' in home.get_text()
+    if damage == 'order':
+        rows = tables[0].select('tbody tr')
+        tables[0].tbody.append(rows[0].extract())
+    elif damage == 'primary':
+        del tables[0].select_one('[data-primary-metric]')['data-primary-metric']
+    else:
+        home.select_one('[data-primary-guide]').decompose()
+    (output / 'index.html').write_text(str(home), encoding='utf-8')
+    with pytest.raises(ValueError, match='Population summary'):
+        check(output)
+
+
+def test_nested_comparison_keeps_primary_evidence_links_in_both_editions(tmp_path):
+    example(tmp_path, comparison=True)
+    site = tmp_path / 'report'
+    output = site / 'social'
+    build(output, source=tmp_path / 'fixture', content=tmp_path / 'content.json',
+          relevance=tmp_path / 'labels.json', include_english=True, site_prefix='social')
+    assert check(output)
+    for prefix in ('', 'en/'):
+        page = BeautifulSoup((output / prefix / 'index.html').read_bytes(), 'html.parser')
+        link = page.select_one('[data-executive] a[href*="relevance-scores"]')
+        assert link['href'] == 'social/' + prefix + 'quality.html#relevance-scores'
 
 
 def test_three_selected_versions_drop_two_optional_experiments(tmp_path):
@@ -168,7 +286,7 @@ def test_headline_subgroups_show_actual_quality_counts_and_ranks():
         {'id': 'f', 'reference_answer': '42', 'reference_urls': ['https://source.org/answer']},
         {'id': 's', 'anchors': ['https://source.org/target']},
     ]
-    profile = {'cases': cases, 'methods': [{'id': 'a', 'label': 'A', 'currency': 'CNY'}, {'id': 'b', 'label': 'B', 'currency': 'CNY'}], 'protocol': {'top_k': 5}}
+    profile = {'cases': cases, 'methods': [{'id': 'a', 'label': 'A', 'currency': 'CNY'}, {'id': 'b', 'label': 'B', 'currency': 'CNY'}], 'protocol': {'top_k': 5, 'retry': True}}
     rows = []
     for method in ('a', 'b'):
         for case in cases:
@@ -285,4 +403,34 @@ def test_concurrent_three_method_collection_renders_two_selected_methods(tmp_pat
     write_json(content, {'comparison_methods': chosen})
     output = tmp_path / 'selected'
     build(output, source=source, content=content)
+    assert check(output)
+
+
+def test_uncertain_primary_scores_show_intervals_without_a_unique_winner(tmp_path):
+    from harness.web_search.report import population_summary
+
+    example(tmp_path)
+    profile, rows, _ = load_run(tmp_path / 'fixture')
+    content = dict(uncertainty='paired-query-bootstrap/1', metric_populations=[dict(
+        id='overall', metric_kind='relevance', label={'en':'Scenarios','zh':'场景'},
+        case_ids=[case['id'] for case in profile['cases']])])
+    scores = [dict(case_id=case['id'],method=m['id'],
+                   ndcg=((1.0,0.0),(0.0,0.8))[ci][mi],precision=0.5,success=0.5)
+              for ci,case in enumerate(profile['cases']) for mi,m in enumerate(profile['methods'])]
+    page = BeautifulSoup(population_summary(profile,rows,content,False,relevance_scores=scores),'html.parser')
+    cells = page.select('td[data-metric="population-1"]')
+    assert cells and all('95% CI [' in cell.get_text() for cell in cells)
+    from harness.reporting.presentation import check_presentation
+    check_presentation(page)
+    assert not any(cell.select('.comparison-winner') for cell in cells)
+
+
+def test_uncertainty_report_passes_shared_release_presentation_checks(tmp_path):
+    example(tmp_path,comparison=True)
+    content = json.loads((tmp_path/'content.json').read_bytes())
+    content['uncertainty'] = 'paired-query-bootstrap/1'
+    (tmp_path/'content.json').write_text(json.dumps(content),encoding='utf-8')
+    output = tmp_path/'uncertainty-report'
+    build(output,source=tmp_path/'fixture',content=tmp_path/'content.json',
+          relevance=tmp_path/'labels.json',include_english=True)
     assert check(output)

@@ -282,9 +282,7 @@ def test_reference_panels_respect_declared_cutoff(cutoff, position):
     row = {'case_id': 'query', 'method': 'a', 'results': results, 'metrics': evaluate(case, results),
            'http_status': 200, 'error': '', 'elapsed_ms': 1, 'cost': 0}
     original = dict(row['metrics'])
-    doc = BeautifulSoup(report.reference_retrieval_panel(profile, [row], ['query'], False), 'html.parser')
     expected = 0 if rank > cutoff else 1 / rank
-    assert float(doc.select_one('[data-metric="reference-mrr"]')['data-value']) == pytest.approx(expected)
     content = {'metric_populations': [
         {'id': 'overall', 'label': {'en': 'All', 'zh': 'All'}, 'case_ids': ['query']},
         {'id': 'scenario', 'label': {'en': 'Scenarios', 'zh': 'Scenarios'}, 'case_ids': ['query']},

@@ -121,7 +121,8 @@ def test_reader_labels_state_what_was_found_and_full_summary_scope():
     assert "符合所选检查" not in page
     assert "不符合所选检查" not in page
     assert "完整长摘要" in page
-    assert "上方筛选条件同步控制这里" in page
+    assert "上方勾选的方法会同步显示在下方" in page
+    assert "结果区可横向和纵向滚动" in page
 
 
 def test_benchmark_and_task_type_filters_are_separate():
@@ -197,6 +198,32 @@ def test_human_relevance_is_the_primary_quality_check_when_complete_labels_exist
     assert data["cases"][2]["outputs"]["a"]["quality"] is None
 
 
+@pytest.mark.parametrize('level', [None, 'l1', 'l2'])
+def test_duplicate_result_badges_follow_rank_credit_in_every_output_level(level):
+    from lexbench_websearch.relevance import ranking_identity
+
+    profile, rows = matrix()
+    profile['protocol'] = {'top_k': 5, 'relevance_level': level}
+    for row in rows:
+        row['results'].append(dict(row['results'][0], snippet='Another preview'))
+    case = profile['cases'][0]
+    labels = {ranking_identity(case['id'], item, level=level): 3
+              for row in rows if row['case_id'] == case['id'] for item in row['results']}
+    data = comparison_data(profile, rows, relevance={'labels': {case['id']: labels}})
+    for output in data['cases'][0]['outputs'].values():
+        assert [item['grade'] for item in output['items']] == [3, 0]
+        assert output['score']['ranked_grades'][:2] == [3, 0]
+    from harness.web_search.comparison import render_level_detail
+
+    scored = [dict(case_id=case['id'], method=mid, **output['score'])
+              for mid, output in data['cases'][0]['outputs'].items()]
+    profile['protocol']['relevance_level'] = level or 'l1'
+    view = dict(profile=profile, rows=rows, relevance={'labels': {case['id']: labels}},
+                relevance_scores=scored, benchmarks={})
+    detail = BeautifulSoup(render_level_detail({level or 'l1': view}, rows[0]), 'html.parser')
+    assert [node.get_text().split(': ')[-1] for node in detail.select('[data-result-grade]')] == ['3 / 3', '0 / 3']
+
+
 def test_answer_beyond_body_excerpt_does_not_highlight_unmatched_preview():
     p, rows = matrix()
     row = rows[3]
@@ -219,14 +246,46 @@ def test_one_query_per_output_page_preserves_all_providers_and_full_text(zh):
             page.set_content(render_comparison(profile, rows, zh))
             assert page.locator('.compare-task').count() == 1
             assert page.locator('.compare-task h3').inner_text() == 'Find a page'
+            assert page.locator('.compare-task .compare-method').count() == 2
+            page.locator('[data-compare-method][value="c"]').check()
             assert page.locator('.compare-task .compare-method').count() == 3
+            page.locator('[data-compare-method][value="b"]').uncheck()
+            assert page.locator('.compare-task .compare-method h4').all_text_contents() == ['Provider a', 'Provider c']
             assert 's' * 10000 in page.locator('.compare-task').text_content()
             page.locator('[data-output-next]').click()
             assert page.locator('.compare-task').count() == 1
             assert page.locator('.compare-task h3').inner_text() == 'Explore'
-            assert page.locator('.compare-task .compare-method').count() == 3
+            assert page.locator('.compare-task .compare-method').count() == 2
             page.locator('[data-output-prev]').click()
             assert page.locator('.compare-task h3').inner_text() == 'Find a page'
+        finally:
+            browser.close()
+
+
+def test_selected_outputs_remain_readable_and_keyboard_scroll_both_axes():
+    import copy
+    from harness.reporting.visual import browser_executable
+    from playwright.sync_api import sync_playwright
+    profile, rows = matrix()
+    for row in rows:
+        row['results'] = [copy.deepcopy(row['results'][0]) for _ in range(5)]
+        for item in row['results']:
+            item['snippet'] = 'Long measured snippet. ' * 100
+    with sync_playwright() as engine:
+        browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
+        try:
+            page = browser.new_page(viewport={'width': 390, 'height': 800})
+            page.set_content(render_comparison(profile, rows, True))
+            region = page.locator('.compare-columns')
+            assert region.evaluate('(n)=>n.scrollWidth>n.clientWidth && n.scrollHeight>n.clientHeight')
+            assert page.locator('.compare-method').first.bounding_box()['width'] >= 320
+            region.focus()
+            region.press('ArrowRight')
+            page.wait_for_function('document.querySelector(".compare-columns").scrollLeft>0')
+            region.press('ArrowDown')
+            page.wait_for_function('document.querySelector(".compare-columns").scrollTop>0')
+            page.locator('[data-compare-method][value="b"]').uncheck()
+            assert page.locator('.compare-method h4').all_text_contents() == ['Provider a']
         finally:
             browser.close()
 

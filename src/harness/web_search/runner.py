@@ -22,6 +22,7 @@ from harness.web_search.adapters import adapter_for
 from harness.web_search.core import (
     execution_resources,
     normalize_response,
+    normalized_answer,
     request_body,
     request_cost,
     validate_profile,
@@ -225,6 +226,9 @@ def http_call(url, body=None, header=None, timeout=20):
             config += "header = " + json.dumps(header) + "\n"
         command = [
             "curl",
+            "--disable",
+            "--retry",
+            "0",
             "--silent",
             "--show-error",
             "--config",
@@ -290,21 +294,27 @@ def capture_references(profile, output, phase):
     urls.update(dict.fromkeys(profile.get("reference_artifacts", {})))
     for url in urls:
         check = profile.get("reference_checks", {}).get(url, {})
-        receipt, raw = http_call(
-            check.get("url", url), timeout=profile["protocol"].get("reference_timeout_s", 60)
-        )
-        relative = f"references/{phase}-{bytes_sha256(url.encode())[:16]}.bin"
-        path = output / relative
-        path.parent.mkdir(exist_ok=True)
-        path.write_bytes(raw)
-        refs[url] = {
-            **receipt,
-            "path": relative,
-            "sha256": bytes_sha256(raw),
-            "bytes": len(raw),
-            "available": reference_available(profile, url, receipt, raw),
-            "identity_check": check or None,
-        }
+        retries = profile["protocol"].get("reference_retries", 0)
+        attempts = []
+        for attempt in range(retries + 1):
+            receipt, raw = http_call(
+                check.get("url", url), timeout=profile["protocol"].get("reference_timeout_s", 60)
+            )
+            suffix = f"-attempt-{attempt + 1}" if retries else ""
+            relative = f"references/{phase}-{bytes_sha256(url.encode())[:16]}{suffix}.bin"
+            path = output / relative
+            path.parent.mkdir(exist_ok=True)
+            path.write_bytes(raw)
+            result = {**receipt, "path": relative, "sha256": bytes_sha256(raw), "bytes": len(raw),
+                      "available": reference_available(profile, url, receipt, raw),
+                      "identity_check": check or None}
+            attempts.append(result)
+            # Retry temporary transport failures, never an observed identity mismatch.
+            transient = receipt["http_status"] == 0 and receipt["transport_exit"] in {7, 18, 28, 35, 52, 56}
+            if not transient or attempt == retries:
+                break
+            time.sleep(1)
+        refs[url] = dict(result, attempts=attempts) if retries else result
     write_json(output / f"references-{phase}.json", refs)
     return refs
 
@@ -423,6 +433,10 @@ def incomplete_results(profile, output):
     return found
 
 
+def account_failure(row):
+    return row["http_status"] in {401, 402} or bool(row.get("account_error"))
+
+
 def reconcile_incomplete_results(profile, output, rows):
     """Prefer a verified terminal receipt over its interrupted retry predecessor."""
     partial = incomplete_results(profile, output)
@@ -431,7 +445,7 @@ def reconcile_incomplete_results(profile, output, rows):
     for row in rows:
         prior = partial.get(row["id"])
         attempts = row.get("attempts", [row])
-        terminal = (len(attempts) == maximum or row["http_status"] in {401, 402}
+        terminal = (len(attempts) == maximum or account_failure(row)
                     or not (row.get("error") or row["http_status"] != 200 or row["transport_exit"]))
         if prior and terminal:
             if (row["request"] != prior["request"]
@@ -449,6 +463,8 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
     """Resume only an unchanged, interrupted matrix; preserve every displaced byte."""
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
+    if profile.get('collection_composition') == 'matrix':
+        raise ValueError('A composed report matrix cannot be used as a collection profile')
     required = ("profile.json", "run-contract.json", "results.jsonl")
     if any(not (output / name).is_file() for name in required):
         raise ValueError("Resume requires complete frozen inputs and results.jsonl")
@@ -477,11 +493,11 @@ def prepare_resume(profile_path, output, *, retain_results=False, cohort="primar
         cid for cid, group in by_case.items()
         if len(group) == len(expected)
         and {(r["method"], r["round"]) for r in group} == expected
-        and not any(r["http_status"] in {401, 402} for r in group)
+        and not any(account_failure(r) for r in group)
         and not any(r["id"] in partial for r in group)
     }
     retained = [row for row in rows if row["id"] not in partial and
-                (row["http_status"] not in {401, 402} if retain_results else row["case_id"] in completed)]
+                (not account_failure(row) if retain_results else row["case_id"] in completed)]
     if validate_only:
         return retained, None
     number = len(list(output.glob("resume-*"))) + 1
@@ -542,6 +558,8 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
     diagnostic = diagnostic or not certified
     profile_bytes = load_profile_bytes(profile_path, cohort=cohort)
     profile = json.loads(profile_bytes)
+    if profile.get('collection_composition') == 'matrix':
+        raise ValueError('A composed report matrix cannot be used as a collection profile')
     validate_profile(profile)
     budgets = call_budgets(profile)
     if execution_revision and not resume:
@@ -683,18 +701,25 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 (output / "calls").mkdir(exist_ok=True)
                 (output / relative).write_bytes(raw)
                 results = []
+                answer = None
                 decoded = {}
                 error = receipt["transport_error"]
                 try:
                     decoded = json.loads(raw)
                     if receipt["http_status"] == 200 and not receipt["transport_exit"]:
                         results = normalize_response(decoded, method, protocol, payload)
+                        answer = normalized_answer(decoded, method)
                     else:
                         error = error or json.dumps(
                             decoded.get("error", decoded), ensure_ascii=False
                         )
                 except (ValueError, AttributeError, TypeError) as exc:
                     error = error or str(exc)
+                version_contract = method if receipt["http_status"] == 200 and not receipt["transport_exit"] else None
+                native_account_error = adapter_for(method["adapter"]).account_error(decoded, version_contract)
+                if native_account_error:
+                    receipt["account_error"] = native_account_error
+                    stopped.set()
                 cost = request_cost(method, receipt["http_status"], receipt["transport_exit"], decoded)
                 attempts.append({
                     "evidence": {"path": relative, "sha256": bytes_sha256(raw)},
@@ -703,7 +728,7 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                     "elapsed_ms": receipt["elapsed_ms"],
                     "cost": cost,
                 })
-                if (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
+                if native_account_error or (receipt["http_status"] in {401, 402} and profile.get("execution_policy")) or (not error and receipt["http_status"] == 200 and not receipt["transport_exit"]):
                     break
             total_elapsed_ms = max(
                 prior_elapsed_ms + (time.perf_counter() - operation_start) * 1000,
@@ -735,6 +760,8 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 usage=adapter_for(method["adapter"]).timing(decoded).get("usage"),
                 cache=adapter_for(method["adapter"]).timing(decoded).get("cache"),
             )
+            if answer is not None:
+                row['answer'] = answer
             with result_lock:
                 partial_path = output / "partial-results" / (identity + ".json")
                 if interrupted_retry:
@@ -752,12 +779,13 @@ def run(profile_path, output, diagnostic=False, resume=False, execution_revision
                 f"{receipt['elapsed_ms']:.0f} ms",
                 flush=True,
             )
-            if receipt["http_status"] in {401, 402}:
+            if account_failure(receipt):
                 stopped.set()
                 write_json(output / "interruption.json", {
                     "reason": "provider_account",
                     "result_id": identity,
                     "http_status": receipt["http_status"],
+                    **({"account_error": receipt["account_error"]} if receipt.get("account_error") else {}),
                     "completed_logical_results": len(rows),
                     "results_sha256": bytes_sha256((output / "results.jsonl").read_bytes()),
                     "stopped_at": datetime.now(UTC).isoformat(),
@@ -844,6 +872,99 @@ def reference_changes(profile, before, after):
     ]
 
 
+def _recoverable_reference_scope(profile, contract, before, after):
+    expected = {url for case in profile['cases'] for url in case.get('anchors', [])}
+    expected.update(profile.get('reference_artifacts', {}))
+    changed = reference_changes(profile, before, after)
+    if (contract.get('diagnostic') is not False or profile['protocol'].get('reference_scope') != 'identity'
+            or set(before) != expected or set(after) != expected or not changed
+            or not all(item['available'] for item in before.values())
+            or any(any(attempt.get('http_status') != 0 or not attempt.get('transport_exit')
+                           for attempt in [after[url], *after[url].get('attempts', [])])
+                   for url in changed)):
+        raise ValueError('Reference recovery requires only unobserved post-check transport failures')
+    return sorted(expected)
+
+
+def validate_reference_finalization(source, profile, receipt):
+    """Verify a transport-only reference recovery without changing measured calls."""
+    binding = receipt.get('reference_finalization')
+    if not binding:
+        return
+    verify_bundle(source, [binding])
+    proof = json.loads((source / binding['path']).read_bytes())
+    if proof.get('schema') != 'web-search-reference-finalization/1' or proof.get('provider_calls') != 0:
+        raise ValueError('Invalid reference-finalization provenance')
+    verify_bundle(source, [proof['previous_receipt'], proof['previous_after'], proof['implementation']])
+    previous = json.loads((source / proof['previous_receipt']['path']).read_bytes())
+    for item in previous['bindings']:
+        if item['path'] == 'references-after.json':
+            if item['sha256'] != proof['previous_after']['sha256']:
+                raise ValueError('Original post-check evidence changed')
+        else:
+            verify_bundle(source, [item])
+    before = json.loads((source / 'references-before.json').read_bytes())
+    after = json.loads((source / proof['previous_after']['path']).read_bytes())
+    contract = json.loads((source / 'run-contract.json').read_bytes())
+    scope = _recoverable_reference_scope(profile, contract, before, after)
+    if (previous.get('certified') or not previous.get('complete')
+            or proof.get('reference_urls') != scope
+            or any(previous.get(key) != receipt.get(key) for key in
+                   ('profile_sha256', 'results_sha256', 'call_count', 'physical_call_count', 'ended_at'))):
+        raise ValueError('Reference finalization changed its complete collection')
+
+
+def finalize_references(profile_path, source, output, *, cohort="primary"):
+    """Reobserve a complete post-check after zero-response network failures only."""
+    from harness.web_search.report import load_run
+
+    source, output = source.resolve(), output.expanduser().resolve()
+    profile, _, _ = load_run(source)
+    if load_profile_bytes(profile_path, cohort=cohort) != (source / 'profile.json').read_bytes():
+        raise ValueError('Reference finalization requires the unchanged collection profile')
+    previous_raw = (source / 'receipt.json').read_bytes()
+    previous = json.loads(previous_raw)
+    if previous.get('certified') or previous.get('reference_finalization'):
+        raise ValueError('Reference finalization requires an uncertified original collection')
+    before = json.loads((source / 'references-before.json').read_bytes())
+    old_after = (source / 'references-after.json').read_bytes()
+    contract = json.loads((source / 'run-contract.json').read_bytes())
+    scope = _recoverable_reference_scope(profile, contract, before, json.loads(old_after))
+    if output.is_relative_to(ROOT) or output.is_relative_to(source) or output.exists():
+        raise ValueError('Reference finalization requires a new external output directory')
+    if any(path.is_symlink() for path in source.rglob('*')):
+        raise ValueError('Reference finalization rejects symlinks')
+    shutil.copytree(source, output)
+    phase = 'after-recheck-' + datetime.now(UTC).strftime('%Y%m%dT%H%M%S%f')
+    current = capture_references(profile, output, phase)
+    if reference_changes(profile, before, current):
+        raise ValueError('Post-check recovery failed; original collection and calls remain unchanged')
+    archive = output / 'reference-finalization'
+    archive.mkdir()
+    (archive / 'previous-receipt.json').write_bytes(previous_raw)
+    (archive / 'previous-after.json').write_bytes(old_after)
+    (archive / 'implementation.py').write_bytes(Path(__file__).read_bytes())
+    def binding(path):
+        return dict(path=path.relative_to(output).as_posix(), sha256=bytes_sha256(path.read_bytes()))
+    proof = dict(schema='web-search-reference-finalization/1', provider_calls=0,
+                 reference_urls=scope, checked_at=datetime.now(UTC).isoformat(),
+                 root_cause='Post-collection reference checks received no response because of transport failures; reobserve the complete identity scope without repeating provider calls.',
+                 previous_receipt=binding(archive / 'previous-receipt.json'),
+                 previous_after=binding(archive / 'previous-after.json'),
+                 implementation=binding(archive / 'implementation.py'))
+    write_json(archive / 'receipt.json', proof)
+    write_json(output / 'references-after.json', current)
+    retained = [item for item in previous['bindings'] if item['path'] != 'references-after.json']
+    added = [output / 'references-after.json', output / ('references-' + phase + '.json'),
+             *archive.iterdir(), *sorted((output / 'references').glob('*.bin'))]
+    bindings = {item['path']: item for item in [*retained, *map(binding, added)]}
+    receipt = dict(previous, certified=True, unavailable_references=[], changed_references=[],
+                   reference_finalization=binding(archive / 'receipt.json'), bindings=list(bindings.values()))
+    write_json(output / 'receipt.json', receipt)
+    load_run(output)
+    return output
+
+
 def main(argv=None, *, certified=False):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -854,9 +975,16 @@ def main(argv=None, *, certified=False):
     parser.add_argument("--diagnostic", action="store_true")
     parser.add_argument("--resume", action="store_true")
     parser.add_argument("--execution-revision", type=Path, help="Bound native-interface correction; supersede only declared methods")
+    parser.add_argument('--finalize-references-from', type=Path,
+                        help='Reobserve a complete post-check after transport failure; make no provider calls')
     args = parser.parse_args(argv)
     if certified and args.diagnostic:
         parser.error("Certified collection cannot use --diagnostic")
+    if args.finalize_references_from:
+        if args.resume or args.execution_revision or args.diagnostic:
+            parser.error('Reference finalization cannot change or resume collection')
+        print(finalize_references(args.profile, args.finalize_references_from, args.output, cohort=args.cohort))
+        return
     try:
         print(run(args.profile, args.output, args.diagnostic, args.resume, args.execution_revision, certified=certified, cohort=args.cohort))
     except (ValueError, FileExistsError) as exc:

@@ -14,13 +14,17 @@ function restoreBytes(value){
 }
 window.fetch=async function(input,options){
  const path=typeof input==='string'?input:'';
- if(path.startsWith('calls/'))return new Response(restoreBytes(await stored(path)),{headers:{'Content-Type':'application/json'}});
+ if(path&&!/^(?:[a-z]+:|\/)/i.test(path)&&(!options?.method||options.method.toUpperCase()==='GET')){
+  const idx=await index();
+  if(Object.hasOwn(idx.files,path))return new Response(restoreBytes(await stored(path)),{headers:{'Content-Type':path.endsWith('.html')?'text/html; charset=utf-8':'application/json'}});
+ }
  return nativeFetch(input,options);
 };
 function routeLink(value){
  if(!value||/^(https?:|#)/.test(value))return value;
  if(/(^|\/)details\//.test(value))return 'detail.html#'+encodeURIComponent(value);
  if(value.startsWith('calls/'))return 'evidence.html#'+encodeURIComponent(value);
+ if(deliveryIndex?.files&&Object.hasOwn(deliveryIndex.files,value))return 'evidence.html#'+encodeURIComponent(value);
  return value;
 }
 function rewriteLinks(root){

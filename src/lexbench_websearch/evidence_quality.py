@@ -13,6 +13,7 @@ from .scoring import factual_evidence
 LEGACY_CONTAMINATION_RULE = "simpleqa-name-in-url-or-title/1"
 EVALUATION_FIELDS_RULE = "benchmark-name-or-question-with-evaluation-fields/2"
 CONTAMINATION_RULE = "question-with-evaluation-or-dataset-viewer-structure/3"
+DATASET_ROWS_RULE = "question-with-structured-dataset-rows/4"
 
 
 @cache
@@ -22,12 +23,14 @@ def default_patterns():
     return json.loads(definition_path("contamination-patterns.json").read_bytes())
 
 
-def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
+def is_benchmark_page(result, *, case=None, rule=None):
     """Exclude named mirrors or the exact question accompanied by evaluation fields."""
+    rule = rule or (case or {}).get('factual_contamination_rule', CONTAMINATION_RULE)
     if rule not in (
         LEGACY_CONTAMINATION_RULE,
         EVALUATION_FIELDS_RULE,
         CONTAMINATION_RULE,
+        DATASET_ROWS_RULE,
     ):
         raise ValueError("Unsupported factual contamination rule")
     identity = result.get("url", "") + " " + result.get("title", "")
@@ -43,6 +46,14 @@ def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
     text = " ".join(
         str(result.get(key) or "") for key in ("title", "snippet", "summary", "content")
     )
+    if rule == DATASET_ROWS_RULE and (
+        re.search(r'dataset\s+viewer|previewmetadata|sql\s+console', text, re.I)
+        and re.search(r'question\s+string', text, re.I)
+        and re.search(r'answer\s+string', text, re.I)
+        or all(re.search(r'"' + key + r'"\s*:', text, re.I)
+               for key in ('answer_type', 'topic', 'urls'))
+    ):
+        return True
 
     def compact(value):
         return re.sub(r"[\W_]+", "", unicodedata.normalize("NFKC", value).casefold())
@@ -72,10 +83,17 @@ def is_benchmark_page(result, *, case=None, rule=CONTAMINATION_RULE):
     named_benchmark = any(
         re.search(pattern, text, re.I) for pattern in patterns["body_patterns"]
     )
-    return evaluation_fields or dataset_viewer or validation_log or named_benchmark
+    structured_dataset = rule == DATASET_ROWS_RULE and bool(
+        re.search(r'dataset\s+viewer|previewmetadata|sql\s+console|formats\s*:\s*parquet', text, re.I)
+        and (re.search(r'question\s+string', text, re.I)
+             and re.search(r'answer\s+string', text, re.I)
+             or re.search(r'dataset\s+viewer', text, re.I))
+    )
+    return evaluation_fields or dataset_viewer or validation_log or named_benchmark or structured_dataset
 
 
-def factual_sensitivity(case, results, *, rule=CONTAMINATION_RULE, cutoff=5):
+def factual_sensitivity(case, results, *, rule=None, cutoff=5):
+    rule = rule or case.get('factual_contamination_rule', CONTAMINATION_RULE)
     retained = []
     excluded = []
     for rank, result in enumerate(results[:cutoff], 1):

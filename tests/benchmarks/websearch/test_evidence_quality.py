@@ -138,3 +138,31 @@ class FactualSensitivityScenarios(unittest.TestCase):
             },
             case=case,
         )
+
+
+def test_structured_dataset_rows_are_excluded_without_blocking_ordinary_faqs():
+    from lexbench_websearch.evidence_quality import DATASET_ROWS_RULE, factual_sensitivity
+
+    case = dict(query='When did the college open?', reference_answer='1971',
+                factual_contamination_rule=DATASET_ROWS_RULE)
+    for metadata in ('Dataset Viewer', 'PreviewMetadata question string answer string',
+                     'SQL Console question string answer string'):
+        result = dict(url='https://data.test/arbitrary-corpus',
+                      snippet=metadata + ' When did the college open? 1971')
+        assert factual_sensitivity(case, [result])['metrics']['answer_in_delivered_text_5'] == 0
+    article = dict(url='https://college.test/history',
+                   snippet='When did the college open? It opened in 1971. Question and answer from our FAQ.')
+    assert factual_sensitivity(case, [article])['metrics']['answer_in_delivered_text_5'] == 1
+    unrelated = dict(url='https://data.test/guide', snippet='Dataset Viewer 1971')
+    assert factual_sensitivity(case, [unrelated])['excluded_ranks'] == []
+
+
+def test_unrelated_rows_in_a_question_answer_corpus_cannot_supply_accidental_answer_hits():
+    from lexbench_websearch.evidence_quality import DATASET_ROWS_RULE, factual_sensitivity
+
+    case = dict(query='When did the college open?',reference_answer='1971',
+                factual_contamination_rule=DATASET_ROWS_RULE)
+    for text in ('PreviewMetadata question string answer string Who won? 1971',
+                 '{"answer_type":"Date","topic":"History","urls":["https://source.test/"]} Who won? 1971'):
+        result = dict(url='https://corpus.test/data',snippet=text)
+        assert factual_sensitivity(case,[result])['metrics']['answer_in_preview_5'] == 0

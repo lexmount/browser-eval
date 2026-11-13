@@ -18,7 +18,15 @@ uv run --frozen python -m harness.web_search report \
   --output /absolute/path/report --language zh
 ```
 
-Run every publishable Web Search cohort through this certified entry, which freezes executable task inputs. Incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. New cohorts use `protocol.order="complete provider batches"` (the default when omitted): all cases and rounds for one provider finish before the next provider starts. Do not rotate providers within a query in a new cohort. Explicit rotation remains supported only to continue or reproduce frozen historical cohorts; continuing a cohort preserves its frozen execution contract. When the profile enables retries, a transport, HTTP or invalid-response failure receives one retry; a valid empty response does not. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
+Run every publishable Web Search cohort through this certified entry, which freezes executable task inputs. Incomplete cohorts are diagnostic evidence only; never assemble them into a certified release or ranking. Use a new output directory for every collection. The frozen profile declares every query, method, result count, timeout, retry rule and price before calls. New cohorts use `protocol.order="complete provider batches"` (the default when omitted): all cases and rounds for one provider finish before the next provider starts. Do not rotate providers within a query in a new cohort. Explicit rotation remains supported only to continue or reproduce frozen historical cohorts; continuing a cohort preserves its frozen execution contract.
+
+Retries default to zero: omit `protocol.retry` or set it to the JSON boolean `false`. Set `protocol.retry=true` explicitly to allow one retry after a transport, HTTP or invalid-response failure; a valid empty response is never retried. Strings, numbers and other non-boolean retry settings are rejected before collection. The transport ignores user curl configuration and disables curl-level retries; enabled retries run only through the collector, with a separate evidence record for each attempt. The final response is the one logical result, while every physical call is retained. A missing credential fails before calls or output creation.
+
+New Google-provider profiles use `protocol.locale_policy="query-language/1"`. Cases labelled Chinese or another non-English language then omit `gl` and `hl`, so an English interface and US region are not forced on them. Use the dataset's language labels rather than counting Han characters: a Chinese-source query can contain only a product name. Historical profiles retain their recorded parameters. New DeepSeek profiles explicitly set `output_options.need_content=false`; frozen cohorts that requested full page bodies keep those responses and their original timing.
+
+Bocha AI Search uses adapter `bocha-ai`, endpoint `https://api.bochaai.com/v1/ai-search`, and the same `BOCHA_API_KEY` obtained from [the Bocha console](https://open.bochaai.com/). Use `output_options.answer=true` and `stream=false`. The adapter retains webpage previews, extra summaries and citation IDs, stores the generated answer separately, and excludes follow-up questions and image/video cards. Confirm this endpoint's billing separately from Web Search.
+
+A complete certified-mode collection can recover a post-collection identity check that received no HTTP response because of a transport failure. Pass `--finalize-references-from /absolute/original-run` with the unchanged `--profile` and a new `--output` to the certified entry above. This reobserves the entire reference scope, makes no provider calls, and preserves the original collection and failed observations. An observed HTTP failure, identity mismatch, changed task or incomplete call matrix requires investigation; this operation cannot certify it.
 
 Report commands share one entry point; `--help` after any command lists its options. Run them through `uv run --frozen`: `python -m` resolves `harness` from the environment's editable install and does not add this checkout's `src/` itself, so an environment holding a noneditable older package would run that older code.
 
@@ -31,6 +39,98 @@ Report commands share one entry point; `--help` after any command lists its opti
 | `uv run --frozen python -m harness.web_search publish` | Freeze and publish a checked report to its bound Artifact Site |
 
 ## SERP providers and finite quotas
+
+Yuanbao Search uses adapter `tencent-wsa`, endpoint
+`https://api.wsa.cloud.tencent.com/SearchPro`, and `TENCENT_WSA_API_KEY`.
+Register a Tencent Cloud account, complete identity verification, activate the
+service and create a **service API KEY** in the [WSA console](https://console.cloud.tencent.com/wsa).
+The [official setup guide](https://cloud.tencent.com/document/product/1806/130615)
+describes this Bearer route; it requires no Cloud API signing credentials or SDK.
+An explicitly requested home-file setup can import only this named key with
+`uv run --frozen python -m harness.web_fetch import-env --key TENCENT_WSA_API_KEY`.
+Collection still reads the repository `.env`. The command preserves existing
+values and ignores unrelated home-file credentials.
+
+SearchPro requests `Mode=0` and `Cnt=10`, the smallest documented count. Use
+`protocol.normalize_top_k=true` for a five-result comparison: retain the complete native response but score the
+first five slots, without replacing invalid entries with later results.
+Keep the original result projection and URL resolution policy when adding a method to an existing run.
+`passage` maps to snippet and `content` to dynamic summary; neither is page body.
+A single declared site uses the native `Site` parameter. Other query operators
+remain in the query and need live verification for the selected account.
+The [API contract](https://cloud.tencent.com/document/product/1806/121811)
+returns the account tier in `Response.Version`; record it before freezing prices.
+Use unknown billing until the account's tier and charging rules are confirmed.
+
+Select `output_options.edition=standard|lite|flagship` and bind the observed
+`expected_response_version` on each method. Lite omits the unsupported `Mode`
+and `Cnt` parameters. Give editions distinct method IDs so their frozen calls
+remain separate. A changed or missing response version stops collection before
+another task; a mismatched edition has unknown billing under the intended plan.
+
+To add a provider to completed measurements, collect only that provider on the
+same frozen tasks. Set external report content `collection_composition` to
+`methods` and pass the new run as `--cohort yuanbao=/absolute/new-run` alongside
+the original `--source`. The builder verifies both complete runs, requires
+identical tasks and measurement controls, rejects overlapping providers, and
+retains each collection receipt. The task inventory remains unique. Collection
+dates and order stay visible; the combined report is not a same-window latency
+trial. A current instance can select methods across its primary and supplementary
+profile bindings; collecting a supplementary cohort executes only its methods.
+
+For providers whose historical calls span several case batches, use
+`collection_composition: "matrix"` and an explicit `collection_methods` mapping
+from each source name (`primary` and the `--cohort` names) to its method IDs.
+The builder validates every original run before selection, rejects conflicting
+task or method definitions and duplicate cells, and requires every selected
+method to cover the complete shared case population. Each source retains its
+own timeout, retry, concurrency and collection-date records. An optional
+`collection_cases` mapping selects the predeclared case IDs for every source;
+missing or overlapping cells still fail. The composed
+profile is a read-only scoring view and cannot be passed to the collector.
+
+Generated answers use the same `judge` command with `--level l3` and
+`--simpleqa-grader /absolute/simpleqa_eval.py`. The independent answer scorer
+pins the upstream source commit and SHA-256 in `lexbench_websearch.answers`;
+it reads the official template without executing upstream Python. Scenario
+usefulness, factual correctness and citation support use separate requests.
+Citation support is checked against delivered titles, previews and extra text;
+full page bodies are excluded. Missing citations leave support unavailable.
+The command preserves physical response bytes, uses temperature zero with
+thinking disabled, and permits one physical attempt per judgment. Resuming
+replays saved judgments and never retries a failed or invalid answer. The
+complete quality population is required; reference exclusions apply equally
+to every configuration. `answers.json` can be replayed through
+`verify_answer_evidence` before rendering.
+
+The model relevance command accepts `--level l1` or `--level l2`. Adapters select
+the native fields; no text is truncated. L1 needs no source-page retrieval.
+L2 also requires `--field-admissions /absolute/admissions.json`, an explicitly
+bound bundle of native-output candidates and live-capture bytes. Up to 200
+distinct URLs are ordered by hash before capture. The first 50 independently
+accessible pages form the sample; every preceding unavailable page needs a
+retained capture receipt. Successful pages with different text remain in the
+sample. The command replays those bytes and recomputes the 80% original-text
+check before admitting a method. Both levels use temperature
+zero with thinking disabled and keep separate prompts, candidate identities
+and complete pools.
+
+Account errors inside a Yuanbao HTTP 200 response stop collection immediately;
+after fixing the account, `--resume` archives the failed call and recollects its
+task rather than accepting an account failure as completed work.
+
+Publication binds independent review and relevance annotations only when the
+checked report manifest names them. Without those assessments, their metadata
+stays unavailable. A current instance that requires full independent review
+still rejects an unreviewed release. Adding a provider does not authorize a new
+independent review or extend historical judgments to the new responses.
+
+Ranked comparisons require annotations for every ranked configuration and query;
+a `relevance_methods` scope that omits a ranked configuration fails the build.
+Partial annotations are available only for unranked diagnostics. Candidate text,
+rankings and the complete query population still verify against that scope.
+Do not transfer judgments between changed snippets or provider outputs, even
+when they return the same URL.
 
 SERP profiles select providers through the same collector and renderer. Supported adapters include Lexmount, Browserbase Parallel Advanced, Bright Data Google Light JSON and Serper Google. Keep each report's profile, selected participants and publication target alongside its external evidence. These services use different upstream indexes; the comparison measures their delivered rankings.
 
@@ -81,6 +181,11 @@ HTML inspection. Packaging and uploading verify the accepted files rather than
 repeating the full report check. Combine `--release-check RECEIPT` with
 `--export-delivery DESTINATION` to validate and export in one pass.
 
+Large comparison data is exported as content-addressed compressed JSON beside the compact
+HTML page. The comparison loads that file before enabling its filters. Delivery
+verification checks the exact transformed data as well as the page; missing or
+changed files fail validation, and a browser load failure shows an explicit notice.
+
 API capability research belongs in the main report’s bound `--content` input. The measured report owns interface tables, request specimens and supporting sources.
 
 ```sh
@@ -113,13 +218,40 @@ languages. These examples do not enter the measured cohort merely by being
 included in the report. Release checks bind the authored explanation, actual
 specimens, source-filter populations and chapter visibility to the public build.
 
+Sections may include `figures` with an asset `path`, localized `alt` and
+`caption`. Figures must select a hash-bound asset; report checks reject missing
+or substituted images. Keep numerical chart data in a bound source.
+
+Factual URL matching measures retrieval of the listed sources. Reference revisions
+may add aliases proven by a connected HTTP redirect chain reaching an existing
+reference, or explicit canonical metadata on the same publisher host. A terminal
+fetch failure does not invalidate a recorded redirect to the reference URI.
+Independent mirrors and similar URL strings do not establish equivalence. Freeze
+these observations, bind them to the approved assessment revision and run paired
+`verified-factual-source-identities` controls before rescoring every method through
+the shared evaluator. Search calls, result positions, latency and costs stay fixed;
+o network request or browser is required during scoring.
+
 For hosts with a file-count limit, export a checked report with
 `--output /absolute/report --export-delivery /absolute/new-delivery-directory`.
 This preserves the renderer's pages and raw responses in one compressed file per
-case, with shared detail and evidence viewers. The export verifies every original
+case, with shared detail and evidence viewers. Large supplementary JSON files use
+the same lossless storage, with working source
+links, browser reads and original-byte downloads. The manifest stays directly
+available. The export verifies every original
 page and response against its source hash. It changes storage and navigation only;
 it does not rescore results. Run the full release gate on the canonical report and
 exercise the exported viewers on the target host before delivery.
+
+For wording corrections, use `report --output /absolute/report --revise-paragraphs
+/absolute/content.json`. This updates existing `sections[].paragraphs` in every
+generated language and records the content revision without rebuilding evidence
+pages. Paragraph counts, language coverage, report structure and all other inputs
+must stay unchanged. Changes to methods, metrics, prices or assets require a normal
+build. Run the usual release checks and freeze a new publication plan afterward.
+Revision receipts retain one predecessor chain instead of duplicating earlier
+receipts at every level. Verification walks the full chain, including preserved
+earlier-format snapshots.
 
 Collection stops after the declared retry if a participant returns HTTP 401 or
 402. Resolve the account problem before continuing with the same certified entry
@@ -173,13 +305,35 @@ missing slots count toward the five-slot denominator. A query with no relevant
 pooled candidate receives zero nDCG and precision and stays in the population.
 Known-URL discovery and site constraints remain separate diagnostics.
 
+Independent-benchmark comparisons keep one primary table per benchmark. Declare
+`metric_kind: relevance` for a relevance benchmark; the renderer rejects missing
+method-by-query judgments. Annotated reference URLs remain in query evidence and
+do not create a separate subset leaderboard. Comparison tables support numeric
+and method-name sorting, keyboard activation, stable ties and missing values last.
+Relevance tables identify nDCG at the selected cutoff as their primary metric;
+factual retrieval tables identify reference MRR. Both render in descending order
+before JavaScript runs. Supporting metrics retain their own annotation scope;
+answer-text matches are not graded relevance. Output comparisons initially show
+the baseline and one other method. The same method controls filter both outcome
+relations and actual output columns; wider selections remain keyboard-scrollable
+in both directions without narrowing the columns to fit every method.
+
 For explicitly authorized model annotations, run `uv run --frozen python -m harness.web_search judge`
 with `--report`, `--output`, `--model` and `--base-url`. Supply the credential through
 `SEARCH_JUDGE_API_KEY`; do not put credentials in CLI arguments. The runner freezes
 its contract, retains each response, resumes completed queries and refuses changed
 inputs. Import its `relevance.json` through the existing report `--relevance` option.
+When adding providers, `--reuse-evidence` first verifies the original provider
+scope, then builds the expanded anonymous pool. Only byte-equivalent judge
+requests reuse their responses. Invalid saved model answers stop the run by
+default. After inspection, `--repair-format` permits one format-only repair and
+retains the original call; valid answers are never repeated by that option.
 Model annotations are labeled separately from human annotations. The rubric uses
 0–3 grades, with nDCG@5, Precision@5 (grade ≥2), and Success@5 (at least one grade 3).
+L3 may explicitly select `--format-repair-limit 2` for one final correction of
+repeated invalid output. The limit is frozen before execution, every prior
+request and response must verify, and a valid judgment is never repeated.
+Each physical request still has zero transport retries.
 
 Site-family domain lists and explicit native-source routes are mandatory judge constraints. Domain lists on
 ordinary searches remain source diagnostics; explicit constraints in the query
@@ -319,3 +473,62 @@ continue to come from the repository `.env`; they are not passed to review jobs.
 Publication also requires `--profile /absolute/instance/current.json` for a new plan. The plan pins that selector; resume reuses it and rejects changed inputs. Publishing updates only the selected external target receipt. New report builds with legacy evidence must explicitly bind `assessment_authority` by relative path and SHA-256 in the selector. The checked report carries that authority as a hash-bound asset; no report-specific exception list is compiled into the package.
 
 English is the source language of report text. Renderers pass English source text to `messages.py`; `messages.json` holds the Chinese translation keyed by that text, with a `context|` prefix where one English label has several Chinese meanings. Source-language policy checks reject inline Chinese in the Search renderers and report-instance schemas in `evaluation/`, including renamed files. Synthetic examples and benchmark task definitions remain versioned.
+
+### Delivered-preview corrections
+
+Select `relevance_input: delivered-previews/1` through an approved assessment
+revision to judge each distinct returned title and standard snippet separately.
+Identical previews can share a judgment; the same URL with different previews
+cannot borrow another provider's grade. Repeated URLs contribute only once to a
+method's ranking, and ideal ranking uses distinct document URLs. The fixed
+candidate pool and model receipts remain part of the report evidence.
+
+`request-url/2` preserves malformed native result positions with zero credit;
+valid neighboring slots retain their original rank, and later slots never fill
+the gap. Edition-identified responses with no Pages array are empty responses.
+A native `Response` object without an application error must identify the expected
+edition even when `Pages` is missing or malformed. An unknown or changed edition
+stops collection with unknown cost. Transport failures and non-native envelopes
+remain ordinary failures, retried only when explicitly enabled. Corrections require the
+`invalid-result-slots` controls in addition to the original normalization controls.
+
+SERP lexical diagnostics select `answer_evidence_scope: preview`; generated
+summaries remain in native evidence but do not count as title/snippet matches.
+The versioned structured-dataset rule rejects evaluation rows containing the
+question without rejecting ordinary source FAQs. Reference revisions bind the
+corresponding paired controls before any rescore.
+
+Judge a frozen collection directly with the existing `judge` entry using
+`--source`, optional `--profile` and `--content`, and repeatable `--cohort NAME=RUN`.
+It loads the same verified inputs as the report builder and avoids rendering
+thousands of detail pages before annotation. `--report` remains available for
+checked saved reports. These input modes are mutually exclusive.
+
+Reports can select `uncertainty: paired-query-bootstrap/1` to show deterministic
+95% query-bootstrap intervals beside nDCG. The same sampled queries apply to all
+methods. A unique primary winner is omitted when the paired difference from a
+competitor includes zero; this does not assert equivalence between the methods.
+
+
+## Isolated output-level reports
+
+Select a `web-search-level-assessments/1` bundle through the authored content's
+`output_level_assessments` path/hash binding. The maintained report builder checks
+and renders each adapter-derived level separately: L1 primary result previews,
+L2 qualified additional original excerpts, and L3 generated answers with citations.
+Each level retains the same scenario and factual benchmark populations. L2 excludes
+configurations whose fixed live-page sample fails admission; it never gives them
+zero scores. L3 requires the hash-pinned official SimpleQA grader source.
+
+Generate new pools with `judge --level l1`, `judge --level l2 --field-admissions …`
+and `judge --level l3 --simpleqa-grader …`. Relevance transport retries default to
+zero; `--retries 1` or `--retries 2` explicitly changes the frozen call budget.
+Native collection retries also require explicit opt-in. Keep source-specific
+projection controls when composing independently collected matrices.
+
+Tables initially sort by each benchmark's primary metric. Green marks identify
+observed extrema; stars additionally require a paired confidence interval excluding
+zero against every comparator. A single participant receives absolute results.
+Per-level result filters and details use the same verified projections as scores.
+Build the deterministic layout example with `example --levels` and run the normal
+report check; no provider account is needed.

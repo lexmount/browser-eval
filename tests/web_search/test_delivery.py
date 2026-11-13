@@ -4,6 +4,7 @@ import gzip
 import base64
 import tempfile
 import unittest
+import pytest
 from pathlib import Path
 from urllib.parse import unquote
 
@@ -102,6 +103,53 @@ class DeliveryScenarios(unittest.TestCase):
                 verify(root / "report", root / "delivery")
 
 
+@pytest.mark.parametrize('prefix', ['', 'en/'])
+def test_large_comparison_stays_browsable_under_host_html_limit(tmp_path, prefix):
+    from playwright.sync_api import sync_playwright
+    from harness.reporting.visual import browser_executable, local_report_server
+
+    example(tmp_path)
+    source, destination = tmp_path / 'report', tmp_path / 'delivery'
+    build(source, source=tmp_path / 'fixture', include_english=True)
+    profile = json.loads((tmp_path / 'fixture/profile.json').read_bytes())
+    rows = [json.loads(line) for line in (tmp_path / 'fixture/results.jsonl').read_text(encoding='utf-8').splitlines()]
+    next(row for row in rows if row['results'])['results'][0]['summary'] = 'Long native summary. ' * 500000
+    path = source / prefix / 'results.html'
+    path.write_text(path.read_text(encoding='utf-8').replace('</main>', render_comparison(profile, rows, not bool(prefix)) + '</main>'), encoding='utf-8')
+    assert path.stat().st_size > 8 * 1024 * 1024
+    export(source, destination)
+    assert verify(source, destination)
+    assert (destination / prefix / 'results.html').stat().st_size < 8 * 1024 * 1024
+    doc = BeautifulSoup((destination / prefix / 'results.html').read_bytes(), 'html.parser')
+    data_node = doc.select_one('[data-comparison-src]')
+    data_file = destination / data_node['data-comparison-src']
+    assert len(gzip.decompress(data_file.read_bytes())) > 8 * 1024 * 1024
+    assert not data_node.get_text()
+    original = data_file.read_bytes()
+    with local_report_server(destination) as origin, sync_playwright() as engine:
+        browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
+        try:
+            page = browser.new_page()
+            page.goto(origin + '/' + prefix + 'results.html')
+            page.locator('.compare-task').wait_for()
+            assert page.locator('.compare-method').count() == 2
+            assert page.locator('.compare-method a[href^="detail.html#"]').count() == 2
+            data_file.unlink()
+            # A returning reader may legitimately retain the immutable data in cache.
+            # Exercise the missing-file behavior for a fresh reader instead.
+            page.close()
+            page = browser.new_page()
+            page.goto(origin + '/' + prefix + 'results.html')
+            assert page.get_by_role('alert').inner_text() == json.loads(doc.select_one('[data-search-comparison]')['data-labels'])['loadError']
+        finally:
+            browser.close()
+    with pytest.raises(ValueError, match='Comparison data changed'):
+        verify(source, destination)
+    data_file.write_bytes(original + b' ')
+    with pytest.raises(ValueError, match='Comparison data changed'):
+        verify(source, destination)
+
+
 def test_crlf_and_non_utf8_provider_bodies_are_lossless():
     with tempfile.TemporaryDirectory() as temp:
         root = Path(temp)
@@ -118,3 +166,27 @@ def test_crlf_and_non_utf8_provider_bodies_are_lossless():
             shard = json.loads(gzip.decompress((destination / index["files"][virtual]).read_bytes()))
             assert base64.b64decode(shard[virtual]["base64"]) == raw
             assert verify(source, destination)
+
+
+@pytest.mark.parametrize('prefix', ['', 'en/'])
+def test_delivered_detail_sections_open_the_original_file_before_scrolling(tmp_path, prefix):
+    from harness.web_search.delivery import _delivery_link
+    from harness.reporting.visual import browser_executable, local_report_server
+    from playwright.sync_api import sync_playwright
+
+    example(tmp_path, comparison=True)
+    source, destination = tmp_path / 'report', tmp_path / 'delivery'
+    export(source, destination)
+    manifest = json.loads((source / 'manifest.json').read_bytes())
+    row = manifest['rows'][0]
+    target = prefix + 'details/' + row['id'] + '.html#result-logs'
+    with local_report_server(destination) as origin, sync_playwright() as engine:
+        browser = engine.chromium.launch(executable_path=browser_executable(), headless=True)
+        try:
+            page = browser.new_page()
+            page.goto(origin + '/' + _delivery_link(target))
+            page.locator('#result-logs').wait_for()
+            assert page.locator('[data-result-summary]').count() == 1
+            assert 'Unable to load saved evidence' not in page.locator('body').inner_text()
+        finally:
+            browser.close()

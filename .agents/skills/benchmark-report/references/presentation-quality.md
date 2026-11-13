@@ -44,6 +44,16 @@ For ratios, name numerator and denominator, state whether ratios are computed pe
 
 Put a core-metrics comparison table near the start of every report home page, before secondary diagnosis or interpretation. Prefer tables over repeated cards for dense categorical summaries. Generate its rows and columns from the participant registry rather than assuming a fixed participant count.
 
+Comparison columns need keyboard-operable sorting controls, visible direction and
+an accessible sort state. Sort raw numeric values rather than formatted labels;
+keep unavailable values last in either direction and retain stable ordering for
+ties. Sorting must preserve the full-population winner markers. Exercise these
+behaviors in a browser test, and reject missing column controls at release.
+For independent benchmarks, keep one primary comparison per benchmark. A partially
+annotated diagnostic must not become another benchmark or substitute for missing
+primary judgments. A ranked table requires every participant on its declared
+quality population.
+
 For Web Extract cohort home pages, place a bound page intro after the core comparison and its reference note. Other pages may start with the intro. Reproduce the expected intro inventory from frozen content and check its rendered HTML and position together with the core-table order on the same generated page.
 
 Public Web Extract checks require the external profile and benchmark home. Keep build-time rendered-page self-checks internal; independent checks also revalidate the selected plans, certification receipts and assessments through the cohort input owner.

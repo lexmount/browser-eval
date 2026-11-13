@@ -1,7 +1,9 @@
 """Small bilingual Web Search report built from frozen calls, never invented scores."""
 
 import argparse
+import base64
 import copy
+import gzip
 import json
 import math
 import posixpath
@@ -29,13 +31,20 @@ from harness.report_languages import (
 from harness.reporting.mermaid import mermaid_script_attributes
 from harness.reporting.presentation import check_presentation
 from harness.reporting.presentation import esc as escape_text
-from harness.reporting.versions import FILENAME, bind_build_version, check_build_version
+from harness.reporting.publication import atomic_write
+from harness.reporting.versions import (
+    FILENAME,
+    bind_build_version,
+    check_build_version,
+    software_identity,
+)
 from harness.web_fetch.publication_privacy import SENSITIVE_KEY, project_file
 from harness.web_search.comparison import render_comparison
 from harness.web_search.core import (
     aggregate,
     execution_resources,
     normalize_response,
+    normalized_answer,
     request_body,
     request_cost,
     validate_profile,
@@ -63,16 +72,20 @@ from harness.web_search.review import (
 from harness.web_search.revisions import (
     apply_identity_correction,
     apply_report_revision,
+    assessment_protocol,
     collected_projection,
     validate_revision_binding,
 )
 from harness.web_search.runner import reference_available, reference_changes
+from lexbench_webfetch.paths import contained_path
 from lexbench_websearch import answer_rules
 from lexbench_websearch.evidence_quality import CONTAMINATION_RULE, factual_sensitivity
 from lexbench_websearch.inputs import definition_path, implementation_sources
-from lexbench_websearch.relevance import score as score_relevance
+from lexbench_websearch.relevance import paired_bootstrap
+from lexbench_websearch.relevance import score as benchmark_relevance_score
 from lexbench_websearch.relevance import summary as relevance_summary
 from lexbench_websearch.scoring import (
+    answer_evidence_key,
     canonical_url,
     classify,
     evaluate,
@@ -97,15 +110,17 @@ def fmt(value):
     return "—" if value is None else f"{value:,.2f}"
 
 
-def table(headers, rows, sortable=False, *, bounded=False):
+def table(headers, rows, sortable=True, *, bounded=False, primary_column=None, significance=False, query_count=None):
     head = "".join(
-        f'<th><button data-sort-column="{i}">{esc(h)} ↕</button></th>'
-        if sortable and i
+        f'<th aria-sort="{"descending" if i == primary_column else "none"}"' + (' data-primary-metric' if i == primary_column else '') + f'><button type="button" aria-label="{esc(h)}" data-sort-column="{i}">{esc(h)}</button></th>'
+        if sortable
         else f"<th>{esc(h)}</th>"
         for i, h in enumerate(headers)
     )
     return (
         ('<div class="scroll inventory" tabindex="0"><table' if bounded else '<div class="scroll" tabindex="0"><table')
+        + (' data-sort-controls="buttons"' if sortable else '')
+        + (f' data-significance="paired-query-bootstrap/1" data-query-count="{query_count}"' if significance else '')
         + (' class="compact"' if len(headers) == 2 else "")
         + "><thead><tr>"
         + head
@@ -154,7 +169,7 @@ def public_calls(profile, rows, source, sources):
             raise ValueError("Final response evidence differs from the final physical attempt")
         for attempt in attempts or [row]:
             binding = attempt["evidence"]
-            raw = (sources.get(row.get("cohort"), source) / binding["path"]).read_bytes()
+            raw = (sources.get(row.get("collection", row.get("cohort")), source) / binding["path"]).read_bytes()
             public = _redact_url_userinfo(raw)
             try:
                 envelope = json.loads(public)
@@ -191,6 +206,14 @@ def public_calls(profile, rows, source, sources):
             row["evidence"] = copy.deepcopy(attempts[-1]["evidence"])
             row["cost"] = sum(a["cost"] for a in attempts) if all(a["cost"] is not None for a in attempts) else None
     return rows, files, redactions, corrections
+
+
+def validate_native_answer(row, payload, method):
+    """Reject substituted or fabricated answer text at every public input boundary."""
+    expected = normalized_answer(payload, method) if row['http_status'] == 200 and not row.get('error') else None
+    if (expected is not None and row.get('answer') != expected
+            or expected is None and row.get('answer')):
+        raise ValueError('Generated answer differs from the native response')
 
 
 def load_run(source):
@@ -250,6 +273,10 @@ def load_run(source):
                     )
     if receipt.get("certified") and receipt["reference_capture_issues"]:
         raise ValueError("Certified source capture is incomplete")
+    if receipt.get('reference_finalization'):
+        from harness.web_search.runner import validate_reference_finalization
+
+        validate_reference_finalization(source, profile, receipt)
     if receipt.get("certified") and profile["protocol"].get("reference_scope") == "identity":
         before = json.loads((source / "references-before.json").read_text(encoding="utf-8"))
         after = json.loads((source / "references-after.json").read_text(encoding="utf-8"))
@@ -288,9 +315,13 @@ def load_run(source):
                 if abs(r["cost"] - sum(a["cost"] for a in attempts)) > 1e-8:
                     raise ValueError("Retry cost mismatch")
         if not r["error"] and r["http_status"] == 200:
-            normalized = normalize_response(json.loads((source / r["evidence"]["path"]).read_bytes()), bymethod[r["method"]], profile["protocol"], r.get("request"))
+            payload = json.loads((source / r["evidence"]["path"]).read_bytes())
+            normalized = normalize_response(payload, bymethod[r["method"]], profile["protocol"], r.get("request"))
             if normalized != r["results"]:
                 raise ValueError("Normalized response mismatch")
+            validate_native_answer(r, payload, bymethod[r['method']])
+        elif r.get('answer'):
+            raise ValueError('Failed calls cannot contain a generated answer')
         if evaluate(bycase[r["case_id"]], r["results"]) != r["metrics"]:
             raise ValueError("Stored score mismatch")
     return profile, rows, receipt
@@ -300,7 +331,7 @@ def _execution_contract(protocol):
     """Fields that must match for same-budget cross-cohort comparisons."""
     return {key: protocol.get(key) for key in (
         "top_k", "rounds", "score_round", "concurrency", "server_timeout_ms",
-        "client_timeout_s", "interval_s", "retry", "order", "as_of",
+        "client_timeout_s", "interval_s", "retry", "order", "as_of", "locale_policy",
     )}
 
 
@@ -309,11 +340,32 @@ def scoring_rows(profile, rows):
     return [row for row in rows if row["round"] == profile["protocol"]["score_round"]]
 
 
-def load_report_runs(source, cohorts, labels, method_ids=None):
+def _check_collection_provenance(receipt, previous):
+    if previous and bool(receipt.get("synthetic")) != bool(previous[0]["collection_receipt"].get("synthetic")):
+        raise ValueError("Cannot combine synthetic and measured collections")
+
+
+def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases", source_methods=None, source_cases=None):
     """Compose separately verified runs; never pretend they were one collection."""
     inputs = [("primary", source), *cohorts]
     if len({name for name, _ in inputs}) != len(inputs):
         raise ValueError("Duplicate cohort name")
+    if composition not in {"cases", "methods", "matrix"}:
+        raise ValueError("Unsupported collection composition")
+    if (source_methods is not None or source_cases is not None) and composition != 'matrix':
+        raise ValueError('Per-source method selection requires matrix composition')
+    if composition in {'methods','matrix'}:
+        if composition == 'matrix':
+            if (not isinstance(source_methods,dict) or set(source_methods) != {name for name,_ in inputs}
+                    or any(not isinstance(ids,list) or not ids or len(ids) != len(set(ids)) for ids in source_methods.values())):
+                raise ValueError('Matrix composition requires explicit methods for every source')
+        if source_cases is not None and (
+                not isinstance(source_cases, dict) or set(source_cases) != {name for name, _ in inputs}
+                or any(not isinstance(ids, list) or not ids or len(ids) != len(set(ids))
+                       for ids in source_cases.values())):
+            raise ValueError("Matrix composition requires explicit cases for every source")
+        return _load_method_runs(inputs, labels, method_ids, source_methods=source_methods,
+                                 source_cases=source_cases)
     profile = None
     rows, receipts, groups, paths = [], [], [], {}
     seen_cases, seen_evidence = set(), set()
@@ -321,6 +373,7 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
         if not name.replace("-", "").isalnum():
             raise ValueError("Unsafe cohort name")
         current, calls, receipt = load_run(path)
+        _check_collection_provenance(receipt, receipts)
         if method_ids is not None:
             methods = {method["id"]: method for method in current["methods"]}
             if not method_ids or not set(method_ids).issubset(methods):
@@ -388,6 +441,146 @@ def load_report_runs(source, cohorts, labels, method_ids=None):
     )
 
 
+def _merge_matrix_references(profile, current):
+    """Keep all source assessments, rejecting contradictory reference contracts."""
+    for key in ("reference_checks", "reference_artifacts"):
+        merged = profile.setdefault(key, {})
+        for identity, value in current.get(key, {}).items():
+            if identity in merged and merged[identity] != value:
+                raise ValueError("Matrix collections contain conflicting reference contracts: " + key)
+            merged[identity] = copy.deepcopy(value)
+    exclusions = set(profile.get("factual_quality_exclusions", []))
+    exclusions.update(current.get("factual_quality_exclusions", []))
+    profile["factual_quality_exclusions"] = sorted(exclusions)
+    decisions = {item["case_id"]: item for item in profile.get("reference_adjudications", [])}
+    for item in current.get("reference_adjudications", []):
+        cid = item["case_id"]
+        if cid in decisions and decisions[cid] != item:
+            raise ValueError("Matrix collections contain conflicting reference adjudications")
+        decisions[cid] = copy.deepcopy(item)
+    profile["reference_adjudications"] = [decisions[cid] for cid in sorted(decisions)]
+
+
+def _load_method_runs(inputs, labels, method_ids, *, source_methods=None, source_cases=None):
+    """Add disjoint providers on identical frozen tasks without repeating calls."""
+    profile = None
+    rows, receipts, paths, batches = [], [], {}, []
+    evidence_paths, method_names = set(), set()
+    matrix = source_methods is not None
+    case_definitions, method_definitions, selected_cells = {}, {}, set()
+    for name, path in inputs:
+        if not name.replace("-", "").isalnum():
+            raise ValueError("Unsafe cohort name")
+        current, calls, receipt = load_run(path)
+        _check_collection_provenance(receipt, receipts)
+        execution_methods = current['methods']
+        if matrix:
+            available = {m['id']:m for m in current['methods']}
+            chosen = source_methods[name]
+            if not set(chosen).issubset(available):
+                raise ValueError('Selected methods are unavailable in source: ' + name)
+            current = copy.deepcopy(current)
+            current['methods'] = [available[mid] for mid in chosen]
+            calls = [r for r in calls if r['method'] in chosen]
+            if source_cases is not None:
+                selected_cases = set(source_cases[name])
+                if not selected_cases.issubset({case['id'] for case in current['cases']}):
+                    raise ValueError("Selected cases are unavailable in source: " + name)
+                current['cases'] = [case for case in current['cases'] if case['id'] in selected_cases]
+                calls = [row for row in calls if row['case_id'] in selected_cases]
+                current['factual_quality_exclusions'] = [
+                    cid for cid in current.get('factual_quality_exclusions', []) if cid in selected_cases]
+                current['reference_adjudications'] = [
+                    item for item in current.get('reference_adjudications', [])
+                    if item['case_id'] in selected_cases]
+        elif current.get("execution_policy") or current["protocol"]["concurrency"] != 1:
+            raise ValueError("Method composition requires serial collections")
+        ids = {m["id"] for m in current["methods"]}
+        if not matrix and method_names & ids:
+            raise ValueError("Overlapping method collections")
+        method_names.update(ids)
+        if profile is None:
+            profile = copy.deepcopy(current)
+            profile["methods"] = []
+        elif not matrix:
+            def controls(p):
+                return {**{k: v for k, v in _execution_contract(p).items() if k not in {"as_of", "order"}},
+                        "normalize_top_k": p.get("normalize_top_k"),
+                        "result_url_resolution": p.get("result_url_resolution")}
+            if current["cases"] != profile["cases"] or controls(current["protocol"]) != controls(profile["protocol"]):
+                raise ValueError("Method collections require identical tasks and measurement controls")
+            for key in ("reference_checks", "reference_artifacts", "factual_quality_exclusions", "reference_adjudications"):
+                if current.get(key) != profile.get(key):
+                    raise ValueError("Method collection reference contracts differ")
+        if matrix:
+            _merge_matrix_references(profile, current)
+            if any(current['protocol'][k] != profile['protocol'][k] for k in ('top_k','rounds','score_round')):
+                raise ValueError('Matrix collections require the same cutoff and score rounds')
+            for case in current['cases']:
+                if case['id'] in case_definitions and case_definitions[case['id']] != case:
+                    raise ValueError('Matrix collections contain conflicting task definitions')
+                case_definitions.setdefault(case['id'],copy.deepcopy(case))
+            for method in current['methods']:
+                if method['id'] in method_definitions and method_definitions[method['id']] != method:
+                    raise ValueError('Matrix collections contain conflicting method definitions')
+                method_definitions.setdefault(method['id'],copy.deepcopy(method))
+            cells = {(r['case_id'],r['method'],r['round']) for r in calls}
+            if selected_cells & cells:
+                raise ValueError('Overlapping method-by-task cells')
+            selected_cells.update(cells)
+        native_evidence = {e["path"] for r in calls for e in [r["evidence"], *[a["evidence"] for a in r.get("attempts", [])]]}
+        if native_evidence & evidence_paths:
+            raise ValueError("Overlapping method evidence paths")
+        evidence_paths.update(native_evidence)
+        profile["methods"].extend(copy.deepcopy(current["methods"]))
+        rows.extend(dict(r, cohort="primary", collection=name) for r in calls)
+        receipts.append({"cohort": name, "profile_sha256": bytes_sha256((path / "profile.json").read_bytes()),
+                         "results_sha256": bytes_sha256((path / "results.jsonl").read_bytes()),
+                         "receipt_sha256": bytes_sha256((path / "receipt.json").read_bytes()), "collection_receipt": receipt})
+        batches.append({"id": name, "methods": sorted(ids), "as_of": current["protocol"].get("as_of"),
+                        "order": current["protocol"].get("order", "complete provider batches"),
+                        "started_at": min((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("started_at")),
+                        "ended_at": max((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("ended_at"))})
+        if matrix:
+            receipts[-1]['selected_methods'] = list(source_methods[name])
+            if source_cases is not None:
+                receipts[-1]['selected_cases'] = list(source_cases[name])
+            batches[-1].update(protocol=copy.deepcopy(current['protocol']),
+                               execution_policy=copy.deepcopy(current.get('execution_policy')),
+                               execution_methods=copy.deepcopy(execution_methods))
+        paths[name] = path
+    if matrix:
+        profile['cases'] = list(case_definitions.values())
+        profile['methods'] = list(method_definitions.values())
+        profile['collection_composition'] = 'matrix'
+        # This is a read-only scoring view; source batches retain their admission contracts.
+        profile.pop('execution_policy',None)
+        profile.pop('collection_methods',None)
+        profile['protocol']['concurrency'] = 1
+        profile['protocol']['order'] = 'complete provider batches'
+    if method_ids is not None:
+        available = {m["id"]: m for m in profile["methods"]}
+        if not method_ids or not set(method_ids).issubset(available):
+            raise ValueError("Collections do not contain every comparison participant")
+        profile["methods"] = [available[mid] for mid in method_ids]
+        rows = [r for r in rows if r["method"] in method_ids]
+    if matrix:
+        expected = {(c['id'],m['id'],round_id) for c in profile['cases'] for m in profile['methods']
+                    for round_id in range(profile['protocol']['rounds'])}
+        actual = {(r['case_id'],r['method'],r['round']) for r in rows}
+        if actual != expected or len(actual) != len(rows):
+            raise ValueError('Matrix composition requires the complete method-by-task population')
+    profile["cases"] = [dict(c, cohort="primary") for c in profile["cases"]]
+    profile["method_collections"] = batches
+    profile["report_cohorts"] = [{"id": "primary", "label": labels.get("primary", {"en": "Shared tasks", "zh": zh_text("Shared tasks")}),
+                                  "case_ids": [c["id"] for c in profile["cases"]], "protocol": copy.deepcopy(profile["protocol"])}]
+    profile["protocol"].pop("comparison", None)
+    validate_profile(profile)
+    return profile, rows, {"certified": all(r["collection_receipt"].get("certified") for r in receipts),
+                           "synthetic": all(r["collection_receipt"].get("synthetic") for r in receipts),
+                           "complete": True, "call_count": len(rows), "separate_collections": receipts}, paths
+
+
 def _language_notice(output, languages):
     if languages == ["zh"] and (output / "en").exists():
         for directory in sorted((output / "en").rglob("*"), key=lambda p: len(p.parts), reverse=True):
@@ -446,6 +639,9 @@ class ReportInputs:
     all_call_summary: dict[str, Any]
     payloads: dict[str, Any]
     diagnostics: Any
+    level_views: dict[str, Any] | None = None
+    level_files: dict[str, bytes] | None = None
+    level_binding: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -496,7 +692,10 @@ def _load_collection(
         if not source:
             raise ValueError("Additional cohorts require a primary source")
         profile, rows, receipt, sources = load_report_runs(
-            source, cohorts, authored.get("cohort_labels", {}), authored.get("comparison_methods")
+            source, cohorts, authored.get("cohort_labels", {}), authored.get("comparison_methods"),
+            composition=authored.get("collection_composition", "cases"),
+            source_methods=authored.get('collection_methods'),
+            source_cases=authored.get('collection_cases')
         )
     elif source:
         profile, rows, receipt = load_run(source)
@@ -533,6 +732,31 @@ def _apply_revisions(
     return profile, rows, scoring_revision, assessment_revision
 
 
+def relevance_scope(profile, rows):
+    """Keep historical judgments on their declared configurations only."""
+    ids = profile.get("relevance_methods")
+    if ids is None:
+        return profile, rows
+    available = {m["id"]: m for m in profile["methods"]}
+    if not isinstance(ids, list) or not ids or len(ids) != len(set(ids)) or not set(ids).issubset(available):
+        raise ValueError("Invalid relevance method scope")
+    return dict(profile, methods=[available[mid] for mid in ids]), [r for r in rows if r["method"] in ids]
+
+
+def score_relevance(profile, rows, plan, labels):
+    scoped, selected = relevance_scope(profile, rows)
+    return benchmark_relevance_score(scoped, selected, plan, labels)
+
+
+def relevance_scope_notice(profile, zh):
+    if not profile.get("relevance_methods"):
+        return ""
+    labels = {m["id"]: m["label"] for m in profile["methods"]}
+    return ('<p data-relevance-method-scope>' + report_text(
+        "Relevance labels cover {methods}. Other configurations remain unscored; labels are not transferred between provider responses.",
+        zh, methods=", ".join(labels[mid] for mid in profile["relevance_methods"])) + '</p>')
+
+
 def _load_assessment(
     output: Path,
     review: Path | None,
@@ -551,10 +775,11 @@ def _load_assessment(
         review_percent = coverage_percent(review_data)
         write_json(output / "independent-review.json", review_data)
     if relevance_data:
+        relevance_profile, relevance_rows = relevance_scope(profile, selected)
         if "plan" not in relevance_data:
-            relevance_data = import_annotations(profile, selected, relevance_data)
-        verify_provenance(profile, selected, relevance_data, authority=authority)
-        verify_protocol(profile, relevance_data, authored.get("relevance_revision"), authority=authority)
+            relevance_data = import_annotations(relevance_profile, relevance_rows, relevance_data)
+        verify_provenance(relevance_profile, relevance_rows, relevance_data, authority=authority)
+        verify_protocol(relevance_profile, relevance_data, authored.get("relevance_revision"), authority=authority)
     return review_data, review_percent, relevance_data
 
 
@@ -587,6 +812,9 @@ def _load_report_inputs(
     content_bytes, authored, reading_sections = _read_authored_content(content)
     authority = _load_assessment_authority(profile_path)
     profile, rows, receipt, sources = _load_collection(profile_path, source, cohorts, authored)
+    if "relevance_methods" in authored:
+        profile = dict(profile, relevance_methods=authored["relevance_methods"])
+        relevance_scope(profile, rows)
     collection_profile = profile
     rows, public_files, redactions, billing_corrections = public_calls(profile, rows, source, sources)
     profile, rows, scoring_revision, assessment_revision = _apply_revisions(correction, authored, authority, profile, rows, public_files)
@@ -604,6 +832,18 @@ def _load_report_inputs(
         score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
         if relevance_data else None
     )
+    level_views, level_files, level_binding = None, {}, None
+    if authored.get('output_level_assessments'):
+        from harness.web_search.output_levels import load_assessed_levels
+
+        if relevance or review or authored.get('presentation') != 'comparison-report':
+            raise ValueError('Layered reports require comparison presentation and per-level assessments')
+        binding = authored['output_level_assessments']
+        verify_bundle(content.parent, [binding])
+        path = content.parent/binding['path']
+        level_views, files = load_assessed_levels(path, profile, selected, authority=authority, timing_rows=rows)
+        level_files = {'level-assessments/' + name: raw for name, raw in files.items()}
+        level_binding = dict(path='level-assessments/' + path.name, sha256=bytes_sha256(path.read_bytes()))
     overview_methods = scoped_overview_methods(profile, authored)
     overview_rows = scoped_overview_rows(profile, rows, authored)
     overview_summary = aggregate(scoring_rows(profile, overview_rows))
@@ -638,13 +878,18 @@ def _load_report_inputs(
         overview_summary=overview_summary,
         all_call_summary=all_call_summary,
         payloads=payloads,
-        diagnostics=diagnostics,
+        diagnostics=diagnostics, level_views=level_views, level_files=level_files, level_binding=level_binding,
     )
 
 
 def _write_assessment_files(inputs: ReportInputs, bundle: list[dict[str, Any]]) -> None:
     output, authority, review_data, relevance_data = inputs.output, inputs.authority, inputs.review_data, inputs.relevance_data
     profile, selected = inputs.profile, inputs.selected
+    for name, raw in (inputs.level_files or {}).items():
+        path = output/name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+        bundle.append(dict(path=name, sha256=bytes_sha256(raw)))
     if authority:
         write_json(output / "assessment-authority.json", authority)
         bundle.append({"path": "assessment-authority.json", "sha256": bytes_sha256((output / "assessment-authority.json").read_bytes())})
@@ -652,8 +897,12 @@ def _write_assessment_files(inputs: ReportInputs, bundle: list[dict[str, Any]]) 
         bundle.append({"path": "independent-review.json", "sha256": bytes_sha256((output / "independent-review.json").read_bytes())})
     factual_cases = {c["id"]: c for c in profile["cases"] if "reference_answer" in c}
     if factual_cases:
-        sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"], cutoff=profile["protocol"]["top_k"]) for r in selected if r["case_id"] in factual_cases}
-        write_json(output / "factual-sensitivity.json", {"schema": "factual-sensitivity/1", "timing": "post-hoc diagnostic; no recollection or rank compaction", "rule": CONTAMINATION_RULE, "results": sensitivity})
+        rules = {c.get('factual_contamination_rule', CONTAMINATION_RULE) for c in factual_cases.values()}
+        if len(rules) != 1:
+            raise ValueError('Factual comparisons require one contamination rule')
+        rule = next(iter(rules))
+        sensitivity = {r["id"]: factual_sensitivity(factual_cases[r["case_id"]], r["results"], rule=rule, cutoff=profile["protocol"]["top_k"]) for r in selected if r["case_id"] in factual_cases}
+        write_json(output / "factual-sensitivity.json", {"schema": "factual-sensitivity/1", "timing": "post-hoc diagnostic; no recollection or rank compaction", "rule": rule, "results": sensitivity})
         bundle.append({"path": "factual-sensitivity.json", "sha256": bytes_sha256((output / "factual-sensitivity.json").read_bytes())})
     if relevance_data:
         target = output / "relevance-judgments.json"
@@ -729,7 +978,9 @@ def _report_edition(inputs: ReportInputs, lang: str, routes: list[str]) -> Repor
         if rows
         else t("Evaluation design preview. No API performance ranking.")
     )
-    if rows and len(profile["methods"]) == 1:
+    if inputs.level_views:
+        state = t('Measured API evaluation with isolated output levels and frozen judgments.')
+    if rows and len(profile["methods"]) == 1 and not inputs.level_views:
         state = t("Single-provider preflight; no cross-provider comparison.")
     if receipt.get("synthetic"):
         state = t("Synthetic fixture — not API measurements.")
@@ -740,6 +991,18 @@ def _report_edition(inputs: ReportInputs, lang: str, routes: list[str]) -> Repor
     return ReportEdition(lang=lang, zh=zh, prefix=prefix, t=t, nav=nav, state=state, routes=routes)
 
 
+def _resolve_owned_links(document, route, site_prefix, root_paths):
+    """Use one path rule for rendered pages and their expected fragments."""
+    for node in document.select("[href],[data-evidence],[data-detail],img[src]"):
+        if node.name == "base":
+            continue
+        for attr in ("href", "data-evidence", "data-detail", "src"):
+            value = node.get(attr)
+            if value and not value.startswith(("https://", "http://", "#")):
+                node[attr] = posixpath.normpath(posixpath.join(
+                    site_prefix, "" if value in root_paths else posixpath.dirname(route), value))
+
+
 def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title: str, body: str) -> None:
     output, languages, site_prefix, authored = inputs.output, inputs.languages, inputs.site_prefix, inputs.authored
     receipt, review_data, review_percent, relevance_data = inputs.receipt, inputs.review_data, inputs.review_percent, inputs.relevance_data
@@ -748,7 +1011,7 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
     path.parent.mkdir(parents=True, exist_ok=True)
     back = "../" if route.startswith("details/") else ""
     depth = "../" * (len(Path(prefix + route).parts) - 1 + bool(site_prefix))
-    navigation = "".join(f'<a href="{back}{p}">{label}</a>' for p, label in nav)
+    navigation = "".join(f'<a href="{back}{p}"' + (' aria-current="page"' if p == route else '') + f'>{label}</a>' for p, label in nav)
     if len(languages) > 1:
         other = "zh" if lang == "en" else "en"
         otherprefix = "" if other == "zh" else other + "/"
@@ -769,24 +1032,12 @@ def _write_page(inputs: ReportInputs, edition: ReportEdition, route: str, title:
     )
     # Artifact Site injects a root base on every nested route. Local pages use
     # the matching base above; every artifact-owned link names the root path.
-    for node in document.select("[href],[data-evidence],[data-detail]"):
-        if node.name == "base":
-            continue
-        for attr in ("href", "data-evidence", "data-detail"):
-            value = node.get(attr)
-            if value and not value.startswith(("https://", "http://", "#")):
-                asset_paths = {a["path"] for a in authored.get("assets", [])}
-                if relevance_data:
-                    asset_paths.add("relevance-judgments.json")
-                if review_data:
-                    asset_paths.add("independent-review.json")
-                node[attr] = posixpath.normpath(
-                    posixpath.join(
-                        site_prefix,
-                        "" if value in asset_paths else posixpath.dirname(prefix + route),
-                        value,
-                    )
-                )
+    asset_paths = {a["path"] for a in authored.get("assets", [])}
+    if relevance_data:
+        asset_paths.add("relevance-judgments.json")
+    if review_data:
+        asset_paths.add("independent-review.json")
+    _resolve_owned_links(document, prefix + route, site_prefix, asset_paths | set(inputs.public_files))
     if authored.get("presentation") == "comparison-report":
         footer = document.new_tag("footer")
         for target, label in [("research.html", t("Method and FAQ")), ("review.html", t("Review evidence"))]:
@@ -855,7 +1106,7 @@ def _core_metrics_table(inputs: ReportInputs, edition: ReportEdition) -> tuple[l
             if i == 5 and value is not None:
                 label = t("{value:.1f}% ({n} queries)", value=value * 100, n=summary[m['id']]['metrics'][hit_key]['n'])
             win = i in winners and value == winners[i]
-            td.append(numeric_cell(label, value if i else None, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
+            td.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, ("method", "nonempty", "mean-ms", "p50-ms", "p95-ms", "target-hit", "price-per-1000")[i], directions.get(i, "neutral"), win))
         core.append("<tr>" + "".join(td) + "</tr>")
     return headers, core
 
@@ -982,6 +1233,12 @@ def _comparison_home_body(inputs: ReportInputs, edition: ReportEdition) -> str:
     profile, selected, authored, relevance_scores = inputs.profile, inputs.selected, inputs.authored, inputs.relevance_scores
     lang, zh = edition.lang, edition.zh
     body = authored_sections(authored, "lead", lang, rows=selected)
+    if inputs.level_views:
+        from harness.web_search.comparison import render_level_summary, render_level_tabs
+
+        body += render_level_tabs(inputs.level_views, zh)
+        body += ''.join(render_level_summary(view, zh, content=authored) for view in inputs.level_views.values())
+        return body + authored_sections(authored, 'summary', lang, rows=selected)
     body += executive_table(profile, selected, authored, relevance_scores, zh)
     body += discovery_comparison(profile, selected, authored, zh)
     body += authored_sections(authored, "summary", lang, rows=selected)
@@ -995,7 +1252,20 @@ def _write_comparison_chapters(inputs: ReportInputs, edition: ReportEdition) -> 
     page = partial(_write_page, inputs, edition)
     for chapter_key, chapter_title in [("capabilities", t("API outputs")), ("quality", t("Retrieval quality"))]:
         chapter_body = authored_sections(authored, chapter_key + "-lead", lang, rows=selected)
-        if chapter_key == "capabilities":
+        if inputs.level_views:
+            from harness.web_search.comparison import (
+                render_level_capabilities,
+                render_level_findings,
+                render_level_tabs,
+            )
+
+            if chapter_key == 'quality':
+                chapter_body += authored_sections(authored, 'quality-definitions', lang, rows=selected)
+                chapter_body += render_level_tabs(inputs.level_views, zh)
+            chapter_body += (render_level_capabilities(inputs.level_views, zh) if chapter_key == 'capabilities'
+                             else ''.join(render_level_findings(view, zh) for view in inputs.level_views.values()))
+            chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
+        elif chapter_key == "capabilities":
             chapter_body += capability_map(profile, selected, zh)
             chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
             if authored.get("interface_example_case_id"):
@@ -1013,9 +1283,11 @@ def _write_home_page(inputs: ReportInputs, edition: ReportEdition) -> None:
     review_data, review_percent = inputs.review_data, inputs.review_percent
     lang, zh, t = edition.lang, edition.zh, edition.t
     page = partial(_write_page, inputs, edition)
-    headers, core = _core_metrics_table(inputs, edition)
-    body = _default_home_body(inputs, edition, headers, core)
-    if authored.get("reading_model"):
+    headers, core = ([], []) if inputs.level_views else _core_metrics_table(inputs, edition)
+    body = '' if inputs.level_views else _default_home_body(inputs, edition, headers, core)
+    if inputs.relevance_scores and not authored.get('reading_model') and authored.get('presentation') != 'comparison-report':
+        body += relevance_panel(profile, inputs.relevance_scores, inputs.relevance_data, zh)
+    if authored.get("reading_model") and not inputs.level_views:
         body = _reading_model_home_body(inputs, edition, headers, core)
     if not any(c["key"] == "speed" for c in reading_sections) and authored.get("presentation") != "comparison-report":
         body += mode_panel(profile, selected, zh)
@@ -1024,6 +1296,8 @@ def _write_home_page(inputs: ReportInputs, edition: ReportEdition) -> None:
         _write_comparison_chapters(inputs, edition)
     if review_data and authored.get("presentation") != "comparison-report":
         body += f'<p data-review-coverage data-review-percent="{review_percent}" data-reviewed-queries="{review_data["case_reviewed"]}/{review_data["case_total"]}" data-reviewed-outputs="{review_data["output_reviewed"]}/{review_data["output_total"]}"><a href="review.html">{review_percent}% · ' + t("Reviewed {case_reviewed}/{case_total} queries and {output_reviewed}/{output_total} outputs", case_reviewed=review_data['case_reviewed'], case_total=review_data['case_total'], output_reviewed=review_data['output_reviewed'], output_total=review_data['output_total']) + '</a></p>'
+    if profile.get("method_collections"):
+        body = method_collection_notice(zh) + body
     page(
         "index.html",
         authored.get("title", {}).get(lang)
@@ -1082,7 +1356,7 @@ def _write_dataset_page(inputs: ReportInputs, edition: ReportEdition) -> None:
     lang, zh, prefix, t = edition.lang, edition.zh, edition.prefix, edition.t
     page = partial(_write_page, inputs, edition)
     dataset_profile, dataset_content = quality_dataset(profile, authored)
-    ds = [_dataset_row(profile, c, edition) for c in dataset_profile["cases"]]
+    ds = [_dataset_row(dataset_profile, c, edition) for c in dataset_profile["cases"]]
     page(
         "dataset.html",
         t("Tests and sources"),
@@ -1297,7 +1571,12 @@ def _result_detail(
         + esc(json.dumps(r.get("request", {}), ensure_ascii=False, indent=2))
         + "</pre>"
     )
-    detail += _result_metrics_detail(r, c, _known_page_metric(profile), cutoff, t)
+    if inputs.level_views:
+        from harness.web_search.comparison import render_level_detail
+
+        detail += render_level_detail(inputs.level_views, r, zh)
+    else:
+        detail += _result_metrics_detail(r, c, _known_page_metric(profile), cutoff, t)
     detail += (
         "<h2>"
         + t("Exact error")
@@ -1311,11 +1590,15 @@ def _result_detail(
     detail += f'''<button data-evidence="{ev}">{t("Open response")}</button> <a href="{ev}">JSON</a>'''
     repeats = [x for x in rows if x["case_id"] == cid and x["method"] == r["method"]]
     detail += _physical_calls_detail(repeats, edition)
-    peers = [x for x in selected if x["case_id"] == cid]
-    detail += same_task(peers, profile, zh)
-    detail += "<h2>" + t("Returned results") + "</h2>"
-    for item_index, item in enumerate(r["results"]):
-        detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
+    if not inputs.level_views:
+        peers = [x for x in selected if x["case_id"] == cid]
+        detail += same_task(peers, profile, zh)
+        detail += "<h2>" + t("Returned results") + "</h2>"
+        for item_index, item in enumerate(r["results"]):
+            if item.get('invalid_slot'):
+                detail += '<article class="specimen"><p>' + str(item_index + 1) + '. ' + t('Invalid result slot') + '</p></article>'
+                continue
+            detail += f'''<article class="specimen"><a href="{esc(item['url'])}">{esc(item['title'])}</a><p>{esc(item['snippet'])}</p><button data-evidence="{ev}" data-result="{item_index}">{t("Summary and content")}</button></article>'''
     return _wrap_result_detail(detail, status, t)
 
 
@@ -1365,6 +1648,12 @@ def _write_results_page(inputs: ReportInputs, edition: ReportEdition, inventory:
     profile, rows, selected, authored, relevance_data, site_prefix = inputs.profile, inputs.rows, inputs.selected, inputs.authored, inputs.relevance_data, inputs.site_prefix
     zh, prefix, t = edition.zh, edition.prefix, edition.t
     page = partial(_write_page, inputs, edition)
+    if inputs.level_views:
+        from harness.web_search.comparison import render_level_results
+
+        body = render_level_results(inputs.level_views, zh, detail_link=lambda row: posixpath.join(site_prefix, prefix, 'details', row['id'] + '.html'))
+        page('results.html', t('Query comparison'), body)
+        return
     options = [
         ("fail", t("Target miss / error")),
         ("pass", t("Declared evidence found")),
@@ -1512,6 +1801,7 @@ def _write_manifest(
         output / "manifest.json",
         dict(
             schema="web-search-report/1",
+            **({'level_assessments': inputs.level_binding} if inputs.level_binding else {}),
             template="web-search/1",
             webstone=build_version,
             languages=languages,
@@ -1549,7 +1839,7 @@ def _write_manifest(
             authored=authored if content_bytes is not None else None,
             reading_sections=reading_sections,
             renderer_sha256=bytes_sha256(b"\0".join(
-                path.read_bytes() for path in (Path(__file__), *sorted(ASSETS.glob("*.*")))
+                path.read_bytes() for path in (*sorted(Path(__file__).parent.glob("*.py")), Path(__file__).with_name("messages.json"), *sorted(ASSETS.glob("*.*")))
             )),
         ),
     )
@@ -1615,6 +1905,7 @@ def _check_english_separators(output, manifest):
 def check(output, *, return_data=False, evidence_only=False):
     authority = report_authority(output)
     manifest = json.loads((output / "manifest.json").read_text(encoding="utf-8"))
+    validate_content_revisions(manifest)
     if not evidence_only:
         check_build_version(output, manifest)
     if manifest.get("assessment_revision"):
@@ -1668,7 +1959,7 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request"))
+                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), assessment_protocol(manifest["profile"], row, manifest.get('assessment_revision')), row.get("request"))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1679,6 +1970,14 @@ def check(output, *, return_data=False, evidence_only=False):
             ):
                 raise ValueError("Result receipt disagrees with raw response")
             row["results"] = results
+    level_views = None
+    if manifest.get('level_assessments'):
+        from harness.web_search.output_levels import load_assessed_levels
+
+        verify_bundle(output, [manifest['level_assessments']])
+        level_views, _ = load_assessed_levels(output/manifest['level_assessments']['path'],
+                                             manifest['profile'], scoring_rows(manifest['profile'], manifest['rows']),
+                                             authority=authority, timing_rows=manifest['rows'])
     if manifest.get("independent_review_sha256"):
         review_path = output / "independent-review.json"
         if bytes_sha256(review_path.read_bytes()) != manifest["independent_review_sha256"]:
@@ -1738,6 +2037,12 @@ def check(output, *, return_data=False, evidence_only=False):
             raise ValueError("Result belongs to the wrong cohort")
     for lang in (() if evidence_only else manifest["languages"]):
         prefix = "" if lang == "zh" else lang + "/"
+        if manifest["profile"].get("method_collections"):
+            home = BeautifulSoup((output / (prefix + "index.html")).read_text(encoding="utf-8"), "html.parser")
+            notice = home.select_one("[data-method-collection-notice]")
+            expected_notice = BeautifulSoup(method_collection_notice(lang == "zh"), "html.parser").get_text()
+            if notice is None or notice.get_text() != expected_notice:
+                raise ValueError("Method collection window disclosure is missing or changed")
         soup = BeautifulSoup((output / (prefix + "research.html")).read_text(encoding="utf-8"), "html.parser")
         expected = BeautifulSoup(
             fairness_table(manifest["profile"], manifest["rows"], lang == "zh"), "html.parser"
@@ -1750,7 +2055,7 @@ def check(output, *, return_data=False, evidence_only=False):
         actual_execution = soup.select("[data-execution-settings]")
         if len(actual_execution) != 1 or actual_execution[0].get_text() != expected_execution.get_text():
             raise ValueError("Execution settings disagree with the frozen collection policy")
-        if groups:
+        if groups or level_views:
             if (manifest.get("authored") or {}).get("presentation") != "comparison-report":
                 summary_route = (
                     "research.html"
@@ -1767,7 +2072,9 @@ def check(output, *, return_data=False, evidence_only=False):
             for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
                 inventory = BeautifulSoup((output / (prefix + route)).read_text(encoding="utf-8"), "html.parser")
                 options = inventory.select("[data-cohort-filter] option")
-                if {o["value"] for o in options} != {"all", *(g["id"] for g in groups)}:
+                expected_groups = (quality_dataset(manifest['profile'], manifest.get('authored') or {})[0].get('report_cohorts', [])
+                                   if route == 'dataset.html' else groups)
+                if {o["value"] for o in options} != {"all", *(g["id"] for g in expected_groups)}:
                     raise ValueError("Incomplete cohort filter")
         for route in (("dataset.html",) if (manifest.get("authored") or {}).get("presentation") == "comparison-report" else ("dataset.html", "results.html")):
             inventory = BeautifulSoup((output / (prefix + route)).read_text(encoding="utf-8"), "html.parser")
@@ -1805,15 +2112,20 @@ def check(output, *, return_data=False, evidence_only=False):
     expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:
+        method = next(m for m in manifest['profile']['methods'] if m['id'] == row['method'])
+        validate_native_answer(row, payloads.get(row['id'], {}), method)
         if row["http_status"] == 200 and not row["error"]:
-            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request")) != row["results"]:
+            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), assessment_protocol(manifest["profile"], row, manifest.get('assessment_revision')), row.get("request")) != row["results"]:
                 raise ValueError("Published results disagree with raw response")
         if row["metrics"] != evaluate(cases[row["case_id"]], row["results"]):
             raise ValueError("Published scores disagree with the declared rules")
     if relevance_data:
         selected = scoring_rows(manifest["profile"], manifest["rows"])
-        verify_provenance(manifest["profile"], selected, relevance_data, authority=authority)
-        verify_protocol(manifest["profile"], relevance_data, (manifest.get("authored") or {}).get("relevance_revision"), authority=authority)
+        if manifest["profile"].get("relevance_methods") != (manifest.get("authored") or {}).get("relevance_methods"):
+            raise ValueError("Relevance method scope differs from authored content")
+        relevance_profile, relevance_rows = relevance_scope(manifest["profile"], selected)
+        verify_provenance(relevance_profile, relevance_rows, relevance_data, authority=authority)
+        verify_protocol(relevance_profile, relevance_data, (manifest.get("authored") or {}).get("relevance_revision"), authority=authority)
     if manifest.get("scoring_revision"):
         revision = manifest["scoring_revision"]
         collected = [
@@ -1868,10 +2180,15 @@ def check(output, *, return_data=False, evidence_only=False):
         return True
     for route in manifest["routes"]:
         path = output / route
-        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        soup = BeautifulSoup(path.read_bytes().decode("utf-8"), "html.parser")
         check_presentation(soup)
         authored = manifest.get("authored") or {}
-        if authored.get("reading_model") and "details/" not in route:
+        if level_views and route.endswith('dataset.html'):
+            dataset_profile, dataset_content = quality_dataset(manifest['profile'], authored)
+            expected_dataset = BeautifulSoup(dataset_context(dataset_profile, dataset_content, soup.html['lang'] == 'zh'), 'html.parser')
+            if str(soup.select_one('[data-dataset-context]')) != str(expected_dataset.select_one('[data-dataset-context]')):
+                raise ValueError('Dataset definitions differ from the two scored benchmarks')
+        if "details/" not in route:
             lang = soup.html["lang"]
             name = Path(route).name
             key = {
@@ -1883,6 +2200,7 @@ def check(output, *, return_data=False, evidence_only=False):
                 "quality.html": "quality",
                 "cost.html": "cost",
                 "review.html": "review",
+                "dataset.html": "dataset",
             }.get(name)
             if key:
                 score_rows = scoring_rows(manifest["profile"], manifest["rows"])
@@ -1890,8 +2208,8 @@ def check(output, *, return_data=False, evidence_only=False):
                     pages = {"index.html": ["lead", "summary"], "quality.html": ["quality-lead", "quality-definitions", "quality"], "capabilities.html": ["capabilities-lead", "capabilities"], "performance.html": ["performance", "cost"]}.get(name, [key])
                     expected = ''.join(authored_sections(authored, section, lang, rows=score_rows) for section in pages)
                 else:
-                    expected = (authored_sections(authored, "lead", lang, rows=score_rows) if name == "index.html" else "") + (authored_sections(authored, "interpretation-lead", lang, rows=score_rows) if name == "interpretation.html" else "") + authored_sections(authored, key, lang, rows=score_rows)
-                if name == "index.html" and authored.get("presentation") != "comparison-report":
+                    expected = (authored_sections(authored, "lead", lang, rows=score_rows) if name == "index.html" and authored.get("reading_model") else "") + (authored_sections(authored, "interpretation-lead", lang, rows=score_rows) if name == "interpretation.html" else "") + authored_sections(authored, key, lang, rows=score_rows)
+                if name == "index.html" and authored.get("reading_model") and authored.get("presentation") != "comparison-report":
                     chapters = manifest["reading_sections"]
                     if [s["data-reading"] for s in soup.select("[data-reading]")] != [
                         c["key"] for c in chapters
@@ -1904,6 +2222,12 @@ def check(output, *, return_data=False, evidence_only=False):
                         for c in chapters
                     )
                 expected_soup = BeautifulSoup(expected, "html.parser")
+                for image in expected_soup.select("[data-authored-figure] img"):
+                    image["src"] = posixpath.join(manifest.get("site_prefix", ""), image["src"])
+                if [str(node) for node in soup.select("[data-authored-figure]")] != [
+                    str(node) for node in expected_soup.select("[data-authored-figure]")
+                ]:
+                    raise ValueError("Reader figure differs from its bound content")
                 if [s.get_text() for s in soup.select("[data-authored]")] != [
                     s.get_text() for s in expected_soup.select("[data-authored]")
                 ]:
@@ -1925,6 +2249,8 @@ def check(output, *, return_data=False, evidence_only=False):
                 if str(soup.select_one('[data-benchmark-operations]')) != str(expected_operations.select_one('[data-benchmark-operations]')):
                     raise ValueError("Benchmark timing/cost summary differs from physical calls")
                 expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), 'html.parser')
+                _resolve_owned_links(expected_cost, route, manifest.get("site_prefix", ""),
+                                     {a["path"] for a in authored.get("assets", [])})
                 if str(soup.select_one('[data-cost-budget]')) != str(expected_cost.select_one('[data-cost-budget]')):
                     raise ValueError("Cost budget differs from physical calls")
             trs = soup.select_one("[data-timing-decomposition]").select("table")[0].select("tbody tr")
@@ -1950,13 +2276,13 @@ def check(output, *, return_data=False, evidence_only=False):
                 specimen = soup.select_one("[data-timing-specimen]")
                 if specimen is None or specimen["data-timing-specimen"] != chosen["id"]:
                     raise ValueError("Missing or wrong timing specimen")
-        if route.endswith("quality.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
+        if route.endswith("quality.html") and not level_views and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
             score_rows = scoring_rows(manifest["profile"], manifest["rows"])
             for selector, expected in (("[data-factual]", factual_panel(manifest["profile"], score_rows, soup.html["lang"] == "zh", compact=True)),):
                 expected_node = BeautifulSoup(expected, "html.parser").select_one(selector)
                 if str(soup.select_one(selector)) != str(expected_node):
                     raise ValueError("Quality population differs from measured inputs")
-        if route.endswith("results.html") and authored.get("presentation") == "comparison-report":
+        if route.endswith("results.html") and not level_views and authored.get("presentation") == "comparison-report":
             selected = scoring_rows(manifest["profile"], manifest["rows"])
             lang = soup.html["lang"]
             prefix = "" if lang == manifest["primary_language"] else lang + "/"
@@ -1977,8 +2303,10 @@ def check(output, *, return_data=False, evidence_only=False):
             if str(soup.select_one("[data-factual]")) != str(expected_factual):
                 raise ValueError("Interpretation factual evidence differs from measured inputs")
         if route.endswith("cost.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
-            expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), "html.parser").select_one("[data-cost-budget]")
-            if str(soup.select_one("[data-cost-budget]")) != str(expected_cost):
+            expected_cost = BeautifulSoup(cost_panel(manifest["profile"], manifest["rows"], soup.html["lang"] == "zh", authored), "html.parser")
+            _resolve_owned_links(expected_cost, route, manifest.get("site_prefix", ""),
+                                 {a["path"] for a in authored.get("assets", [])})
+            if str(soup.select_one("[data-cost-budget]")) != str(expected_cost.select_one("[data-cost-budget]")):
                 raise ValueError("Cost budget differs from measured physical calls")
         if authored.get("presentation") == "comparison-report" and "details/" not in route:
             if Path(route).name in {"interpretation.html", "cost.html"}:
@@ -1987,13 +2315,54 @@ def check(output, *, return_data=False, evidence_only=False):
             if not any(target and target.endswith('quality.html') for target in nav_targets):
                 raise ValueError("Quality page is missing from reader navigation")
         comparison_home = route.endswith("index.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report"
-        if comparison_home:
+        if comparison_home and not level_views:
             expected = BeautifulSoup(executive_table(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
+            # Page assembly resolves edition-local links against the report root.
+            for link in expected.select('a[href^="quality.html"]'):
+                edition_prefix = '' if soup.html['lang'] == 'zh' else soup.html['lang']
+                link['href'] = posixpath.join(manifest.get('site_prefix', ''), edition_prefix, link['href'])
             if str(soup.select_one('[data-executive]')) != str(expected.select_one('[data-executive]')):
                 raise ValueError("Population summary differs from measured inputs")
             expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], scoring_rows(manifest["profile"], manifest["rows"]), manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
             if str(soup.select_one('[data-discovery]')) != str(expected_discovery):
                 raise ValueError("Discovery comparison differs from measured inputs")
+        if level_views and 'details/' in route:
+            from harness.web_search.comparison import render_level_detail
+
+            row_id = Path(route).stem
+            row = next(r for r in manifest['rows'] if r['id'] == row_id)
+            expected_detail = BeautifulSoup(render_level_detail(level_views, row, soup.html['lang'] == 'zh'), 'html.parser')
+            if [str(node) for node in soup.select('[data-detail-level]')] != [str(node) for node in expected_detail.select('[data-detail-level]')]:
+                raise ValueError('Per-level detail differs from scored fields and judgments: ' + route)
+        if level_views and route.endswith(('index.html', 'quality.html', 'capabilities.html', 'results.html')):
+            from harness.web_search.comparison import (
+                render_level_capabilities,
+                render_level_findings,
+                render_level_results,
+                render_level_summary,
+            )
+
+            zh = soup.html['lang'] == 'zh'
+            if route.endswith('index.html'):
+                selector = '[data-output-level]'
+                expected = ''.join(render_level_summary(view, zh, content=authored) for view in level_views.values())
+            elif route.endswith('quality.html'):
+                selector = '[data-level-findings]'
+                expected = ''.join(render_level_findings(view, zh) for view in level_views.values())
+            elif route.endswith('results.html'):
+                selector = '[data-level-results]'
+                prefix = '' if soup.html['lang'] == 'zh' else soup.html['lang'] + '/'
+                expected = render_level_results(level_views, zh, detail_link=lambda row, prefix=prefix: posixpath.join(manifest.get('site_prefix', ''), prefix, 'details', row['id'] + '.html'))
+            else:
+                selector = '[data-level-capabilities]'
+                expected = render_level_capabilities(level_views, zh)
+            expected_nodes = BeautifulSoup(expected, 'html.parser').select(selector)
+            if route.endswith('results.html'):
+                fragment = BeautifulSoup(expected, 'html.parser')
+                _resolve_owned_links(fragment, route, manifest.get('site_prefix', ''), set())
+                expected_nodes = fragment.select(selector)
+            if [str(node) for node in soup.select(selector)] != [str(node) for node in expected_nodes]:
+                raise ValueError('Output-level presentation differs from verified evidence')
         if route.endswith("index.html") and not comparison_home:
             for selector, renderer in (
                 ("[data-modes]", mode_panel),
@@ -2088,6 +2457,118 @@ def check(output, *, return_data=False, evidence_only=False):
     return True
 
 
+def validate_content_revisions(manifest):
+    """Verify paragraph-only revisions against their retained predecessor bytes."""
+    def require(condition):
+        if not condition:
+            raise ValueError('Invalid paragraph revision provenance')
+
+    current = manifest
+    while current.get('content_revisions'):
+        receipt = current['content_revisions'][-1]
+        try:
+            require(receipt['schema'] in ('web-search-paragraph-revision/1', 'web-search-paragraph-revision/2'))
+            producer = receipt['producer']
+            require(bool(re.fullmatch(r'[0-9a-f]{64}', producer['source_sha256'])))
+            require(bool(re.fullmatch(r'[0-9]+\.[0-9]+\.[0-9]+', producer['version'])))
+            require(producer['revision'] is None or bool(re.fullmatch(r'[0-9a-f]{40}', producer['revision'])))
+            require(type(producer['modified']) is bool)
+            raw = gzip.decompress(base64.b64decode(receipt['before_manifest_gzip_base64'], validate=True))
+            previous = json.loads(raw)
+            require(bytes_sha256(raw) == receipt['before_manifest_sha256'])
+            require(previous.get('content_sha256') == receipt['before_content_sha256'])
+            require(current.get('content_sha256') == receipt['content_sha256'])
+            require(bytes_sha256(receipt['content_utf8'].encode('utf-8')) == receipt['content_sha256'])
+            require(json.loads(receipt['content_utf8']) == current['authored'])
+            require(type(receipt['provider_calls']) is int and receipt['provider_calls'] == 0)
+            if receipt['schema'] == 'web-search-paragraph-revision/2':
+                require(len(current['content_revisions']) == 1)
+            else:
+                require(current['content_revisions'][:-1] == previous.get('content_revisions', []))
+            excluded = {'authored', 'content_sha256', 'content_revisions'}
+            require({k: v for k, v in current.items() if k not in excluded} == {
+                k: v for k, v in previous.items() if k not in excluded})
+            old, new = previous['authored'], current['authored']
+            require(dict(old, sections=[]) == dict(new, sections=[]))
+            changed = []
+            for index, (left, right) in enumerate(zip(old.get('sections', []), new.get('sections', []), strict=True)):
+                require(dict(left, paragraphs=[]) == dict(right, paragraphs=[]))
+                for a, b in zip(left.get('paragraphs', []), right.get('paragraphs', []), strict=True):
+                    require(a.keys() == b.keys() and all(isinstance(v, str) for v in b.values()))
+                if left.get('paragraphs') != right.get('paragraphs'):
+                    changed.append(index)
+            require(receipt['changed_sections'] == changed)
+        except (KeyError, TypeError, ValueError, OSError, EOFError) as error:
+            raise ValueError('Invalid paragraph revision provenance') from error
+        current = previous
+
+
+def revise_paragraphs(output, content):
+    """Revise authored paragraphs only; retain evidence and require normal release checks."""
+    output, content = Path(output), Path(content)
+    path = contained_path(output, 'manifest.json', reject_symlinks=True)
+    before = path.read_bytes()
+    manifest = json.loads(before)
+    validate_content_revisions(manifest)
+    if (manifest.get('schema') != 'web-search-report/1' or not manifest.get('languages')
+            or set(manifest['languages']) - {'en', 'zh'}):
+        raise ValueError('Paragraph revisions require a supported Web Search report')
+    previous = manifest.get('authored') or {}
+    raw = content.read_bytes()
+    revised = json.loads(raw)
+    if (dict(previous, sections=[]) != dict(revised, sections=[])
+            or len(previous.get('sections', [])) != len(revised.get('sections', []))):
+        raise ValueError('Paragraph revisions cannot change report inputs or structure')
+    changed = []
+    for index, (old, new) in enumerate(zip(previous.get('sections', []), revised.get('sections', []), strict=True)):
+        if (dict(old, paragraphs=[]) != dict(new, paragraphs=[])
+                or len(old.get('paragraphs', [])) != len(new.get('paragraphs', []))):
+            raise ValueError('Paragraph revisions cannot change report inputs or structure')
+        for left, right in zip(old.get('paragraphs', []), new.get('paragraphs', []), strict=True):
+            if left.keys() != right.keys() or any(not isinstance(value, str) for value in right.values()):
+                raise ValueError('Paragraph revisions must retain language coverage')
+        if old.get('paragraphs') != new.get('paragraphs'):
+            changed.append(index)
+    if not changed and bytes_sha256(raw) == manifest.get('content_sha256'):
+        return output / 'index.html'
+    seen = {(index, lang): 0 for index in changed for lang in manifest['languages']}
+    updates = {}
+    for lang in manifest['languages']:
+        prefix = '' if lang == 'zh' else lang + '/'
+        for page in reader_pages(previous.get('presentation'), reviewed=bool(manifest.get('independent_review_sha256'))):
+            target = contained_path(output, prefix + page['route'], reject_symlinks=True)
+            soup = BeautifulSoup(target.read_text(encoding='utf-8'), 'html.parser')
+            touched = False
+            for index in changed:
+                old = previous['sections'][index]['paragraphs']
+                new = revised['sections'][index]['paragraphs']
+                for section in soup.select(f'[data-authored="{index}"]'):
+                    paragraphs = section.find_all('p', recursive=False)[:len(old)]
+                    current = [p.get_text() for p in paragraphs]
+                    if current not in ([p[lang] for p in old], [p[lang] for p in new]):
+                        raise ValueError('Existing authored paragraphs differ from their frozen content')
+                    for node, paragraph in zip(paragraphs, new, strict=True):
+                        node.string = paragraph[lang]
+                    seen[index, lang] += 1
+                    touched = True
+            if touched:
+                updates[target] = str(soup)
+    if any(count == 0 for count in seen.values()):
+        raise ValueError('Revised paragraph is missing from a generated language')
+    receipt = {'schema': 'web-search-paragraph-revision/2',
+               'before_manifest_sha256': bytes_sha256(before),
+               'before_manifest_gzip_base64': base64.b64encode(gzip.compress(before, mtime=0)).decode('ascii'),
+               'before_content_sha256': manifest.get('content_sha256'),
+               'content_sha256': bytes_sha256(raw), 'content_utf8': raw.decode('utf-8'), 'provider_calls': 0,
+               'changed_sections': changed, 'producer': software_identity()}
+    manifest['authored'], manifest['content_sha256'] = revised, bytes_sha256(raw)
+    manifest['content_revisions'] = [receipt]
+    for target, text in updates.items():
+        atomic_write(target, text.encode('utf-8'))
+    write_json(path, manifest)
+    return output / 'index.html'
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
@@ -2102,6 +2583,8 @@ def main(argv=None):
         help="Add a separately verified cohort to the same report",
     )
     parser.add_argument("--content", type=Path)
+    parser.add_argument('--revise-paragraphs', type=Path,
+                        help='Revise authored paragraphs in an existing report without rebuilding evidence pages')
     parser.add_argument("--identity-correction", type=Path)
     parser.add_argument("--review", type=Path, help="Complete independent review with adjudications")
     parser.add_argument("--relevance", type=Path, help="Complete, provenance-bound relevance labels for every in-house query")
@@ -2117,6 +2600,11 @@ def main(argv=None):
     parser.add_argument("--export-delivery", type=Path, metavar="DESTINATION",
                         help="Export the checked report into lossless case shards for bounded-file hosts")
     args = parser.parse_args(argv)
+    if args.revise_paragraphs:
+        if any(value for key, value in vars(args).items() if key not in ('output', 'revise_paragraphs')):
+            parser.error('Paragraph revisions accept only --output and --revise-paragraphs')
+        print(revise_paragraphs(args.output, args.revise_paragraphs))
+        return
     if args.export_annotations:
         if args.source or args.cohort:
             parser.error("Annotation export consumes an existing report")
@@ -2275,7 +2763,7 @@ def cohort_summary(profile, rows, zh):
         "<section data-cohort-summary><h2>"
         + t("Independent benchmarks, with separate collection cohorts")
         + "</h2><p>"
-        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries, across {groups} complete collection batches. The table preserves each batch separately; the combined count is not a new same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(groups))
+        + t("{cases} queries and {rows} final logical results, from {physical_calls} physical requests including retries. The table preserves the selected source scopes; the combined count is not a same-window speed trial.", cases=len(profile['cases']), rows=len(rows), physical_calls=sum(len(r.get('attempts') or [r]) for r in rows), groups=len(profile.get("method_collections", groups)))
         + "</p>"
         + table(
             [
@@ -2295,28 +2783,66 @@ def cohort_summary(profile, rows, zh):
     )
 
 
+def method_collection_notice(zh):
+    return ('<p data-method-collection-notice>'
+            + report_text("Methods were collected on different dates; saved latency is not a same-window speed trial.", zh)
+            + ' <a href="research.html">' + report_text("Collection dates and call order", zh) + '</a></p>')
+
+
 def execution_settings(profile, zh):
     """Disclose effective admission limits and the latency measurement scope."""
     t = partial(report_text, zh=zh)
-    maximum = profile["protocol"]["concurrency"]
-    policy = profile.get("execution_policy")
-    bindings = execution_resources({**profile, "methods": profile.get("collection_methods", profile["methods"])}) if policy else {}
+    matrix = profile.get('collection_composition') == 'matrix'
+    batches = profile.get('method_collections',[])
+    maximum = (max(b['protocol']['concurrency'] for b in batches) if matrix
+               else profile['protocol']['concurrency'])
+
+    def admission(context, method):
+        limit = context['protocol']['concurrency']
+        policy = context.get('execution_policy')
+        bindings = execution_resources(context) if policy else {}
+        resources = bindings.get(method['id'],())
+        capacity = min([limit] + [policy['resources'][r]['capacity'] for r in resources])
+        details = '; '.join(f'{r}: {policy["resources"][r]["capacity"]}'
+                            + (f' ({policy["resources"][r]["reason"]})'
+                               if policy['resources'][r].get('reason') else '') for r in resources)
+        return capacity, details
+
     entries = []
     for method in profile["methods"]:
-        resources = bindings.get(method["id"], ())
-        capacity = min([maximum] + [policy["resources"][r]["capacity"] for r in resources])
-        details = "; ".join(
-            f'{r}: {policy["resources"][r]["capacity"]}'
-            + (f' ({policy["resources"][r]["reason"]})'
-               if policy["resources"][r].get("reason") else "") for r in resources)
-        entries.append(cells([esc(method["label"]), str(capacity), esc(details or "—")]))
+        if matrix:
+            settings = [admission(dict(protocol=b['protocol'],execution_policy=b.get('execution_policy'),
+                                       methods=b['execution_methods']), method)
+                        for b in batches if method['id'] in b['methods']]
+            capacity = ' / '.join(str(v) for v in sorted({value for value,_ in settings}))
+            details = '; '.join(dict.fromkeys(text for _,text in settings if text))
+        else:
+            capacity,details = admission({**profile,'methods':profile.get('collection_methods',profile['methods'])},method)
+        entries.append(cells([esc(method['label']),str(capacity),esc(details or '—')]))
     scope = (t("Latency includes concurrent collection load; it is not an isolated speed comparison.")
              if maximum > 1 else t("Serial collection; latency covers each saved API call."))
+    collections = ""
+    if profile.get("method_collections"):
+        def collected_dates(batch):
+            start = (batch.get("started_at") or batch.get("ended_at") or batch.get("as_of") or "—")[:10]
+            end = (batch.get("ended_at") or start)[:10]
+            return start if start == end else start + " / " + end
+
+        method_labels = {m["id"]: m["label"] for m in profile["methods"]}
+        orders = {"complete provider batches": t("complete provider batches"),
+                  "rotate methods by case": t("rotate methods by case"),
+                  "rotate methods by case and round": t("rotate methods by case and round")}
+        collections = ('<p>' + t("Methods were collected in separate batches. Dates and order are shown below; latency describes each saved batch, not a same-window speed trial.") + '</p>'
+                       + table([t("Collection"), t("Methods"), t("Date"), t("Call order")]
+                               + ([t('Concurrent calls'),t('Client timeout (s)'),t('Allowed retries')] if matrix else []),
+                               [cells([esc(b["id"]), esc(", ".join(method_labels.get(mid, mid) for mid in b["methods"])), esc(collected_dates(b)), esc(orders.get(b["order"], b["order"]))]
+                                      + ([str(b['protocol']['concurrency']),str(b['protocol']['client_timeout_s']),str(int(b['protocol'].get('retry',False)))] if matrix else []))
+                                for b in profile["method_collections"]]))
     return ('<section data-execution-settings><h2>' + t("Collection concurrency") + '</h2><p>'
             + t("Maximum concurrent calls: {concurrency}.", concurrency=maximum)
             + ' ' + scope + '</p>'
             + table([t("Method"), t("Effective concurrent calls"), t("Shared resource limits")],
-                    entries) + '</section>')
+                    entries) + collections + '</section>')
 
 
 def fairness_table(profile, rows, zh):
@@ -2326,7 +2852,7 @@ def fairness_table(profile, rows, zh):
 
     def requested_limit(row, method):
         request = row.get("request", {})
-        for key in ("limit", "count", "numResults", "num"):
+        for key in ("limit", "count", "numResults", "num", "Cnt"):
             if key in request:
                 return str(request[key])
         default = t("Default") if method.get("adapter") == "brightdata" else "—"
@@ -2579,6 +3105,13 @@ def authored_sections(content, page, language, *, rows=(), heading_level=2):
             )
         for p in s.get("paragraphs", []):
             body += "<p>" + esc(p[language]) + "</p>"
+        for figure in s.get("figures", []):
+            source = figure["path"]
+            if not any(asset.get("path") == source and asset.get("sha256") for asset in content.get("assets", [])):
+                raise ValueError("Reader figures require a hash-bound report asset")
+            body += ('<figure data-authored-figure><div class="figure-scroll"><img src="'
+                     + esc(source) + '" alt="' + esc(figure["alt"][language])
+                     + '"></div><figcaption>' + esc(figure["caption"][language]) + '</figcaption></figure>')
         if s.get("rows"):
             body += table(
                 s["headers"][language], [cells([esc(v) for v in r[language]]) for r in s["rows"]]
@@ -2738,15 +3271,21 @@ def numeric_winners(rows, directions):
     return winners
 
 
-def numeric_cell(label, value, metric, direction, winner=False):
+def numeric_cell(label, value, metric, direction, winner=False, *, significant=None):
     attrs = f' data-metric="{esc(metric)}" data-metric-direction="{direction}"'
     if value is not None:
         attrs += f' data-sort="{value}" data-value="{value}"'
     else:
         attrs += ' data-value=""'
+    if significant is not None:
+        attrs += ' data-significant="' + str(bool(significant)).lower() + '"'
     if winner:
         attrs += ' class="win"'
-        label = '<span class="comparison-winner">★ ' + label + '</span>'
+        if significant is None:
+            label = '<span class="comparison-winner">★ ' + label + '</span>'
+        else:
+            marker = '<span class="comparison-winner">★ </span>' if significant else ''
+            label = '<span class="comparison-extremum">' + marker + label + '</span>'
     return '<td' + attrs + '>' + label + '</td>'
 
 
@@ -2789,7 +3328,7 @@ def interpretation_summary_table(profile, selected, zh, content=None, relevance_
         for column, label in enumerate(values):
             source_index = (0, 1, 2, 4, 5, 6)[column]
             win = source_index in winners and raw[source_index] == winners[source_index]
-            cells_html.append(numeric_cell(label, raw[source_index], f"interpretation-{source_index}", directions.get(source_index, "neutral"), win))
+            cells_html.append('<td>' + label + '</td>' if source_index == 0 else numeric_cell(label, raw[source_index], f"interpretation-{source_index}", directions.get(source_index, "neutral"), win))
         rows.append('<tr>' + ''.join(cells_html) + '</tr>')
     return (
         '<h2>' + report_text("Core API comparison", zh) + '</h2>'
@@ -2880,9 +3419,12 @@ def catalog_prices(profile, content):
         raise ValueError("Catalog prices must cover every compared method")
     for item in prices.values():
         amount = item.get("amount")
-        if (item.get("currency") != "USD" or item.get("unit") != "1000-successful-searches"
+        source = item.get('source', '')
+        bound_quote = item.get('source_kind') == 'owner-quote' and any(
+            asset.get('path') == source and asset.get('sha256') for asset in content.get('assets', []))
+        if (item.get("currency") != "USD" or item.get("unit") not in ("1000-successful-searches", "1000-requests")
                 or amount is not None and (type(amount) not in (int, float) or not math.isfinite(amount) or amount < 0)
-                or amount is not None and (not item.get("source", "").startswith("https://") or not item.get("checked_at"))):
+                or amount is not None and (not (source.startswith("https://") or bound_quote) or not item.get("checked_at"))):
             raise ValueError("Invalid verified catalog price")
     return prices
 
@@ -2890,15 +3432,26 @@ def catalog_prices(profile, content):
 def catalog_price_panel(profile, content, zh):
     prices = catalog_prices(profile, content)
     rendered = []
-    winners = numeric_winners([[prices[m['id']]['amount']] for m in profile['methods']], {0: 'min'})
+    direction = 'min' if comparable_catalog_prices(prices) else 'neutral'
+    winners = numeric_winners([[prices[m['id']]['amount']] for m in profile['methods']], {0: direction})
     for method in profile['methods']:
         item = prices[method['id']]
         amount = item['amount']
         price = '' if amount is None else '<a href="' + esc(item['source']) + '">' + fmt(amount) + '</a>'
-        row = '<td>' + esc(method['label']) + '</td>' + numeric_cell(price, amount, 'catalog-unit-price', 'min', amount is not None and winners.get(0) == amount)
+        row = '<td>' + esc(method['label']) + '</td>' + numeric_cell(price + catalog_billing_basis(item, zh), amount, 'catalog-unit-price', direction, amount is not None and winners.get(0) == amount)
         row += cells([esc(item.get('plan', '')), esc(item.get('terms', {}).get('zh' if zh else 'en', '')), esc(item.get('checked_at', ''))])[4:-5]
         rendered.append('<tr>' + row + '</tr>')
-    return '<section data-cost-budget data-catalog-prices><h2>' + report_text("Published prices and purchase terms", zh) + '</h2><p>' + report_text("Compare the published usage price for 1,000 successful searches, without free-credit offsets or estimates from this run’s invoice. Billing conditions, subscriptions and prepayment terms are listed for each method.", zh) + '</p>' + table([report_text("Method", zh), report_text("USD / 1,000 successful calls", zh), report_text("Plan", zh), report_text("Purchase terms", zh), report_text("Verified", zh)], rendered) + '</section>'
+    return '<section data-cost-budget data-catalog-prices><h2>' + report_text("Published prices and purchase terms", zh) + '</h2><p>' + report_text("Usage prices per 1,000 calls. Each method’s billing rules, subscription and prepayment terms are listed below. These are quoted rates, not invoice charges.", zh) + '</p>' + table([report_text("Method", zh), report_text("USD / 1,000 calls", zh), report_text("Plan", zh), report_text("Purchase terms", zh), report_text("Verified", zh)], rendered) + '</section>'
+
+
+def comparable_catalog_prices(prices):
+    return len({item['unit'] for item in prices.values()}) == 1
+
+
+def catalog_billing_basis(item, zh):
+    label = (report_text('Requests', zh) if item['unit'] == '1000-requests'
+             else report_text('Successful searches', zh))
+    return '<small class="billing-basis" data-billing-basis="' + esc(item['unit']) + '">' + label + '</small>'
 
 
 def cost_panel(profile, rows, zh, content=None):
@@ -2937,7 +3490,7 @@ def relevance_panel(profile, scored, evidence, zh):
     cutoff = profile.get("protocol", {}).get("top_k", evidence.get("plan", {}).get("cutoff", scored[0].get("cutoff", 5) if scored else 5))
     if not scored:
         return ""
-    methods = profile["methods"]
+    methods = [m for m in profile["methods"] if m["id"] in {r["method"] for r in scored}]
     rows = []
     families = [family for family in ("web", "site", "vertical") if any(row["family"] == family for row in scored)]
     for family in families:
@@ -2971,7 +3524,7 @@ def relevance_panel(profile, scored, evidence, zh):
         report_text("Human annotator: {name}. Metric calculation uses fixed labels without model calls.", zh, name=audit['name'])
     )
     denominator = report_text("Empty responses, missing slots and all-zero candidate pools remain in the denominator.", zh, cutoff=cutoff)
-    panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + bars
+    panel = ('<section class="specimen" id="relevance-scores" data-relevance><h3>' + esc(title) + '</h3>' + relevance_scope_notice(profile, zh) + bars
              + ('' if profile.get("comparison_selection") else '<p>' + esc(definitions) + '</p>')
              + '<details><summary>' + report_text("Useful results and direct matches", zh) + '</summary>' + table([report_text("Category", zh, context="question type"), report_text("Provider", zh), report_text("Queries", zh), f"nDCG@{cutoff} × 100", f"Precision@{cutoff}", f"Success@{cutoff}"], rows) + '</details>'
              + '<p class="muted">' + esc(scope + denominator) + '</p><a href="relevance-judgments.json">'
@@ -2994,7 +3547,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
         return ''
     projected = bool(profile.get("comparison_selection") or profile.get("current_selection"))
     baseline = profile['methods'] if projected else [m for m in profile['methods'] if not any(m.get('output_options', {}).values())]
-    answer_key = f'answer_in_delivered_text_{cutoff}' if projected else f'answer_in_preview_{cutoff}'
+    answer_key = f'answer_in_preview_{cutoff}' if all(c.get('answer_evidence_scope') == 'preview' for c in cases.values()) else f'answer_in_delivered_text_{cutoff}' if projected else f'answer_in_preview_{cutoff}'
     keys = (f'labeled_source_hit_{cutoff}', f'labeled_source_rr_{cutoff}', answer_key)
     values = []
     by_method = {}
@@ -3003,6 +3556,8 @@ def factual_panel(profile, selected, zh, *, compact=False):
         by_method[method['id']] = group
         if method in baseline:
             values.append((method['label'], len(group), [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[k] for r in group.values()) for k in keys] + [sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][answer_key] for r in group.values())]))
+    answer_description = (report_text("Check top-{cutoff} given URLs and answer text in titles and standard snippets, excluding dataset mirrors and evaluation logs.", zh, cutoff=cutoff)
+                          if answer_key == f"answer_in_preview_{cutoff}" else report_text("Check top-{cutoff} given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.", zh, cutoff=cutoff))
     if compact:
         headers = [report_text("Method", zh), report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff), report_text("Answer Match@{cutoff} (text)", zh, cutoff=cutoff)]
         rendered = []
@@ -3013,7 +3568,7 @@ def factual_panel(profile, selected, zh, *, compact=False):
                 display = (f'{total/n:.3f}' if i == 1 else f'{int(total)}/{n} · {total/n:.1%}') if n else '—'
                 row += numeric_cell(display, total/n if n else None, f'factual-current-{i}', 'max', n > 0 and best.get(i) == total/n)
             rendered.append('<tr>' + row + '</tr>')
-        return '<section data-factual><h2>' + report_text("Factual evidence retrieval: {cases} queries", zh, cases=len(cases)) + '</h2><p>' + report_text("Check top-{cutoff} given URLs and answer text in all delivered fields, excluding dataset mirrors and evaluation logs. Text presence does not verify its context.", zh, cutoff=cutoff) + '</p>' + table(headers, rendered) + report_text('<p class="muted">Target MRR is available through the per-query reciprocal-rank details.</p>', zh) + ('<p data-quality-exclusions>' + report_text("Reference review excludes {excluded} defective queries for every provider; quality uses {cases} queries. Original responses, timing and cost retain the full collection.", zh, excluded=len(excluded), cases=len(cases)) + '</p>' if excluded else '') + '</section>'
+        return '<section data-factual><h2>' + report_text("Factual evidence retrieval: {cases} queries", zh, cases=len(cases)) + '</h2><p>' + answer_description + '</p>' + table(headers, rendered) + report_text('<p class="muted">Target MRR is available through the per-query reciprocal-rank details.</p>', zh) + ('<p data-quality-exclusions>' + report_text("Reference review excludes {excluded} defective queries for every provider; quality uses {cases} queries. Original responses, timing and cost retain the full collection.", zh, excluded=len(excluded), cases=len(cases)) + '</p>' if excluded else '') + '</section>'
     rendered = []
     for label, n, sums in values:
         row = ['<td>' + esc(label) + '</td>', f'<td>{n}</td>']
@@ -3434,7 +3989,7 @@ def benchmark_operations(profile, selected, content, zh):
     rendered = []
     successful = []
     prices = catalog_prices(profile, content)
-    comparable = prices is not None or len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
+    comparable = comparable_catalog_prices(prices) if prices is not None else len({m.get("currency", "CNY") for m in profile["methods"]}) == 1
     for population in populations:
         ids = set(population['case_ids'])
         rows = [r for r in selected if r['case_id'] in ids]
@@ -3451,21 +4006,23 @@ def benchmark_operations(profile, selected, content, zh):
             for i, value in enumerate(raw[idx]):
                 display = (fmt(value) + (' ' + method.get('currency', 'CNY') if i == 3 else '')) if value is not None else (report_text("Not priced", zh) if method.get('price_per_1000') is None else report_text("Some billing unknown", zh))
                 if prices is not None and i == 3:
-                    display = fmt(value) if value is not None else ''
+                    display = (fmt(value) if value is not None else '') + catalog_billing_basis(prices[method['id']], zh)
                 row += numeric_cell(display, value, f'operation-{population["id"]}-{i}', directions[i], value is not None and winners.get(i) == value)
             rendered.append('<tr>' + row + '</tr>')
             success_row = '<td>' + label + '</td><td>' + esc(method['label']) + '</td><td>' + str(item['success_latency']['n']) + '</td>'
             for i, value in enumerate(conditional[idx]):
                 success_row += numeric_cell(fmt(value), value, f'success-latency-{population["id"]}-{i}', 'min', value is not None and conditional_winners.get(i) == value)
             successful.append('<tr>' + success_row + '</tr>')
-    cost_heading = report_text("USD / 1,000 successful calls", zh) if prices is not None else report_text("Estimated batch cost", zh)
-    return '<section data-benchmark-operations><h2>' + report_text("Performance and cost by collection", zh) + '</h2><p>' + report_text("One final result per query. Timing includes retries, the complete collection and reference-quarantined queries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.", zh) + '</p>' + table(([report_text("Collection", zh), report_text("API", zh), report_text("Mean ms", zh, context="duration"), "P50 ms", "P95 ms", cost_heading]), rendered) + '</section><section data-successful-latency><h2>' + report_text("Latency of successful result deliveries", zh) + '</h2><p>' + report_text("Only HTTP 200 calls without errors and with at least one result. Counts differ by provider; this conditional comparison does not replace all-call latency.", zh) + '</p>' + table([report_text("Population", zh), report_text("API", zh), report_text("Calls", zh), report_text("Mean ms", zh, context="duration"), 'P50 ms', 'P95 ms'], successful) + '</section>'
+    cost_heading = report_text("USD / 1,000 calls", zh) if prices is not None else report_text("Estimated batch cost", zh)
+    retried = any(len(row.get("attempts") or [row]) > 1 for row in selected)
+    timing_note = report_text('One final result per query. Timing includes retries, the complete collection and reference-quarantined queries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.', zh) if retried else report_text('One final result per query. Timing covers successful, empty and failed requests, including reference-quarantined queries; this collection used no retries. P95 bounds 95% of request waits. The table states each cost unit; purchase or billing terms appear below.', zh)
+    return '<section data-benchmark-operations><h2>' + report_text("Performance and cost by collection", zh) + '</h2><p>' + timing_note + '</p>' + table(([report_text("Collection", zh), report_text("API", zh), report_text("Mean ms", zh, context="duration"), "P50 ms", "P95 ms", cost_heading]), rendered) + '</section><section data-successful-latency><h2>' + report_text("Latency of successful result deliveries", zh) + '</h2><p>' + report_text("Only HTTP 200 calls without errors and with at least one result. Counts differ by provider; this conditional comparison does not replace all-call latency.", zh) + '</p>' + table([report_text("Population", zh), report_text("API", zh), report_text("Calls", zh), report_text("Mean ms", zh, context="duration"), 'P50 ms', 'P95 ms'], successful) + '</section>'
 
 
 def quality_dataset(profile, content):
     """Active dataset excludes rejected references; archived calls stay in results."""
     excluded = set(profile.get("factual_quality_exclusions", []))
-    if not excluded:
+    if not excluded and not content.get('output_level_assessments'):
         return profile, content
     active = copy.deepcopy(profile)
     active["cases"] = [case for case in active["cases"] if case["id"] not in excluded]
@@ -3474,6 +4031,17 @@ def quality_dataset(profile, content):
     authored = copy.deepcopy(content)
     for population in authored.get("metric_populations", []):
         population["case_ids"] = [cid for cid in population["case_ids"] if cid not in excluded]
+    if content.get('output_level_assessments'):
+        for case in active['cases']:
+            case['cohort'] = 'factual' if 'reference_answer' in case else 'scenario'
+        groups = [dict(id=identity, label=label,
+                       case_ids=[case['id'] for case in active['cases'] if case['cohort'] == identity])
+                  for identity, label in [
+                      ('scenario', dict(en='Scenario relevance', zh=zh_text('Scenario relevance'))),
+                      ('factual', dict(en='SimpleQA Verified', zh=zh_text('SimpleQA Verified')))]]
+        active['report_cohorts'] = [group for group in groups if group['case_ids']]
+        authored['independent_benchmarks'] = True
+        authored['metric_populations'] = [dict(group, benchmark_root=True) for group in active['report_cohorts']]
     return active, authored
 
 
@@ -3502,27 +4070,6 @@ def metric_populations(profile, content):
     return populations
 
 
-def reference_retrieval_panel(profile, rows, case_ids, zh):
-    """Use only independently annotated page targets, never infer missing gold."""
-    ids = {c['id'] for c in profile['cases'] if c['id'] in case_ids and c.get('anchors')}
-    if not ids:
-        return ''
-    cutoff = profile['protocol']['top_k']
-    cases = {c['id']: c for c in profile['cases']}
-    values = []
-    for method in profile['methods']:
-        group = [r for r in rows if r['case_id'] in ids and r['method'] == method['id']]
-        if len(group) != len(ids):
-            raise ValueError('Incomplete reference-retrieval population')
-        metrics = [evaluate(cases[r['case_id']], r['results'], cutoff=cutoff) for r in group]
-        values.append((method['label'], sum(m[f'anchor_hit_{cutoff}'] for m in metrics), sum(m['reciprocal_rank'] for m in metrics) / len(ids)))
-    winners = numeric_winners([[v[1] / len(ids), v[2]] for v in values], {0:'max', 1:'max'})
-    rendered = []
-    for label, hits, mrr in values:
-        rendered.append('<tr><td>' + esc(label) + '</td>' + numeric_cell(f'{int(hits)}/{len(ids)} · {hits/len(ids):.1%}', hits/len(ids), 'reference-hit', 'max', winners.get(0) == hits/len(ids)) + numeric_cell(f'{mrr:.3f}', mrr, 'reference-mrr', 'max', winners.get(1) == mrr) + '</tr>')
-    return '<section data-reference-retrieval><h4>' + report_text("Reference-page retrieval · {queries} queries", zh, queries=len(ids)) + '</h4><p>' + report_text("Only queries with annotated reference pages. Hit@{cutoff} finds any listed URL in the first {cutoff}; MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. These match the factual-set definitions. Listed references are not exhaustive, and unannotated queries are not failures.", zh, cutoff=cutoff) + '</p>' + table([report_text("Method", zh), report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff)], rendered) + '</section>'
-
-
 def population_summary(profile, selected, content, zh, *, diagnostics=False, relevance_scores=None):
     cutoff = profile["protocol"]["top_k"]
     lang = "zh" if zh else "en"
@@ -3534,11 +4081,12 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
     note = ((scope + report_text(". Benchmarks are reported separately. ", zh)) if scope else "") + (
         report_text("Mean, P50 and P95 cover all requests and retry waits; fees estimate the calls in each population.", zh))
     if prices is not None:
-        note = scope + report_text(". Mean, P50 and P95 include all calls and retry waits. Unit prices compare 1,000 successful calls; purchase terms appear on the performance page.", zh)
+        retried = any(len(row.get('attempts') or [row]) > 1 for row in selected)
+        note = scope + (report_text(". Latency includes every call and retry wait. Collection windows differ; recorded times are observational. Prices and billing terms appear on the performance page.", zh) if retried else report_text(". Latency includes successful, empty and failed requests; this collection used no retries. Prices and billing terms appear on the performance page.", zh))
     if diagnostics:
         heading = report_text("Reference URLs and requested sites: diagnostics", zh)
         note = report_text("These overlapping subsets diagnose URL and domain discovery. Uniform relevance scoring covers the complete in-house set.", zh)
-    body = '<section data-populations><h2>' + heading + '</h2><p class="population-note">' + note + '</p>'
+    body = '<section data-populations><h2>' + heading + '</h2><p class="population-note">' + note + '</p>' + relevance_scope_notice(profile, zh)
     for population in metric_populations(profile, content):
         if independent and bool(population.get("benchmark_root")) == diagnostics:
             continue
@@ -3548,6 +4096,13 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         stats = aggregate(subset)
         kind = population.get('metric_kind', population['id'])
         ranked = bool(relevance_scores) and ids.issubset({r['case_id'] for r in relevance_scores}) and not diagnostics
+        if kind == 'relevance' and not ranked:
+            raise ValueError('Relevance comparison requires every method and query')
+        if ranked:
+            expected = {(cid, method['id']) for cid in ids for method in profile['methods']}
+            actual = [(r['case_id'], r['method']) for r in relevance_scores if r['case_id'] in ids]
+            if len(actual) != len(expected) or set(actual) != expected:
+                raise ValueError('Relevance comparison requires every method and query')
         quality = ranked or kind in ('factual', 'scenario', 'site')
         quality_stats = relevance_summary([r for r in (relevance_scores or []) if r['case_id'] in ids], [m['id'] for m in profile['methods']]) if ranked else {}
         cases = {c['id']: c for c in profile['cases']}
@@ -3558,11 +4113,11 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                 raise ValueError('Incomplete metric population')
             group = [r for r in subset if r['method'] == method['id']]
             if ranked:
-                q = quality_stats[method['id']]
-                measures = [q['ndcg'] * 100, q['precision'], q['success']]
+                q = quality_stats.get(method['id'], {"n": 0})
+                measures = [q['ndcg'] * 100, q['precision'], q['success']] if q['n'] else [None, None, None]
             elif kind == 'factual':
                 quality_group = [r for r in group if r['case_id'] in quality_ids]
-                measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][f'answer_in_delivered_text_{cutoff}'] for r in quality_group)]
+                measures = [sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_hit_{cutoff}'] for r in quality_group), sum(factual_sensitivity(cases[r['case_id']], r['results'], cutoff=cutoff)['metrics'][answer_evidence_key(cases[r['case_id']], cutoff)] for r in quality_group)]
                 if content.get("summary_metrics") == "retrieval":
                     measures.append(sum(factual_evidence(cases[r['case_id']], r['results'], cutoff=cutoff)[f'labeled_source_rr_{cutoff}'] for r in quality_group) / len(quality_group) if quality_group else None)
             elif kind == 'scenario':
@@ -3586,17 +4141,30 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             values.append([method['label'], *measures, s['all_latency']['mean'], s['all_latency']['p50'], s['all_latency']['p95'], prices[method['id']]['amount'] if prices is not None else s['cost_total']])
         max_column = 3 if ranked or kind == "factual" and content.get("summary_metrics") == "retrieval" else 2 if quality else 1
         directions = {i: "max" if i <= max_column else "min" for i in range(1, len(values[0]))}
-        if prices is None and len({m.get("currency", "CNY") for m in profile["methods"]}) != 1:
+        if (prices is not None and not comparable_catalog_prices(prices)
+                or prices is None and len({m.get("currency", "CNY") for m in profile["methods"]}) != 1):
             directions[len(values[0]) - 1] = "neutral"
         winners = numeric_winners(values, directions)
+        intervals = None
+        if ranked and content.get('uncertainty') == 'paired-query-bootstrap/1':
+            intervals = paired_bootstrap([r for r in relevance_scores if r['case_id'] in ids],
+                                         [m['id'] for m in profile['methods']])
+            significant_lead = (len(ids) >= 30 and len(profile['methods']) > 1
+                                and all(value['difference_to_best'][1] < 0 for mid, value in intervals['methods'].items()
+                                        if mid != intervals['best_observed']))
         rendered = []
         for row, method in zip(values, profile['methods'], strict=True):
             html_cells = []
             for i, value in enumerate(row):
                 if i == 0:
                     label = esc(value)
+                elif value is None:
+                    label = '—'
                 elif ranked and i == 1:
                     label = f'{value:.1f}'
+                    if intervals:
+                        low, high = intervals['methods'][method['id']]['interval']
+                        label += f'<br><small>95% CI [{low * 100:.1f}, {high * 100:.1f}]</small>'
                 elif ranked and i in (2, 3):
                     label = f'{value:.1%}'
                 elif i == 1 or (kind == 'factual' and i == 2):
@@ -3610,9 +4178,10 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
                     currency = method.get('currency', 'CNY')
                     label = ((report_text("Not priced", zh) if method.get('price_per_1000') is None else report_text("Some calls have unknown billing", zh)) if value is None else label + ' ' + (zh_text("CNY") if zh and currency == 'CNY' else esc(currency)))
                     if prices is not None:
-                        label = fmt(value) if value is not None else ''
+                        label = (fmt(value) if value is not None else '') + catalog_billing_basis(prices[method['id']], zh)
                 win = i in winners and winners[i] == value
-                html_cells.append(numeric_cell(label, value if i else None, f"population-{i}", directions.get(i, "neutral"), win))
+                html_cells.append('<td>' + label + '</td>' if i == 0 else numeric_cell(label, value, f"population-{i}", directions.get(i, "neutral"), win,
+                                  significant=(bool(i == 1 and win and significant_lead) if intervals else None)))
             rendered.append('<tr>' + ''.join(html_cells) + '</tr>')
         body += '<article data-population="' + esc(population['id']) + '"><h3>' + esc(population['label'][lang]) + f' · {len(quality_ids) if kind == "factual" else len(ids)}' + report_text(" queries", zh) + '</h3>'
         if population.get('description'):
@@ -3620,11 +4189,11 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
         headings = [report_text("Queries returning results", zh)]
         if ranked:
             headings = [f'nDCG@{cutoff} × 100', f'Precision@{cutoff}', f'Success@{cutoff}']
-            body += '<p>' + report_text("nDCG@{cutoff} measures graded ranking quality, displayed ×100. Precision@{cutoff} is the share of {cutoff} slots graded ≥2, with missing slots scoring zero. Success@{cutoff} is the share of queries with a grade-3 result. Every query remains in the denominator.", zh, cutoff=cutoff) + ' <a href="quality.html#relevance-scores">' + report_text("Inspect grades and calculation", zh) + '</a></p>'
+            body += '<details class="metric-guide"><summary>' + report_text("Metric definitions", zh) + '</summary><p>' + report_text("nDCG@{cutoff} measures graded ranking quality, displayed ×100. Precision@{cutoff} is the share of {cutoff} slots graded ≥2, with missing slots scoring zero. Success@{cutoff} is the share of queries with a grade-3 result. Every query remains in the denominator.", zh, cutoff=cutoff) + ' <a href="quality.html#relevance-scores">' + report_text("Inspect grades and calculation", zh) + '</a></p></details>'
         elif kind == 'factual':
             if quality_ids != ids:
                 body += '<p data-quality-exclusions>' + (report_text("Quality uses {qualified} qualified queries; latency retains all {total} collected queries.", zh, qualified=len(quality_ids), total=len(ids)) if prices is not None else report_text("Quality uses {qualified} reviewed-reference queries for every method; {defective} defective references are quarantined. Latency and cost retain all {total} queries.", zh, qualified=len(quality_ids), defective=len(ids) - len(quality_ids), total=len(ids))) + '</p>'
-            body += '<p class="population-note">' + report_text("Hit@{cutoff} checks for a published supporting URL in the first {cutoff} results. MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. Answer Match@{cutoff} checks delivered text for reference-answer phrases after excluding explicit dataset mirrors; it does not measure semantic accuracy.", zh, cutoff=cutoff) + '</p>'
+            body += '<details class="metric-guide"><summary>' + report_text("Metric definitions", zh) + '</summary><p>' + report_text("Hit@{cutoff} checks for a published supporting URL in the first {cutoff} results. MRR@{cutoff} averages reciprocal first-hit rank, with misses scoring zero. Answer Match@{cutoff} checks delivered text for reference-answer phrases after excluding explicit dataset mirrors; it does not measure semantic accuracy.", zh, cutoff=cutoff) + '</p></details>'
             headings = [report_text("Reference Hit@{cutoff}", zh, cutoff=cutoff), report_text("Answer Match@{cutoff} (text)", zh, cutoff=cutoff)]
             if content.get('summary_metrics') == 'retrieval':
                 headings.append(report_text("Reference MRR@{cutoff}", zh, cutoff=cutoff))
@@ -3636,10 +4205,12 @@ def population_summary(profile, selected, content, zh, *, diagnostics=False, rel
             headings = [report_text("Site constraint met", zh), report_text("Requested-domain fraction", zh)]
         headers = [report_text("Method", zh)] + headings + [report_text("Mean ms", zh, context="duration"), report_text("P50 ms", zh), report_text("P95 ms", zh), report_text("Population cost", zh)]
         if prices is not None:
-            headers[-1] = report_text("USD / 1,000 successful calls", zh)
-        body += table(headers, rendered)
-        if ranked and content.get('summary_metrics') == 'retrieval':
-            body += reference_retrieval_panel(profile, subset, ids, zh)
+            headers[-1] = report_text("USD / 1,000 calls", zh)
+        primary_column = 1 if ranked else 3 if kind == 'factual' and content.get('summary_metrics') == 'retrieval' else None
+        if primary_column is not None:
+            body += '<p class="primary-guide" data-primary-guide>' + report_text("Primary metric: {metric}. Higher is better; the initial order is descending.", zh, metric=headers[primary_column]) + '</p>'
+            rendered = [html for _, html in sorted(zip(values, rendered, strict=True), key=lambda pair: (pair[0][primary_column] is None, -(pair[0][primary_column] or 0)))]
+        body += table(headers, rendered, primary_column=primary_column, significance=intervals is not None, query_count=len(ids))
         if ranked:
             body += '<details><summary>' + report_text("API delivery", zh) + '</summary><p>' + ' · '.join(esc(m['label']) + ' ' + str(stats[m['id']]['nonempty']) + '/' + str(len(ids)) for m in profile['methods']) + report_text(" queries returned results.", zh) + '</p></details>'
         body += '</article>'
@@ -3693,4 +4264,4 @@ def dataset_context(profile, content, zh):
     if note:
         note += report_text(". ", zh)
     note += report_text("Original queries, source URLs and derivations are listed below.", zh)
-    return '<section><h2>' + report_text("Datasets and evaluation scope", zh) + '</h2>' + table([report_text("Dataset", zh), report_text("Queries", zh), report_text("Purpose", zh)], rows) + '<p>' + note + '</p></section>'
+    return '<section data-dataset-context><h2>' + report_text("Datasets and evaluation scope", zh) + '</h2>' + table([report_text("Dataset", zh), report_text("Queries", zh), report_text("Purpose", zh)], rows) + '<p>' + note + '</p></section>'

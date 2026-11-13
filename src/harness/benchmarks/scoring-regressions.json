@@ -86195,5 +86195,2646 @@
       "ok": true,
       "expected_task_pass": false
     }
-  ]
+  ],
+  "web_search": {
+    "verified-factual-source-identities": [
+      {
+        "id": "redirect-reference-despite-fetch-denial",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 403,
+            "final": "https://reference.test/fact",
+            "chain": [
+              {
+                "url": "https://reference.test/fact?click=17",
+                "status": 301,
+                "location": "https://reference.test/fact"
+              }
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "id": "same-publisher-canonical",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 200,
+            "final": "https://reference.test/fact?click=17",
+            "chain": [],
+            "canonical": "https://reference.test/fact",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"https://reference.test/fact\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "id": "different-reference-document",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 403,
+            "final": "https://reference.test/fact/other",
+            "chain": [
+              {
+                "url": "https://reference.test/fact?click=17",
+                "status": 301,
+                "location": "https://reference.test/fact/other"
+              }
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "id": "independent-mirror-is-not-identity",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://mirror.test/fact",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://mirror.test/fact",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 200,
+            "final": "https://mirror.test/fact",
+            "chain": [],
+            "canonical": "https://reference.test/fact",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"https://reference.test/fact\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://mirror.test/fact"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "id": "alias-outside-first-five",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/fact?click=17",
+          "target": "https://reference.test/fact",
+          "observation": {
+            "url": "https://reference.test/fact?click=17",
+            "verified_at": "2026-11-12T00:00:00Z",
+            "status": 403,
+            "final": "https://reference.test/fact",
+            "chain": [
+              {
+                "url": "https://reference.test/fact?click=17",
+                "status": 301,
+                "location": "https://reference.test/fact"
+              }
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://other.test/0"
+          },
+          {
+            "url": "https://other.test/1"
+          },
+          {
+            "url": "https://other.test/2"
+          },
+          {
+            "url": "https://other.test/3"
+          },
+          {
+            "url": "https://other.test/4"
+          },
+          {
+            "url": "https://reference.test/fact?click=17"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "id": "relative-canonical-directory-base",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/articles/entry"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/articles/",
+          "target": "https://reference.test/articles/entry",
+          "observation": {
+            "url": "https://reference.test/articles/",
+            "final": "https://reference.test/articles/",
+            "status": 200,
+            "chain": [],
+            "verified_at": "2026-11-13",
+            "canonical": "https://reference.test/articles/entry",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"entry\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/articles/"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "id": "relative-canonical-wrong-document",
+        "root_cause": "Reference document identities omitted observed URL aliases.",
+        "case": {
+          "id": "fact",
+          "query": "Which fact?",
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/articles/entry"
+          ]
+        },
+        "identity": {
+          "case_id": "fact",
+          "query": "Which fact?",
+          "alias": "https://reference.test/articles/",
+          "target": "https://reference.test/articles/entry",
+          "observation": {
+            "url": "https://reference.test/articles/",
+            "final": "https://reference.test/articles/",
+            "status": 200,
+            "chain": [],
+            "verified_at": "2026-11-13",
+            "canonical": "https://reference.test/articles/entry",
+            "canonical_evidence": [
+              "<link rel=\"canonical\" href=\"../other\">"
+            ]
+          }
+        },
+        "results": [
+          {
+            "url": "https://reference.test/articles/"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "delivered-preview-isolation": [
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            },
+            {
+              "id": "b"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": ""
+              }
+            ]
+          },
+          {
+            "case_id": "q",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "Install with pip install example"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "": 1,
+          "Install with pip install example": 3
+        },
+        "method": "a",
+        "expected": false
+      },
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            },
+            {
+              "id": "b"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": ""
+              }
+            ]
+          },
+          {
+            "case_id": "q",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "Install with pip install example"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "": 1,
+          "Install with pip install example": 3
+        },
+        "method": "b",
+        "expected": true
+      },
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "first"
+              },
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "second"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "first": 0,
+          "second": 3
+        },
+        "method": "a",
+        "expected": false
+      },
+      {
+        "kind": "delivered_preview",
+        "profile": {
+          "cases": [
+            {
+              "id": "q",
+              "family": "web",
+              "query": "Find the official install command"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a"
+            }
+          ],
+          "protocol": {
+            "top_k": 5,
+            "relevance_input": "delivered-previews/1"
+          }
+        },
+        "rows": [
+          {
+            "case_id": "q",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "first"
+              },
+              {
+                "url": "https://docs.test/install",
+                "title": "Docs",
+                "snippet": "second"
+              }
+            ]
+          }
+        ],
+        "grades": {
+          "first": 3,
+          "second": 0
+        },
+        "method": "a",
+        "expected": true
+      }
+    ],
+    "structured-dataset-contamination": [
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did the college open?",
+          "reference_answer": "1971",
+          "factual_contamination_rule": "question-with-structured-dataset-rows/4"
+        },
+        "results": [
+          {
+            "url": "https://data.test/corpus",
+            "snippet": "Dataset Viewer When did the college open? 1971"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did the college open?",
+          "reference_answer": "1971",
+          "factual_contamination_rule": "question-with-structured-dataset-rows/4"
+        },
+        "results": [
+          {
+            "url": "https://college.test/history",
+            "snippet": "When did the college open? It opened in 1971."
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did the college open?",
+          "reference_answer": "1971",
+          "factual_contamination_rule": "question-with-structured-dataset-rows/4"
+        },
+        "results": [
+          {
+            "url": "https://corpus.test/data",
+            "snippet": "PreviewMetadata question string answer string Who won? 1971"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "serp-answer-field-scope": [
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did it open?",
+          "reference_answer": "1971",
+          "answer_evidence_scope": "preview"
+        },
+        "results": [
+          {
+            "url": "https://origin.test/fact",
+            "snippet": "Open in 1971"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "query": "When did it open?",
+          "reference_answer": "1971",
+          "answer_evidence_scope": "preview"
+        },
+        "results": [
+          {
+            "url": "https://origin.test/fact",
+            "summary": "Open in 1971",
+            "content": "1971"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "generic-document-urls": [
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "http://www.en.wikipedia.org/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.m.wikipedia.org/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.com/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wikipedia.com/wiki/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.org/wiki/Other"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.com.evil.test/wiki/Example"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://en.wikipedia.org/wiki/Example?oldid=2"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "source_url",
+        "case": {
+          "id": "source-url",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "http://en.wikipedia.org:8080/wiki/Example"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "reference-mirror-title-and-lead": [
+      {
+        "kind": "reference_mirror",
+        "reference": {
+          "url": "https://en.wikipedia.org/wiki/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "url": "https://wiki2.org/en/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "case": {
+          "id": "mirror",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wiki2.org/en/Example"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "reference_mirror",
+        "reference": {
+          "url": "https://en.wikipedia.org/wiki/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "url": "https://wiki2.org/en/Example",
+          "title": "Other",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "case": {
+          "id": "mirror",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wiki2.org/en/Example"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "reference_mirror",
+        "reference": {
+          "url": "https://en.wikipedia.org/wiki/Example",
+          "title": "Example",
+          "lead": "An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. An independently published paragraph about this encyclopedia subject and its history. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "candidate": {
+          "url": "https://wiki2.org/en/Example",
+          "title": "Example",
+          "lead": "Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. Different information about a person in an unrelated place. ",
+          "status": 200,
+          "verified_at": "2026-01-01T00:00:00Z",
+          "body_sha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "case": {
+          "id": "mirror",
+          "reference_answer": "answer",
+          "reference_urls": [
+            "https://en.wikipedia.org/wiki/Example"
+          ],
+          "url_equivalence": "document-url/2"
+        },
+        "results": [
+          {
+            "url": "https://wiki2.org/en/Example"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "output-level-field-isolation": [
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l1",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "a",
+        "expected": true
+      },
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l1",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "b",
+        "expected": false
+      },
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l2",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "a",
+        "expected": false
+      },
+      {
+        "kind": "output_level",
+        "profile": {
+          "protocol": {
+            "top_k": 5
+          },
+          "cases": [
+            {
+              "id": "level-query",
+              "family": "web",
+              "query": "Find useful information"
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            },
+            {
+              "id": "b",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": "content"
+              }
+            }
+          ]
+        },
+        "rows": [
+          {
+            "case_id": "level-query",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "Useful",
+                "summary": "No information",
+                "content": "Useful"
+              }
+            ]
+          },
+          {
+            "case_id": "level-query",
+            "method": "b",
+            "results": [
+              {
+                "url": "https://example.test/page",
+                "title": "Document",
+                "snippet": "No information",
+                "summary": "Useful",
+                "content": "Useful"
+              }
+            ]
+          }
+        ],
+        "level": "l2",
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          },
+          "b": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "grades": {
+          "Useful": 3,
+          "No information": 0
+        },
+        "method": "b",
+        "expected": true
+      }
+    ],
+    "l2-factual-acceptance": [
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "id": "fact",
+          "query": "A fact?",
+          "reference_answer": "needle",
+          "reference_urls": [
+            "https://example.org/page"
+          ],
+          "evaluation_level": "l2"
+        },
+        "results": [
+          {
+            "url": "https://example.org/page",
+            "title": "needle",
+            "snippet": "needle"
+          }
+        ],
+        "expected": true,
+        "unavailable_metrics": [
+          "source"
+        ]
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "id": "fact",
+          "query": "A fact?",
+          "reference_answer": "needle",
+          "reference_urls": [
+            "https://example.org/page"
+          ],
+          "evaluation_level": "l2"
+        },
+        "results": [
+          {
+            "url": "https://example.org/page",
+            "title": "needle",
+            "snippet": "unrelated text"
+          }
+        ],
+        "expected": false,
+        "unavailable_metrics": [
+          "source"
+        ]
+      }
+    ],
+    "native-source-citation-identities": [
+      {
+        "kind": "citation",
+        "answer": "A claim [引用:4]",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": "https://api.example.test/v1/#WebPages.3"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "A claim [引用:4]",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": "https://api.example.test/v1/#OtherPages.3"
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Source: <https://source.test/doc>",
+        "results": [
+          {
+            "url": "https://source.test/doc"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Source: <https://other.test/doc>",
+        "results": [
+          {
+            "url": "https://source.test/doc"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "citation-field-references": [
+      {
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": 1,
+            "title": "Authors",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": 1,
+            "title": "Authors",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:content"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "citation-target-occurrences": [
+      {
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": 1,
+            "title": "Authors",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "Ada wrote it [引用:1]. Eve wrote another document [引用:1].",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": 1,
+            "title": "Authors",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          },
+          {
+            "citation_index": 1,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "scenario-answer-evidence": [
+      {
+        "kind": "scenario_grade",
+        "answer": "署名用電子証明書 **5年**。\nOriginal answer.",
+        "judgment": {
+          "grade": 3,
+          "reason": "Answers the duration question"
+        },
+        "expected": true
+      },
+      {
+        "kind": "scenario_grade",
+        "answer": "",
+        "judgment": {
+          "grade": 3,
+          "reason": "Claims a useful answer despite empty input"
+        },
+        "expected": false
+      },
+      {
+        "kind": "scenario_grade",
+        "answer": "Ada wrote it.",
+        "judgment": {
+          "grade": 3,
+          "reason": "Author identified",
+          "evidence": "Invented quote"
+        },
+        "expected": false
+      }
+    ],
+    "rendered-citation-occurrences": [
+      {
+        "kind": "citation",
+        "answer": "Fact [引用:1]",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "`[引用:1]`",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "```\n[引用:1]\n```",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "\\[引用:1]",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "citation-link-claims": [
+      {
+        "kind": "citation",
+        "answer": "The capital is [Paris](https://example.test/a).",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "claim_contains": "Paris",
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "The capital is [Lyon](https://example.test/a).",
+        "results": [
+          {
+            "url": "https://example.test/a",
+            "citation_id": 1
+          }
+        ],
+        "claim_contains": "Paris",
+        "expected": false
+      }
+    ],
+    "output-level-answer-contamination": [
+      {
+        "kind": "factual_output_level",
+        "level": "l1",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada wrote the document.",
+                "summary": "Ada wrote the document."
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": true
+      },
+      {
+        "kind": "factual_output_level",
+        "level": "l1",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}",
+                "summary": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}"
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": false
+      },
+      {
+        "kind": "factual_output_level",
+        "level": "l2",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada wrote the document.",
+                "summary": "Ada wrote the document."
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": true
+      },
+      {
+        "kind": "factual_output_level",
+        "level": "l2",
+        "profile": {
+          "cases": [
+            {
+              "id": "fact",
+              "family": "web",
+              "query": "Who wrote it?",
+              "reference_answer": "Ada",
+              "reference_urls": [
+                "https://source.test/a"
+              ],
+              "factual_contamination_rule": "question-with-structured-dataset-rows/4",
+              "contamination_patterns": {
+                "identity_patterns": []
+              }
+            }
+          ],
+          "methods": [
+            {
+              "id": "a",
+              "output_fields": {
+                "primary_preview": "snippet",
+                "extra_text": [
+                  "summary"
+                ],
+                "answer": null,
+                "page_body": null
+              }
+            }
+          ],
+          "protocol": {
+            "top_k": 5
+          }
+        },
+        "rows": [
+          {
+            "case_id": "fact",
+            "method": "a",
+            "results": [
+              {
+                "url": "https://source.test/a",
+                "snippet": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}",
+                "summary": "Ada {\"answer_type\":\"person\",\"topic\":\"books\",\"urls\":[]}"
+              }
+            ]
+          }
+        ],
+        "qualified_fields": {
+          "a": {
+            "fields": [
+              "summary"
+            ],
+            "qualified": true
+          }
+        },
+        "expected": false
+      }
+    ],
+    "citation-block-locations": [
+      {
+        "kind": "citation",
+        "answer": "```text\nA fact [引用:1]\n```\n\nA fact [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1
+          }
+        ],
+        "span_starts": [
+          34
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "```text\nA fact [引用:1]\n```\n\nA fact [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1
+          }
+        ],
+        "span_starts": [
+          15
+        ],
+        "expected": false
+      }
+    ],
+    "linked-sentence-boundaries": [
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of France. [Rome](https://source.test/rome) is the capital of Italy.",
+        "results": [
+          {
+            "url": "https://source.test/paris"
+          },
+          {
+            "url": "https://source.test/rome"
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France.",
+          "Rome is the capital of Italy."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of France. [Rome](https://source.test/rome) is the capital of Italy.",
+        "results": [
+          {
+            "url": "https://source.test/paris"
+          },
+          {
+            "url": "https://source.test/rome"
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France.",
+          "is the capital of France. Rome is the capital of Italy."
+        ],
+        "expected": false
+      }
+    ],
+    "bocha-native-slot-projection": [
+      {
+        "kind": "native_projection",
+        "method": {
+          "adapter": "bocha"
+        },
+        "protocol": {
+          "top_k": 2,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "payload": {
+          "code": 200,
+          "data": {
+            "webPages": {
+              "value": [
+                null,
+                {
+                  "url": "https://source.test/a"
+                }
+              ]
+            }
+          }
+        },
+        "invalid_slots": [
+          true,
+          false
+        ],
+        "expected": true
+      },
+      {
+        "kind": "native_projection",
+        "method": {
+          "adapter": "bocha"
+        },
+        "protocol": {
+          "top_k": 2,
+          "normalize_top_k": true
+        },
+        "payload": {
+          "code": 200,
+          "data": {
+            "webPages": {
+              "value": [
+                null,
+                {
+                  "url": "https://source.test/a"
+                }
+              ]
+            }
+          }
+        },
+        "invalid_slots": [
+          true,
+          false
+        ],
+        "expected": false
+      },
+      {
+        "kind": "native_projection",
+        "method": {
+          "adapter": "bocha"
+        },
+        "protocol": {
+          "top_k": 2,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "payload": {
+          "code": 200,
+          "data": {
+            "webPages": {
+              "value": [
+                null
+              ]
+            }
+          }
+        },
+        "invalid_slots": [
+          true
+        ],
+        "expected": false
+      }
+    ],
+    "rendered-local-citation-claims": [
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of [France](https://source.test/france).",
+        "results": [
+          {
+            "url": "https://source.test/paris",
+            "citation_id": 1,
+            "snippet": "A fact."
+          },
+          {
+            "url": "https://source.test/france",
+            "citation_id": 2,
+            "snippet": "A fact."
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France.",
+          "Paris is the capital of France."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "[Paris](https://source.test/paris) is the capital of [France](https://source.test/france).",
+        "results": [
+          {
+            "url": "https://source.test/paris",
+            "citation_id": 1,
+            "snippet": "A fact."
+          },
+          {
+            "url": "https://source.test/france",
+            "citation_id": 2,
+            "snippet": "A fact."
+          }
+        ],
+        "claims": [
+          "Paris is the capital of",
+          "France."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Ada wrote it [引用:1].\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "claims": [
+          "Ada wrote it.",
+          ""
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Ada wrote it [引用:1].\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "claims": [
+          "Ada wrote it.",
+          "Ada wrote it."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "A fact.\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": false,
+            "source_refs": []
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "A fact.\n\n[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Ada wrote it."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "<span title=\"Paris is in France\"></span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "claims": [
+          ""
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "<span title=\"Paris is in France\"></span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "<span title=\"Hidden assertion\">Paris is in France.</span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "claims": [
+          "Paris is in France."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation_grade",
+        "answer": "<span title=\"Hidden assertion\">Paris is in France.</span>[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is in France."
+          }
+        ],
+        "judgments": [
+          {
+            "citation_index": 0,
+            "supported": true,
+            "source_refs": [
+              "0:snippet"
+            ]
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha. [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha. [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.  [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.  [引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.\n[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Alpha.\n[引用：1] Beta.",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Alpha."
+          }
+        ],
+        "claims": [
+          "Alpha. Beta."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "She said \"First claim.\" Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "She said \"First claim.\" Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "She said \"First claim.\" Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "She said “First claim.” Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "She said “First claim.” Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "She said “First claim.” Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "(First claim.) Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "(First claim.) Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "(First claim.) Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "(\"First claim.\") Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "(\"First claim.\") Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "(\"First claim.\") Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "[First claim.] Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "[First claim.] Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "[First claim.] Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "『First claim。』 Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "Second claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "『First claim。』 Second claim [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Second claim"
+          }
+        ],
+        "claims": [
+          "『First claim。』 Second claim"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "![<span title=\"Hidden assertion\">Paris</span>](https://source.test/image.png)[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris"
+          }
+        ],
+        "claims": [
+          "Paris"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "![<span title=\"Hidden assertion\">Paris</span>](https://source.test/image.png)[引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris"
+          }
+        ],
+        "claims": [
+          "<span title=\"Hidden assertion\">Paris</span>"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Paris<br title=\"Hidden assertion\">is the capital of France. [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is the capital of France."
+          }
+        ],
+        "claims": [
+          "Paris is the capital of France."
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Paris<br title=\"Hidden assertion\">is the capital of France. [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Paris is the capital of France."
+          }
+        ],
+        "claims": [
+          "Parisis the capital of France."
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Visible claim <script>hidden assertion [引用:2]</script> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Visible claim"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Visible claim <script>hidden assertion [引用:2]</script> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Visible claim hidden assertion",
+          "Visible claim hidden assertion"
+        ],
+        "expected": false
+      },
+      {
+        "kind": "citation",
+        "answer": "Prefix <style>hidden [引用:2]</style> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Prefix"
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "Prefix <style>hidden [引用:2]</style> [引用:1]",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "citation_id": 1,
+            "snippet": "Visible claim"
+          },
+          {
+            "url": "https://source.test/b",
+            "citation_id": 2,
+            "snippet": "Visible claim"
+          }
+        ],
+        "claims": [
+          "Prefix hidden",
+          "Prefix hidden"
+        ],
+        "expected": false
+      }
+    ]
+  },
+  "web_search_normalization": {
+    "invalid-result-slots": [
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "valid-second-slot",
+        "payload": {
+          "results": [
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "https://reference.test/fact",
+              "snippet": "42"
+            }
+          ]
+        },
+        "expected_rr": 0.5,
+        "expected": true
+      },
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "never-promote-sixth-slot",
+        "payload": {
+          "results": [
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "javascript:invalid",
+              "snippet": "42"
+            },
+            {
+              "url": "https://reference.test/fact",
+              "snippet": "42"
+            }
+          ]
+        },
+        "expected_rr": 0,
+        "expected": false
+      },
+      {
+        "method": {
+          "adapter": "brightdata"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "resolution-does-not-discard-neighbor",
+        "payload": {
+          "organic": [
+            {
+              "link": "https://[broken/"
+            },
+            {
+              "link": "/fact"
+            }
+          ]
+        },
+        "expected_rr": 0.5,
+        "expected": true,
+        "request": {
+          "url": "https://reference.test/search"
+        }
+      },
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "error-envelope-0",
+        "payload": {
+          "error": "Unavailable",
+          "results": []
+        },
+        "expected_rr": 0.5,
+        "expected": true,
+        "request": {
+          "url": "https://reference.test/search"
+        },
+        "error": true
+      },
+      {
+        "method": {
+          "adapter": "lexmount"
+        },
+        "protocol": {
+          "top_k": 5,
+          "normalize_top_k": true,
+          "result_url_resolution": "request-url/2"
+        },
+        "case": {
+          "reference_answer": "42",
+          "reference_urls": [
+            "https://reference.test/fact"
+          ]
+        },
+        "id": "error-envelope-1",
+        "payload": {
+          "error": "Unavailable",
+          "results": [
+            {
+              "url": "https://reference.test/fact"
+            }
+          ]
+        },
+        "expected_rr": 0.5,
+        "expected": true,
+        "request": {
+          "url": "https://reference.test/search"
+        },
+        "error": true
+      }
+    ]
+  }
 }

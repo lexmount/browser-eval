@@ -44,6 +44,14 @@ def _bound(root, binding):
     return resolve_profile(json.loads(raw))
 
 
+def _selected_methods(profile, binding):
+    methods = {method['id']: method for method in profile['methods']}
+    ids = binding.get('methods', list(methods))
+    if not ids or len(ids) != len(set(ids)) or not set(ids).issubset(methods):
+        raise ValueError('Invalid current source method selection')
+    return [methods[mid] for mid in ids]
+
+
 def current_selection(path, *, root=None):
     root = authority_root(path, root)
     selection = json.loads(Path(path).read_bytes())
@@ -53,14 +61,17 @@ def current_selection(path, *, root=None):
         raise ValueError("Unsupported independent Search review scope")
     profile = _bound(root, selection["profile"])
     ids = selection["methods"]
-    available = {m["id"]: m for m in profile["methods"]}
-    if not ids or len(ids) != len(set(ids)) or not set(ids).issubset(available):
-        raise ValueError("Invalid current search method selection")
+    available = {m["id"]: m for m in _selected_methods(profile, selection['profile'])}
     cohorts = selection.get("supplementary_profiles", [])
     if len({c["id"] for c in cohorts}) != len(cohorts) or any(c["id"] == "primary" for c in cohorts):
         raise ValueError("Duplicate current search cohort")
     for cohort in cohorts:
-        _bound(root, cohort)
+        for method in _selected_methods(_bound(root, cohort), cohort):
+            if method["id"] in available and available[method["id"]] != method:
+                raise ValueError("Conflicting current search method definitions")
+            available[method["id"]] = method
+    if not ids or len(ids) != len(set(ids)) or not set(ids).issubset(available):
+        raise ValueError("Invalid current search method selection")
     _inside(root, selection["publication_target"])
     return selection
 
@@ -80,11 +91,12 @@ def load_profile_bytes(path, *, root=None, cohort="primary"):
     if binding is None:
         raise ValueError("Unknown supplementary cohort")
     profile = copy.deepcopy(_bound(root, binding))
-    by_id = {m["id"]: m for m in profile["methods"]}
-    profile["methods"] = [by_id[mid] for mid in selection["methods"]]
+    by_id = {m["id"]: m for m in _selected_methods(profile, binding)}
+    profile["methods"] = [by_id[mid] for mid in selection["methods"] if mid in by_id]
     profile["title"] = selection["title"] if cohort == "primary" else profile["title"]
     profile["protocol"]["comparison"] = "Current selected methods; one declared result per query and method."
-    profile["protocol"]["order"] = "complete provider batches"
+    if profile['protocol']['concurrency'] == 1 and profile.get('execution_policy') is None:
+        profile["protocol"]["order"] = "complete provider batches"
     profile["publication"] = {"authority": selection["publication_target"]}
     if selection.get("independent_result_review_scope"):
         profile["independent_result_review_scope"] = selection["independent_result_review_scope"]
@@ -146,7 +158,8 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
         if bindings[prefix + "_profile"] != {k: expected_profile[k] for k in ("path", "sha256")}:
             raise ValueError("Live search target profile differs from the current selection")
         accepted_profiles = {bytes_sha256(load_profile_bytes(_inside(root, expected_profile["path"]), root=root))}
-        accepted_profiles.add(bytes_sha256(load_profile_bytes(path, root=root, cohort=cohort)))
+        if receipt['profile_sha256'] not in accepted_profiles:
+            accepted_profiles.add(bytes_sha256(load_profile_bytes(path, root=root, cohort=cohort)))
         if receipt["profile_sha256"] not in accepted_profiles:
             raise ValueError("Search release uses a different collection profile")
         if receipt.get("receipt_sha256") != bindings[prefix + "_receipt"]["sha256"]:
@@ -154,18 +167,20 @@ def publication_authority(manifest, path, *, root=None, planned_target=None, exp
     return target
 
 
-def publication_metadata(manifest, review, relevance):
+def publication_metadata(manifest, review=None, relevance=None):
     """Derive release populations from the same evidence used by the renderer."""
     profile = manifest['profile']
     factual = {c['id'] for c in profile['cases'] if 'reference_answer' in c}
     excluded = factual & set(profile.get('factual_quality_exclusions', []))
-    counts = {key: review[key] for key in ('case_total', 'case_reviewed', 'output_total', 'output_reviewed', 'candidate_total', 'candidate_reviewed', 'accepted_unreviewed_passes')}
-    counts['finding_dispositions'] = dict(Counter(d['resolution'] for d in review['adjudications'].values()))
-    counts['reference_dispositions'] = dict(Counter(d['resolution'] for key, d in review['adjudications'].items() if key.endswith(':dataset') and key.removesuffix(':dataset') in factual))
+    counts = None
+    if review is not None:
+        counts = {key: review[key] for key in ('case_total', 'case_reviewed', 'output_total', 'output_reviewed', 'candidate_total', 'candidate_reviewed', 'accepted_unreviewed_passes')}
+        counts['finding_dispositions'] = dict(Counter(d['resolution'] for d in review['adjudications'].values()))
+        counts['reference_dispositions'] = dict(Counter(d['resolution'] for key, d in review['adjudications'].items() if key.endswith(':dataset') and key.removesuffix(':dataset') in factual))
     return {
         'populations': {'custom': len(profile['cases']) - len(factual), 'factual': len(factual), 'factual_quality': len(factual - excluded), 'factual_quarantined': len(excluded)},
         'independent_review': counts,
-        'quality_annotation': {'queries': len(relevance['plan']['case_ids']), 'candidates': sum(len(v) for v in relevance['labels'].values()), 'scope': relevance['plan']['scope']},
+        'quality_annotation': {'queries': len(relevance['plan']['case_ids']), 'candidates': sum(len(v) for v in relevance['labels'].values()), 'scope': relevance['plan']['scope']} if relevance is not None else None,
     }
 
 
@@ -184,7 +199,8 @@ def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
     if "content" in target["bindings"]:
         current_fields.append(("content", "content_sha256"))
     for key, field in current_fields:
-        if manifest.get(field) != target["bindings"][key]["sha256"]:
+        binding = target["bindings"].get(key)
+        if manifest.get(field) != (binding["sha256"] if binding else None):
             raise ValueError("Search publication source differs: " + key)
     if target.get("logical_results") != len(manifest["rows"]):
         raise ValueError("Search publication logical result population differs")
@@ -195,7 +211,9 @@ def verify_publication_inputs(manifest, target, *, root=None, data_home=None):
         raise ValueError("Search publication physical call population differs")
     fields = ('populations', 'independent_review', 'quality_annotation')
     if any(field in target for field in fields):
-        expected = publication_metadata(manifest, json.loads(bound_paths['independent_review'].read_bytes()), json.loads(bound_paths['relevance'].read_bytes()))
+        review = json.loads(bound_paths['independent_review'].read_bytes()) if 'independent_review' in bound_paths else None
+        relevance = json.loads(bound_paths['relevance'].read_bytes()) if 'relevance' in bound_paths else None
+        expected = publication_metadata(manifest, review, relevance)
         if any(target.get(field) != expected[field] for field in fields):
             raise ValueError('Search publication assessment counts differ from evidence')
     return True

@@ -118,10 +118,13 @@ def capture(report: Path, receipt: Path) -> Path:
                     settle_theme(page)
                     state = page.evaluate('''() => {
 const clipped=[],tiny=[];
-for(const node of document.querySelectorAll('h1,h2,nav a,input,select,button')){
+for(const node of document.querySelectorAll('h1,h2,nav a,input,select,button,td.win')){
   if(!node.getClientRects().length||node.closest('dialog:not([open])'))continue;
   const box=node.getBoundingClientRect();
-  if(box.left < -2 || box.right > innerWidth+2)clipped.push(node.tagName+':'+node.textContent.trim().slice(0,60));
+  const scroll=node.closest('.scroll'),frame=scroll?.getBoundingClientRect();
+  const reachable=scroll&&scroll.scrollWidth>scroll.clientWidth&&frame.left>=-2&&frame.right<=innerWidth+2;
+  if((box.left < -2 || box.right > innerWidth+2)&&!reachable)clipped.push(node.tagName+':'+node.textContent.trim().slice(0,60));
+  if(node.matches('td')&&getComputedStyle(node).display!=='table-cell')clipped.push('Invalid table cell layout');
   if(parseFloat(getComputedStyle(node).fontSize)<12)tiny.push(node.tagName);
 }
 return {overflow:document.documentElement.scrollWidth-innerWidth,clipped,tiny,

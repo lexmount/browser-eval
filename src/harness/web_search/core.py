@@ -11,7 +11,7 @@ from urllib.parse import urljoin
 
 from lexbench_webfetch.metrics import percentile
 from lexbench_websearch.contracts import validate_cases
-from lexbench_websearch.scoring import canonical_url, normalize_results
+from lexbench_websearch.scoring import canonical_url, normalize_results, task_acceptance
 
 from harness.record_io import bytes_sha256, json_bytes
 from harness.reporting.publication import atomic_write
@@ -28,36 +28,76 @@ def request_body(adapter, case, protocol, options=None):
     return adapter_for(adapter).request(case, protocol, options)
 
 
-def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots=False):
-    payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots)
+def normalize(payload, adapter=None, top_k=None, *, base_url=None, project_slots=False,
+              preserve_invalid_slots=False):
+    payload = normalize_envelope(payload, adapter, top_k=top_k, project_slots=project_slots,
+                                 preserve_invalid_slots=preserve_invalid_slots)
+    if isinstance(payload, dict) and payload.get('error'):
+        raise ValueError('Search response contains an error')
     if isinstance(payload, dict) and isinstance(payload.get("results"), list):
         pages = payload["results"][:top_k] if project_slots and top_k is not None else payload["results"]
         projected = []
-        for item in pages:
-            if isinstance(item, dict):
-                item = dict(item)
-                if base_url and isinstance(item.get("url"), str):
-                    item["url"] = urljoin(base_url, item["url"])
-                if adapter == "browserbase" and "snippet" not in item:
-                    item["snippet"] = item.get("description", "")
-                if "date" not in item and "published_at" not in item:
-                    item["date"] = item.get("publishedDate")
-            projected.append(item)
+        for rank, item in enumerate(pages, 1):
+            try:
+                if isinstance(item, dict):
+                    item = dict(item)
+                    if base_url and isinstance(item.get("url"), str):
+                        item["url"] = urljoin(base_url, item["url"])
+                    if adapter == "browserbase" and "snippet" not in item:
+                        item["snippet"] = item.get("description", "")
+                    if "date" not in item and "published_at" not in item:
+                        item["date"] = item.get("publishedDate")
+                if preserve_invalid_slots:
+                    normalized = normalize_results({'results': [item]})[0]
+                    normalized['rank'] = rank
+                    projected.append(normalized)
+                else:
+                    projected.append(item)
+            except (ValueError, TypeError, AttributeError):
+                if not preserve_invalid_slots:
+                    raise
+                projected.append(dict(rank=rank, url=f'https://invalid-result-slot.invalid/{rank}',
+                                      title='', snippet='', summary='', content='', date=None,
+                                      invalid_slot=True))
         payload = dict(payload, results=projected)
+        if preserve_invalid_slots:
+            return projected
     results = normalize_results(payload)
     return results[:top_k] if top_k is not None else results
 
 
 def normalize_response(payload, method, protocol, request=None):
     """Project native slots using the frozen request's URL-resolution policy."""
+    error = adapter_for(method["adapter"]).account_error(payload, method)
+    if error:
+        raise ValueError(error)
+    adapter = adapter_for(method['adapter'])
+    if method.get('expected_response_version') is not None and not (adapter.failure and adapter.failure(payload)):
+        version = payload
+        for key in adapter_for(method['adapter']).version_path:
+            version = version.get(key) if isinstance(version, dict) else None
+        if version is None:
+            raise ValueError('Search response is missing its edition version')
     policy = protocol.get("result_url_resolution")
-    if policy not in (None, "request-url/1"):
+    if policy not in (None, "request-url/1", "request-url/2"):
         raise ValueError("Unknown native result URL policy")
     base_url = (request or {}).get("url") if policy else None
     if base_url:
         canonical_url(base_url)
     return normalize(payload, method["adapter"], protocol["top_k"] if protocol.get("normalize_top_k") else None,
-                     base_url=base_url, project_slots=bool(policy))
+                     base_url=base_url, project_slots=bool(policy),
+                     preserve_invalid_slots=policy == 'request-url/2')
+
+
+def normalized_answer(payload, method):
+    adapter = adapter_for(method['adapter'])
+    if not adapter.field_map(method)['answer']:
+        return None
+    value = normalize_envelope(payload, method['adapter'], top_k=0, project_slots=True,
+                               preserve_invalid_slots=True).get('answer', '')
+    if not isinstance(value, str):
+        raise ValueError('Generated answers must be text')
+    return value
 
 
 def latency(values):
@@ -74,7 +114,7 @@ def aggregate(rows):
     for method in dict.fromkeys(r["method"] for r in rows):
         subset = [r for r in rows if r["method"] == method]
         success = [
-            r for r in subset if r["http_status"] == 200 and r["results"] and not r.get("error")
+            r for r in subset if task_acceptance({}, r, 'availability')
         ]
         costs = [r["cost"] for r in subset]
         metrics = {}
@@ -135,6 +175,13 @@ def validate_profile(profile, *, execution_methods=None):
     cases = profile["cases"]
     methods = profile["methods"]
     protocol = profile["protocol"]
+    if protocol.get('locale_policy') not in (None, 'query-language/1'):
+        raise ValueError('Unsupported query locale policy')
+    if type(protocol.get("retry", False)) is not bool:
+        raise ValueError("Retry must be a boolean; omit it or use false for zero retries")
+    reference_retries = protocol.get("reference_retries", 0)
+    if type(reference_retries) is not int or not 0 <= reference_retries <= 3:
+        raise ValueError("Reference retries must be an integer between zero and three")
     if not cases or not methods:
         raise ValueError("Empty matrix")
     for items in (cases, methods):
@@ -169,6 +216,18 @@ def validate_profile(profile, *, execution_methods=None):
     for method in methods:
         canonical_url(method["endpoint"])
         adapter_for(method["adapter"])
+        from lexbench_websearch.outputs import levels
+        fields = adapter_for(method['adapter']).field_map(method)
+        if 'output_fields' in method and method['output_fields'] != fields:
+            raise ValueError('Declared output fields differ from the native adapter')
+        if 'output_levels' in method and method['output_levels'] != levels(fields):
+            raise ValueError('Declared levels differ from the native output fields')
+        if method['adapter'] == 'tencent-wsa':
+            expected = method.get('expected_response_version')
+            edition = (method.get('output_options') or {}).get('edition', 'standard')
+            if (not isinstance(expected, str) or not expected.strip()
+                    or edition != expected):
+                raise ValueError('Yuanbao requires an expected response version matching its edition')
         if method.get("billing", "unknown") not in BILLING_POLICIES:
             raise ValueError("Unsupported billing policy")
         for case in cases:

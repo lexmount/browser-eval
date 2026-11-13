@@ -6,6 +6,12 @@ Run `make report-template TRACK=webfetch` (or `trajectory-replay` / `browser-use
 
 A new report type follows the new-track rule in `AGENTS.md`: persist a reusable example and scenario-based positive/negative tests and register its owner and release gate before generating the requested report. Later corrections update the owner and relevant rules when supported by evidence; do not clone a template per run or embed report-specific conclusions in instructions.
 
+For paragraph-only corrections, use the track's content-revision entry when it
+exists. It must preserve measured bytes, assessment inputs, report structure and
+language coverage, and retain revision provenance. New publication plans and the
+normal release checks still apply; a prose edit does not require regenerating
+unchanged evidence pages.
+
 Web Fetch diagnostic models, compiled reruns and diagnostic releases are in the [Web Fetch guide](../../../../src/harness/web_fetch/README.md#certified-cohorts-and-report-builds).
 
 ## Language generation

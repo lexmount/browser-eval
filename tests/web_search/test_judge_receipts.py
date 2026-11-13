@@ -2,6 +2,7 @@
 
 import base64
 import copy
+import hashlib
 import io
 import json
 import urllib.error
@@ -87,6 +88,125 @@ class Response(io.BytesIO):
     status = 200
 
 
+@pytest.mark.parametrize('level',['l1','l2'])
+def test_public_judge_selects_native_fields_and_replays_l2_admission(run_judge,monkeypatch,tmp_path,level):
+    from harness.record_io import bytes_sha256
+    from harness.web_search import report
+    from tests.web_search.test_field_admission import example
+
+    profile,rows,receipt,artifacts=example()
+    profile['cases'][0].pop('reference_answer')
+    monkeypatch.setattr(report,'check',lambda *a,**kw:(profile,rows))
+    args=['--level',level]
+    if level == 'l2':
+        for name,raw in artifacts.items():
+            (tmp_path/name).write_bytes(raw)
+        raw=json.dumps(receipt).encode();(tmp_path/'admission.json').write_bytes(raw)
+        bundle=dict(schema='web-search-field-admissions/1',receipts={'web':dict(path='admission.json',sha256=bytes_sha256(raw))},
+                    artifacts=[dict(path=name,sha256=bytes_sha256(value)) for name,value in artifacts.items()])
+        (tmp_path/'admissions.json').write_text(json.dumps(bundle), encoding="utf-8")
+        args+=['--field-admissions',str(tmp_path/'admissions.json')]
+    requests=[]
+    def transport(request,**kwargs):
+        assert request.full_url.endswith('/chat/completions')
+        message=json.loads(request.data)
+        packet=json.loads(message['messages'][1]['content'])
+        for candidate in packet['candidates']:
+            assert set(candidate['previews'][0]) == {'title','snippet'}
+            actual=candidate['previews'][0]['snippet']
+            assert actual == ('Primary preview' if level == 'l1' else rows[0]['results'][0]['summary'])
+        requests.append(request)
+        return Response(answer(request))
+    monkeypatch.setattr(urllib.request,'urlopen',transport)
+    run_judge(args)
+    evidence=json.loads((run_judge.output/'relevance.json').read_bytes())
+    assert evidence['evaluation_level'] == level
+    assert evidence['judge']['configuration']['extra_params']['enable_thinking'] is False
+    validate_model_evidence(evidence)
+    assert len(requests) == 1
+
+
+@pytest.mark.parametrize('level', ['l1','l2'])
+def test_layered_judge_receipts_bind_level_prompt_and_exact_fields(run_judge, monkeypatch, level):
+    from harness.web_search import report
+    from harness.web_search.relevance import verify_provenance
+    from lexbench_websearch.rubric import judge_prompt
+
+    profile = dict(protocol=dict(top_k=5,relevance_input='delivered-previews/1',relevance_level=level),
+                   cases=[dict(id='q',query='Install the package',family='web')],methods=[dict(id='a')])
+    rows = [dict(case_id='q',method='a',results=[dict(url='https://example.test/guide',
+                                                   title='Install',snippet='pip install package')])]
+    monkeypatch.setattr(report,'check',lambda *a,**kw:(profile,rows))
+    requests=[]
+    def transport(request,**kwargs):
+        payload=json.loads(request.data)
+        packet=json.loads(payload['messages'][1]['content'])
+        assert packet['evaluation_level'] == level
+        assert ('url' in packet['candidates'][0]) == (level == 'l1')
+        assert payload['messages'][0]['content'] == judge_prompt(level)
+        requests.append(request)
+        return Response(answer(request))
+    monkeypatch.setattr(urllib.request,'urlopen',transport)
+    run_judge(['--disable-thinking'])
+    evidence=json.loads((run_judge.output/'relevance.json').read_bytes())
+    assert evidence['evaluation_level'] == level
+    assert evidence['judge']['configuration']['extra_params']['enable_thinking'] is False
+    verify_provenance(profile,rows,evidence)
+    corrupted=copy.deepcopy(evidence)
+    corrupted['evaluation_level']='l2' if level == 'l1' else 'l1'
+    with pytest.raises(ValueError,match='same output level'):
+        validate_model_evidence(corrupted)
+    run_judge(['--disable-thinking'])
+    assert len(requests) == 1
+
+
+def test_adding_provider_reuses_only_unchanged_blind_inputs(run_judge, monkeypatch, tmp_path):
+    from harness.web_search import report
+
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, "urlopen", transport)
+    run_judge()
+    predecessor = run_judge.output / "relevance.json"
+    original = predecessor.read_bytes()
+    profile = {
+        "protocol": {"top_k": 5},
+        "cases": [{"id": "q", "query": "Install the package", "family": "web"}],
+        "methods": [{"id": "a"}, {"id": "b"}],
+    }
+    item = {"url": "https://example.org/guide", "title": "Install",
+            "snippet": "pip install package"}
+    rows = [{"case_id": "q", "method": m, "results": [dict(item)]} for m in ("a", "b")]
+    monkeypatch.setattr(report, "check", lambda *a, **kw: (profile, rows))
+    reused = tmp_path / "added-provider"
+    run_judge(["--output", str(reused), "--reuse-evidence", str(predecessor)])
+    assert len(requests) == 1
+    evidence = json.loads((reused / "relevance.json").read_bytes())
+    assert evidence["judge"]["inherited_case_ids"] == ["q"]
+    assert set(evidence["provider_rankings"]["q"]) == {"a", "b"}
+    validate_model_evidence(evidence)
+
+    rows[1]["results"][0]["url"] = "https://another.example/guide"
+    expanded = tmp_path / "expanded-pool"
+    run_judge(["--output", str(expanded), "--reuse-evidence", str(predecessor)])
+    assert len(requests) == 2
+    evidence = json.loads((expanded / "relevance.json").read_bytes())
+    assert evidence["judge"]["inherited_case_ids"] == []
+    assert len(evidence["labels"]["q"]) == 2
+    validate_model_evidence(evidence)
+
+    rows[0]["results"][0]["snippet"] = "A changed original provider output"
+    with pytest.raises(ValueError, match="candidate text differs"):
+        run_judge(["--output", str(tmp_path / "changed-old-output"),
+                   "--reuse-evidence", str(predecessor)])
+    assert len(requests) == 2
+    assert predecessor.read_bytes() == original
+
+
 def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judge, monkeypatch):
     requests = []
 
@@ -99,7 +219,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
         return Response(answer(request))
 
     monkeypatch.setattr(urllib.request, "urlopen", transport)
-    run_judge()
+    run_judge(['--retries', '2'])
     input_packet = json.loads(json.loads(requests[-1].data)["messages"][1]["content"])
     assert "example.org" not in json.dumps(input_packet)
     assert all("source_eligible" in c for c in input_packet["candidates"])
@@ -108,7 +228,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
     assert [a["status"] for a in attempts] == [429, 200]
     assert base64.b64decode(attempts[0]["response_bytes_base64"]) == b"rate limited\xff\r\n"
     validate_model_evidence(evidence)
-    run_judge()
+    run_judge(['--retries', '2'])
     assert len(requests) == 2
     for change in ("bytes", "tokens", "thinking", "configuration"):
         bad = copy.deepcopy(evidence)
@@ -123,7 +243,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
         with pytest.raises(ValueError):
             validate_model_evidence(bad)
     with pytest.raises(ValueError, match="different inputs or configuration"):
-        run_judge(["--disable-thinking"])
+        run_judge(["--disable-thinking", "--retries", "2"])
     assert len(requests) == 2
 
 
@@ -146,7 +266,7 @@ def test_failures_keep_bytes_and_total_retry_budget_survives_resume(
     monkeypatch.setattr(urllib.request, "urlopen", transport)
     for _ in range(2):
         with pytest.raises(ValueError, match="Incomplete judge run"):
-            run_judge()
+            run_judge(['--retries', '2'])
     assert count == expected
     journal = json.loads(next(run_judge.output.glob("*-attempts.json")).read_text(encoding="utf-8"))
     assert len(journal) == expected
@@ -169,6 +289,66 @@ def test_invalid_model_answer_is_retained_and_never_automatically_replaced(run_j
             run_judge()
     assert count == 1
     assert next(run_judge.output.glob("*-attempts.json")).exists()
+
+
+def test_a_changed_valid_response_cannot_authorize_a_paid_format_repair(run_judge, monkeypatch):
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    run_judge()
+    path = run_judge.output / (hashlib.sha256(b'q').hexdigest()[:16] + '.json')
+    saved = json.loads(path.read_bytes())
+    saved['response']['choices'][0]['message']['content'] = '{"judgments":[]}'
+    path.write_text(json.dumps(saved), encoding='utf-8')
+    with pytest.raises(ValueError, match='Incomplete judge run'):
+        run_judge(['--repair-format'])
+    assert len(requests) == 1
+
+
+@pytest.mark.parametrize('invalid_format', ['omitted-candidates', 'quoted-string', 'url-reference'])
+def test_explicit_format_repair_preserves_invalid_call_and_never_repeats_valid_answers(
+    run_judge, monkeypatch, invalid_format
+):
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        raw = json.loads(answer(request))
+        if len(requests) == 1:
+            if invalid_format == 'omitted-candidates':
+                raw['choices'][0]['message']['content'] = '{"judgments":[]}'
+            else:
+                items = json.loads(raw['choices'][0]['message']['content'])
+                items['judgments'][0]['evidence'] = ('pip install package' if invalid_format == 'quoted-string'
+                                                    else {'field': 'url', 'preview_index': 0})
+                raw['choices'][0]['message']['content'] = json.dumps(items)
+        return Response(json.dumps(raw).encode())
+
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    with pytest.raises(ValueError, match='Incomplete judge run'):
+        run_judge()
+    original = json.loads(next(p for p in run_judge.output.glob('*.json')
+                               if p.name not in ('contract.json',) and not p.name.endswith('-attempts.json')).read_bytes())
+    run_judge(['--repair-format'])
+    evidence = json.loads((run_judge.output / 'relevance.json').read_bytes())
+    validate_model_evidence(evidence)
+    assert evidence['judge']['calls'][0]['format_repair']['prior_call'] == original
+    for field in ('response', 'request-hash'):
+        changed = copy.deepcopy(evidence)
+        prior = changed['judge']['calls'][0]['format_repair']['prior_call']
+        if field == 'response':
+            prior['response']['model'] = 'other-model'
+        else:
+            prior['attempts'][0]['request_sha256'] = '0' * 64
+        with pytest.raises(ValueError):
+            validate_model_evidence(changed)
+    assert len(requests) == 2
+    run_judge(['--repair-format'])
+    assert len(requests) == 2
 
 
 def test_corrupt_failure_journal_never_authorizes_a_new_request(run_judge, monkeypatch):
@@ -387,3 +567,66 @@ def test_judge_host_allowlist_is_not_interpolated_from_the_shell(run_judge, monk
     with pytest.raises(ValueError):
         run_judge([])
     assert not run_judge.output.exists()
+
+
+def test_judge_can_score_verified_collection_without_building_reader_pages(run_judge, monkeypatch, tmp_path):
+    from harness.web_search.example import example
+
+    seed = tmp_path / 'seed'
+    example(seed)
+    requests = []
+
+    def transport(request, **kwargs):
+        requests.append(request)
+        return Response(answer(request))
+
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    output = tmp_path / 'collection-judge'
+    judge_main(['--source', str(seed / 'fixture'), '--output', str(output),
+                '--model', 'test-model', '--base-url', 'https://test.invalid/v1', '--workers', '1'])
+    evidence = json.loads((output / 'relevance.json').read_bytes())
+    assert len(requests) == len(evidence['plan']['case_ids'])
+    assert evidence['labels']
+    assert not list((output / 'inputs').rglob('*.html'))
+
+
+def test_default_judge_failure_is_one_attempt_even_when_resumed(run_judge, monkeypatch):
+    spent = []
+    def transport(request, **kwargs):
+        spent.append(request)
+        raise urllib.error.HTTPError(request.full_url, 503, 'unavailable', {}, io.BytesIO(b'error'))
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    for _ in range(2):
+        with pytest.raises(ValueError, match='Incomplete judge run'):
+            run_judge()
+    assert len(spent) == 1
+    assert json.loads((run_judge.output/'contract.json').read_bytes())['attempt_limit'] == 1
+
+
+def test_interrupted_format_repair_keeps_original_and_recovers_without_paid_call(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from harness.web_search.relevance import run_judge_request
+    path = tmp_path/'call.json'
+    original = {'paid': 'original'}
+    path.write_text(json.dumps(original), encoding="utf-8")
+    config = dict(base_url='https://test.invalid/v1', request_headers={}, attempt_limit=1)
+    request = dict(messages=[])
+    spent = []
+    def transport(*args, **kwargs):
+        spent.append(1)
+        return Response(b'{"choices": []}')
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    replace = Path.replace
+    def interrupted(self, target):
+        if Path(target) == path:
+            raise OSError('Disk full')
+        return replace(self, target)
+    monkeypatch.setattr(Path, 'replace', interrupted)
+    with pytest.raises(OSError, match='Disk full'):
+        run_judge_request(path, 'q', request, config, 'fixture', prior_call=original)
+    assert json.loads(path.read_bytes()) == original
+    monkeypatch.setattr(Path, 'replace', replace)
+    restored = run_judge_request(path, 'q', request, config, 'fixture', prior_call=original)
+    assert len(spent) == 1 and restored['format_repair']['prior_call'] == original
+    assert json.loads(path.read_bytes()) == restored

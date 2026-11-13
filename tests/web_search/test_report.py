@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+import pytest
 from bs4 import BeautifulSoup
 
 from harness.record_io import bytes_sha256
@@ -139,8 +140,7 @@ class ReportScenarios(unittest.TestCase):
             check(self.out)
 
     def test_reference_exclusion_does_not_remove_cohort_measurements(self):
-        from harness.web_search.report import cohort_summary
-        from harness.web_search.report import load_run
+        from harness.web_search.report import cohort_summary, load_run
         profile, rows, _ = load_run(self.root / "fixture")
         profile["report_cohorts"] = [{"id": "public", "label": {"zh": "公开组", "en": "Public"}, "case_ids": [c["id"] for c in profile["cases"]]}]
         profile["factual_quality_exclusions"] = [profile["cases"][0]["id"]]
@@ -153,7 +153,7 @@ class ReportScenarios(unittest.TestCase):
 
 
     def test_dataset_uses_reviewed_questions_without_rewriting_collected_calls(self):
-        from harness.web_search.report import quality_dataset, metric_populations, dataset_context
+        from harness.web_search.report import dataset_context, metric_populations, quality_dataset
         profile = {
             "cases": [
                 {"id": "scenario", "origin": "community"},
@@ -379,6 +379,9 @@ class ReportScenarios(unittest.TestCase):
         evidence = import_annotations(profile, measured, submission)
         relevance = self.root / "relevance.json"
         relevance.write_text(json.dumps(evidence), encoding="utf-8")
+        build(self.out, source=source, relevance=relevance)
+        self.assertIsNone(json.loads((self.out / "manifest.json").read_bytes())["authored"])
+        self.assertTrue(check(self.out))
         content = self.root / "reading.json"
         content.write_text(json.dumps({"reading_model": True, "reading_sections": [
             {"key": "quality", "title": {"en": "Quality", "zh": "质量"}, "nav": {"en": "Quality", "zh": "质量"}}],
@@ -739,8 +742,8 @@ if __name__ == "__main__":
 
 class RepeatedLatencyScenarios(unittest.TestCase):
     def test_all_rounds_and_unknown_cache_remain_visible(self):
-        from lexbench_websearch.scoring import evaluate
         from harness.web_search.report import latency_rounds
+        from lexbench_websearch.scoring import evaluate
 
         profile = {"protocol": {"rounds": 2}, "methods": [{"id": "a", "label": "A"}]}
         rows = [
@@ -776,8 +779,9 @@ class RepeatedLatencyScenarios(unittest.TestCase):
 
 
 def test_interface_specimen_keeps_every_method_and_full_results():
-    from harness.web_search.report import interface_example
     import pytest
+
+    from harness.web_search.report import interface_example
     p = {"cases": [{"id": "q", "query": "One common question"}],
          "methods": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}]}
     rows = [{"case_id": "q", "method": m["id"], "request": {"count": 5},
@@ -802,12 +806,13 @@ def test_dataset_inventory_has_bounded_scroll_for_large_catalogs(tmp_path):
 
 
 def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
-    from harness.record_io import bytes_sha256
-    from harness.web_search.relevance import import_annotations
-    from lexbench_websearch.relevance import candidate_packet
-    from harness.web_search.report import build, check
-    from harness.web_search.example import example
     import pytest
+
+    from harness.record_io import bytes_sha256
+    from harness.web_search.example import example
+    from harness.web_search.relevance import import_annotations
+    from harness.web_search.report import build, check
+    from lexbench_websearch.relevance import candidate_packet
     example(tmp_path)
     source = tmp_path / 'fixture'
     profile = json.loads((source / 'profile.json').read_text(encoding="utf-8"))
@@ -839,7 +844,7 @@ def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
         for row in broken.select('[data-executive] tr'):
             row.select('th,td')[column - 1].decompose()
         (output / 'index.html').write_text(str(broken), encoding="utf-8")
-        with pytest.raises(ValueError, match='Population summary'):
+        with pytest.raises(ValueError, match='Population summary|accessible control'):
             check(output)
     (output / 'index.html').write_text(saved_home, encoding="utf-8")
     result = BeautifulSoup((output/'results.html').read_text(encoding="utf-8"),'html.parser')
@@ -885,14 +890,9 @@ def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metr
     value = detail.find('td', string='前 10 条找到标注来源').find_next_sibling('td').get_text()
     assert float(value.replace(',', '')) == 1
     assert '前 5 条找到标注来源' not in detail.get_text()
-    from harness.web_search.report import factual_panel, reference_retrieval_panel
+    from harness.web_search.report import factual_panel
     factual = BeautifulSoup(factual_panel(profile, rows, True, compact=True), 'html.parser')
     assert [h.get_text() for h in factual.select('th')][1:3] == ['Hit@10（参考网页）', 'MRR@10（参考网页）']
-    target_case = dict(case, anchors=case['reference_urls'])
-    reference_rows = [dict(r, metrics=evaluate(target_case, r['results'])) for r in rows if r['case_id'] == case['id']]
-    reference = BeautifulSoup(reference_retrieval_panel(dict(profile, cases=[target_case]), reference_rows, {case['id']}, True), 'html.parser')
-    assert reference.find('th', string='Hit@10（参考网页）')
-    assert reference.select_one('[data-metric="reference-hit"]')['data-value'] == '1.0'
 
     interpretation = output / 'interpretation.html'
     interpretation.write_text(interpretation.read_text(encoding="utf-8").replace('data-factual', 'removed-factual', 1), encoding="utf-8")
@@ -903,10 +903,17 @@ def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metr
 
 def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoices():
     import copy
+
     import pytest
-    from lexbench_websearch.scoring import evaluate
+
+    from harness.web_search.report import (
+        benchmark_operations,
+        cost_panel,
+        factual_panel,
+        population_summary,
+    )
     from lexbench_websearch.relevance import candidate_packet, score
-    from harness.web_search.report import population_summary, cost_panel, benchmark_operations, factual_panel
+    from lexbench_websearch.scoring import evaluate
     profile = {'protocol': {'top_k': 5, 'rounds': 1, 'score_round': 0},
                'comparison_selection': {},
                'methods': [{'id': x, 'label': x, 'currency': 'USD', 'price_per_1000': None} for x in ('a','b')],
@@ -936,17 +943,146 @@ def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoic
         dom=BeautifulSoup(population_summary(profile,rows,content,zh,relevance_scores=scored),'html.parser')
         custom=dom.select_one('[data-population="custom"]')
         assert [x.get_text() for x in custom.select('table')[0].select('th')][1:4]==['nDCG@5 × 100','Precision@5','Success@5']
-        auxiliary=custom.select_one('[data-reference-retrieval]')
-        assert [td.get_text().lstrip('★ ') for td in auxiliary.select('tbody tr')[0].select('td')][1:]==['1/1 · 100.0%','0.500']
+        assert not custom.select_one('[data-reference-retrieval]')
+        assert len(dom.select('[data-population]')) == 2
+        assert all(t.select('thead button[data-sort-column]') for t in dom.select('table'))
         assert not dom.select_one('[data-population="factual"]').find('th',string='nDCG@5 × 100')
         for article in dom.select('[data-population]'):
-            assert article.select('table')[0].select('tbody tr')[0].select('td')[-1].get_text()==''
+            assert article.select('table')[0].select('tbody tr')[0].select('td')[-1]['data-value']==''
             assert article.select('table')[0].select('tbody tr')[1].select('td')[-1]['data-value']=='5'
         for html in (str(dom),cost_panel(profile,rows,zh,content),benchmark_operations(profile,rows,content,zh)):
             assert '待确认' not in html and 'unknown billing' not in html
         factual=BeautifulSoup(factual_panel(profile,rows,zh,compact=True),'html.parser')
         assert 'MRR@5' in factual.get_text()
     assert rows==original
+    with pytest.raises(ValueError, match='every method and query'):
+        population_summary(profile, rows, content, False, relevance_scores=[r for r in scored if r['method'] != 'b'])
+    content['catalog_pricing']['a'].update(amount=0.75, unit='1000-requests', source='https://prices.test/lexmount', checked_at='2026-11-12')
+    priced = BeautifulSoup(population_summary(profile, rows, content, False, relevance_scores=scored), 'html.parser')
+    assert priced.select_one('tbody tr td:last-child')['data-sort'] == '0.75'
+    for zh in (False, True):
+        for html in (population_summary(profile, rows, content, zh, relevance_scores=scored),
+                     cost_panel(profile, rows, zh, content),
+                     benchmark_operations(profile, rows, content, zh)):
+            dom = BeautifulSoup(html, 'html.parser')
+            basis = dom.select('[data-billing-basis]')
+            assert {node['data-billing-basis'] for node in basis} == {
+                '1000-requests', '1000-successful-searches'}
+            assert all(node.get_text().strip() for node in basis)
+            assert all(node.parent['data-metric-direction'] == 'neutral' for node in basis)
+            assert all('win' not in node.parent.get('class', []) for node in basis)
     content['catalog_pricing']['b']['amount']=-1
     with pytest.raises(ValueError,match='catalog price'):
         population_summary(profile,rows,content,True,relevance_scores=scored)
+
+
+@pytest.mark.parametrize('reading_model,section_page,filename', [
+    (True, 'lead', 'index.html'),
+    (False, 'method', 'research.html'),
+    (False, 'interpretation', 'interpretation.html'),
+    (False, 'summary', 'index.html'),
+])
+def test_bound_data_figures_render_in_both_languages_and_reject_wrong_images(
+    tmp_path, reading_model, section_page, filename,
+):
+    from harness.web_search.report import authored_sections
+
+    fixture = tmp_path / 'fixture'
+    example(fixture)
+    image = tmp_path / 'distribution.svg'
+    image.write_text('<svg xmlns="http://www.w3.org/2000/svg"><title>Counts: 3 and 7</title></svg>', encoding='utf-8')
+    data = {'reading_model': True, 'sections': [{'page': section_page,
+            'title': {'en': 'Source coverage', 'zh': '来源覆盖'},
+            'figures': [{'path': 'report-assets/distribution.svg',
+                         'alt': {'en': '3 source hits, 7 misses', 'zh': '命中 3 题，未命中 7 题'},
+                         'caption': {'en': 'All 10 queries.', 'zh': '全部 10 题。'}}]}],
+            'assets': [{'source': image.name, 'path': 'report-assets/distribution.svg',
+                        'sha256': bytes_sha256(image.read_bytes())}]}
+    content = tmp_path / 'content.json'
+    if not reading_model:
+        data.pop('reading_model')
+    content.write_text(json.dumps(data), encoding='utf-8')
+    out = tmp_path / 'report'
+    build(out, source=fixture / "fixture", content=content, include_english=True)
+    assert check(out)
+    for route in (filename, 'en/' + filename):
+        dom = BeautifulSoup((out / route).read_text(encoding='utf-8'), 'html.parser')
+        assert dom.select_one('[data-authored-figure] img')['src'] == 'report-assets/distribution.svg'
+    page = out / filename
+    original = page.read_text(encoding='utf-8')
+    for missing in (False, True):
+        dom = BeautifulSoup(original, 'html.parser')
+        if missing:
+            dom.select_one('[data-authored-figure]').decompose()
+        else:
+            dom.select_one('[data-authored-figure] img')['src'] = 'report-assets/wrong.svg'
+        page.write_text(str(dom), encoding='utf-8')
+        with pytest.raises(ValueError, match='figure|resource|link'):
+            check(out)
+    data['assets'] = []
+    with pytest.raises(ValueError, match='hash-bound'):
+        authored_sections(data, section_page, 'zh')
+
+
+@pytest.mark.parametrize('site_prefix', ['', 'social'])
+def test_owner_quote_assets_keep_report_root_links_in_both_editions(tmp_path, site_prefix):
+    example(tmp_path, comparison=True)
+    content_path = tmp_path / 'content.json'
+    content = json.loads(content_path.read_text(encoding='utf-8'))
+    quote = tmp_path / 'quote.txt'
+    quote.write_text('Synthetic quote: USD 1 per 1,000 requests.', encoding='utf-8')
+    content['assets'] = [{'source': quote.name, 'path': 'quotes/price.txt',
+                          'sha256': bytes_sha256(quote.read_bytes())}]
+    profile = json.loads((tmp_path / 'fixture/profile.json').read_bytes())
+    content['catalog_pricing'] = {method['id']: {
+        'amount': 1, 'currency': 'USD', 'unit': '1000-requests',
+        'source': 'quotes/price.txt', 'source_kind': 'owner-quote',
+        'checked_at': '2026-11-12'} for method in profile['methods']}
+    content_path.write_text(json.dumps(content), encoding='utf-8')
+    out = tmp_path / 'report' / site_prefix if site_prefix else tmp_path / 'report'
+    build(out, source=tmp_path / 'fixture', content=content_path,
+          relevance=tmp_path / 'labels.json', site_prefix=site_prefix, include_english=True)
+    assert check(out)
+    expected = (site_prefix + '/' if site_prefix else '') + 'quotes/price.txt'
+    for route in ('performance.html', 'en/performance.html'):
+        page = out / route
+        original = page.read_text(encoding='utf-8')
+        soup = BeautifulSoup(original, 'html.parser')
+        links = soup.select('[data-cost-budget] a[href]')
+        assert len(links) == 2 and all(link['href'] == expected for link in links)
+        links[0]['href'] = 'wrong/quotes/price.txt'
+        page.write_text(str(soup), encoding='utf-8')
+        with pytest.raises(ValueError, match='Cost budget'):
+            check(out)
+        page.write_text(original, encoding='utf-8')
+
+
+@pytest.mark.parametrize('boundary', ['load', 'check', 'evidence-only'])
+@pytest.mark.parametrize('failed', [False, True])
+def test_native_answer_substitution_is_rejected_at_every_input_boundary(tmp_path, boundary, failed):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.example import example
+    from harness.web_search.report import build, check, load_run
+    example(tmp_path)
+    source = tmp_path/'fixture'
+    if boundary == 'load':
+        path = source/'results.jsonl'
+        rows = [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines()]
+        row = next(r for r in rows if bool(r['error']) == failed)
+        row['answer'] = 'An answer absent from the native response'
+        path.write_text(''.join(json.dumps(r)+'\n' for r in rows), encoding="utf-8")
+        receipt = json.loads((source/'receipt.json').read_bytes())
+        receipt['results_sha256'] = bytes_sha256(path.read_bytes())
+        (source/'receipt.json').write_text(json.dumps(receipt), encoding="utf-8")
+        with pytest.raises(ValueError, match='answer'):
+            load_run(source)
+    else:
+        output = tmp_path/'checked-report'
+        build(output, source=source)
+        path = output/'manifest.json'
+        value = json.loads(path.read_bytes())
+        row = next(r for r in value['rows'] if bool(r['error']) == failed)
+        row['answer'] = 'An answer absent from the native response'
+        path.write_text(json.dumps(value), encoding="utf-8")
+        with pytest.raises(ValueError, match='answer'):
+            check(output, evidence_only=boundary == 'evidence-only')

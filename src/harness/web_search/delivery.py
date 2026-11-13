@@ -22,17 +22,19 @@ LOADER = "\n" + ASSETS.joinpath("delivery-loader.js").read_text(encoding="utf-8"
     "__DOWNLOAD_LABEL_ZH__", zh_text("Download original response"))
 
 
-def _delivery_link(value):
+def _delivery_link(value, packed=()):
     if not value or value.startswith(("http://", "https://", "#")):
         return value
     if "/details/" in value or value.startswith("details/"):
         return "detail.html#" + quote(value, safe="")
     if value.startswith("calls/"):
         return "evidence.html#" + quote(value, safe="")
+    if value in packed:
+        return "evidence.html#" + quote(value, safe="")
     return value
 
 
-def transform_page(text):
+def transform_page(text, *, packed=(), comparison_files=None):
     doc = BeautifulSoup(text, "html.parser")
     bridge = doc.new_tag("script")
     bridge.string = BRIDGE
@@ -42,7 +44,7 @@ def transform_page(text):
         for attr in ("href", "data-detail"):
             value = node.get(attr, "")
             if value:
-                node[attr] = _delivery_link(value)
+                node[attr] = _delivery_link(value, packed)
     # Paginated comparison cards are created after load, so their canonical
     # links live in structured data rather than DOM attributes.
     for node in doc.select("script[data-comparison-data]"):
@@ -52,6 +54,12 @@ def transform_page(text):
                 if result is not None:
                     result["detail"] = _delivery_link(result["detail"])
         node.string = json.dumps(data, ensure_ascii=False).replace("<", "\\u003c").replace("&", "\\u0026")
+        if comparison_files is not None and len(node.string.encode()) >= 1024 * 1024:
+            raw = node.string.encode('utf-8')
+            path = 'comparison-data/' + bytes_sha256(raw) + '.json.gz'
+            comparison_files[path] = gzip.compress(raw, mtime=0)
+            node['data-comparison-src'] = path
+            node.clear()
     return str(doc)
 
 
@@ -76,11 +84,28 @@ def export(source, destination):
         target.parent.mkdir(parents=True, exist_ok=True)
         target.write_bytes(gzip.compress(json.dumps(data, ensure_ascii=False).encode(), mtime=0))
     public_files = set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}
+    comparison_files = {}
+    for path in sorted(public_files - set(mapping)):
+        raw = (source / path).read_bytes()
+        if path == 'manifest.json' or not path.endswith('.json') or len(raw) < 1024 * 1024:
+            continue
+        packed_json = json.dumps({path: {
+            'base64': base64.b64encode(raw).decode('ascii')
+        }}).encode()
+        shard = 'evidence-data/' + bytes_sha256(packed_json) + '.json.gz'
+        target = destination / shard
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(gzip.compress(packed_json, mtime=0))
+        mapping[path], hashes[path] = shard, bytes_sha256(raw)
     for path in sorted(public_files - set(mapping)):
         raw = (source / path).read_bytes()
         target = destination / path
         target.parent.mkdir(parents=True, exist_ok=True)
-        target.write_bytes(transform_page(raw.decode()).encode() if path.endswith(".html") else raw)
+        target.write_bytes(transform_page(raw.decode(), packed=mapping, comparison_files=comparison_files).encode() if path.endswith(".html") else raw)
+    for path, raw in comparison_files.items():
+        target = destination / path
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(raw)
     write_json(destination / "delivery-index.json", {
         "schema": "search-report-delivery/2",
         "source_manifest_sha256": bytes_sha256((source / "manifest.json").read_bytes()),
@@ -119,11 +144,16 @@ def verify(source, destination):
         if bytes_sha256(raw) != index["sha256"][path] or raw != (source / path).read_bytes():
             raise ValueError("Packed evidence changed")
     manifest = json.loads((source / "manifest.json").read_text(encoding="utf-8"))
+    comparison_files = {}
     for path in set(manifest["routes"]) | set(manifest.get("language_notices", [])) | {a["path"] for a in manifest["bundle"]} | {"manifest.json"}:
         if path in index["files"]:
             continue
         raw = (source / path).read_bytes()
-        expected = transform_page(raw.decode()).encode() if path.endswith(".html") else raw
+        expected = transform_page(raw.decode(), packed=index['files'], comparison_files=comparison_files).encode() if path.endswith(".html") else raw
         if (destination / path).read_bytes() != expected:
             raise ValueError("Delivery page changed")
+    for path, raw in comparison_files.items():
+        target = destination / path
+        if target.is_symlink() or not target.is_file() or target.read_bytes() != raw:
+            raise ValueError('Comparison data changed')
     return True

@@ -24,4 +24,9 @@ def test_consolidated_code_matches_its_migration_and_correction_bindings():
             assert len(change['before_sha256']) == 64
         for correction in source.get('corrections', []):
             assert set(correction['modules']) <= source['changes'].keys()
-            assert set(correction.get('regression_ids', [])) <= controls.keys()
+            if track == 'websearch' and correction.get('regression_ids'):
+                from harness.web_search.revisions import validate_revision_controls
+
+                validate_revision_controls(correction)
+            else:
+                assert set(correction.get('regression_ids', [])) <= controls.keys()

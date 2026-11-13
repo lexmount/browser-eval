@@ -68,6 +68,8 @@
       "example": "examples/web_search/README.md",
       "example_version": 1,
       "example_build": "uv run --frozen python -m harness.web_search.example --output /tmp/search-example",
+      "comparison_example_build": "uv run --frozen python -m harness.web_search.example --output /tmp/search-comparison-example --comparison",
+      "paragraph_revision": "uv run --frozen python -m harness.web_search report --output /absolute/report --revise-paragraphs /absolute/content.json",
       "build": "uv run --frozen python -m harness.web_search report --profile /absolute/instance/current.json --source /absolute/run --output /absolute/report",
       "check": "uv run --frozen python -m harness.web_search report --output /absolute/report --check",
       "tests": "tests/web_search/test_report.py",

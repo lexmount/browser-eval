@@ -55,10 +55,46 @@ class CurrentProfileScenarios(unittest.TestCase):
         self.manifest["receipt"]["separate_collections"][0]["profile_sha256"] = bytes_sha256(load_profile_bytes(self.entry, root=self.root))
         self.assertEqual(publication_authority(self.manifest, self.entry, root=self.root)["slug"], "search")
 
+    def test_bounded_collection_keeps_its_admission_order_when_selected_and_published(self):
+        profile = json.loads(self.raw)
+        method = next(method for method in profile['methods'] if method['id'] == 'body')
+        method['key_env'] = 'FIXTURE_KEY'
+        profile['methods'] = [method]
+        profile['protocol'].update(concurrency=4, order='bounded calls')
+        profile['execution_policy'] = dict(purpose='quality', max_in_flight=4,
+                                           resources={'body': {'capacity': 4}}, backend='thread')
+        self.historical.write_text(json.dumps(profile), encoding="utf-8")
+        self.binding['sha256'] = bytes_sha256(self.historical.read_bytes())
+        self.selection['methods'] = ['body']
+        self.entry.write_text(json.dumps(self.selection), encoding="utf-8")
+        resolved = json.loads(load_profile_bytes(self.entry))
+        self.assertEqual(resolved['protocol']['order'], 'bounded calls')
+        self.assertEqual(resolved['execution_policy'], profile['execution_policy'])
+        self.manifest['profile']['methods'] = [{'id': 'body'}]
+        self.manifest['receipt']['separate_collections'][0]['profile_sha256'] = self.binding['sha256']
+        self.target['methods'] = ['body']
+        self.save_target()
+        self.assertEqual(publication_authority(self.manifest, self.entry)['slug'], 'search')
+
     def test_current_selection_rejects_changed_historical_input(self):
         self.historical.write_bytes(self.raw + b" ")
         with self.assertRaisesRegex(ValueError, "binding changed"):
             load_profile_bytes(self.entry, root=self.root)
+
+    def test_source_scopes_ignore_unused_conflicts_but_reject_unknown_methods(self):
+        extra = json.loads(self.raw)
+        extra['methods'][0]['endpoint'] = 'https://other.example.org/search'
+        raw = json.dumps(extra).encode()
+        (self.root / 'extra.json').write_bytes(raw)
+        binding = dict(id='extra', path='extra.json', sha256=bytes_sha256(raw), methods=['base'])
+        selected = dict(self.selection, supplementary_profiles=[binding], methods=['lexmount', 'base'])
+        self.entry.write_text(json.dumps(selected), encoding="utf-8")
+        loaded = json.loads(load_profile_bytes(self.entry, cohort='extra'))
+        self.assertEqual([m['id'] for m in loaded['methods']], ['base'])
+        binding['methods'] = ['missing']
+        self.entry.write_text(json.dumps(selected), encoding="utf-8")
+        with self.assertRaisesRegex(ValueError, 'source method selection'):
+            load_profile_bytes(self.entry)
 
     def test_current_selection_rejects_unknown_or_duplicate_methods(self):
         for ids in [["missing"], ["lexmount", "lexmount"]]:
