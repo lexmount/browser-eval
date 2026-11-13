@@ -244,6 +244,28 @@ def validate_revision_controls(revision, normalizer=None):
         if {item['expected'] for item in group} != {True, False}:
             raise ValueError('Source identity regressions require paired controls')
         for control in group:
+            if control.get('kind') == 'citation_claim':
+                from lexbench_websearch.answers import answer_packet, citation_grades
+
+                packet = answer_packet(dict(id='citation-control', query='Who wrote it?'), control)
+                judgments = [dict(citation_index=i, supported=False, claim=c['claim_context'],
+                                  reason='Occurrence control', evidence=None) for i,c in enumerate(packet['citations'])]
+                judgments[-1]['claim'] = control['claim']
+                try:
+                    citation_grades(packet, json.dumps(dict(judgments=judgments)))
+                    accepted = True
+                except ValueError:
+                    accepted = False
+                if accepted != control['expected']:
+                    raise ValueError('Citation occurrence regression failed')
+                continue
+            if control.get('kind') == 'citation':
+                from lexbench_websearch.answers import citation_inventory
+
+                citations = citation_inventory(control['answer'], control['results'])
+                if bool(citations and all(c['in_results'] for c in citations)) != control['expected']:
+                    raise ValueError('Native citation identity regression failed')
+                continue
             if control.get('kind') == 'output_level':
                 from lexbench_websearch.outputs import project_rows
                 from lexbench_websearch.relevance import candidate_packet, score
@@ -352,6 +374,36 @@ def validate_revision_controls(revision, normalizer=None):
     normalization_regressions(revision.get("regressions_sha256"), normalizer)
 
 
+def apply_reference_dataset(cases, selected):
+    """Apply only validated reference extensions from a locked dataset revision."""
+    from harness.benchmarks.data import binding, definition_path
+    from lexbench_websearch.contracts import validate_cases
+
+    if (not isinstance(selected, dict) or set(selected) != {'track', 'revision', 'path', 'sha256'}
+            or selected['track'] != 'simpleqa-verified'
+            or selected['path'] != 'datasets/factual-v1.json'):
+        raise ValueError('Reference extensions require the canonical SimpleQA dataset binding')
+    source = binding(selected['track'], selected['revision'])
+    descriptor = source['files']['definitions/' + selected['path']]
+    if selected['sha256'] != descriptor['sha256']:
+        raise ValueError('Reference dataset hash differs from the locked snapshot')
+    raw = definition_path(selected['track'], selected['path'], selected['revision']).read_bytes()
+    dataset = json.loads(raw)
+    validate_cases(dataset['cases'])
+    indexed = {case['id']: case for case in dataset['cases']}
+    for case in cases.values():
+        if 'reference_answer' not in case:
+            continue
+        reference = indexed.get(case['id'])
+        if reference is None or any(case.get(key) != reference.get(key)
+                                    for key in ('id', 'query', 'reference_answer', 'reference_urls')):
+            raise ValueError('Reference revision changes a frozen question, answer or original URL')
+        for key in ('equivalent_reference_urls', 'equivalent_reference_provenance', 'url_equivalence'):
+            if key not in reference:
+                raise ValueError('Selected dataset has no qualified reference extension')
+            case[key] = deepcopy(reference[key])
+
+
 def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer=None):
     """Add independently observed reference annotations to immutable saved calls."""
     if revision.get("schema") != "web-search-assessment-revision/1":
@@ -386,6 +438,12 @@ def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer
         revised["protocol"]["result_url_resolution"] = normalization
     cases = {c["id"]: c for c in revised["cases"]}
     original_sources = {cid: deepcopy(case) for cid, case in cases.items()}
+    if revision.get('reference_dataset'):
+        if revision.get('factual_source_identities'):
+            raise ValueError('A canonical reference revision cannot add a second URL authority')
+        if not {'generic-document-urls', 'reference-mirror-title-and-lead'}.issubset(revision['regression_ids']):
+            raise ValueError('Reference dataset revision requires URL and mirror regression controls')
+        apply_reference_dataset(cases, revision['reference_dataset'])
     identities = set()
     for item in revision.get('factual_source_identities', []):
         cid, alias = item.get('case_id'), item.get('alias')
@@ -532,6 +590,16 @@ def apply_report_revision(profile, rows, revision, *, artifacts=None, normalizer
     return revised, updated, changes
 
 
+def collection_protocol(profile, row):
+    """Use the row's frozen source controls; assessment revisions remain explicit."""
+    if profile.get('collection_composition') == 'matrix':
+        batches = [b for b in profile.get('method_collections', []) if b['id'] == row.get('collection')]
+        if len(batches) != 1:
+            raise ValueError('Missing unique source protocol for matrix row')
+        return batches[0]['protocol']
+    return profile['protocol']
+
+
 def collected_projection(profile, rows, artifacts, normalizer):
     """Reconstruct collection projections through the frozen execution adapter."""
     cases = {c["id"]: c for c in profile["cases"]}
@@ -550,7 +618,7 @@ def collected_projection(profile, rows, artifacts, normalizer):
                 original["results"] = normalizer(
                     json.loads(artifacts[path]),
                     methods[row["method"]],
-                    profile["protocol"],
+                    collection_protocol(profile, row),
                     row.get("request"),
                 )
                 original["error"] = ""

@@ -85599,6 +85599,58 @@
           "source"
         ]
       }
+    ],
+    "native-source-citation-identities": [
+      {
+        "kind": "citation",
+        "answer": "A claim [引用:4]",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": "https://api.example.test/v1/#WebPages.3"
+          }
+        ],
+        "expected": true
+      },
+      {
+        "kind": "citation",
+        "answer": "A claim [引用:4]",
+        "results": [
+          {
+            "url": "https://source.test/doc",
+            "citation_id": "https://api.example.test/v1/#OtherPages.3"
+          }
+        ],
+        "expected": false
+      }
+    ],
+    "native-source-citation-occurrences": [
+      {
+        "kind": "citation_claim",
+        "answer": "Ada wrote it [first](https://source.test/a). Eve wrote it [last][a].\n\n[a]: https://source.test/a",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "title": "Authors",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "claim": "Eve wrote it",
+        "expected": true
+      },
+      {
+        "kind": "citation_claim",
+        "answer": "Ada wrote it [first](https://source.test/a). Eve wrote it [last][a].\n\n[a]: https://source.test/a",
+        "results": [
+          {
+            "url": "https://source.test/a",
+            "title": "Authors",
+            "snippet": "Ada wrote it"
+          }
+        ],
+        "claim": "Ada wrote it",
+        "expected": false
+      }
     ]
   },
   "web_search_normalization": {

@@ -25,8 +25,11 @@ def synthetic_profile():
     }
 
 
-def example(output, *, comparison=False):
+def example(output, *, comparison=False, levels=False):
     profile = synthetic_profile()
+    if levels:
+        comparison = True
+        profile["methods"] = profile["methods"][:1]
     if comparison:
         profile['cases'][1].update(reference_answer='Fixture only',
                                    reference_urls=profile['cases'][1]['anchors'])
@@ -96,8 +99,13 @@ def example(output, *, comparison=False):
     )
     if not comparison:
         return build(output / "report", source=source)
-    packet, _ = candidate_packet(profile, rows)
-    labels = import_annotations(profile, rows, {
+    label_profile, label_rows = profile, rows
+    if levels:
+        from harness.web_search.output_levels import level_inputs
+
+        label_profile, label_rows = level_inputs(profile, rows, 'l1')
+    packet, _ = candidate_packet(label_profile, label_rows)
+    labels = import_annotations(label_profile, label_rows, {
         'packet_sha256': packet['packet_sha256'], 'reviewed_case_ids': packet['plan']['case_ids'],
         'judge': {'kind': 'human', 'name': 'Synthetic fixture labels; not a human review'},
         'labels': {p['case_id']: {c['candidate_id']: 3 for c in p['candidates']}
@@ -114,18 +122,25 @@ def example(output, *, comparison=False):
              'label': {'en': 'Synthetic factual queries', 'zh': 'Synthetic factual queries'}},
         ],
     }
+    if levels:
+        write_json(output/'level-l1.json', labels)
+        write_json(output/'level-assessments.json', dict(schema='web-search-level-assessments/1',
+                   relevance={'l1': dict(path='level-l1.json', sha256=bytes_sha256((output/'level-l1.json').read_bytes()))}))
+        content['output_level_assessments'] = dict(path='level-assessments.json',
+                                                sha256=bytes_sha256((output/'level-assessments.json').read_bytes()))
     write_json(output / 'content.json', content)
     write_json(output / 'labels.json', labels)
     return build(output / 'report', source=source, content=output / 'content.json',
-                 relevance=output / 'labels.json', include_english=True)
+                 relevance=None if levels else output / 'labels.json', include_english=True)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument('--comparison', action='store_true', help='Build the two-benchmark comparison')
+    parser.add_argument('--levels', action='store_true', help='Build an isolated output-level report')
     args = parser.parse_args()
-    print(example(args.output, comparison=args.comparison))
+    print(example(args.output, comparison=args.comparison, levels=args.levels))
 
 
 if __name__ == "__main__":

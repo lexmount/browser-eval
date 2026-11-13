@@ -35,7 +35,10 @@ class Adapter:
         if isinstance(code, str) and code.split(".")[0] in self.account_error_codes:
             return code
         expected = (method or {}).get("expected_response_version")
-        if expected is not None and isinstance(response, dict) and not error:
+        if (expected is not None and isinstance(response, dict) and not error
+                and (isinstance(response.get('Version'), str) and bool(response['Version'])
+                     or isinstance(response.get('Pages'), list)
+                     or (response.get('RequestId') and isinstance(response.get('Query'), str)))):
             version = payload
             for key in self.version_path:
                 version = version.get(key) if isinstance(version, dict) else None
@@ -54,6 +57,13 @@ class Adapter:
             return 0.0
         if (self.account_error(payload, method) or "").startswith("ResponseVersionMismatch:"):
             return None
+        if method.get('expected_response_version') is not None and self.version_path:
+            response = payload.get('Response') if isinstance(payload, dict) else None
+            if (not isinstance(response, dict) or not response.get('Error')
+                    and not isinstance(response.get('Pages'), list)
+                    and not (response.get('Version') and response.get('RequestId')
+                             and isinstance(response.get('Query'), str))):
+                return None
         if self.failure and self.failure(payload):
             return 0.0
         if policy == "http-200-nonempty":

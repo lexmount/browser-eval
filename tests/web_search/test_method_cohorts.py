@@ -363,3 +363,34 @@ def test_matrix_can_replace_a_predeclared_case_scope_without_selecting_outcomes(
     with pytest.raises(ValueError, match='complete method-by-task population'):
         load_report_runs(old, sources, {}, composition='matrix', source_methods=methods,
                          source_cases=dict(scopes, extra=ids[:1]))
+
+
+@pytest.mark.parametrize('control', ['normalize_top_k', 'result_url_resolution'])
+def test_matrix_replays_each_source_projection_policy_through_public_report(tmp_path, control):
+    from harness.web_search.core import normalize_response
+    from lexbench_websearch.scoring import evaluate
+    old, new = split_runs(tmp_path)
+    profile = json.loads((new/'profile.json').read_bytes())
+    profile['protocol'][control] = True if control == 'normalize_top_k' else 'request-url/2'
+    rows = [json.loads(line) for line in (new/'results.jsonl').read_text().splitlines()]
+    for row in rows:
+        if row['error']:
+            continue
+        payload = json.loads((new/row['evidence']['path']).read_bytes())
+        original = payload['results'][0]
+        payload['results'] = [dict(original, url='https://reference.invalid/'+str(i)) for i in range(10)]
+        write_json(new/row['evidence']['path'], payload)
+        row['evidence']['sha256'] = bytes_sha256((new/row['evidence']['path']).read_bytes())
+        row['results'] = normalize_response(payload, profile['methods'][0], profile['protocol'])
+        row['metrics'] = evaluate(next(c for c in profile['cases'] if c['id'] == row['case_id']), row['results'])
+    write_json(new/'profile.json',profile)
+    (new/'results.jsonl').write_text(''.join(json.dumps(row)+'\n' for row in rows))
+    receipt = json.loads((new/'receipt.json').read_bytes())
+    receipt.update(profile_sha256=bytes_sha256((new/'profile.json').read_bytes()), results_sha256=bytes_sha256((new/'results.jsonl').read_bytes()))
+    write_json(new/'receipt.json',receipt)
+    methods = {'primary':['lexmount'], 'new':['deepseek-content']}
+    content = tmp_path/'matrix.json'
+    write_json(content,dict(collection_composition='matrix',collection_methods=methods))
+    output = tmp_path/'matrix-report'
+    build(output,source=old,cohorts=[('new',new)],content=content)
+    assert check(output)

@@ -140,8 +140,7 @@ class ReportScenarios(unittest.TestCase):
             check(self.out)
 
     def test_reference_exclusion_does_not_remove_cohort_measurements(self):
-        from harness.web_search.report import cohort_summary
-        from harness.web_search.report import load_run
+        from harness.web_search.report import cohort_summary, load_run
         profile, rows, _ = load_run(self.root / "fixture")
         profile["report_cohorts"] = [{"id": "public", "label": {"zh": "公开组", "en": "Public"}, "case_ids": [c["id"] for c in profile["cases"]]}]
         profile["factual_quality_exclusions"] = [profile["cases"][0]["id"]]
@@ -154,7 +153,7 @@ class ReportScenarios(unittest.TestCase):
 
 
     def test_dataset_uses_reviewed_questions_without_rewriting_collected_calls(self):
-        from harness.web_search.report import quality_dataset, metric_populations, dataset_context
+        from harness.web_search.report import dataset_context, metric_populations, quality_dataset
         profile = {
             "cases": [
                 {"id": "scenario", "origin": "community"},
@@ -740,8 +739,8 @@ if __name__ == "__main__":
 
 class RepeatedLatencyScenarios(unittest.TestCase):
     def test_all_rounds_and_unknown_cache_remain_visible(self):
-        from lexbench_websearch.scoring import evaluate
         from harness.web_search.report import latency_rounds
+        from lexbench_websearch.scoring import evaluate
 
         profile = {"protocol": {"rounds": 2}, "methods": [{"id": "a", "label": "A"}]}
         rows = [
@@ -777,8 +776,9 @@ class RepeatedLatencyScenarios(unittest.TestCase):
 
 
 def test_interface_specimen_keeps_every_method_and_full_results():
-    from harness.web_search.report import interface_example
     import pytest
+
+    from harness.web_search.report import interface_example
     p = {"cases": [{"id": "q", "query": "One common question"}],
          "methods": [{"id": "a", "label": "A"}, {"id": "b", "label": "B"}]}
     rows = [{"case_id": "q", "method": m["id"], "request": {"count": 5},
@@ -803,12 +803,13 @@ def test_dataset_inventory_has_bounded_scroll_for_large_catalogs(tmp_path):
 
 
 def test_main_quality_table_and_each_detail_share_all_frozen_grades(tmp_path):
-    from harness.record_io import bytes_sha256
-    from harness.web_search.relevance import import_annotations
-    from lexbench_websearch.relevance import candidate_packet
-    from harness.web_search.report import build, check
-    from harness.web_search.example import example
     import pytest
+
+    from harness.record_io import bytes_sha256
+    from harness.web_search.example import example
+    from harness.web_search.relevance import import_annotations
+    from harness.web_search.report import build, check
+    from lexbench_websearch.relevance import candidate_packet
     example(tmp_path)
     source = tmp_path / 'fixture'
     profile = json.loads((source / 'profile.json').read_text(encoding="utf-8"))
@@ -899,10 +900,17 @@ def test_factual_detail_uses_ten_result_budget_without_changing_frozen_five_metr
 
 def test_metrics_use_only_available_annotations_and_prices_ignore_unknown_invoices():
     import copy
+
     import pytest
-    from lexbench_websearch.scoring import evaluate
+
+    from harness.web_search.report import (
+        benchmark_operations,
+        cost_panel,
+        factual_panel,
+        population_summary,
+    )
     from lexbench_websearch.relevance import candidate_packet, score
-    from harness.web_search.report import population_summary, cost_panel, benchmark_operations, factual_panel
+    from lexbench_websearch.scoring import evaluate
     profile = {'protocol': {'top_k': 5, 'rounds': 1, 'score_round': 0},
                'comparison_selection': {},
                'methods': [{'id': x, 'label': x, 'currency': 'USD', 'price_per_1000': None} for x in ('a','b')],
@@ -1044,3 +1052,34 @@ def test_owner_quote_assets_keep_report_root_links_in_both_editions(tmp_path, si
         with pytest.raises(ValueError, match='Cost budget'):
             check(out)
         page.write_text(original, encoding='utf-8')
+
+
+@pytest.mark.parametrize('boundary', ['load', 'check', 'evidence-only'])
+@pytest.mark.parametrize('failed', [False, True])
+def test_native_answer_substitution_is_rejected_at_every_input_boundary(tmp_path, boundary, failed):
+    from harness.record_io import bytes_sha256
+    from harness.web_search.example import example
+    from harness.web_search.report import build, check, load_run
+    example(tmp_path)
+    source = tmp_path/'fixture'
+    if boundary == 'load':
+        path = source/'results.jsonl'
+        rows = [json.loads(line) for line in path.read_text().splitlines()]
+        row = next(r for r in rows if bool(r['error']) == failed)
+        row['answer'] = 'An answer absent from the native response'
+        path.write_text(''.join(json.dumps(r)+'\n' for r in rows))
+        receipt = json.loads((source/'receipt.json').read_bytes())
+        receipt['results_sha256'] = bytes_sha256(path.read_bytes())
+        (source/'receipt.json').write_text(json.dumps(receipt))
+        with pytest.raises(ValueError, match='answer'):
+            load_run(source)
+    else:
+        output = tmp_path/'checked-report'
+        build(output, source=source)
+        path = output/'manifest.json'
+        value = json.loads(path.read_bytes())
+        row = next(r for r in value['rows'] if bool(r['error']) == failed)
+        row['answer'] = 'An answer absent from the native response'
+        path.write_text(json.dumps(value))
+        with pytest.raises(ValueError, match='answer'):
+            check(output, evidence_only=boundary == 'evidence-only')

@@ -502,3 +502,27 @@ Reports can select `uncertainty: paired-query-bootstrap/1` to show deterministic
 95% query-bootstrap intervals beside nDCG. The same sampled queries apply to all
 methods. A unique primary winner is omitted when the paired difference from a
 competitor includes zero; this does not assert equivalence between the methods.
+
+
+## Isolated output-level reports
+
+Select a `web-search-level-assessments/1` bundle through the authored content's
+`output_level_assessments` path/hash binding. The maintained report builder checks
+and renders each adapter-derived level separately: L1 primary result previews,
+L2 qualified additional original excerpts, and L3 generated answers with citations.
+Each level retains the same scenario and factual benchmark populations. L2 excludes
+configurations whose fixed live-page sample fails admission; it never gives them
+zero scores. L3 requires the hash-pinned official SimpleQA grader source.
+
+Generate new pools with `judge --level l1`, `judge --level l2 --field-admissions …`
+and `judge --level l3 --simpleqa-grader …`. Relevance transport retries default to
+zero; `--retries 1` or `--retries 2` explicitly changes the frozen call budget.
+Native collection retries also require explicit opt-in. Keep source-specific
+projection controls when composing independently collected matrices.
+
+Tables initially sort by each benchmark's primary metric. Green marks identify
+observed extrema; stars additionally require a paired confidence interval excluding
+zero against every comparator. A single participant receives absolute results.
+Per-level result filters and details use the same verified projections as scores.
+Build the deterministic layout example with `example --levels` and run the normal
+report check; no provider account is needed.

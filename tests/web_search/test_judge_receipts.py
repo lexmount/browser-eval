@@ -219,7 +219,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
         return Response(answer(request))
 
     monkeypatch.setattr(urllib.request, "urlopen", transport)
-    run_judge()
+    run_judge(['--retries', '2'])
     input_packet = json.loads(json.loads(requests[-1].data)["messages"][1]["content"])
     assert "example.org" not in json.dumps(input_packet)
     assert all("source_eligible" in c for c in input_packet["candidates"])
@@ -228,7 +228,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
     assert [a["status"] for a in attempts] == [429, 200]
     assert base64.b64decode(attempts[0]["response_bytes_base64"]) == b"rate limited\xff\r\n"
     validate_model_evidence(evidence)
-    run_judge()
+    run_judge(['--retries', '2'])
     assert len(requests) == 2
     for change in ("bytes", "tokens", "thinking", "configuration"):
         bad = copy.deepcopy(evidence)
@@ -243,7 +243,7 @@ def test_every_physical_attempt_is_bound_and_success_resume_never_calls(run_judg
         with pytest.raises(ValueError):
             validate_model_evidence(bad)
     with pytest.raises(ValueError, match="different inputs or configuration"):
-        run_judge(["--disable-thinking"])
+        run_judge(["--disable-thinking", "--retries", "2"])
     assert len(requests) == 2
 
 
@@ -266,7 +266,7 @@ def test_failures_keep_bytes_and_total_retry_budget_survives_resume(
     monkeypatch.setattr(urllib.request, "urlopen", transport)
     for _ in range(2):
         with pytest.raises(ValueError, match="Incomplete judge run"):
-            run_judge()
+            run_judge(['--retries', '2'])
     assert count == expected
     journal = json.loads(next(run_judge.output.glob("*-attempts.json")).read_text(encoding="utf-8"))
     assert len(journal) == expected
@@ -588,3 +588,45 @@ def test_judge_can_score_verified_collection_without_building_reader_pages(run_j
     assert len(requests) == len(evidence['plan']['case_ids'])
     assert evidence['labels']
     assert not list((output / 'inputs').rglob('*.html'))
+
+
+def test_default_judge_failure_is_one_attempt_even_when_resumed(run_judge, monkeypatch):
+    spent = []
+    def transport(request, **kwargs):
+        spent.append(request)
+        raise urllib.error.HTTPError(request.full_url, 503, 'unavailable', {}, io.BytesIO(b'error'))
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    for _ in range(2):
+        with pytest.raises(ValueError, match='Incomplete judge run'):
+            run_judge()
+    assert len(spent) == 1
+    assert json.loads((run_judge.output/'contract.json').read_bytes())['attempt_limit'] == 1
+
+
+def test_interrupted_format_repair_keeps_original_and_recovers_without_paid_call(tmp_path, monkeypatch):
+    from pathlib import Path
+
+    from harness.web_search.relevance import run_judge_request
+    path = tmp_path/'call.json'
+    original = {'paid': 'original'}
+    path.write_text(json.dumps(original))
+    config = dict(base_url='https://test.invalid/v1', request_headers={}, attempt_limit=1)
+    request = dict(messages=[])
+    spent = []
+    def transport(*args, **kwargs):
+        spent.append(1)
+        return Response(b'{"choices": []}')
+    monkeypatch.setattr(urllib.request, 'urlopen', transport)
+    replace = Path.replace
+    def interrupted(self, target):
+        if Path(target) == path:
+            raise OSError('Disk full')
+        return replace(self, target)
+    monkeypatch.setattr(Path, 'replace', interrupted)
+    with pytest.raises(OSError, match='Disk full'):
+        run_judge_request(path, 'q', request, config, 'fixture', prior_call=original)
+    assert json.loads(path.read_bytes()) == original
+    monkeypatch.setattr(Path, 'replace', replace)
+    restored = run_judge_request(path, 'q', request, config, 'fixture', prior_call=original)
+    assert len(spent) == 1 and restored['format_repair']['prior_call'] == original
+    assert json.loads(path.read_bytes()) == restored

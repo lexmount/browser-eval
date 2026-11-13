@@ -447,7 +447,7 @@ def validate_model_evidence(evidence, *, _depth=0, authority=None):
         )
     ):
         raise ValueError("Incomplete model judge configuration")
-    if strict and configuration["attempt_limit"] != 3:
+    if strict and (type(configuration["attempt_limit"]) is not int or configuration["attempt_limit"] not in (1, 2, 3)):
         raise ValueError("Model judge attempt limit differs from the supported policy")
     for packet, call in zip(packets, calls, strict=True):
         strict = strict_receipts and packet["case_id"] not in inherited
@@ -508,6 +508,16 @@ def run_judge_request(path, case_id, request, configuration, token, *, prior_cal
             body = base64.b64decode(previous["response_bytes_base64"], validate=True)
             if hashlib.sha256(body).hexdigest() != previous.get("response_sha256"):
                 raise ValueError("Saved physical judge response changed")
+    if attempts and attempts[-1].get('completed') and attempts[-1].get('status') == 200:
+        saved = dict(case_id=case_id, request=request,
+                     response=json.loads(base64.b64decode(attempts[-1]['response_bytes_base64'], validate=True)),
+                     elapsed_ms=(attempts[-1]['started_at_ns'] - attempts[0]['started_at_ns']) / 1e6 + attempts[-1].get('elapsed_ms', 0), attempts=attempts)
+        if prior_call:
+            saved['format_repair'] = {'prior_call': prior_call}
+        temporary = path.with_suffix('.tmp')
+        temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+        temporary.replace(path)
+        return saved
     if attempts and (not attempts[-1].get("completed") or not attempts[-1].get("retryable")):
         raise ValueError("Saved judge response requires investigation; no automatic new call")
     started = time.monotonic()
@@ -570,7 +580,9 @@ def run_judge_request(path, case_id, request, configuration, token, *, prior_cal
             }
             if prior_call:
                 saved['format_repair'] = {'prior_call': prior_call}
-            path.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding="utf-8")
+            temporary = path.with_suffix('.tmp')
+            temporary.write_text(json.dumps(saved, ensure_ascii=False, indent=2), encoding='utf-8')
+            temporary.replace(path)
             break
         if not retryable or number == contract["attempt_limit"]:
             raise ValueError(
@@ -594,6 +606,7 @@ def judge_main(argv=None):
     parser.add_argument('--content', type=Path)
     parser.add_argument('--cohort', action='append', default=[], metavar='NAME=RUN')
     parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--retries", type=int, choices=range(3), default=0, help="Additional transport attempts; disabled by default")
     parser.add_argument("--model", required=True)
     parser.add_argument("--base-url", required=True)
     parser.add_argument("--token-env", default="SEARCH_JUDGE_API_KEY")
@@ -695,7 +708,7 @@ def judge_main(argv=None):
         "response_format": {"type": "json_object"},
         "request_headers": {},
         "receipt_schema": 2,
-        "attempt_limit": 3,
+        "attempt_limit": 1 + args.retries,
     }
     if source_requirements is not None:
         contract["source_requirements_sha256"] = hashlib.sha256(

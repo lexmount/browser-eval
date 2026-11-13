@@ -73,6 +73,7 @@ from harness.web_search.revisions import (
     apply_identity_correction,
     apply_report_revision,
     collected_projection,
+    collection_protocol,
     validate_revision_binding,
 )
 from harness.web_search.runner import reference_available, reference_changes
@@ -109,7 +110,7 @@ def fmt(value):
     return "—" if value is None else f"{value:,.2f}"
 
 
-def table(headers, rows, sortable=True, *, bounded=False, primary_column=None):
+def table(headers, rows, sortable=True, *, bounded=False, primary_column=None, significance=False, query_count=None):
     head = "".join(
         f'<th aria-sort="{"descending" if i == primary_column else "none"}"' + (' data-primary-metric' if i == primary_column else '') + f'><button type="button" aria-label="{esc(h)}" data-sort-column="{i}">{esc(h)}</button></th>'
         if sortable
@@ -119,6 +120,7 @@ def table(headers, rows, sortable=True, *, bounded=False, primary_column=None):
     return (
         ('<div class="scroll inventory" tabindex="0"><table' if bounded else '<div class="scroll" tabindex="0"><table')
         + (' data-sort-controls="buttons"' if sortable else '')
+        + (f' data-significance="paired-query-bootstrap/1" data-query-count="{query_count}"' if significance else '')
         + (' class="compact"' if len(headers) == 2 else "")
         + "><thead><tr>"
         + head
@@ -204,6 +206,14 @@ def public_calls(profile, rows, source, sources):
             row["evidence"] = copy.deepcopy(attempts[-1]["evidence"])
             row["cost"] = sum(a["cost"] for a in attempts) if all(a["cost"] is not None for a in attempts) else None
     return rows, files, redactions, corrections
+
+
+def validate_native_answer(row, payload, method):
+    """Reject substituted or fabricated answer text at every public input boundary."""
+    expected = normalized_answer(payload, method) if row['http_status'] == 200 and not row.get('error') else None
+    if (expected is not None and row.get('answer') != expected
+            or expected is None and row.get('answer')):
+        raise ValueError('Generated answer differs from the native response')
 
 
 def load_run(source):
@@ -305,9 +315,9 @@ def load_run(source):
             normalized = normalize_response(payload, bymethod[r["method"]], profile["protocol"], r.get("request"))
             if normalized != r["results"]:
                 raise ValueError("Normalized response mismatch")
-            answer = normalized_answer(payload, bymethod[r['method']])
-            if answer is not None and r.get('answer') != answer:
-                raise ValueError('Generated answer differs from the native response')
+            validate_native_answer(r, payload, bymethod[r['method']])
+        elif r.get('answer'):
+            raise ValueError('Failed calls cannot contain a generated answer')
         if evaluate(bycase[r["case_id"]], r["results"]) != r["metrics"]:
             raise ValueError("Stored score mismatch")
     return profile, rows, receipt
@@ -625,6 +635,9 @@ class ReportInputs:
     all_call_summary: dict[str, Any]
     payloads: dict[str, Any]
     diagnostics: Any
+    level_views: dict[str, Any] | None = None
+    level_files: dict[str, bytes] | None = None
+    level_binding: dict[str, Any] | None = None
 
 
 @dataclass(frozen=True)
@@ -815,6 +828,18 @@ def _load_report_inputs(
         score_relevance(profile, selected, relevance_data["plan"], relevance_data["labels"])
         if relevance_data else None
     )
+    level_views, level_files, level_binding = None, {}, None
+    if authored.get('output_level_assessments'):
+        from harness.web_search.output_levels import load_assessed_levels
+
+        if relevance or review or authored.get('presentation') != 'comparison-report':
+            raise ValueError('Layered reports require comparison presentation and per-level assessments')
+        binding = authored['output_level_assessments']
+        verify_bundle(content.parent, [binding])
+        path = content.parent/binding['path']
+        level_views, files = load_assessed_levels(path, profile, selected, authority=authority)
+        level_files = {'level-assessments/' + name: raw for name, raw in files.items()}
+        level_binding = dict(path='level-assessments/' + path.name, sha256=bytes_sha256(path.read_bytes()))
     overview_methods = scoped_overview_methods(profile, authored)
     overview_rows = scoped_overview_rows(profile, rows, authored)
     overview_summary = aggregate(scoring_rows(profile, overview_rows))
@@ -849,13 +874,18 @@ def _load_report_inputs(
         overview_summary=overview_summary,
         all_call_summary=all_call_summary,
         payloads=payloads,
-        diagnostics=diagnostics,
+        diagnostics=diagnostics, level_views=level_views, level_files=level_files, level_binding=level_binding,
     )
 
 
 def _write_assessment_files(inputs: ReportInputs, bundle: list[dict[str, Any]]) -> None:
     output, authority, review_data, relevance_data = inputs.output, inputs.authority, inputs.review_data, inputs.relevance_data
     profile, selected = inputs.profile, inputs.selected
+    for name, raw in (inputs.level_files or {}).items():
+        path = output/name
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_bytes(raw)
+        bundle.append(dict(path=name, sha256=bytes_sha256(raw)))
     if authority:
         write_json(output / "assessment-authority.json", authority)
         bundle.append({"path": "assessment-authority.json", "sha256": bytes_sha256((output / "assessment-authority.json").read_bytes())})
@@ -944,7 +974,9 @@ def _report_edition(inputs: ReportInputs, lang: str, routes: list[str]) -> Repor
         if rows
         else t("Evaluation design preview. No API performance ranking.")
     )
-    if rows and len(profile["methods"]) == 1:
+    if inputs.level_views:
+        state = t('Measured API evaluation with isolated output levels and frozen judgments.')
+    if rows and len(profile["methods"]) == 1 and not inputs.level_views:
         state = t("Single-provider preflight; no cross-provider comparison.")
     if receipt.get("synthetic"):
         state = t("Synthetic fixture — not API measurements.")
@@ -1197,6 +1229,12 @@ def _comparison_home_body(inputs: ReportInputs, edition: ReportEdition) -> str:
     profile, selected, authored, relevance_scores = inputs.profile, inputs.selected, inputs.authored, inputs.relevance_scores
     lang, zh = edition.lang, edition.zh
     body = authored_sections(authored, "lead", lang, rows=selected)
+    if inputs.level_views:
+        from harness.web_search.comparison import render_level_summary, render_level_tabs
+
+        body += render_level_tabs(inputs.level_views, zh)
+        body += ''.join(render_level_summary(view, zh, content=authored) for view in inputs.level_views.values())
+        return body + authored_sections(authored, 'summary', lang, rows=selected)
     body += executive_table(profile, selected, authored, relevance_scores, zh)
     body += discovery_comparison(profile, selected, authored, zh)
     body += authored_sections(authored, "summary", lang, rows=selected)
@@ -1210,7 +1248,19 @@ def _write_comparison_chapters(inputs: ReportInputs, edition: ReportEdition) -> 
     page = partial(_write_page, inputs, edition)
     for chapter_key, chapter_title in [("capabilities", t("API outputs")), ("quality", t("Retrieval quality"))]:
         chapter_body = authored_sections(authored, chapter_key + "-lead", lang, rows=selected)
-        if chapter_key == "capabilities":
+        if inputs.level_views:
+            from harness.web_search.comparison import (
+                render_level_capabilities,
+                render_level_findings,
+                render_level_tabs,
+            )
+
+            if chapter_key == 'quality':
+                chapter_body += render_level_tabs(inputs.level_views, zh)
+            chapter_body += (render_level_capabilities(inputs.level_views, zh) if chapter_key == 'capabilities'
+                             else ''.join(render_level_findings(view, zh) for view in inputs.level_views.values()))
+            chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
+        elif chapter_key == "capabilities":
             chapter_body += capability_map(profile, selected, zh)
             chapter_body += authored_sections(authored, chapter_key, lang, rows=selected)
             if authored.get("interface_example_case_id"):
@@ -1228,9 +1278,9 @@ def _write_home_page(inputs: ReportInputs, edition: ReportEdition) -> None:
     review_data, review_percent = inputs.review_data, inputs.review_percent
     lang, zh, t = edition.lang, edition.zh, edition.t
     page = partial(_write_page, inputs, edition)
-    headers, core = _core_metrics_table(inputs, edition)
-    body = _default_home_body(inputs, edition, headers, core)
-    if authored.get("reading_model"):
+    headers, core = ([], []) if inputs.level_views else _core_metrics_table(inputs, edition)
+    body = '' if inputs.level_views else _default_home_body(inputs, edition, headers, core)
+    if authored.get("reading_model") and not inputs.level_views:
         body = _reading_model_home_body(inputs, edition, headers, core)
     if not any(c["key"] == "speed" for c in reading_sections) and authored.get("presentation") != "comparison-report":
         body += mode_panel(profile, selected, zh)
@@ -1514,7 +1564,12 @@ def _result_detail(
         + esc(json.dumps(r.get("request", {}), ensure_ascii=False, indent=2))
         + "</pre>"
     )
-    detail += _result_metrics_detail(r, c, _known_page_metric(profile), cutoff, t)
+    if inputs.level_views:
+        from harness.web_search.comparison import render_level_detail
+
+        detail += render_level_detail(inputs.level_views, r, zh)
+    else:
+        detail += _result_metrics_detail(r, c, _known_page_metric(profile), cutoff, t)
     detail += (
         "<h2>"
         + t("Exact error")
@@ -1585,6 +1640,12 @@ def _write_results_page(inputs: ReportInputs, edition: ReportEdition, inventory:
     profile, rows, selected, authored, relevance_data, site_prefix = inputs.profile, inputs.rows, inputs.selected, inputs.authored, inputs.relevance_data, inputs.site_prefix
     zh, prefix, t = edition.zh, edition.prefix, edition.t
     page = partial(_write_page, inputs, edition)
+    if inputs.level_views:
+        from harness.web_search.comparison import render_level_results
+
+        body = render_level_results(inputs.level_views, zh, detail_link=lambda row: posixpath.join(site_prefix, prefix, 'details', row['id'] + '.html'))
+        page('results.html', t('Query comparison'), body)
+        return
     options = [
         ("fail", t("Target miss / error")),
         ("pass", t("Declared evidence found")),
@@ -1732,6 +1793,7 @@ def _write_manifest(
         output / "manifest.json",
         dict(
             schema="web-search-report/1",
+            **({'level_assessments': inputs.level_binding} if inputs.level_binding else {}),
             template="web-search/1",
             webstone=build_version,
             languages=languages,
@@ -1769,7 +1831,7 @@ def _write_manifest(
             authored=authored if content_bytes is not None else None,
             reading_sections=reading_sections,
             renderer_sha256=bytes_sha256(b"\0".join(
-                path.read_bytes() for path in (Path(__file__), *sorted(ASSETS.glob("*.*")))
+                path.read_bytes() for path in (*sorted(Path(__file__).parent.glob("*.py")), Path(__file__).with_name("messages.json"), *sorted(ASSETS.glob("*.*")))
             )),
         ),
     )
@@ -1889,7 +1951,7 @@ def check(output, *, return_data=False, evidence_only=False):
             payloads[row["id"]] = {}
         if manifest.get("result_storage") == "raw-response":
             results = (
-                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request"))
+                normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), (manifest["profile"]["protocol"] if manifest.get("assessment_revision") else collection_protocol(manifest["profile"], row)), row.get("request"))
                 if row["http_status"] == 200 and not row["error"]
                 else []
             )
@@ -1900,6 +1962,14 @@ def check(output, *, return_data=False, evidence_only=False):
             ):
                 raise ValueError("Result receipt disagrees with raw response")
             row["results"] = results
+    level_views = None
+    if manifest.get('level_assessments'):
+        from harness.web_search.output_levels import load_assessed_levels
+
+        verify_bundle(output, [manifest['level_assessments']])
+        level_views, _ = load_assessed_levels(output/manifest['level_assessments']['path'],
+                                             manifest['profile'], scoring_rows(manifest['profile'], manifest['rows']),
+                                             authority=authority)
     if manifest.get("independent_review_sha256"):
         review_path = output / "independent-review.json"
         if bytes_sha256(review_path.read_bytes()) != manifest["independent_review_sha256"]:
@@ -2032,8 +2102,10 @@ def check(output, *, return_data=False, evidence_only=False):
     expected_diagnostics = operational(manifest["rows"], payloads, manifest["profile"]["methods"])
     cases = {c["id"]: c for c in manifest["profile"]["cases"]}
     for row in manifest["rows"]:
+        method = next(m for m in manifest['profile']['methods'] if m['id'] == row['method'])
+        validate_native_answer(row, payloads.get(row['id'], {}), method)
         if row["http_status"] == 200 and not row["error"]:
-            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), manifest["profile"]["protocol"], row.get("request")) != row["results"]:
+            if normalize_response(payloads[row["id"]], next(m for m in manifest["profile"]["methods"] if m["id"] == row["method"]), (manifest["profile"]["protocol"] if manifest.get("assessment_revision") else collection_protocol(manifest["profile"], row)), row.get("request")) != row["results"]:
                 raise ValueError("Published results disagree with raw response")
         if row["metrics"] != evaluate(cases[row["case_id"]], row["results"]):
             raise ValueError("Published scores disagree with the declared rules")
@@ -2189,13 +2261,13 @@ def check(output, *, return_data=False, evidence_only=False):
                 specimen = soup.select_one("[data-timing-specimen]")
                 if specimen is None or specimen["data-timing-specimen"] != chosen["id"]:
                     raise ValueError("Missing or wrong timing specimen")
-        if route.endswith("quality.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
+        if route.endswith("quality.html") and not level_views and (manifest.get("authored") or {}).get("presentation") == "comparison-report":
             score_rows = scoring_rows(manifest["profile"], manifest["rows"])
             for selector, expected in (("[data-factual]", factual_panel(manifest["profile"], score_rows, soup.html["lang"] == "zh", compact=True)),):
                 expected_node = BeautifulSoup(expected, "html.parser").select_one(selector)
                 if str(soup.select_one(selector)) != str(expected_node):
                     raise ValueError("Quality population differs from measured inputs")
-        if route.endswith("results.html") and authored.get("presentation") == "comparison-report":
+        if route.endswith("results.html") and not level_views and authored.get("presentation") == "comparison-report":
             selected = scoring_rows(manifest["profile"], manifest["rows"])
             lang = soup.html["lang"]
             prefix = "" if lang == manifest["primary_language"] else lang + "/"
@@ -2228,7 +2300,7 @@ def check(output, *, return_data=False, evidence_only=False):
             if not any(target and target.endswith('quality.html') for target in nav_targets):
                 raise ValueError("Quality page is missing from reader navigation")
         comparison_home = route.endswith("index.html") and (manifest.get("authored") or {}).get("presentation") == "comparison-report"
-        if comparison_home:
+        if comparison_home and not level_views:
             expected = BeautifulSoup(executive_table(manifest["profile"], scoring_rows(manifest["profile"], manifest["rows"]), manifest["authored"], relevance_scores, soup.html["lang"] == "zh"), "html.parser")
             # Page assembly resolves edition-local links against the report root.
             for link in expected.select('a[href^="quality.html"]'):
@@ -2239,6 +2311,39 @@ def check(output, *, return_data=False, evidence_only=False):
             expected_discovery = BeautifulSoup(discovery_comparison(manifest['profile'], scoring_rows(manifest["profile"], manifest["rows"]), manifest['authored'], soup.html['lang'] == 'zh'), 'html.parser').select_one('[data-discovery]')
             if str(soup.select_one('[data-discovery]')) != str(expected_discovery):
                 raise ValueError("Discovery comparison differs from measured inputs")
+        if level_views and 'details/' in route:
+            from harness.web_search.comparison import render_level_detail
+
+            row_id = Path(route).stem
+            row = next(r for r in manifest['rows'] if r['id'] == row_id)
+            expected_detail = BeautifulSoup(render_level_detail(level_views, row, soup.html['lang'] == 'zh'), 'html.parser')
+            if [node.get_text() for node in soup.select('[data-detail-level]')] != [node.get_text() for node in expected_detail.select('[data-detail-level]')]:
+                raise ValueError('Per-level detail differs from scored fields and judgments')
+        if level_views and route.endswith(('index.html', 'quality.html', 'capabilities.html', 'results.html')):
+            from harness.web_search.comparison import (
+                render_level_capabilities,
+                render_level_findings,
+                render_level_results,
+                render_level_summary,
+            )
+
+            zh = soup.html['lang'] == 'zh'
+            if route.endswith('index.html'):
+                selector = '[data-output-level]'
+                expected = ''.join(render_level_summary(view, zh, content=authored) for view in level_views.values())
+            elif route.endswith('quality.html'):
+                selector = '[data-level-findings]'
+                expected = ''.join(render_level_findings(view, zh) for view in level_views.values())
+            elif route.endswith('results.html'):
+                selector = '[data-level-results]'
+                prefix = '' if soup.html['lang'] == manifest['primary_language'] else soup.html['lang'] + '/'
+                expected = render_level_results(level_views, zh, detail_link=lambda row, prefix=prefix: posixpath.join(manifest.get('site_prefix', ''), prefix, 'details', row['id'] + '.html'))
+            else:
+                selector = '[data-level-capabilities]'
+                expected = render_level_capabilities(level_views, zh)
+            expected_nodes = BeautifulSoup(expected, 'html.parser').select(selector)
+            if [str(node) for node in soup.select(selector)] != [str(node) for node in expected_nodes]:
+                raise ValueError('Output-level presentation differs from verified evidence')
         if route.endswith("index.html") and not comparison_home:
             for selector, renderer in (
                 ("[data-modes]", mode_panel),
@@ -3147,15 +3252,21 @@ def numeric_winners(rows, directions):
     return winners
 
 
-def numeric_cell(label, value, metric, direction, winner=False):
+def numeric_cell(label, value, metric, direction, winner=False, *, significant=None):
     attrs = f' data-metric="{esc(metric)}" data-metric-direction="{direction}"'
     if value is not None:
         attrs += f' data-sort="{value}" data-value="{value}"'
     else:
         attrs += ' data-value=""'
+    if significant is not None:
+        attrs += ' data-significant="' + str(bool(significant)).lower() + '"'
     if winner:
         attrs += ' class="win"'
-        label = '<span class="comparison-winner">★ ' + label + '</span>'
+        if significant is None:
+            label = '<span class="comparison-winner">★ ' + label + '</span>'
+        else:
+            marker = '<span class="comparison-winner">★ </span>' if significant else ''
+            label = '<span class="comparison-extremum">' + marker + label + '</span>'
     return '<td' + attrs + '>' + label + '</td>'
 
 

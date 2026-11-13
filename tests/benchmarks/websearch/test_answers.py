@@ -85,7 +85,7 @@ def test_citation_support_requires_complete_exact_evidence_from_the_cited_docume
         dict(
             citation_index=i,
             supported=False,
-            claim="Ada wrote it",
+            claim=value["citations"][i]["claim_context"],
             reason="Not supported",
             evidence=None,
         )
@@ -126,3 +126,81 @@ def test_scenario_answer_score_requires_answer_evidence_and_valid_grade():
     ):
         with pytest.raises(ValueError):
             answers.scenario_grade(value, json.dumps(altered))
+
+
+def test_one_based_citations_resolve_zero_based_webpage_source_uris_without_changing_rank():
+    results = [
+        dict(url="https://source.test/a", citation_id="https://api.example.test/v1/#WebPages.0"),
+        dict(url="https://source.test/b", citation_id="https://api.example.test/v1/#WebPages.3"),
+    ]
+    before = json.dumps(results, sort_keys=True)
+    citations = answers.citation_inventory(
+        "First [引用:1]; fourth [引用:4]; absent [引用:2].", results
+    )
+    assert [item["in_results"] for item in citations] == [True, True, False]
+    assert [item["source"]["url"] if item["source"] else None for item in citations] == [
+        "https://source.test/a",
+        "https://source.test/b",
+        None,
+    ]
+    assert json.dumps(results, sort_keys=True) == before
+
+
+def test_citation_source_schemas_cannot_silently_resolve_to_different_documents():
+    with pytest.raises(ValueError, match="different documents"):
+        answers.citation_inventory(
+            "A claim [引用:1]",
+            [
+                dict(
+                    url="https://source.test/a",
+                    citation_id="https://api.example.test/v1/#WebPages.0",
+                ),
+                dict(url="https://source.test/b", citation_id=1),
+            ],
+        )
+    for malformed in [
+        "WebPages.0",
+        "https://api.example.test/#WebPages.-1",
+        "https://api.example.test/#WebPages.00",
+        "https://api.example.test/#other.0",
+    ]:
+        assert not answers.citation_inventory(
+            "A claim [引用:1]", [dict(url="https://source.test/a", citation_id=malformed)]
+        )[0]["in_results"]
+
+
+@pytest.mark.parametrize("style", ["inline", "reference"])
+def test_repeated_link_destinations_keep_each_occurrence_and_claim(style):
+    if style == "inline":
+        text = "Ada wrote it [first](https://test.example/a). Bob edited it [other](https://test.example/b). Eve wrote it [last](https://test.example/a)."
+    else:
+        text = "Ada wrote it [first][a]. Bob edited it [other][b]. Eve wrote it [last][a].\n\n[a]: https://test.example/a\n[b]: https://test.example/b"
+    results = [
+        dict(url="https://test.example/a", title="Authors", snippet="Ada wrote it"),
+        dict(url="https://test.example/b", title="Editors", snippet="Bob edited it"),
+    ]
+    value = answers.answer_packet(dict(id="q", query="Who?"), dict(answer=text, results=results))
+    citations = value["citations"]
+    assert [c["source"]["url"] for c in citations] == [
+        results[0]["url"],
+        results[1]["url"],
+        results[0]["url"],
+    ]
+    assert all(text[c["span"][0] : c["span"][1]] == c["marker"] for c in citations)
+    assert citations[0]["span"][1] < citations[1]["span"][0] < citations[2]["span"][0]
+    judgments = [
+        dict(
+            citation_index=i,
+            supported=False,
+            claim=c["claim_context"],
+            reason="No support",
+            evidence=None,
+        )
+        for i, c in enumerate(citations)
+    ]
+    assert answers.citation_grades(value, json.dumps(dict(judgments=judgments)))
+    judgments[2].update(
+        supported=True, claim="Ada wrote it", evidence=dict(field="snippet", quote="Ada wrote it")
+    )
+    with pytest.raises(ValueError, match="cited claim"):
+        answers.citation_grades(value, json.dumps(dict(judgments=judgments)))

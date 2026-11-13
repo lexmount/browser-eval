@@ -634,3 +634,62 @@ def test_explorer_and_review_accept_only_effective_ranked_preview_grades(first_g
     assert output['score']['ranked_grades']==[first_grade,0]
     assert score(profile,[row],packet['plan'],labels)[0]['ranked_grades']==[first_grade,0]
     assert (row_state(profile,row,evidence)[0]=='pass')==accepted
+
+
+def reference_dataset_revision():
+    from harness.benchmarks.data import binding
+
+    selected = binding('simpleqa-verified')
+    return dict(schema='web-search-assessment-revision/1', provider_calls=0,
+                root_cause='Reference-only source verification supplies missing same-document URLs',
+                regression_ids=['generic-document-urls', 'reference-mirror-title-and-lead'],
+                reference_dataset=dict(track='simpleqa-verified', revision=selected['revision'],
+                                       path='datasets/factual-v1.json',
+                                       sha256=selected['datasets']['factual-v1']['sha256']))
+
+
+def test_locked_reference_extensions_rescore_all_methods_without_replacing_original_gold():
+    from lexbench_websearch.inputs import load_dataset
+    from harness.web_search.revisions import apply_report_revision
+    from lexbench_websearch.scoring import evaluate
+
+    current = load_dataset('factual-v1')
+    selected = next(case for case in current['cases'] if case.get('equivalent_reference_urls'))
+    original = {k: v for k, v in selected.items()
+                if k not in ('equivalent_reference_urls', 'equivalent_reference_provenance', 'url_equivalence')}
+    import copy
+    profile = dict(cases=[copy.deepcopy(original)], methods=[dict(id='a'), dict(id='b')], protocol={'top_k': 5})
+    results = [dict(url=selected['equivalent_reference_urls'][0], title='Source', snippet='Text')]
+    rows = [dict(id=mid, method=mid, case_id=selected['id'], results=results,
+                 metrics=evaluate(original, results)) for mid in ('a', 'b')]
+    revised, updated, changes = apply_report_revision(profile, rows, reference_dataset_revision())
+    assert all(row['metrics']['labeled_source_hit_5'] == 1 for row in updated)
+    assert all(row['metrics']['labeled_source_hit_5'] == 0 for row in rows)
+    assert len(changes) == 2
+    assert revised['cases'][0]['reference_urls'] == original['reference_urls']
+    assert revised['cases'][0]['reference_answer'] == original['reference_answer']
+    assert 'equivalent_reference_urls' not in profile['cases'][0]
+
+
+@pytest.mark.parametrize('defect', ['wrong-hash', 'unknown-revision', 'changed-query', 'changed-gold', 'second-authority', 'missing-controls'])
+def test_reference_dataset_revision_rejects_unbound_or_changed_inputs(defect):
+    from lexbench_websearch.inputs import load_dataset
+    from harness.web_search.revisions import apply_report_revision
+    import copy
+
+    case = copy.deepcopy(load_dataset('factual-v1')['cases'][0])
+    revision = reference_dataset_revision()
+    if defect == 'wrong-hash':
+        revision['reference_dataset']['sha256'] = 'a'*64
+    elif defect == 'unknown-revision':
+        revision['reference_dataset']['revision'] = 'a'*40
+    elif defect == 'changed-query':
+        case['query'] = 'Another question'
+    elif defect == 'changed-gold':
+        case['reference_answer'] = 'Another answer'
+    elif defect == 'second-authority':
+        revision['factual_source_identities'] = [{'case_id': case['id']}]
+    else:
+        revision['regression_ids'] = ['generic-document-urls']
+    with pytest.raises(ValueError):
+        apply_report_revision(dict(cases=[case], methods=[], protocol={'top_k': 5}), [], revision)

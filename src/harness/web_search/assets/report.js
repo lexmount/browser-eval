@@ -32,3 +32,30 @@ document.querySelectorAll('[data-evidence]').forEach(b=>b.onclick=async()=>{let 
 document.querySelectorAll('[data-diagnosis]').forEach(b=>b.onclick=()=>{let d=document.querySelector('dialog');d.querySelector('pre').textContent=b.dataset.diagnosis;let a=d.querySelector('a');a.hidden=false;a.href=b.dataset.detail;d.showModal()});
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>b.closest('dialog').close());
 if(document.querySelector('.mermaid')&&innerWidth>700){let s=document.createElement('script');/*mermaid-script-attributes*/;s.onload=async()=>{mermaid.initialize({startOnLoad:false,securityLevel:'strict',theme:'neutral'});for(let [i,n] of [...document.querySelectorAll('.mermaid')].entries()){try{let r=await mermaid.render('search-flow-'+i,n.textContent);n.innerHTML=r.svg;n.hidden=false;n.previousElementSibling.hidden=true}catch{}}};document.head.appendChild(s)}
+
+document.querySelectorAll('[data-level-summary-filter]').forEach(input=>{
+  input.addEventListener('input',()=>{
+    const query=input.value.toLocaleLowerCase();
+    input.closest('[data-level-benchmark]').querySelectorAll('tbody tr').forEach(row=>{
+      row.hidden=!row.cells[0].textContent.toLocaleLowerCase().includes(query);
+    });
+  });
+});
+
+const levelTabs=document.querySelector('[data-level-tabs]');
+if(levelTabs){
+  const buttons=[...levelTabs.querySelectorAll('[data-level-select]')];
+  const choose=key=>{
+    buttons.forEach(button=>{const active=button.dataset.levelSelect===key;button.setAttribute('aria-selected',String(active));button.tabIndex=active?0:-1;});
+    document.querySelectorAll('[data-level-panel]').forEach(section=>{section.hidden=section.dataset.levelPanel!==key;});
+  };
+  buttons.forEach((button,index)=>{
+    button.addEventListener('click',()=>choose(button.dataset.levelSelect));
+    button.addEventListener('keydown',event=>{if(!['ArrowLeft','ArrowRight'].includes(event.key))return;event.preventDefault();const next=buttons[(index+(event.key==='ArrowRight'?1:buttons.length-1))%buttons.length];choose(next.dataset.levelSelect);next.focus();});
+  });
+  choose(buttons.some(button=>button.dataset.levelSelect===location.hash.slice(1))?location.hash.slice(1):buttons[0].dataset.levelSelect);
+}
+
+for(const input of document.querySelectorAll('[data-level-inventory-filter]')){
+ input.addEventListener('input',()=>{for(const row of input.closest('[data-level-results]').querySelectorAll('tbody tr'))row.hidden=!row.textContent.toLowerCase().includes(input.value.toLowerCase());});
+}

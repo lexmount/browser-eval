@@ -7,7 +7,9 @@ from copy import deepcopy
 from harness.benchmark_execution import ExecutionPolicy, Job, exclusive_policy, run_jobs
 from harness.web_search.relevance import run_judge_request, validate_physical_receipts
 from lexbench_websearch.answers import (
+    CITATION_CORRECTION,
     CITATION_PROMPT,
+    CITATION_RULE,
     SCENARIO_PROMPT,
     SIMPLEQA_UPSTREAM,
     answer_messages,
@@ -97,9 +99,12 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
             or configuration.get('jobs_sha256') != _digest(jobs)
             or configuration.get('maximum_calls') != len(jobs)
             or configuration.get('upstream') != SIMPLEQA_UPSTREAM
+            or configuration.get('citation_rule') != CITATION_RULE
+            or configuration.get('scoring_provenance') != CITATION_CORRECTION
             or configuration.get('prompt_sha256') != _prompt_hashes(upstream_source)
             or configuration.get('temperature') != 0
-            or configuration.get('attempt_limit') != 1
+            or type(configuration.get('attempt_limit')) is not int
+            or configuration['attempt_limit'] not in (1, 2, 3)
             or configuration.get('extra_params') != {'enable_thinking': False}
             or configuration.get('request_headers') != {'x-bf-passthrough-extra-params': 'true'}
             or set(evidence['calls']) != set(jobs)):
@@ -115,7 +120,7 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
     for key, job in jobs.items():
         call = evidence['calls'][key]
         if (call.get('case_id') != key or call.get('request') != _request(job, configuration['model'])
-                or len(call.get('attempts', [])) != 1):
+                or not 1 <= len(call.get('attempts', [])) <= configuration['attempt_limit']):
             raise ValueError('Answer judge request or attempt count changed')
         validate_physical_receipts(call, configuration)
         packet_key = job['packet_key']
@@ -141,13 +146,17 @@ def judge_answers(profile, rows, args, token):
         raise ValueError('L3 requires the pinned official SimpleQA grader source')
     if args.reuse_evidence or args.repair_format or args.source_requirements:
         raise ValueError('L3 does not use relevance inheritance or format-repair inputs')
+    from harness.web_search.revisions import validate_revision_controls
+
+    validate_revision_controls(CITATION_CORRECTION)
     upstream_source = args.simpleqa_grader.read_bytes()
     packets, jobs = _jobs(profile, rows, upstream_source)
     configuration = dict(schema='web-search-answer-judge/1', model=args.model,
                          base_url=args.base_url, temperature=0, max_tokens=8192,
-                         attempt_limit=1, extra_params={'enable_thinking': False},
+                         attempt_limit=1 + args.retries, extra_params={'enable_thinking': False},
                          request_headers={'x-bf-passthrough-extra-params': 'true'},
                          upstream=deepcopy(SIMPLEQA_UPSTREAM),
+                         citation_rule=CITATION_RULE, scoring_provenance=deepcopy(CITATION_CORRECTION),
                          prompt_sha256=_prompt_hashes(upstream_source),
                          inputs_sha256=_digest(dict(profile=profile, rows=rows)),
                          jobs_sha256=_digest(jobs), maximum_calls=len(jobs))
@@ -172,8 +181,8 @@ def judge_answers(profile, rows, args, token):
                 raise ValueError('Saved answer judge input changed')
         else:
             call = run_judge_request(path, key, request, configuration, token)
-        if len(call.get('attempts', [])) != 1:
-            raise ValueError('Answer judging requires exactly one physical attempt')
+        if not 1 <= len(call.get('attempts', [])) <= configuration['attempt_limit']:
+            raise ValueError('Answer judging exceeds its frozen physical attempt budget')
         validate_physical_receipts(call, configuration)
         _parse(job, packets[job['packet_key']]['packet'], call['response'])
         return call

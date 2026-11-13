@@ -188,3 +188,207 @@ def level_inputs(profile, rows, level, *, admissions=None, artifacts=None):
                 profile, rows, receipt, artifacts or {}
             )
     return project_rows(declared, rows, level, qualified_fields=qualified)
+
+
+def assessed_levels(profile, rows, *, relevance=None, relevance_revisions=None,
+                    answers=None, upstream_source=None, admissions=None, artifacts=None,
+                    authority=None):
+    """Build isolated, fully verified score views for every delivered native level."""
+    from harness.web_search.answers import verify_answer_evidence
+    from harness.web_search.relevance import verify_protocol, verify_provenance
+    from lexbench_websearch.outputs import levels
+    from lexbench_websearch.relevance import score
+
+    declared = output_profile(profile)
+    available = {level for method in declared['methods']
+                 for level in levels(method['output_fields'])}
+    projected_levels = {level: level_inputs(profile, rows, level, admissions=admissions, artifacts=artifacts)
+                        for level in available}
+    projected_levels = {level: value for level, value in projected_levels.items() if value[0]['methods']}
+    available = set(projected_levels)
+    if set(relevance or {}) != available.intersection({'l1', 'l2'}):
+        raise ValueError('Every supported result level requires its own complete relevance pool')
+    if ('l3' in available) != (answers is not None):
+        raise ValueError('Generated-answer evidence must match declared L3 participation')
+    judges = [evidence['judge'] for evidence in (relevance or {}).values()]
+    model_names = {judge['name'] for judge in judges if judge.get('kind') == 'model'}
+    if len(model_names) > 1 or len({judge.get('kind') for judge in judges}) > 1:
+        raise ValueError('Output levels require one shared judge configuration')
+    if answers is not None and model_names != {answers['configuration']['model']}:
+        raise ValueError('Answer and relevance levels require the same judge model')
+    views = {}
+    for level in ('l1', 'l2', 'l3'):
+        if level not in available:
+            continue
+        selected, projected = projected_levels[level]
+        view = dict(profile=selected, rows=projected)
+        if level in ('l1', 'l2'):
+            evidence = relevance[level]
+            if evidence.get('evaluation_level') != level:
+                raise ValueError('Relevance evidence belongs to another output level')
+            verify_provenance(selected, projected, evidence, authority=authority)
+            verify_protocol(selected, evidence, (relevance_revisions or {}).get(level),
+                            authority=authority)
+            view.update(relevance=evidence,
+                        relevance_scores=score(selected, projected, evidence['plan'], evidence['labels']))
+        else:
+            if upstream_source is None:
+                raise ValueError('L3 requires its pinned official grader source')
+            view.update(answers=answers,
+                        answer_scores=verify_answer_evidence(selected, projected, answers, upstream_source))
+        view['benchmarks'] = level_benchmarks(view)
+        views[level] = view
+    return views
+
+
+def level_benchmarks(view):
+    """Keep relevance, source retrieval, extra-text cues and answer grades separate."""
+    profile, rows = view['profile'], view['rows']
+    level = profile['protocol']['relevance_level']
+    excluded = set(profile.get('factual_quality_exclusions', []))
+    cases = {c['id']: c for c in profile['cases']}
+    scenario_scores = {(s['case_id'], s['method']): s for s in view.get('relevance_scores', [])}
+    answer_scores = {(s['case_id'], s['method']): s for s in view.get('answer_scores', [])}
+    if level == 'l3':
+        definitions = dict(scenario=[('answer_grade', 'Answer usefulness / 3')],
+                           factual=[('correct', 'SimpleQA accuracy')])
+    else:
+        definitions = dict(scenario=[('ndcg', 'nDCG@5'), ('precision', 'Precision@5'),
+                                     ('success', 'Success@5')],
+                           factual=([('source_rr', 'MRR@5'), ('source_hit', 'Source Hit@5'),
+                                     ('answer_match', 'Answer Match@5')]
+                                    if level == 'l1' else [('answer_match', 'Extra-text Answer Match@5')]))
+    output = {}
+    for benchmark in ('scenario', 'factual'):
+        timing_ids = [cid for cid, case in cases.items()
+                      if ('reference_answer' in case) == (benchmark == 'factual')]
+        quality_ids = [cid for cid in timing_ids if cid not in excluded]
+        if not timing_ids:
+            continue
+        scored = []
+        for row in rows:
+            cid, mid = row['case_id'], row['method']
+            if cid not in quality_ids:
+                continue
+            values = dict(case_id=cid, method=mid,
+                          context_characters=sum(len(item.get('snippet') or '') for item in row['results']))
+            if level == 'l3':
+                item = answer_scores[cid, mid]
+                values.update({k: item[k] for k in ('citation_count', 'supported_citations', 'citations_in_results')})
+                if benchmark == 'factual':
+                    values.update(correct=int(item['factual_grade'] == 'CORRECT'),
+                                  incorrect=int(item['factual_grade'] == 'INCORRECT'),
+                                  not_attempted=int(item['factual_grade'] == 'NOT_ATTEMPTED'))
+                else:
+                    values['answer_grade'] = item['answer_grade']
+            elif benchmark == 'scenario':
+                values.update({k: scenario_scores[cid, mid][k] for k in ('ndcg', 'precision', 'success')})
+            else:
+                metrics = row['metrics']
+                if level == 'l1':
+                    values.update(source_rr=metrics['labeled_source_rr_5'], source_hit=metrics['labeled_source_hit_5'],
+                                  answer_match=metrics['answer_in_preview_5'])
+                else:
+                    values['answer_match'] = metrics['answer_in_extra_text_5']
+            scored.append(values)
+        expected = {(cid, method['id']) for cid in quality_ids for method in profile['methods']}
+        if {(s['case_id'], s['method']) for s in scored} != expected or len(scored) != len(expected):
+            raise ValueError('An output level is missing scored benchmark cells')
+        output[benchmark] = dict(case_ids=quality_ids, timing_case_ids=timing_ids,
+                                 primary_metric=definitions[benchmark][0][0],
+                                 metrics=[dict(key=key, label=label, direction='max')
+                                          for key, label in definitions[benchmark]],
+                                 scores=scored)
+    return output
+
+
+def load_assessed_levels(path, profile, rows, *, authority=None):
+    """Resolve a selected external assessment bundle and its complete file inventory."""
+    from pathlib import Path
+
+    path = Path(path)
+    root = path.parent.resolve()
+    raw = path.read_bytes()
+    verify_bundle(root, [{'path': path.name, 'sha256': bytes_sha256(raw)}])
+    manifest = json.loads(raw)
+    if manifest.get('schema') != 'web-search-level-assessments/1':
+        raise ValueError('Unsupported output-level assessment bundle')
+    bindings = list(manifest.get('relevance', {}).values())
+    bindings += [manifest[key] for key in ('answers', 'upstream', 'field_admissions') if manifest.get(key)]
+    files = {path.name: raw}
+
+    def retain(base, entries):
+        verify_bundle(base, entries)
+        for binding in entries:
+            target = base/binding['path']
+            if not target.resolve().is_relative_to(root):
+                raise ValueError('Output-level artifact escapes its assessment bundle')
+            name = target.resolve().relative_to(root).as_posix()
+            files[name] = target.read_bytes()
+
+    retain(root, bindings)
+    admissions, artifacts = {}, {}
+    if manifest.get('field_admissions'):
+        admission_path = root/manifest['field_admissions']['path']
+        admission_manifest = json.loads(admission_path.read_bytes())
+        admissions, artifacts = load_admissions(admission_path)
+        retain(admission_path.parent, list(admission_manifest['receipts'].values()) + admission_manifest['artifacts'])
+    evidence = {level: json.loads((root/binding['path']).read_bytes())
+                for level, binding in manifest.get('relevance', {}).items()}
+    answers = json.loads((root/manifest['answers']['path']).read_bytes()) if manifest.get('answers') else None
+    upstream = (root/manifest['upstream']['path']).read_bytes() if manifest.get('upstream') else None
+    views = assessed_levels(profile, rows, relevance=evidence,
+                            relevance_revisions=manifest.get('relevance_revisions'),
+                            answers=answers, upstream_source=upstream,
+                            admissions=admissions, artifacts=artifacts, authority=authority)
+    return views, files
+
+
+def export_level_bundle(path, destination):
+    """Package only declared evidence under public names, preserving original source bytes."""
+    from pathlib import Path
+
+    path, destination = Path(path), Path(destination)
+    source = json.loads(path.read_bytes())
+    if source.get('schema') != 'web-search-level-assessments/1':
+        raise ValueError('Unsupported output-level assessment bundle')
+    root = path.parent
+    verify_bundle(root, [{'path': path.name, 'sha256': bytes_sha256(path.read_bytes())}])
+    destination.mkdir(parents=True, exist_ok=True)
+
+    def write(name, raw):
+        target = destination/name
+        target.parent.mkdir(parents=True, exist_ok=True)
+        if target.is_symlink() or target.exists() and target.read_bytes() != raw:
+            raise ValueError('Public assessment destination already contains different bytes')
+        target.write_bytes(raw)
+        return dict(path=name, sha256=bytes_sha256(raw))
+
+    def encoded(value):
+        return (json.dumps(value, ensure_ascii=False, indent=2) + '\n').encode()
+
+    public = dict(source, relevance={})
+    bindings = list(source.get('relevance', {}).values())
+    bindings += [source[key] for key in ('answers', 'upstream', 'field_admissions') if source.get(key)]
+    verify_bundle(root, bindings)
+    for level, binding in source.get('relevance', {}).items():
+        public['relevance'][level] = write('judgments/' + level + '.json', (root/binding['path']).read_bytes())
+    for key, name in [('answers', 'judgments/answers.json'), ('upstream', 'references/simpleqa_eval.py')]:
+        if source.get(key):
+            public[key] = write(name, (root/source[key]['path']).read_bytes())
+    if source.get('field_admissions'):
+        admission_path = root/source['field_admissions']['path']
+        receipts, artifacts = load_admissions(admission_path)
+        mapped = {name: write('sources/' + bytes_sha256(raw) + '.json', raw) for name, raw in artifacts.items()}
+        public_receipts = {}
+        for method, receipt in receipts.items():
+            value = deepcopy(receipt)
+            for page in value['pages']:
+                for key in ('capture', 'evidence'):
+                    page[key] = mapped[page[key]['path']]
+            raw = encoded(value)
+            public_receipts[method] = write('fields/' + bytes_sha256(raw) + '.json', raw)
+        fields = dict(schema='web-search-field-admissions/1', receipts=public_receipts,
+                      artifacts=list({item['path']: item for item in mapped.values()}.values()))
+        public['field_admissions'] = write('field-admissions.json', encoded(fields))
+    return write('assessments.json', encoded(public))

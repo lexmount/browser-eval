@@ -15,6 +15,12 @@ def esc(value, *, none=""):
 def check_presentation(html):
     soup = BeautifulSoup(html, 'html.parser') if isinstance(html, str) else html
     for table in soup.select('table'):
+        if table.get('data-significance') == 'paired-query-bootstrap/1':
+            count = table.get('data-query-count', '')
+            if not count.isdecimal() or int(count) < 1:
+                raise ValueError('Statistical comparison requires its query population')
+            if int(count) < 30 and table.select_one('.comparison-winner'):
+                raise ValueError('Small query groups cannot carry significance stars')
         if table.get('data-sort-controls') == 'buttons':
             headers = table.select('thead th')
             for index, header in enumerate(headers):
@@ -29,12 +35,12 @@ def check_presentation(html):
             if direction not in ('min', 'max', 'neutral') or not cell.get('data-metric'):
                 raise ValueError('Numeric comparison lacks metric identity or direction')
             if direction == 'neutral':
-                if cell.select_one('.comparison-winner'):
+                if cell.select_one('.comparison-winner, .comparison-extremum'):
                     raise ValueError('Out-of-cohort value cannot be highlighted')
                 continue
             value = cell.get('data-sort')
             if value is None:
-                if cell.select_one('.comparison-winner'):
+                if cell.select_one('.comparison-winner, .comparison-extremum'):
                     raise ValueError('Unavailable value cannot be highlighted')
                 continue
             number = float(value)
@@ -45,7 +51,13 @@ def check_presentation(html):
             extreme = (min if direction == 'min' else max)(v for v, _ in values)
             unique = sum(v == extreme for v, _ in values) == 1
             for value, cell in values:
-                marked = cell.select_one('.comparison-winner') is not None
+                statistical = table.get('data-significance') == 'paired-query-bootstrap/1'
+                marked = cell.select_one('.comparison-extremum' if statistical else '.comparison-winner') is not None
+                if statistical:
+                    significant = cell.get('data-significant') == 'true'
+                    star = cell.select_one('.comparison-winner') is not None
+                    if star != significant or significant and not marked:
+                        raise ValueError('Significance marker differs from its paired comparison')
                 if marked != (
                     (unique or table.get("data-highlight-ties") == "all") and value == extreme
                 ):

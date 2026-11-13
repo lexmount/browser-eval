@@ -178,8 +178,7 @@ class YuanbaoSearchTests(unittest.TestCase):
         responses.extend((
             f"ResponseVersionMismatch: expected standard, received {response.get('Version')}",
             response,
-        ) for response in ({}, {"Pages": None}, {"Pages": "broken"},
-                           {"Pages": {}}, {"Version": "lite", "Pages": "broken"}))
+        ) for response in ({"Pages": []}, {"Version": "lite", "Pages": "broken"}))
         for code, native_response in responses:
             with self.subTest(code=code, response=native_response), tempfile.TemporaryDirectory() as directory:
                 root = Path(directory)
@@ -202,7 +201,7 @@ class YuanbaoSearchTests(unittest.TestCase):
                 requests = []
 
                 def http(url, body=None, *args, requests=requests, code=code,
-                         native_response=native_response, **kwargs):
+                         native_response=native_response, profile=profile, **kwargs):
                     receipt = dict(
                         http_status=200, elapsed_ms=1, transport_exit=0, transport_error=""
                     )
@@ -402,3 +401,14 @@ def test_missing_edition_in_a_native_envelope_has_unknown_billing():
     assert request_cost(method,200,0,payload) is None
     with unittest.TestCase().assertRaisesRegex(ValueError,'ResponseVersionMismatch'):
         normalize_response(payload,method,{'top_k':5})
+
+
+def test_malformed_native_envelope_is_retryable_but_valid_missing_version_stops():
+    from harness.web_search.adapters import adapter_for
+    method = dict(adapter='tencent-wsa', expected_response_version='standard', price_per_1000=3, billing='http-200')
+    adapter = adapter_for('tencent-wsa')
+    for response in ({}, {'Pages': None}, {'Pages': 'broken'}, {'Pages': {}}):
+        payload = {'Response': response}
+        assert adapter.account_error(payload, method) is None
+        assert adapter.cost(method, 200, 0, payload) is None
+    assert adapter.account_error({'Response': {'Pages': []}}, method).startswith('ResponseVersionMismatch')
