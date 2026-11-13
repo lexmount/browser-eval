@@ -115,7 +115,7 @@ def test_site_population_counts_empty_response_as_constraint_miss():
 def test_latency_population_keeps_failures_and_reports_actual_retry_usage():
     from lexbench_websearch.scoring import evaluate
     from harness.web_search.core import aggregate
-    from harness.web_search.report import population_summary
+    from harness.web_search.report import population_summary, benchmark_operations
 
     case = {'id': 'query', 'query': 'Find a document', 'domains': ['example.com']}
     profile = {'cases': [case], 'methods': [{'id': 'a', 'label': 'A', 'currency': 'USD'}],
@@ -140,10 +140,15 @@ def test_latency_population_keeps_failures_and_reports_actual_retry_usage():
     for zh, expected in [(False, 'this collection used no retries'), (True, '本批未启用重试')]:
         page = BeautifulSoup(population_summary(profile, rows, content, zh), 'html.parser')
         assert expected in page.select_one('.population-note').get_text()
+        performance = BeautifulSoup(benchmark_operations(profile, rows, content, zh), 'html.parser')
+        assert expected in performance.select_one('[data-benchmark-operations] p').get_text()
     rows[-1]['attempts'].append({'elapsed_ms': 50})
     page = BeautifulSoup(population_summary(profile, rows, content, False), 'html.parser')
     assert 'every call and retry wait' in page.select_one('.population-note').get_text()
     assert 'used no retries' not in page.get_text()
+    performance = BeautifulSoup(benchmark_operations(profile, rows, content, False), 'html.parser')
+    assert 'Timing includes retries' in performance.select_one('[data-benchmark-operations] p').get_text()
+    assert 'used no retries' not in performance.get_text()
 
 
 def test_comparison_report_has_owned_chapters_and_bound_populations(tmp_path):
