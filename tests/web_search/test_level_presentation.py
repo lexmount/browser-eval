@@ -23,6 +23,17 @@ def test_level_latency_uses_all_frozen_rounds_while_quality_stays_on_score_round
     assert len(selected['benchmarks']['factual']['scores']) == 4
 
 
+def test_collection_context_is_available_without_expanding_comparison_rows():
+    selected = view(n=2)
+    selected['profile']['method_collections'] = [dict(id='old', methods=['a', 'b'],
+        started_at='2026-11-13T10:00:00Z', protocol={'concurrency': 4})]
+    doc = BeautifulSoup(render_level_summary(selected), 'html.parser')
+    contexts = doc.select('details.measurement-context')
+    assert len(contexts) == 2
+    assert all(not node.has_attr('open') for node in contexts)
+    assert all('2026-11-13' in node.get_text() and 'concurrency 4' in node.get_text() for node in contexts)
+
+
 def view(n=40, single=False):
     cases = [
         dict(

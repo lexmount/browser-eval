@@ -384,7 +384,7 @@ def render_level_summary(view, zh=False, *, content=None):
                     modes = ', '.join(k + '=' + str(v).lower() for k,v in (method.get('output_options') or {}).items())
                     context = ' · '.join(dict.fromkeys([*contexts, modes]))
                     if context.strip(' ·'):
-                        label += '<small class="measurement-context">' + esc(context) + '</small>'
+                        label += '<details class="measurement-context"><summary>' + t('Collection') + '</summary><p>' + esc(context) + '</p></details>'
                 if key == 'price':
                     label += (catalog_billing_basis(prices[method['id']], zh) if prices is not None
                               else ' ' + esc(method.get('currency', '')))

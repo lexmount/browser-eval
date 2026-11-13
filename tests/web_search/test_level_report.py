@@ -9,6 +9,21 @@ from harness.web_search.example import example
 from harness.web_search.report import check
 
 
+def test_public_report_roundtrip_preserves_native_crlf_text(tmp_path, monkeypatch):
+    from harness.web_search import example as owner
+
+    write = owner.write_json
+
+    def native_multiline(path, value):
+        if path.parent.name == 'calls' and value.get('results'):
+            value['results'][0]['snippet'] = 'Fixture only\r\nSecond line'
+        return write(path, value)
+
+    monkeypatch.setattr(owner, 'write_json', native_multiline)
+    owner.example(tmp_path, levels=True)
+    assert check(tmp_path / 'report')
+
+
 def test_public_example_builds_level_tables_findings_and_bound_assessments(tmp_path):
     example(tmp_path, levels=True)
     root = tmp_path / "report"

@@ -84,6 +84,12 @@ def test_public_l3_judge_uses_official_template_and_replays_without_spending(ans
     test['run']()
     assert len(test['requests']) == 4
     assert json.loads(path.read_bytes()) == evidence
+    for row in test['rows']:
+        row.update(result_count=len(row['results']), normalized_results_sha256=hashlib.sha256(
+            json.dumps(row['results'], ensure_ascii=False, sort_keys=True).encode()).hexdigest())
+    test['run']()
+    assert len(test['requests']) == 4
+    assert json.loads(path.read_bytes()) == evidence
     test['rows'][0]['answer'] = 'A different answer'
     with pytest.raises(ValueError, match='different frozen inputs'):
         test['run']()

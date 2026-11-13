@@ -27,6 +27,14 @@ def _digest(value):
     return hashlib.sha256(json.dumps(value, ensure_ascii=False, sort_keys=True).encode()).hexdigest()
 
 
+def _inputs_digest(profile, rows):
+    # The report validates these two storage receipts before reconstructing results.
+    # They describe serialization and are absent in the original collection rows.
+    original = [{key: value for key, value in row.items()
+                 if key not in ('result_count', 'normalized_results_sha256')} for row in rows]
+    return _digest(dict(profile=profile, rows=original))
+
+
 def _write(path, value):
     raw = json.dumps(value, ensure_ascii=False, indent=2) + '\n'
     temporary = path.with_suffix('.tmp')
@@ -145,7 +153,7 @@ def verify_answer_evidence(profile, rows, evidence, upstream_source):
     validate_revision_controls(CITATION_VALIDATION)
     packets, jobs = _jobs(profile, rows, upstream_source)
     configuration = evidence['configuration']
-    if (configuration.get('inputs_sha256') != _digest(dict(profile=profile, rows=rows))
+    if (configuration.get('inputs_sha256') != _inputs_digest(profile, rows)
             or configuration.get('jobs_sha256') != _digest(jobs)
             or configuration.get('maximum_calls') != len(jobs)
             or configuration.get('upstream') != SIMPLEQA_UPSTREAM
@@ -207,7 +215,7 @@ def judge_answers(profile, rows, args, token):
                          upstream=deepcopy(SIMPLEQA_UPSTREAM),
                          citation_rule=CITATION_RULE, scoring_provenance=deepcopy(CITATION_CORRECTION),
                          prompt_sha256=_prompt_hashes(upstream_source),
-                         inputs_sha256=_digest(dict(profile=profile, rows=rows)),
+                         inputs_sha256=_inputs_digest(profile, rows),
                          jobs_sha256=_digest(jobs), maximum_calls=len(jobs))
     args.output.mkdir(parents=True, exist_ok=True)
     contract = args.output/'contract.json'

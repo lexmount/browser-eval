@@ -2173,7 +2173,7 @@ def check(output, *, return_data=False, evidence_only=False):
         return True
     for route in manifest["routes"]:
         path = output / route
-        soup = BeautifulSoup(path.read_text(encoding="utf-8"), "html.parser")
+        soup = BeautifulSoup(path.read_bytes().decode("utf-8"), "html.parser")
         check_presentation(soup)
         authored = manifest.get("authored") or {}
         if "details/" not in route:
@@ -2321,7 +2321,7 @@ def check(output, *, return_data=False, evidence_only=False):
             row = next(r for r in manifest['rows'] if r['id'] == row_id)
             expected_detail = BeautifulSoup(render_level_detail(level_views, row, soup.html['lang'] == 'zh'), 'html.parser')
             if [node.get_text() for node in soup.select('[data-detail-level]')] != [node.get_text() for node in expected_detail.select('[data-detail-level]')]:
-                raise ValueError('Per-level detail differs from scored fields and judgments')
+                raise ValueError('Per-level detail differs from scored fields and judgments: ' + route)
         if level_views and route.endswith(('index.html', 'quality.html', 'capabilities.html', 'results.html')):
             from harness.web_search.comparison import (
                 render_level_capabilities,
