@@ -1185,3 +1185,45 @@ def test_account_denial_stops_other_retries_before_failure_finalization(tmp_path
         with pytest.raises(ValueError, match='Provider account error'):
             future.result(timeout=4)
     assert len(sends) == 2
+
+
+@pytest.mark.parametrize('pages', [
+    [None, {'url': 'https://example.org/page'}],
+    [{'url': 'https://example.org/page'}] * 5 + [None],
+])
+def test_ai_answer_survives_invalid_webpage_slots_without_retry(tmp_path, pages):
+    from harness.web_search.runner import run
+    from harness.web_search.report import load_run
+
+    profile = execution_profile()
+    method = dict(profile['methods'][2], id='bocha-ai', adapter='bocha-ai',
+                  output_options={'answer': True, 'stream': False})
+    profile['methods'] = [method]
+    profile['cases'] = profile['cases'][:1]
+    profile['protocol'].update(normalize_top_k=True, result_url_resolution='request-url/2')
+    path = tmp_path/'profile.json'
+    path.write_text(json.dumps(profile))
+    payload = dict(code=200, messages=[
+        dict(type='source', content_type='webpage', content=json.dumps({'value': pages})),
+        dict(type='answer', content_type='text', content='A retained answer [引用:1]'),
+    ])
+    calls = []
+
+    def http(url, body=None, *args, **kwargs):
+        receipt = dict(http_status=200, elapsed_ms=10, transport_exit=0, transport_error='')
+        if body is None:
+            return receipt, b'reference ' * 20
+        calls.append(body)
+        return receipt, json.dumps(payload).encode()
+
+    with (patch('harness.web_search.runner.http_call', side_effect=http),
+          patch('harness.web_search.runner.load_runtime_env'),
+          patch.dict(os.environ, BOCHA_API_KEY='fixture')):
+        run(path, tmp_path/'run', certified=True)
+    _, rows, _ = load_run(tmp_path/'run')
+    assert len(calls) == 1
+    assert not rows[0]['error']
+    assert rows[0]['answer'] == 'A retained answer [引用:1]'
+    assert len(rows[0]['results']) == min(5, len(pages))
+    if pages[0] is None:
+        assert rows[0]['results'][0]['invalid_slot']

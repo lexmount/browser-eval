@@ -266,6 +266,8 @@ def task_acceptance(
 ):
     if row is None:
         return None
+    if metric == "source" and case.get("evaluation_level") == "l2":
+        return None
     if quality_excluded and metric != "availability":
         return None
     if response_failed(row):

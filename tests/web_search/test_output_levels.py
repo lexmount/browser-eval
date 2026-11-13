@@ -251,8 +251,9 @@ def test_query_language_policy_preserves_query_without_forcing_foreign_locale(ad
         result = request_body(adapter, dict(query="中文原问题", language=language), policy, options)
         return parse_qs(urlsplit(result["url"]).query) if adapter == "brightdata" else result
 
-    chinese = parameters("zh-CN")
-    assert "gl" not in chinese and "hl" not in chinese
-    assert chinese["q"] in ("中文原问题", ["中文原问题"])
+    for language in ('zh-CN','ja','es','multilingual'):
+        localized = parameters(language)
+        assert 'gl' not in localized and 'hl' not in localized
+        assert localized['q'] in ('中文原问题',['中文原问题'])
     assert "gl" in parameters("en") and "hl" in parameters("en")
     assert "gl" in parameters("zh", dict(top_k=5))

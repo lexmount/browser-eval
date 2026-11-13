@@ -42,7 +42,7 @@ def test_installed_catalog_is_complete_and_verifiable():
     assert edition["tag"] == "bench-v" + edition["version"]
     assert set(edition["datasets"]) == set(registry()["datasets"])
     for name, bound in edition["datasets"].items():
-        verify_release(bound, load_dataset(name), verify_scorer=False)
+        verify_release(bound, load_dataset(name, revision=edition["development"]["dataset_revisions"][name]), verify_scorer=False)
 
 
 @pytest.mark.parametrize(
@@ -126,6 +126,9 @@ def test_catalog_tampering_and_tag_mismatch_are_rejected(tmp_path, monkeypatch):
     frozen_hash = next(iter(original["datasets"].values()))["scoring_source_sha256"]
     monkeypatch.setattr(versions, "scoring_source_sha256", lambda: frozen_hash)
     path.write_text(json.dumps(original), encoding="utf-8")
+    frozen_datasets = {identity: load_dataset(identity, revision=revision)
+                       for identity, revision in original["development"]["dataset_revisions"].items()}
+    monkeypatch.setattr(versions, "load_dataset", lambda identity: frozen_datasets[identity])
     catalog_release(path)
     path.write_text(json.dumps(broken), encoding="utf-8")
     with pytest.raises(ValueError, match="changed"):
@@ -202,3 +205,22 @@ def test_new_editions_reject_the_retired_tag_prefix():
     current["tag"] = "bench-1.1.0"
     with pytest.raises(ValueError, match="tag"):
         verify_release(current, dataset())
+
+
+def test_reference_correction_is_unreleased_and_frozen_edition_still_reproduces():
+    from lexbench_websearch.inputs import definition_path
+
+    path = definition_path("benchmark-release.json")
+    original = path.read_bytes()
+    inspected = catalog_release(require_current_scorer=False)
+    assert inspected["development"]["dataset_status"] == "unreleased"
+    assert inspected["development"]["changed_datasets"] == ["factual-v1"]
+    revision = inspected["development"]["dataset_revisions"]["factual-v1"]
+    current = load_dataset("factual-v1")
+    frozen = load_dataset("factual-v1", revision=revision)
+    assert any(c.get("equivalent_reference_urls") for c in current["cases"])
+    assert all("equivalent_reference_urls" not in c for c in frozen["cases"])
+    verify_release(inspected["datasets"]["factual-v1"], frozen, verify_scorer=False)
+    with pytest.raises(ValueError, match="Frozen dataset or scoring contract changed"):
+        verify_release(inspected["datasets"]["factual-v1"], current, verify_scorer=False)
+    assert path.read_bytes() == original

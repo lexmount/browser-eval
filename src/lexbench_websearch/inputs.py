@@ -8,20 +8,29 @@ def digest(raw):
     return hashlib.sha256(raw).hexdigest()
 
 
-def definition_path(name):
+def definition_path(name, *, revision=None):
     from harness.benchmarks.data import definition_path as resolve
-    return resolve("websearch", name)
+    return resolve("websearch", name, revision)
 
 
-def registry():
-    return json.loads(definition_path("registry.json").read_bytes())
+def registry(*, revision=None):
+    return json.loads(definition_path("registry.json", revision=revision).read_bytes())
 
 
-def load_dataset(identity):
-    binding = registry()["datasets"][identity]
+def load_dataset(identity, *, revision=None):
+    binding = registry(revision=revision)["datasets"][identity]
     from harness.benchmarks.data import binding as snapshot_binding, definition_path as snapshot_file
-    source = snapshot_binding("websearch").get("dataset_sources", {}).get(identity)
-    path = snapshot_file(source, binding["path"]) if source else definition_path(binding["path"])
+    selected = snapshot_binding("websearch", revision)
+    source = selected.get("dataset_sources", {}).get(identity)
+    if revision is not None and "definitions/" + binding["path"] in selected["files"]:
+        path = definition_path(binding["path"], revision=revision)
+    elif source:
+        source_revision = selected.get("external_sources", {}).get(source, {}).get("revision")
+        if revision is not None and source_revision is None:
+            raise ValueError("Historical delegated dataset requires its recorded source context")
+        path = snapshot_file(source, binding["path"], source_revision)
+    else:
+        path = definition_path(binding["path"], revision=revision)
     raw = path.read_bytes()
     if digest(raw) != binding["sha256"]:
         raise ValueError("Benchmark dataset hash mismatch: " + identity)

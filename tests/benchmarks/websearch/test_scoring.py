@@ -63,3 +63,14 @@ def test_correction_provenance_executes_paired_controls_and_rejects_unknown_ids(
         validate_regressions(
             {"root_cause": "fixture", "regression_ids": [next(iter(registry))] * 2}
         )
+
+
+def test_l2_source_acceptance_is_unavailable_for_success_and_failure():
+    from lexbench_websearch.scoring import task_acceptance
+
+    case = dict(id='fact', query='A fact?', reference_answer='needle',
+                reference_urls=['https://example.org/page'], evaluation_level='l2')
+    row = dict(results=[dict(url='https://example.org/page', title='needle', snippet='needle')])
+    assert task_acceptance(case, row, metric='source') is None
+    assert task_acceptance(case, dict(row, error='Network failure'), metric='source') is None
+    assert task_acceptance(case, row, metric='answer') is True

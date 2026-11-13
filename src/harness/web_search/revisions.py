@@ -283,7 +283,10 @@ def validate_revision_controls(revision, normalizer=None):
                 case, results = control['case'], control['results']
                 row = dict(results=results, metrics=evaluate(case, results))
                 if task_acceptance(case, row, 'answer') != control['expected']:
-                    raise ValueError('Dataset contamination regression failed')
+                    raise ValueError('Factual acceptance regression failed')
+                if any(task_acceptance(case, row, metric) is not None
+                       for metric in control.get('unavailable_metrics', [])):
+                    raise ValueError('Unsupported factual metric was scored')
                 continue
             if control.get('kind') == 'delivered_preview':
                 from lexbench_websearch.relevance import candidate_packet, score

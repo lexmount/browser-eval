@@ -186,7 +186,8 @@ def _query_locale(case, protocol, options):
     policy = protocol.get('locale_policy')
     if policy not in (None, 'query-language/1'):
         raise ValueError('Unsupported query locale policy')
-    if policy == 'query-language/1' and case.get('language', '').split('-')[0] == 'zh':
+    language = (case.get('language') or '').casefold().split('-')[0]
+    if policy == 'query-language/1' and language and language != 'en':
         return {k:v for k,v in options.items() if k not in ('gl','hl')}
     return options
 

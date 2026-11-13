@@ -29,9 +29,31 @@ def _dependency_files(output, contract, pin=LEGACY_PIN, lock_pin=None):
         contract["implementation"][name] = bytes_sha256(text.encode())
 
 
+def unchanged_legacy_inputs(tmp_path, monkeypatch):
+    """Test old-run upgrades against the input edition that run actually used."""
+    lock = json.loads(Path(data.__file__).with_name("data-lock.json").read_bytes())
+    current = lock["datasets"]["websearch"]
+    previous = next(item for item in current.get("history", [])
+                    if item.get("external_sources", {}).get("simpleqa-verified", {}).get("datasets", {})
+                    .get("factual-v1", {}).get("sha256")
+                    == "b3422267e0be4a68b71e533356e14531b6aba1d2e57ccde962e6e3e00327d253")
+    selected = copy.deepcopy(previous)
+    selected["history"] = current["history"]
+    selected["source_editions"] = current.get("source_editions", {})
+    lock["datasets"]["websearch"] = selected
+    provider = lock["datasets"]["simpleqa-verified"]
+    revision = selected["external_sources"]["simpleqa-verified"]["revision"]
+    historical = next(item for item in [provider, *provider.get("history", [])]
+                      if item["revision"] == revision)
+    lock["datasets"]["simpleqa-verified"] = copy.deepcopy(historical)
+    (tmp_path/"data-lock.json").write_text(json.dumps(lock))
+    monkeypatch.setattr(data, "__file__", str(tmp_path/"data.py"))
+
+
 @pytest.fixture
 def legacy_run(tmp_path, monkeypatch):
     """Reproduce the pre-PR contract layout, dependency pins and frozen bundle."""
+    unchanged_legacy_inputs(tmp_path, monkeypatch)
     profile = execution_profile()
     profile["cases"] = profile["cases"][:1]
     profile["protocol"].update(rounds=1, interval_s=0)
@@ -150,6 +172,7 @@ def test_legacy_repair_rejects_unproven_sources_before_mutations(legacy_run, cha
 def test_legacy_bindings_compare_runtime_inputs_not_publication_metadata(
     tmp_path, monkeypatch, change
 ):
+    unchanged_legacy_inputs(tmp_path, monkeypatch)
     lock = json.loads(Path(data.__file__).with_name("data-lock.json").read_bytes())
     current = lock["datasets"]["websearch"]
     if change == "metadata-only":
@@ -256,3 +279,9 @@ def test_legacy_git_urls_are_provenance_only_not_runtime_dependencies(legacy_run
     monkeypatch.setattr(data, 'fetch_archive', external_access)
     monkeypatch.setattr(runner.benchmark_inputs, 'implementation_sources', external_access)
     assert runner.validate_resume_datasets(contract, output) == expected
+
+
+def test_reference_revision_prevents_automatic_legacy_resume():
+    # New reference annotations are real input changes, even if queries are identical.
+    with pytest.raises(ValueError, match="inputs changed"):
+        data.legacy_dependencies("websearch", LEGACY_PIN)

@@ -331,21 +331,27 @@ def _check_collection_provenance(receipt, previous):
         raise ValueError("Cannot combine synthetic and measured collections")
 
 
-def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases", source_methods=None):
+def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="cases", source_methods=None, source_cases=None):
     """Compose separately verified runs; never pretend they were one collection."""
     inputs = [("primary", source), *cohorts]
     if len({name for name, _ in inputs}) != len(inputs):
         raise ValueError("Duplicate cohort name")
     if composition not in {"cases", "methods", "matrix"}:
         raise ValueError("Unsupported collection composition")
-    if source_methods is not None and composition != 'matrix':
+    if (source_methods is not None or source_cases is not None) and composition != 'matrix':
         raise ValueError('Per-source method selection requires matrix composition')
     if composition in {'methods','matrix'}:
         if composition == 'matrix':
             if (not isinstance(source_methods,dict) or set(source_methods) != {name for name,_ in inputs}
                     or any(not isinstance(ids,list) or not ids or len(ids) != len(set(ids)) for ids in source_methods.values())):
                 raise ValueError('Matrix composition requires explicit methods for every source')
-        return _load_method_runs(inputs, labels, method_ids, source_methods=source_methods)
+        if source_cases is not None and (
+                not isinstance(source_cases, dict) or set(source_cases) != {name for name, _ in inputs}
+                or any(not isinstance(ids, list) or not ids or len(ids) != len(set(ids))
+                       for ids in source_cases.values())):
+            raise ValueError("Matrix composition requires explicit cases for every source")
+        return _load_method_runs(inputs, labels, method_ids, source_methods=source_methods,
+                                 source_cases=source_cases)
     profile = None
     rows, receipts, groups, paths = [], [], [], {}
     seen_cases, seen_evidence = set(), set()
@@ -421,7 +427,27 @@ def load_report_runs(source, cohorts, labels, method_ids=None, *, composition="c
     )
 
 
-def _load_method_runs(inputs, labels, method_ids, *, source_methods=None):
+def _merge_matrix_references(profile, current):
+    """Keep all source assessments, rejecting contradictory reference contracts."""
+    for key in ("reference_checks", "reference_artifacts"):
+        merged = profile.setdefault(key, {})
+        for identity, value in current.get(key, {}).items():
+            if identity in merged and merged[identity] != value:
+                raise ValueError("Matrix collections contain conflicting reference contracts: " + key)
+            merged[identity] = copy.deepcopy(value)
+    exclusions = set(profile.get("factual_quality_exclusions", []))
+    exclusions.update(current.get("factual_quality_exclusions", []))
+    profile["factual_quality_exclusions"] = sorted(exclusions)
+    decisions = {item["case_id"]: item for item in profile.get("reference_adjudications", [])}
+    for item in current.get("reference_adjudications", []):
+        cid = item["case_id"]
+        if cid in decisions and decisions[cid] != item:
+            raise ValueError("Matrix collections contain conflicting reference adjudications")
+        decisions[cid] = copy.deepcopy(item)
+    profile["reference_adjudications"] = [decisions[cid] for cid in sorted(decisions)]
+
+
+def _load_method_runs(inputs, labels, method_ids, *, source_methods=None, source_cases=None):
     """Add disjoint providers on identical frozen tasks without repeating calls."""
     profile = None
     rows, receipts, paths, batches = [], [], {}, []
@@ -442,6 +468,17 @@ def _load_method_runs(inputs, labels, method_ids, *, source_methods=None):
             current = copy.deepcopy(current)
             current['methods'] = [available[mid] for mid in chosen]
             calls = [r for r in calls if r['method'] in chosen]
+            if source_cases is not None:
+                selected_cases = set(source_cases[name])
+                if not selected_cases.issubset({case['id'] for case in current['cases']}):
+                    raise ValueError("Selected cases are unavailable in source: " + name)
+                current['cases'] = [case for case in current['cases'] if case['id'] in selected_cases]
+                calls = [row for row in calls if row['case_id'] in selected_cases]
+                current['factual_quality_exclusions'] = [
+                    cid for cid in current.get('factual_quality_exclusions', []) if cid in selected_cases]
+                current['reference_adjudications'] = [
+                    item for item in current.get('reference_adjudications', [])
+                    if item['case_id'] in selected_cases]
         elif current.get("execution_policy") or current["protocol"]["concurrency"] != 1:
             raise ValueError("Method composition requires serial collections")
         ids = {m["id"] for m in current["methods"]}
@@ -462,6 +499,7 @@ def _load_method_runs(inputs, labels, method_ids, *, source_methods=None):
                 if current.get(key) != profile.get(key):
                     raise ValueError("Method collection reference contracts differ")
         if matrix:
+            _merge_matrix_references(profile, current)
             if any(current['protocol'][k] != profile['protocol'][k] for k in ('top_k','rounds','score_round')):
                 raise ValueError('Matrix collections require the same cutoff and score rounds')
             for case in current['cases']:
@@ -491,6 +529,8 @@ def _load_method_runs(inputs, labels, method_ids, *, source_methods=None):
                         "ended_at": max((r["timestamp"] for r in calls if r.get("timestamp")), default=receipt.get("ended_at"))})
         if matrix:
             receipts[-1]['selected_methods'] = list(source_methods[name])
+            if source_cases is not None:
+                receipts[-1]['selected_cases'] = list(source_cases[name])
             batches[-1].update(protocol=copy.deepcopy(current['protocol']),
                                execution_policy=copy.deepcopy(current.get('execution_policy')),
                                execution_methods=copy.deepcopy(execution_methods))
@@ -637,7 +677,8 @@ def _load_collection(
         profile, rows, receipt, sources = load_report_runs(
             source, cohorts, authored.get("cohort_labels", {}), authored.get("comparison_methods"),
             composition=authored.get("collection_composition", "cases"),
-            source_methods=authored.get('collection_methods')
+            source_methods=authored.get('collection_methods'),
+            source_cases=authored.get('collection_cases')
         )
     elif source:
         profile, rows, receipt = load_run(source)

@@ -289,3 +289,77 @@ def test_native_response_links_resolve_in_both_language_editions(tmp_path):
         links = page.select("[data-interface-case] [data-evidence]")
         assert len(links) == len(profile["methods"])
         assert all((output / link["data-evidence"]).is_file() for link in links)
+
+
+def _update_profile(source, **changes):
+    profile = json.loads((source/'profile.json').read_bytes())
+    profile.update(changes)
+    write_json(source/'profile.json', profile)
+    receipt = json.loads((source/'receipt.json').read_bytes())
+    receipt['profile_sha256'] = bytes_sha256((source/'profile.json').read_bytes())
+    write_json(source/'receipt.json', receipt)
+
+
+def test_matrix_reference_assessments_do_not_depend_on_source_order(tmp_path):
+    old, new = split_runs(tmp_path)
+    cid = json.loads((new/'profile.json').read_bytes())['cases'][0]['id']
+    decision = dict(case_id=cid, reason='Defective reference', quality_excluded=True)
+    _update_profile(new, factual_quality_exclusions=[cid], reference_adjudications=[decision])
+    profiles = []
+    for first, second in [(old, new), (new, old)]:
+        methods = {name: [json.loads((path/'profile.json').read_bytes())['methods'][0]['id']]
+                   for name, path in [('primary', first), ('second', second)]}
+        profile, _, _, _ = load_report_runs(first, [('second', second)], {},
+                                           composition='matrix', source_methods=methods)
+        profiles.append(profile)
+    for profile in profiles:
+        assert profile['factual_quality_exclusions'] == [cid]
+        assert profile['reference_adjudications'] == [decision]
+    _update_profile(old, reference_adjudications=[dict(decision, reason='Conflicting assessment')])
+    with pytest.raises(ValueError, match='conflicting reference adjudications'):
+        load_report_runs(new, [('second', old)], {}, composition='matrix', source_methods=methods)
+
+
+@pytest.mark.parametrize('key', ['reference_checks', 'reference_artifacts'])
+def test_matrix_rejects_conflicting_reference_contracts(tmp_path, key):
+    old, new = split_runs(tmp_path)
+    first = json.loads((old/'profile.json').read_bytes()).get(key, {})
+    if not first:
+        first = {'https://example.test/reference': {'sha256': 'a'*64}}
+        _update_profile(old, **{key: first})
+    conflict = json.loads(json.dumps(first))
+    identity = next(iter(conflict))
+    conflict[identity]['sha256'] = 'b'*64
+    _update_profile(new, **{key: conflict})
+    methods = {name: [json.loads((path/'profile.json').read_bytes())['methods'][0]['id']]
+               for name, path in [('primary', old), ('second', new)]}
+    with pytest.raises(ValueError, match='conflicting reference contracts'):
+        load_report_runs(old, [('second', new)], {}, composition='matrix', source_methods=methods)
+
+
+def test_matrix_can_replace_a_predeclared_case_scope_without_selecting_outcomes(tmp_path):
+    old, new = split_runs(tmp_path)
+    old_profile = json.loads((old/'profile.json').read_bytes())
+    old_method = old_profile['methods'][0]['id']
+    new_method = json.loads((new/'profile.json').read_bytes())['methods'][0]['id']
+    ids = [c['id'] for c in old_profile['cases']]
+    corrected = _fragment_run(old, tmp_path/'corrected', ids[:1])
+    # Same source bytes can supply disjoint declared case scopes. No cell wins by score.
+    sources = [('corrected', corrected), ('extra', new)]
+    methods = {'primary': [old_method], 'corrected': [old_method], 'extra': [new_method]}
+    scopes = {'primary': ids[1:], 'corrected': ids[:1], 'extra': ids}
+    profile, rows, receipt, _ = load_report_runs(old, sources, {}, composition='matrix',
+                                               source_methods=methods, source_cases=scopes)
+    assert len(profile['cases']) == 2 and len(rows) == 4
+    assert {r['case_id'] for r in rows if r['collection'] == 'corrected'} == set(ids[:1])
+    assert receipt['separate_collections'][0]['selected_cases'] == ids[1:]
+    for broken in [dict(scopes, corrected=ids), dict(scopes, primary=['unknown'])]:
+        with pytest.raises(ValueError, match='unavailable'):
+            load_report_runs(old, sources, {}, composition='matrix',
+                             source_methods=methods, source_cases=broken)
+    with pytest.raises(ValueError, match='Overlapping method-by-task cells'):
+        load_report_runs(old, sources, {}, composition='matrix', source_methods=methods,
+                         source_cases=dict(scopes, primary=ids))
+    with pytest.raises(ValueError, match='complete method-by-task population'):
+        load_report_runs(old, sources, {}, composition='matrix', source_methods=methods,
+                         source_cases=dict(scopes, extra=ids[:1]))

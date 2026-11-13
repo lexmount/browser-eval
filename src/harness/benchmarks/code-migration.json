@@ -4322,7 +4322,7 @@
         },
         "cli.py": {
           "before_sha256": "ca67f5578d2d417a62f96189e857be8b19249882dec37d874d9713c171a6b8ca",
-          "after_sha256": "fa586963437361f58433f92bcdd5eec770a3a3cae707537919cd40a2d3ac2194"
+          "after_sha256": "0f4f2a4c0c898397e05d210aad6e32f5aa800d4adcd4bfce5eda2bc54e193aa2"
         },
         "evidence_quality.py": {
           "before_sha256": "a78ced8f4f45674dcb61acc14998d508e59a361f8983a39d9ab2099d53bf6ef4",
@@ -4330,7 +4330,7 @@
         },
         "inputs.py": {
           "before_sha256": "5883ac279964963ddcd662f47d555e22d1a9af8f4eb6e3b6a7af1988fd6b6ba7",
-          "after_sha256": "ccbba110cdd41d71786c2a60a37c8895006c3b96d9d5f7d6388211f5747f90a8"
+          "after_sha256": "f44f77e4c07be2092349aee8719f22b71ccb438a02e9fc168b3bac7b83d357b3"
         },
         "relevance.py": {
           "before_sha256": "9379e0c98ac4106065588d93f41a48de9022f94c9f0dae99bd02778a496c9127",
@@ -4338,7 +4338,7 @@
         },
         "scoring.py": {
           "before_sha256": "e2d7ef42b8d56bbf6a72596e2d60e40bf339b305f936302d5a23ea430efce47a",
-          "after_sha256": "0fd4a0fb91a9c2343dfba8e6ac58bbc7f7e0ff0eaf2f9a6e485f76ef19e187eb"
+          "after_sha256": "7f1615f1c19f27eccac192ea554155643d892d64be1593a114598bf01eeecf1e"
         },
         "simpleqa.py": {
           "before_sha256": "39cd02fa1b65b10a0bc38cdf9ab245878b8ef7d07705203d10f9f4c2fa5eef0d",
@@ -4346,7 +4346,7 @@
         },
         "versions.py": {
           "before_sha256": "27c10a5f86b4a8ac7841cc9dfbe77c2f724ea675a938bda3719ae05084c058e0",
-          "after_sha256": "89dc3d6c617659147e3600a3621b42b235fd68fb6d8b910a9f9e4b2ea68b0073"
+          "after_sha256": "cd3a9df7243f4356db67adacebe328a64ed6d71d651526b8f4a461fca6ca8852"
         },
         "rubric.py": {
           "before_sha256": "3f5a95c34328ea51c0bd6f147bd713884a5fad19e7a7a6bf1ce998f10fae6d07",
@@ -4410,6 +4410,30 @@
             "tests/benchmarks/websearch/test_scoring.py",
             "tests/benchmarks/websearch/test_simpleqa.py",
             "tests/web_search/test_output_levels.py"
+          ]
+        },
+        {
+          "modules": [
+            "scoring.py"
+          ],
+          "root_cause": "L2 deliberately omits source retrieval metrics, but the shared task predicate still indexed the removed source key. Source acceptance is unavailable at L2 for both successful and failed calls; answer acceptance uses extra text only.",
+          "regression_ids": [
+            "l2-factual-acceptance"
+          ],
+          "tests": [
+            "tests/benchmarks/websearch/test_scoring.py"
+          ]
+        },
+        {
+          "modules": [
+            "inputs.py",
+            "versions.py",
+            "cli.py"
+          ],
+          "root_cause": "Current corrected references were checked against an unchanged frozen release catalog. Resolve historical editions through their recorded dataset and provider revisions, keep current inputs separate and expose unreleased dataset status without changing frozen catalog bytes.",
+          "tests": [
+            "tests/benchmarks/websearch/test_versions.py",
+            "tests/web_search/test_legacy_resume_datasets.py"
           ]
         }
       ]

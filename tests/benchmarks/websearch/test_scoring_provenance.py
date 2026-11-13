@@ -27,12 +27,17 @@ def verify_receipt(receipt, package):
             logical = Path(*relative.parts[1:]).as_posix()
             if logical in {"datasets/factual-v1.json", "factual-source.json"}:
                 # These frozen receipt paths now have one canonical data owner.
-                canonical = binding("simpleqa-verified")
-                actual = locked_definition("simpleqa-verified", logical)
+                selected = binding("simpleqa-verified")
+                canonical = next(item for item in [selected, *selected.get("history", [])]
+                                 if item["files"]["definitions/" + logical]["sha256"] == digest)
+                actual = locked_definition("simpleqa-verified", logical, canonical["revision"])
                 assert hashlib.sha256(actual.read_bytes()).hexdigest() == canonical["files"]["definitions/" + logical]["sha256"]
                 assert "definitions/" + logical not in binding("websearch")["files"]
             else:
-                actual = definition_path(logical)
+                selected = binding("websearch")
+                canonical = next(item for item in [selected, *selected.get("history", [])]
+                                 if item["files"].get("definitions/" + logical, {}).get("sha256") == digest)
+                actual = locked_definition("websearch", logical, canonical["revision"])
         else:
             actual = package / relative
         migration = json.loads(files("harness.benchmarks").joinpath("code-migration.json").read_bytes())

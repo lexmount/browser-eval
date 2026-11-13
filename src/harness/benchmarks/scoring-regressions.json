@@ -85551,6 +85551,54 @@
         "method": "b",
         "expected": true
       }
+    ],
+    "l2-factual-acceptance": [
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "id": "fact",
+          "query": "A fact?",
+          "reference_answer": "needle",
+          "reference_urls": [
+            "https://example.org/page"
+          ],
+          "evaluation_level": "l2"
+        },
+        "results": [
+          {
+            "url": "https://example.org/page",
+            "title": "needle",
+            "snippet": "needle"
+          }
+        ],
+        "expected": true,
+        "unavailable_metrics": [
+          "source"
+        ]
+      },
+      {
+        "kind": "factual_dataset",
+        "case": {
+          "id": "fact",
+          "query": "A fact?",
+          "reference_answer": "needle",
+          "reference_urls": [
+            "https://example.org/page"
+          ],
+          "evaluation_level": "l2"
+        },
+        "results": [
+          {
+            "url": "https://example.org/page",
+            "title": "needle",
+            "snippet": "unrelated text"
+          }
+        ],
+        "expected": false,
+        "unavailable_metrics": [
+          "source"
+        ]
+      }
     ]
   },
   "web_search_normalization": {

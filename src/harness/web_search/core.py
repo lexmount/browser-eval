@@ -93,7 +93,8 @@ def normalized_answer(payload, method):
     adapter = adapter_for(method['adapter'])
     if not adapter.field_map(method)['answer']:
         return None
-    value = normalize_envelope(payload, method['adapter']).get('answer', '')
+    value = normalize_envelope(payload, method['adapter'], top_k=0, project_slots=True,
+                               preserve_invalid_slots=True).get('answer', '')
     if not isinstance(value, str):
         raise ValueError('Generated answers must be text')
     return value
